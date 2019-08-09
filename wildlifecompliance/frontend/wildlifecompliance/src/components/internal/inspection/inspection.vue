@@ -108,6 +108,8 @@
                 <div class="container-fluid">
                     <ul class="nav nav-pills aho2">
                         <li class="nav-item active"><a data-toggle="tab" :href="'#'+iTab">Inspection</a></li>
+                        <li class="nav-item"><a data-toggle="tab" :href="'#'+cTab">Checklist</a></li>
+                        <li class="nav-item"><a data-toggle="tab" :href="'#'+oTab">Outcomes</a></li>
                         <li class="nav-item"><a data-toggle="tab" :href="'#'+rTab">Related Items</a></li>
                     </ul>
                     <div class="tab-content">
@@ -123,7 +125,7 @@
                                 <div class="col-sm-6">
                                   <select :disabled="readonlyForm" class="form-control" v-model="inspection.inspection_type_id">
                                     <option  v-for="option in inspectionTypes" :value="option.id" v-bind:key="option.id">
-                                      {{ option.description }}
+                                      {{ option.inspection_type }}
                                     </option>
                                   </select>
                                 </div>
@@ -234,17 +236,33 @@
                         <div :id="cTab" class="tab-pane fade in">
                             <FormSection :formCollapse="false" label="Checklist">
                                 <div class="col-sm-12 form-group"><div class="row">
-                                    <div class="col-sm-12">
-                                        Checklist
+                                    <div v-for="(item, index) in current_schema">
+                                      <compliance-renderer-block
+                                         :component="item"
+                                         :createDocumentActionUrl="createDocumentActionUrl"
+                                         v-bind:key="`compliance_renderer_block_${index}`"
+                                        />
                                     </div>
                                 </div></div>
                             </FormSection>
                         </div>
                         <div :id="oTab" class="tab-pane fade in">
-                            <FormSection :formCollapse="false" label="Outcomes">
+                            <FormSection :formCollapse="false" label="Inspection report">
+                                <div class="form-group">
+                                    <div class="row">
+                                        <div class="col-sm-3">
+                                            <label class="control-label pull-left"  for="Name">Inspection Report</label>
+                                        </div>
+                                        <div class="col-sm-9">
+                                            <filefield ref="inspection_report_file" name="inspection-report-file" :isRepeatable="false" :createDocumentActionUrl="createDocumentActionUrl" />
+                                        </div>
+                                    </div>
+                                </div>
+                            </FormSection>
+                            <FormSection :formCollapse="false" label="Sanction Outcomes">
                                 <div class="col-sm-12 form-group"><div class="row">
                                     <div class="col-sm-12">
-                                        Outcomes
+                                        
                                     </div>
                                 </div></div>
                             </FormSection>
@@ -300,6 +318,8 @@ import 'bootstrap/dist/css/bootstrap.css';
 import 'eonasdan-bootstrap-datetimepicker';
 import Offence from '../offence/offence';
 import SanctionOutcome from '../sanction_outcome/sanction_outcome';
+import filefield from '@/components/common/compliance_file.vue';
+
 
 export default {
   name: "ViewInspection",
@@ -309,6 +329,7 @@ export default {
       rTab: 'rTab'+this._uid,
       oTab: 'oTab'+this._uid,
       cTab: 'cTab'+this._uid,
+      current_schema: [],
       dtHeadersRelatedItems: [
           'Number',
           'Type',
@@ -416,6 +437,7 @@ export default {
     CreateNewPerson,
     Offence,
     SanctionOutcome,
+    filefield,
   },
   watch: {
       inspection: {
@@ -477,6 +499,28 @@ export default {
       } else {
         // Should not reach here
       }
+    },
+    loadSchema: function() {
+      this.$nextTick(async function() {
+      let url = helpers.add_endpoint_json(
+                    api_endpoints.inspection_types,
+                    this.inspection.inspection_type_id + '/get_schema',
+                    );
+      let returned_schema = await cache_helper.getSetCache(
+        'Inspection_InspectionTypeSchema', 
+        this.inspection.id.toString(),
+        url);
+      if (returned_schema) {
+        this.current_schema = returned_schema.schema;
+      }
+        
+      });
+    },
+    createDocumentActionUrl: async function() {
+      return helpers.add_endpoint_join(
+          api_endpoints.inspection,
+          this.inspection.id + "/process_inspection_report_document/"
+          )
     },
     sanction_outcome(){
       console.log('sanction_outcome');
@@ -682,6 +726,12 @@ export default {
               filter(Boolean).join(", ");
           this.$refs.search_person.setInput(value);
       }
+      // load Inspection report
+      await this.$refs.inspection_report_file.get_documents();
+    // load current Inspection renderer schema
+    if (this.inspection.inspection_type_id) {
+      await this.loadSchema();
+    }
   },
   mounted: function() {
       let vm = this;

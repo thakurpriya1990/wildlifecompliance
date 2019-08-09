@@ -63,6 +63,7 @@ from wildlifecompliance.components.inspection.serializers import (
     InspectionTypeSerializer,
     #InspectionTeamSerializer,
     EmailUserSerializer,
+    InspectionTypeSchemaSerializer,
     )
 from wildlifecompliance.components.users.models import (
     CompliancePermissionGroup,    
@@ -148,17 +149,21 @@ class InspectionFilterBackend(DatatablesFilterBackend):
         if len(ordering):
             for num, item in enumerate(ordering):
                 if item == 'planned_for':
-                    ordering.pop(num)
-                    ordering.insert(num, 'planned_for_date')
-                if item == '-planned_for':
-                    ordering.pop(num)
-                    ordering.insert(num, '-planned_for_date')
-                if item == 'status__name':
-                    ordering.pop(num)
-                    ordering.insert(num, 'status')
-                if item == '-status__name':
-                    ordering.pop(num)
-                    ordering.insert(num, '-status')
+                    # ordering.pop(num)
+                    # ordering.insert(num, 'planned_for_date')
+                    ordering[num] = 'planned_for_date'
+                elif item == '-planned_for':
+                    # ordering.pop(num)
+                    # ordering.insert(num, '-planned_for_date')
+                    ordering[num] = '-planned_for_date'
+                elif item == 'status__name':
+                    # ordering.pop(num)
+                    # ordering.insert(num, 'status')
+                    ordering[num] = 'status'
+                elif item == '-status__name':
+                    # ordering.pop(num)
+                    # ordering.insert(num, '-status')
+                    ordering[num] = '-status'
 
             queryset = queryset.order_by(*ordering)
 
@@ -507,6 +512,33 @@ class InspectionViewSet(viewsets.ModelViewSet):
             print(traceback.print_exc())
             raise serializers.ValidationError(str(e))
 
+    @detail_route(methods=['POST'])
+    @renderer_classes((JSONRenderer,))
+    def process_inspection_report_document(self, request, *args, **kwargs):
+        try:
+            instance = self.get_object()
+            returned_data = process_generic_document(
+                request, 
+                instance, 
+                document_type='inspection_report'
+                )
+            if returned_data:
+                return Response(returned_data)
+            else:
+                return Response()
+
+        except serializers.ValidationError:
+            print(traceback.print_exc())
+            raise
+        except ValidationError as e:
+            if hasattr(e, 'error_dict'):
+                raise serializers.ValidationError(repr(e.error_dict))
+            else:
+                raise serializers.ValidationError(repr(e[0].encode('utf-8')))
+        except Exception as e:
+            print(traceback.print_exc())
+            raise serializers.ValidationError(str(e))
+
     def create(self, request, *args, **kwargs):
         try:
             with transaction.atomic():
@@ -656,7 +688,7 @@ class InspectionViewSet(viewsets.ModelViewSet):
         except Exception as e:
             print(traceback.print_exc())
             raise serializers.ValidationError(str(e))
-
+    
     @detail_route(methods=['POST'])
     @renderer_classes((JSONRenderer,))
     def create_modal_process_comms_log_document(self, request, *args, **kwargs):
@@ -698,4 +730,24 @@ class InspectionTypeViewSet(viewsets.ModelViewSet):
        if is_internal(self.request):
            return InspectionType.objects.all()
        return InspectionType.objects.none()
+
+   @detail_route(methods=['GET',])
+   @renderer_classes((JSONRenderer,))
+   def get_schema(self, request, *args, **kwargs):
+       instance = self.get_object()
+       try:
+           serializer = InspectionTypeSchemaSerializer(instance)
+           return Response(
+               serializer.data,
+               status=status.HTTP_201_CREATED,
+               )
+       except serializers.ValidationError:
+           print(traceback.print_exc())
+           raise
+       except ValidationError as e:
+           print(traceback.print_exc())
+           raise serializers.ValidationError(repr(e.error_dict))
+       except Exception as e:
+           print(traceback.print_exc())
+           raise serializers.ValidationError(str(e))
 
