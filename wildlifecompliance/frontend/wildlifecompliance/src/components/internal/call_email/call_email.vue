@@ -398,7 +398,7 @@ import 'bootstrap/dist/css/bootstrap.css';
 import 'eonasdan-bootstrap-datetimepicker';
 require("select2/dist/css/select2.min.css");
 require("select2-bootstrap-theme/dist/select2-bootstrap.min.css");
-import Inspection from '../inspection/create_inspection_modal';
+import Inspection from '../inspection/inspection_modal';
 
 export default {
   name: "ViewCallEmail",
@@ -548,7 +548,6 @@ export default {
       loadCallEmail: 'loadCallEmail',
       saveCallEmail: 'saveCallEmail',
       setCallEmail: 'setCallEmail', 
-      // loadAllocatedGroup: 'loadAllocatedGroup',
       setRegionId: 'setRegionId',
       setAllocatedGroupList: 'setAllocatedGroupList',
       setOccurrenceTimeStart: 'setOccurrenceTimeStart',
@@ -558,9 +557,6 @@ export default {
     }),
     ...mapActions({
       saveFormData: "saveFormData",
-    }),
-    ...mapActions({
-      loadCurrentUser: "loadCurrentUser",
     }),
     updateWorkflowBindId: function() {
         let timeNow = Date.now()
@@ -747,12 +743,6 @@ export default {
         }
       });
     },
-  },
-  beforeRouteEnter: function(to, from, next) {
-            next(async (vm) => {
-                await vm.loadCurrentUser({ url: `/api/my_compliance_user_details` });
-                
-            });
   },
   created: async function() {
     
