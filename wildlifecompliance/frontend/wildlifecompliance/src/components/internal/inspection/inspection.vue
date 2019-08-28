@@ -242,7 +242,7 @@
                             </div>
                             <div class="col-sm-12 form-group"><div class="row">
                                 <div v-if="inspection">
-                                  <datatable ref="inspection_team_table" id="inspection-team-table" :dtOptions="dtOptionsInspectionTeam" :dtHeaders="dtHeadersInspectionTeam" />
+                                    <datatable ref="inspection_team_table" id="inspection-team-table" :dtOptions="dtOptionsInspectionTeam" :dtHeaders="dtHeadersInspectionTeam" />
                                 </div>
                             </div></div>
                           </FormSection>
@@ -285,8 +285,8 @@
                         <div :id="rTab" class="tab-pane fade in">
                             <FormSection :formCollapse="false" label="Related Items">
                                 <div class="col-sm-12 form-group"><div class="row">
-                                    <div class="col-sm-12">
-                                        <datatable ref="related_items_table" id="related_items_table" :dtOptions="dtOptionsRelatedItems" :dtHeaders="dtHeadersRelatedItems" />
+                                    <div class="col-sm-12" v-if="relatedItemsVisibility">
+                                        <RelatedItems v-bind:key="relatedItemsBindId" :parent_update_related_items="setRelatedItems"/>
                                     </div>
                                 </div></div>
                             </FormSection>
@@ -336,6 +336,7 @@ import Offence from '../offence/offence';
 import SanctionOutcome from '../sanction_outcome/sanction_outcome_modal';
 import filefield from '@/components/common/compliance_file.vue';
 import InspectionModal from './inspection_modal.vue';
+import RelatedItems from "@common-components/related_items.vue";
 
 
 export default {
@@ -458,14 +459,7 @@ export default {
     SanctionOutcome,
     filefield,
     InspectionModal,
-  },
-  watch: {
-      inspection: {
-          handler: function (){
-              this.constructRelatedItemsTable();
-          },
-          deep: true
-      },
+    RelatedItems,
   },
   computed: {
     ...mapGetters('inspectionStore', {
@@ -479,6 +473,9 @@ export default {
     },
     readonlyForm: function() {
         return !this.inspection.can_user_action;
+    },
+    canUserAction: function() {
+        return this.inspection.can_user_action;
     },
     inspectionReportExists: function() {
         return this.inspection.inspection_report.length > 0 ? true : false;
@@ -508,6 +505,13 @@ export default {
             return false;
         }
     },
+    testProblem: function() {
+        if (this.canUserAction) {
+            return true;
+        } else {
+            return false;
+        }
+    },
     requestAmendmentVisibility: function() {
         if (this.inspection.status && !this.readonlyForm) {
             return this.inspection.status.id === 'with_manager' ? true : false;
@@ -529,6 +533,21 @@ export default {
             return false;
         }
     },
+    relatedItemsBindId: function() {
+        let timeNow = Date.now()
+        if (this.inspection && this.inspection.id) {
+            return 'inspection_' + this.inspection.id + '_' + this._uid;
+        } else {
+            return timeNow.toString();
+        }
+    },
+    relatedItemsVisibility: function() {
+        if (this.inspection && this.inspection.id) {
+            return true;
+        } else {
+            return false;
+        }
+    }
   },
   filters: {
     formatDate: function(data) {
@@ -543,6 +562,7 @@ export default {
       setPlannedForTime: 'setPlannedForTime',
       modifyInspectionTeam: 'modifyInspectionTeam',
       setPartyInspected: 'setPartyInspected',
+      setRelatedItems: 'setRelatedItems',
     }),
     newPersonCreated: function(obj) {
         console.log(obj);

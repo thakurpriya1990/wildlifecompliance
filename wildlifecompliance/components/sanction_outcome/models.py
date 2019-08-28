@@ -143,11 +143,13 @@ class SanctionOutcome(models.Model):
     
     @property
     def get_related_items_identifier(self):
-        return self.identifier
+        #return self.identifier
+        return self.lodgement_number
 
     @property
     def get_related_items_descriptor(self):
-        return '{0}, {1}'.format(self.lodgement_number, self.description)
+        #return '{0}, {1}'.format(self.identifier, self.description)
+        return self.identifier
 
 
 class RemediationAction(models.Model):
