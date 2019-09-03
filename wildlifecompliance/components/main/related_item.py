@@ -11,7 +11,7 @@ from utils import approved_related_item_models
 class RelatedItem:
 
     def __init__(self, model_name, identifier, descriptor, 
-            action_url=None, weak_link=False, second_object_id=None, second_content_type=None):
+            action_url, weak_link=False, second_object_id=None, second_content_type=None):
         self.model_name = model_name
         self.identifier = identifier
         self.descriptor = descriptor
@@ -38,11 +38,11 @@ def format_url(model_name, obj_id):
         lower_model_name = model_name.lower()
         obj_id_str = str(obj_id)
         switcher = {
-                'callemail': '<a href=/internal/call_email/' + obj_id_str + '>View</a>',
-                'inspection': '<a href=/internal/inspection/' + obj_id_str + '>View</a>',
-                'offence': '<a href=/internal/offence/' + obj_id_str + '>View</a>',
-                'sanctionoutcome': '<a href=/internal/sanction_outcome/' + obj_id_str + '>View</a>',
-                'case': '<a href=/internal/case/' + obj_id_str + '>View</a>',
+                'callemail': '<a href=/internal/call_email/' + obj_id_str + ' target="_blank">View</a>',
+                'inspection': '<a href=/internal/inspection/' + obj_id_str + ' target="_blank">View</a>',
+                'offence': '<a href=/internal/offence/' + obj_id_str + ' target="_blank">View</a>',
+                'sanctionoutcome': '<a href=/internal/sanction_outcome/' + obj_id_str + ' target="_blank">View</a>',
+                'case': '<a href=/internal/case/' + obj_id_str + ' target="_blank">View</a>',
                 }
         return switcher.get(lower_model_name, '')
 
@@ -108,7 +108,11 @@ def get_related_items(entity, **kwargs):
                         descriptor = link.second_content_object.get_related_items_descriptor,
                         second_object_id = link.second_content_object.id,
                         second_content_type = link_content_type.model,
-                        weak_link = True
+                        weak_link = True,
+                        action_url = format_url(
+                                model_name=link_content_type.model,
+                                obj_id=link.second_content_object.id
+                                )
                         )
                 return_list.append(related_item)
 
@@ -129,7 +133,11 @@ def get_related_items(entity, **kwargs):
                         descriptor = link.first_content_object.get_related_items_descriptor,
                         second_object_id = link.first_content_object.id,
                         second_content_type = link_content_type.model,
-                        weak_link = True
+                        weak_link = True,
+                        action_url = format_url(
+                                model_name=link_content_type.model,
+                                obj_id=link.first_content_object.id
+                                )
                         )
                 return_list.append(related_item)
         

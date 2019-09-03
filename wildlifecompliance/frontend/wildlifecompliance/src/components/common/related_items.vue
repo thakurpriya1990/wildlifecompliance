@@ -7,7 +7,7 @@
         </div></div>
         <div>
             <!--WeakLinks @weak-link-selected="createWeakLink"/-->
-            <WeakLinks ref="weak_links_lookup"/>
+            <WeakLinks ref="weak_links_lookup" :readonlyForm="readonlyForm"/>
         </div>
     </div>
 </template>
@@ -29,6 +29,10 @@ export default {
     props: {
           parent_update_related_items: {
               type: Function,
+          },
+          readonlyForm: {
+              type: Boolean,
+              default: false,
           },
     },
 
@@ -55,13 +59,12 @@ export default {
               {
                   data: 'Action',
                   mRender: function(data, type, row){
-                      if (!row.Action.weak_link) {
-                          return row.Action.action_url;
-                      } else if (row.Action.weak_link && row.Action.can_user_action) {
-                          return '<a href="#" class="remove_button" second-content-type="' + row.Action.second_content_type + '" second-object-id="' + row.Action.second_object_id + '">Remove</a>';
-                      } else {
-                          return '';
+                      let links = '';
+                      if (row.Action.weak_link && row.Action.can_user_action) {
+                          links += '<a href="#" class="remove_button" second-content-type="' + row.Action.second_content_type + '" second-object-id="' + row.Action.second_object_id + '">Remove</a>';
                       }
+                      links += row.Action.action_url;
+                      return links
                   }
               },
           ]
@@ -154,7 +157,7 @@ export default {
         console.log('constructRelatedItemsTable');
         this.$refs.related_items_table.vmDataTable.clear().draw();
 
-        if(this.displayedEntity.related_items){
+        if(this.displayedEntity && this.displayedEntity.related_items){
           for(let i = 0; i< this.displayedEntity.related_items.length; i++){
             //let already_exists = this.$refs.related_items_table.vmDataTable.columns(0).data()[0].includes(this.displayedEntity.related_items[i].id);
 

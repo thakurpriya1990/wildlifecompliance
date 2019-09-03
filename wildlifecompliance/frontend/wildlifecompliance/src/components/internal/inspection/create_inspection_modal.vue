@@ -1,10 +1,10 @@
 <template lang="html">
-    <div id="InspectionWorkflow">
+    <div id="CreateInspection">
         <modal transition="modal fade" @ok="ok()" @cancel="cancel()" title="Create New Inspection" large force>
           <div class="container-fluid">
             <div class="row">
                 <div class="col-sm-12">
-                        <div class="form-group" v-if="!this.workflow_type">
+                        <div class="form-group">
                           <div class="row">
                             <div class="col-sm-3">
                               <label>Region</label>
@@ -18,7 +18,7 @@
                             </div>
                           </div>
                         </div>
-                        <div class="form-group" v-if="!this.workflow_type">
+                        <div class="form-group">
                           <div class="row">
                             <div class="col-sm-3">
                               <label>District</label>
@@ -68,7 +68,7 @@
                                   <label class="control-label pull-left" for="details">Details</label>
                               </div>
             			      <div class="col-sm-6">
-                                  <textarea class="form-control" placeholder="add details" id="details" v-model="workflowDetails"/>
+                                  <textarea class="form-control" placeholder="add details" id="details" v-model="inspectionDetails"/>
                               </div>
                           </div>
                         </div>
@@ -112,7 +112,7 @@ import filefield from '@/components/common/compliance_file.vue';
 import { required, minLength, between } from 'vuelidate/lib/validators'
 
 export default {
-    name: "InspectionWorking",
+    name: "CreateInspection",
     data: function() {
       return {
             officers: [],
@@ -125,7 +125,7 @@ export default {
             casePriorities: [],
             inspectionTypes: [],
             externalOrganisations: [],
-            workflowDetails: '',
+            inspectionDetails: '',
             errorResponse: "",
             region_id: null,
             district_id: null,
@@ -135,12 +135,6 @@ export default {
             allocatedGroup: [],
             allocated_group_id: null,
             documentActionUrl: '',
-            // files: [
-            //         {
-            //             'file': null,
-            //             'name': ''
-            //         }
-            //     ]
       }
     },
     components: {
@@ -158,12 +152,12 @@ export default {
             required,
         },
     },
-    props:{
-          workflow_type: {
-              type: String,
-              default: '',
-          },
-    },
+    // props:{
+    //       workflow_type: {
+    //           type: String,
+    //           default: '',
+    //       },
+    // },
     computed: {
       ...mapGetters('inspectionStore', {
         inspection: "inspection",
@@ -310,13 +304,14 @@ export default {
       },
       sendData: async function() {
           let post_url = '';
-          if (this.inspection && this.inspection.id) {
-              post_url = '/api/inspection/' + this.inspection.id + '/workflow_action/'
+          if (!this.inspection.id) {
+              post_url = '/api/inspection/';
           } else {
-                post_url = '/api/inspection/'
+              post_url = '/api/inspection/' + this.inspection.id + '/workflow_action/';
           }
+          
           let payload = new FormData();
-          payload.append('details', this.workflowDetails);
+          payload.append('details', this.inspectionDetails);
           this.$refs.comms_log_file.commsLogId ? payload.append('inspection_comms_log_id', this.$refs.comms_log_file.commsLogId) : null;
           this.parent_call_email ? payload.append('call_email_id', this.call_email.id) : null;
           this.district_id ? payload.append('district_id', this.district_id) : null;
@@ -324,7 +319,7 @@ export default {
           this.inspection_type_id ? payload.append('inspection_type_id', this.inspection_type_id) : null;
           this.region_id ? payload.append('region_id', this.region_id) : null;
           this.allocated_group_id ? payload.append('allocated_group_id', this.allocated_group_id) : null;
-          this.workflow_type ? payload.append('workflow_type', this.workflow_type) : null;
+          //this.workflow_type ? payload.append('workflow_type', this.workflow_type) : null;
           //!payload.has('allocated_group') ? payload.append('allocated_group', this.allocatedGroup) : null;
 
           try {
@@ -341,7 +336,7 @@ export default {
       createDocumentActionUrl: async function(done) {
         if (!this.inspection.id) {
             // create inspection and update vuex
-            let returned_inspection = await this.saveInspection({ route: false, crud: 'create', internal: true })
+            let returned_inspection = await this.saveInspection({ create: true, internal: true })
             await this.loadInspection({inspection_id: returned_inspection.body.id});
         }
         // populate filefield document_action_url
