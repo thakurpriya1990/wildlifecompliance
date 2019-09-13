@@ -262,7 +262,7 @@
                                 <FormSection :formCollapse="false" label="Related Items" Index="4">
                                     <div class="col-sm-12 form-group"><div class="row">
                                         <div class="col-sm-12">
-                                            <RelatedItems v-bind:key="relatedItemsBindId"/>
+                                            <RelatedItems v-bind:key="relatedItemsBindId" :parent_update_related_items="setRelatedItems" />
                                         </div>
                                     </div></div>
                                 </FormSection>
@@ -568,6 +568,9 @@ export default {
         },
     },
     methods: {
+        ...mapActions('offenceStore', {
+          setRelatedItems: 'setRelatedItems',
+        }),
         save: async function() {
             try{
                 let fetchUrl = helpers.add_endpoint_json(api_endpoints.offence, this.offence.id + '/update_offence');
