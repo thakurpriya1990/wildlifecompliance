@@ -484,6 +484,16 @@ export default {
         ...mapGetters('offenceStore', {
             //offence: "offence",
         }),
+        readonlyForm: function() {
+            return !this.canUserEditForm;
+        },
+        canUserEditForm: function() {
+            let canUserEdit = false;
+            if (this.offence.can_user_action){
+                canUserEdit = true;
+            }
+            return canUserEdit;
+        },
         occurrenceDateLabel: function() {
             if (this.offence.occurrence_from_to) {
                 return "Occurrence date from";
