@@ -107,16 +107,16 @@
                                         </div>
                                         <div class="col-sm-6">
                                             <div v-if="offence">
-                                                <input type="text" class="form-control" name="identifier" placeholder="" v-model="offence.identifier" v-bind:key="offence.id">
+                                                <input type="text" :readonly="readonlyForm" class="form-control" name="identifier" v-model="offence.identifier">
                                             </div>
                                         </div>
                                     </div></div>
 
                                     <div class="col-sm-12 form-group"><div class="row">
                                         <label class="col-sm-3">Use occurrence from/to</label>
-                                        <input class="col-sm-1" id="occurrence_from_to_true" type="radio" v-model="offence.occurrence_from_to" v-bind:value="true">
+                                        <input class="col-sm-1" :disabled="readonlyForm" id="occurrence_from_to_true" type="radio" v-model="offence.occurrence_from_to" v-bind:value="true">
                                         <label class="col-sm-1 radio-button-label" for="occurrence_from_to_true">Yes</label>
-                                        <input class="col-sm-1" id="occurrence_from_to_false" type="radio" v-model="offence.occurrence_from_to" v-bind:value="false">
+                                        <input class="col-sm-1" :disabled="readonlyForm" id="occurrence_from_to_false" type="radio" v-model="offence.occurrence_from_to" v-bind:value="false">
                                         <label class="col-sm-1 radio-button-label" for="occurrence_from_to_false">No</label>
                                     </div></div>
 
@@ -124,7 +124,7 @@
                                         <label class="col-sm-3">{{ occurrenceDateLabel }}</label>
                                         <div class="col-sm-3">
                                             <div class="input-group date" ref="occurrenceDateFromPicker">
-                                                <input type="text" class="form-control" placeholder="DD/MM/YYYY" v-model="offence.occurrence_date_from" />
+                                                <input :readonly="readonlyForm" type="text" class="form-control" placeholder="DD/MM/YYYY" v-model="offence.occurrence_date_from" />
                                                 <span class="input-group-addon">
                                                     <span class="glyphicon glyphicon-calendar"></span>
                                                 </span>
@@ -133,7 +133,7 @@
                                         <div v-show="offence.occurrence_from_to">
                                             <div class="col-sm-3">
                                                 <div class="input-group date" ref="occurrenceDateToPicker">
-                                                    <input type="text" class="form-control" placeholder="DD/MM/YYYY" v-model="offence.occurrence_date_to" />
+                                                    <input :readonly="readonlyForm" type="text" class="form-control" placeholder="DD/MM/YYYY" v-model="offence.occurrence_date_to" />
                                                     <span class="input-group-addon">
                                                         <span class="glyphicon glyphicon-calendar"></span>
                                                     </span>
@@ -146,7 +146,7 @@
                                         <label class="col-sm-3">{{ occurrenceTimeLabel }}</label>
                                         <div class="col-sm-3">
                                             <div class="input-group date" ref="occurrenceTimeFromPicker">
-                                                <input type="text" class="form-control" placeholder="HH:MM" v-model="offence.occurrence_time_from" />
+                                                <input :readonly="readonlyForm" type="text" class="form-control" placeholder="HH:MM" v-model="offence.occurrence_time_from" />
                                                 <span class="input-group-addon">
                                                     <span class="glyphicon glyphicon-calendar"></span>
                                                 </span>
@@ -155,7 +155,7 @@
                                         <div v-show="offence.occurrence_from_to">
                                             <div class="col-sm-3">
                                                 <div class="input-group date" ref="occurrenceTimeToPicker">
-                                                    <input type="text" class="form-control" placeholder="HH:MM" v-model="offence.occurrence_time_to" />
+                                                    <input :readonly="readonlyForm" type="text" class="form-control" placeholder="HH:MM" v-model="offence.occurrence_time_to" />
                                                     <span class="input-group-addon">
                                                         <span class="glyphicon glyphicon-calendar"></span>
                                                     </span>
@@ -166,11 +166,13 @@
 
                                     <div class="col-sm-12 form-group"><div class="row">
                                         <label class="col-sm-3">Alleged Offence</label>
-                                        <div class="col-sm-6">
-                                            <input class="form-control" id="alleged-offence" />
-                                        </div>
-                                        <div class="col-sm-3">
-                                            <input type="button" class="btn btn-primary" value="Add" @click.prevent="addAllegedOffenceClicked()" />
+                                        <div v-show="!readonlyForm">
+                                            <div class="col-sm-6">
+                                                <input class="form-control" id="alleged-offence" />
+                                            </div>
+                                            <div class="col-sm-3">
+                                                <input type="button" class="btn btn-primary" value="Add" @click.prevent="addAllegedOffenceClicked()" />
+                                            </div>
                                         </div>
                                     </div></div>
 
@@ -183,28 +185,30 @@
                             </div>
                             <div :id="detailsTab" class="tab-pane face in">
                                 <FormSection :formCollapse="false" label="Details" Index="1">
-                                    <textarea class="form-control" placeholder="add details" v-model="offence.details" />
+                                    <textarea :readonly="readonlyForm" class="form-control" placeholder="add details" v-model="offence.details" />
                                 </FormSection>
                             </div>
                             <div :id="offenderTab" class="tab-pane face in">
                                 <FormSection :formCollapse="false" label="Offender(s)" Index="2">
                                     <div class="col-sm-12 form-group"><div class="row">
-                                        <input class="col-sm-1" id="offender_individual" type="radio" v-model="offender_search_type" value="individual">
+                                        <input :disabled="readonlyForm" class="col-sm-1" id="offender_individual" type="radio" v-model="offender_search_type" value="individual">
                                         <label class="col-sm-1 radio-button-label" for="offender_individual">Individual</label>
-                                        <input class="col-sm-1" id="offender_organisation" type="radio" v-model="offender_search_type" value="organisation">
+                                        <input :disabled="readonlyForm" class="col-sm-1" id="offender_organisation" type="radio" v-model="offender_search_type" value="organisation">
                                         <label class="col-sm-1 radio-button-label" for="offender_organisation">Organisation</label>
                                     </div></div>
 
                                     <div class="col-sm-12 form-group"><div class="row">
                                         <label class="col-sm-2">Offender</label>
-                                        <div class="col-sm-6">
-                                            <PersonSearch ref="person_search" elementId="idSetInParent" classNames="col-sm-5 form-control" @person-selected="personSelected" :search_type="offender_search_type" />
-                                        </div>
-                                        <div class="col-sm-1">
-                                            <input type="button" class="btn btn-primary" value="Add" @click.prevent="addOffenderClicked()" />
-                                        </div>
-                                        <div class="col-sm-2">
-                                            <input type="button" class="btn btn-primary" value="Create New Person" @click.prevent="createNewPersonClicked()" />
+                                        <div v-show="!readonlyForm">
+                                            <div class="col-sm-6">
+                                                <PersonSearch ref="person_search" elementId="idSetInParent" classNames="col-sm-5 form-control" @person-selected="personSelected" :search_type="offender_search_type" />
+                                            </div>
+                                            <div class="col-sm-1">
+                                                <input type="button" class="btn btn-primary" value="Add" @click.prevent="addOffenderClicked()" />
+                                            </div>
+                                            <div class="col-sm-2">
+                                                <input type="button" class="btn btn-primary" value="Create New Person" @click.prevent="createNewPersonClicked()" />
+                                            </div>
                                         </div>
                                     </div></div>
 
@@ -458,11 +462,11 @@ export default {
                 {
                     data: "Action",
                     mRender: function(data, type, row) {
-                    return (
-                        '<a href="#" class="remove_button" data-alleged-offence-id="' +
-                        row.id +
-                        '">Remove</a>'
-                    );
+                        if (row.readonlyForm) {
+                            return '';
+                        } else {
+                            return ('<a href="#" class="remove_button" data-alleged-offence-id="' + row.id + '">Remove</a>');
+                        }
                     }
                 }
                 ]
@@ -865,9 +869,10 @@ export default {
         addAllegedOffenceToTable: function(allegedOffence){
               this.$refs.alleged_offence_table.vmDataTable.row.add({
                   id: allegedOffence.id,
-                  Act: allegedOffence.act,
-                  "Section/Regulation": allegedOffence.name,
-                  "Alleged Offence": allegedOffence.offence_text
+                  Act: allegedOffence.section_regulation.act,
+                  "Section/Regulation": allegedOffence.section_regulation.name,
+                  "Alleged Offence": allegedOffence.section_regulation.offence_text,
+                  readonlyForm: this.readonlyForm,
               }).draw();
         },
         addPersonToTable: function(person) {
