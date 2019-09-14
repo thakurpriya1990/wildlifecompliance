@@ -171,6 +171,7 @@ class WeakLinks(models.Model):
             on_delete=models.CASCADE)
     second_object_id = models.PositiveIntegerField()
     second_content_object = GenericForeignKey('second_content_type', 'second_object_id')
+    comment = models.CharField(max_length=255, blank=True)
 
     class Meta:
         app_label = 'wildlifecompliance'
@@ -195,4 +196,12 @@ class WeakLinks(models.Model):
             logger.debug(log_message)
         else:
             super(WeakLinks, self).save(*args,**kwargs)
+
+
+# temp document obj for generic file upload component
+class TemporaryDocument(Document):
+    _file = models.FileField(max_length=255)
+
+    class Meta:
+        app_label = 'wildlifecompliance'
 

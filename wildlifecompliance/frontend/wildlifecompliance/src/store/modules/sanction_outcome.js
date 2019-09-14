@@ -29,6 +29,15 @@ export const sanctionOutcomeStore = {
                 )
             Vue.set(state.sanction_outcome, 'commsLogsDocumentUrl', commsLogsDocumentUrl); 
         },
+        updateAssignedToId(state, assigned_to_id) {
+            Vue.set(state.sanction_outcome, 'assigned_to_id', assigned_to_id);
+        },
+        updateCanUserAction(state, can_user_action) {
+            Vue.set(state.sanction_outcome, 'can_user_action', can_user_action);
+        },
+        updateRelatedItems(state, related_items) {
+            Vue.set(state.sanction_outcome, 'related_items', related_items);
+        },
     },
     actions: {
         async loadSanctionOutcome({ dispatch, }, { sanction_outcome_id }) {
@@ -101,6 +110,15 @@ export const sanctionOutcomeStore = {
         },
         setSanctionOutcome({ commit, }, sanction_outcome) {
             commit("updateSanctionOutcome", sanction_outcome);
+        },
+        setAssignedToId({ commit, }, assigned_to_id) {
+            commit("updateAssignedToId", assigned_to_id);
+        },
+        setCanUserAction({ commit, }, can_user_action) {
+            commit("updateCanUserAction", can_user_action);
+        },
+        setRelatedItems({ commit }, related_items ) {
+            commit("updateRelatedItems", related_items);
         },
     },
 }
