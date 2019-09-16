@@ -108,13 +108,13 @@
                           </div>
                         </div>
                         
-                        <div  class="row action-button">
+                        <!--div  class="row action-button">
                           <div v-if="!readonlyForm" class="col-sm-12">
                                 <a ref="close" @click="addWorkflow('close')" class="btn btn-primary btn-block">
                                   Close
                                 </a>
                           </div>
-                        </div>
+                        </div-->
 
                     </div>
                 </div>
@@ -205,7 +205,7 @@
                             
                             <div class="col-sm-12 form-group"><div class="row">
                                 <div class="col-sm-8">
-                                    <SearchPerson :isEditable="!readonlyForm" classNames="form-control" elementId="search-person" :search_type="inspection.party_inspected" @person-selected="personSelected"ref="search_person"/>
+                                    <SearchPerson :excludeStaff="true" :isEditable="!readonlyForm" classNames="form-control" elementId="search-person" :search_type="inspection.party_inspected" @person-selected="personSelected"ref="search_person"/>
                                 </div>
                                 <!--div class="col-sm-1">
                                     <input type="button" class="btn btn-primary" value="Add" @click.prevent="addOffenderClicked()" />

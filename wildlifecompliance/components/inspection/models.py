@@ -207,12 +207,15 @@ class Inspection(RevisionedMixin):
             request)
         self.save()
 
-    # def endorsement(self, request):
-    #     self.status = self.STATUS_ENDORSEMENT
-    #     self.log_user_action(
-    #         InspectionUserAction.ACTION_ENDORSEMENT.format(self.number), 
-    #         request)
-    #     self.save()
+    def endorse(self, request):
+        print(request)
+        print(request.user)
+        self.status = self.STATUS_CLOSED
+        self.log_user_action(
+            InspectionUserAction.ACTION_ENDORSEMENT.format(self.number, request.user), 
+            request)
+        self.save()
+        self.close(request)
 
     def close(self, request):
         self.status = self.STATUS_CLOSED
@@ -263,7 +266,7 @@ class InspectionUserAction(UserAction):
     ACTION_SEND_TO_MANAGER = "Send Inspection {} to Manager"
     ACTION_CLOSED = "Close Inspection {}"
     ACTION_REQUEST_AMENDMENT = "Request amendment for {}"
-    ACTION_ENDORSEMENT = "Endorse {}"
+    ACTION_ENDORSEMENT = "Inspection {} has been endorsed by {}"
     # ACTION_ADD_WEAK_LINK = "Create manual link between Inspection: {} and {}: {}"
     # ACTION_REMOVE_WEAK_LINK = "Remove manual link between Inspection: {} and {}: {}"
     ACTION_ADD_WEAK_LINK = "Create manual link between {}: {} and {}: {}"

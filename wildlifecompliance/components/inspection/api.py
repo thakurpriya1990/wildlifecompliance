@@ -726,6 +726,8 @@ class InspectionViewSet(viewsets.ModelViewSet):
                     instance.send_to_manager(request)
                 elif workflow_type == 'request_amendment':
                     instance.request_amendment(request)
+                elif workflow_type == 'endorse':
+                    instance.endorse(request)
                 elif workflow_type == 'close':
                     instance.close(request)
 
