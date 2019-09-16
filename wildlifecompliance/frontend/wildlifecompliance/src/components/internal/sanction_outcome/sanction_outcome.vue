@@ -388,7 +388,6 @@ export default {
         datatable,
     },
     created: async function() {
-        console.log('created');
         if (this.$route.params.sanction_outcome_id) {
             await this.loadSanctionOutcome({ sanction_outcome_id: this.$route.params.sanction_outcome_id });
             this.createStorageAllegedCommittedOffences();

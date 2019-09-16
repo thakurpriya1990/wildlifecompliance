@@ -53,7 +53,7 @@
                         <div class="panel-body panel-collapse">
                             <div v-if="visibilitySaveButton" class="row action-button">
                                 <div class="col-sm-12">
-                                    <a @click="save()" class="btn btn-primary btn-block">
+                                    <a @click="saveOffence()" class="btn btn-primary btn-block">
                                         Save
                                     </a>
                                 </div>
@@ -328,36 +328,36 @@ export default {
             idLocationFieldsDetails: vm.guid + "LocationFieldsDetails",
             sanctionOutcomeInitialised: false,
 
-            offence: {
-                id: null,
-                call_email_id: null,
-                inspection_id: null,
-                identifier: '',
-                status: 'draft',
-                offenders: [],
-                alleged_offences: [],
-                location: {
-                    type: 'Feature',
-                    properties: {
-                        town_suburb: null,
-                        street: null,
-                        state: 'WA',
-                        postcode: null,
-                        country: 'Australia',
-                        details: ''
-                    },
-                    geometry: {
-                        'type': 'Point',
-                        'coordinates': []
-                    }
-                },
-                occurrence_from_to: true,
-                occurrence_date_from: null,
-                occurrence_date_to: null,
-                occurrence_time_from: null,
-                occurrence_time_to: null,
-                details: ''
-            },
+         //   offenceBack: {
+         //       id: null,
+         //       call_email_id: null,
+         //       inspection_id: null,
+         //       identifier: '',
+         //       status: 'draft',
+         //       offenders: [],
+         //       alleged_offences: [],
+         //       location: {
+         //           type: 'Feature',
+         //           properties: {
+         //               town_suburb: null,
+         //               street: null,
+         //               state: 'WA',
+         //               postcode: null,
+         //               country: 'Australia',
+         //               details: ''
+         //           },
+         //           geometry: {
+         //               'type': 'Point',
+         //               'coordinates': []
+         //           }
+         //       },
+         //       occurrence_from_to: true,
+         //       occurrence_date_from: null,
+         //       occurrence_date_to: null,
+         //       occurrence_time_from: null,
+         //       occurrence_time_to: null,
+         //       details: ''
+         //   },
             current_alleged_offence: {  // Store the alleged offence temporarily once selected in awesomplete. Cleared when clicking on the "Add" button.
                 id: null,
                 act: "",
@@ -486,7 +486,7 @@ export default {
     },
     computed: {
         ...mapGetters('offenceStore', {
-            //offence: "offence",
+            offence: "offence",
         }),
         readonlyForm: function() {
             return !this.canUserEditForm;
@@ -568,10 +568,13 @@ export default {
         },
     },
     methods: {
+        ...mapActions('offenceStore', {
+            loadOffenceVuex: 'loadOffence',
+            saveOffence: 'saveOffence',
+        }),
         save: async function() {
             try{
-                let fetchUrl = helpers.add_endpoint_json(api_endpoints.offence, this.offence.id + '/update_offence');
-                //fetchUrl = '/api/offence/' + this.offence.id + '/update_offence.json';
+                let fetchUrl = helpers.add_endpoint_join(api_endpoints.offence, this.offence.id + '/');
 
                 let payload = new Object();
                 Object.assign(payload, this.offence);
@@ -587,14 +590,7 @@ export default {
                   let offenders = this.$refs.offender_table.vmDataTable.rows().data().toArray();
                   payload.offenders = offenders;
 
-                  // Collect alleged offence data from the datatable, and set them to the vuex
-                  let alleged_offences = this.$refs.alleged_offence_table.vmDataTable.rows().data().toArray();
-                  let alleged_offence_ids = alleged_offences.map(a => {
-                    return { id: a.id }; // We just need id to create relations between the offence and the alleged offence(s)
-                  });
-                  payload.alleged_offences = alleged_offence_ids;
-
-                const savedOffence = await Vue.http.post(fetchUrl, payload);
+                const savedOffence = await Vue.http.put(fetchUrl, payload);
                 Vue.set(this, 'offence', savedOffence.body);
                 await swal("Saved", "The record has been saved", "success");
                 return savedOffence;
@@ -743,6 +739,7 @@ export default {
           }
         },
         personSelected: function(para) {
+            console.log('personSelected');
             let vm = this;
             vm.setCurrentOffender(para.data_type, para.id);
         },
@@ -806,31 +803,30 @@ export default {
           });
         },
         addOffenderClicked: function() {
-          let vm = this;
-
-          if (
-            vm.current_offender &&
-            vm.current_offender.id &&
-            vm.current_offender.data_type
-          ) {
+          if (this.current_offender && this.current_offender.id && this.current_offender.data_type) {
             let already_exists = false;
 
-            let ids = vm.$refs.offender_table.vmDataTable.columns(0).data()[0];
-            let data_types = vm.$refs.offender_table.vmDataTable.columns(1).data()[0];
+            let ids = this.$refs.offender_table.vmDataTable.columns(0).data()[0];
+            let data_types = this.$refs.offender_table.vmDataTable.columns(1).data()[0];
 
             for (let i = 0; i < ids.length; i++) {
-              if (ids[i] == vm.current_offender.id && data_types[i] == vm.current_offender.data_type) {
+              if (ids[i] == this.current_offender.id && data_types[i] == this.current_offender.data_type) {
                 already_exists = true;
                 break;
               }
             }
 
             if (!already_exists) {
-                vm.addOffenderToTable(vm.current_offender);
+                if (this.current_offender.data_type == 'individual'){
+                    this.offence.offenders.push({type: 'individual', person: this.current_offender, organisation: null });
+                } else if (this.current_offender.data_type == 'organisation'){
+                    this.offence.offenders.push({type: 'organisation', person: null, organisation: this.current_offender});
+                }
             }
           }
+            this.constructOffendersTable();
 
-          vm.setCurrentOffenderEmpty();
+          this.setCurrentOffenderEmpty();
         },
         addAllegedOffenceClicked: function() {
           let vm = this;
@@ -848,22 +844,12 @@ export default {
 
           vm.setCurrentAllegedOffenceEmpty();
         },
-        transferAllegedOffencesToTable: function(){
-            // This function is for filling existing alleged offences data into the table
+        constructAllegedOffencesTable: function(){
+            this.$refs.alleged_offence_table.vmDataTable.clear().draw();
             if (this.offence.alleged_offences){
                 for(let i=0; i<this.offence.alleged_offences.length; i++){
                     this.addAllegedOffenceToTable(this.offence.alleged_offences[i]);
                 }
-                this.offence.alleged_offences = [];
-            }
-        },
-        transferOffendersToTable: function(){
-            // This function is for filling existing offenders data into the table
-            if (this.offence.offenders){
-                for(let i=0; i<this.offence.offenders.length; i++){
-                    this.addOffenderToTable(this.offence.offenders[i]);
-                }
-                this.offence.offenders = [];
             }
         },
         addAllegedOffenceToTable: function(allegedOffence){
@@ -874,6 +860,14 @@ export default {
                   "Alleged Offence": allegedOffence.section_regulation.offence_text,
                   readonlyForm: this.readonlyForm,
               }).draw();
+        },
+        constructOffendersTable: function(){
+            this.$refs.offender_table.vmDataTable.clear().draw();
+            if (this.offence.offenders){
+                for(let i=0; i<this.offence.offenders.length; i++){
+                    this.addOffenderToTable(this.offence.offenders[i]);
+                }
+            }
         },
         addPersonToTable: function(person) {
               this.$refs.offender_table.vmDataTable.row
@@ -1183,15 +1177,15 @@ export default {
                 returnedOffence.body.occurrence_date_from = moment(returnedOffence.body.occurrence_date_from, 'YYYY-MM-DD').format('DD/MM/YYYY');
             }
             Vue.set(this, 'offence', returnedOffence.body);
-            console.log('returnedOffence');
-            console.log(returnedOffence);
         }
     },
     created: async function() {
         if (this.$route.params.offence_id) {
-            await this.loadOffence(this.$route.params.offence_id);
-            this.transferAllegedOffencesToTable();
-            this.transferOffendersToTable();
+            console.log('created');
+            //await this.loadOffence(this.$route.params.offence_id);
+            await this.loadOffenceVuex({offence_id: this.$route.params.offence_id});
+            this.constructAllegedOffencesTable();
+            this.constructOffendersTable();
         }
         this.$nextTick(function() {
             this.initAwesompleteAllegedOffence();

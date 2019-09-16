@@ -90,6 +90,32 @@ export const offenceStore = {
             state.offence.inspection_id = id;
         },
         updateOffence(state, offence) {
+            console.log('updateOffence');
+            if (!offence.location) {
+                /* When location is null, set default object */
+                offence.location =
+                {
+                    "type": "Feature",
+                    properties: {
+                        town_suburb: null,
+                        street: null,
+                        state: null,
+                        postcode: null,
+                        country: null,
+                    },
+                    id: null,
+                    geometry: {
+                        "type": "Point",
+                        "coordinates": [],
+                    },
+                };
+            }
+            if (offence.occurrence_date_from) {
+                offence.occurrence_date_from = moment(offence.occurrence_date_from, 'YYYY-MM-DD').format('DD/MM/YYYY');
+            }
+            if (offence.occurrence_date_to) {
+                offence.occurrence_date_to = moment(offence.occurrence_date_to, 'YYYY-MM-DD').format('DD/MM/YYYY');
+            }
             Vue.set(state, 'offence', offence);
         },
         updateOffenceEmpty(state){
@@ -146,17 +172,40 @@ export const offenceStore = {
     actions: {
         async loadOffence({ dispatch, }, { offence_id }) {
             try {
-                const returnedOffence = await Vue.http.get(
-                    helpers.add_endpoint_json(
-                        api_endpoints.offence, 
-                        offence_id
-                    )
-                );
-
+                const returnedOffence = await Vue.http.get(helpers.add_endpoint_json(api_endpoints.offence, offence_id));
                 await dispatch("setOffence", returnedOffence.body);
-
             } catch (err) {
                 console.log(err);
+            }
+        },
+        async saveOffence({dispatch, state}) {
+            try{
+                let fetchUrl = helpers.add_endpoint_join(api_endpoints.offence, state.offence.id + '/');
+
+                let payload = new Object();
+                Object.assign(payload, state.offence);
+                if (payload.occurrence_date_from) {
+                    payload.occurrence_date_from = moment(payload.occurrence_date_from, 'DD/MM/YYYY').format('YYYY-MM-DD');
+                }
+                if (payload.occurrence_date_to) {
+                    payload.occurrence_date_to = moment(payload.occurrence_date_to, 'DD/MM/YYYY').format('YYYY-MM-DD');
+                }
+                payload.status = 'open'
+
+                // Collect offenders data from the datatable, and set them to the vuex
+                let offenders = this.$refs.offender_table.vmDataTable.rows().data().toArray();
+                payload.offenders = offenders;
+
+                const savedOffence = await Vue.http.put(fetchUrl, payload);
+                Vue.set(this, 'offence', savedOffence.body);
+                await swal("Saved", "The record has been saved", "success");
+                return savedOffence;
+            } catch (err) {
+                if (err.body.non_field_errors){
+                    await swal("Error", err.body.non_field_errors[0], "error");
+                } else {
+                    await swal("Error", "There was an error saving the record", "error");
+                }
             }
         },
         async createOffence({dispatch, state}){

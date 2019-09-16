@@ -202,9 +202,9 @@ class OffenceViewSet(viewsets.ModelViewSet):
             #instance.inspection.status = 'open_inspection'
             #instance.inspection.save()
 
-    @detail_route(methods=['POST', ])
-    @renderer_classes((JSONRenderer,))
-    def update_offence(self, request, *args, **kwargs):
+    # @detail_route(methods=['POST', ])
+    # @renderer_classes((JSONRenderer,))
+    def update(self, request, *args, **kwargs):
         try:
             with transaction.atomic():
                 instance = self.get_object()
@@ -226,20 +226,20 @@ class OffenceViewSet(viewsets.ModelViewSet):
                 serializer.is_valid(raise_exception=True)
                 saved_offence_instance = serializer.save()  # Here, relations between this offence and location, and this offence and call_email/inspection are created
 
-                # 3. Save alleged offences
-                ids_received = set([d['id'] for d in request_data['alleged_offences']])
-                ids_stored = set(instance.alleged_offences.values_list('id', flat=True))  # making queryset to list
-                ids_to_be_deleted = list(ids_stored - ids_received)  # calculate with set (not list)
-                ids_to_be_added = list(ids_received - ids_stored)
-
-                for id in ids_to_be_added:
-                    alleged_offence = SectionRegulation.objects.get(id=id)
-                    saved_offence_instance.alleged_offences.add(alleged_offence)
-                for id in ids_to_be_deleted:
-                    alleged_offence = SectionRegulation.objects.get(id=id)
-                    saved_offence_instance.alleged_offences.remove(alleged_offence)
-
-                saved_offence_instance.save()
+                # 3. TODO: Handle alleged offences
+                # ids_received = set([d['id'] for d in request_data['alleged_offences']])
+                # ids_stored = set(instance.alleged_offences.values_list('id', flat=True))  # making queryset to list
+                # ids_to_be_deleted = list(ids_stored - ids_received)  # calculate with set (not list)
+                # ids_to_be_added = list(ids_received - ids_stored)
+                #
+                # for id in ids_to_be_added:
+                #     alleged_offence = SectionRegulation.objects.get(id=id)
+                #     saved_offence_instance.alleged_offences.add(alleged_offence)
+                # for id in ids_to_be_deleted:
+                #     alleged_offence = SectionRegulation.objects.get(id=id)
+                #     saved_offence_instance.alleged_offences.remove(alleged_offence)
+                #
+                # saved_offence_instance.save()
 
                 # 4. Create relations between this offence and offender(s)
                 # individual
