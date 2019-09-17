@@ -384,8 +384,6 @@ def search_weak_links(request_data):
                 Q(inspection_type__inspection_type__icontains=search_text) |
                 Q(individual_inspected__first_name__icontains=search_text) |
                 Q(individual_inspected__last_name__icontains=search_text) |
-                Q(organisation_inspected__trading_name__icontains=search_text) |
-                Q(organisation_inspected__name__icontains=search_text) |
                 Q(call_email__number__icontains=search_text)
                 )
     elif 'offence' in components_selected:
@@ -420,22 +418,4 @@ def search_weak_links(request_data):
             'item_description': item.get_related_items_descriptor,
             })
     return return_qs
-
-# list of approved related item models
-approved_related_item_models = [
-        'Offence',
-        'CallEmail',
-        'Inspection',
-        'SanctionOutcome',
-        'Case',
-        'EmailUser',
-        'Organisation',
-        'Offender',
-        ]
-
-approved_email_user_related_items = [
-        'volunteer',
-        'individual_inspected',
-        'email_user',
-        ]
 
