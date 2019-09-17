@@ -24,13 +24,13 @@ from wildlifecompliance.components.main.api import save_location
 
 from wildlifecompliance.components.offence.models import Offence, SectionRegulation, Offender, AllegedOffence
 from wildlifecompliance.components.offence.serializers import (
-        OffenceSerializer, 
-        SectionRegulationSerializer, 
-        SaveOffenceSerializer, 
-        SaveOffenderSerializer, 
-        OrganisationSerializer, 
-        OffenceDatatableSerializer,
-)
+    OffenceSerializer,
+    SectionRegulationSerializer,
+    SaveOffenceSerializer,
+    SaveOffenderSerializer,
+    OrganisationSerializer,
+    OffenceDatatableSerializer,
+    UpdateAssignedToIdSerializer)
 from wildlifecompliance.helpers import is_internal
 
 
@@ -359,6 +359,44 @@ class OffenceViewSet(viewsets.ModelViewSet):
             print(traceback.print_exc())
             raise serializers.ValidationError(str(e))
 
+    @detail_route(methods=['POST', ])
+    @renderer_classes((JSONRenderer,))
+    def update_assigned_to_id(self, request, *args, **kwargs):
+        try:
+            instance = self.get_object()
+
+            validation_serializer = OffenceSerializer(instance, context={'request': request})
+            user_in_group = validation_serializer.data.get('user_in_group')
+
+            if user_in_group:
+                # current user is in the group
+                if request.data.get('current_user'):
+                    # current user is going to assign him or herself to the object
+                    serializer_partial = UpdateAssignedToIdSerializer(instance=instance, data={'assigned_to_id': request.user.id,})
+                else:
+                    # current user is going to assign someone else to the object
+                    serializer_partial = UpdateAssignedToIdSerializer(instance=instance, data=request.data)
+
+                if serializer_partial.is_valid(raise_exception=True):
+                    # Update only assigned_to_id data
+                    serializer_partial.save()
+
+                # Construct return value
+                return_serializer = OffenceSerializer(instance=instance, context={'request': request})
+                headers = self.get_success_headers(return_serializer.data)
+                return Response(return_serializer.data, status=status.HTTP_200_OK, headers=headers)
+            else:
+                return Response(validation_serializer.data, status=status.HTTP_200_OK)
+
+        except serializers.ValidationError:
+            print(traceback.print_exc())
+            raise
+        except ValidationError as e:
+            print(traceback.print_exc())
+            raise serializers.ValidationError(repr(e.error_dict))
+        except Exception as e:
+            print(traceback.print_exc())
+            raise serializers.ValidationError(str(e))
 
 class SearchSectionRegulation(viewsets.ModelViewSet):
     queryset = SectionRegulation.objects.all()

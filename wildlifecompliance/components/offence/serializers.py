@@ -41,6 +41,7 @@ class OffenderSerializer(serializers.ModelSerializer):
     organisation = OrganisationSerializer(read_only=True,)
     number_linked_sanction_outcomes = serializers.SerializerMethodField(read_only=True)
     uuid = serializers.SerializerMethodField(read_only=True)
+    can_user_action = serializers.SerializerMethodField(read_only=True)
 
     class Meta:
         model = Offender
@@ -52,6 +53,7 @@ class OffenderSerializer(serializers.ModelSerializer):
             'reason_for_removal',
             'number_linked_sanction_outcomes',
             'uuid',
+            'can_user_action',
         )
 
     def get_number_linked_sanction_outcomes(self, obj):
@@ -59,6 +61,21 @@ class OffenderSerializer(serializers.ModelSerializer):
 
     def get_uuid(self, obj):
         return str(uuid.uuid4())
+
+    def get_can_user_action(self, obj):
+        if obj.removed:
+            return False
+        return True
+
+
+class UpdateAssignedToIdSerializer(serializers.ModelSerializer):
+    assigned_to_id = serializers.IntegerField(required=False, write_only=True, allow_null=True)
+
+    class Meta:
+        model = Offence
+        fields = (
+            'assigned_to_id',
+        )
 
 
 class OffenceDatatableSerializer(serializers.ModelSerializer):

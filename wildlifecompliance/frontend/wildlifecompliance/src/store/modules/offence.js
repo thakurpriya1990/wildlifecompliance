@@ -167,7 +167,13 @@ export const offenceStore = {
         },
         updateLocationDetailsFieldEmpty(state) {
             state.offence.location.properties.details = "";
-        }
+        },
+        updateAssignedToId(state, assigned_to_id) {
+            Vue.set(state.offence, 'assigned_to_id', assigned_to_id);
+        },
+        updateCanUserAction(state, can_user_action) {
+            Vue.set(state.offence, 'can_user_action', can_user_action);
+        },
     },
     actions: {
         async loadOffence({ dispatch, }, { offence_id }) {
@@ -272,6 +278,12 @@ export const offenceStore = {
         },
         setInspectionId({ commit, }, id){
             commit("updateInspectionId", id);
+        },
+        setAssignedToId({ commit, }, assigned_to_id) {
+            commit("updateAssignedToId", assigned_to_id);
+        },
+        setCanUserAction({ commit, }, can_user_action) {
+            commit("updateCanUserAction", can_user_action);
         },
     },
 };

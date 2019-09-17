@@ -361,15 +361,12 @@ export default {
             dtOptionsOffender: {
                 columns: [
                     {
-                        //data: "id",
                         visible: false,
                         mRender: function(data, type, row) {
                             return row.offender.id;
                         }
                     },
                     {
-                        //data: "data_type",
-                        visible: true,
                         mRender: function(data, type, row) {
                             let data_type = '';
                             if (row.offender.person){
@@ -385,9 +382,7 @@ export default {
                         }
                     },
                     {
-                        //data: "",
                         mRender: function(data, type, row) {
-                            console.log('mRender');
                             if (row.offender.person) {
                                 let full_name = [row.offender.person.first_name, row.offender.person.last_name].filter(Boolean).join(" ");
                                 let email = row.offender.person.email ? "E:" + row.offender.person.email : "";
@@ -398,7 +393,6 @@ export default {
                                 if (row.offender.removed){
                                     myLabel = '<strike>' + myLabel + '</strike>';
                                 }
-
                                 return myLabel;
                             } else if (row.offender.organisation) {
                                 let name = row.offender.organisation.name ? row.offender.organisation.name : "";
@@ -407,21 +401,21 @@ export default {
                                 if (row.offender.removed){
                                     myLabel = '<strike>' + myLabel + '</strike>';
                                 }
-
                                 return myLabel;
                             }
                         }
                     },
                     {
-                        //data: "Action",
                         mRender: function(data, type, row) {
-                            console.log(data);
-                            console.log(row);
-                            if (row.offender.removed){
-                                return ('<a href="#" class="restore_button" data-offender-uuid="' + row.offender.uuid + '">Restore</a>');
-                            } else {
-                                return ('<a href="#" class="remove_button" data-offender-uuid="' + row.offender.uuid + '">Remove</a>');
+                            let ret_str = row.offender.number_linked_sanction_outcomes;
+                            if (row.offence.in_editable_status && row.offence.can_user_action && row.offender.can_user_action){
+                                if (row.offender.removed){
+                                    ret_str = ret_str + '<a href="#" class="restore_button" data-offender-uuid="' + row.offender.uuid + '">Restore</a>';
+                                } else {
+                                    ret_str = ret_str + '<a href="#" class="remove_button" data-offender-uuid="' + row.offender.uuid + '">Remove</a>';
+                                }
                             }
+                            return ret_str;
                         }
                     }
                 ]
@@ -553,7 +547,28 @@ export default {
         ...mapActions('offenceStore', {
             loadOffenceVuex: 'loadOffence',
             saveOffence: 'saveOffence',
+            setAssignedToId: 'setAssignedToId',
+            setCanUserAction: 'setCanUserAction',
         }),
+        updateAssignedToId: async function (user) {
+            let url = helpers.add_endpoint_join(api_endpoints.offence, this.offence.id + '/update_assigned_to_id/');
+            let payload = null;
+            if (user === 'current_user' && this.offence.user_in_group) {
+                payload = {'current_user': true};
+            } else if (user === 'blank') {
+                payload = {'blank': true};
+            } else {
+                payload = { 'assigned_to_id': this.offence.assigned_to_id };
+            }
+            let res = await Vue.http.post(
+                url,
+                payload
+            );
+            this.setAssignedToId(res.body.assigned_to_id);
+            this.setCanUserAction(res.body.can_user_action);
+            this.constructOffendersTable();
+            this.constructAllegedOffencesTable();
+        },
         save: async function() {
             try{
                 let fetchUrl = helpers.add_endpoint_join(api_endpoints.offence, this.offence.id + '/');
@@ -739,40 +754,47 @@ export default {
           vm.newPersonBeingCreated = false;
         },
         removeOffenderClicked: function(e) {
-          let vm = this;
-
-          let offenderId = parseInt(e.target.getAttribute("data-offender-uuid"));
-
             console.log('removeOffenderClicked');
-            console.log('offenderId');
-            console.log(offenderId);
-            console.log('e');
-            console.log(e);
-            console.log('uuid');
-            console.log(uuid());
+            let offender_uuid = e.target.getAttribute("data-offender-uuid");
 
-     //     vm.$refs.offender_table.vmDataTable.rows(function(idx, data, node) {
-     //       if (data.id === offenderId) {
-     //           console.log('removeOffenderClicked');
-     //           console.log('idx:' + idx);
-     //         vm.$refs.offender_table.vmDataTable.rows(idx).data()[0].removed = true;
-     //           vm.$refs.offender_table.vmDataTable.rows(idx).invalidate();
-     //       }
-     //     });
+            // Remove offender
+            for (let i=0; i<this.offence.offenders.length; i++){
+                let offender = this.offence.offenders[i];
+                if (offender.uuid == offender_uuid){
+                    if (offender.id){
+                        // this offender exists in the database
+                        console.log('existing');
+                        offender.removed = true;
+                    } else {
+                        // this is new offender
+                        console.log('new');
+                        this.offence.offenders.splice(i, 1);
+                    }
+                }
+            }
+
+            this.constructOffendersTable();
         },
         restoreOffenderClicked: function(e){
-          let vm = this;
+            console.log('restoreOffenderClicked');
+            let offender_uuid = e.target.getAttribute("data-offender-uuid");
 
-          let offenderId = parseInt(e.target.getAttribute("data-offender-uuid"));
-          vm.$refs.offender_table.vmDataTable.rows(function(idx, data, node) {
-            if (data.id === offenderId) {
-                console.log('restoreOffenderClicked');
-                console.log('idx:' + idx);
-              vm.$refs.offender_table.vmDataTable.rows(idx).data()[0].removed = false;
-                vm.$refs.offender_table.vmDataTable.rows(idx).invalidate();
+            // Restore offender
+            for (let i=0; i<this.offence.offenders.length; i++){
+                let offender = this.offence.offenders[i];
+                if (offender.uuid == offender_uuid){
+                    if (offender.id){
+                        // this offender exists in the database
+                        console.log('existing');
+                        offender.removed = false;
+                    } else {
+                        // this is new offender
+                        // Should not reach here
+                    }
+                }
             }
-          });
 
+            this.constructOffendersTable();
         },
         removeClicked: function(e) {
           let vm = this;
@@ -796,8 +818,9 @@ export default {
         addOffenderClicked: function() {
             console.log('addOffenderClicked');
             if (this.current_offender && this.current_offender.id && this.current_offender.data_type) {
-                let already_exists = false;
 
+                // Check if the item is already in the list
+                let already_exists = false;
                 for (let i=0; i<this.offence.offenders.length; i++){
                     let offender = this.offence.offenders[i];
                     if (this.current_offender.data_type == 'individual'){
@@ -818,16 +841,33 @@ export default {
                 if (!already_exists) {
                     if (this.current_offender.data_type == 'individual'){
                         // Add person as offender object
-                        this.offence.offenders.push({id: '', removed: false, reason_for_removal: '', person: this.current_offender, organisation: null, uuid: uuid() });
+                        this.offence.offenders.push({
+                            id: '', 
+                            can_user_action: true, 
+                            removed: false, 
+                            reason_for_removal: '', 
+                            person: this.current_offender, 
+                            organisation: null, 
+                            number_linked_sanction_outcomes: 0,
+                            uuid: uuid()
+                        });
                     } else if (this.current_offender.data_type == 'organisation'){
                         // Add organisation as offender object
-                        this.offence.offenders.push({id: '', removed: false, reason_for_removal: '', person: null, organisation: this.current_offender, uuid: uuid() });
+                        this.offence.offenders.push({
+                            id: '', 
+                            can_user_action: true, 
+                            removed: false, 
+                            reason_for_removal: '', 
+                            person: null, 
+                            organisation: this.current_offender, 
+                            number_linked_sanction_outcomes: 0,
+                            uuid: uuid() 
+                        });
                     }
                 }
             }
             this.constructOffendersTable();
-
-          this.setCurrentOffenderEmpty();
+            this.setCurrentOffenderEmpty();
         },
         addAllegedOffenceClicked: function() {
           let vm = this;
@@ -871,46 +911,9 @@ export default {
                 }
             }
         },
-        addOffenderToTable: function(offender){
-            console.log('addOffenderToTable');
-            console.log(offender);
-            let vm = this;
-            this.addPersonToTable(offender);
-
-          //  if (offender.person) {
-          //      this.addPersonToTable(offender);
-          //  } else if (offender.organisation) {
-          //      this.addOrganisationToTable(offender);
-          //  }
-        },
-        addPersonToTable: function(offender) {
+        addOffenderToTable: function(offender) {
               this.$refs.offender_table.vmDataTable.row
-                .add({
-                    offender: offender,
-          //        removed: offender.removed,
-          //        reason_for_removal: offender.reason_for_removal,
-          //        data_type: 'individual',
-          //        id: offender.id,
-          //        uuid: offender.uuid,
-          //        first_name: offender.person.first_name,
-          //        last_name: offender.person.last_name,
-          //        email: offender.person.email,
-          //        p_number: offender.person.p_number,
-          //        m_number: offender.person.m_numberum,
-          //        dob: offender.person.dob
-                }).draw();
-        },
-        addOrganisationToTable: function(offender){
-            this.$refs.offender_table.vmDataTable.row
-              .add({
-                removed: offender.removed,
-                reason_for_removal: offender.reason_for_removal,
-                data_type: 'organisation',
-                id: offender.id,
-                uuid: offender.uuid,
-                name: offender.organisation.name,
-                abn: offender.organisation.abn
-              }).draw();
+                .add({ offender: offender, offence: this.offence }).draw();
         },
         markMatchedText(original_text, input) {
           let ret_text = original_text.replace(new RegExp(input, "gi"), function(
