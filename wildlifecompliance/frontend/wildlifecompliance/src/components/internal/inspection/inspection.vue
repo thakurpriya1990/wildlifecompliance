@@ -218,9 +218,9 @@
                                 <div class="col-sm-12" v-if="!readonlyForm">
                                   <CreateNewPerson :displayComponent="displayCreateNewPerson" @new-person-created="newPersonCreated"/>
                                 </div>
-                                <!--div class="col-sm-12" v-if="!readonlyForm">
+                                <div class="col-sm-12" v-if="!readonlyForm">
                                   <CreateNewOrganisation/>
-                                </div-->
+                                </div>
                             </div></div>
                             <div class="col-sm-12 form-group"><div class="row">
                               <label class="col-sm-4" for="inspection_inform">Inform party being inspected</label>
