@@ -296,6 +296,7 @@ import 'bootstrap/dist/css/bootstrap.css';
 import "awesomplete/awesomplete.css";
 import RelatedItems from "@common-components/related_items.vue";
 import moment from 'moment';
+import uuid from 'uuid';
 
 export default {
     name: 'ViewOffence',
@@ -328,36 +329,6 @@ export default {
             idLocationFieldsDetails: vm.guid + "LocationFieldsDetails",
             sanctionOutcomeInitialised: false,
 
-         //   offenceBack: {
-         //       id: null,
-         //       call_email_id: null,
-         //       inspection_id: null,
-         //       identifier: '',
-         //       status: 'draft',
-         //       offenders: [],
-         //       alleged_offences: [],
-         //       location: {
-         //           type: 'Feature',
-         //           properties: {
-         //               town_suburb: null,
-         //               street: null,
-         //               state: 'WA',
-         //               postcode: null,
-         //               country: 'Australia',
-         //               details: ''
-         //           },
-         //           geometry: {
-         //               'type': 'Point',
-         //               'coordinates': []
-         //           }
-         //       },
-         //       occurrence_from_to: true,
-         //       occurrence_date_from: null,
-         //       occurrence_date_to: null,
-         //       occurrence_time_from: null,
-         //       occurrence_time_to: null,
-         //       details: ''
-         //   },
             current_alleged_offence: {  // Store the alleged offence temporarily once selected in awesomplete. Cleared when clicking on the "Add" button.
                 id: null,
                 act: "",
@@ -390,41 +361,50 @@ export default {
             dtOptionsOffender: {
                 columns: [
                     {
-                        data: "id",
-                        visible: false
+                        //data: "id",
+                        visible: false,
+                        mRender: function(data, type, row) {
+                            return row.offender.id;
+                        }
                     },
                     {
-                        data: "data_type",
+                        //data: "data_type",
                         visible: true,
                         mRender: function(data, type, row) {
-                            if(row.removed){
-                                return '<strike>' + row.data_type + '</strike>';
-                            } else {
-                                return row.data_type;
+                            let data_type = '';
+                            if (row.offender.person){
+                                data_type = 'individual';
                             }
+                            else {
+                                data_type = 'organisation';
+                            }
+                            if(row.offender.removed){
+                                data_type = '<strike>' + data_type + '</strike>';
+                            } 
+                            return data_type;
                         }
                     },
                     {
                         //data: "",
                         mRender: function(data, type, row) {
                             console.log('mRender');
-                            if (row.data_type == "individual") {
-                                let full_name = [row.first_name, row.last_name].filter(Boolean).join(" ");
-                                let email = row.email ? "E:" + row.email : "";
-                                let p_number = row.phone_number ? "P:" + row.phone_number : "";
-                                let m_number = row.mobile_number ? "M:" + row.mobile_number : "";
-                                let dob = row.dob ? "DOB:" + row.dob : "DOB: ---";
+                            if (row.offender.person) {
+                                let full_name = [row.offender.person.first_name, row.offender.person.last_name].filter(Boolean).join(" ");
+                                let email = row.offender.person.email ? "E:" + row.offender.person.email : "";
+                                let p_number = row.offender.person.phone_number ? "P:" + row.offender.person.phone_number : "";
+                                let m_number = row.offender.person.mobile_number ? "M:" + row.offender.person.mobile_number : "";
+                                let dob = row.offender.person.dob ? "DOB:" + row.offender.person.dob : "DOB: ---";
                                 let myLabel = ["<strong>" + full_name + "</strong>", email, p_number, m_number, dob].filter(Boolean).join("<br />");
-                                if (row.removed){
+                                if (row.offender.removed){
                                     myLabel = '<strike>' + myLabel + '</strike>';
                                 }
 
                                 return myLabel;
-                            } else if (row.data_type == "organisation") {
-                                let name = row.name ? row.name : "";
-                                let abn = row.abn ? "ABN:" + row.abn : "";
+                            } else if (row.offender.organisation) {
+                                let name = row.offender.organisation.name ? row.offender.organisation.name : "";
+                                let abn = row.offender.organisation.abn ? "ABN:" + row.offender.organisation.abn : "";
                                 let myLabel = ["<strong>" + name + "</strong>", abn].filter(Boolean).join("<br />");
-                                if (row.removed){
+                                if (row.offender.removed){
                                     myLabel = '<strike>' + myLabel + '</strike>';
                                 }
 
@@ -433,12 +413,14 @@ export default {
                         }
                     },
                     {
-                        data: "Action",
+                        //data: "Action",
                         mRender: function(data, type, row) {
-                            if (row.removed){
-                                return ('<a href="#" class="restore_button" data-offender-id="' + row.id + '">Restore</a>');
+                            console.log(data);
+                            console.log(row);
+                            if (row.offender.removed){
+                                return ('<a href="#" class="restore_button" data-offender-uuid="' + row.offender.uuid + '">Restore</a>');
                             } else {
-                                return ('<a href="#" class="remove_button" data-offender-id="' + row.id + '">Remove</a>');
+                                return ('<a href="#" class="remove_button" data-offender-uuid="' + row.offender.uuid + '">Remove</a>');
                             }
                         }
                     }
@@ -759,23 +741,32 @@ export default {
         removeOffenderClicked: function(e) {
           let vm = this;
 
-          let offenderId = parseInt(e.target.getAttribute("data-offender-id"));
-          vm.$refs.offender_table.vmDataTable.rows(function(idx, data, node) {
-            if (data.id === offenderId) {
-                console.log('removeOffenderClicked');
-                console.log('idx:' + idx);
-              vm.$refs.offender_table.vmDataTable.rows(idx).data()[0].removed = true;
-                vm.$refs.offender_table.vmDataTable.rows(idx).invalidate();
-            }
-          });
+          let offenderId = parseInt(e.target.getAttribute("data-offender-uuid"));
+
+            console.log('removeOffenderClicked');
+            console.log('offenderId');
+            console.log(offenderId);
+            console.log('e');
+            console.log(e);
+            console.log('uuid');
+            console.log(uuid());
+
+     //     vm.$refs.offender_table.vmDataTable.rows(function(idx, data, node) {
+     //       if (data.id === offenderId) {
+     //           console.log('removeOffenderClicked');
+     //           console.log('idx:' + idx);
+     //         vm.$refs.offender_table.vmDataTable.rows(idx).data()[0].removed = true;
+     //           vm.$refs.offender_table.vmDataTable.rows(idx).invalidate();
+     //       }
+     //     });
         },
         restoreOffenderClicked: function(e){
           let vm = this;
 
-          let offenderId = parseInt(e.target.getAttribute("data-offender-id"));
+          let offenderId = parseInt(e.target.getAttribute("data-offender-uuid"));
           vm.$refs.offender_table.vmDataTable.rows(function(idx, data, node) {
             if (data.id === offenderId) {
-                console.log('removeOffenderClicked');
+                console.log('restoreOffenderClicked');
                 console.log('idx:' + idx);
               vm.$refs.offender_table.vmDataTable.rows(idx).data()[0].removed = false;
                 vm.$refs.offender_table.vmDataTable.rows(idx).invalidate();
@@ -803,27 +794,37 @@ export default {
           });
         },
         addOffenderClicked: function() {
-          if (this.current_offender && this.current_offender.id && this.current_offender.data_type) {
-            let already_exists = false;
+            console.log('addOffenderClicked');
+            if (this.current_offender && this.current_offender.id && this.current_offender.data_type) {
+                let already_exists = false;
 
-            let ids = this.$refs.offender_table.vmDataTable.columns(0).data()[0];
-            let data_types = this.$refs.offender_table.vmDataTable.columns(1).data()[0];
+                for (let i=0; i<this.offence.offenders.length; i++){
+                    let offender = this.offence.offenders[i];
+                    if (this.current_offender.data_type == 'individual'){
+                        if (offender.person){
+                            if (offender.person.id == this.current_offender.id){
+                                already_exists = true;
+                            }
+                        }
+                    } else if (this.current_offender.data_type == 'organisation'){
+                        if (offender.organisation){
+                            if (offender.organisation.id == this.current_offender.id){
+                                already_exists = true;
+                            }
+                        }
+                    }
+                }
 
-            for (let i = 0; i < ids.length; i++) {
-              if (ids[i] == this.current_offender.id && data_types[i] == this.current_offender.data_type) {
-                already_exists = true;
-                break;
-              }
-            }
-
-            if (!already_exists) {
-                if (this.current_offender.data_type == 'individual'){
-                    this.offence.offenders.push({type: 'individual', person: this.current_offender, organisation: null });
-                } else if (this.current_offender.data_type == 'organisation'){
-                    this.offence.offenders.push({type: 'organisation', person: null, organisation: this.current_offender});
+                if (!already_exists) {
+                    if (this.current_offender.data_type == 'individual'){
+                        // Add person as offender object
+                        this.offence.offenders.push({id: '', removed: false, reason_for_removal: '', person: this.current_offender, organisation: null, uuid: uuid() });
+                    } else if (this.current_offender.data_type == 'organisation'){
+                        // Add organisation as offender object
+                        this.offence.offenders.push({id: '', removed: false, reason_for_removal: '', person: null, organisation: this.current_offender, uuid: uuid() });
+                    }
                 }
             }
-          }
             this.constructOffendersTable();
 
           this.setCurrentOffenderEmpty();
@@ -862,6 +863,7 @@ export default {
               }).draw();
         },
         constructOffendersTable: function(){
+            console.log('constructOffendersTable');
             this.$refs.offender_table.vmDataTable.clear().draw();
             if (this.offence.offenders){
                 for(let i=0; i<this.offence.offenders.length; i++){
@@ -869,77 +871,46 @@ export default {
                 }
             }
         },
-        addPersonToTable: function(person) {
+        addOffenderToTable: function(offender){
+            console.log('addOffenderToTable');
+            console.log(offender);
+            let vm = this;
+            this.addPersonToTable(offender);
+
+          //  if (offender.person) {
+          //      this.addPersonToTable(offender);
+          //  } else if (offender.organisation) {
+          //      this.addOrganisationToTable(offender);
+          //  }
+        },
+        addPersonToTable: function(offender) {
               this.$refs.offender_table.vmDataTable.row
                 .add({
-                  removed: false,
-                  reason_for_removal: '',
-                  data_type: 'individual',
-                  id: person.id,
-                  first_name: person.first_name,
-                  last_name: person.last_name,
-                  email: person.email,
-                  p_number: person.p_number,
-                  m_number: person.m_numberum,
-                  dob: person.dob
+                    offender: offender,
+          //        removed: offender.removed,
+          //        reason_for_removal: offender.reason_for_removal,
+          //        data_type: 'individual',
+          //        id: offender.id,
+          //        uuid: offender.uuid,
+          //        first_name: offender.person.first_name,
+          //        last_name: offender.person.last_name,
+          //        email: offender.person.email,
+          //        p_number: offender.person.p_number,
+          //        m_number: offender.person.m_numberum,
+          //        dob: offender.person.dob
                 }).draw();
         },
-        addPersonExistingToTable: function(offender) {
-              this.$refs.offender_table.vmDataTable.row
-                .add({
-                  removed: offender.removed,
-                  reason_for_removal: offender.reason_for_removal,
-                  data_type: 'individual',
-                  id: offender.person.id,
-                  first_name: offender.person.first_name,
-                  last_name: offender.person.last_name,
-                  email: offender.person.email,
-                  p_number: offender.person.p_number,
-                  m_number: offender.person.m_numberum,
-                  dob: offender.person.dob
-                }).draw();
-        },
-        addOrganisationToTable: function(organisation){
-            this.$refs.offender_table.vmDataTable.row
-              .add({
-                removed: false,
-                reason_for_removal: '',
-                data_type: 'organisation',
-                id: organisation.id,
-                name: organisation.name,
-                abn: organisation.abn
-              }).draw();
-        },
-        addOrganisationExistingToTable: function(offender){
+        addOrganisationToTable: function(offender){
             this.$refs.offender_table.vmDataTable.row
               .add({
                 removed: offender.removed,
                 reason_for_removal: offender.reason_for_removal,
                 data_type: 'organisation',
-                id: offender.organisation.id,
+                id: offender.id,
+                uuid: offender.uuid,
                 name: offender.organisation.name,
                 abn: offender.organisation.abn
               }).draw();
-        },
-        addOffenderToTable: function(offender){
-            console.log('addOffenderToTable');
-            console.log(offender);
-            let vm = this;
-            if(offender.data_type){
-                // When person/organisation is going to be added via input box (awesomplete)
-                if (offender.data_type == "individual") {
-                    this.addPersonToTable(offender);
-                } else if (offender.data_type == "organisation") {
-                    this.addOrganisationToTable(offender);
-                }
-            } else {
-                // When inserting the existing data into the table
-                if (offender.person) {
-                    this.addPersonExistingToTable(offender);
-                } else if (offender.organisation) {
-                    this.addOrganisationExistingToTable(offender);
-                }
-            }
         },
         markMatchedText(original_text, input) {
           let ret_text = original_text.replace(new RegExp(input, "gi"), function(

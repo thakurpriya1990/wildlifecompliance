@@ -529,7 +529,7 @@ export default {
         createStorageAllegedCommittedOffences: function() {
             if (this.sanction_outcome && this.sanction_outcome.alleged_committed_offences){
                 for (let i=0; i<this.sanction_outcome.alleged_committed_offences.length; i++){
-                    // We need if this alleged commited offence is already included in the sanction outcome 
+                    // We need to know if this alleged commited offence is already included in the sanction outcome 
                     // to manage Action column
                     this.sanction_outcome.alleged_committed_offences[i].already_included = this.sanction_outcome.alleged_committed_offences[i].included;
                 }

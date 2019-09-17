@@ -136,6 +136,9 @@ class OffenceViewSet(viewsets.ModelViewSet):
     queryset = Offence.objects.all()
     serializer_class = OffenceSerializer
 
+    def retrieve(self, request, *args, **kwargs):
+        return super(OffenceViewSet, self).retrieve(request, *args, **kwargs)
+
     def get_queryset(self):
         user = self.request.user
         if is_internal(self.request):
@@ -242,21 +245,18 @@ class OffenceViewSet(viewsets.ModelViewSet):
                 # saved_offence_instance.save()
 
                 # 4. Create relations between this offence and offender(s)
-                # individual
-                persons_received = [item if item['data_type'] == 'individual' else None for item in request_data['offenders']]
-                organisations_received = [item if item['data_type'] == 'organisation' else None for item in request_data['offenders']]
-                for person in persons_received:
-                    if person:
-                        offender, created = Offender.objects.get_or_create(person_id=person['id'], offence_id=request_data['id'])
-                        offender.removed = person['removed']
-                        offender.reason_for_removal = person['reason_for_removal']
+                for item in request_data['offenders']:
+                    if item['person']:
+                        offender, created = Offender.objects.get_or_create(person_id=item['person']['id'], offence_id=request_data['id'])
+                        offender.removed = item['removed']
+                        offender.reason_for_removal = item['reason_for_removal']
                         offender.save()
-                for organisation in organisations_received:
-                    if organisation:
-                        offender, created = Offender.objects.get_or_create(organisation_id=organisation['id'], offence_id=request_data['id'])
-                        offender.removed = organisation['removed']
-                        offender.reason_for_removal = organisation['reason_for_removal']
+                    elif item['organisation']:
+                        offender, created = Offender.objects.get_or_create(organisation_id=item['organisation']['id'], offence_id=request_data['id'])
+                        offender.removed = item['removed']
+                        offender.reason_for_removal = item['reason_for_removal']
                         offender.save()
+
                 # TODO: save removed_by and reason_for_removal
 
                 # 4. Return Json

@@ -180,6 +180,7 @@ export const offenceStore = {
         },
         async saveOffence({dispatch, state}) {
             try{
+                console.log('saveOffence');
                 let fetchUrl = helpers.add_endpoint_join(api_endpoints.offence, state.offence.id + '/');
 
                 let payload = new Object();
@@ -193,8 +194,8 @@ export const offenceStore = {
                 payload.status = 'open'
 
                 // Collect offenders data from the datatable, and set them to the vuex
-                let offenders = this.$refs.offender_table.vmDataTable.rows().data().toArray();
-                payload.offenders = offenders;
+                //let offenders = this.$refs.offender_table.vmDataTable.rows().data().toArray();
+                //payload.offenders = offenders;
 
                 const savedOffence = await Vue.http.put(fetchUrl, payload);
                 Vue.set(this, 'offence', savedOffence.body);

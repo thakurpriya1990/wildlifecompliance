@@ -1,12 +1,12 @@
-from rest_framework import serializers
+import uuid
 
-from ledger.accounts.models import Organisation as LedgerOrganisation
+from rest_framework import serializers
 from wildlifecompliance.components.organisations.models import Organisation
-#from wildlifecompliance.components.organisations.serializers import OrganisationSearchSerializer
 from wildlifecompliance.components.call_email.serializers import LocationSerializer, EmailUserSerializer
 from wildlifecompliance.components.main.fields import CustomChoiceField
 from wildlifecompliance.components.main.related_item import get_related_items
 from wildlifecompliance.components.offence.models import Offence, SectionRegulation, Offender, AllegedOffence
+from wildlifecompliance.components.sanction_outcome.models import SanctionOutcome
 from wildlifecompliance.components.users.serializers import CompliancePermissionGroupMembersSerializer
 
 
@@ -39,6 +39,8 @@ class SectionRegulationSerializer(serializers.ModelSerializer):
 class OffenderSerializer(serializers.ModelSerializer):
     person = EmailUserSerializer(read_only=True,)
     organisation = OrganisationSerializer(read_only=True,)
+    number_linked_sanction_outcomes = serializers.SerializerMethodField(read_only=True)
+    uuid = serializers.SerializerMethodField(read_only=True)
 
     class Meta:
         model = Offender
@@ -48,7 +50,15 @@ class OffenderSerializer(serializers.ModelSerializer):
             'organisation',
             'removed',
             'reason_for_removal',
+            'number_linked_sanction_outcomes',
+            'uuid',
         )
+
+    def get_number_linked_sanction_outcomes(self, obj):
+        return SanctionOutcome.objects.filter(offender=obj).count()
+
+    def get_uuid(self, obj):
+        return str(uuid.uuid4())
 
 
 class OffenceDatatableSerializer(serializers.ModelSerializer):
@@ -108,7 +118,6 @@ class OffenceDatatableSerializer(serializers.ModelSerializer):
 class OffenceSerializer(serializers.ModelSerializer):
     status = CustomChoiceField(read_only=True)
     location = LocationSerializer(read_only=True)
-    # alleged_offences = SectionRegulationSerializer(read_only=True, many=True)
     alleged_offences = serializers.SerializerMethodField(read_only=True)
     offenders = serializers.SerializerMethodField(read_only=True)
     allocated_group = serializers.SerializerMethodField()
@@ -116,6 +125,7 @@ class OffenceSerializer(serializers.ModelSerializer):
     can_user_action = serializers.SerializerMethodField()
     user_is_assignee = serializers.SerializerMethodField()
     related_items = serializers.SerializerMethodField()
+    in_editable_status = serializers.SerializerMethodField()
 
     class Meta:
         model = Offence
@@ -145,10 +155,14 @@ class OffenceSerializer(serializers.ModelSerializer):
             'location',
             'alleged_offences',
             'offenders',
+            'in_editable_status',
         )
         read_only_fields = (
 
         )
+
+    def get_in_editable_status(self, obj):
+        return obj.status in (Offence.STATUS_DRAFT, Offence.STATUS_OPEN)
 
     def get_alleged_offences(self, obj):
         alleged_offence_objects = AllegedOffence.objects.filter(offence=obj)
