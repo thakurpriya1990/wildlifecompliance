@@ -659,7 +659,6 @@ export default {
                 url,
                 payload
             );
-            console.log('updateAssignedToId');
             console.log(res.body);
             //await this.setSanctionOutcome(res.body); 
             this.setAssignedToId(res.body.assigned_to_id);

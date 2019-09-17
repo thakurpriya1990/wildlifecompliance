@@ -174,6 +174,9 @@ export const offenceStore = {
         updateCanUserAction(state, can_user_action) {
             Vue.set(state.offence, 'can_user_action', can_user_action);
         },
+        updateRelatedItems(state, related_items) {
+            Vue.set(state.offence, 'related_items', related_items);
+        },
     },
     actions: {
         async loadOffence({ dispatch, }, { offence_id }) {
@@ -284,6 +287,9 @@ export const offenceStore = {
         },
         setCanUserAction({ commit, }, can_user_action) {
             commit("updateCanUserAction", can_user_action);
+        },
+        setRelatedItems({ commit }, related_items ) {
+            commit("updateRelatedItems", related_items);
         },
     },
 };
