@@ -12,9 +12,9 @@ from wildlifecompliance.components.main.utils import (
 from wildlifecompliance.components.main.serializers import (
     SearchKeywordSerializer,
     SearchReferenceSerializer,
-    RelatedItemsSerializer,
 )
-from wildlifecompliance.components.main.models import WeakLinks
+from wildlifecompliance.components.main.related_item import RelatedItemsSerializer
+from wildlifecompliance.components.main.related_item import WeakLinks
 from wildlifecompliance.components.main.related_item import (
        get_related_items, 
        format_model_name
@@ -60,6 +60,7 @@ class CreateWeakLinkView(views.APIView):
                 second_content_type_str = request.data.get('second_content_type')
                 second_object_id = request.data.get('second_object_id')
                 can_user_action = request.data.get('can_user_action')
+                comment = request.data.get('comment')
                 
                 if can_user_action:
                     # transform request data to create new Weak Links obj
@@ -75,7 +76,8 @@ class CreateWeakLinkView(views.APIView):
                             first_content_type_id = first_content_type.id,
                             first_object_id = first_object_id,
                             second_content_type_id = second_content_type.id,
-                            second_object_id = second_object_id_int
+                            second_object_id = second_object_id_int,
+                            comment = comment
                             )
                     # derive parent (calling) object instance from weak_link_instance
                     calling_instance = weak_link_instance.first_content_type.model_class().objects.get(id=first_object_id)
@@ -101,7 +103,10 @@ class CreateWeakLinkView(views.APIView):
 
                     # get related items of calling_instance
                     related_items = get_related_items(calling_instance)
-                    return Response(related_items)
+                    return Response(
+                            related_items,
+                            status=status.HTTP_200_OK,
+                            )
                 else:
                     content = {'message': 'User does not have permission to perform this action'}
                     return Response(content, status=status.HTTP_403_FORBIDDEN)
