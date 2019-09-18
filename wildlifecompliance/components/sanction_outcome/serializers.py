@@ -277,6 +277,28 @@ class SaveSanctionOutcomeSerializer(serializers.ModelSerializer):
             'time_of_issue',
         )
 
+    def validate_offender_id(self, value):
+        # raise serializers.ValidationError('This is ValidationError in validate_offender_id() method in the serializer')
+        return value
+
+    def validate_district_id(self, value):
+        # raise serializers.ValidationError('This is ValidationError in validate_district_id() method in the serializer')
+        return value
+
+    def validate(self, sanction_outcome):
+        # TODO: implement validation if needed
+        field_error = False
+        non_field_error = False
+        # This approach might be the best way to validation.  Becuase you can get multiple error messages at once
+        if field_error:
+            # For field erros
+            raise serializers.ValidationError({'field_1': ['error message 1A', 'error message 1B', 'error message 1C'], 'field_2': ['error message 1', 'error message 2']})
+        if non_field_error:
+            # For non_field_errors
+            raise serializers.ValidationError(['This is the 1st non_field_error', 'This is the 2nd non_field_error'])
+
+        return sanction_outcome
+
 
 class SaveRemediationActionSerializer(serializers.ModelSerializer):
     sanction_outcome_id = serializers.IntegerField(required=False, write_only=True, allow_null=True)

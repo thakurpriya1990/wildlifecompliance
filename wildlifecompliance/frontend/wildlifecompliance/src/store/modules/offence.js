@@ -189,9 +189,10 @@ export const offenceStore = {
         },
         async saveOffence({dispatch, state}) {
             try{
-                console.log('saveOffence');
+                // Construct url endpoint
                 let fetchUrl = helpers.add_endpoint_join(api_endpoints.offence, state.offence.id + '/');
 
+                // Construct payload to store data to be sent
                 let payload = new Object();
                 Object.assign(payload, state.offence);
                 if (payload.occurrence_date_from) {
@@ -202,13 +203,16 @@ export const offenceStore = {
                 }
                 payload.status = 'open'
 
-                // Collect offenders data from the datatable, and set them to the vuex
-                //let offenders = this.$refs.offender_table.vmDataTable.rows().data().toArray();
-                //payload.offenders = offenders;
-
+                // Send data to the server
                 const savedOffence = await Vue.http.put(fetchUrl, payload);
+
+                // Restore returned data into the stre
                 Vue.set(this, 'offence', savedOffence.body);
+
+                // Display message
                 await swal("Saved", "The record has been saved", "success");
+
+                // Return the saved data just in case needed
                 return savedOffence;
             } catch (err) {
                 if (err.body.non_field_errors){

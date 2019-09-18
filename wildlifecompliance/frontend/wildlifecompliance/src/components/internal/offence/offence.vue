@@ -51,9 +51,10 @@
                             Action 
                         </div>
                         <div class="panel-body panel-collapse">
+<!--
                             <div v-if="visibilitySaveButton" class="row action-button">
                                 <div class="col-sm-12">
-                                    <a @click="saveOffence()" class="btn btn-primary btn-block">
+                                    <a @click="save()" class="btn btn-primary btn-block">
                                         Save
                                     </a>
                                 </div>
@@ -61,7 +62,7 @@
                             <div v-else>
                                 Save
                             </div>
-
+-->
                             <div v-if="visibilitySanctionOutcomeButton" class="row action-button">
                                 <div class="col-sm-12">
                                     <a @click="openSanctionOutcome()" class="btn btn-primary btn-block">
@@ -272,6 +273,18 @@
                 </div>
             </div>
         </div>
+
+        <div v-if="visibilitySaveButton" class="navbar navbar-fixed-bottom" style="background-color: #f5f5f5 ">
+            <div class="navbar-inner">
+                <div class="container">
+                    <p class="pull-right" style="margin-top:5px;">
+                        <input type="button" @click.prevent="saveExit" class="btn btn-primary" value="Save and Exit"/>
+                        <input type="button" @click.prevent="save" class="btn btn-primary" value="Save and Continue"/>
+                    </p>
+                </div>
+            </div>
+        </div>
+
         <div v-if="sanctionOutcomeInitialised">
             <SanctionOutcome ref="sanction_outcome" />
         </div>
@@ -551,6 +564,15 @@ export default {
             setCanUserAction: 'setCanUserAction',
             setRelatedItems: 'setRelatedItems',
         }),
+        save: async function(){
+            await this.saveOffence();
+            this.constructOffendersTable();
+            this.constructAllegedOffencesTable();
+        },
+        saveExit: async function() {
+            await this.saveOffence();
+            this.$router.push({ name: 'internal-offence-dash' });
+        },
         updateAssignedToId: async function (user) {
             let url = helpers.add_endpoint_join(api_endpoints.offence, this.offence.id + '/update_assigned_to_id/');
             let payload = null;
@@ -570,37 +592,6 @@ export default {
             this.constructOffendersTable();
             this.constructAllegedOffencesTable();
         },
-        save: async function() {
-            try{
-                let fetchUrl = helpers.add_endpoint_join(api_endpoints.offence, this.offence.id + '/');
-
-                let payload = new Object();
-                Object.assign(payload, this.offence);
-                if (payload.occurrence_date_from) {
-                    payload.occurrence_date_from = moment(payload.occurrence_date_from, 'DD/MM/YYYY').format('YYYY-MM-DD');
-                }
-                if (payload.occurrence_date_to) {
-                    payload.occurrence_date_to = moment(payload.occurrence_date_to, 'DD/MM/YYYY').format('YYYY-MM-DD');
-                }
-                payload.status = 'open'
-
-                  // Collect offenders data from the datatable, and set them to the vuex
-                  let offenders = this.$refs.offender_table.vmDataTable.rows().data().toArray();
-                  payload.offenders = offenders;
-
-                const savedOffence = await Vue.http.put(fetchUrl, payload);
-                Vue.set(this, 'offence', savedOffence.body);
-                await swal("Saved", "The record has been saved", "success");
-                return savedOffence;
-            } catch (err) {
-                if (err.body.non_field_errors){
-                    await swal("Error", err.body.non_field_errors[0], "error");
-                } else {
-                    await swal("Error", "There was an error saving the record", "error");
-                }
-            }
-
-        },
         openSanctionOutcome: function() {
           this.sanctionOutcomeInitialised = true;
           this.$nextTick(() => {
@@ -608,7 +599,7 @@ export default {
           });
         },
         addWorkflow: function(workflow_type) {
-
+            //TODO: implement close action
         },
         showHideAddressDetailsFields: function(showAddressFields, showDetailsFields) {
           if (showAddressFields) {

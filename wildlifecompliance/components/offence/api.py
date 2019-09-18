@@ -30,7 +30,7 @@ from wildlifecompliance.components.offence.serializers import (
     SaveOffenderSerializer,
     OrganisationSerializer,
     OffenceDatatableSerializer,
-    UpdateAssignedToIdSerializer)
+    UpdateAssignedToIdSerializer, UpdateOffenderAttributeSerializer)
 from wildlifecompliance.helpers import is_internal
 
 
@@ -250,22 +250,30 @@ class OffenceViewSet(viewsets.ModelViewSet):
                         offender, created = Offender.objects.get_or_create(person_id=item['person']['id'], offence_id=request_data['id'])
                     elif item['organisation']:
                         offender, created = Offender.objects.get_or_create(organisation_id=item['organisation']['id'], offence_id=request_data['id'])
-                    offender.removed = item['removed']
-                    offender.removed_by = request.user.id if offender.removed else None
-                    offender.reason_for_removal = item['reason_for_removal']
-                    offender.save()  # TODO: this should be implemented via serializer rather than model to make use of serializer.validate()
+
+                    # Update attributes of offender
+                    serializer = UpdateOffenderAttributeSerializer(offender, data={
+                        'removed': item['removed'],
+                        'removed_by_id': request.user.id if item['removed'] else None,
+                        # TODO: Implement reason for removal field in the front end
+                        'reason_for_removal': item['reason_for_removal'] if item['reason_for_removal'] else 'TODO: accept reason',
+                    })
+                    serializer.is_valid(raise_exception=True)
+                    serializer.save()
 
                 # TODO: action log
 
                 # 4. Return Json
-                headers = self.get_success_headers(serializer.data)
-                return_serializer = OffenceSerializer(saved_offence_instance, context={'request': request})
-                # return_serializer = InspectionSerializer(saved_instance, context={'request': request})
-                return Response(
-                    return_serializer.data,
-                    status=status.HTTP_201_CREATED,
-                    headers=headers
-                )
+                return self.retrieve(request)
+
+                # headers = self.get_success_headers(serializer.data)
+                # return_serializer = OffenceSerializer(saved_offence_instance, context={'request': request})
+                # # return_serializer = InspectionSerializer(saved_instance, context={'request': request})
+                # return Response(
+                #     return_serializer.data,
+                #     status=status.HTTP_201_CREATED,
+                #     headers=headers
+                # )
 
         except serializers.ValidationError:
             print(traceback.print_exc())

@@ -51,6 +51,7 @@
                             Action 
                         </div>
                         <div class="panel-body panel-collapse">
+<!--                            
                             <div v-if="visibilitySaveButton" class="row action-button">
                                 <div class="col-sm-12">
                                     <a @click="save" class="btn btn-primary btn-block">
@@ -61,6 +62,7 @@
                             <div v-else>
                                 Save
                             </div>
+-->
 
                             <div v-if="visibilityWithdrawButton" class="row action-button">
                                 <div class="col-sm-12">
@@ -265,6 +267,18 @@
             </div>
         </div>
 
+        <div v-if="visibilitySaveButton" class="navbar navbar-fixed-bottom" style="background-color: #f5f5f5 ">
+            <div class="navbar-inner">
+                <div class="container">
+                    <p class="pull-right" style="margin-top:5px;">
+                        <input type="button" @click.prevent="saveExit" class="btn btn-primary" value="Save and Exit"/>
+                        <input type="button" @click.prevent="save" class="btn btn-primary" value="Save and Continue"/>
+                    </p>
+                </div>
+            </div>
+        </div>
+
+
         <div v-if="workflow_type">
             <SanctionOutcomeWorkflow ref="add_workflow" :workflow_type="workflow_type" v-bind:key="workflowBindId" />
         </div>
@@ -391,7 +405,7 @@ export default {
         if (this.$route.params.sanction_outcome_id) {
             await this.loadSanctionOutcome({ sanction_outcome_id: this.$route.params.sanction_outcome_id });
             this.createStorageAllegedCommittedOffences();
-            this.constructAllegedOffencesToTable();
+            this.constructAllegedCommittedOffencesTable();
         }
     },
     mounted: function() {
@@ -522,7 +536,7 @@ export default {
     methods: {
         ...mapActions('sanctionOutcomeStore', {
             loadSanctionOutcome: 'loadSanctionOutcome',
-            setSanctionOutcome: 'setSanctionOutcome', 
+            saveSanctionOutcome: 'saveSanctionOutcome',
             setAssignedToId: 'setAssignedToId',
             setCanUserAction: 'setCanUserAction',
         }),
@@ -536,24 +550,29 @@ export default {
             }
         },
         save: async function() {
-            let vm = this;
-            try {
-                let putUrl = helpers.add_endpoint_join(api_endpoints.sanction_outcome, vm.sanction_outcome.id + '/');
-                let payload = new Object();
-                Object.assign(payload, vm.sanction_outcome);
+            await this.saveSanctionOutcome();
+            this.constructAllegedCommittedOffencesTable();
+         //   try {
+         //       let putUrl = helpers.add_endpoint_join(api_endpoints.sanction_outcome, this.sanction_outcome.id + '/');
+         //       let payload = new Object();
+         //       Object.assign(payload, this.sanction_outcome);
 
-                // format 'type'
-                payload.type = payload.type.id;
+         //       // format 'type'
+         //       payload.type = payload.type.id;
 
-                const savedObj = await Vue.http.put(putUrl, payload);
-                await swal("Saved", "The record has been saved", "success");
-            } catch (err) {
-                if (err.body.non_field_errors) {
-                    await swal("Error", err.body.non_field_errors[0], "error");
-                } else {
-                    await swal("Error", "There was an error saving the record", "error");
-                }
-            }
+         //       const savedObj = await Vue.http.put(putUrl, payload);
+         //       await swal("Saved", "The record has been saved", "success");
+         //   } catch (err) {
+         //       if (err.body.non_field_errors) {
+         //           await swal("Error", err.body.non_field_errors[0], "error");
+         //       } else {
+         //           await swal("Error", "There was an error saving the record", "error");
+         //       }
+         //   }
+        },
+        saveExit: async function() {
+            await this.saveSanctionOutcome();
+            this.$router.push({ name: 'internal-offence-dash' });
         },
         setUpDateTimePicker: function() {
             let vm = this;
@@ -593,7 +612,7 @@ export default {
                     this.sanction_outcome.alleged_committed_offences[i].removed = true;
                 }
             }
-            this.constructAllegedOffencesToTable();
+            this.constructAllegedCommittedOffencesTable();
         },
         includeAllegedOffenceClicked: function(e){
             let acoId = parseInt(e.target.value);
@@ -610,12 +629,14 @@ export default {
                     this.sanction_outcome.alleged_committed_offences[i].removed = false;
                 }
             }
-            this.constructAllegedOffencesToTable();
+            this.constructAllegedCommittedOffencesTable();
         },
-        constructAllegedOffencesToTable: function(){
+        constructAllegedCommittedOffencesTable: function(){
             this.$refs.alleged_committed_offence_table.vmDataTable.clear().draw();
-            for(let i=0; i<this.sanction_outcome.alleged_committed_offences.length; i++){
-                this.addAllegedOffenceToTable(this.sanction_outcome.alleged_committed_offences[i]);
+            if (this.sanction_outcome.alleged_committed_offences){
+                for(let i=0; i<this.sanction_outcome.alleged_committed_offences.length; i++){
+                    this.addAllegedOffenceToTable(this.sanction_outcome.alleged_committed_offences[i]);
+                }
             }
         },
         addAllegedOffenceToTable: function(allegedCommittedOffence){
@@ -660,7 +681,6 @@ export default {
                 payload
             );
             console.log(res.body);
-            //await this.setSanctionOutcome(res.body); 
             this.setAssignedToId(res.body.assigned_to_id);
             this.setCanUserAction(res.body.can_user_action);
         },

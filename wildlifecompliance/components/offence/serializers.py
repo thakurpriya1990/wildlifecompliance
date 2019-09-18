@@ -239,6 +239,26 @@ class OffenceSerializer(serializers.ModelSerializer):
         return get_related_items(obj)
 
 
+class UpdateOffenderAttributeSerializer(serializers.ModelSerializer):
+    removed_by_id = serializers.IntegerField(write_only=True, required=False, allow_null=True)
+
+    class Meta:
+        model = Offender
+        fields = (
+            'removed',
+            'reason_for_removal',
+            'removed_by_id',
+        )
+
+    def validate(self, data):
+        if data['removed']:
+            if not data['reason_for_removal']:
+                raise serializers.ValidationError('To remove a record, you need a reason to remove.')
+            if not data['removed_by_id']:
+                raise serializers.ValidationError('To remove a record, you need a person to remove.')
+
+        return data
+
 class SaveOffenceSerializer(serializers.ModelSerializer):
     location_id = serializers.IntegerField(required=False, write_only=True, allow_null=True)
     call_email_id = serializers.IntegerField(required=False, write_only=True, allow_null=True)
