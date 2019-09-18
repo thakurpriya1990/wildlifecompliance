@@ -3,7 +3,7 @@ from django.contrib.contenttypes.models import ContentType
 from rest_framework import serializers
 from rest_framework.renderers import JSONRenderer
 from django.core.exceptions import ValidationError
-from wildlifecompliance.components.offence.models import Offender
+#from wildlifecompliance.components.offence.models import Offender
 from wildlifecompliance.components.organisations.models import Organisation
 from ledger.accounts.models import EmailUser
 from django.db import models
@@ -101,6 +101,7 @@ class RelatedItem:
 
 
 def search_weak_links(request_data):
+    # TODO: exclude existing related items from search
     from wildlifecompliance.components.call_email.models import CallEmail
     from wildlifecompliance.components.inspection.models import Inspection
     from wildlifecompliance.components.offence.models import Offence
@@ -172,6 +173,14 @@ approved_related_item_models = [
         'Offender',
         ]
 
+pending_closure_related_item_models = [
+        'Offence',
+        'CallEmail',
+        'Inspection',
+        'SanctionOutcome',
+        'Case',
+        ]
+
 approved_email_user_related_items = [
         'volunteer',
         'individual_inspected',
@@ -208,6 +217,7 @@ def format_url(model_name, obj_id):
         return switcher.get(lower_model_name, '')
 
 def get_related_offenders(entity, **kwargs):
+    from wildlifecompliance.components.offence.models import Offender
     offender_list = []
     offenders = []
     if entity._meta.model_name == 'sanctionoutcome':
@@ -223,12 +233,16 @@ def get_related_offenders(entity, **kwargs):
             offender_list.append(organisation)
     return offender_list
 
-def get_related_items(entity, **kwargs):
+def get_related_items(entity, pending_closure=False, **kwargs):
     try:
         return_list = []
+        children = []
+        parents = []
+        related_item_models = pending_closure_related_item_models if pending_closure else approved_related_item_models
+
         # Strong links
         for f in entity._meta.get_fields():
-            if f.is_relation and f.related_model.__name__ in approved_related_item_models:
+            if f.is_relation and f.related_model.__name__ in related_item_models:
                 # foreign keys from other objects to entity
                 if f.is_relation and f.one_to_many:
                     if entity._meta.model_name == 'callemail':
@@ -242,16 +256,20 @@ def get_related_items(entity, **kwargs):
                     elif entity._meta.model_name == 'offence':
                         field_objects = f.related_model.objects.filter(offence_id=entity.id)
                     for field_object in field_objects:
-                        related_item = RelatedItem(
-                                model_name = format_model_name(f.related_model.__name__),
-                                identifier = field_object.get_related_items_identifier,
-                                descriptor = field_object.get_related_items_descriptor,
-                                action_url = format_url(
-                                        model_name=f.related_model.__name__,
-                                        obj_id=field_object.id
-                                        )
-                                )
-                        return_list.append(related_item)
+                        if pending_closure:
+                            children.append(field_object)
+                        else:
+                            related_item = RelatedItem(
+                                    model_name = format_model_name(f.related_model.__name__),
+                                    identifier = field_object.get_related_items_identifier,
+                                    descriptor = field_object.get_related_items_descriptor,
+                                    action_url = format_url(
+                                            model_name=f.related_model.__name__,
+                                            obj_id=field_object.id
+                                            )
+                                    )
+                            return_list.append(related_item)
+
                 # foreign keys from entity to EmailUser
                 elif f.is_relation and f.related_model._meta.model_name == 'emailuser':
                     field_value = f.value_from_object(entity)
@@ -282,16 +300,19 @@ def get_related_items(entity, **kwargs):
                         if field_value:
                             field_object = f.related_model.objects.get(id=field_value)
                     if field_object:
-                        related_item = RelatedItem(
-                                model_name = format_model_name(field_object._meta.model_name),
-                                identifier = field_object.get_related_items_identifier,
-                                descriptor = field_object.get_related_items_descriptor,
-                                action_url = format_url(
-                                        model_name=field_object._meta.model_name,
-                                        obj_id=field_object.id
-                                        )
-                                )
-                        return_list.append(related_item)
+                        if pending_closure:
+                            parents.append(field_object)
+                        else:
+                            related_item = RelatedItem(
+                                    model_name = format_model_name(field_object._meta.model_name),
+                                    identifier = field_object.get_related_items_identifier,
+                                    descriptor = field_object.get_related_items_descriptor,
+                                    action_url = format_url(
+                                            model_name=field_object._meta.model_name,
+                                            obj_id=field_object.id
+                                            )
+                                    )
+                            return_list.append(related_item)
 
         # Weak links - first pass with instance as first_content_object
         entity_content_type = ContentType.objects.get_for_model(type(entity))
@@ -347,8 +368,11 @@ def get_related_items(entity, **kwargs):
                         )
                 return_list.append(related_item)
         
-        serializer = RelatedItemsSerializer(return_list, many=True)
-        return serializer.data
+        if pending_closure:
+            return children, parents
+        else:
+            serializer = RelatedItemsSerializer(return_list, many=True)
+            return serializer.data
     except serializers.ValidationError:
         print(traceback.print_exc())
         raise
@@ -359,6 +383,17 @@ def get_related_items(entity, **kwargs):
         print(traceback.print_exc())
         raise serializers.ValidationError(str(e))
 
+def can_close_record(entity, request):
+    print("can close record")
+    children, parents = get_related_items(entity, pending_closure=True)
+    close_record = True
+    if children:
+        for child in children:
+            print(child)
+            print(child.status)
+            if child.status not in ('closed', 'discarded'):
+                close_record = False
+    return close_record, parents
 
 # Examples of model properties for get_related_items
 @property
