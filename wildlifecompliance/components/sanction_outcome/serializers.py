@@ -1,4 +1,6 @@
 from rest_framework import serializers
+from rest_framework.validators import UniqueTogetherValidator
+
 from wildlifecompliance.components.main.fields import CustomChoiceField
 from wildlifecompliance.components.main.related_item import get_related_items
 from wildlifecompliance.components.main.serializers import CommunicationLogEntrySerializer
@@ -13,7 +15,6 @@ from wildlifecompliance.components.users.serializers import CompliancePermission
 class AllegedOffenceSerializer(serializers.ModelSerializer):
     offence = OffenceSerializer(read_only=True)
     section_regulation = SectionRegulationSerializer(read_only=True)
-    # details = serializers.SerializerMethodField()
 
     class Meta:
         model = AllegedOffence
@@ -21,12 +22,18 @@ class AllegedOffenceSerializer(serializers.ModelSerializer):
             'id',
             'offence',
             'section_regulation',
-            # 'details',
         )
+        validators = [
+            UniqueTogetherValidator(
+                queryset=AllegedOffence.objects.filter(removed=False),
+                fields=['offence', 'section_regulation'],
+                message='Offence cannot associated with the sambe section regulation more than once'
+            )
+        ]
 
-    # def get_details(self, obj):
-    #     qs_details = AllegedCommittedOffence.objects.filter(alleged_offence=obj)
-    #     return [AllegedCommittedOffenceSerializer(item).data for item in qs_details]
+    def validate(self, data):
+        # TODO: Add object level validation here if needed
+        return data
 
 
 class AllegedCommittedOffenceCreateSerializer(serializers.ModelSerializer):

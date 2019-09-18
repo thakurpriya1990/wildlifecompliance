@@ -40,7 +40,6 @@ class OffenderSerializer(serializers.ModelSerializer):
     person = EmailUserSerializer(read_only=True,)
     organisation = OrganisationSerializer(read_only=True,)
     number_linked_sanction_outcomes = serializers.SerializerMethodField(read_only=True)
-    uuid = serializers.SerializerMethodField(read_only=True)
     can_user_action = serializers.SerializerMethodField(read_only=True)
 
     class Meta:
@@ -52,15 +51,11 @@ class OffenderSerializer(serializers.ModelSerializer):
             'removed',
             'reason_for_removal',
             'number_linked_sanction_outcomes',
-            'uuid',
             'can_user_action',
         )
 
     def get_number_linked_sanction_outcomes(self, obj):
         return SanctionOutcome.objects.filter(offender=obj).count()
-
-    def get_uuid(self, obj):
-        return str(uuid.uuid4())
 
     def get_can_user_action(self, obj):
         if obj.removed:
@@ -272,6 +267,10 @@ class SaveOffenceSerializer(serializers.ModelSerializer):
             'allocated_group_id',
         )
         read_only_fields = ()
+
+    def validate(self, data):
+        # Add object level validation here if needed
+        return data
 
 
 class SaveOffenderSerializer(serializers.ModelSerializer):

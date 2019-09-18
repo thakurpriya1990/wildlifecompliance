@@ -248,16 +248,14 @@ class OffenceViewSet(viewsets.ModelViewSet):
                 for item in request_data['offenders']:
                     if item['person']:
                         offender, created = Offender.objects.get_or_create(person_id=item['person']['id'], offence_id=request_data['id'])
-                        offender.removed = item['removed']
-                        offender.reason_for_removal = item['reason_for_removal']
-                        offender.save()
                     elif item['organisation']:
                         offender, created = Offender.objects.get_or_create(organisation_id=item['organisation']['id'], offence_id=request_data['id'])
-                        offender.removed = item['removed']
-                        offender.reason_for_removal = item['reason_for_removal']
-                        offender.save()
+                    offender.removed = item['removed']
+                    offender.removed_by = request.user.id if offender.removed else None
+                    offender.reason_for_removal = item['reason_for_removal']
+                    offender.save()  # TODO: this should be implemented via serializer rather than model to make use of serializer.validate()
 
-                # TODO: save removed_by and reason_for_removal
+                # TODO: action log
 
                 # 4. Return Json
                 headers = self.get_success_headers(serializer.data)

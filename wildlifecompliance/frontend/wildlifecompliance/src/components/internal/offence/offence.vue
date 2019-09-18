@@ -826,13 +826,13 @@ export default {
                     let offender = this.offence.offenders[i];
                     if (this.current_offender.data_type == 'individual'){
                         if (offender.person){
-                            if (offender.person.id == this.current_offender.id){
+                            if (!offender.removed && offender.person.id == this.current_offender.id){
                                 already_exists = true;
                             }
                         }
                     } else if (this.current_offender.data_type == 'organisation'){
                         if (offender.organisation){
-                            if (offender.organisation.id == this.current_offender.id){
+                            if (!offender.removed && offender.organisation.id == this.current_offender.id){
                                 already_exists = true;
                             }
                         }
@@ -913,6 +913,7 @@ export default {
             }
         },
         addOffenderToTable: function(offender) {
+            offender.uuid = uuid();
               this.$refs.offender_table.vmDataTable.row
                 .add({ offender: offender, offence: this.offence }).draw();
         },
