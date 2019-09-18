@@ -13,7 +13,6 @@ PROJECT_DIR = os.path.join(BASE_DIR, 'ledger')
 # Application definitions
 SECRET_KEY = env('SECRET_KEY')
 DEBUG = env('DEBUG', False)
-BASIC_AUTH = env('BASIC_AUTH', False)
 CSRF_COOKIE_SECURE = env('CSRF_COOKIE_SECURE', False)
 SESSION_COOKIE_SECURE = env('SESSION_COOKIE_SECURE', False)
 if not DEBUG:
@@ -74,17 +73,10 @@ MIDDLEWARE_CLASSES = [
 
 # Authentication settings
 LOGIN_URL = '/'
-if DEBUG and BASIC_AUTH:
-    AUTHENTICATION_BACKENDS = (
-        'django.contrib.auth.backends.AllowAllUsersRemoteUserBackend',
-        'social_core.backends.email.EmailAuth',
-        'django.contrib.auth.backends.ModelBackend',
-    )
-else:
-    AUTHENTICATION_BACKENDS = (
-        'social_core.backends.email.EmailAuth',
-        'django.contrib.auth.backends.ModelBackend',
-    )
+AUTHENTICATION_BACKENDS = (
+    'social_core.backends.email.EmailAuth',
+    'django.contrib.auth.backends.ModelBackend',
+)
 AUTH_USER_MODEL = 'accounts.EmailUser'
 # for reference, django.conf.settings.X == backend.setting('X')
 # this one prevents the email auth backend from creating EmailUsers with a username param
