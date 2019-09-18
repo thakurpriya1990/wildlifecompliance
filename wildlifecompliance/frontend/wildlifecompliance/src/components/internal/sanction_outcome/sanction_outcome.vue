@@ -554,6 +554,7 @@ export default {
                 await this.saveSanctionOutcome();
                 this.constructAllegedCommittedOffencesTable();
             } catch (err) {
+                console.log(err);
                 if (err.body.non_field_errors) {
                     await swal("Error", err.body.non_field_errors[0], "error");
                 } else {

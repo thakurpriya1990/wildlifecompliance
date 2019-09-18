@@ -287,7 +287,7 @@ class SaveSanctionOutcomeSerializer(serializers.ModelSerializer):
 
     def validate(self, sanction_outcome):
         # TODO: implement validation if needed
-        field_error = False
+        field_error = True
         non_field_error = False
         # This approach might be the best way to validation.  Becuase you can get multiple error messages at once
         if field_error:

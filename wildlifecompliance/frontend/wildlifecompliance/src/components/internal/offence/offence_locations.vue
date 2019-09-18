@@ -2,18 +2,10 @@
     <div class="">
         <div id="map-filter">
             <div>
-                <label class="">Call/Email Status</label>
+                <label class="">Offence Status</label>
                 <select class="form-control" v-model="filterStatus">
                     <option v-for="option in status_choices" :value="option.id" v-bind:key="option.id">
                         {{ option.display }}
-                    </option>
-                </select>
-            </div>
-            <div>
-                <label class="">Call/Email Classification</label>
-                <select class="form-control" v-model="filterClassification">
-                    <option v-for="option in classification_types" :value="option.id" v-bind:key="option.id">
-                        {{ option.name }} 
                     </option>
                 </select>
             </div>
@@ -125,21 +117,6 @@ L.TileLayer.WMTS = L.TileLayer.extend({
         var tilerow=-Math.floor((nw.y-Y0)/tilewidth);
         var url = L.Util.template(this._url, {s: this._getSubdomain(coords)});
         return url + L.Util.getParamString(this.wmtsParams, url) + "&tilematrix=" + tilematrix + "&tilerow=" + tilerow +"&tilecol=" + tilecol;
-        /*
-        var tileBounds = this._tileCoordsToBounds(coords);
-        var zoom = this._tileZoom;
-        var nw = this._crs.project(tileBounds.getNorthWest());
-        var se = this._crs.project(tileBounds.getSouthEast());
-        var tilewidth = se.x-nw.x;
-        var ident = this.matrixIds[zoom].identifier;
-        var X0 = this.matrixIds[zoom].topLeftCorner.lng;
-        var Y0 = this.matrixIds[zoom].topLeftCorner.lat;
-        var tilecol=Math.floor((nw.x+1-X0)/tilewidth);
-        var tilerow=-Math.floor((nw.y-1-Y0)/tilewidth);
-        var url = L.Util.template(this._url, {s: this._getSubdomain(coords)});
-        console.log(L.Util.getParamString(this.wmtsParams, url) + "&tilematrix=" + ident + "&tilerow=" + tilerow +"&tilecol=" + tilecol );
-        return url + L.Util.getParamString(this.wmtsParams, url) + "&tilematrix=" + ident + "&tilerow=" + tilerow +"&tilecol=" + tilecol ;
-        */
     },
 
     setParams: function (params, noRedraw) {
@@ -149,7 +126,7 @@ L.TileLayer.WMTS = L.TileLayer.extend({
         }
         return this;
     },
-    
+
     getDefaultMatrix : function () {
         /**
          * the matrix3857 represents the projection 
@@ -172,9 +149,9 @@ L.tileLayer.wmts = function (url, options) {
 /* To make default marker work with webpack */
 delete L.Icon.Default.prototype._getIconUrl;
 L.Icon.Default.mergeOptions({
-  iconRetinaUrl: require('leaflet/dist/images/marker-icon-2x.png'),
-  iconUrl: require('leaflet/dist/images/marker-icon.png'),
-  shadowUrl: require('leaflet/dist/images/marker-shadow.png'),
+    iconRetinaUrl: require('leaflet/dist/images/marker-icon-2x.png'),
+    iconUrl: require('leaflet/dist/images/marker-icon.png'),
+    shadowUrl: require('leaflet/dist/images/marker-shadow.png'),
 });
 /********************************************/
 
@@ -259,12 +236,8 @@ module.exports = {
         }
     },
     computed: {
-        ...mapGetters('callemailStore', {
-        }),
     },
     methods: {
-        ...mapActions('callemailStore', {
-        }),
         addEventListeners: function () {
             let vm = this;
             let el_fr = $(vm.$refs.lodgementDateFromPicker);
@@ -516,7 +489,6 @@ module.exports = {
                         + report_type_str
                         + '</div>'
 
-            
             if (call_email.location.properties.street){
                 content += '<div class="popup-title">Address</div>'
                 + '<div class="popup-address">'

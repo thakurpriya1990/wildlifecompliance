@@ -565,9 +565,18 @@ export default {
             setRelatedItems: 'setRelatedItems',
         }),
         save: async function(){
-            await this.saveOffence();
-            this.constructOffendersTable();
-            this.constructAllegedOffencesTable();
+            try {
+                await this.saveOffence();
+                this.constructOffendersTable();
+                this.constructAllegedOffencesTable();
+            } catch (err) {
+                console.log('error here');
+                if (err.body.non_field_errors){
+                    await swal("Error", err.body.non_field_errors[0], "error");
+                } else {
+                    await swal("Error", "There was an error saving the record", "error");
+                }
+            }
         },
         saveExit: async function() {
             await this.saveOffence();

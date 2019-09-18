@@ -55,7 +55,7 @@ export const sanctionOutcomeStore = {
         },
         async saveSanctionOutcome({ dispatch, state }) {
             console.log('saveSanctionOutcome');
-            try {
+            //try {
                 // Construct url endpoint
                 let putUrl = helpers.add_endpoint_join(api_endpoints.sanction_outcome, state.sanction_outcome.id + '/');
                 console.log(putUrl);
@@ -78,15 +78,15 @@ export const sanctionOutcomeStore = {
 
                 // Return the saved data just in case needed
                 return savedSanctionOutcome;
-            } catch (err) {
-                console.log('err');
-                console.log(err);
-                if (err.body.non_field_errors){
-                    await swal("Error", err.body.non_field_errors[0], "error");
-                } else {
-                    await swal("Error", "There was an error saving the record", "error");
-                }
-            }
+          //  } catch (err) {
+          //      console.log('err');
+          //      console.log(err);
+          //      if (err.body.non_field_errors){
+          //          await swal("Error", err.body.non_field_errors[0], "error");
+          //      } else {
+          //          await swal("Error", "There was an error saving the record", "error");
+          //      }
+          //  }
         },
         setSanctionOutcome({ commit, }, sanction_outcome) {
             commit("updateSanctionOutcome", sanction_outcome);
