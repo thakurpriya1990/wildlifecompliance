@@ -550,25 +550,16 @@ export default {
             }
         },
         save: async function() {
-            await this.saveSanctionOutcome();
-            this.constructAllegedCommittedOffencesTable();
-         //   try {
-         //       let putUrl = helpers.add_endpoint_join(api_endpoints.sanction_outcome, this.sanction_outcome.id + '/');
-         //       let payload = new Object();
-         //       Object.assign(payload, this.sanction_outcome);
-
-         //       // format 'type'
-         //       payload.type = payload.type.id;
-
-         //       const savedObj = await Vue.http.put(putUrl, payload);
-         //       await swal("Saved", "The record has been saved", "success");
-         //   } catch (err) {
-         //       if (err.body.non_field_errors) {
-         //           await swal("Error", err.body.non_field_errors[0], "error");
-         //       } else {
-         //           await swal("Error", "There was an error saving the record", "error");
-         //       }
-         //   }
+            try {
+                await this.saveSanctionOutcome();
+                this.constructAllegedCommittedOffencesTable();
+            } catch (err) {
+                if (err.body.non_field_errors) {
+                    await swal("Error", err.body.non_field_errors[0], "error");
+                } else {
+                    await swal("Error", "There was an error saving the record", "error");
+                }
+            }
         },
         saveExit: async function() {
             await this.saveSanctionOutcome();

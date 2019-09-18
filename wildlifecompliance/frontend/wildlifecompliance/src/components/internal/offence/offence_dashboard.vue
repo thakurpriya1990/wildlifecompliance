@@ -1,55 +1,59 @@
 <template>
     <div class="container" id="internalOffenceDash">
         <FormSection :label="`Offence`" :Index="`0`">
-
-        <div class="row">
-            <div class="col-md-3">
-                <label class="">Type:</label>
-                <select class="form-control" v-model="filterType">
-                    <option v-for="option in offence_types" :value="option.id" v-bind:key="option.id">
-                        {{ option.display }}
-                    </option>
-                </select>
-            </div>
-            <div class="col-md-3">
-                <label class="">Status:</label>
-                <select class="form-control" v-model="filterStatus">
-                    <option v-for="option in offence_statuses" :value="option.id" v-bind:key="option.id">
-                        {{ option.display }}
-                    </option>
-                </select>
-            </div>
-        </div>
-        <div class="row">
-            <div class="col-md-3">
-                <label class="">Date from:</label>
-                <div class="input-group date" ref="issueDateFromPicker">
-                    <input type="text" class="form-control" placeholder="DD/MM/YYYY" v-model="filterDateFromPicker" />
-                    <span class="input-group-addon">
-                        <span class="glyphicon glyphicon-calendar"></span>
-                    </span>
+            <div class="row">
+                <div class="col-md-3">
+                    <label class="">Type:</label>
+                    <select class="form-control" v-model="filterType">
+                        <option v-for="option in offence_types" :value="option.id" v-bind:key="option.id">
+                            {{ option.display }}
+                        </option>
+                    </select>
+                </div>
+                <div class="col-md-3">
+                    <label class="">Status:</label>
+                    <select class="form-control" v-model="filterStatus">
+                        <option v-for="option in offence_statuses" :value="option.id" v-bind:key="option.id">
+                            {{ option.display }}
+                        </option>
+                    </select>
                 </div>
             </div>
-            <div class="col-md-3">
-                <label class="">Date to:</label>
-                <div class="input-group date" ref="issueDateToPicker">
-                    <input type="text" class="form-control" placeholder="DD/MM/YYYY" v-model="filterDateToPicker" />
-                    <span class="input-group-addon">
-                        <span class="glyphicon glyphicon-calendar"></span>
-                    </span>
+            <div class="row">
+                <div class="col-md-3">
+                    <label class="">Date from:</label>
+                    <div class="input-group date" ref="issueDateFromPicker">
+                        <input type="text" class="form-control" placeholder="DD/MM/YYYY" v-model="filterDateFromPicker" />
+                        <span class="input-group-addon">
+                            <span class="glyphicon glyphicon-calendar"></span>
+                        </span>
+                    </div>
+                </div>
+                <div class="col-md-3">
+                    <label class="">Date to:</label>
+                    <div class="input-group date" ref="issueDateToPicker">
+                        <input type="text" class="form-control" placeholder="DD/MM/YYYY" v-model="filterDateToPicker" />
+                        <span class="input-group-addon">
+                            <span class="glyphicon glyphicon-calendar"></span>
+                        </span>
+                    </div>
+                </div>
+                <div class="col-md-3 pull-right">
+                    <button @click.prevent="createOffence" class="btn btn-primary pull-right">New Offence</button>
+                </div>    
+            </div>
+
+            <div class="row">
+                <div class="col-lg-12">
+                    <datatable ref="offence_table" id="offence-table" :dtOptions="dtOptions" :dtHeaders="dtHeaders" />
                 </div>
             </div>
-            <div class="col-md-3 pull-right">
-                <button @click.prevent="createOffence" class="btn btn-primary pull-right">New Offence</button>
-            </div>    
-        </div>
-
-        <div class="row">
-            <div class="col-lg-12">
-                <datatable ref="offence_table" id="offence-table" :dtOptions="dtOptions" :dtHeaders="dtHeaders" />
-            </div>
-        </div>
         </FormSection>
+
+        <FormSection :label="`Location`" :Index="`1`">
+            <MapLocations />
+        </FormSection>
+
         <div v-if="offenceInitialised">
             <OffenceModal ref="add_offence"  v-bind:key="createOffenceBindId"/>
         </div>
@@ -62,6 +66,7 @@ import datatable from '@vue-utils/datatable.vue'
 import FormSection from "@/components/compliance_forms/section.vue";
 import { api_endpoints, helpers, cache_helper } from '@/utils/hooks'
 import OffenceModal from "./offence_modal.vue";
+import MapLocations from "./offence_locations.vue";
 
 export default {
     name: 'OffenceTableDash',
@@ -286,6 +291,7 @@ export default {
         datatable,
         FormSection,
         OffenceModal,
+        MapLocations,
     },
 }
 
