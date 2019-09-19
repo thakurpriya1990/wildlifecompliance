@@ -100,6 +100,24 @@ class DTOrganisationSerializer(serializers.ModelSerializer):
         return obj.address_string
 
 
+class OrganisationComplianceManagementSerializer(serializers.ModelSerializer):
+    organisation_id = serializers.IntegerField(
+        required=False, write_only=True, allow_null=True)
+    # address = OrganisationAddressSerializer(read_only=True)
+    organisation = LedgerOrganisationSerializer()
+
+    class Meta:
+        model = Organisation
+        fields = (
+            'id',
+            'name',
+            'abn',
+            # 'address',
+            'email',
+            'organisation_id',
+        )
+
+
 class OrganisationSerializer(serializers.ModelSerializer):
     address = OrganisationAddressSerializer(read_only=True)
     pins = serializers.SerializerMethodField(read_only=True)
