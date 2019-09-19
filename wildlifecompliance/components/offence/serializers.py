@@ -1,5 +1,4 @@
-import uuid
-
+from django.db.models import Q
 from rest_framework import serializers
 from wildlifecompliance.components.organisations.models import Organisation
 from wildlifecompliance.components.call_email.serializers import LocationSerializer, EmailUserSerializer, \
@@ -7,7 +6,7 @@ from wildlifecompliance.components.call_email.serializers import LocationSeriali
 from wildlifecompliance.components.main.fields import CustomChoiceField
 from wildlifecompliance.components.main.related_item import get_related_items
 from wildlifecompliance.components.offence.models import Offence, SectionRegulation, Offender, AllegedOffence
-from wildlifecompliance.components.sanction_outcome.models import SanctionOutcome
+from wildlifecompliance.components.sanction_outcome.models import SanctionOutcome, AllegedCommittedOffence
 from wildlifecompliance.components.users.serializers import CompliancePermissionGroupMembersSerializer
 
 
@@ -40,7 +39,8 @@ class SectionRegulationSerializer(serializers.ModelSerializer):
 class OffenderSerializer(serializers.ModelSerializer):
     person = EmailUserSerializer(read_only=True,)
     organisation = OrganisationSerializer(read_only=True,)
-    number_linked_sanction_outcomes = serializers.SerializerMethodField(read_only=True)
+    number_linked_sanction_outcomes_total = serializers.SerializerMethodField(read_only=True)
+    number_linked_sanction_outcomes_active = serializers.SerializerMethodField(read_only=True)
     can_user_action = serializers.SerializerMethodField(read_only=True)
 
     class Meta:
@@ -51,16 +51,20 @@ class OffenderSerializer(serializers.ModelSerializer):
             'organisation',
             'removed',
             'reason_for_removal',
-            'number_linked_sanction_outcomes',
+            'number_linked_sanction_outcomes_total',
+            'number_linked_sanction_outcomes_active',
             'can_user_action',
         )
 
-    def get_number_linked_sanction_outcomes(self, obj):
+    def get_number_linked_sanction_outcomes_total(self, obj):
         return SanctionOutcome.objects.filter(offender=obj).count()
 
+    def get_number_linked_sanction_outcomes_active(self, obj):
+        return SanctionOutcome.objects_active.filter(offender=obj).count()
+
     def get_can_user_action(self, obj):
-        if obj.removed:
-            return False
+        # if obj.removed:
+        #     return False
         return True
 
 
@@ -128,10 +132,37 @@ class OffenceDatatableSerializer(serializers.ModelSerializer):
         return [ OffenderSerializer(offender).data for offender in offenders ]
 
 
+# class AllegedOffenceSerializer(serializers.ModelSerializer):
+#     section_regulation = SectionRegulationSerializer(read_only=True)
+#     removed_by_id = serializers.IntegerField(read_only=True)
+#     number_linked_sanction_outcomes = serializers.SerializerMethodField(read_only=True)
+#     number_linked_sanction_outcomes_active = serializers.SerializerMethodField(read_only=True)
+#
+#     class Meta:
+#         model = AllegedOffence
+#         fields = (
+#             'id',
+#             'section_regulation',
+#             'removed',
+#             'removed_by_id',
+#             'reason_for_removal',
+#             'number_linked_sanction_outcomes',
+#             'number_linked_sanction_outcomes_active',
+#         )
+#
+#     def get_number_linked_sanction_outcomes(self, alleged_offence):
+#         temp =  AllegedCommittedOffence.objects.filter(alleged_offence=alleged_offence)
+#         return temp.count()
+#
+#     def get_number_linked_sanction_outcomes_active(self, alleged_offence):
+#         return AllegedCommittedOffence.objects_active.filter(alleged_offence=alleged_offence).filter(sanction_outcome__in=SanctionOutcome.objects_active.all()).count()
+
+
 class OffenceSerializer(serializers.ModelSerializer):
     status = CustomChoiceField(read_only=True)
     location = LocationSerializer(read_only=True)
     alleged_offences = serializers.SerializerMethodField(read_only=True)
+    # alleged_offences = AllegedOffenceSerializer(read_only=True, many=True)
     offenders = serializers.SerializerMethodField(read_only=True)
     allocated_group = serializers.SerializerMethodField()
     user_in_group = serializers.SerializerMethodField()
@@ -178,12 +209,29 @@ class OffenceSerializer(serializers.ModelSerializer):
         return obj.status in (Offence.STATUS_DRAFT, Offence.STATUS_OPEN)
 
     def get_alleged_offences(self, obj):
-        alleged_offence_objects = AllegedOffence.objects.filter(offence=obj)
+        alleged_offences = AllegedOffence.objects.filter(offence=obj)
         ret_list = []
-        for alleged_offence_object in alleged_offence_objects:
-            ret_obj = { 'id': alleged_offence_object.id }
-            section_regulation_serializer = SectionRegulationSerializer(alleged_offence_object.section_regulation)
+        for alleged_offence in alleged_offences:
+            ret_obj = {}
+
+            section_regulation_serializer = SectionRegulationSerializer(alleged_offence.section_regulation)
             ret_obj['section_regulation'] = section_regulation_serializer.data
+            ret_obj['id'] = alleged_offence.id
+            ret_obj['removed'] = alleged_offence.removed
+            ret_obj['removed_by_id'] = alleged_offence.removed_by.id if alleged_offence.removed_by else None
+            ret_obj['reason_for_removal'] = alleged_offence.reason_for_removal
+
+            # number_linked_to_sanction_outcomes
+            ret_obj['number_linked_sanction_outcomes_total'] = AllegedCommittedOffence.objects.filter(
+                Q(alleged_offence=alleged_offence)
+            ).count()
+
+            # number_linked_to_sanction_outcomes_active
+            ret_obj['number_linked_sanction_outcomes_active'] = AllegedCommittedOffence.objects_active.filter(
+                Q(alleged_offence=alleged_offence) &
+                Q(sanction_outcome__in=SanctionOutcome.objects_active.all())
+            ).count()
+
             ret_list.append(ret_obj)
         return ret_list
 
@@ -240,6 +288,26 @@ class OffenceSerializer(serializers.ModelSerializer):
         return get_related_items(obj)
 
 
+class UpdateAllegedOffenceAttributeSerializer(serializers.ModelSerializer):
+    removed_by_id = serializers.IntegerField(write_only=True, required=False, allow_null=True)
+
+    class Meta:
+        model = AllegedOffence
+        fields = (
+            'removed',
+            'reason_for_removal',
+            'removed_by_id',
+        )
+
+    def validate(self, data):
+        if data['removed']:
+            if not data['reason_for_removal']:
+                raise serializers.ValidationError('To remove a record, you need a reason to remove.')
+            if not data['removed_by_id']:
+                raise serializers.ValidationError('To remove a record, you need a person to remove.')
+        return data
+
+
 class UpdateOffenderAttributeSerializer(serializers.ModelSerializer):
     removed_by_id = serializers.IntegerField(write_only=True, required=False, allow_null=True)
 
@@ -257,7 +325,6 @@ class UpdateOffenderAttributeSerializer(serializers.ModelSerializer):
                 raise serializers.ValidationError('To remove a record, you need a reason to remove.')
             if not data['removed_by_id']:
                 raise serializers.ValidationError('To remove a record, you need a person to remove.')
-
         return data
 
 

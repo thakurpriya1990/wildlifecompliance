@@ -31,7 +31,8 @@ from wildlifecompliance.components.offence.serializers import (
     SaveOffenderSerializer,
     OrganisationSerializer,
     OffenceDatatableSerializer,
-    UpdateAssignedToIdSerializer, UpdateOffenderAttributeSerializer, OffenceOptimisedSerializer)
+    UpdateAssignedToIdSerializer, UpdateOffenderAttributeSerializer, OffenceOptimisedSerializer,
+    UpdateAllegedOffenceAttributeSerializer)
 from wildlifecompliance.helpers import is_internal
 
 
@@ -263,19 +264,42 @@ class OffenceViewSet(viewsets.ModelViewSet):
                 saved_offence_instance = serializer.save()  # Here, relations between this offence and location, and this offence and call_email/inspection are created
 
                 # 3. TODO: Handle alleged offences
-                # ids_received = set([d['id'] for d in request_data['alleged_offences']])
-                # ids_stored = set(instance.alleged_offences.values_list('id', flat=True))  # making queryset to list
-                # ids_to_be_deleted = list(ids_stored - ids_received)  # calculate with set (not list)
-                # ids_to_be_added = list(ids_received - ids_stored)
-                #
-                # for id in ids_to_be_added:
-                #     alleged_offence = SectionRegulation.objects.get(id=id)
-                #     saved_offence_instance.alleged_offences.add(alleged_offence)
-                # for id in ids_to_be_deleted:
-                #     alleged_offence = SectionRegulation.objects.get(id=id)
-                #     saved_offence_instance.alleged_offences.remove(alleged_offence)
-                #
-                # saved_offence_instance.save()
+                for item in request_data['alleged_offences']:
+                    alleged_offence, created = AllegedOffence.objects.get_or_create(section_regulation_id=item['section_regulation']['id'], offence_id=request_data['id'])
+
+                    if not created:
+                        serializer = None
+
+                        # Update attributes of existing alleged offence
+                        if not alleged_offence.removed and item['removed']:
+                            # This alleged offence is going to be removed
+                            serializer = UpdateAllegedOffenceAttributeSerializer(alleged_offence, data={
+                                'removed': item['removed'],
+                                'removed_by_id': request.user.id,
+                                # 'reason_for_removal': item['reason_for_removal']
+                                'reason_for_removal': 'TODO: implement front end for reason'
+                                # TODO: implement front end for reason for removal
+                            })
+
+                            # TODO: Add action log
+
+                        elif alleged_offence.removed and not item['removed']:
+                            # This offender is going to be restored
+                            serializer = UpdateAllegedOffenceAttributeSerializer(alleged_offence, data={
+                                'removed': item['removed'],
+                                'removed_by_id': None,
+                                'reason_for_removal': ''
+                            })
+
+                            # TODO: Add action log
+
+                        else:
+                            # other case where nothing changed on this offender
+                            pass
+
+                        if serializer:
+                            serializer.is_valid(raise_exception=True)
+                            serializer.save()
 
                 # 4. Create relations between this offence and offender(s)
                 for item in request_data['offenders']:
@@ -284,17 +308,39 @@ class OffenceViewSet(viewsets.ModelViewSet):
                     elif item['organisation']:
                         offender, created = Offender.objects.get_or_create(organisation_id=item['organisation']['id'], offence_id=request_data['id'])
 
-                    # Update attributes of offender
-                    serializer = UpdateOffenderAttributeSerializer(offender, data={
-                        'removed': item['removed'],
-                        'removed_by_id': request.user.id if item['removed'] else None,
-                        # TODO: Implement reason for removal field in the front end
-                        'reason_for_removal': item['reason_for_removal'] if item['reason_for_removal'] else 'TODO: accept reason',
-                    })
-                    serializer.is_valid(raise_exception=True)
-                    serializer.save()
+                    if not created:
+                        serializer = None
 
-                # TODO: action log
+                        # Update attributes of existing offender
+                        if not offender.removed and item['removed']:
+                            # This offender is going to be removed
+                            serializer = UpdateOffenderAttributeSerializer(offender, data={
+                                'removed': item['removed'],
+                                'removed_by_id': request.user.id,
+                                # 'reason_for_removal': item['reason_for_removal']
+                                'reason_for_removal': 'TODO: implement front end for reason'
+                                # TODO: implement front end for reason for removal
+                            })
+
+                            # TODO: Add action log
+
+                        elif offender.removed and not item['removed']:
+                            # This offender is going to be restored
+                            serializer = UpdateOffenderAttributeSerializer(offender, data={
+                                'removed': item['removed'],
+                                'removed_by_id': None,
+                                'reason_for_removal': ''
+                            })
+
+                            # TODO: Add action log
+
+                        else:
+                            # other case where nothing changed on this offender
+                            pass
+
+                        if serializer:
+                            serializer.is_valid(raise_exception=True)
+                            serializer.save()
 
                 # 4. Return Json
                 return self.retrieve(request)

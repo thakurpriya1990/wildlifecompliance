@@ -4,11 +4,22 @@ from django.contrib.auth.models import Permission
 from django.contrib.contenttypes.models import ContentType
 from django.core.exceptions import ValidationError
 from django.db import models
+from django.db.models import Q
+
 from ledger.accounts.models import EmailUser, RevisionedMixin
 from wildlifecompliance.components.main import get_next_value
 from wildlifecompliance.components.main.models import Document, UserAction, CommunicationsLogEntry
 from wildlifecompliance.components.offence.models import Offence, Offender, SectionRegulation, AllegedOffence
 from wildlifecompliance.components.users.models import RegionDistrict, CompliancePermissionGroup
+
+
+class SanctionOutcomeActiveManager(models.Manager):
+    def get_query_set(self):
+        return super(SanctionOutcomeActiveManager, self).get_query_set().exclude(
+            Q(status=SanctionOutcome.STATUS_CLOSED) |
+            Q(status=SanctionOutcome.STATUS_WITHDRAWN) |
+            Q(status=SanctionOutcome.STATUS_DECLINED)
+        )
 
 
 class SanctionOutcome(models.Model):
@@ -63,7 +74,7 @@ class SanctionOutcome(models.Model):
     lodgement_number = models.CharField(max_length=50, blank=True,)
     offence = models.ForeignKey(Offence, related_name='sanction_outcome_offence', null=True, on_delete=models.SET_NULL,)
     offender = models.ForeignKey(Offender, related_name='sanction_outcome_offender', null=True, on_delete=models.SET_NULL,)
-    alleged_offences = models.ManyToManyField(SectionRegulation, blank=True, related_name='sanction_outcome_alleged_offences')
+    alleged_offences = models.ManyToManyField(SectionRegulation, blank=True, related_name='sanction_outcome_alleged_offences')  # TODO: this field is not probably used anymore.
     alleged_committed_offences = models.ManyToManyField(AllegedOffence, related_name='sanction_outcome_alleged_committed_offences', through='AllegedCommittedOffence')
     issued_on_paper = models.BooleanField(default=False) # This is always true when type is letter_of_advice
     paper_id = models.CharField(max_length=50, blank=True,)
@@ -78,6 +89,9 @@ class SanctionOutcome(models.Model):
     # Only editable when issued on paper. Otherwise pre-filled with date/time when issuing electronically.
     date_of_issue = models.DateField(null=True, blank=True)
     time_of_issue = models.TimeField(null=True, blank=True)
+
+    objects = models.Manager()
+    objects_active = SanctionOutcomeActiveManager()
 
     def clean(self):
         if self.offender and not self.offence:
@@ -245,6 +259,11 @@ class SanctionOutcome(models.Model):
         ordering = ['-id']
 
 
+class AllegedCommittedOffenceActiveManager(models.Manager):
+    def get_query_set(self):
+        return super(AllegedCommittedOffenceActiveManager, self).get_query_set().exclude(Q(removed=True))
+
+
 class AllegedCommittedOffence(RevisionedMixin):
     alleged_offence = models.ForeignKey(AllegedOffence, null=False,)
     sanction_outcome = models.ForeignKey(SanctionOutcome, null=False,)
@@ -252,6 +271,8 @@ class AllegedCommittedOffence(RevisionedMixin):
     reason_for_removal = models.TextField(blank=True)
     removed = models.BooleanField(default=False)  # Never make this field False once becomes True. Rather you have to create another record making this field False.
     removed_by = models.ForeignKey(EmailUser, null=True, related_name='alleged_committed_offence_removed_by')
+    objects = models.Manager()
+    objects_active = AllegedCommittedOffenceActiveManager()
 
     class Meta:
         app_label = 'wildlifecompliance'
