@@ -911,6 +911,15 @@ class EmailUserViewSet(viewsets.ModelViewSet):
     filter_backends = (filters.SearchFilter,)
     search_fields = ('first_name', 'last_name', 'email', 'phone_number', 'mobile_number', 'organisation')
 
+    def get_queryset(self):
+        exclude_staff = self.request.GET.get('exclude_staff')
+        if is_internal(self.request):
+            if exclude_staff == 'true':
+                return EmailUser.objects.filter(is_staff=False)
+            else:
+                return EmailUser.objects.all()
+        return EmailUser.objects.none()
+
 
 class MapLayerViewSet(viewsets.ModelViewSet):
     queryset = MapLayer.objects.filter(availability__exact=True)

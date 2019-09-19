@@ -59,28 +59,9 @@ export default {
             isModalOpen: false,
             processingDetails: false,
             form: null,
-            //regions: [],
-            //regionDistricts: [],
-            //availableDistricts: [],
-            //casePriorities: [],
-            //inspectionTypes: [],
-            //externalOrganisations: [],
             workflowDetails: '',
             errorResponse: "",
-            //region_id: null,
-            //district_id: null,
-            //assigned_to_id: null,
-            //inspection_type_id: null,
-            //advice_details: "",
-            //allocatedGroup: [],
-            //allocated_group_id: null,
             documentActionUrl: '',
-            // files: [
-            //         {
-            //             'file': null,
-            //             'name': ''
-            //         }
-            //     ]
       }
     },
     components: {
@@ -111,15 +92,10 @@ export default {
               return "Request Amendment";
           } else if (this.workflow_type === 'close') {
               return "Close Inspection";
+          } else if (this.workflow_type === 'endorse') {
+              return "Endorse and Close Inspection";
           }
       },
-      // groupPermission: function() {
-      //     if (this.workflow_type === 'send_to_manager') {
-      //         return "manager";
-      //     } else if (this.workflow_type === 'request_amendment') {
-      //         return "officer";
-      //     }
-      // },
     },
     filters: {
       formatDate: function(data) {
@@ -132,35 +108,6 @@ export default {
           loadInspection: 'loadInspection',
           setInspection: 'setInspection',
       }),
-      // ...mapActions({
-      //     loadAllocatedGroup: 'loadAllocatedGroup',
-      // }),
-      // updateAllocatedGroup: async function() {
-      //     console.log("updateAllocatedGroup");
-      //     this.errorResponse = "";
-      //     if (this.regionDistrictId) {
-      //         let allocatedGroupResponse = await this.loadAllocatedGroup({
-      //         region_district_id: this.regionDistrictId,
-      //         group_permission: this.groupPermission,
-      //         });
-      //         if (allocatedGroupResponse.ok) {
-      //             console.log(allocatedGroupResponse.body.allocated_group);
-      //             //this.allocatedGroup = Object.assign({}, allocatedGroupResponse.body.allocated_group);
-      //             Vue.set(this, 'allocatedGroup', allocatedGroupResponse.body.allocated_group);
-      //             this.allocated_group_id = allocatedGroupResponse.body.group_id;
-      //         } else {
-      //             // Display http error response on modal
-      //             this.errorResponse = allocatedGroupResponse.statusText;
-      //         }
-      //         // Display empty group error on modal
-      //         if (!this.errorResponse &&
-      //             this.allocatedGroup &&
-      //             this.allocatedGroup.length <= 1) {
-      //             this.errorResponse = 'This group has no members';
-      //         }
-      //     }
-      // },
-
       ok: async function () {
           const response = await this.sendData();
           console.log(response);

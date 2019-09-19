@@ -656,6 +656,8 @@ class InspectionViewSet(viewsets.ModelViewSet):
             raise serializers.ValidationError(str(e))
 
     def create(self, request, *args, **kwargs):
+        print("create")
+        print(request.data)
         try:
             with transaction.atomic():
                 serializer = SaveInspectionSerializer(
@@ -668,18 +670,11 @@ class InspectionViewSet(viewsets.ModelViewSet):
                     instance.log_user_action(
                             InspectionUserAction.ACTION_CREATE_INSPECTION.format(
                             instance.number), request)
-                    if request.data.get('allocated_group_id'):
-                        res = self.workflow_action(request, instance)
-                        return res
-                    else:
-                        # Log parent actions and update status
+                    res = self.workflow_action(request, instance)
+                    if instance.call_email:
+                        print("update parent")
                         self.update_parent(request, instance)
-                        headers = self.get_success_headers(serializer.data)
-                        return Response(
-                                serializer.data, 
-                                status=status.HTTP_201_CREATED,
-                                headers=headers
-                                )
+                    return res
         except serializers.ValidationError:
             print(traceback.print_exc())
             raise
@@ -694,7 +689,6 @@ class InspectionViewSet(viewsets.ModelViewSet):
 
     def update_parent(self, request, instance, *args, **kwargs):
         # Log parent actions and update status
-        # If CallEmail
         if instance.call_email:
             instance.call_email.log_user_action(
                     CallEmailUserAction.ACTION_ALLOCATE_FOR_INSPECTION.format(
@@ -726,6 +720,8 @@ class InspectionViewSet(viewsets.ModelViewSet):
                     instance.send_to_manager(request)
                 elif workflow_type == 'request_amendment':
                     instance.request_amendment(request)
+                elif workflow_type == 'endorse':
+                    instance.endorse(request)
                 elif workflow_type == 'close':
                     instance.close(request)
 
@@ -742,9 +738,6 @@ class InspectionViewSet(viewsets.ModelViewSet):
                     recipient_id = instance.inspection_team_lead_id
 
                 instance.save()
-                # Log parent actions and update status
-                if instance.call_email_id:
-                    self.update_parent(request, instance)
 
                 if instance.assigned_to_id:
                     instance = self.modify_inspection_team(request, instance, workflow=True, user_id=instance.assigned_to_id)

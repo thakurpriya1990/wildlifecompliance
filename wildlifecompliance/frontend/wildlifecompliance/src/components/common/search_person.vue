@@ -40,6 +40,11 @@ export default {
         isEditable: {
             required: false,
             default: true
+        },
+        excludeStaff: {
+            type: Boolean,
+            required: false,
+            default: false,
         }
     },
     methods: {
@@ -170,7 +175,7 @@ export default {
 
             vm.ajax_for_offender = $.ajax({
                 type: "GET",
-                url: search_url + searchTerm,
+                url: search_url + searchTerm + '&exclude_staff=' + vm.excludeStaff,
                 success: function(data) {
                     if (data && data.results) {
                         let persons = data.results;
