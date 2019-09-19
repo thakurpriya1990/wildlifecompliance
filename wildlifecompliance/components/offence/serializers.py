@@ -268,6 +268,7 @@ class OffenceOptimisedSerializer(serializers.ModelSerializer):
         model = Offence
         fields = (
             'id',
+            'status',
             'location',
             'lodgement_number',
         )

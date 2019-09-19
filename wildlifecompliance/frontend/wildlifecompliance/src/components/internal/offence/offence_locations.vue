@@ -408,24 +408,28 @@ module.exports = {
                 }
             });
         },
-        addMarkers(call_emails){
+        addMarkers(offences){
+            console.log('addMarkers');
+
             let self = this;
             self.mcg.clearLayers();
 
-            if (call_emails && call_emails.length > 0){
-                for (var i = 0; i < call_emails.length; i++){
-                    if(call_emails[i].location){
-                        let call_email = call_emails[i];
-                        let coords = call_email.location.geometry.coordinates;
+            if (offences && offences.length > 0){
+                for (var i = 0; i < offences.length; i++){
+                    if(offences[i].location){
+                        let offence = offences[i];
+                        let coords = offence.location.geometry.coordinates;
 
                         /* Select a marker file, according to the classification */
                         let filename = 'marker-gray-locked.svg';
-                        if (call_email.classification){
-                            if (call_email.classification.id == 1){
-                                filename = 'marker-yellow-locked.svg';
-                            } else if (call_email.classification.id == 2){
+                        if (offence.status){
+                            if (offence.status == 'open'){
                                 filename = 'marker-green-locked.svg';
-                            } else if (call_email.classification.id == 3){
+                            } else if (offence.status == 'discarded'){
+                                filename = 'marker-blue-locked.svg';
+                            } else if (offence.status == 'closing'){
+                                filename = 'marker-orange-locked.svg';
+                            } else if (offence.status == 'closed'){
                                 filename = 'marker-red-locked.svg';
                             }
                         }
@@ -448,27 +452,27 @@ module.exports = {
                         /* dynamically construct content of the popup */
                         myMarker.on('click', (ev)=>{
                             let popup = ev.target.getPopup();
-                            self.$http.get('/api/call_email/' + call_email.id).then(response => {
-                                let call_email = response.body;
-                                popup.setContent(self.construct_content(call_email, coords));
+                            self.$http.get('/api/offence/' + offence.id).then(response => {
+                                let offence = response.body;
+                                popup.setContent(self.construct_content(offence, coords));
                             });
                         })
                     }
                 }
             }
         },
-        construct_content: function (call_email, coords){
+        construct_content: function (offence, coords){
             let classification_str = '---';
-            if (call_email.classification){
-                classification_str = call_email.classification.name;
+            if (offence.classification){
+                classification_str = offence.classification.name;
             }
 
             let report_type_str = '---';
-            if (call_email.report_type){
-                report_type_str = call_email.report_type.report_type;
+            if (offence.report_type){
+                report_type_str = offence.report_type.report_type;
             }
 
-            let content = '<div class="popup-title-main">' + call_email.number + '</div>';
+            let content = '<div class="popup-title-main">' + offence.number + '</div>';
             content    += '<div class="popup-title">Classification</div>'
                         + '<div class="popup-coords">'
                         + classification_str
@@ -479,24 +483,24 @@ module.exports = {
                         + report_type_str
                         + '</div>'
 
-            if (call_email.location.properties.street){
+            if (offence.location.properties.street){
                 content += '<div class="popup-title">Address</div>'
                 + '<div class="popup-address">'
-                + call_email.location.properties.street + '<br />'
-                + call_email.location.properties.town_suburb + '<br />'
-                + call_email.location.properties.state + '<br />'
-                + call_email.location.properties.postcode
+                + offence.location.properties.street + '<br />'
+                + offence.location.properties.town_suburb + '<br />'
+                + offence.location.properties.state + '<br />'
+                + offence.location.properties.postcode
                 + '</div>'
 
             }else{
                 content += '<div class="popup-title">Details</div>'
                 + '<div class="popup-address">'
-                + call_email.location.properties.details.substring(0, 10)
+                + offence.location.properties.details.substring(0, 10)
                 + '</div>'
             }
 
             content += '<div class="popup-link">'
-                + '<a href="/internal/call_email/' + call_email.id + '">View</a>'
+                + '<a href="/internal/offence/' + offence.id + '">View</a>'
                 + '</div>';
 
             return content;
