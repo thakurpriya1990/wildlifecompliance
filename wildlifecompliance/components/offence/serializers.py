@@ -2,7 +2,8 @@ import uuid
 
 from rest_framework import serializers
 from wildlifecompliance.components.organisations.models import Organisation
-from wildlifecompliance.components.call_email.serializers import LocationSerializer, EmailUserSerializer
+from wildlifecompliance.components.call_email.serializers import LocationSerializer, EmailUserSerializer, \
+    LocationSerializerOptimized
 from wildlifecompliance.components.main.fields import CustomChoiceField
 from wildlifecompliance.components.main.related_item import get_related_items
 from wildlifecompliance.components.offence.models import Offence, SectionRegulation, Offender, AllegedOffence
@@ -258,6 +259,20 @@ class UpdateOffenderAttributeSerializer(serializers.ModelSerializer):
                 raise serializers.ValidationError('To remove a record, you need a person to remove.')
 
         return data
+
+
+class OffenceOptimisedSerializer(serializers.ModelSerializer):
+    location = LocationSerializerOptimized()
+
+    class Meta:
+        model = Offence
+        fields = (
+            'id',
+            'location',
+            'lodgement_number',
+        )
+        read_only_fields = ('id', )
+
 
 class SaveOffenceSerializer(serializers.ModelSerializer):
     location_id = serializers.IntegerField(required=False, write_only=True, allow_null=True)

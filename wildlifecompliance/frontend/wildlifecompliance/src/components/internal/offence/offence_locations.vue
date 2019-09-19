@@ -10,18 +10,18 @@
                 </select>
             </div>
             <div>
-                <label class="">Lodged From</label>
+                <label class="">Date From</label>
                 <div class="input-group date" ref="lodgementDateFromPicker">
-                    <input type="text" class="form-control" placeholder="DD/MM/YYYY" v-model="filterLodgedFrom" />
+                    <input type="text" class="form-control" placeholder="DD/MM/YYYY" v-model="filterDateFrom" />
                     <span class="input-group-addon">
                         <span class="glyphicon glyphicon-calendar"></span>
                     </span>
                 </div>
             </div>
             <div>
-                <label class="">Lodged To</label>
+                <label class="">Date To</label>
                 <div class="input-group date" ref="lodgementDateToPicker">
-                    <input type="text" class="form-control" placeholder="DD/MM/YYYY" v-model="filterLodgedTo" />
+                    <input type="text" class="form-control" placeholder="DD/MM/YYYY" v-model="filterDateTo" />
                     <span class="input-group-addon">
                         <span class="glyphicon glyphicon-calendar"></span>
                     </span>
@@ -168,7 +168,7 @@ module.exports = {
             tileLayer: null, // Base layer (Open street map)
             tileLayerSat: null, // Base layer (satelllite)
             popup: null,
-            opt_url : helpers.add_endpoint_json(api_endpoints.call_email, "optimised"),
+            opt_url : helpers.add_endpoint_json(api_endpoints.offence, "optimised"),
 
             /*
              * Filers:
@@ -176,9 +176,8 @@ module.exports = {
              * The value of this is used queryset.filter() in the backend.
              */
             filterStatus: 'all',
-            filterClassification: 'all',
-            filterLodgedFrom: '',
-            filterLodgedTo: '',
+            filterDateFrom: '',
+            filterDateTo: '',
 
             status_choices: [],
             cursor_location: null,
@@ -202,27 +201,24 @@ module.exports = {
         filterStatus: function () {
             this.loadLocations();
         },
-        filterClassification: function() {
-            this.loadLocations();
-        },
-        filterLodgedFrom: function(){
-            if (!this.filterLodgedFrom){
+        filterDateFrom: function(){
+            if (!this.filterDateFrom){
                 /* When empty string */
                 this.loadLocations();
             } else {
-                let result = this.datetime_pattern.exec(this.filterLodgedFrom);
+                let result = this.datetime_pattern.exec(this.filterDateFrom);
                 if (result){
                     /* When date is set */
                     this.loadLocations();
                 }
             }
         },
-        filterLodgedTo: function(){
-            if (!this.filterLodgedTo){
+        filterDateTo: function(){
+            if (!this.filterDateTo){
                 /* When empty string */
                 this.loadLocations();
             } else {
-                let result = this.datetime_pattern.exec(this.filterLodgedTo);
+                let result = this.datetime_pattern.exec(this.filterDateTo);
                 if (result){
                     /* When date is set */
                     this.loadLocations();
@@ -242,10 +238,10 @@ module.exports = {
             el_fr.datetimepicker({ format: 'DD/MM/YYYY', maxDate: 'now', showClear: true });
             el_fr.on('dp.change', function (e) {
                 if (el_fr.data('DateTimePicker').date()) {
-                    vm.filterLodgedFrom = e.date.format('DD/MM/YYYY');
+                    vm.filterDateFrom = e.date.format('DD/MM/YYYY');
                     el_to.data('DateTimePicker').minDate(e.date);
                 } else if (el_fr.data('date') === "") {
-                    vm.filterLodgedFrom = "";
+                    vm.filterDateFrom = "";
                 }
             });
 
@@ -253,10 +249,10 @@ module.exports = {
             el_to.datetimepicker({ format: 'DD/MM/YYYY', maxDate: 'now', showClear: true });
             el_to.on('dp.change', function (e) {
                 if (el_to.data('DateTimePicker').date()) {
-                    vm.filterLodgedTo = e.date.format('DD/MM/YYYY');
+                    vm.filterDateTo = e.date.format('DD/MM/YYYY');
                     el_fr.data('DateTimePicker').maxDate(e.date);
                 } else if (el_to.data('date') === "") {
-                    vm.filterLodgedTo = "";
+                    vm.filterDateTo = "";
                 }
             });
         },
@@ -396,9 +392,8 @@ module.exports = {
             }
             let myData = {
                 "status": vm.filterStatus,
-                "classification": vm.filterClassification,
-                "lodged_from" : vm.filterLodgedFrom,
-                "lodged_to" : vm.filterLodgedTo,
+                "date_from" : vm.filterDateFrom,
+                "date_to" : vm.filterDateTo,
             };
 
             vm.ajax_for_location = $.ajax({
