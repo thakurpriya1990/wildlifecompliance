@@ -38,7 +38,8 @@ from ledger.checkout.utils import calculate_excl_gst
 from datetime import datetime, timedelta, date
 from django.urls import reverse
 from django.shortcuts import render, redirect, get_object_or_404
-from wildlifecompliance.components.main.api import save_location, process_generic_document
+from wildlifecompliance.components.main.api import save_location
+from wildlifecompliance.components.main.process_document import process_generic_document
 from wildlifecompliance.components.main.email import prepare_mail
 from wildlifecompliance.components.users.serializers import (
     UserAddressSerializer,
