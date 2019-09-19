@@ -1,4 +1,5 @@
 import json
+import operator
 import traceback
 from datetime import datetime
 
@@ -24,13 +25,13 @@ from wildlifecompliance.components.main.api import save_location
 
 from wildlifecompliance.components.offence.models import Offence, SectionRegulation, Offender, AllegedOffence
 from wildlifecompliance.components.offence.serializers import (
-        OffenceSerializer, 
-        SectionRegulationSerializer, 
-        SaveOffenceSerializer, 
-        SaveOffenderSerializer, 
-        OrganisationSerializer, 
-        OffenceDatatableSerializer,
-)
+    OffenceSerializer,
+    SectionRegulationSerializer,
+    SaveOffenceSerializer,
+    SaveOffenderSerializer,
+    OrganisationSerializer,
+    OffenceDatatableSerializer,
+    UpdateAssignedToIdSerializer, UpdateOffenderAttributeSerializer, OffenceOptimisedSerializer)
 from wildlifecompliance.helpers import is_internal
 
 
@@ -136,11 +137,46 @@ class OffenceViewSet(viewsets.ModelViewSet):
     queryset = Offence.objects.all()
     serializer_class = OffenceSerializer
 
+    def retrieve(self, request, *args, **kwargs):
+        return super(OffenceViewSet, self).retrieve(request, *args, **kwargs)
+
     def get_queryset(self):
         user = self.request.user
         if is_internal(self.request):
             return Offence.objects.all()
         return Offence.objects.none()
+
+    @list_route(methods=['GET', ])
+    def optimised(self, request, *args, **kwargs):
+        queryset = self.get_queryset().exclude(location__isnull=True)
+
+        filter_status = request.query_params.get('status', '')
+        filter_status = '' if filter_status.lower() == 'all' else filter_status
+        filter_date_from = request.query_params.get('date_from', '')
+        filter_date_to = request.query_params.get('date_to', '')
+
+        q_list = []
+        if filter_status:
+            q_list.append(Q(status__exact=filter_status))
+        if filter_date_from:
+            date_from = datetime.strptime(filter_date_from, '%d/%m/%Y')
+            q_list.append(Q(occurrence_date_from__gte=date_from))
+        if filter_date_to:
+            date_to = datetime.strptime(filter_date_to, '%d/%m/%Y')
+            q_list.append(Q(occurrence_date_to__lte=date_to))
+
+        queryset = queryset.filter(reduce(operator.and_, q_list)) if len(q_list) else queryset
+
+        serializer = OffenceOptimisedSerializer(queryset, many=True)
+        return Response(serializer.data)
+
+    @list_route(methods=['GET', ])
+    def status_choices(self, request, *args, **kwargs):
+        res_obj = []
+        for choice in Offence.STATUS_CHOICES:
+            res_obj.append({'id': choice[0], 'display': choice[1]});
+        res_json = json.dumps(res_obj)
+        return HttpResponse(res_json, content_type='application/json')
 
     @list_route(methods=['GET', ])
     def types(self, request, *args, **kwargs):
@@ -202,9 +238,9 @@ class OffenceViewSet(viewsets.ModelViewSet):
             #instance.inspection.status = 'open_inspection'
             #instance.inspection.save()
 
-    @detail_route(methods=['POST', ])
-    @renderer_classes((JSONRenderer,))
-    def update_offence(self, request, *args, **kwargs):
+    # @detail_route(methods=['POST', ])
+    # @renderer_classes((JSONRenderer,))
+    def update(self, request, *args, **kwargs):
         try:
             with transaction.atomic():
                 instance = self.get_object()
@@ -226,48 +262,51 @@ class OffenceViewSet(viewsets.ModelViewSet):
                 serializer.is_valid(raise_exception=True)
                 saved_offence_instance = serializer.save()  # Here, relations between this offence and location, and this offence and call_email/inspection are created
 
-                # 3. Save alleged offences
-                ids_received = set([d['id'] for d in request_data['alleged_offences']])
-                ids_stored = set(instance.alleged_offences.values_list('id', flat=True))  # making queryset to list
-                ids_to_be_deleted = list(ids_stored - ids_received)  # calculate with set (not list)
-                ids_to_be_added = list(ids_received - ids_stored)
-
-                for id in ids_to_be_added:
-                    alleged_offence = SectionRegulation.objects.get(id=id)
-                    saved_offence_instance.alleged_offences.add(alleged_offence)
-                for id in ids_to_be_deleted:
-                    alleged_offence = SectionRegulation.objects.get(id=id)
-                    saved_offence_instance.alleged_offences.remove(alleged_offence)
-
-                saved_offence_instance.save()
+                # 3. TODO: Handle alleged offences
+                # ids_received = set([d['id'] for d in request_data['alleged_offences']])
+                # ids_stored = set(instance.alleged_offences.values_list('id', flat=True))  # making queryset to list
+                # ids_to_be_deleted = list(ids_stored - ids_received)  # calculate with set (not list)
+                # ids_to_be_added = list(ids_received - ids_stored)
+                #
+                # for id in ids_to_be_added:
+                #     alleged_offence = SectionRegulation.objects.get(id=id)
+                #     saved_offence_instance.alleged_offences.add(alleged_offence)
+                # for id in ids_to_be_deleted:
+                #     alleged_offence = SectionRegulation.objects.get(id=id)
+                #     saved_offence_instance.alleged_offences.remove(alleged_offence)
+                #
+                # saved_offence_instance.save()
 
                 # 4. Create relations between this offence and offender(s)
-                # individual
-                persons_received = [item if item['data_type'] == 'individual' else None for item in request_data['offenders']]
-                organisations_received = [item if item['data_type'] == 'organisation' else None for item in request_data['offenders']]
-                for person in persons_received:
-                    if person:
-                        offender, created = Offender.objects.get_or_create(person_id=person['id'], offence_id=request_data['id'])
-                        offender.removed = person['removed']
-                        offender.reason_for_removal = person['reason_for_removal']
-                        offender.save()
-                for organisation in organisations_received:
-                    if organisation:
-                        offender, created = Offender.objects.get_or_create(organisation_id=organisation['id'], offence_id=request_data['id'])
-                        offender.removed = organisation['removed']
-                        offender.reason_for_removal = organisation['reason_for_removal']
-                        offender.save()
-                # TODO: save removed_by and reason_for_removal
+                for item in request_data['offenders']:
+                    if item['person']:
+                        offender, created = Offender.objects.get_or_create(person_id=item['person']['id'], offence_id=request_data['id'])
+                    elif item['organisation']:
+                        offender, created = Offender.objects.get_or_create(organisation_id=item['organisation']['id'], offence_id=request_data['id'])
+
+                    # Update attributes of offender
+                    serializer = UpdateOffenderAttributeSerializer(offender, data={
+                        'removed': item['removed'],
+                        'removed_by_id': request.user.id if item['removed'] else None,
+                        # TODO: Implement reason for removal field in the front end
+                        'reason_for_removal': item['reason_for_removal'] if item['reason_for_removal'] else 'TODO: accept reason',
+                    })
+                    serializer.is_valid(raise_exception=True)
+                    serializer.save()
+
+                # TODO: action log
 
                 # 4. Return Json
-                headers = self.get_success_headers(serializer.data)
-                return_serializer = OffenceSerializer(saved_offence_instance, context={'request': request})
-                # return_serializer = InspectionSerializer(saved_instance, context={'request': request})
-                return Response(
-                    return_serializer.data,
-                    status=status.HTTP_201_CREATED,
-                    headers=headers
-                )
+                return self.retrieve(request)
+
+                # headers = self.get_success_headers(serializer.data)
+                # return_serializer = OffenceSerializer(saved_offence_instance, context={'request': request})
+                # # return_serializer = InspectionSerializer(saved_instance, context={'request': request})
+                # return Response(
+                #     return_serializer.data,
+                #     status=status.HTTP_201_CREATED,
+                #     headers=headers
+                # )
 
         except serializers.ValidationError:
             print(traceback.print_exc())
@@ -359,6 +398,44 @@ class OffenceViewSet(viewsets.ModelViewSet):
             print(traceback.print_exc())
             raise serializers.ValidationError(str(e))
 
+    @detail_route(methods=['POST', ])
+    @renderer_classes((JSONRenderer,))
+    def update_assigned_to_id(self, request, *args, **kwargs):
+        try:
+            instance = self.get_object()
+
+            validation_serializer = OffenceSerializer(instance, context={'request': request})
+            user_in_group = validation_serializer.data.get('user_in_group')
+
+            if user_in_group:
+                # current user is in the group
+                if request.data.get('current_user'):
+                    # current user is going to assign him or herself to the object
+                    serializer_partial = UpdateAssignedToIdSerializer(instance=instance, data={'assigned_to_id': request.user.id,})
+                else:
+                    # current user is going to assign someone else to the object
+                    serializer_partial = UpdateAssignedToIdSerializer(instance=instance, data=request.data)
+
+                if serializer_partial.is_valid(raise_exception=True):
+                    # Update only assigned_to_id data
+                    serializer_partial.save()
+
+                # Construct return value
+                return_serializer = OffenceSerializer(instance=instance, context={'request': request})
+                headers = self.get_success_headers(return_serializer.data)
+                return Response(return_serializer.data, status=status.HTTP_200_OK, headers=headers)
+            else:
+                return Response(validation_serializer.data, status=status.HTTP_200_OK)
+
+        except serializers.ValidationError:
+            print(traceback.print_exc())
+            raise
+        except ValidationError as e:
+            print(traceback.print_exc())
+            raise serializers.ValidationError(repr(e.error_dict))
+        except Exception as e:
+            print(traceback.print_exc())
+            raise serializers.ValidationError(str(e))
 
 class SearchSectionRegulation(viewsets.ModelViewSet):
     queryset = SectionRegulation.objects.all()

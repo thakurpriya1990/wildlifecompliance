@@ -225,12 +225,13 @@ def get_related_offenders(entity, **kwargs):
     if entity._meta.model_name == 'offence':
         offenders = Offender.objects.filter(offence_id=entity.id)
     for offender in offenders:
-        if offender.person and not offender.removed:
-            user = EmailUser.objects.get(id=offender.person.id)
-            offender_list.append(user)
-        if offender.organisation and not offender.removed:
-            organisation = Organisation.objects.get(id=offender.organisation.id)
-            offender_list.append(organisation)
+        if offender:
+            if offender.person and not offender.removed:
+                user = EmailUser.objects.get(id=offender.person.id)
+                offender_list.append(user)
+            if offender.organisation and not offender.removed:
+                organisation = Organisation.objects.get(id=offender.organisation.id)
+                offender_list.append(organisation)
     return offender_list
 
 def get_related_items(entity, pending_closure=False, **kwargs):

@@ -52,25 +52,4 @@ def send_mail(select_group, sanction_outcome, workflow_entry, request=None):
     email_data = _extract_email_headers(msg, sender=sender)
     return email_data
 
-def get_email_recipients(sanction_outcome, recipient_id=None, recipient_final=None):
-    try:
-        email_group = []
-
-        if recipient_id:
-            user = EmailUser.objects.get(id=recipient_id)
-            email_group.append(user)
-        elif sanction_outcome.assigned_to_id:
-            user = EmailUser.objects.get(id=sanction_outcome.assigned_to_id)
-            email_group.append(user)
-        elif sanction_outcome.allocated_group_id:
-            compliance_group = CompliancePermissionGroup.objects.get(id=sanction_outcome.allocated_group_id)
-            email_group.extend(compliance_group.members.all())
-        else:
-            if recipient_final:
-                email_group.append(recipient_final)
-
-        return email_group
-
-    except Exception as e:
-        print(traceback.print_exc())
 
