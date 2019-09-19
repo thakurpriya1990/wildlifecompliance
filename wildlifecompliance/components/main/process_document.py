@@ -4,56 +4,6 @@ from django.core.files.base import ContentFile
 import traceback
 from wildlifecompliance.components.main.models import TemporaryDocument
 
-# Designed for uploading files within "create" modals when no entity instance yet exists
-def process_temp_comms_log_document(request, instance=None, temp_instance=None, *args, **kwargs):
-    print("process_generic_document")
-    print(request.data)
-    try:
-        action = request.data.get('action')
-
-        if action == 'list':
-            pass
-
-        elif action == 'delete':
-            delete_document(request, instance, comms_instance, document_type)
-
-
-        elif action == 'cancel':
-            deleted = cancel_document(request, instance, comms_instance, document_type)
-
-        elif action == 'save':
-            save_document(request, instance, comms_instance, document_type)
-
-        # HTTP Response varies by action and instance type
-        if comms_instance and action == 'cancel' and deleted:
-            return deleted
-        elif comms_instance:
-            returned_file_data = [dict(
-                        file=d._file.url,
-                        id=d.id,
-                        name=d.name,
-                        ) for d in comms_instance.documents.all() if d._file]
-            return {'filedata': returned_file_data,
-                    'comms_instance_id': comms_instance.id}
-        elif document_type == 'inspection_report':
-            returned_file_data = [dict(
-                        file=d._file.url,
-                        id=d.id,
-                        name=d.name,
-                        ) for d in instance.report.all() if d._file]
-            return {'filedata': returned_file_data}
-
-        else:
-            returned_file_data = [dict(
-                        file=d._file.url,
-                        id=d.id,
-                        name=d.name,
-                        ) for d in instance.documents.all() if d._file]
-            return {'filedata': returned_file_data}
-
-    except Exception as e:
-        print(traceback.print_exc())
-        raise e
 
 def process_generic_document(request, instance, document_type=None, *args, **kwargs):
     print("process_generic_document")
@@ -185,3 +135,37 @@ def save_document(request, instance, comms_instance, document_type):
             path = default_storage.save(
                 'wildlifecompliance/{}/{}/report/{}'.format(
                     instance._meta.model_name, instance.id, filename), ContentFile(
+                    _file.read()))
+
+            document._file = path
+            document.save()
+        # comms_log doc store save
+        elif comms_instance and 'filename' in request.data:
+            filename = request.data.get('filename')
+            _file = request.data.get('_file')
+
+            document = comms_instance.documents.get_or_create(
+                name=filename)[0]
+            path = default_storage.save(
+                'wildlifecompliance/{}/{}/communications/{}/documents/{}'.format(
+                    instance._meta.model_name, instance.id, comms_instance.id, filename), ContentFile(
+                    _file.read()))
+
+            document._file = path
+            document.save()
+
+        # default doc store save
+        elif 'filename' in request.data:
+            filename = request.data.get('filename')
+            _file = request.data.get('_file')
+
+            document = instance.documents.get_or_create(
+                name=filename)[0]
+            path = default_storage.save(
+                'wildlifecompliance/{}/{}/documents/{}'.format(
+                    instance._meta.model_name, instance.id, filename), ContentFile(
+                    _file.read()))
+
+            document._file = path
+            document.save()
+

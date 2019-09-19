@@ -39,6 +39,7 @@ from datetime import datetime, timedelta, date
 from django.urls import reverse
 from django.shortcuts import render, redirect, get_object_or_404
 from wildlifecompliance.components.main.api import save_location
+from wildlifecompliance.components.main.models import TemporaryDocumentCollection
 from wildlifecompliance.components.main.process_document import process_generic_document
 from wildlifecompliance.components.main.email import prepare_mail
 from wildlifecompliance.components.users.serializers import (
@@ -700,6 +701,8 @@ class InspectionViewSet(viewsets.ModelViewSet):
     @detail_route(methods=['POST'])
     @renderer_classes((JSONRenderer,))
     def workflow_action(self, request, instance=None, *args, **kwargs):
+        print("workflow action")
+        print(request.data)
         try:
             with transaction.atomic():
                 # email recipient
@@ -714,6 +717,15 @@ class InspectionViewSet(viewsets.ModelViewSet):
                             id=comms_log_id)
                 else:
                     workflow_entry = self.add_comms_log(request, instance, workflow=True)
+                    temporary_document_collection_id = request.data.get('temporary_document_collection_id')
+                    print("temporary_document_collection_id")
+                    print(temporary_document_collection_id)
+                    if temporary_document_collection_id:
+                        temp_doc_collection = TemporaryDocumentCollection.objects.get(id=temporary_document_collection_id)
+                        if temp_doc_collection:
+                            for doc in temp_doc_collection:
+                                workflow_entry.documents.add(doc)
+                            temp_doc_collection.delete()
 
                 # Set Inspection status depending on workflow type
                 workflow_type = request.data.get('workflow_type')
