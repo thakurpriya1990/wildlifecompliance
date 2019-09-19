@@ -210,8 +210,6 @@ class Inspection(RevisionedMixin):
         self.save()
 
     def endorse(self, request):
-        print(request)
-        print(request.user)
         self.status = self.STATUS_CLOSED
         self.log_user_action(
             InspectionUserAction.ACTION_ENDORSEMENT.format(self.number, request.user), 
@@ -235,9 +233,6 @@ class Inspection(RevisionedMixin):
         # Call close() on any parent with pending_closure status
         if parents and self.status == 'closed':
             for parent in parents:
-                print("parent")
-                print(parent)
-                print(parent.status)
                 if parent.status == 'pending_closure':
                     parent.close(request)
 

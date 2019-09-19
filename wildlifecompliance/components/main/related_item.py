@@ -49,8 +49,8 @@ class WeakLinks(models.Model):
         duplicate_related_item_exists = False
         if related_items:
             for item in related_items:
-                if (self.second_content_object.get_related_items_identifier == item.get('identifier') and 
-                        format_model_name(self.second_content_object._meta.model_name) == item.get('model_name')):
+                if (second_object_identifier == item.get('identifier') and 
+                        second_object_formatted_model_name == item.get('model_name')):
                     duplicate_related_item_exists = True
                     log_message =  'Duplicate RelatedItem/WeakLink - no record created for {} with pk {}'.format(
                                 self.first_content_type.model,
