@@ -180,17 +180,12 @@ module.exports = {
             filterLodgedFrom: '',
             filterLodgedTo: '',
 
-            classification_types: [],
             status_choices: [],
             cursor_location: null,
         }
     },
     created: async function() {
-        let returned_classification_types = await cache_helper.getSetCacheList('CallEmail_ClassificationTypes', '/api/classification.json');
-        Object.assign(this.classification_types, returned_classification_types);
-        this.classification_types.splice(0, 0, {id: 'all', name: 'All'});
-
-        let returned_status_choices = await cache_helper.getSetCacheList('CallEmail_StatusChoices', '/api/call_email/status_choices');
+        let returned_status_choices = await cache_helper.getSetCacheList('Offence_StatusChoices', '/api/offence/status_choices');
         Object.assign(this.status_choices, returned_status_choices);
         this.status_choices.splice(0, 0, {id: 'all', display: 'All'});
     },

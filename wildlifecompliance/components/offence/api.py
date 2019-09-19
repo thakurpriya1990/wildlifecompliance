@@ -146,6 +146,14 @@ class OffenceViewSet(viewsets.ModelViewSet):
         return Offence.objects.none()
 
     @list_route(methods=['GET', ])
+    def status_choices(self, request, *args, **kwargs):
+        res_obj = []
+        for choice in Offence.STATUS_CHOICES:
+            res_obj.append({'id': choice[0], 'display': choice[1]});
+        res_json = json.dumps(res_obj)
+        return HttpResponse(res_json, content_type='application/json')
+
+    @list_route(methods=['GET', ])
     def types(self, request, *args, **kwargs):
         res_obj = []
         section_regulations = SectionRegulation.objects.all()
