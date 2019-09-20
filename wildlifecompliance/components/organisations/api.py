@@ -54,6 +54,7 @@ from wildlifecompliance.components.organisations.serializers import (
     OrgUserAcceptSerializer,
     MyOrganisationsSerializer,
     OrganisationCheckExistSerializer,
+    OrganisationComplianceManagementSerializer,
 )
 from wildlifecompliance.components.applications.serializers import (
     BaseApplicationSerializer,
@@ -999,38 +1000,52 @@ class MyOrganisationsViewSet(viewsets.ModelViewSet):
 
 class OrganisationComplianceManagementViewSet(viewsets.ModelViewSet):
     queryset = Organisation.objects.all()
-    serializer_class = OrganisationSerializer
+    serializer_class = OrganisationComplianceManagementSerializer
     
     def create(self, request, *args, **kwargs):
-            try:
-                serializer = self.get_serializer(data=request.data)
-                serializer.is_valid(raise_exception=True)
-                #serializer.validated_data['requester'] = request.user
-                with transaction.atomic():
-                    # Check if consultant can be relinked to org.
-                    data = Organisation.existance(request.data['abn'])
-                    print("data type")
-                    print(type(data))
-                    print(data)
-                    data.update([('user', request.user.id)])
-                    data.update([('abn', request.data['abn'])])
-                    existing_org = OrganisationCheckExistSerializer(data=data)
-                    existing_org.is_valid(raise_exception=True)
-                    if existing_org.is_valid:
-                        print("existing org")
-                        print(existing_org.data)
-                        
-                        serializer.save()
-                return Response(serializer.data)
-            except serializers.ValidationError:
-                print(traceback.print_exc())
-                raise
-            except ValidationError as e:
-                print(traceback.print_exc())
-                raise serializers.ValidationError(repr(e.error_dict))
-            except Exception as e:
-                print(traceback.print_exc())
-                raise serializers.ValidationError(str(e))
+        print("create org")
+        print(request.data)
+        try:
+            #serializer = self.get_serializer(data=request.data)
+            #serializer.is_valid(raise_exception=True)
+            #serializer.validated_data['requester'] = request.user
+            with transaction.atomic():
+                abn = request.data.get('abn')
+                address = request.data.get('address')
+                print(abn)
+                # Check if consultant can be relinked to org.
+                ledger_org_existence = Organisation.existance(abn)
+                print(ledger_org_existence)
+                if ledger_org_existence:
+                    print("exists")
+                    
+                    
+                    
+                    
+                    
+                    
+                    return Response({'message': 'Org already exists'})
+                #data.update([('user', request.user.id)])
+                #data.update([('abn', request.data['abn'])])
+                #existing_org = OrganisationCheckExistSerializer(data=data)
+                #existing_org.is_valid(raise_exception=True)
+                serializer = OrganisationCheckExistSerializer(data=data)
+                existing_org.is_valid(raise_exception=True)
+                if existing_org.is_valid:
+                    print("existing org")
+                    print(existing_org.data)
+                    
+                    serializer.save()
+            return Response(serializer.data)
+        except serializers.ValidationError:
+            print(traceback.print_exc())
+            raise
+        except ValidationError as e:
+            print(traceback.print_exc())
+            raise serializers.ValidationError(repr(e.error_dict))
+        except Exception as e:
+            print(traceback.print_exc())
+            raise serializers.ValidationError(str(e))
 
     def save_address(address_request_data, instance, *args, **kwargs):
         ledger_instance = instance.organisation

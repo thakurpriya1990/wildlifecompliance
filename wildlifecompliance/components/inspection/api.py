@@ -38,7 +38,12 @@ from ledger.checkout.utils import calculate_excl_gst
 from datetime import datetime, timedelta, date
 from django.urls import reverse
 from django.shortcuts import render, redirect, get_object_or_404
-from wildlifecompliance.components.main.api import save_location, process_generic_document
+from wildlifecompliance.components.main.api import save_location
+from wildlifecompliance.components.main.models import TemporaryDocumentCollection
+from wildlifecompliance.components.main.process_document import (
+        process_generic_document, 
+        save_comms_log_document_obj
+        )
 from wildlifecompliance.components.main.email import prepare_mail
 from wildlifecompliance.components.users.serializers import (
     UserAddressSerializer,
@@ -51,6 +56,7 @@ from wildlifecompliance.components.inspection.models import (
     InspectionType,
     InspectionCommsLogEntry,
     InspectionFormDataRecord,
+    InspectionCommsLogDocument,
     )
 from wildlifecompliance.components.call_email.models import (
         CallEmailUserAction,
@@ -656,6 +662,8 @@ class InspectionViewSet(viewsets.ModelViewSet):
             raise serializers.ValidationError(str(e))
 
     def create(self, request, *args, **kwargs):
+        print("create")
+        print(request.data)
         try:
             with transaction.atomic():
                 serializer = SaveInspectionSerializer(
@@ -668,18 +676,11 @@ class InspectionViewSet(viewsets.ModelViewSet):
                     instance.log_user_action(
                             InspectionUserAction.ACTION_CREATE_INSPECTION.format(
                             instance.number), request)
-                    if request.data.get('allocated_group_id'):
-                        res = self.workflow_action(request, instance)
-                        return res
-                    else:
-                        # Log parent actions and update status
+                    res = self.workflow_action(request, instance)
+                    if instance.call_email:
+                        print("update parent")
                         self.update_parent(request, instance)
-                        headers = self.get_success_headers(serializer.data)
-                        return Response(
-                                serializer.data, 
-                                status=status.HTTP_201_CREATED,
-                                headers=headers
-                                )
+                    return res
         except serializers.ValidationError:
             print(traceback.print_exc())
             raise
@@ -694,7 +695,6 @@ class InspectionViewSet(viewsets.ModelViewSet):
 
     def update_parent(self, request, instance, *args, **kwargs):
         # Log parent actions and update status
-        # If CallEmail
         if instance.call_email:
             instance.call_email.log_user_action(
                     CallEmailUserAction.ACTION_ALLOCATE_FOR_INSPECTION.format(
@@ -705,6 +705,8 @@ class InspectionViewSet(viewsets.ModelViewSet):
     @detail_route(methods=['POST'])
     @renderer_classes((JSONRenderer,))
     def workflow_action(self, request, instance=None, *args, **kwargs):
+        print("workflow action")
+        print(request.data)
         try:
             with transaction.atomic():
                 # email recipient
@@ -719,6 +721,14 @@ class InspectionViewSet(viewsets.ModelViewSet):
                             id=comms_log_id)
                 else:
                     workflow_entry = self.add_comms_log(request, instance, workflow=True)
+                    temporary_document_collection_id = request.data.get('temporary_document_collection_id')
+                    if temporary_document_collection_id:
+                        temp_doc_collection, created = TemporaryDocumentCollection.objects.get_or_create(
+                                id=temporary_document_collection_id)
+                        if temp_doc_collection:
+                            for doc in temp_doc_collection.documents.all():
+                                save_comms_log_document_obj(instance, workflow_entry, doc)
+                            temp_doc_collection.delete()
 
                 # Set Inspection status depending on workflow type
                 workflow_type = request.data.get('workflow_type')
@@ -726,6 +736,8 @@ class InspectionViewSet(viewsets.ModelViewSet):
                     instance.send_to_manager(request)
                 elif workflow_type == 'request_amendment':
                     instance.request_amendment(request)
+                elif workflow_type == 'endorse':
+                    instance.endorse(request)
                 elif workflow_type == 'close':
                     instance.close(request)
 
@@ -742,9 +754,6 @@ class InspectionViewSet(viewsets.ModelViewSet):
                     recipient_id = instance.inspection_team_lead_id
 
                 instance.save()
-                # Log parent actions and update status
-                if instance.call_email_id:
-                    self.update_parent(request, instance)
 
                 if instance.assigned_to_id:
                     instance = self.modify_inspection_team(request, instance, workflow=True, user_id=instance.assigned_to_id)

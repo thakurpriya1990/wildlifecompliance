@@ -14,7 +14,7 @@ from wildlifecompliance.components.main.models import (
         UserAction, 
         Document,
         )
-#from wildlifecompliance.components.main.related_items_utils import get_related_items
+from wildlifecompliance.components.main.related_item import can_close_record
 from wildlifecompliance.components.users.models import RegionDistrict, CompliancePermissionGroup
 from django.core.exceptions import ValidationError
 
@@ -68,6 +68,7 @@ class Inspection(RevisionedMixin):
     #STATUS_SANCTION_OUTCOME = 'sanction_outcome'
     STATUS_DISCARDED = 'discarded'
     STATUS_CLOSED = 'closed'
+    STATUS_PENDING_CLOSURE = 'pending_closure'
     STATUS_CHOICES = (
             (STATUS_OPEN, 'Open'),
             #(STATUS_WITH_MANAGER, 'With Manager'),
@@ -75,7 +76,8 @@ class Inspection(RevisionedMixin):
             (STATUS_AWAIT_ENDORSEMENT, 'Awaiting Endorsement'),
             #(STATUS_SANCTION_OUTCOME, 'Awaiting Sanction Outcomes'),
             (STATUS_DISCARDED, 'Discarded'),
-            (STATUS_CLOSED, 'Closed')
+            (STATUS_CLOSED, 'Closed'),
+            (STATUS_PENDING_CLOSURE, 'Pending Closure')
             )
 
     title = models.CharField(max_length=200, blank=True, null=True)
@@ -207,19 +209,32 @@ class Inspection(RevisionedMixin):
             request)
         self.save()
 
-    # def endorsement(self, request):
-    #     self.status = self.STATUS_ENDORSEMENT
-    #     self.log_user_action(
-    #         InspectionUserAction.ACTION_ENDORSEMENT.format(self.number), 
-    #         request)
-    #     self.save()
-
-    def close(self, request):
+    def endorse(self, request):
         self.status = self.STATUS_CLOSED
         self.log_user_action(
-            InspectionUserAction.ACTION_CLOSED.format(self.number), 
+            InspectionUserAction.ACTION_ENDORSEMENT.format(self.number, request.user), 
             request)
         self.save()
+        self.close(request)
+
+    def close(self, request):
+        close_record, parents = can_close_record(self, request)
+        if close_record:
+            self.status = self.STATUS_CLOSED
+            self.log_user_action(
+                    InspectionUserAction.ACTION_CLOSE.format(self.number), 
+                    request)
+        else:
+            self.status = self.STATUS_PENDING_CLOSURE
+            self.log_user_action(
+                    InspectionUserAction.ACTION_PENDING_CLOSURE.format(self.number), 
+                    request)
+        self.save()
+        # Call close() on any parent with pending_closure status
+        if parents and self.status == 'closed':
+            for parent in parents:
+                if parent.status == 'pending_closure':
+                    parent.close(request)
 
 class InspectionReportDocument(Document):
     log_entry = models.ForeignKey(
@@ -261,9 +276,10 @@ class InspectionUserAction(UserAction):
     ACTION_OFFENCE = "Create Offence {}"
     ACTION_SANCTION_OUTCOME = "Create Sanction Outcome {}"
     ACTION_SEND_TO_MANAGER = "Send Inspection {} to Manager"
-    ACTION_CLOSED = "Close Inspection {}"
+    ACTION_CLOSE = "Close Inspection {}"
+    ACTION_PENDING_CLOSURE = "Mark Inspection {} as pending closure"
     ACTION_REQUEST_AMENDMENT = "Request amendment for {}"
-    ACTION_ENDORSEMENT = "Endorse {}"
+    ACTION_ENDORSEMENT = "Inspection {} has been endorsed by {}"
     # ACTION_ADD_WEAK_LINK = "Create manual link between Inspection: {} and {}: {}"
     # ACTION_REMOVE_WEAK_LINK = "Remove manual link between Inspection: {} and {}: {}"
     ACTION_ADD_WEAK_LINK = "Create manual link between {}: {} and {}: {}"

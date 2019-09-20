@@ -48,5 +48,6 @@ module.exports = {
     inspection_types: '/api/inspection_types/',
     call_email_paginated: '/api/call_email_paginated/',
     inspection: '/api/inspection/',
+    temporary_document: '/api/temporary_document/',
 }
 

@@ -120,6 +120,13 @@ class Offence(RevisionedMixin):
 class AllegedOffence(RevisionedMixin):
     offence = models.ForeignKey(Offence, null=False,)
     section_regulation = models.ForeignKey(SectionRegulation, null=False,)
+    reason_for_removal = models.TextField(blank=True)
+    removed = models.BooleanField(default=False)
+    removed_by = models.ForeignKey(
+        EmailUser,
+        null=True,
+        related_name='alleged_offence_removed_by'
+    )
 
     def __str__(self):
         return self.section_regulation.__str__()

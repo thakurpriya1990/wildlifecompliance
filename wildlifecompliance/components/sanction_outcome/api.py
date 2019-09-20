@@ -18,7 +18,7 @@ from rest_framework.response import Response
 from rest_framework_datatables.filters import DatatablesFilterBackend
 from rest_framework_datatables.pagination import DatatablesPageNumberPagination
 
-from wildlifecompliance.components.main.api import process_generic_document
+from wildlifecompliance.components.main.process_document import process_generic_document
 
 from wildlifecompliance.components.call_email.models import CallEmail, CallEmailUserAction
 from wildlifecompliance.components.inspection.models import Inspection, InspectionUserAction
@@ -290,6 +290,7 @@ class SanctionOutcomeViewSet(viewsets.ModelViewSet):
             raise serializers.ValidationError(str(e))
 
     def update(self, request, *args, **kwargs):
+        # raise serializers.ValidationError('This is ValidationError in the update()')
         """
         Update existing sanction outcome
         """
