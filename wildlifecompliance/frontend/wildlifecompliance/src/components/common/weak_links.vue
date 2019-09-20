@@ -61,7 +61,13 @@ export default {
         readonlyForm: {
             required: false,
             default: false
-        }
+        },
+        displayedEntityType: {
+            type: String
+        },
+        displayedEntityId: {
+            type: Number
+        },
     },
     computed: {
         csrf_token: function() {
@@ -166,7 +172,9 @@ export default {
             let payload = {
                     'csrfmiddlewaretoken': this.csrf_token,
                     'selectedEntity': this.selectedEntity,
-                    'searchText': searchText
+                    'searchText': searchText,
+                    'displayedEntityType': this.displayedEntityType,
+                    'displayedEntityId': this.displayedEntityId,
             }
 
             this.ajax_weak_links = $.ajax({
