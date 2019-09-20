@@ -864,6 +864,7 @@ class ReportTypeViewSet(viewsets.ModelViewSet):
             raise serializers.ValidationError(str(e))
    
 
+# TODO: check if the class below is used or not.  If no, remove.
 class LocationViewSet(viewsets.ModelViewSet):
     queryset = Location.objects.all()
     serializer_class = LocationSerializer
@@ -878,7 +879,6 @@ class LocationViewSet(viewsets.ModelViewSet):
     def optimised(self, request, *args, **kwargs):
         queryset = self.get_queryset().exclude(call_location__isnull=True)
         serializer = LocationSerializerOptimized(queryset, many=True)
-
         return Response(serializer.data)
 
     def create(self, request, *args, **kwargs):

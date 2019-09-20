@@ -1,4 +1,6 @@
 from rest_framework import serializers
+from rest_framework.validators import UniqueTogetherValidator
+
 from wildlifecompliance.components.main.fields import CustomChoiceField
 from wildlifecompliance.components.main.related_item import get_related_items
 from wildlifecompliance.components.main.serializers import CommunicationLogEntrySerializer
@@ -13,7 +15,6 @@ from wildlifecompliance.components.users.serializers import CompliancePermission
 class AllegedOffenceSerializer(serializers.ModelSerializer):
     offence = OffenceSerializer(read_only=True)
     section_regulation = SectionRegulationSerializer(read_only=True)
-    # details = serializers.SerializerMethodField()
 
     class Meta:
         model = AllegedOffence
@@ -21,12 +22,18 @@ class AllegedOffenceSerializer(serializers.ModelSerializer):
             'id',
             'offence',
             'section_regulation',
-            # 'details',
         )
+        validators = [
+            UniqueTogetherValidator(
+                queryset=AllegedOffence.objects.filter(removed=False),
+                fields=['offence', 'section_regulation'],
+                message='Offence cannot associated with the sambe section regulation more than once'
+            )
+        ]
 
-    # def get_details(self, obj):
-    #     qs_details = AllegedCommittedOffence.objects.filter(alleged_offence=obj)
-    #     return [AllegedCommittedOffenceSerializer(item).data for item in qs_details]
+    def validate(self, data):
+        # TODO: Add object level validation here if needed
+        return data
 
 
 class AllegedCommittedOffenceCreateSerializer(serializers.ModelSerializer):
@@ -81,7 +88,7 @@ class AllegedCommittedOffenceSerializer(serializers.ModelSerializer):
         if self.get_in_editable_status(obj) and obj.removed:
             existing = AllegedCommittedOffence.objects.filter(sanction_outcome=obj.sanction_outcome, alleged_offence=obj.alleged_offence, included=True, removed=False)
             if not existing:
-                # If there is not alleged committed offence, there should be restore button
+                # If there is not same alleged committed offence in the database, there should be restore button
                 can_user_restore = True
 
         return can_user_restore
@@ -269,6 +276,28 @@ class SaveSanctionOutcomeSerializer(serializers.ModelSerializer):
             'date_of_issue',
             'time_of_issue',
         )
+
+    def validate_offender_id(self, value):
+        # raise serializers.ValidationError('This is ValidationError in validate_offender_id() method in the serializer')
+        return value
+
+    def validate_district_id(self, value):
+        # raise serializers.ValidationError('This is ValidationError in validate_district_id() method in the serializer')
+        return value
+
+    def validate(self, sanction_outcome):
+        # TODO: implement validation if needed
+        field_error = False
+        non_field_error = False
+        # This approach might be the best way to validation.  Becuase you can get multiple error messages at once
+        if field_error:
+            # For field erros
+            raise serializers.ValidationError({'field_1': ['error message 1A', 'error message 1B', 'error message 1C'], 'field_2': ['error message 1', 'error message 2']})
+        if non_field_error:
+            # For non_field_errors
+            raise serializers.ValidationError(['This is the 1st non_field_error', 'This is the 2nd non_field_error'])
+
+        return sanction_outcome
 
 
 class SaveRemediationActionSerializer(serializers.ModelSerializer):

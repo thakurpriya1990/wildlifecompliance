@@ -51,6 +51,7 @@
                             Action 
                         </div>
                         <div class="panel-body panel-collapse">
+<!--                            
                             <div v-if="visibilitySaveButton" class="row action-button">
                                 <div class="col-sm-12">
                                     <a @click="save" class="btn btn-primary btn-block">
@@ -61,6 +62,7 @@
                             <div v-else>
                                 Save
                             </div>
+-->
 
                             <div v-if="visibilityWithdrawButton" class="row action-button">
                                 <div class="col-sm-12">
@@ -256,8 +258,7 @@
                                 </FormSection>
                             </div>
 
-                            <div :id="reTab" class="tab-pane fade in">
-                                <RelatedItems v-bind:key="relatedItemsBindId" :parent_update_related_items="setRelatedItems"/>
+                            <div :id="reTab" class="tab-pane fade in active">
                                 
                             </div>
                         </div>
@@ -265,6 +266,18 @@
                 </div>
             </div>
         </div>
+
+        <div v-if="visibilitySaveButton" class="navbar navbar-fixed-bottom" style="background-color: #f5f5f5 ">
+            <div class="navbar-inner">
+                <div class="container">
+                    <p class="pull-right" style="margin-top:5px;">
+                        <input type="button" @click.prevent="saveExit" class="btn btn-primary" value="Save and Exit"/>
+                        <input type="button" @click.prevent="save" class="btn btn-primary" value="Save and Continue"/>
+                    </p>
+                </div>
+            </div>
+        </div>
+
 
         <div v-if="workflow_type">
             <SanctionOutcomeWorkflow ref="add_workflow" :workflow_type="workflow_type" v-bind:key="workflowBindId" />
@@ -283,7 +296,6 @@ import CommsLogs from "@common-components/comms_logs.vue";
 import filefield from '@/components/common/compliance_file.vue';
 import SanctionOutcomeWorkflow from './sanction_outcome_workflow';
 import 'bootstrap/dist/css/bootstrap.css';
-import RelatedItems from "@common-components/related_items.vue";
 
 export default {
     name: 'ViewSanctionOutcome',
@@ -388,14 +400,12 @@ export default {
         SanctionOutcomeWorkflow,
         CommsLogs,
         datatable,
-        RelatedItems,
     },
     created: async function() {
-        console.log('created');
         if (this.$route.params.sanction_outcome_id) {
             await this.loadSanctionOutcome({ sanction_outcome_id: this.$route.params.sanction_outcome_id });
             this.createStorageAllegedCommittedOffences();
-            this.constructAllegedOffencesToTable();
+            this.constructAllegedCommittedOffencesTable();
         }
     },
     mounted: function() {
@@ -521,52 +531,40 @@ export default {
                 }
             }
             return visibility;
-        },
-        relatedItemsBindId: function() {
-            let timeNow = Date.now()
-            if (this.sanction_outcome && this.sanction_outcome.id) {
-                return 'sanction_outcome_' + this.sanction_outcome.id + '_' + this._uid;
-            } else {
-                return timeNow.toString();
-            }
-        },
+        }
     },
     methods: {
         ...mapActions('sanctionOutcomeStore', {
             loadSanctionOutcome: 'loadSanctionOutcome',
-            setSanctionOutcome: 'setSanctionOutcome', 
+            saveSanctionOutcome: 'saveSanctionOutcome',
             setAssignedToId: 'setAssignedToId',
             setCanUserAction: 'setCanUserAction',
-            setRelatedItems: 'setRelatedItems',
         }),
         createStorageAllegedCommittedOffences: function() {
             if (this.sanction_outcome && this.sanction_outcome.alleged_committed_offences){
                 for (let i=0; i<this.sanction_outcome.alleged_committed_offences.length; i++){
-                    // We need if this alleged commited offence is already included in the sanction outcome 
+                    // We need to know if this alleged commited offence is already included in the sanction outcome 
                     // to manage Action column
                     this.sanction_outcome.alleged_committed_offences[i].already_included = this.sanction_outcome.alleged_committed_offences[i].included;
                 }
             }
         },
         save: async function() {
-            let vm = this;
             try {
-                let putUrl = helpers.add_endpoint_join(api_endpoints.sanction_outcome, vm.sanction_outcome.id + '/');
-                let payload = new Object();
-                Object.assign(payload, vm.sanction_outcome);
-
-                // format 'type'
-                payload.type = payload.type.id;
-
-                const savedObj = await Vue.http.put(putUrl, payload);
-                await swal("Saved", "The record has been saved", "success");
+                await this.saveSanctionOutcome();
+                this.constructAllegedCommittedOffencesTable();
             } catch (err) {
+                console.log(err);
                 if (err.body.non_field_errors) {
                     await swal("Error", err.body.non_field_errors[0], "error");
                 } else {
                     await swal("Error", "There was an error saving the record", "error");
                 }
             }
+        },
+        saveExit: async function() {
+            await this.saveSanctionOutcome();
+            this.$router.push({ name: 'internal-offence-dash' });
         },
         setUpDateTimePicker: function() {
             let vm = this;
@@ -606,7 +604,7 @@ export default {
                     this.sanction_outcome.alleged_committed_offences[i].removed = true;
                 }
             }
-            this.constructAllegedOffencesToTable();
+            this.constructAllegedCommittedOffencesTable();
         },
         includeAllegedOffenceClicked: function(e){
             let acoId = parseInt(e.target.value);
@@ -623,12 +621,14 @@ export default {
                     this.sanction_outcome.alleged_committed_offences[i].removed = false;
                 }
             }
-            this.constructAllegedOffencesToTable();
+            this.constructAllegedCommittedOffencesTable();
         },
-        constructAllegedOffencesToTable: function(){
+        constructAllegedCommittedOffencesTable: function(){
             this.$refs.alleged_committed_offence_table.vmDataTable.clear().draw();
-            for(let i=0; i<this.sanction_outcome.alleged_committed_offences.length; i++){
-                this.addAllegedOffenceToTable(this.sanction_outcome.alleged_committed_offences[i]);
+            if (this.sanction_outcome.alleged_committed_offences){
+                for(let i=0; i<this.sanction_outcome.alleged_committed_offences.length; i++){
+                    this.addAllegedOffenceToTable(this.sanction_outcome.alleged_committed_offences[i]);
+                }
             }
         },
         addAllegedOffenceToTable: function(allegedCommittedOffence){
@@ -672,9 +672,7 @@ export default {
                 url,
                 payload
             );
-            console.log('updateAssignedToId');
             console.log(res.body);
-            //await this.setSanctionOutcome(res.body); 
             this.setAssignedToId(res.body.assigned_to_id);
             this.setCanUserAction(res.body.can_user_action);
         },

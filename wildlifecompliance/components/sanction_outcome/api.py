@@ -290,6 +290,7 @@ class SanctionOutcomeViewSet(viewsets.ModelViewSet):
             raise serializers.ValidationError(str(e))
 
     def update(self, request, *args, **kwargs):
+        # raise serializers.ValidationError('This is ValidationError in the update()')
         """
         Update existing sanction outcome
         """

@@ -53,60 +53,40 @@ export const sanctionOutcomeStore = {
                 console.log(err);
             }
         },
-        async saveSanctionOutcome({ dispatch, state }, { route, crud, internal }) {
-            console.log(crud)
-            let sanctionOutcomeId = null;
-            let savedSanctionOutcome = null;
-            try {
-                let fetchUrl = null;
-                if (crud === 'create' || crud === 'duplicate') {
-                    fetchUrl = api_endpoints.sanction_outcome;
-                } else {
-                    fetchUrl = helpers.add_endpoint_join(
-                        api_endpoints.sanction_outcome, 
-                        state.sanction_outcome.id + "/sanction_outcome_save/"
-                        )
-                }
+        async saveSanctionOutcome({ dispatch, state }) {
+            console.log('saveSanctionOutcome');
+            //try {
+                // Construct url endpoint
+                let putUrl = helpers.add_endpoint_join(api_endpoints.sanction_outcome, state.sanction_outcome.id + '/');
+                console.log(putUrl);
 
+                // Construct payload to store data to be sent
                 let payload = {};
                 Object.assign(payload, state.sanction_outcome);
-                if (crud == 'duplicate') {
-                    payload.id = null;
-                    payload.location_id = null;
-                    if (payload.location) {
-                        payload.location.id = null;
-                    }
-                }
 
-                savedSanctionOutcome = await Vue.http.post(fetchUrl, payload);
+                // format 'type'
+                payload.type = payload.type.id;
+
+                // Send data to the server
+                let savedSanctionOutcome = await Vue.http.put(putUrl, payload);
+
+                // Update sanction outcome in the vuex store
                 await dispatch("setSanctionOutcome", savedSanctionOutcome.body);
-                sanctionOutcomeId = savedSanctionOutcome.body.id;
 
-            } catch (err) {
-                console.log(err);
-                if (internal) {
-                    // return "There was an error saving the record";
-                    return err;
-                } else {
-                    await swal("Error", "There was an error saving the record", "error");
-                }
-                return window.location.href = "/internal/sanction_outcome/";
-            }
-            if (crud === 'duplicate') {
-                return window.location.href = "/internal/sanction_outcome/" + sanctionOutcomeId;
-            }
-            else if (crud !== 'create') {
-                if (!internal) {
-                    await swal("Saved", "The record has been saved", "success");
-                } else {
-                    return savedSanctionOutcome;
-                }
-            }
-            if (route) {
-                return window.location.href = "/internal/sanction_outcome/";
-            } else {
-                return sanctionOutcomeId;
-            }
+                // Display message
+                await swal("Saved", "The record has been saved", "success");
+
+                // Return the saved data just in case needed
+                return savedSanctionOutcome;
+          //  } catch (err) {
+          //      console.log('err');
+          //      console.log(err);
+          //      if (err.body.non_field_errors){
+          //          await swal("Error", err.body.non_field_errors[0], "error");
+          //      } else {
+          //          await swal("Error", "There was an error saving the record", "error");
+          //      }
+          //  }
         },
         setSanctionOutcome({ commit, }, sanction_outcome) {
             commit("updateSanctionOutcome", sanction_outcome);
