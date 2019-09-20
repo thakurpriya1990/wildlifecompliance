@@ -78,7 +78,7 @@
                                     <label class="control-label pull-left"  for="Name">Attachments</label>
                                 </div>
             			        <div class="col-sm-9">
-                                    <filefield ref="comms_log_file" name="comms-log-file" :isRepeatable="true" documentActionUrl="temporary_document"/>
+                                    <filefield ref="comms_log_file" name="comms-log-file" :isRepeatable="true" documentActionUrl="temporary_document" @update-temp-doc-coll-id="setTemporaryDocumentCollectionId"/>
                                 </div>
                             </div>
                         </div>
@@ -196,6 +196,9 @@ export default {
       ...mapActions('callemailStore', {
           loadCallEmail: 'loadCallEmail',
       }),
+      setTemporaryDocumentCollectionId: function(val) {
+          this.temporary_document_collection_id = val;
+      },
       updateDistricts: function() {
         // this.district_id = null;
         this.availableDistricts = [];

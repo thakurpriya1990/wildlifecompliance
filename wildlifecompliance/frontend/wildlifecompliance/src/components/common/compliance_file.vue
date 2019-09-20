@@ -103,13 +103,12 @@ export default {
                     url = api_endpoints.temporary_document + this.temporary_document_collection_id + '/process_temp_comms_log_document/'
                 }
             } else {
-                url = this.documentActionUrll
+                url = this.documentActionUrl
             }
             return url;
         },
     },
     watch: {
-        // TODO: still required?
         documents: {
             handler: async function () {
                 await this.$emit('update-parent');
@@ -232,9 +231,10 @@ export default {
                 let res = await Vue.http.post(this.document_action_url)
                 console.log(res)
                 this.temporary_document_collection_id = res.body.id
+                await this.$emit('update-temp-doc-coll-id', this.temporary_document_collection_id);
+                //this.$parent.temporary_document_collection_id = this.temporary_document_collection_id
                 this.$nextTick(async () => {
                     // must emit event here
-                    this.$parent.temporary_document_collection_id = this.temporary_document_collection_id
                     this.handleChange(e);
                 });
             } else {

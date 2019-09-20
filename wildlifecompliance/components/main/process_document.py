@@ -86,7 +86,8 @@ def delete_document(request, instance, comms_instance, document_type):
             document._file.path):
         os.remove(document._file.path)
 
-    document.delete()
+    if document:
+        document.delete()
 
 def cancel_document(request, instance, comms_instance, document_type):
         # inspection report cancel
@@ -168,4 +169,21 @@ def save_document(request, instance, comms_instance, document_type):
 
             document._file = path
             document.save()
+
+# For transferring files from temp doc objs to comms_log objs
+def save_comms_log_document_obj(instance, comms_instance, temp_document):
+    document = comms_instance.documents.get_or_create(
+        name=temp_document.name)[0]
+    path = default_storage.save(
+        'wildlifecompliance/{}/{}/communications/{}/documents/{}'.format(
+            instance._meta.model_name, 
+            instance.id, 
+            comms_instance.id, 
+            temp_document.name
+            ), 
+            temp_document._file
+        )
+
+    document._file = path
+    document.save()
 

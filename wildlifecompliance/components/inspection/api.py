@@ -40,7 +40,10 @@ from django.urls import reverse
 from django.shortcuts import render, redirect, get_object_or_404
 from wildlifecompliance.components.main.api import save_location
 from wildlifecompliance.components.main.models import TemporaryDocumentCollection
-from wildlifecompliance.components.main.process_document import process_generic_document
+from wildlifecompliance.components.main.process_document import (
+        process_generic_document, 
+        save_comms_log_document_obj
+        )
 from wildlifecompliance.components.main.email import prepare_mail
 from wildlifecompliance.components.users.serializers import (
     UserAddressSerializer,
@@ -53,6 +56,7 @@ from wildlifecompliance.components.inspection.models import (
     InspectionType,
     InspectionCommsLogEntry,
     InspectionFormDataRecord,
+    InspectionCommsLogDocument,
     )
 from wildlifecompliance.components.call_email.models import (
         CallEmailUserAction,
@@ -718,13 +722,12 @@ class InspectionViewSet(viewsets.ModelViewSet):
                 else:
                     workflow_entry = self.add_comms_log(request, instance, workflow=True)
                     temporary_document_collection_id = request.data.get('temporary_document_collection_id')
-                    print("temporary_document_collection_id")
-                    print(temporary_document_collection_id)
                     if temporary_document_collection_id:
-                        temp_doc_collection = TemporaryDocumentCollection.objects.get(id=temporary_document_collection_id)
+                        temp_doc_collection, created = TemporaryDocumentCollection.objects.get_or_create(
+                                id=temporary_document_collection_id)
                         if temp_doc_collection:
-                            for doc in temp_doc_collection:
-                                workflow_entry.documents.add(doc)
+                            for doc in temp_doc_collection.documents.all():
+                                save_comms_log_document_obj(instance, workflow_entry, doc)
                             temp_doc_collection.delete()
 
                 # Set Inspection status depending on workflow type
