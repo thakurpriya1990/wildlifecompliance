@@ -78,7 +78,7 @@
                                     <label class="control-label pull-left"  for="Name">Attachments</label>
                                 </div>
             			        <div class="col-sm-9">
-                                    <filefield ref="comms_log_file" name="comms-log-file" :isRepeatable="true" :documentActionUrl="inspection.createInspectionProcessCommsLogsDocumentUrl" @create-parent="createDocumentActionUrl"/>
+                                    <filefield ref="comms_log_file" name="comms-log-file" :isRepeatable="true" documentActionUrl="temporary_document" @update-temp-doc-coll-id="setTemporaryDocumentCollectionId"/>
                                 </div>
                             </div>
                         </div>
@@ -135,6 +135,7 @@ export default {
             allocatedGroup: [],
             allocated_group_id: null,
             documentActionUrl: '',
+            temporary_document_collection_id: null,
       }
     },
     components: {
@@ -195,6 +196,9 @@ export default {
       ...mapActions('callemailStore', {
           loadCallEmail: 'loadCallEmail',
       }),
+      setTemporaryDocumentCollectionId: function(val) {
+          this.temporary_document_collection_id = val;
+      },
       updateDistricts: function() {
         // this.district_id = null;
         this.availableDistricts = [];
@@ -319,6 +323,8 @@ export default {
           this.inspection_type_id ? payload.append('inspection_type_id', this.inspection_type_id) : null;
           this.region_id ? payload.append('region_id', this.region_id) : null;
           this.allocated_group_id ? payload.append('allocated_group_id', this.allocated_group_id) : null;
+          this.temporary_document_collection_id ? payload.append('temporary_document_collection_id', this.temporary_document_collection_id) : null;
+
           //this.workflow_type ? payload.append('workflow_type', this.workflow_type) : null;
           //!payload.has('allocated_group') ? payload.append('allocated_group', this.allocatedGroup) : null;
 
