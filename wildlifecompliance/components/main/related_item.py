@@ -11,6 +11,7 @@ from rest_framework import serializers
 from django.contrib.contenttypes.fields import GenericForeignKey
 from django.contrib.contenttypes.models import ContentType
 import logging
+from django.db.models import Q
 
 logger = logging.getLogger(__name__)
 
@@ -101,13 +102,29 @@ class RelatedItem:
 
 
 def search_weak_links(request_data):
-    # TODO: exclude existing related items from search
     from wildlifecompliance.components.call_email.models import CallEmail
     from wildlifecompliance.components.inspection.models import Inspection
     from wildlifecompliance.components.offence.models import Offence
     from wildlifecompliance.components.sanction_outcome.models import SanctionOutcome
     qs = []
+    related_items = []
+    entity = None
 
+    entity_id = request_data.get('displayedEntityId')
+    entity_id_int = int(entity_id.strip())
+    entity_type = request_data.get('displayedEntityType')
+
+    if entity_type == 'callemail':
+        entity, created = CallEmail.objects.get_or_create(id=entity_id_int)
+    elif entity_type == 'inspection':
+        entity, created = Inspection.objects.get_or_create(id=entity_id_int)
+    elif entity_type == 'offence':
+        entity, created = Offence.objects.get_or_create(id=entity_id_int)
+    elif entity_type == 'sanctionoutcome':
+        entity, created = SanctionOutcome.objects.get_or_create(id=entity_id_int)
+
+    related_items = get_related_items(entity)
+    
     components_selected = request_data.get('selectedEntity')
     search_text = request_data.get('searchText')
     if 'call_email' in components_selected:
@@ -152,13 +169,25 @@ def search_weak_links(request_data):
 
     # First 10 records only
     for item in qs[:10]:
-
-        return_qs.append({
-            'id': item.id,
-            'model_name': item._meta.model_name,
-            'item_identifier': item.get_related_items_identifier,
-            'item_description': item.get_related_items_descriptor,
-            })
+        duplicate = False
+        if related_items:
+            for related_item in related_items:
+                related_item_model_name = related_item.get('model_name')
+                related_item_identifier = related_item.get('identifier')
+                print(related_item_model_name)
+                print(related_item_identifier)
+                print(item._meta.model_name)
+                print(item.get_related_items_identifier)
+                if related_item_model_name == format_model_name(item._meta.model_name) \
+                    and related_item_identifier == item.get_related_items_identifier:
+                    duplicate = True
+        if not duplicate:
+            return_qs.append({
+                'id': item.id,
+                'model_name': item._meta.model_name,
+                'item_identifier': item.get_related_items_identifier,
+                'item_description': item.get_related_items_descriptor,
+                })
     return return_qs
 
 # list of approved related item models
