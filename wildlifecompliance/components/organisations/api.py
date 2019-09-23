@@ -22,7 +22,7 @@ from rest_framework.pagination import PageNumberPagination
 from datetime import datetime, timedelta
 from collections import OrderedDict
 from django.core.cache import cache
-from ledger.accounts.models import EmailUser, OrganisationAddress
+from ledger.accounts.models import EmailUser, OrganisationAddress, Organisation as ledger_organisation
 from ledger.address.models import Country
 from datetime import datetime, timedelta, date
 from wildlifecompliance.helpers import is_customer, is_internal
@@ -54,7 +54,9 @@ from wildlifecompliance.components.organisations.serializers import (
     OrgUserAcceptSerializer,
     MyOrganisationsSerializer,
     OrganisationCheckExistSerializer,
-    OrganisationComplianceManagementSerializer,
+    ComplianceManagementSaveOrganisationSerializer,
+    ComplianceManagementOrganisationSerializer,
+    ComplianceManagementSaveLedgerOrganisationSerializer,
 )
 from wildlifecompliance.components.applications.serializers import (
     BaseApplicationSerializer,
@@ -1000,7 +1002,7 @@ class MyOrganisationsViewSet(viewsets.ModelViewSet):
 
 class OrganisationComplianceManagementViewSet(viewsets.ModelViewSet):
     queryset = Organisation.objects.all()
-    serializer_class = OrganisationComplianceManagementSerializer
+    serializer_class = ComplianceManagementOrganisationSerializer
     
     def create(self, request, *args, **kwargs):
         print("create org")
@@ -1012,31 +1014,77 @@ class OrganisationComplianceManagementViewSet(viewsets.ModelViewSet):
             with transaction.atomic():
                 abn = request.data.get('abn')
                 address = request.data.get('address')
+                ledger_org = None
+                wc_org = None
+                print("abn")
                 print(abn)
-                # Check if consultant can be relinked to org.
-                ledger_org_existence = Organisation.existance(abn)
-                print(ledger_org_existence)
-                if ledger_org_existence:
-                    print("exists")
-                    
-                    
-                    
-                    
-                    
-                    
-                    return Response({'message': 'Org already exists'})
-                #data.update([('user', request.user.id)])
-                #data.update([('abn', request.data['abn'])])
-                #existing_org = OrganisationCheckExistSerializer(data=data)
-                #existing_org.is_valid(raise_exception=True)
-                serializer = OrganisationCheckExistSerializer(data=data)
-                existing_org.is_valid(raise_exception=True)
-                if existing_org.is_valid:
-                    print("existing org")
-                    print(existing_org.data)
-                    
-                    serializer.save()
-            return Response(serializer.data)
+
+                if not abn:
+                    return Response({'message': 'ABN must be specified'}, status=status.HTTP_400_BAD_REQUEST)
+                ledger_org_list = ledger_organisation.objects.filter(abn=abn)
+                if ledger_org_list:
+                    ledger_org = ledger_org_list[0]
+                if ledger_org:
+                    wc_org_list = Organisation.objects.filter(organisation=ledger_org)
+                    if wc_org_list:
+                        wc_org = wc_org_list[0]
+                        return Response({'message': 'WC org already exists'}, status=status.HTTP_400_BAD_REQUEST)
+                
+                ledger_org_data = {'name': request.data.get('name'),
+                        'abn': request.data.get('abn')
+                        }
+                if ledger_org:
+                    # update existing ledger_org
+                    ledger_serializer = ComplianceManagementSaveLedgerOrganisationSerializer(instance=ledger_org.id, data=ledger_org_data)
+                else:
+                    # create ledger_org if it doesn't exist
+                    ledger_serializer = ComplianceManagementSaveLedgerOrganisationSerializer(data=ledger_org_data)
+                ledger_serializer.is_valid(raise_exception=True)
+                if ledger_serializer.is_valid:
+                    ledger_org = ledger_serializer.save()
+                    print("ledger_org")
+                    print(ledger_org)
+                    print(ledger_org.id)
+                    # now create wildlifecompliance org
+                    print("ledger_serializer.data")
+                    print(ledger_serializer.data)
+                    request_data = request.data
+                    request_data.update({'organisation_id': ledger_org.id})
+                    org_serializer = ComplianceManagementSaveOrganisationSerializer(data=request.data)
+                    org_serializer.is_valid(raise_exception=True)
+                    if org_serializer.is_valid:
+                        org_serializer.save()
+                       # serializer_data = {'message': 'WC org created from base org {}'.format(ledger_org.id)}
+                       # serializer_data.update(serializer.data)
+                       # serializer_data.update({'organisation_id': ledger_org.id})
+                       # print(serializer_data)
+
+                        if address:
+                            print("address")
+                            print(address)
+                            if ledger_org and ledger_org.adresses.all():
+                                # We must assume that the first address is the one we want
+                                ledger_org_address = ledger_org.addresses.first()
+                                address_serializer = OrganisationAddressSerializer(instance=ledger_org_address, data=address)
+                            else:
+                                address_serializer = OrganisationAddressSerializer(data=address)
+
+                            address_serializer.is_valid(raise_exception=True)
+                            if address_serializer.is_valid:
+                                address_serializer.save()
+
+                        # return serialized data for all objects
+                        content = {'ledger_org': ledger_serializer.data, 
+                                    'wc_org': org_serializer.data,
+                                    'ledger_address': address_serializer.data
+                                    }
+                        return Response(content, status=status.HTTP_201_CREATED)
+
+            print("ledger_org")
+            print(ledger_org)
+            print("wc_org")
+            print(wc_org)
+            return Response({'message': 'No org created'}, status=status.HTTP_400_BAD_REQUEST)
         except serializers.ValidationError:
             print(traceback.print_exc())
             raise

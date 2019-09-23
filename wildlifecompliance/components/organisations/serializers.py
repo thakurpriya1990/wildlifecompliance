@@ -100,10 +100,40 @@ class DTOrganisationSerializer(serializers.ModelSerializer):
         return obj.address_string
 
 
-class OrganisationComplianceManagementSerializer(serializers.ModelSerializer):
+class ComplianceManagementSaveLedgerOrganisationSerializer(serializers.ModelSerializer):
+    class Meta:
+        model = ledger_organisation
+        fields = (
+            'id',
+            'name',
+            'abn',
+            #'address',
+            )
+        read_only_fields = ('id', 'abn')
+
+
+class ComplianceManagementSaveOrganisationSerializer(serializers.ModelSerializer):
     organisation_id = serializers.IntegerField(
         required=False, write_only=True, allow_null=True)
     # address = OrganisationAddressSerializer(read_only=True)
+    #organisation = LedgerOrganisationSerializer()
+
+    class Meta:
+        model = Organisation
+        fields = (
+            'id',
+            #'name',
+            #'abn',
+            # 'address',
+            'email',
+            'organisation_id',
+        )
+
+
+class ComplianceManagementOrganisationSerializer(serializers.ModelSerializer):
+    #organisation_id = serializers.IntegerField(
+     #   required=False, write_only=True, allow_null=True)
+    address = OrganisationAddressSerializer(read_only=True)
     organisation = LedgerOrganisationSerializer()
 
     class Meta:
@@ -112,11 +142,10 @@ class OrganisationComplianceManagementSerializer(serializers.ModelSerializer):
             'id',
             'name',
             'abn',
-            # 'address',
+            'address',
             'email',
-            'organisation_id',
+            'organisation',
         )
-
 
 class OrganisationSerializer(serializers.ModelSerializer):
     address = OrganisationAddressSerializer(read_only=True)
