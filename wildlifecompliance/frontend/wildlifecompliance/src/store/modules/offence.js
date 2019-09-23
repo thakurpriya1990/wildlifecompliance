@@ -206,9 +206,6 @@ export const offenceStore = {
                 // Send data to the server
                 const savedOffence = await Vue.http.put(fetchUrl, payload);
 
-                console.log('saved')
-                console.log(savedOffence.body);
-
                 // Restore returned data into the stre
                 commit("updateOffence", savedOffence.body);
 

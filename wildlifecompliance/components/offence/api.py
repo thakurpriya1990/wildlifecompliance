@@ -14,16 +14,14 @@ from rest_framework.response import Response
 from rest_framework_datatables.filters import DatatablesFilterBackend
 from rest_framework_datatables.pagination import DatatablesPageNumberPagination
 
-# from ledger.accounts.models import EmailUser, Organisation
 from ledger.accounts.models import EmailUser
 from wildlifecompliance.components.organisations.models import Organisation
-# from wildlifecompliance.components.organisations.serializers import OrganisationSearchSerializer
-from wildlifecompliance.components.call_email.models import Location, CallEmailUserAction, CallEmail
+from wildlifecompliance.components.call_email.models import CallEmailUserAction, CallEmail
 from wildlifecompliance.components.inspection.models import InspectionUserAction, Inspection
-from wildlifecompliance.components.call_email.serializers import LocationSerializer
 from wildlifecompliance.components.main.api import save_location
 
-from wildlifecompliance.components.offence.models import Offence, SectionRegulation, Offender, AllegedOffence
+from wildlifecompliance.components.offence.models import Offence, SectionRegulation, Offender, AllegedOffence, \
+    OffenceUserAction
 from wildlifecompliance.components.offence.serializers import (
     OffenceSerializer,
     SectionRegulationSerializer,
@@ -32,7 +30,8 @@ from wildlifecompliance.components.offence.serializers import (
     OrganisationSerializer,
     OffenceDatatableSerializer,
     UpdateAssignedToIdSerializer, UpdateOffenderAttributeSerializer, OffenceOptimisedSerializer,
-    UpdateAllegedOffenceAttributeSerializer)
+    # UpdateAllegedOffenceAttributeSerializer, OffenceUserActionSerializer)
+    UpdateAllegedOffenceAttributeSerializer, OffenceUserActionSerializer)
 from wildlifecompliance.helpers import is_internal
 
 
@@ -279,8 +278,6 @@ class OffenceViewSet(viewsets.ModelViewSet):
                                 'reason_for_removal': item['reason_for_removal']
                             })
 
-                            # TODO: Add action log
-
                         elif alleged_offence.removed and not item['removed']:
                             # This offender is going to be restored
                             serializer = UpdateAllegedOffenceAttributeSerializer(alleged_offence, data={
@@ -289,15 +286,21 @@ class OffenceViewSet(viewsets.ModelViewSet):
                                 'reason_for_removal': ''
                             })
 
-                            # TODO: Add action log
-
                         else:
                             # other case where nothing changed on this offender
                             pass
 
                         if serializer:
                             serializer.is_valid(raise_exception=True)
+
+                            # Action log
+                            if not alleged_offence.removed and item['removed']:
+                                instance.log_user_action(OffenceUserAction.ACTION_REMOVE_ALLEGED_OFFENCE.format(alleged_offence, item['reason_for_removal']), request)
+                            elif alleged_offence.removed and not item['removed']:
+                                instance.log_user_action(OffenceUserAction.ACTION_RESTORE_ALLEGED_OFFENCE.format(alleged_offence), request)
+
                             serializer.save()
+
 
                 # 4. Create relations between this offence and offender(s)
                 for item in request_data['offenders']:
@@ -318,8 +321,6 @@ class OffenceViewSet(viewsets.ModelViewSet):
                                 'reason_for_removal': item['reason_for_removal']
                             })
 
-                            # TODO: Add action log
-
                         elif offender.removed and not item['removed']:
                             # This offender is going to be restored
                             serializer = UpdateOffenderAttributeSerializer(offender, data={
@@ -328,27 +329,23 @@ class OffenceViewSet(viewsets.ModelViewSet):
                                 'reason_for_removal': ''
                             })
 
-                            # TODO: Add action log
-
                         else:
                             # other case where nothing changed on this offender
                             pass
 
                         if serializer:
                             serializer.is_valid(raise_exception=True)
+
+                            # Action log
+                            if not offender.removed and item['removed']:
+                                instance.log_user_action(OffenceUserAction.ACTION_REMOVE_OFFENDER.format(offender, item['reason_for_removal']), request)
+                            elif offender.removed and not item['removed']:
+                                instance.log_user_action(OffenceUserAction.ACTION_RESTORE_OFFENDER.format(offender), request)
+
                             serializer.save()
 
                 # 4. Return Json
                 return self.retrieve(request)
-
-                # headers = self.get_success_headers(serializer.data)
-                # return_serializer = OffenceSerializer(saved_offence_instance, context={'request': request})
-                # # return_serializer = InspectionSerializer(saved_instance, context={'request': request})
-                # return Response(
-                #     return_serializer.data,
-                #     status=status.HTTP_201_CREATED,
-                #     headers=headers
-                # )
 
         except serializers.ValidationError:
             print(traceback.print_exc())
@@ -478,6 +475,24 @@ class OffenceViewSet(viewsets.ModelViewSet):
         except Exception as e:
             print(traceback.print_exc())
             raise serializers.ValidationError(str(e))
+
+    @detail_route(methods=['GET', ])
+    def action_log(self, request, *args, **kwargs):
+        try:
+            instance = self.get_object()
+            qs = instance.action_logs.all()
+            serializer = OffenceUserActionSerializer(qs, many=True)
+            return Response(serializer.data)
+        except serializers.ValidationError:
+            print(traceback.print_exc())
+            raise
+        except ValidationError as e:
+            print(traceback.print_exc())
+            raise serializers.ValidationError(repr(e.error_dict))
+        except Exception as e:
+            print(traceback.print_exc())
+            raise serializers.ValidationError(str(e))
+
 
 class SearchSectionRegulation(viewsets.ModelViewSet):
     queryset = SectionRegulation.objects.all()

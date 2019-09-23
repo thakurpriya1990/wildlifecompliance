@@ -3,7 +3,7 @@ from django.db import models
 from ledger.accounts.models import RevisionedMixin, EmailUser
 from wildlifecompliance.components.call_email.models import Location, CallEmail
 from wildlifecompliance.components.inspection.models import Inspection
-from wildlifecompliance.components.main.models import Document
+from wildlifecompliance.components.main.models import UserAction
 from wildlifecompliance.components.users.models import RegionDistrict, CompliancePermissionGroup
 from wildlifecompliance.components.organisations.models import Organisation
 
@@ -106,6 +106,9 @@ class Offence(RevisionedMixin):
             self.lodgement_number = 'OF{0:06d}'.format(self.pk)
             self.save()
 
+    def log_user_action(self, action, request):
+        return OffenceUserAction.log_action(self, action, request.user)
+
     @property
     def get_related_items_identifier(self):
         #return '{}'.format(self.identifier)
@@ -186,4 +189,22 @@ class Offender(models.Model):
         super(Offender, self).clean()
 
 
+class OffenceUserAction(UserAction):
+    ACTION_REMOVE_ALLEGED_OFFENCE = "Remove alleged offence: {}, Reason: {}"
+    ACTION_REMOVE_OFFENDER = "Remove offender: {}, Reason: {}"
+    ACTION_RESTORE_ALLEGED_OFFENCE = "Restore alleged offence: {}"
+    ACTION_RESTORE_OFFENDER = "Restore offender: {}"
 
+    class Meta:
+        app_label = 'wildlifecompliance'
+        ordering = ('-when',)
+
+    @classmethod
+    def log_action(cls, obj, action, user):
+        return cls.objects.create(
+            offence=obj,
+            who=user,
+            what=str(action)
+        )
+
+    offence = models.ForeignKey(Offence, related_name='action_logs')

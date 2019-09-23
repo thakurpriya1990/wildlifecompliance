@@ -5,7 +5,8 @@ from wildlifecompliance.components.call_email.serializers import LocationSeriali
     LocationSerializerOptimized
 from wildlifecompliance.components.main.fields import CustomChoiceField
 from wildlifecompliance.components.main.related_item import get_related_items
-from wildlifecompliance.components.offence.models import Offence, SectionRegulation, Offender, AllegedOffence
+from wildlifecompliance.components.offence.models import Offence, SectionRegulation, Offender, AllegedOffence, \
+    OffenceUserAction
 from wildlifecompliance.components.sanction_outcome.models import SanctionOutcome, AllegedCommittedOffence
 from wildlifecompliance.components.users.serializers import CompliancePermissionGroupMembersSerializer
 
@@ -390,3 +391,12 @@ class SaveOffenderSerializer(serializers.ModelSerializer):
             'organisation_id',
         )
         read_only_fields = ()
+
+
+class OffenceUserActionSerializer(serializers.ModelSerializer):
+    who = serializers.CharField(source='who.get_full_name')
+
+    class Meta:
+        model = OffenceUserAction
+        fields = '__all__'
+
