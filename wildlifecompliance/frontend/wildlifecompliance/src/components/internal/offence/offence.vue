@@ -369,7 +369,8 @@ export default {
                 "Act",
                 "Section/Regulation",
                 "Alleged Offence",
-                "Action"
+                "Action",
+                "Reason for removal",
             ],
             dtOptionsOffender: {
                 columns: [
@@ -420,44 +421,86 @@ export default {
                     },
                     {
                         mRender: function(data, type, row) {
-                            let ret_str = row.offender.number_linked_sanction_outcomes;
-                            if (row.offence.in_editable_status && row.offence.can_user_action && row.offender.can_user_action){
+                            let ret_str = row.offender.number_linked_sanction_outcomes_active + '(' + row.offender.number_linked_sanction_outcomes_total + ')';
+                            if (row.offence.in_editable_status && row.offence.can_user_action){
                                 if (row.offender.removed){
                                     ret_str = ret_str + '<a href="#" class="restore_button" data-offender-uuid="' + row.offender.uuid + '">Restore</a>';
                                 } else {
-                                    ret_str = ret_str + '<a href="#" class="remove_button" data-offender-uuid="' + row.offender.uuid + '">Remove</a>';
+                                    if (!row.offender.number_linked_sanction_outcomes_active){
+                                        ret_str = ret_str + '<a href="#" class="remove_button" data-offender-uuid="' + row.offender.uuid + '">Remove</a>';
+                                    }
+                                }
+                            }
+                            return ret_str;
+                        }
+                    },
+                ]
+            },
+            dtOptionsAllegedOffence: {
+                columns: [
+                    {
+                        visible: false,
+                        mRender: function(data, type, row) {
+                            return row.allegedOffence.id;
+                        }
+                    },
+                    {
+                        mRender: function(data, type, row) {
+                            let ret_str = row.allegedOffence.section_regulation.act;
+                            if (row.allegedOffence.removed) {
+                                ret_str = '<strike>' + ret_str + '</strike>';
+                            }
+                            return ret_str;
+                        }
+                    },
+                    {
+                        mRender: function(data, type, row) {
+                            let ret_str = row.allegedOffence.section_regulation.name;
+                            if (row.allegedOffence.removed) {
+                                ret_str = '<strike>' + ret_str + '</strike>';
+                            }
+                            return ret_str;
+                        }
+                    },
+                    {
+                        mRender: function(data, type, row) {
+                            let ret_str = row.allegedOffence.section_regulation.offence_text;
+                            if (row.allegedOffence.removed) {
+                                ret_str = '<strike>' + ret_str + '</strike>';
+                            }
+                            return ret_str;
+                        }
+                    },
+                    {
+                        mRender: function(data, type, row) {
+                            console.log('mRender');
+                            let ret_str = row.allegedOffence.number_linked_sanction_outcomes_active + '(' + row.allegedOffence.number_linked_sanction_outcomes_total + ')';
+                            if (row.offence.in_editable_status && row.offence.can_user_action){
+                                if (row.allegedOffence.removed){
+                                    ret_str = ret_str + '<a href="#" class="restore_button" data-alleged-offence-uuid="' + row.allegedOffence.uuid + '">Restore</a>';
+                                } else {
+                                    if (!row.allegedOffence.number_linked_sanction_outcomes_active){
+                                        ret_str = ret_str + '<a href="#" class="remove_button" data-alleged-offence-uuid="' + row.allegedOffence.uuid + '">Remove</a>';
+                                    }
+                                }
+                            }
+                            return ret_str;
+
+                        }
+                    },
+                    {
+                        mRender: function(data, type, row) {
+                            let ret_str = '';
+                            if (row.allegedOffence.removed){
+                                if(row.allegedOffence.reason_for_removal){
+                                    ret_str = ret_str + row.allegedOffence.reason_for_removal;
+                                } else {
+                                    ret_str = ret_str + '<textarea class="reason_element" data-alleged-offence-uuid="' + row.allegedOffence.uuid + '">' + row.allegedOffence.reason_for_removal + '</textarea>';
                                 }
                             }
                             return ret_str;
                         }
                     }
-                ]
-            },
-            dtOptionsAllegedOffence: {
-                columns: [
-                {
-                    data: "id",
-                    visible: false
-                },
-                {
-                    data: "Act"
-                },
-                {
-                    data: "Section/Regulation"
-                },
-                {
-                    data: "Alleged Offence"
-                },
-                {
-                    data: "Action",
-                    mRender: function(data, type, row) {
-                        if (row.readonlyForm) {
-                            return '';
-                        } else {
-                            return ('<a href="#" class="remove_button" data-alleged-offence-id="' + row.id + '">Remove</a>');
-                        }
-                    }
-                }
                 ]
             }
         }
@@ -754,6 +797,17 @@ export default {
           let vm = this;
           vm.newPersonBeingCreated = false;
         },
+        reasonElementLostFocus: function(e) {
+            console.log('reason lost focus');
+            let alleged_offence_uuid = e.target.getAttribute("data-alleged-offence-uuid");
+
+            for (let i=0; i<this.offence.alleged_offences.length; i++){
+                let alleged_offence = this.offence.alleged_offences[i];
+                if (alleged_offence.uuid == alleged_offence_uuid){
+                    alleged_offence.reason_for_removal = e.target.value;
+                }
+            }
+        },
         removeOffenderClicked: function(e) {
             console.log('removeOffenderClicked');
             let offender_uuid = e.target.getAttribute("data-offender-uuid");
@@ -773,7 +827,6 @@ export default {
                     }
                 }
             }
-
             this.constructOffendersTable();
         },
         restoreOffenderClicked: function(e){
@@ -794,27 +847,48 @@ export default {
                     }
                 }
             }
-
             this.constructOffendersTable();
         },
-        removeClicked: function(e) {
-          let vm = this;
+        restoreAllegedOffenceClicked: function(e) {
+            console.log('restoreAllegedOffenceClicked');
+            let alleged_offence_uuid = e.target.getAttribute("data-alleged-offence-uuid");
 
-          let allegedOffenceId = parseInt(
-            e.target.getAttribute("data-alleged-offence-id")
-          );
-          vm.$refs.alleged_offence_table.vmDataTable.rows(function(
-            idx,
-            data,
-            node
-          ) {
-            if (data.id === allegedOffenceId) {
-              vm.$refs.alleged_offence_table.vmDataTable
-                .row(idx)
-                .remove()
-                .draw();
+            // Restore alleged_offence
+            for (let i=0; i<this.offence.alleged_offences.length; i++){
+                let alleged_offence = this.offence.alleged_offences[i];
+                if (alleged_offence.uuid == alleged_offence_uuid){
+                    if (alleged_offence.id){
+                        // this alleged_offence exists in the database
+                        console.log('existing');
+                        alleged_offence.removed = false;
+                    } else {
+                        // this is new alleged_offence
+                        // Should not reach here
+                    }
+                }
             }
-          });
+            this.constructAllegedOffencesTable();
+        },
+        removeAllegedOffenceClicked: function(e) {
+            console.log('removeAllegedOffenceClicked');
+            let alleged_offence_uuid = e.target.getAttribute("data-alleged-offence-uuid");
+
+            // Remove offender
+            for (let i=0; i<this.offence.alleged_offences.length; i++){
+                let alleged_offence = this.offence.alleged_offences[i];
+                if (alleged_offence.uuid == alleged_offence_uuid){
+                    if (alleged_offence.id){
+                        // this alleged_offence exists in the database
+                        console.log('existing');
+                        alleged_offence.removed = true;
+                    } else {
+                        // this is new alleged_offence
+                        console.log('new');
+                        this.offence.alleged_offences.splice(i, 1);
+                    }
+                }
+            }
+            this.constructAllegedOffencesTable();
         },
         addOffenderClicked: function() {
             console.log('addOffenderClicked');
@@ -840,51 +914,60 @@ export default {
                 }
 
                 if (!already_exists) {
+                    let offender_obj = {
+                        id: '', 
+                        can_user_action: true, 
+                        removed: false, 
+                        reason_for_removal: '', 
+                        person: null,
+                        organisation: null,
+                        number_linked_sanction_outcomes_total: 0,
+                        number_linked_sanction_outcomes_active: 0,
+                        uuid: uuid()
+                    };
                     if (this.current_offender.data_type == 'individual'){
                         // Add person as offender object
-                        this.offence.offenders.push({
-                            id: '', 
-                            can_user_action: true, 
-                            removed: false, 
-                            reason_for_removal: '', 
-                            person: this.current_offender, 
-                            organisation: null, 
-                            number_linked_sanction_outcomes: 0,
-                            uuid: uuid()
-                        });
+                        offender_obj['person'] = this.current_offender;
                     } else if (this.current_offender.data_type == 'organisation'){
                         // Add organisation as offender object
-                        this.offence.offenders.push({
-                            id: '', 
-                            can_user_action: true, 
-                            removed: false, 
-                            reason_for_removal: '', 
-                            person: null, 
-                            organisation: this.current_offender, 
-                            number_linked_sanction_outcomes: 0,
-                            uuid: uuid() 
-                        });
+                        offender_obj['organisation'] = this.current_offender;
                     }
+                    this.offence.offenders.push(offender_obj);
                 }
             }
             this.constructOffendersTable();
             this.setCurrentOffenderEmpty();
         },
         addAllegedOffenceClicked: function() {
-          let vm = this;
+            console.log('addAllegedOffenceClicked');
+            if (this.current_alleged_offence && this.current_alleged_offence.id) {
 
-          if (vm.current_alleged_offence.id) {
-            let already_exists = vm.$refs.alleged_offence_table.vmDataTable
-              .columns(0)
-              .data()[0]
-              .includes(vm.current_alleged_offence.id);
+                // Check if the item is already in the list
+                let already_exists = false;
+                for (let i=0; i<this.offence.alleged_offences.length; i++){
+                    let alleged_offence = this.offence.alleged_offences[i];
+                    if(alleged_offence.section_regulation.id == this.current_alleged_offence.id){
+                        already_exists = true;
+                    }
+                }
 
-            if (!already_exists) {
-                vm.addAllegedOffenceToTable(vm.current_alleged_offence);
+                if (!already_exists) {
+                    let alleged_offence_obj = {
+                        id: '', 
+                        removed: false, 
+                        reason_for_removal: '', 
+                        removed_by_id: null,
+                        section_regulation: this.current_alleged_offence,
+                        number_linked_sanction_outcomes_total: 0,
+                        number_linked_sanction_outcomes_active: 0,
+                        uuid: uuid()
+                    };
+                    this.offence.alleged_offences.push(alleged_offence_obj);
+                }
             }
-          }
 
-          vm.setCurrentAllegedOffenceEmpty();
+            this.constructAllegedOffencesTable();
+            this.setCurrentAllegedOffenceEmpty();
         },
         constructAllegedOffencesTable: function(){
             this.$refs.alleged_offence_table.vmDataTable.clear().draw();
@@ -895,13 +978,8 @@ export default {
             }
         },
         addAllegedOffenceToTable: function(allegedOffence){
-              this.$refs.alleged_offence_table.vmDataTable.row.add({
-                  id: allegedOffence.id,
-                  Act: allegedOffence.section_regulation.act,
-                  "Section/Regulation": allegedOffence.section_regulation.name,
-                  "Alleged Offence": allegedOffence.section_regulation.offence_text,
-                  readonlyForm: this.readonlyForm,
-              }).draw();
+            allegedOffence.uuid = uuid();
+            this.$refs.alleged_offence_table.vmDataTable.row.add({ allegedOffence: allegedOffence, offence: this.offence }).draw();
         },
         constructOffendersTable: function(){
             console.log('constructOffendersTable');
@@ -914,14 +992,10 @@ export default {
         },
         addOffenderToTable: function(offender) {
             offender.uuid = uuid();
-              this.$refs.offender_table.vmDataTable.row
-                .add({ offender: offender, offence: this.offence }).draw();
+            this.$refs.offender_table.vmDataTable.row.add({ offender: offender, offence: this.offence }).draw();
         },
         markMatchedText(original_text, input) {
-          let ret_text = original_text.replace(new RegExp(input, "gi"), function(
-            a,
-            b
-          ) {
+          let ret_text = original_text.replace(new RegExp(input, "gi"), function(a, b) {
             return "<mark>" + a + "</mark>";
           });
           return ret_text;
@@ -1072,22 +1146,13 @@ export default {
           }
         },
         setCurrentOffenderEmpty: function() {
-          let vm = this;
-
-          vm.current_offender = null;
-
-          $("#offender_input").val("");
-            vm.$refs.person_search.clearInput();
+            this.current_offender = null;
+            $("#offender_input").val("");
+            this.$refs.person_search.clearInput();
         },
         setCurrentAllegedOffenceEmpty: function() {
-          let vm = this;
-
-          vm.current_alleged_offence.id = null;
-          vm.current_alleged_offence.act = "";
-          vm.current_alleged_offence.name = "";
-          vm.current_alleged_offence.offence_text = "";
-
-          $("#alleged-offence").val("");
+            vm.current_alleged_offence = null;
+            $("#alleged-offence").val("");
         },
         addEventListeners: function() {
           let vm = this;
@@ -1140,7 +1205,9 @@ export default {
             }
           });
 
-          $("#alleged-offence-table").on("click", ".remove_button", vm.removeClicked);
+          $("#alleged-offence-table").on("click", ".remove_button", vm.removeAllegedOffenceClicked);
+          $("#alleged-offence-table").on("click", ".restore_button", vm.restoreAllegedOffenceClicked);
+          $("#alleged-offence-table").on("blur", ".reason_element", vm.reasonElementLostFocus);
           $("#offender-table").on("click", ".remove_button", vm.removeOffenderClicked);
           $("#offender-table").on("click", ".restore_button", vm.restoreOffenderClicked);
         },
