@@ -369,7 +369,8 @@ export default {
                 "Act",
                 "Section/Regulation",
                 "Alleged Offence",
-                "Action"
+                "Action",
+                "Reason for removal",
             ],
             dtOptionsOffender: {
                 columns: [
@@ -432,7 +433,7 @@ export default {
                             }
                             return ret_str;
                         }
-                    }
+                    },
                 ]
             },
             dtOptionsAllegedOffence: {
@@ -485,6 +486,19 @@ export default {
                             }
                             return ret_str;
 
+                        }
+                    },
+                    {
+                        mRender: function(data, type, row) {
+                            let ret_str = '';
+                            if (row.allegedOffence.removed){
+                                if(row.allegedOffence.reason_for_removal){
+                                    ret_str = ret_str + row.allegedOffence.reason_for_removal;
+                                } else {
+                                    ret_str = ret_str + '<textarea class="reason_element" data-alleged-offence-uuid="' + row.allegedOffence.uuid + '">' + row.allegedOffence.reason_for_removal + '</textarea>';
+                                }
+                            }
+                            return ret_str;
                         }
                     }
                 ]
@@ -782,6 +796,17 @@ export default {
         saveNewPersonClicked: function() {
           let vm = this;
           vm.newPersonBeingCreated = false;
+        },
+        reasonElementLostFocus: function(e) {
+            console.log('reason lost focus');
+            let alleged_offence_uuid = e.target.getAttribute("data-alleged-offence-uuid");
+
+            for (let i=0; i<this.offence.alleged_offences.length; i++){
+                let alleged_offence = this.offence.alleged_offences[i];
+                if (alleged_offence.uuid == alleged_offence_uuid){
+                    alleged_offence.reason_for_removal = e.target.value;
+                }
+            }
         },
         removeOffenderClicked: function(e) {
             console.log('removeOffenderClicked');
@@ -1182,6 +1207,7 @@ export default {
 
           $("#alleged-offence-table").on("click", ".remove_button", vm.removeAllegedOffenceClicked);
           $("#alleged-offence-table").on("click", ".restore_button", vm.restoreAllegedOffenceClicked);
+          $("#alleged-offence-table").on("blur", ".reason_element", vm.reasonElementLostFocus);
           $("#offender-table").on("click", ".remove_button", vm.removeOffenderClicked);
           $("#offender-table").on("click", ".restore_button", vm.restoreOffenderClicked);
         },
