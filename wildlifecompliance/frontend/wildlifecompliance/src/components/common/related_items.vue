@@ -8,7 +8,7 @@
         <div class="col-sm-12 form-group"><div class="row">
             <div class="col-sm-12">
             <!--WeakLinks @weak-link-selected="createWeakLink"/-->
-                <WeakLinks ref="weak_links_lookup" :readonlyForm="readonlyForm"/>
+                <WeakLinks ref="weak_links_lookup" :readonlyForm="readonlyForm" :displayedEntityType="displayedEntityType" :displayedEntityId="displayedEntityId"/>
             </div>
         </div></div>
     </div>
@@ -125,6 +125,13 @@ export default {
         } else if (this.sanction_outcome && this.sanction_outcome.id) {
             this.displayedEntityType = 'sanctionoutcome';
             return this.sanction_outcome;
+        }
+    },
+    displayedEntityId: function() {
+        if (this.displayedEntity) {
+            return this.displayedEntity.id;
+        } else {
+            return null;
         }
     },
 
