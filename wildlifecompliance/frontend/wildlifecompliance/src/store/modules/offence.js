@@ -187,7 +187,7 @@ export const offenceStore = {
                 console.log(err);
             }
         },
-        async saveOffence({dispatch, state}) {
+        async saveOffence({dispatch, state, commit}) {
             try{
                 // Construct url endpoint
                 let fetchUrl = helpers.add_endpoint_join(api_endpoints.offence, state.offence.id + '/');
@@ -206,8 +206,11 @@ export const offenceStore = {
                 // Send data to the server
                 const savedOffence = await Vue.http.put(fetchUrl, payload);
 
+                console.log('saved')
+                console.log(savedOffence.body);
+
                 // Restore returned data into the stre
-                Vue.set(this, 'offence', savedOffence.body);
+                commit("updateOffence", savedOffence.body);
 
                 // Display message
                 await swal("Saved", "The record has been saved", "success");

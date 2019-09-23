@@ -363,7 +363,13 @@ export default {
                 api_endpoints.offence,
                 this.$route.params.offence_id + "/action_log"
             ),
-            dtHeadersOffender: ["id", "Individual/Organisation", "Details", "Action"],
+            dtHeadersOffender: [
+                "id", 
+                "Individual/Organisation", 
+                "Details", 
+                "Action",
+                "Reason for removal",
+            ],
             dtHeadersAllegedOffence: [
                 "id",
                 "Act",
@@ -434,6 +440,19 @@ export default {
                             return ret_str;
                         }
                     },
+                    {
+                        mRender: function(data, type, row) {
+                            let ret_str = '';
+                            if (row.offender.removed){
+                                if(row.offender.reason_for_removal){
+                                    ret_str = ret_str + row.offender.reason_for_removal;
+                                } else {
+                                    ret_str = ret_str + '<textarea class="reason_element" data-offender-uuid="' + row.offender.uuid + '">' + row.offender.reason_for_removal + '</textarea>';
+                                }
+                            }
+                            return ret_str;
+                        }
+                    }
                 ]
             },
             dtOptionsAllegedOffence: {
@@ -473,7 +492,6 @@ export default {
                     },
                     {
                         mRender: function(data, type, row) {
-                            console.log('mRender');
                             let ret_str = row.allegedOffence.number_linked_sanction_outcomes_active + '(' + row.allegedOffence.number_linked_sanction_outcomes_total + ')';
                             if (row.offence.in_editable_status && row.offence.can_user_action){
                                 if (row.allegedOffence.removed){
@@ -797,7 +815,18 @@ export default {
           let vm = this;
           vm.newPersonBeingCreated = false;
         },
-        reasonElementLostFocus: function(e) {
+        reasonOffenderLostFocus: function(e) {
+            console.log('reason lost focus');
+            let offender_uuid = e.target.getAttribute("data-offender-uuid");
+
+            for (let i=0; i<this.offence.offenders.length; i++){
+                let offender = this.offence.offenders[i];
+                if (offender.uuid == offender_uuid){
+                    offender.reason_for_removal = e.target.value;
+                }
+            }
+        },
+        reasonAllegedOffenceLostFocus: function(e) {
             console.log('reason lost focus');
             let alleged_offence_uuid = e.target.getAttribute("data-alleged-offence-uuid");
 
@@ -991,6 +1020,8 @@ export default {
             }
         },
         addOffenderToTable: function(offender) {
+            console.log('addOffenderTotable');
+            console.log(offender.reason_for_removal);
             offender.uuid = uuid();
             this.$refs.offender_table.vmDataTable.row.add({ offender: offender, offence: this.offence }).draw();
         },
@@ -1207,9 +1238,10 @@ export default {
 
           $("#alleged-offence-table").on("click", ".remove_button", vm.removeAllegedOffenceClicked);
           $("#alleged-offence-table").on("click", ".restore_button", vm.restoreAllegedOffenceClicked);
-          $("#alleged-offence-table").on("blur", ".reason_element", vm.reasonElementLostFocus);
+          $("#alleged-offence-table").on("blur", ".reason_element", vm.reasonAllegedOffenceLostFocus);
           $("#offender-table").on("click", ".remove_button", vm.removeOffenderClicked);
           $("#offender-table").on("click", ".restore_button", vm.restoreOffenderClicked);
+          $("#offender-table").on("blur", ".reason_element", vm.reasonOffenderLostFocus);
         },
         loadOffence: async function (offence_id) {
             let returnedOffence = await Vue.http.get(helpers.add_endpoint_json(api_endpoints.offence, offence_id));

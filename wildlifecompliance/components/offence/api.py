@@ -315,9 +315,7 @@ class OffenceViewSet(viewsets.ModelViewSet):
                             serializer = UpdateOffenderAttributeSerializer(offender, data={
                                 'removed': item['removed'],
                                 'removed_by_id': request.user.id,
-                                # 'reason_for_removal': item['reason_for_removal']
-                                'reason_for_removal': 'TODO: implement front end for reason'
-                                # TODO: implement front end for reason for removal
+                                'reason_for_removal': item['reason_for_removal']
                             })
 
                             # TODO: Add action log
