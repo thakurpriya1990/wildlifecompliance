@@ -22,13 +22,13 @@
         <div class="col-sm-4 form-group"><div class="row">
             <label class="col-sm-4">Latitude:</label>
             <div v-if="marker_lat">
-                <input type="number" min="-90" max="90" class="form-control" v-model.number="marker_lat" />
+                <input :readonly="readonly" type="number" min="-90" max="90" class="form-control" v-model.number="marker_lat" />
             </div>
         </div></div>
         <div class="col-sm-4 form-group"><div class="row">
             <label class="col-sm-4">Longitude:</label>
             <div v-if="marker_lng">
-                <input type="number" min="-180" max="180" class="form-control" v-model.number="marker_lng" />
+                <input :readonly="readonly" type="number" min="-180" max="180" class="form-control" v-model.number="marker_lng" />
             </div>
         </div></div>
     </div>
@@ -57,6 +57,10 @@ export default {
         marker_latitude: {
             required: false,
             default: null,
+        },
+        readonly: {
+            required: false,
+            default: false,
         }
     },
   data: function() {
@@ -248,12 +252,14 @@ export default {
                 duration: 1.5
               });
 
-              if (!self.feature_marker) {
-                self.addMarker([latlng.lat, latlng.lng]);
-              } else {
-                    self.marker_lat = latlng.lat;
-                    self.marker_lng = latlng.lng;
-              }
+                if (!self.readonly){
+                  if (!self.feature_marker) {
+                    self.addMarker([latlng.lat, latlng.lng]);
+                  } else {
+                        self.marker_lat = latlng.lat;
+                        self.marker_lng = latlng.lng;
+                  }
+                }
             }
           }
           return false;
@@ -341,15 +347,17 @@ export default {
       this.cursor_location = null;
     },
     onClick: function(e) {
-      let self = this;
-      let latlng = this.mainMap.mouseEventToLatLng(e.originalEvent);
-      if (!self.feature_marker) {
-        self.addMarker([latlng.lat, latlng.lng]);
-      }
+        if (!this.readonly){
+            let self = this;
+            let latlng = this.mainMap.mouseEventToLatLng(e.originalEvent);
+            if (!self.feature_marker) {
+                self.addMarker([latlng.lat, latlng.lng]);
+            }
 
-      /* User clicked on a map, not on any feature */
-        this.marker_lat = latlng.lat;
-        this.marker_lng = latlng.lng;
+            /* User clicked on a map, not on any feature */
+            this.marker_lat = latlng.lat;
+            this.marker_lng = latlng.lng;
+        }
     }
   }
 };
