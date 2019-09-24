@@ -69,6 +69,23 @@ class OrganisationAddressSerializer(serializers.ModelSerializer):
         )
 
 
+class ComplianceManagementSaveOrganisationAddressSerializer(serializers.ModelSerializer):
+    organisation_id = serializers.IntegerField(
+        required=False, write_only=True, allow_null=True)
+    class Meta:
+        model = OrganisationAddress
+        fields = (
+            'id',
+            'line1',
+            'locality',
+            'state',
+            'country',
+            'postcode',
+            'organisation_id',
+            )
+        read_only_fields = ('id',)
+
+
 class DelegateSerializer(serializers.ModelSerializer):
     name = serializers.CharField(source='get_full_name')
 
@@ -100,7 +117,21 @@ class DTOrganisationSerializer(serializers.ModelSerializer):
         return obj.address_string
 
 
-class ComplianceManagementSaveLedgerOrganisationSerializer(serializers.ModelSerializer):
+class ComplianceManagementCreateLedgerOrganisationSerializer(serializers.ModelSerializer):
+    postal_address_id = serializers.IntegerField(
+        required=False, write_only=True, allow_null=True)
+    class Meta:
+        model = ledger_organisation
+        fields = (
+            'id',
+            'name',
+            'abn',
+            'postal_address_id',
+            )
+        read_only_fields = ('id', )
+
+
+class ComplianceManagementUpdateLedgerOrganisationSerializer(serializers.ModelSerializer):
     class Meta:
         model = ledger_organisation
         fields = (
@@ -122,12 +153,13 @@ class ComplianceManagementSaveOrganisationSerializer(serializers.ModelSerializer
         model = Organisation
         fields = (
             'id',
-            #'name',
-            #'abn',
+            'name',
+            'abn',
             # 'address',
-            'email',
+            #'email',
             'organisation_id',
         )
+        read_only_fields = ('id', 'name', 'abn')
 
 
 class ComplianceManagementOrganisationSerializer(serializers.ModelSerializer):
