@@ -4,6 +4,7 @@ from rest_framework.fields import CharField
 from rest_framework_gis.serializers import GeoFeatureModelSerializer, GeometryField
 
 from ledger.accounts.models import EmailUser, Address
+from wildlifecompliance.components.call_email.serializers import LocationSerializer
 from wildlifecompliance.components.inspection.models import (
     Inspection,
     InspectionUserAction,
@@ -140,6 +141,7 @@ class InspectionSerializer(serializers.ModelSerializer):
     related_items = serializers.SerializerMethodField()
     inspection_report = serializers.SerializerMethodField()
     data = InspectionFormDataRecordSerializer(many=True)
+    location = LocationSerializer(read_only=True)
 
     class Meta:
         model = Inspection
@@ -174,6 +176,7 @@ class InspectionSerializer(serializers.ModelSerializer):
                 'district_id',
                 'data',
                 'all_officers',
+                'location',
                 )
         read_only_fields = (
                 'id',
