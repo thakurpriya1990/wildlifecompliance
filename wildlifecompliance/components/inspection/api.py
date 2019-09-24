@@ -482,10 +482,12 @@ class InspectionViewSet(viewsets.ModelViewSet):
             q_list.append(Q(status__exact=filter_status))
         if filter_date_from:
             date_from = datetime.strptime(filter_date_from, '%d/%m/%Y')
-            q_list.append(Q(occurrence_date_from__gte=date_from))
+            q_list.append(Q(planned_for_date__gte=date_from))
         if filter_date_to:
             date_to = datetime.strptime(filter_date_to, '%d/%m/%Y')
-            q_list.append(Q(occurrence_date_to__lte=date_to))
+            q_list.append(Q(planned_for_date__lte=date_to))
+
+        print q_list
 
         queryset = queryset.filter(reduce(operator.and_, q_list)) if len(q_list) else queryset
 
