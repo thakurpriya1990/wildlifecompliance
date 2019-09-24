@@ -69,10 +69,10 @@ from wildlifecompliance.components.inspection.serializers import (
     InspectionDatatableSerializer,
     UpdateAssignedToIdSerializer,
     InspectionTypeSerializer,
-    #InspectionTeamSerializer,
+    # InspectionTeamSerializer,
     EmailUserSerializer,
     InspectionTypeSchemaSerializer,
-    )
+    InspectionOptimisedSerializer)
 from wildlifecompliance.components.users.models import (
     CompliancePermissionGroup,    
 )
@@ -466,6 +466,31 @@ class InspectionViewSet(viewsets.ModelViewSet):
         except Exception as e:
             print(traceback.print_exc())
         raise serializers.ValidationError(str(e))
+
+
+    @list_route(methods=['GET', ])
+    def optimised(self, request, *args, **kwargs):
+        queryset = self.get_queryset().exclude(location__isnull=True)
+
+        filter_status = request.query_params.get('status', '')
+        filter_status = '' if filter_status.lower() == 'all' else filter_status
+        filter_date_from = request.query_params.get('date_from', '')
+        filter_date_to = request.query_params.get('date_to', '')
+
+        q_list = []
+        if filter_status:
+            q_list.append(Q(status__exact=filter_status))
+        if filter_date_from:
+            date_from = datetime.strptime(filter_date_from, '%d/%m/%Y')
+            q_list.append(Q(occurrence_date_from__gte=date_from))
+        if filter_date_to:
+            date_to = datetime.strptime(filter_date_to, '%d/%m/%Y')
+            q_list.append(Q(occurrence_date_to__lte=date_to))
+
+        queryset = queryset.filter(reduce(operator.and_, q_list)) if len(q_list) else queryset
+
+        serializer = InspectionOptimisedSerializer(queryset, many=True)
+        return Response(serializer.data)
 
 
     #@detail_route(methods=['PUT', ])

@@ -4,7 +4,7 @@ from rest_framework.fields import CharField
 from rest_framework_gis.serializers import GeoFeatureModelSerializer, GeometryField
 
 from ledger.accounts.models import EmailUser, Address
-from wildlifecompliance.components.call_email.serializers import LocationSerializer
+from wildlifecompliance.components.call_email.serializers import LocationSerializer, LocationSerializerOptimized
 from wildlifecompliance.components.inspection.models import (
     Inspection,
     InspectionUserAction,
@@ -323,6 +323,20 @@ class InspectionCommsLogEntrySerializer(CommunicationLogEntrySerializer):
 
     def get_documents(self, obj):
         return [[d.name, d._file.url] for d in obj.documents.all()]
+
+
+class InspectionOptimisedSerializer(serializers.ModelSerializer):
+    location = LocationSerializerOptimized()
+
+    class Meta:
+        model = Inspection
+        fields = (
+            'id',
+            'status',
+            'location',
+            'number',
+        )
+        read_only_fields = ('id', )
 
 
 class InspectionDatatableSerializer(serializers.ModelSerializer):
