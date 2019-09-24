@@ -444,6 +444,7 @@ export default {
                             return ret_str;
                         }
                     },
+
                     {
                         mRender: function(data, type, row) {
                             let ret_str = '';
@@ -457,6 +458,7 @@ export default {
                             return ret_str;
                         }
                     }
+
                 ]
             },
             dtOptionsAllegedOffence: {
@@ -513,6 +515,7 @@ export default {
                     {
                         mRender: function(data, type, row) {
                             let ret_str = '';
+
                             let num_chars = 20;
                             if (row.allegedOffence.removed){
                                 if(row.allegedOffence.reason_for_removal){
@@ -521,6 +524,7 @@ export default {
                                         '<span title="' + name + '">' + $.trim(name).substring(0, num_chars).split(" ").slice(0, -1).join(" ") + '...</span>' :
                                         name;
                                     ret_str = ret_str + shortText;
+
                                 } else {
                                     ret_str = ret_str + '<textarea class="reason_element" data-alleged-offence-uuid="' + row.allegedOffence.uuid + '">' + row.allegedOffence.reason_for_removal + '</textarea>';
                                 }
@@ -833,6 +837,7 @@ export default {
           let vm = this;
           vm.newPersonBeingCreated = false;
         },
+
         reasonOffenderLostFocus: function(e) {
             console.log('reason lost focus');
             let offender_uuid = e.target.getAttribute("data-offender-uuid");
@@ -845,6 +850,7 @@ export default {
             }
         },
         reasonAllegedOffenceLostFocus: function(e) {
+
             console.log('reason lost focus');
             let alleged_offence_uuid = e.target.getAttribute("data-alleged-offence-uuid");
 
@@ -1257,6 +1263,7 @@ export default {
           $("#alleged-offence-table").on("click", ".remove_button", vm.removeAllegedOffenceClicked);
           $("#alleged-offence-table").on("click", ".restore_button", vm.restoreAllegedOffenceClicked);
           $("#alleged-offence-table").on("blur", ".reason_element", vm.reasonAllegedOffenceLostFocus);
+
           $("#offender-table").on("click", ".remove_button", vm.removeOffenderClicked);
           $("#offender-table").on("click", ".restore_button", vm.restoreOffenderClicked);
           $("#offender-table").on("blur", ".reason_element", vm.reasonOffenderLostFocus);
