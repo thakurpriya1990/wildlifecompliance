@@ -227,7 +227,7 @@
                             </div>
                             <div :id="locationTab" class="tab-pane face in">
                                 <FormSection :formCollapse="false" label="Location" Index="3">
-                                    <MapLocation v-if="offence.location" v-bind:key="locationTab" ref="mapLocationComponent" :marker_longitude="offence.location.geometry.coordinates[0]" :marker_latitude="offence.location.geometry.coordinates[1]" @location-updated="locationUpdated"/>
+                                    <MapLocation v-if="offence.location" v-bind:key="locationTab" ref="mapLocationComponent" :readonly="readonlyForm" :marker_longitude="offence.location.geometry.coordinates[0]" :marker_latitude="offence.location.geometry.coordinates[1]" @location-updated="locationUpdated"/>
                                     <div :id="idLocationFieldsAddress" v-if="offence.location">
                                         <div class="col-sm-12 form-group"><div class="row">
                                             <label class="col-sm-4">Street</label>
@@ -283,6 +283,10 @@
                     </p>
                 </div>
             </div>
+        </div>
+
+        <div v-if="workflow_type">
+            <OffenceWorkflow ref="add_workflow" :workflow_type="workflow_type" v-bind:key="workflowBindId" />
         </div>
 
         <div v-if="sanctionOutcomeInitialised">
@@ -539,14 +543,10 @@ export default {
             offence: "offence",
         }),
         readonlyForm: function() {
-            return !this.canUserEditForm;
+            return !this.canUserEdit;
         },
-        canUserEditForm: function() {
-            let canUserEdit = false;
-            if (this.offence.can_user_action){
-                canUserEdit = true;
-            }
-            return canUserEdit;
+        canUserEdit: function() {
+            return this.offence.can_user_edit;
         },
         occurrenceDateLabel: function() {
             if (this.offence.occurrence_from_to) {
@@ -668,8 +668,20 @@ export default {
               this.$refs.sanction_outcome.isModalOpen = true;
           });
         },
+        updateWorkflowBindId: function() {
+            let timeNow = Date.now()
+            if (this.workflow_type) {
+                this.workflowBindId = this.workflow_type + '_' + timeNow.toString();
+            } else {
+                this.workflowBindId = timeNow.toString();
+            }
+        },
         addWorkflow: function(workflow_type) {
-            //TODO: implement close action
+            this.workflow_type = workflow_type;
+            this.updateWorkflowBindId();
+            this.$nextTick(() => {
+                this.$refs.add_workflow.isModalOpen = true;
+            });
         },
         showHideAddressDetailsFields: function(showAddressFields, showDetailsFields) {
           if (showAddressFields) {

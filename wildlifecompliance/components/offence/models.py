@@ -1,9 +1,11 @@
+from django.contrib.auth.models import Permission
+from django.contrib.contenttypes.models import ContentType
 from django.core.exceptions import ValidationError
 from django.db import models
 from ledger.accounts.models import RevisionedMixin, EmailUser
 from wildlifecompliance.components.call_email.models import Location, CallEmail
 from wildlifecompliance.components.inspection.models import Inspection
-from wildlifecompliance.components.main.models import UserAction
+from wildlifecompliance.components.main.models import UserAction, Document, CommunicationsLogEntry
 from wildlifecompliance.components.users.models import RegionDistrict, CompliancePermissionGroup
 from wildlifecompliance.components.organisations.models import Organisation
 
@@ -26,11 +28,15 @@ class SectionRegulation(RevisionedMixin):
 
 
 class Offence(RevisionedMixin):
+    WORKFLOW_CLOSE = 'close'
+
     STATUS_DRAFT = 'draft'
     STATUS_OPEN = 'open'
     STATUS_CLOSED = 'closed'
     STATUS_CLOSING = 'closing'
     STATUS_DISCARDED = 'discarded'
+
+    EDITABLE_STATUSES = (STATUS_DRAFT, STATUS_OPEN)
 
     STATUS_CHOICES = (
         (STATUS_DRAFT, 'Draft'),
@@ -113,11 +119,49 @@ class Offence(RevisionedMixin):
     def get_related_items_identifier(self):
         #return '{}'.format(self.identifier)
         return self.lodgement_number
-    
+
+    @staticmethod
+    def get_compliance_permission_group(regionDistrictId, workflow_type):
+        region_district = RegionDistrict.objects.filter(id=regionDistrictId)
+
+        # 2. Determine which permission(s) is going to be apllied
+        compliance_content_type = ContentType.objects.get(model="compliancepermissiongroup")
+        codename = 'officer'
+        if workflow_type == Offence.WORKFLOW_CLOSE:
+            codename = 'officer'
+            per_district = True
+        else:
+            # Should not reach here
+            # instance.save()
+            pass
+
+        permissions = Permission.objects.filter(codename=codename, content_type_id=compliance_content_type.id)
+
+        # 3. Find groups which has the permission(s) determined above in the regionDistrict.
+        if per_district:
+            groups = CompliancePermissionGroup.objects.filter(region_district__in=region_district, permissions__in=permissions)
+        else:
+            groups = CompliancePermissionGroup.objects.filter(permissions__in=permissions)
+
+        return groups.first()
+
+    @property
+    def regionDistrictId(self):
+        return self.district.id if self.district else self.region.id
+
     @property
     def get_related_items_descriptor(self):
         #return '{}, {}'.format(self.identifier, self.details)
         return self.identifier
+
+    def close(self, request):
+        self.status = self.STATUS_CLOSING
+        new_group = Offence.get_compliance_permission_group(self.regionDistrictId, Offence.WORKFLOW_CLOSE)
+        self.allocated_group = new_group
+        self.assigned_to = None
+        self.responsible_officer = request.user
+        self.log_user_action(OffenceUserAction.ACTION_CLOSE.format(self.lodgement_number), request)
+        self.save()
 
 
 class AllegedOffence(RevisionedMixin):
@@ -190,6 +234,7 @@ class Offender(models.Model):
 
 
 class OffenceUserAction(UserAction):
+    ACTION_CLOSE = "Close offence: {}"
     ACTION_REMOVE_ALLEGED_OFFENCE = "Remove alleged offence: {}, Reason: {}"
     ACTION_REMOVE_OFFENDER = "Remove offender: {}, Reason: {}"
     ACTION_RESTORE_ALLEGED_OFFENCE = "Restore alleged offence: {}"
@@ -208,3 +253,19 @@ class OffenceUserAction(UserAction):
         )
 
     offence = models.ForeignKey(Offence, related_name='action_logs')
+
+
+class OffenceCommsLogDocument(Document):
+    log_entry = models.ForeignKey('OffenceCommsLogEntry', related_name='documents')
+    _file = models.FileField(max_length=255)
+
+    class Meta:
+        app_label = 'wildlifecompliance'
+
+
+class OffenceCommsLogEntry(CommunicationsLogEntry):
+    offence = models.ForeignKey(Offence, related_name='comms_logs')
+
+    class Meta:
+        app_label = 'wildlifecompliance'
+

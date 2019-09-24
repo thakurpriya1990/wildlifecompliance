@@ -313,20 +313,6 @@ class SaveRemediationActionSerializer(serializers.ModelSerializer):
         )
 
 
-class SanctionOutcomeCommsLogEntrySerializer(CommunicationLogEntrySerializer):
-    documents = serializers.SerializerMethodField()
-
-    class Meta:
-        model = SanctionOutcomeCommsLogEntry
-        fields = '__all__'
-        read_only_fields = (
-            'customer',
-        )
-
-    def get_documents(self, obj):
-        return [[d.name, d._file.url] for d in obj.documents.all()]
-
-
 class SanctionOutcomeUserActionSerializer(serializers.ModelSerializer):
     who = serializers.CharField(source='who.get_full_name')
 
