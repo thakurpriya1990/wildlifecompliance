@@ -513,14 +513,20 @@ export default {
                     {
                         mRender: function(data, type, row) {
                             let ret_str = '';
+                            let num_chars = 20;
                             if (row.allegedOffence.removed){
                                 if(row.allegedOffence.reason_for_removal){
-                                    ret_str = ret_str + row.allegedOffence.reason_for_removal;
+                                    let name = row.allegedOffence.reason_for_removal;
+                                    let shortText = (name.length > num_chars) ?
+                                        '<span title="' + name + '">' + $.trim(name).substring(0, num_chars).split(" ").slice(0, -1).join(" ") + '...</span>' :
+                                        name;
+                                    ret_str = ret_str + shortText;
                                 } else {
                                     ret_str = ret_str + '<textarea class="reason_element" data-alleged-offence-uuid="' + row.allegedOffence.uuid + '">' + row.allegedOffence.reason_for_removal + '</textarea>';
                                 }
                             }
                             return ret_str;
+
                         }
                     }
                 ]
