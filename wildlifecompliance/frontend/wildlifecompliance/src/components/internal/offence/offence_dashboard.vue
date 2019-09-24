@@ -110,18 +110,6 @@ export default {
                         searchable: true,
                         orderable: true,
                     },
-                 //   {
-                 //       data: 'alleged_offences',
-                 //       searchable: false,
-                 //       orderable: true,
-                 //       mRender: function (data, type, row){
-                 //           let ret = '';
-                 //           for (let i=0; i<data.length; i++){
-                 //               ret = ret + data[i].act + ', ' + data[i].name + '<br />';
-                 //           }
-                 //           return ret;
-                 //       }
-                 //   },
                     {
                         data: 'identifier',
                         searchable: true,

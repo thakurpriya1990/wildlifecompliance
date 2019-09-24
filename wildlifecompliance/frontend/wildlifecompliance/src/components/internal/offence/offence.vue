@@ -227,7 +227,7 @@
                             </div>
                             <div :id="locationTab" class="tab-pane face in">
                                 <FormSection :formCollapse="false" label="Location" Index="3">
-                                    <MapLocation v-if="offence.location" v-bind:key="locationTab" ref="mapLocationComponent" :marker_longitude="offence.location.geometry.coordinates[0]" :marker_latitude="offence.location.geometry.coordinates[1]" @location-updated="locationUpdated"/>
+                                    <MapLocation v-if="offence.location" v-bind:key="locationTab" ref="mapLocationComponent" :readonly="readonlyForm" :marker_longitude="offence.location.geometry.coordinates[0]" :marker_latitude="offence.location.geometry.coordinates[1]" @location-updated="locationUpdated"/>
                                     <div :id="idLocationFieldsAddress" v-if="offence.location">
                                         <div class="col-sm-12 form-group"><div class="row">
                                             <label class="col-sm-4">Street</label>
@@ -283,6 +283,10 @@
                     </p>
                 </div>
             </div>
+        </div>
+
+        <div v-if="workflow_type">
+            <OffenceWorkflow ref="add_workflow" :workflow_type="workflow_type" v-bind:key="workflowBindId" />
         </div>
 
         <div v-if="sanctionOutcomeInitialised">
@@ -363,7 +367,13 @@ export default {
                 api_endpoints.offence,
                 this.$route.params.offence_id + "/action_log"
             ),
-            dtHeadersOffender: ["id", "Individual/Organisation", "Details", "Action"],
+            dtHeadersOffender: [
+                "id", 
+                "Individual/Organisation", 
+                "Details", 
+                "Action",
+                "Reason for removal",
+            ],
             dtHeadersAllegedOffence: [
                 "id",
                 "Act",
@@ -434,6 +444,21 @@ export default {
                             return ret_str;
                         }
                     },
+
+                    {
+                        mRender: function(data, type, row) {
+                            let ret_str = '';
+                            if (row.offender.removed){
+                                if(row.offender.reason_for_removal){
+                                    ret_str = ret_str + row.offender.reason_for_removal;
+                                } else {
+                                    ret_str = ret_str + '<textarea class="reason_element" data-offender-uuid="' + row.offender.uuid + '">' + row.offender.reason_for_removal + '</textarea>';
+                                }
+                            }
+                            return ret_str;
+                        }
+                    }
+
                 ]
             },
             dtOptionsAllegedOffence: {
@@ -473,7 +498,6 @@ export default {
                     },
                     {
                         mRender: function(data, type, row) {
-                            console.log('mRender');
                             let ret_str = row.allegedOffence.number_linked_sanction_outcomes_active + '(' + row.allegedOffence.number_linked_sanction_outcomes_total + ')';
                             if (row.offence.in_editable_status && row.offence.can_user_action){
                                 if (row.allegedOffence.removed){
@@ -491,14 +515,22 @@ export default {
                     {
                         mRender: function(data, type, row) {
                             let ret_str = '';
+
+                            let num_chars = 20;
                             if (row.allegedOffence.removed){
                                 if(row.allegedOffence.reason_for_removal){
-                                    ret_str = ret_str + row.allegedOffence.reason_for_removal;
+                                    let name = row.allegedOffence.reason_for_removal;
+                                    let shortText = (name.length > num_chars) ?
+                                        '<span title="' + name + '">' + $.trim(name).substring(0, num_chars).split(" ").slice(0, -1).join(" ") + '...</span>' :
+                                        name;
+                                    ret_str = ret_str + shortText;
+
                                 } else {
                                     ret_str = ret_str + '<textarea class="reason_element" data-alleged-offence-uuid="' + row.allegedOffence.uuid + '">' + row.allegedOffence.reason_for_removal + '</textarea>';
                                 }
                             }
                             return ret_str;
+
                         }
                     }
                 ]
@@ -521,14 +553,10 @@ export default {
             offence: "offence",
         }),
         readonlyForm: function() {
-            return !this.canUserEditForm;
+            return !this.canUserEdit;
         },
-        canUserEditForm: function() {
-            let canUserEdit = false;
-            if (this.offence.can_user_action){
-                canUserEdit = true;
-            }
-            return canUserEdit;
+        canUserEdit: function() {
+            return this.offence.can_user_edit;
         },
         occurrenceDateLabel: function() {
             if (this.offence.occurrence_from_to) {
@@ -650,8 +678,20 @@ export default {
               this.$refs.sanction_outcome.isModalOpen = true;
           });
         },
+        updateWorkflowBindId: function() {
+            let timeNow = Date.now()
+            if (this.workflow_type) {
+                this.workflowBindId = this.workflow_type + '_' + timeNow.toString();
+            } else {
+                this.workflowBindId = timeNow.toString();
+            }
+        },
         addWorkflow: function(workflow_type) {
-            //TODO: implement close action
+            this.workflow_type = workflow_type;
+            this.updateWorkflowBindId();
+            this.$nextTick(() => {
+                this.$refs.add_workflow.isModalOpen = true;
+            });
         },
         showHideAddressDetailsFields: function(showAddressFields, showDetailsFields) {
           if (showAddressFields) {
@@ -797,7 +837,20 @@ export default {
           let vm = this;
           vm.newPersonBeingCreated = false;
         },
-        reasonElementLostFocus: function(e) {
+
+        reasonOffenderLostFocus: function(e) {
+            console.log('reason lost focus');
+            let offender_uuid = e.target.getAttribute("data-offender-uuid");
+
+            for (let i=0; i<this.offence.offenders.length; i++){
+                let offender = this.offence.offenders[i];
+                if (offender.uuid == offender_uuid){
+                    offender.reason_for_removal = e.target.value;
+                }
+            }
+        },
+        reasonAllegedOffenceLostFocus: function(e) {
+
             console.log('reason lost focus');
             let alleged_offence_uuid = e.target.getAttribute("data-alleged-offence-uuid");
 
@@ -991,6 +1044,8 @@ export default {
             }
         },
         addOffenderToTable: function(offender) {
+            console.log('addOffenderTotable');
+            console.log(offender.reason_for_removal);
             offender.uuid = uuid();
             this.$refs.offender_table.vmDataTable.row.add({ offender: offender, offence: this.offence }).draw();
         },
@@ -1151,7 +1206,7 @@ export default {
             this.$refs.person_search.clearInput();
         },
         setCurrentAllegedOffenceEmpty: function() {
-            vm.current_alleged_offence = null;
+            this.current_alleged_offence = null;
             $("#alleged-offence").val("");
         },
         addEventListeners: function() {
@@ -1207,9 +1262,11 @@ export default {
 
           $("#alleged-offence-table").on("click", ".remove_button", vm.removeAllegedOffenceClicked);
           $("#alleged-offence-table").on("click", ".restore_button", vm.restoreAllegedOffenceClicked);
-          $("#alleged-offence-table").on("blur", ".reason_element", vm.reasonElementLostFocus);
+          $("#alleged-offence-table").on("blur", ".reason_element", vm.reasonAllegedOffenceLostFocus);
+
           $("#offender-table").on("click", ".remove_button", vm.removeOffenderClicked);
           $("#offender-table").on("click", ".restore_button", vm.restoreOffenderClicked);
+          $("#offender-table").on("blur", ".reason_element", vm.reasonOffenderLostFocus);
         },
         loadOffence: async function (offence_id) {
             let returnedOffence = await Vue.http.get(helpers.add_endpoint_json(api_endpoints.offence, offence_id));

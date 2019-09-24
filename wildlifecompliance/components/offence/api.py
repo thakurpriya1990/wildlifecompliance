@@ -14,16 +14,16 @@ from rest_framework.response import Response
 from rest_framework_datatables.filters import DatatablesFilterBackend
 from rest_framework_datatables.pagination import DatatablesPageNumberPagination
 
-# from ledger.accounts.models import EmailUser, Organisation
 from ledger.accounts.models import EmailUser
+from wildlifecompliance.components.main.email import prepare_mail
+from wildlifecompliance.components.offence.email import send_mail
 from wildlifecompliance.components.organisations.models import Organisation
-# from wildlifecompliance.components.organisations.serializers import OrganisationSearchSerializer
-from wildlifecompliance.components.call_email.models import Location, CallEmailUserAction, CallEmail
+from wildlifecompliance.components.call_email.models import CallEmailUserAction, CallEmail
 from wildlifecompliance.components.inspection.models import InspectionUserAction, Inspection
-from wildlifecompliance.components.call_email.serializers import LocationSerializer
 from wildlifecompliance.components.main.api import save_location
 
-from wildlifecompliance.components.offence.models import Offence, SectionRegulation, Offender, AllegedOffence
+from wildlifecompliance.components.offence.models import Offence, SectionRegulation, Offender, AllegedOffence, \
+    OffenceUserAction, OffenceCommsLogEntry
 from wildlifecompliance.components.offence.serializers import (
     OffenceSerializer,
     SectionRegulationSerializer,
@@ -32,7 +32,8 @@ from wildlifecompliance.components.offence.serializers import (
     OrganisationSerializer,
     OffenceDatatableSerializer,
     UpdateAssignedToIdSerializer, UpdateOffenderAttributeSerializer, OffenceOptimisedSerializer,
-    UpdateAllegedOffenceAttributeSerializer)
+    # UpdateAllegedOffenceAttributeSerializer, OffenceUserActionSerializer)
+    UpdateAllegedOffenceAttributeSerializer, OffenceUserActionSerializer, OffenceCommsLogEntrySerializer)
 from wildlifecompliance.helpers import is_internal
 
 
@@ -146,6 +147,57 @@ class OffenceViewSet(viewsets.ModelViewSet):
         if is_internal(self.request):
             return Offence.objects.all()
         return Offence.objects.none()
+
+    @detail_route(methods=['POST'])
+    @renderer_classes((JSONRenderer,))
+    def workflow_action(self, request, instance=None, *args, **kwargs):
+        try:
+            with transaction.atomic():
+                if not instance:
+                    instance = self.get_object()
+
+                comms_log_id = request.data.get('comms_log_id')
+                if comms_log_id and comms_log_id is not 'null':
+                    workflow_entry = instance.comms_logs.get(id=comms_log_id)
+                else:
+                    workflow_entry = self.add_comms_log(request, instance, workflow=True)
+
+                # Set status
+                workflow_type = request.data.get('workflow_type')
+                email_data = None
+
+                if workflow_type == Offence.WORKFLOW_CLOSE:
+                    instance.close(request)
+                    # Email to manager
+                    email_data = prepare_mail(request, instance, workflow_entry, send_mail)
+                else:
+                    # Should not reach here
+                    # instance.save()
+                    pass
+
+                # Log the above email as a communication log entry
+                if email_data:
+                    serializer = OffenceCommsLogEntrySerializer(instance=workflow_entry, data=email_data, partial=True)
+                    serializer.is_valid(raise_exception=True)
+                    serializer.save()
+
+                return self.retrieve(request)
+                # return_serializer = OffenceSerializer(instance=instance, context={'request': request})
+                # headers = self.get_success_headers(return_serializer.data)
+                # return Response(
+                #     return_serializer.data,
+                #     status=status.HTTP_201_CREATED,
+                #     headers=headers
+                # )
+        except serializers.ValidationError:
+            print(traceback.print_exc())
+            raise
+        except ValidationError as e:
+            print(traceback.print_exc())
+            raise serializers.ValidationError(repr(e.error_dict))
+        except Exception as e:
+            print(traceback.print_exc())
+            raise serializers.ValidationError(str(e))
 
     @list_route(methods=['GET', ])
     def optimised(self, request, *args, **kwargs):
@@ -279,8 +331,6 @@ class OffenceViewSet(viewsets.ModelViewSet):
                                 'reason_for_removal': item['reason_for_removal']
                             })
 
-                            # TODO: Add action log
-
                         elif alleged_offence.removed and not item['removed']:
                             # This offender is going to be restored
                             serializer = UpdateAllegedOffenceAttributeSerializer(alleged_offence, data={
@@ -289,15 +339,21 @@ class OffenceViewSet(viewsets.ModelViewSet):
                                 'reason_for_removal': ''
                             })
 
-                            # TODO: Add action log
-
                         else:
                             # other case where nothing changed on this offender
                             pass
 
                         if serializer:
                             serializer.is_valid(raise_exception=True)
+
+                            # Action log
+                            if not alleged_offence.removed and item['removed']:
+                                instance.log_user_action(OffenceUserAction.ACTION_REMOVE_ALLEGED_OFFENCE.format(alleged_offence, item['reason_for_removal']), request)
+                            elif alleged_offence.removed and not item['removed']:
+                                instance.log_user_action(OffenceUserAction.ACTION_RESTORE_ALLEGED_OFFENCE.format(alleged_offence), request)
+
                             serializer.save()
+
 
                 # 4. Create relations between this offence and offender(s)
                 for item in request_data['offenders']:
@@ -315,12 +371,8 @@ class OffenceViewSet(viewsets.ModelViewSet):
                             serializer = UpdateOffenderAttributeSerializer(offender, data={
                                 'removed': item['removed'],
                                 'removed_by_id': request.user.id,
-                                # 'reason_for_removal': item['reason_for_removal']
-                                'reason_for_removal': 'TODO: implement front end for reason'
-                                # TODO: implement front end for reason for removal
+                                'reason_for_removal': item['reason_for_removal']
                             })
-
-                            # TODO: Add action log
 
                         elif offender.removed and not item['removed']:
                             # This offender is going to be restored
@@ -330,27 +382,23 @@ class OffenceViewSet(viewsets.ModelViewSet):
                                 'reason_for_removal': ''
                             })
 
-                            # TODO: Add action log
-
                         else:
                             # other case where nothing changed on this offender
                             pass
 
                         if serializer:
                             serializer.is_valid(raise_exception=True)
+
+                            # Action log
+                            if not offender.removed and item['removed']:
+                                instance.log_user_action(OffenceUserAction.ACTION_REMOVE_OFFENDER.format(offender, item['reason_for_removal']), request)
+                            elif offender.removed and not item['removed']:
+                                instance.log_user_action(OffenceUserAction.ACTION_RESTORE_OFFENDER.format(offender), request)
+
                             serializer.save()
 
                 # 4. Return Json
                 return self.retrieve(request)
-
-                # headers = self.get_success_headers(serializer.data)
-                # return_serializer = OffenceSerializer(saved_offence_instance, context={'request': request})
-                # # return_serializer = InspectionSerializer(saved_instance, context={'request': request})
-                # return Response(
-                #     return_serializer.data,
-                #     status=status.HTTP_201_CREATED,
-                #     headers=headers
-                # )
 
         except serializers.ValidationError:
             print(traceback.print_exc())
@@ -471,6 +519,63 @@ class OffenceViewSet(viewsets.ModelViewSet):
             else:
                 return Response(validation_serializer.data, status=status.HTTP_200_OK)
 
+        except serializers.ValidationError:
+            print(traceback.print_exc())
+            raise
+        except ValidationError as e:
+            print(traceback.print_exc())
+            raise serializers.ValidationError(repr(e.error_dict))
+        except Exception as e:
+            print(traceback.print_exc())
+            raise serializers.ValidationError(str(e))
+
+    @detail_route(methods=['GET', ])
+    def action_log(self, request, *args, **kwargs):
+        try:
+            instance = self.get_object()
+            qs = instance.action_logs.all()
+            serializer = OffenceUserActionSerializer(qs, many=True)
+            return Response(serializer.data)
+        except serializers.ValidationError:
+            print(traceback.print_exc())
+            raise
+        except ValidationError as e:
+            print(traceback.print_exc())
+            raise serializers.ValidationError(repr(e.error_dict))
+        except Exception as e:
+            print(traceback.print_exc())
+            raise serializers.ValidationError(str(e))
+
+    @detail_route(methods=['POST', ])
+    @renderer_classes((JSONRenderer,))
+    def add_comms_log(self, request, instance=None, workflow=False, *args, **kwargs):
+        try:
+            with transaction.atomic():
+                # create offence outcome instance if not passed to this method
+                if not instance:
+                    instance = self.get_object()
+                # add offence outcome attribute to request_data
+                request_data = request.data.copy()
+                request_data['offence'] = u'{}'.format(instance.id)
+                if request_data.get('comms_log_id'):
+                    comms = OffenceCommsLogEntry.objects.get(
+                        id=request_data.get('comms_log_id')
+                    )
+                    serializer = OffenceCommsLogEntrySerializer(
+                        instance=comms,
+                        data=request.data)
+                else:
+                    serializer = OffenceCommsLogEntrySerializer(
+                        data=request_data
+                    )
+                serializer.is_valid(raise_exception=True)
+                # overwrite comms with updated instance
+                comms = serializer.save()
+
+                if workflow:
+                    return comms
+                else:
+                    return Response(serializer.data)
         except serializers.ValidationError:
             print(traceback.print_exc())
             raise
