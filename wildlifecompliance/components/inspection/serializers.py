@@ -269,7 +269,9 @@ class SaveInspectionSerializer(serializers.ModelSerializer):
         required=False, write_only=True, allow_null=True)
     call_email_id = serializers.IntegerField(
         required=False, write_only=True, allow_null=True)
-    
+    location_id = serializers.IntegerField(
+        required=False, write_only=True, allow_null=True)
+
     class Meta:
         model = Inspection
         fields = (
@@ -286,6 +288,7 @@ class SaveInspectionSerializer(serializers.ModelSerializer):
                 'organisation_inspected_id',
                 'inform_party_being_inspected',
                 'call_email_id',
+                'location_id',
                 )
         read_only_fields = (
                 'id',

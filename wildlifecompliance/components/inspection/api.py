@@ -474,6 +474,17 @@ class InspectionViewSet(viewsets.ModelViewSet):
     def update(self, request, workflow=False, *args, **kwargs):
         try:
             with transaction.atomic():
+                # 1. Save Location
+                if (
+                        request.data.get('location', {}).get('geometry', {}).get('coordinates', {}) or
+                        request.data.get('location', {}).get('properties', {}).get('postcode', {}) or
+                        request.data.get('location', {}).get('properties', {}).get('details', {})
+                ):
+                    location_request_data = request.data.get('location')
+                    returned_location = save_location(location_request_data)
+                    if returned_location:
+                        request.data.update({'location_id': returned_location.get('id')})
+
                 instance = self.get_object()
                 # record individual inspected before update
                 individual_inspected_id = instance.individual_inspected_id
@@ -666,6 +677,17 @@ class InspectionViewSet(viewsets.ModelViewSet):
         print(request.data)
         try:
             with transaction.atomic():
+                # 1. Save Location
+                if (
+                    request.data.get('location', {}).get('geometry', {}).get('coordinates', {}) or
+                    request.data.get('location', {}).get('properties', {}).get('postcode', {}) or
+                    request.data.get('location', {}).get('properties', {}).get('details', {})
+                ):
+                    location_request_data = request.data.get('location')
+                    returned_location = save_location(location_request_data)
+                    if returned_location:
+                        request.data.update({'location_id': returned_location.get('id')})
+
                 serializer = SaveInspectionSerializer(
                         data=request.data, 
                         partial=True

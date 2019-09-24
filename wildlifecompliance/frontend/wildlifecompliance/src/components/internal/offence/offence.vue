@@ -1268,21 +1268,10 @@ export default {
           $("#offender-table").on("click", ".restore_button", vm.restoreOffenderClicked);
           $("#offender-table").on("blur", ".reason_element", vm.reasonOffenderLostFocus);
         },
-        loadOffence: async function (offence_id) {
-            let returnedOffence = await Vue.http.get(helpers.add_endpoint_json(api_endpoints.offence, offence_id));
-            if (returnedOffence.body.occurrence_date_to) {
-                returnedOffence.body.occurrence_date_to = moment(returnedOffence.body.occurrence_date_to, 'YYYY-MM-DD').format('DD/MM/YYYY');
-            }
-            if (returnedOffence.body.occurrence_date_from) {
-                returnedOffence.body.occurrence_date_from = moment(returnedOffence.body.occurrence_date_from, 'YYYY-MM-DD').format('DD/MM/YYYY');
-            }
-            Vue.set(this, 'offence', returnedOffence.body);
-        }
     },
     created: async function() {
         if (this.$route.params.offence_id) {
             console.log('created');
-            //await this.loadOffence(this.$route.params.offence_id);
             await this.loadOffenceVuex({offence_id: this.$route.params.offence_id});
             this.constructAllegedOffencesTable();
             this.constructOffendersTable();
