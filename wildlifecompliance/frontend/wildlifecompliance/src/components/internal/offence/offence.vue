@@ -1194,7 +1194,7 @@ export default {
             this.$refs.person_search.clearInput();
         },
         setCurrentAllegedOffenceEmpty: function() {
-            vm.current_alleged_offence = null;
+            this.current_alleged_offence = null;
             $("#alleged-offence").val("");
         },
         addEventListeners: function() {
