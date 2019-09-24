@@ -1,6 +1,17 @@
 <template lang="html">
     <div class="">
         <input :id="elemId" :class="classNames" :readonly="!isEditable" />
+        <div class="col-sm-2">
+            <input :disabled="!isEditable" type="button" class="btn btn-primary" value="Create New Person" @click.prevent="createNewPersonClicked()" />
+        </div>
+        <div class="col-sm-12 form-group"><div class="row">
+            <div class="col-sm-12" v-if="isEditable">
+              <CreateNewPerson :displayComponent="displayCreateNewPerson" @new-person-created="newPersonCreated"/>
+            </div>
+            <div class="col-sm-12" v-if="isEditable">
+              <CreateNewOrganisation/>
+            </div>
+        </div></div>
     </div>
 </template>
 
