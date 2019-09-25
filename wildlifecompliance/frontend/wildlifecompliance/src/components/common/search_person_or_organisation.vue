@@ -1,15 +1,17 @@
 <template lang="html">
     <div class="">
-        <input :id="elemId" :class="classNames" :readonly="!isEditable" />
-        <div class="col-sm-2">
-            <input :disabled="!isEditable" type="button" class="btn btn-primary" value="Create New Person" @click.prevent="createNewPersonClicked()" />
+        <div class="col-sm-8">
+            <input :id="elemId" :class="classNames" :readonly="!isEditable" />
         </div>
-        <div class="col-sm-12 form-group"><div class="row">
-            <div class="col-sm-12" v-if="isEditable">
-              <CreateNewPerson :displayComponent="displayCreateNewPerson" @new-person-created="newPersonCreated"/>
+        <div v-if="showCreateUpdate" class="col-sm-2">
+            <input :disabled="!isEditable" type="button" class="btn btn-primary" value="Create New Person" @click.prevent="createUpdatePersonClicked()" />
+        </div>
+        <div v-if="showCreateUpdate" class="col-sm-12 form-group"><div class="row">
+            <div class="col-sm-12" v-if="displayCreateUpdatePerson">
+              <updateCreatePerson @person-saved="createUpdatePerson"/>
             </div>
-            <div class="col-sm-12" v-if="isEditable">
-              <CreateNewOrganisation/>
+            <div class="col-sm-12" v-if="displayCreateUpdateOrganisation">
+              <updateCreateOrganisation @organisation-saved=""/>
             </div>
         </div></div>
     </div>
@@ -20,6 +22,8 @@ import Awesomplete from "awesomplete";
 import $ from "jquery";
 import "bootstrap/dist/css/bootstrap.css";
 import "awesomplete/awesomplete.css";
+import updateCreatePerson from '@common-components/update_create_person.vue'
+import updateCreateOrganisation from '@common-components/update_create_organisation.vue'
 
 export default {
     name: "search-person",
@@ -28,16 +32,26 @@ export default {
         vm.awesomplete_obj = null;
 
         return {
-            elemId: 'create_new_person_' + vm._uid,
+            //elemId: 'create_new_person_' + vm._uid,
+            elemId: this.search_type + vm._uid,
+            entity_id: null,
+            entity_data_type: null,
+            displayCreateUpdatePerson: false,
+            displayCreateUpdateOrganisation: false,
         }
+    },
+    components: {
+        updateCreatePerson,
+        updateCreateOrganisation,
     },
     props: {
         // This prop is not used any more.  Instead elemId in the data is used.
-        elementId: {
-            required: false
-        },
+        //elementId: {
+        //    required: false
+        //},
         classNames: {
-            required: false
+            required: false,
+            default: 'form-control',
         },
         maxItems: {
             required: false,
@@ -56,7 +70,12 @@ export default {
             type: Boolean,
             required: false,
             default: false,
-        }
+        },
+        showCreateUpdate: {
+            type: Boolean,
+            required: false,
+            default: false,
+        },
     },
     methods: {
         clearInput: function(){
@@ -70,6 +89,10 @@ export default {
                 return "<mark>" + a + "</mark>";
             });
             return ret_text;
+        },
+        createNewPersonClicked: function() {
+          //this.newPersonBeingCreated = true;
+          this.displayCreateNewPerson = !this.displayCreateNewPerson;
         },
         initAwesomplete: function() {
             let vm = this;
@@ -162,7 +185,14 @@ export default {
                 // 
                 // id is an Emailuser.id when data_type is 'individual' or 
                 // an Organisation.id when data_type is 'organisation'
-                vm.$emit('person-selected', { id: data_item_id, data_type: data_type });
+                this.$nextTick(() => {
+                    this.entity_id = data_item_id
+                    this.entity_data_type = data_type
+                    vm.$emit('entity-selected', { 
+                        id: this.entity_id, 
+                        data_type: this.entity_data_type });
+                });
+                // vm.$emit('entity-selected', { id: data_item_id, data_type: data_type });
             });
         },
         search_person_or_organisation(searchTerm){

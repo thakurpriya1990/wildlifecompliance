@@ -205,7 +205,7 @@
                             
                             <div class="col-sm-12 form-group"><div class="row">
                                 <div class="col-sm-8">
-                                    <SearchPerson :excludeStaff="true" :isEditable="!readonlyForm" classNames="form-control" elementId="search-person" :search_type="inspection.party_inspected" @person-selected="personSelected"ref="search_person"/>
+                                    <SearchPerson :excludeStaff="true" :isEditable="!readonlyForm" classNames="form-control" :search_type="inspection.party_inspected" @entity-selected="personSelected" ref="search_person"/>
                                 </div>
                                 <!--div class="col-sm-1">
                                     <input type="button" class="btn btn-primary" value="Add" @click.prevent="addOffenderClicked()" />
@@ -327,9 +327,9 @@
 <script>
 import Vue from "vue";
 import FormSection from "@/components/forms/section_toggle.vue";
-import SearchPerson from "@/components/common/search_person.vue";
-import CreateNewPerson from "@common-components/create_new_person.vue";
-import CreateNewOrganisation from "@common-components/create_new_organisation.vue";
+import SearchPerson from "@/components/common/search_person_or_organisation.vue";
+//import CreateNewPerson from "@common-components/create_new_person.vue";
+//import CreateNewOrganisation from "@common-components/create_new_organisation.vue";
 import CommsLogs from "@common-components/comms_logs.vue";
 import datatable from '@vue-utils/datatable.vue'
 import { api_endpoints, helpers, cache_helper } from "@/utils/hooks";
@@ -420,8 +420,8 @@ export default {
     FormSection,
     datatable,
     SearchPerson,
-    CreateNewPerson,
-    CreateNewOrganisation,
+    //CreateNewPerson,
+    //CreateNewOrganisation,
     Offence,
     SanctionOutcome,
     filefield,

@@ -84,7 +84,7 @@
             <div class="col-sm-12">
                 <div v-if="show_spinner"><i class='fa fa-2x fa-spinner fa-spin pull-right'></i></div>
                 <div v-else>
-                    <button class="pull-right btn btn-primary" @click.prevent="create()">Create</button>
+                    <button class="pull-right btn btn-primary" @click.prevent="save()">Save Organisation</button>
                 </div>
             </div>
         </div>
@@ -295,7 +295,7 @@ export default {
         //        vm.$refs.returns_table.$refs.application_datatable.vmDataTable.columns.adjust().responsive.recalc();
         //    });
         //},
-        create: async function() {
+        save: async function() {
             this.show_spinner = true;
             let post_url = '/api/organisations_compliancemanagement/';
             //let payload = new FormData();

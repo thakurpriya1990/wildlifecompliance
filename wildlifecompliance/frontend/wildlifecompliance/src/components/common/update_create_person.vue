@@ -127,7 +127,7 @@
                 </div>
             </div>
 
-            <input v-if="displaySaveButton" type="button" class="pull-right btn btn-primary" value="Save" @click.prevent="saveData" />
+            <input v-if="displaySaveButton" type="button" class="pull-right btn btn-primary" value="Save Person" @click.prevent="saveData" />
         </div>
     </div>
 </template>

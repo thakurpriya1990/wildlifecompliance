@@ -138,9 +138,9 @@
                             </div></div>
 
                             <div class="col-sm-12 form-group"><div class="row">
-                                <div class="col-sm-12">
+                                <!--div class="col-sm-12">
                                   <CreateNewPerson :displayComponent="displayCreateNewPerson" @new-person-created="newPersonCreated"/>
-                                </div>
+                                </div-->
 
                                 <div class="col-sm-12">
                                     <datatable ref="offender_table" id="offender-table" :dtOptions="dtOptionsOffender" :dtHeaders="dtHeadersOffender" />
@@ -177,8 +177,8 @@ import datatable from "@vue-utils/datatable.vue";
 import { mapGetters, mapActions } from "vuex";
 import { api_endpoints, helpers, cache_helper } from "@/utils/hooks";
 import MapLocationOffence from "./map_location_offence1";
-import PersonSearch from "@common-components/search_person.vue";
-import CreateNewPerson from "@common-components/create_new_person.vue";
+import PersonSearch from "@common-components/search_person_or_organisation.vue";
+//import CreateNewPerson from "@common-components/create_new_person.vue";
 import utils from "../utils";
 import $ from "jquery";
 import "bootstrap/dist/css/bootstrap.css";
@@ -315,7 +315,7 @@ export default {
     datatable,
     MapLocationOffence,
     PersonSearch,
-    CreateNewPerson
+    //CreateNewPerson
   },
   props:{
         parent_update_function: {
