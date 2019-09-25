@@ -31,7 +31,7 @@ class OrganisationRequestDeclineNotificationEmail(TemplateEmailBase):
     txt_template = 'commercialoperator/emails/organisation_request_decline_notification.txt'
 
 class OrganisationLinkNotificationEmail(TemplateEmailBase):
-    subject = '{} - Confirmation - Account linked.'.format(settings.DEP_NAME)
+    subject = 'You have been linked to an organisation.'
     html_template = 'commercialoperator/emails/organisation_link_notification.html'
     txt_template = 'commercialoperator/emails/organisation_link_notification.txt'
 

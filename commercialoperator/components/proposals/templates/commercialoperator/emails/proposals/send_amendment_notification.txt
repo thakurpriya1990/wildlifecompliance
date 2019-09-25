@@ -12,11 +12,10 @@
     {% if amendment_request_text %}
         <p><span> Amendment details: <br> {{ amendment_request_text }}</span></p>
     {% endif %}
-
-    Please <a href="{{url}}"> login</a> to your account to complete the application.
-    
-    You will receive a notification email if there is any incomplete information or documents missing from the application.
-    
+    <p>
+    You can access this Application using the following link:
+    </p>
+    {{url}}
 
 
 {%  endblock %}

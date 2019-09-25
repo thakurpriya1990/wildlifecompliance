@@ -12,7 +12,7 @@ logger = logging.getLogger(__name__)
 
 SYSTEM_NAME = settings.SYSTEM_NAME_SHORT + ' Automated Message'
 class ComplianceExternalSubmitSendNotificationEmail(TemplateEmailBase):
-    subject = '{} - Commercial Operations licence requirement.'.format(settings.DEP_NAME)
+    subject = 'Your Compliance with requirements has been submitted.'
     html_template = 'commercialoperator/emails/send_external_submit_notification.html'
     txt_template = 'commercialoperator/emails/send_external_submit_notification.txt'
 
@@ -22,17 +22,17 @@ class ComplianceSubmitSendNotificationEmail(TemplateEmailBase):
     txt_template = 'commercialoperator/emails/send_submit_notification.txt'
 
 class ComplianceAcceptNotificationEmail(TemplateEmailBase):
-    subject = '{} - Commercial Operations- Confirmation - Licence requirement completed.'.format(settings.DEP_NAME)
+    subject = 'Your Compliance with requirements has been accepted.'
     html_template = 'commercialoperator/emails/compliance_accept_notification.html'
     txt_template = 'commercialoperator/emails/compliance_accept_notification.txt'
 
 class ComplianceAmendmentRequestSendNotificationEmail(TemplateEmailBase):
-    subject = '{} - Commercial Operations licence requirement.'.format(settings.DEP_NAME)
+    subject = 'An amendment to your Compliance with requirements is required.'
     html_template = 'commercialoperator/emails/send_amendment_notification.html'
     txt_template = 'commercialoperator/emails/send_amendment_notification.txt'
 
 class ComplianceReminderNotificationEmail(TemplateEmailBase):
-    subject = '{} - Commercial Operations Licence requirement overdue.'.format(settings.DEP_NAME)
+    subject = 'Your Compliance with requirements has passed the due date.'
     html_template = 'commercialoperator/emails/send_reminder_notification.html'
     txt_template = 'commercialoperator/emails/send_reminder_notification.txt'
 
@@ -42,7 +42,7 @@ class ComplianceInternalReminderNotificationEmail(TemplateEmailBase):
     txt_template = 'commercialoperator/emails/send_internal_reminder_notification.txt'
 
 class ComplianceDueNotificationEmail(TemplateEmailBase):
-    subject = '{} - Commercial Operations Licence requirement due.'.format(settings.DEP_NAME)
+    subject = 'Your Compliance with requirements is due for submission.'
     html_template = 'commercialoperator/emails/send_due_notification.html'
     txt_template = 'commercialoperator/emails/send_due_notification.txt'
 
@@ -51,14 +51,12 @@ class ComplianceInternalDueNotificationEmail(TemplateEmailBase):
     html_template = 'commercialoperator/emails/send_internal_due_notification.html'
     txt_template = 'commercialoperator/emails/send_internal_due_notification.txt'
 
-def send_amendment_email_notification(amendment_request, request, compliance, is_test=False):
+def send_amendment_email_notification(amendment_request, request, compliance):
     email = ComplianceAmendmentRequestSendNotificationEmail()
     #reason = amendment_request.get_reason_display()
     reason = amendment_request.reason.reason
     url = request.build_absolute_uri(reverse('external-compliance-detail',kwargs={'compliance_pk': compliance.id}))
     url = ''.join(url.split('-internal'))
-    login_url = request.build_absolute_uri(reverse('external'))
-    login_url = ''.join(login_url.split('-internal'))
     context = {
         'compliance': compliance,
         'reason': reason,
@@ -66,12 +64,8 @@ def send_amendment_email_notification(amendment_request, request, compliance, is
         'url': url
     }
 
-    submitter = compliance.submitter.email if compliance.submitter and compliance.submitter.email else compliance.proposal.submitter.email
-    msg = email.send(submitter, context=context)
-    if is_test:
-        return
-
-    sender = request.user if request else settings.DEFAULT_FROM_EMAIL
+    msg = email.send(compliance.submitter.email, context=context)
+    sender = request.user if request else settings.DEFAULT_FROM_EMAIL  
     _log_compliance_email(msg, compliance, sender=sender)
     if compliance.proposal.org_applicant:
         _log_org_email(msg, compliance.proposal.org_applicant, compliance.submitter, sender=sender)
@@ -80,37 +74,31 @@ def send_amendment_email_notification(amendment_request, request, compliance, is
 
 
 #send reminder emails if Compliance has not been lodged by due date. Used in Cron job so cannot use 'request' parameter
-def send_reminder_email_notification(compliance, is_test=False):
+def send_reminder_email_notification(compliance):
     """ Used by the management command, therefore have no request object - therefore explicitly defining base_url """
     email = ComplianceReminderNotificationEmail()
     #url = request.build_absolute_uri(reverse('external-compliance-detail',kwargs={'compliance_pk': compliance.id}))
     url=settings.SITE_URL if settings.SITE_URL else ''
     url+=reverse('external-compliance-detail',kwargs={'compliance_pk': compliance.id})
-    login_url=settings.SITE_URL if settings.SITE_URL else ''
-    login_url+=reverse('external')
     context = {
         'compliance': compliance,
-        'url': url,
-        'login_url': login_url
+        'url': url
     }
 
     submitter = compliance.submitter.email if compliance.submitter and compliance.submitter.email else compliance.proposal.submitter.email
     msg = email.send(submitter, context=context)
-    if is_test:
-        return
-
     sender = settings.DEFAULT_FROM_EMAIL
     try:
         sender_user = EmailUser.objects.get(email__icontains=sender)
     except:
-        sender_user = EmailUser.objects.create(email=sender, password='', is_staff=True)
+        sender_user = EmailUser.objects.create(email=sender, password='')
     _log_compliance_email(msg, compliance, sender=sender_user)
     if compliance.proposal.org_applicant:
         _log_org_email(msg, compliance.proposal.org_applicant, compliance.submitter, sender=sender_user)
     else:
         _log_user_email(msg, compliance.proposal.submitter, compliance.submitter, sender=sender)
 
-def send_internal_reminder_email_notification(compliance, is_test=False):
+def send_internal_reminder_email_notification(compliance):
     email = ComplianceInternalReminderNotificationEmail()
     #url = request.build_absolute_uri(reverse('external-compliance-detail',kwargs={'compliance_pk': compliance.id}))
     url=settings.SITE_URL
@@ -125,9 +113,6 @@ def send_internal_reminder_email_notification(compliance, is_test=False):
     }
 
     msg = email.send(compliance.proposal.assessor_recipients, context=context)
-    if is_test:
-        return
-
     sender = settings.DEFAULT_FROM_EMAIL
     try:
         sender_user = EmailUser.objects.get(email__icontains=sender)
@@ -140,7 +125,7 @@ def send_internal_reminder_email_notification(compliance, is_test=False):
         _log_user_email(msg, compliance.proposal.submitter, compliance.submitter, sender=sender)
 
 
-def send_due_email_notification(compliance, is_test=False):
+def send_due_email_notification(compliance):
     email = ComplianceDueNotificationEmail()
     #url = request.build_absolute_uri(reverse('external-compliance-detail',kwargs={'compliance_pk': compliance.id}))
     url=settings.SITE_URL
@@ -152,14 +137,11 @@ def send_due_email_notification(compliance, is_test=False):
 
     submitter = compliance.submitter.email if compliance.submitter and compliance.submitter.email else compliance.proposal.submitter.email
     msg = email.send(submitter, context=context)
-    if is_test:
-        return
-
     sender = settings.DEFAULT_FROM_EMAIL
     try:
         sender_user = EmailUser.objects.get(email__icontains=sender)
     except:
-        sender_user = EmailUser.objects.create(email=sender, password='', is_staff=True)
+        sender_user = EmailUser.objects.create(email=sender, password='')
     _log_compliance_email(msg, compliance, sender=sender_user)
     if compliance.proposal.org_applicant:
         _log_org_email(msg, compliance.proposal.org_applicant, compliance.submitter, sender=sender_user)
@@ -167,7 +149,7 @@ def send_due_email_notification(compliance, is_test=False):
         _log_user_email(msg, compliance.proposal.submitter, compliance.submitter, sender=sender)
 
 
-def send_internal_due_email_notification(compliance, is_test=False):
+def send_internal_due_email_notification(compliance):
     email = ComplianceInternalDueNotificationEmail()
     #url = request.build_absolute_uri(reverse('external-compliance-detail',kwargs={'compliance_pk': compliance.id}))
     url=settings.SITE_URL
@@ -182,14 +164,11 @@ def send_internal_due_email_notification(compliance, is_test=False):
     }
 
     msg = email.send(compliance.proposal.assessor_recipients, context=context)
-    if is_test:
-        return
-
     sender = settings.DEFAULT_FROM_EMAIL
     try:
         sender_user = EmailUser.objects.get(email__icontains=sender)
     except:
-        sender_user = EmailUser.objects.create(email=sender, password='', is_staff=True)
+        sender_user = EmailUser.objects.create(email=sender, password='')
     _log_compliance_email(msg, compliance, sender=sender_user)
     if compliance.proposal.org_applicant:
         _log_org_email(msg, compliance.proposal.org_applicant, compliance.submitter, sender=sender_user)
@@ -197,17 +176,13 @@ def send_internal_due_email_notification(compliance, is_test=False):
         _log_user_email(msg, compliance.proposal.submitter, compliance.submitter, sender=sender)
 
 
-def send_compliance_accept_email_notification(compliance,request, is_test=False):
+def send_compliance_accept_email_notification(compliance,request):
     email = ComplianceAcceptNotificationEmail()
 
     context = {
         'compliance': compliance
-    }
-    submitter = compliance.submitter.email if compliance.submitter and compliance.submitter.email else compliance.proposal.submitter.email
-    msg = email.send(submitter, context=context)
-    if is_test:
-        return
-
+    }    
+    msg = email.send(compliance.submitter.email, context=context)
     sender = request.user if request else settings.DEFAULT_FROM_EMAIL
     _log_compliance_email(msg, compliance, sender=sender)
     if compliance.proposal.org_applicant:
@@ -215,21 +190,17 @@ def send_compliance_accept_email_notification(compliance,request, is_test=False)
     else:
         _log_user_email(msg, compliance.proposal.submitter, compliance.submitter, sender=sender)
 
-def send_external_submit_email_notification(request, compliance, is_test=False):
+def send_external_submit_email_notification(request, compliance):
     email = ComplianceExternalSubmitSendNotificationEmail()
     url = request.build_absolute_uri(reverse('external-compliance-detail',kwargs={'compliance_pk': compliance.id}))
     url = ''.join(url.split('-internal'))
-    submitter = compliance.submitter if compliance.submitter and compliance.submitter.email else compliance.proposal.submitter
     context = {
         'compliance': compliance,
-        'submitter': submitter.get_full_name(),
+        'submitter': compliance.submitter.get_full_name(),
         'url': url
     }
 
-    msg = email.send(submitter.email, context=context)
-    if is_test:
-        return
-
+    msg = email.send(compliance.submitter.email, context=context)
     sender = request.user if request else settings.DEFAULT_FROM_EMAIL
     _log_compliance_email(msg, compliance, sender=sender)
     if compliance.proposal.org_applicant:
@@ -237,7 +208,7 @@ def send_external_submit_email_notification(request, compliance, is_test=False):
     else:
         _log_user_email(msg, compliance.proposal.submitter, compliance.submitter, sender=sender)
 
-def send_submit_email_notification(request, compliance, is_test=False):
+def send_submit_email_notification(request, compliance):
     email = ComplianceSubmitSendNotificationEmail()
     url = request.build_absolute_uri(reverse('internal-compliance-detail',kwargs={'compliance_pk': compliance.id}))
     if "-internal" not in url:
@@ -250,9 +221,6 @@ def send_submit_email_notification(request, compliance, is_test=False):
     }
 
     msg = email.send(compliance.proposal.assessor_recipients, context=context)
-    if is_test:
-        return
-
     sender = request.user if request else settings.DEFAULT_FROM_EMAIL
     _log_compliance_email(msg, compliance, sender=sender)
     if compliance.proposal.org_applicant:

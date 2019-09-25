@@ -1,7 +1,5 @@
 {%  extends 'commercialoperator/emails/base_email.txt' %}
 
-{%  block content %}
-
  {% if linked_by.email != user.email %}
         Your have been suspended from:
 

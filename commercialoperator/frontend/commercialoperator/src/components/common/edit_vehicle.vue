@@ -122,10 +122,6 @@ export default {
         vehicle_action:{
             type: String,
             default: 'edit'
-        },
-        access_types:{
-            type: Array,
-            required: true
         }
     },
     data:function () {
@@ -135,7 +131,7 @@ export default {
             form:null,
             vehicle: Object,
             vehicle_id: Number,
-            //access_types: null,
+            access_types: null,
             vehicle_access_id: null,
             state: 'proposed_vehicle',
             issuingVehicle: false,
@@ -193,7 +189,6 @@ export default {
                 console.log(error);
             } );
         },
-        /*
         fetchAccessTypes: function(){
             let vm=this;
             Vue.http.get('/api/access_types.json').then((res) => {
@@ -203,7 +198,6 @@ export default {
                         console.log(err);
                   });
         },
-        */
         fetchVehicle: function(vid){
             let vm=this;
             Vue.http.get(helpers.add_endpoint_json(api_endpoints.vehicles,vid)).then((res) => {
@@ -346,7 +340,7 @@ export default {
    },
    mounted:function () {
         let vm =this;
-        //vm.fetchAccessTypes();
+        vm.fetchAccessTypes();
         
         vm.form = document.forms.vehicleForm;
         vm.addFormValidations();

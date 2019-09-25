@@ -124,7 +124,6 @@ export default {
                 'Approved',
                 
             ],
-            status: [],
             proposal_submitters: [],
             proposal_headers:["Number","Licence","Holder","Status","Due Date","Assigned To", "Action"],
             proposal_options:{
@@ -270,14 +269,11 @@ export default {
         fetchFilterLists: function(){
             let vm = this;
 
-            vm.status = vm.level == 'external' ? vm.external_status: vm.internal_status;
-            /*
             vm.$http.get(api_endpoints.filter_list_compliances).then((response) => {
                 vm.status = vm.level == 'external' ? vm.external_status: vm.internal_status;
             },(error) => {
                 console.log(error);
             })
-            */
             //console.log(vm.regions);
         },
 

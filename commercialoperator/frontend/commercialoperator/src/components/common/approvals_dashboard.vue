@@ -149,7 +149,7 @@ export default {
             approval_status:[],
             proposal_submitters: [],
             proposal_headers:[
-                "Number","Application","Licence Type","Holder","Status","Start Date","Expiry Date","Licence","Action",
+                "Number","Licence Type","Holder","Status","Start Date","Expiry Date","Licence","Action",
             ],
             proposal_options:{
                 language: {
@@ -217,20 +217,6 @@ export default {
                         name: "id, lodgement_number",
                     },
                     {
-                        data: "linked_applications",
-                        mRender:function (data,type,full) {
-                            let applications = '';
-                            _.forEach(data, function (item) {
-                                applications += item + '<br>';
-                            });
-                            return applications;
-                        },
-                        name: "current_proposal__lodgement_number"
-
-                    },
-
-
-                    {
                         data: "application_type",
                         name: "current_proposal__application_type__name"
                     },
@@ -288,16 +274,10 @@ export default {
                         mRender:function (data,type,full) {
                             let links = '';
                             if (!vm.is_external){
-                                //if(vm.check_assessor(full)){
-                                if(full.is_approver){
+                                if(vm.check_assessor(full)){
                                     if(full.can_reissue){
                                         links +=  `<a href='#${full.id}' data-reissue-approval='${full.current_proposal}'>Reissue</a><br/>`;
                                     }
-                                }
-                                if(full.is_assessor){
-                                    // if(full.can_reissue){
-                                    //     links +=  `<a href='#${full.id}' data-reissue-approval='${full.current_proposal}'>Reissue</a><br/>`;
-                                    // }
                                     if(full.application_type=='E Class' && (full.status=='Current' || full.status=='Suspended')){
                                         if(full.can_extend){
                                             links +=  `<a href='#${full.id}' data-extend-approval='${full.id}'>Extend</a><br/>`;
@@ -326,7 +306,7 @@ export default {
 
                                 }
                             }
-                            else{//External Dashboard actions.
+                            else{
                                 if (full.can_reissue) {
                                     links +=  `<a href='/external/approval/${full.id}'>View</a><br/>`;
                                     if(full.can_action){
