@@ -174,7 +174,7 @@
                               </div>
                             </div>
 
-                            <div class="col-sm-12 form-group"><div class="row">
+                            <div class="form-group"><div class="row">
                                 <label class="col-sm-3">Planned for (Date)</label>
                                 <div class="col-sm-3">
                                     <div class="input-group date" ref="plannedForDatePicker">
@@ -195,18 +195,23 @@
                                     </div>
                                 </div>
                             </div></div>
-                            <div class="col-sm-12 form-group"><div class="row">
+                            <!--div class="col-sm-12 form-group"><div class="row">
                                 <label class="col-sm-4">Party Inspected</label>
                                     <input :disabled="readonlyForm" class="col-sm-1" id="individual" type="radio" v-model="inspection.party_inspected" v-bind:value="`individual`">
                                     <label class="col-sm-1" for="individual">Person</label>
                                     <input :disabled="readonlyForm" class="col-sm-1" id="organisation" type="radio" v-model="inspection.party_inspected" v-bind:value="`organisation`">
                                     <label class="col-sm-1" for="organisation">Organisation</label>
-                            </div></div>
+                            </div></div-->
                             
-                            <div class="col-sm-12 form-group"><div class="row">
-                                <div class="col-sm-8">
-                                    <SearchPerson :excludeStaff="true" :isEditable="!readonlyForm" classNames="form-control" :search_type="inspection.party_inspected" @entity-selected="personSelected" ref="search_person"/>
-                                </div>
+                            <div class="form-group"><div class="row">
+                                    <SearchPersonOrganisation 
+                                    :excludeStaff="true" 
+                                    :isEditable="!readonlyForm" 
+                                    classNames="form-control" 
+                                    :search_type="inspection.party_inspected" 
+                                    @entity-selected="entitySelected" 
+                                    showCreateUpdate
+                                    ref="search_person_organisation"/>
                                 <!--div class="col-sm-1">
                                     <input type="button" class="btn btn-primary" value="Add" @click.prevent="addOffenderClicked()" />
                                 </div-->
@@ -327,7 +332,7 @@
 <script>
 import Vue from "vue";
 import FormSection from "@/components/forms/section_toggle.vue";
-import SearchPerson from "@/components/common/search_person_or_organisation.vue";
+import SearchPersonOrganisation from "@/components/common/search_person_or_organisation.vue";
 //import CreateNewPerson from "@common-components/create_new_person.vue";
 //import CreateNewOrganisation from "@common-components/create_new_organisation.vue";
 import CommsLogs from "@common-components/comms_logs.vue";
@@ -419,7 +424,7 @@ export default {
     CommsLogs,
     FormSection,
     datatable,
-    SearchPerson,
+    SearchPersonOrganisation,
     //CreateNewPerson,
     //CreateNewOrganisation,
     Offence,
@@ -672,7 +677,7 @@ export default {
             action: 'make_team_lead'
         });
     },
-    personSelected: function(para) {
+    entitySelected: function(para) {
         console.log(para);
         this.setPartyInspected(para);
     },

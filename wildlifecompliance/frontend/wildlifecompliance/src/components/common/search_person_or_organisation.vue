@@ -1,16 +1,26 @@
 <template lang="html">
     <div class="">
+        <div class="col-sm-12 form-group"><div class="row">
+                <label class="col-sm-4">{{ labelTitle }}</label>
+                <input :disabled="!isEditable" class="col-sm-1" id="individual" type="radio" v-model="searchType" v-bind:value="`individual`">
+                <label class="col-sm-1" for="individual">Person</label>
+                <input :disabled="!isEditable" class="col-sm-1" id="organisation" type="radio" v-model="searchType" v-bind:value="`organisation`">
+                <label class="col-sm-1" for="organisation">Organisation</label>
+        </div></div>
         <div class="col-sm-8">
-            <input :id="elemId" :class="classNames" :readonly="!isEditable" />
+            <input :id="elemId" :class="classNames" :readonly="!isEditable" ref="search_person_org"/>
         </div>
-        <div v-if="showCreateUpdate" class="col-sm-2">
-            <input :disabled="!isEditable" type="button" class="btn btn-primary" value="Create New Person" @click.prevent="createUpdatePersonClicked()" />
+        <div v-if="showCreateUpdate && searchType === 'individual'" class="col-sm-2">
+            <input :disabled="!isEditable" type="button" class="btn btn-primary" value="Create/Update Person" @click.prevent="createUpdatePersonClicked()" />
+        </div>
+        <div v-else-if="showCreateUpdate && searchType === 'organisation'" class="col-sm-2">
+            <input :disabled="!isEditable" type="button" class="btn btn-primary" value="Create/Update Organisation" @click.prevent="createUpdateOrganisationClicked()" />
         </div>
         <div v-if="showCreateUpdate" class="col-sm-12 form-group"><div class="row">
-            <div class="col-sm-12" v-if="displayCreateUpdatePerson">
-              <updateCreatePerson @person-saved="createUpdatePerson"/>
+            <div class="col-sm-12" v-if="displayUpdateCreatePerson">
+              <updateCreatePerson displayComponent @person-saved="createUpdatePerson"/>
             </div>
-            <div class="col-sm-12" v-if="displayCreateUpdateOrganisation">
+            <div class="col-sm-12" v-if="displayUpdateCreateOrganisation">
               <updateCreateOrganisation @organisation-saved=""/>
             </div>
         </div></div>
@@ -26,7 +36,7 @@ import updateCreatePerson from '@common-components/update_create_person.vue'
 import updateCreateOrganisation from '@common-components/update_create_organisation.vue'
 
 export default {
-    name: "search-person",
+    name: "search-person-organisation",
     data: function(){
         let vm = this;
         vm.awesomplete_obj = null;
@@ -34,15 +44,38 @@ export default {
         return {
             //elemId: 'create_new_person_' + vm._uid,
             elemId: this.search_type + vm._uid,
-            entity_id: null,
-            entity_data_type: null,
-            displayCreateUpdatePerson: false,
-            displayCreateUpdateOrganisation: false,
+            entity: {
+                id: null,
+                data_type: null
+            },
+            //entity_id: null,
+            //entity_data_type: null,
+            displayUpdateCreatePerson: false,
+            displayUpdateCreateOrganisation: false,
+            searchType: '',
+
         }
     },
     components: {
         updateCreatePerson,
         updateCreateOrganisation,
+    },
+    watch: {
+        entity: {
+            handler: function (){
+                this.$emit('entity-selected', { 
+                    id: this.entity_id, 
+                    data_type: this.entity_data_type });
+            },
+            deep: true
+        },
+    },
+    computed: {
+        labelTitle: function() {
+            if (this.searchType) {
+                return "Search " + this.searchType;
+            }
+        },
     },
     props: {
         // This prop is not used any more.  Instead elemId in the data is used.
@@ -90,9 +123,28 @@ export default {
             });
             return ret_text;
         },
-        createNewPersonClicked: function() {
+        createUpdatePersonClicked: function() {
           //this.newPersonBeingCreated = true;
-          this.displayCreateNewPerson = !this.displayCreateNewPerson;
+          this.displayUpdateCreatePerson = !this.displayUpdateCreatePerson;
+        },
+        createUpdateOrganisationClicked: function() {
+          this.displayUpdateCreateOrganisation = !this.displayUpdateCreateOrganisation;
+        },
+        createUpdatePerson: function(obj) {
+            console.log(obj);
+            if(obj.person){
+                this.setPartyInspected({data_type: 'individual', id: obj.person.id});
+
+            // Set fullname and DOB into the input box
+            let full_name = [obj.person.first_name, obj.person.last_name].filter(Boolean).join(" ");
+            let dob = obj.person.dob ? "DOB:" + obj.person.dob : "DOB: ---";
+            let value = [full_name, dob].filter(Boolean).join(", ");
+            this.$refs.search_person_org.setInput(value);
+          } else if (obj.err) {
+            console.log(err);
+          } else {
+            // Should not reach here
+          }
         },
         initAwesomplete: function() {
             let vm = this;
@@ -185,12 +237,12 @@ export default {
                 // 
                 // id is an Emailuser.id when data_type is 'individual' or 
                 // an Organisation.id when data_type is 'organisation'
-                this.$nextTick(() => {
-                    this.entity_id = data_item_id
-                    this.entity_data_type = data_type
-                    vm.$emit('entity-selected', { 
-                        id: this.entity_id, 
-                        data_type: this.entity_data_type });
+                vm.$nextTick(() => {
+                    vm.entity.id = data_item_id
+                    vm.entity.data_type = data_type
+                    //vm.$emit('entity-selected', { 
+                    //    id: this.entity_id, 
+                    //    data_type: this.entity_data_type });
                 });
                 // vm.$emit('entity-selected', { id: data_item_id, data_type: data_type });
             });
@@ -233,9 +285,9 @@ export default {
         },
     },
     created: function() {
-        let vm = this;
-        vm.$nextTick(()=>{
-            vm.initAwesomplete();
+        this.$nextTick(()=>{
+            this.initAwesomplete();
+            this.searchType = this.search_type;
         });
     }
 }
