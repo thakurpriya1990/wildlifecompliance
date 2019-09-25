@@ -279,7 +279,7 @@
                                             <label class="control-label pull-left"  for="Name">Inspection Report</label>
                                         </div>
                                         <div class="col-sm-9" v-if="inspection.inspectionReportDocumentUrl">
-                                            <filefield ref="inspection_report_file" name="inspection-report-file" :isRepeatable="false" :documentActionUrl="inspection.inspectionReportDocumentUrl" @update-parent="loadInspectionReport"/>
+                                            <filefield ref="inspection_report_file" name="inspection-report-file" :isRepeatable="false" :documentActionUrl="inspection.inspectionReportDocumentUrl" @update-parent="loadInspectionReport" :readonly="readonlyForm"/>
                                         </div>
                                     </div>
                                 </div>
@@ -289,7 +289,7 @@
                             <FormSection :formCollapse="false" label="Related Items">
                                 <div class="col-sm-12 form-group"><div class="row">
                                     <div class="col-sm-12" v-if="relatedItemsVisibility">
-                                        <RelatedItems v-bind:key="relatedItemsBindId" :parent_update_related_items="setRelatedItems" :readonlyForm="readonlyForm"/>
+                                        <RelatedItems v-bind:key="relatedItemsBindId" :parent_update_related_items="setRelatedItems" :readonlyForm="!canUserAction"/>
                                     </div>
                                 </div></div>
                             </FormSection>
@@ -376,7 +376,7 @@ export default {
                   data: 'Action',
                   mRender: function(data, type, row) {
                       let links = '';
-                      if (row.Action.can_user_action) {
+                      if (row.Action.readonlyForm) {
                           if (row.Action.action === 'Member') {
                               links = '<a href="#" class="make_team_lead" data-member-id="' + row.Action.id + '">Make Team Lead</a><br>'
                           } 
@@ -560,7 +560,8 @@ export default {
 
             let actionColumn = new Object();
             Object.assign(actionColumn, this.inspectionTeam[i]);
-            actionColumn.can_user_action = this.inspection.can_user_action;
+            //actionColumn.can_user_action = this.inspection.can_user_action;
+            actionColumn.readonlyForm = this.inspection.readonlyForm;
 
             //if (!already_exists) {
             if (this.inspectionTeam[i].id) {

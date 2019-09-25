@@ -676,7 +676,8 @@ class InspectionViewSet(viewsets.ModelViewSet):
                     instance.log_user_action(
                             InspectionUserAction.ACTION_CREATE_INSPECTION.format(
                             instance.number), request)
-                    res = self.workflow_action(request, instance)
+                    # Create comms_log and send mail
+                    res = self.workflow_action(request, instance, create_inspection=True)
                     if instance.call_email:
                         print("update parent")
                         self.update_parent(request, instance)
@@ -704,13 +705,13 @@ class InspectionViewSet(viewsets.ModelViewSet):
 
     @detail_route(methods=['POST'])
     @renderer_classes((JSONRenderer,))
-    def workflow_action(self, request, instance=None, *args, **kwargs):
+    def workflow_action(self, request, instance=None, create_inspection=None, *args, **kwargs):
         print("workflow action")
         print(request.data)
         try:
             with transaction.atomic():
                 # email recipient
-                recipient_id = None
+                #recipient_id = None
 
                 if not instance:
                     instance = self.get_object()
@@ -741,7 +742,8 @@ class InspectionViewSet(viewsets.ModelViewSet):
                 elif workflow_type == 'close':
                     instance.close(request)
 
-                if not workflow_type:
+                #if not workflow_type or workflow_type in ('', ''):
+                if create_inspection:
                     instance.region_id = None if not request.data.get('region_id') else request.data.get('region_id')
                     instance.district_id = None if not request.data.get('district_id') else request.data.get('district_id')
                     instance.assigned_to_id = None if not request.data.get('assigned_to_id') else request.data.get('assigned_to_id')
@@ -749,18 +751,22 @@ class InspectionViewSet(viewsets.ModelViewSet):
                     instance.allocated_group_id = None if not request.data.get('allocated_group_id') else request.data.get('allocated_group_id')
                     instance.call_email_id = None if not request.data.get('call_email_id') else request.data.get('call_email_id')
                     instance.details = None if not request.data.get('details') else request.data.get('details')
+                #elif workflow_type not in ('send_to_manager', 'request_amendment'):
+                 #   instance.assigned_to_id = None if not request.data.get('assigned_to_id') else request.data.get('assigned_to_id')
                 else:
                     instance.assigned_to_id = None
-                    recipient_id = instance.inspection_team_lead_id
+                    instance.allocated_group_id = None if not request.data.get('allocated_group_id') else request.data.get('allocated_group_id')
+                    #recipient_id = instance.inspection_team_lead_id
 
                 instance.save()
-
-                if instance.assigned_to_id:
+                
+                # Needed for create inspection
+                if create_inspection:
                     instance = self.modify_inspection_team(request, instance, workflow=True, user_id=instance.assigned_to_id)
 
                 # send email
-                if recipient_id:
-                    email_data = prepare_mail(request, instance, workflow_entry, send_mail, recipient_id)
+                if workflow_type in ('send_to_manager', 'request_amendment') and instance.inspection_team_lead_id:
+                    email_data = prepare_mail(request, instance, workflow_entry, send_mail, instance.inspection_team_lead_id)
                 else:
                     email_data = prepare_mail(request, instance, workflow_entry, send_mail)
 
