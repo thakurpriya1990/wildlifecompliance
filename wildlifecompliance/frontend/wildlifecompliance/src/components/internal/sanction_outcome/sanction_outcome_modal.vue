@@ -548,34 +548,35 @@ export default {
         this.$parent.sanctionOutcomeInitialised = false;
         this.isModalOpen = false;
     },
-    modalOpened: function() {},
+    modalOpened: function() {
+    
+    },
     modalClosed: function() {
-      //this.loadDefaultData();
+    
     },
     loadDefaultData: function() {
-      let vm = this;
+        console.log('loadDefaultData');
+      if (this.$parent.call_email) {
+          this.sanction_outcome.region_id = this.$parent.call_email.region_id;
+          this.sanction_outcome.district_id = this.$parent.call_email.district_id;
+      }
 
-      vm.sanction_outcome.type = "";
-      if (this.$parent.call_email) {
-          vm.sanction_outcome.region_id = this.$parent.call_email.region_id;
+      if (this.$parent.inspection) {
+          this.sanction_outcome.region_id = this.$parent.inspection.region_id;
+          this.sanction_outcome.district_id = this.$parent.inspection.district_id;
       }
-      if (this.$parent.call_email) {
-         vm.sanction_outcome.district_id = this.$parent.call_email.district_id;
+
+      if (this.$parent.offence) {
+          this.sanction_outcome.region_id = this.$parent.offence.region_id;
+          this.sanction_outcome.district_id = this.$parent.offence.district_id;
+          for (let i = 0; i < this.options_for_offences.length; i++) {
+            if (this.options_for_offences[i].id == this.$parent.offence.id) {
+              this.sanction_outcome.current_offence = this.options_for_offences[i];
+            }
+          }
       }
-      vm.sanction_outcome.identifier = "";
-      vm.sanction_outcome.current_offence = {};
-      vm.sanction_outcome.current_offender = {};
-      vm.sanction_outcome.issued_on_paper = false;
-      vm.sanction_outcome.paper_id = "";
-      vm.sanction_outcome.description = "";
-      vm.sanction_outcome.date_of_issue = null;
-      vm.sanction_outcome.time_of_issue = null;
-      vm.sanction_outcome.remediation_actions = [];
-      vm.current_remediation_action = {
-        action: "",
-        due_date: null
-      };
-      vm.clearTableRemediationActions();
+
+      this.clearTableRemediationActions();
     },
     currentRegionIdChanged: function() {
       this.updateDistricts();
@@ -690,6 +691,7 @@ export default {
       });
     },
     offenceSelected: function(e) {
+        console.log('offenceSelected');
       let vm = this;
       let offence_id = parseInt(e.target.value);
       for (let i = 0; i < vm.options_for_offences.length; i++) {
@@ -703,16 +705,11 @@ export default {
       vm.sanction_outcome.current_offence = {};
     },
     offenderSelected: function(e) {
+      console.log('offenderSelected');
       let vm = this;
       let offender_id = parseInt(e.target.value);
-      for (
-        let i = 0;
-        i < vm.sanction_outcome.current_offence.offenders.length;
-        i++
-      ) {
-        if (
-          vm.sanction_outcome.current_offence.offenders[i].id == offender_id
-        ) {
+      for ( let i = 0; i < vm.sanction_outcome.current_offence.offenders.length; i++) {
+        if ( vm.sanction_outcome.current_offence.offenders[i].id == offender_id) {
           // Update current offender
           vm.sanction_outcome.current_offender =
             vm.sanction_outcome.current_offence.offenders[i];
@@ -808,6 +805,7 @@ export default {
       this.$refs.tbl_remediation_actions.vmDataTable.rows().remove().draw(); // Clear the table anyway
     },
     currentOffenceChanged: function() {
+        console.log('currentOffenceChanged');
       let vm = this;
 
       vm.sanction_outcome.current_offender = {};
@@ -835,20 +833,21 @@ export default {
       // vm.addEventListener();
     },
     updateOptionsForOffences: async function() {
-      let returned = null;
-      if (this.$parent.call_email) {
-          returned = await Vue.http.get("/api/offence/filter_by_call_email.json", {
-              params: { call_email_id: this.$parent.call_email.id }
-          });
-        this.options_for_offences = returned.body;
-      } else if (this.$parent.inspection) {
-          returned = await Vue.http.get("/api/offence/filter_by_inspection.json", {
-              params: { inspection_id: this.$parent.inspection.id }
-          });
-        this.options_for_offences = returned.body;
-      } else if (this.$parent.offence) {
-        this.options_for_offences = [this.$parent.offence];
-      }
+        console.log('updateOptionsForOffences');
+        let returned = null;
+        if (this.$parent.call_email) {
+            returned = await Vue.http.get("/api/offence/filter_by_call_email.json", {
+                params: { call_email_id: this.$parent.call_email.id }
+            });
+            this.options_for_offences = returned.body;
+        } else if (this.$parent.inspection) {
+            returned = await Vue.http.get("/api/offence/filter_by_inspection.json", {
+                params: { inspection_id: this.$parent.inspection.id }
+            });
+            this.options_for_offences = returned.body;
+        } else if (this.$parent.offence) {
+            this.options_for_offences = [this.$parent.offence];
+        }
     },
     createDocumentActionUrl: async function() {
         // create sanction outcome and get id
