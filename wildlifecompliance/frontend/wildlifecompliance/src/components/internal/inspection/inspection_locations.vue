@@ -240,7 +240,6 @@ module.exports = {
 
             // Date "From" field
             el_fr.datetimepicker({ format: 'DD/MM/YYYY', minDate: moment().millisecond(0).second(0).minute(0).hour(0), showClear: true });
-            //el_fr.datetimepicker({ format: 'DD/MM/YYYY', minDate: 'now', showClear: true });
             el_fr.on('dp.change', function (e) {
                 if (el_fr.data('DateTimePicker').date()) {
                     vm.filterDateFrom = e.date.format('DD/MM/YYYY');
@@ -252,7 +251,6 @@ module.exports = {
 
             // Date "To" field
             el_to.datetimepicker({ format: 'DD/MM/YYYY', minDate: moment().millisecond(0).second(0).minute(0).hour(0), showClear: true });
-            //el_to.datetimepicker({ format: 'DD/MM/YYYY', minDate: 'now', showClear: true });
             el_to.on('dp.change', function (e) {
                 if (el_to.data('DateTimePicker').date()) {
                     vm.filterDateTo = e.date.format('DD/MM/YYYY');
@@ -432,12 +430,14 @@ module.exports = {
                         if (inspection.status){
                             if (inspection.status == 'open'){
                                 filename = 'marker-green-locked.svg';
-                            } else if (inspection.status == 'discarded'){
+                            } else if (inspection.status == 'await_endorsement'){
                                 filename = 'marker-blue-locked.svg';
-                            } else if (inspection.status == 'closing'){
-                                filename = 'marker-orange-locked.svg';
+                            } else if (inspection.status == 'discarded'){
+                                filename = 'marker-yellow-locked.svg';
                             } else if (inspection.status == 'closed'){
                                 filename = 'marker-red-locked.svg';
+                            } else if (inspection.status == 'pending_closure'){
+                                filename = 'marker-orange-locked.svg';
                             }
                         }
 

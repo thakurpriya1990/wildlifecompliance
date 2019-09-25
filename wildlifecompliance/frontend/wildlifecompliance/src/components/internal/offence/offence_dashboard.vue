@@ -238,7 +238,7 @@ export default {
             let el_fr = $(vm.$refs.issueDateFromPicker);
             let el_to = $(vm.$refs.issueDateToPicker);
 
-            el_fr.datetimepicker({ format: 'DD/MM/YYYY', maxDate: 'now', showClear: true });
+            el_fr.datetimepicker({ format: 'DD/MM/YYYY', maxDate: moment().millisecond(0).second(0).minute(0).hour(0), showClear: true });
             el_fr.on('dp.change', function (e) {
                 if (el_fr.data('DateTimePicker').date()) {
                     vm.filterDateFromPicker = e.date.format('DD/MM/YYYY');
@@ -252,7 +252,7 @@ export default {
             let vm = this;
             let el_fr = $(vm.$refs.issueDateFromPicker);
             let el_to = $(vm.$refs.issueDateToPicker);
-            el_to.datetimepicker({ format: 'DD/MM/YYYY', maxDate: 'now', showClear: true });
+            el_to.datetimepicker({ format: 'DD/MM/YYYY', maxDate: moment().millisecond(0).second(0).minute(0).hour(0), showClear: true });
             el_to.on('dp.change', function (e) {
                 if (el_to.data('DateTimePicker').date()) {
                     vm.filterDateToPicker = e.date.format('DD/MM/YYYY');

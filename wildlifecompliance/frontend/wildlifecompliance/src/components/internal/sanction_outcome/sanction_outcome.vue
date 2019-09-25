@@ -572,7 +572,7 @@ export default {
             let el_issue_time = $(vm.$refs.timeOfIssuePicker);
 
             // Issue "Date" field
-            el_issue_date.datetimepicker({ format: "DD/MM/YYYY", maxDate: "now", showClear: true });
+            el_issue_date.datetimepicker({ format: "DD/MM/YYYY", maxDate: moment().millisecond(0).second(0).minute(0).hour(0), showClear: true });
             el_issue_date.on("dp.change", function(e) {
               if (el_issue_date.data("DateTimePicker").date()) {
                 vm.sanction_outcome.date_of_issue = e.date.format("DD/MM/YYYY");

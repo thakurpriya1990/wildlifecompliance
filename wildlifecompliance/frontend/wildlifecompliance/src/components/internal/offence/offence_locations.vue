@@ -235,7 +235,7 @@ module.exports = {
             let el_to = $(vm.$refs.lodgementDateToPicker);
 
             // Date "From" field
-            el_fr.datetimepicker({ format: 'DD/MM/YYYY', maxDate: 'now', showClear: true });
+            el_fr.datetimepicker({ format: 'DD/MM/YYYY', maxDate: moment().millisecond(0).second(0).minute(0).hour(0), showClear: true });
             el_fr.on('dp.change', function (e) {
                 if (el_fr.data('DateTimePicker').date()) {
                     vm.filterDateFrom = e.date.format('DD/MM/YYYY');
@@ -246,7 +246,7 @@ module.exports = {
             });
 
             // Date "To" field
-            el_to.datetimepicker({ format: 'DD/MM/YYYY', maxDate: 'now', showClear: true });
+            el_to.datetimepicker({ format: 'DD/MM/YYYY', maxDate: moment().millisecond(0).second(0).minute(0).hour(0), showClear: true });
             el_to.on('dp.change', function (e) {
                 if (el_to.data('DateTimePicker').date()) {
                     vm.filterDateTo = e.date.format('DD/MM/YYYY');
