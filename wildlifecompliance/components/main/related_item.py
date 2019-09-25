@@ -421,7 +421,7 @@ def can_close_record(entity, request):
         for child in children:
             print(child)
             print(child.status)
-            if child.status not in ('closed', 'discarded'):
+            if child.status not in ('closed', 'discarded', 'declined', 'withdrawn'):  # This tuple should include only very final status of the entity
                 close_record = False
     return close_record, parents
 

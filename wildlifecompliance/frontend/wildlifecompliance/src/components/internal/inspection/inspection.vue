@@ -353,7 +353,7 @@
           <InspectionWorkflow ref="add_workflow" :workflow_type="workflow_type" v-bind:key="workflowBindId" />
         </div-->
         <div v-if="offenceInitialised">
-            <Offence ref="offence" :parent_update_function="loadInspection" />
+            <Offence ref="offence" :parent_update_function="loadInspection" :region_id="inspection.region_id" :district_id="inspection.district_id" :allocated_group_id="inspection.allocated_group_id" />
         </div>
         <div v-if="sanctionOutcomeInitialised">
             <SanctionOutcome ref="sanction_outcome" :parent_update_function="loadInspection"/>

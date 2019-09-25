@@ -24,6 +24,32 @@
                             </div></div>
 
                             <div class="col-sm-12 form-group"><div class="row">
+                                <div class="col-sm-3">
+                                    <label class="control-label pull-left">Region</label>
+                                </div>
+                                <div class="col-sm-7">
+                                  <select class="form-control col-sm-9" v-on:change.prevent="offence.region_id=$event.target.value; updateDistricts('updatefromUI')" v-bind:value="offence.region_id">
+                                    <option  v-for="option in regions" :value="option.id" v-bind:key="option.id">
+                                      {{ option.display_name }} 
+                                    </option>
+                                  </select>
+                                </div>
+                            </div></div>
+
+                            <div class="col-sm-12 form-group"><div class="row">
+                                <div class="col-sm-3">
+                                    <label class="control-label pull-left">District</label>
+                                </div>
+                                <div class="col-sm-7">
+                                  <select class="form-control" v-model="offence.district_id">
+                                    <option  v-for="option in availableDistricts" :value="option.id" v-bind:key="option.id">
+                                      {{ option.display_name }} 
+                                    </option>
+                                  </select>
+                                </div>
+                            </div></div>
+
+                            <div class="col-sm-12 form-group"><div class="row">
                                 <label class="col-sm-3">Use occurrence from/to</label>
                                 <input class="col-sm-1" id="occurrence_from_to_true" type="radio" v-model="offence.occurrence_from_to" v-bind:value="true">
                                 <label class="col-sm-1 radio-button-label" for="occurrence_from_to_true">Yes</label>
@@ -216,6 +242,11 @@ export default {
       pTab: "pTab" + vm._uid,
       lTab: "lTab" + vm._uid,
       errorResponse: '',
+
+      regionDistricts: [],
+      regions: [], // this is the list of options
+      availableDistricts: [], // this is generated from the regionDistricts[] above
+
       dtHeadersOffender: ["id", "Individual/Organisation", "Details", "Action"],
       dtHeadersAllegedOffence: [
         "id",
@@ -317,11 +348,23 @@ export default {
     PersonSearch,
     CreateNewPerson
   },
-  props:{
+    props:{
         parent_update_function: {
             type: Function,
         },
-  },
+        region_id: {
+            required: false,
+            default: null,
+        },
+        district_id: {
+            required: false,
+            default: null,
+        },
+        allocated_group_id: {
+            required: false,
+            default: null,
+        },
+    },
   computed: {
     ...mapGetters("offenceStore", {
       offence: "offence"
@@ -361,6 +404,25 @@ export default {
       createOffence: "createOffence",
       setOffenceEmpty: "setOffenceEmpty"
     }),
+    constructRegionsAndDistricts: async function() {
+        let returned_regions = await cache_helper.getSetCacheList(
+            "Offence_Regions",
+            "/api/region_district/get_regions/"
+        );
+        Object.assign(this.regions, returned_regions);
+        this.regions.splice(0, 0, {
+            id: "",
+            display_name: "",
+            district: "",
+            districts: [],
+            region: null
+        });
+        let returned_region_districts = await cache_helper.getSetCacheList(
+            "Offence_RegionDistricts",
+            api_endpoints.region_district
+        );
+        Object.assign(this.regionDistricts, returned_region_districts);
+    },
     newPersonCreated: function(obj) {
       if(obj.person){
         this.setCurrentOffender('individual', obj.person.id);
@@ -507,6 +569,11 @@ export default {
         this.processingDetails = true;
         let response = await this.sendData();
         if (response.ok) {
+            // Refresh offence table on the dashboard page
+            if (this.$parent.$refs.offence_table){
+                this.$parent.$refs.offence_table.vmDataTable.ajax.reload();
+            }
+
             // For CallEmail related items table
             if (this.$parent.call_email) {
                 await this.parent_update_function({
@@ -543,27 +610,19 @@ export default {
       // If exists, set call_email id and other attributes to the offence
       if (this.$parent.call_email) {
           vm.setCallEmailId(this.$parent.call_email.id);
-          vm.setRegionId(this.$parent.call_email.region_id);
-          vm.setDistrictId(this.$parent.call_email.district_id);
-          vm.setAllocatedGroupId(this.$parent.call_email.allocated_group_id);
       }
 
       // If exists, set inspection id to the offence
       if (this.$parent.inspection) {
           vm.setInspectionId(this.$parent.inspection.id);
       }
+
       // Collect offenders data from the datatable, and set them to the vuex
-      let offenders = vm.$refs.offender_table.vmDataTable
-        .rows()
-        .data()
-        .toArray();
+      let offenders = vm.$refs.offender_table.vmDataTable.rows().data().toArray();
       vm.setOffenders(offenders);
 
       // Collect alleged offence data from the datatable, and set them to the vuex
-      let alleged_offences = vm.$refs.alleged_offence_table.vmDataTable
-        .rows()
-        .data()
-        .toArray();
+      let alleged_offences = vm.$refs.alleged_offence_table.vmDataTable.rows().data().toArray();
       let alleged_offence_ids = alleged_offences.map(a => {
         return { id: a.id }; // We just need id to create relations between the offence and the alleged offence(s)
       });
@@ -813,19 +872,55 @@ export default {
       vm.current_alleged_offence.AllegedOffence = "";
 
       $("#alleged-offence").val("");
+    },
+    currentRegionIdChanged: function() {
+      this.updateDistricts();
+    },
+    updateDistricts: function(updateFromUI) {
+      console.log('updateDistricts');
+      if (updateFromUI) {
+        // We don't want to clear the default district selection when initially loaded, which derived from the call_email
+        this.offence.district_id = null;
+      }
+
+      this.availableDistricts = []; // This is a list of options for district
+      for (let record of this.regionDistricts) {
+        if (this.offence.region_id == record.id) {
+          for (let district_id of record.districts) {
+            for (let district_record of this.regionDistricts) {
+              if (district_record.id == district_id) {
+                this.availableDistricts.push(district_record);
+              }
+            }
+          }
+        }
+      }
+
+      this.availableDistricts.splice(0, 0, {
+        id: "",
+        display_name: "",
+        district: "",
+        districts: [],
+        region: null
+      });
+    },
+  },
+    created: async function() {
+        let self = this;
+        self.$nextTick(function() {
+            self.initAwesompleteAllegedOffence();
+        });
+        await this.constructRegionsAndDistricts();
+        this.setRegionId(this.region_id);
+        this.setDistrictId(this.district_id);
+        this.setAllocatedGroupId(this.allocated_group_id);
+    },
+    mounted: function() {
+        let vm = this;
+        vm.$nextTick(() => {
+            vm.addEventListeners();
+        });
     }
-  },
-  created: async function() {
-    this.$nextTick(function() {
-      this.initAwesompleteAllegedOffence();
-    });
-  },
-  mounted: function() {
-    let vm = this;
-    vm.$nextTick(() => {
-      vm.addEventListeners();
-    });
-  }
 };
 </script>
 

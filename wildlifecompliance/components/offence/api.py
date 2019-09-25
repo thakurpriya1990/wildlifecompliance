@@ -453,7 +453,15 @@ class OffenceViewSet(viewsets.ModelViewSet):
                 serializer.is_valid(raise_exception=True)
                 saved_offence_instance = serializer.save()  # Here, relations between this offence and location, and this offence and call_email/inspection are created
 
-                # 2. Update parents
+                # 2.1. Determine allocated group and save it
+                new_group = Offence.get_compliance_permission_group(saved_offence_instance.regionDistrictId)
+                saved_offence_instance.allocated_group = new_group
+                saved_offence_instance.assigned_to = None
+                saved_offence_instance.responsible_officer = request.user
+                saved_offence_instance.log_user_action(OffenceUserAction.ACTION_CREATE.format(saved_offence_instance.lodgement_number), request)
+                saved_offence_instance.save()
+
+                # 2.2. Update parents
                 self.update_parent(request, saved_offence_instance)
                 
                 ## 2a. Log it to the call email, if applicable

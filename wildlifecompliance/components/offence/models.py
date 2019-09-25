@@ -28,6 +28,7 @@ class SectionRegulation(RevisionedMixin):
 
 
 class Offence(RevisionedMixin):
+    WORKFLOW_CREATE = 'create'
     WORKFLOW_CLOSE = 'close'
 
     STATUS_DRAFT = 'draft'
@@ -121,19 +122,13 @@ class Offence(RevisionedMixin):
         return self.lodgement_number
 
     @staticmethod
-    def get_compliance_permission_group(regionDistrictId, workflow_type):
+    def get_compliance_permission_group(regionDistrictId):
         region_district = RegionDistrict.objects.filter(id=regionDistrictId)
 
         # 2. Determine which permission(s) is going to be applied
         compliance_content_type = ContentType.objects.get(model="compliancepermissiongroup")
         codename = 'officer'
-        if workflow_type == Offence.WORKFLOW_CLOSE:
-            codename = 'officer'
-            per_district = True
-        else:
-            # Should not reach here
-            # instance.save()
-            pass
+        per_district = True
 
         permissions = Permission.objects.filter(codename=codename, content_type_id=compliance_content_type.id)
 
@@ -156,7 +151,7 @@ class Offence(RevisionedMixin):
 
     def close(self, request):
         self.status = self.STATUS_CLOSING
-        new_group = Offence.get_compliance_permission_group(self.regionDistrictId, Offence.WORKFLOW_CLOSE)
+        new_group = Offence.get_compliance_permission_group(self.regionDistrictId)
         self.allocated_group = new_group
         self.assigned_to = None
         self.responsible_officer = request.user
@@ -235,6 +230,7 @@ class Offender(models.Model):
 
 class OffenceUserAction(UserAction):
     ACTION_CLOSE = "Close offence: {}"
+    ACTION_CREATE = "Create offence: {}"
     ACTION_REMOVE_ALLEGED_OFFENCE = "Remove alleged offence: {}, Reason: {}"
     ACTION_REMOVE_OFFENDER = "Remove offender: {}, Reason: {}"
     ACTION_RESTORE_ALLEGED_OFFENCE = "Restore alleged offence: {}"
