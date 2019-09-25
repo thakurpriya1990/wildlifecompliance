@@ -38,7 +38,7 @@
                         </span>
                     </div>
                 </div>
-                <div class="col-md-3 pull-right">
+                <div class="col-md-3 pull-right" v-if="visibilityCreateNewButton">
                     <button @click.prevent="createOffence" class="btn btn-primary pull-right">New Offence</button>
                 </div>    
             </div>
@@ -61,6 +61,7 @@
 </template>
 
 <script>
+import Vue from "vue";
 import $ from 'jquery'
 import datatable from '@vue-utils/datatable.vue'
 import FormSection from "@/components/compliance_forms/section.vue";
@@ -81,6 +82,7 @@ export default {
             filterDateFromPicker: '',
             filterDateToPicker: '',
             offenceInitialised: false,
+            canUserCreateNewOffence: false,
 
             dtOptions: {
                 serverSide: true,
@@ -176,16 +178,13 @@ export default {
             ],
         }
     },
-    mounted(){
-        let vm = this;
-        vm.$nextTick(() => {
-            vm.addEventListeners();
-        });
-    },
     computed: {
         current_region_id: function() {
             return this.filterRegionId;
         },
+        visibilityCreateNewButton: function() {
+            return this.canUserCreateNewOffence;
+        }
     },
     watch: {
         current_region_id: function() {
@@ -213,11 +212,23 @@ export default {
             this.$refs.offence_table.vmDataTable.draw();
         },
     },
+    mounted(){
+        let vm = this;
+        vm.$nextTick(() => {
+            vm.addEventListeners();
+        });
+    },
     created: async function() {
         this.constructOptionsType();
         this.constructOptionsStatus();
+        this.getUserCanCreate();
     },
     methods: {
+        getUserCanCreate: async function() {
+            let url = helpers.add_endpoint_join(api_endpoints.offence, 'can_user_create/');
+            let res = await Vue.http.get(url);
+            this.canUserCreateNewOffence = res.body;
+        },
         createOffence: function() {
             this.setCreateOffenceBindId()
             this.offenceInitialised = true;

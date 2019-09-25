@@ -3,6 +3,8 @@ import operator
 import traceback
 from datetime import datetime
 
+from django.contrib.auth.models import Permission
+from django.contrib.contenttypes.models import ContentType
 from django.core.exceptions import ValidationError
 from django.db import transaction
 from django.http import HttpResponse
@@ -34,6 +36,7 @@ from wildlifecompliance.components.offence.serializers import (
     UpdateAssignedToIdSerializer, UpdateOffenderAttributeSerializer, OffenceOptimisedSerializer,
     # UpdateAllegedOffenceAttributeSerializer, OffenceUserActionSerializer)
     UpdateAllegedOffenceAttributeSerializer, OffenceUserActionSerializer, OffenceCommsLogEntrySerializer)
+from wildlifecompliance.components.users.models import CompliancePermissionGroup
 from wildlifecompliance.helpers import is_internal
 
 
@@ -198,6 +201,22 @@ class OffenceViewSet(viewsets.ModelViewSet):
         except Exception as e:
             print(traceback.print_exc())
             raise serializers.ValidationError(str(e))
+
+
+    @list_route(methods=['GET', ])
+    def can_user_create(self, request, *args, **kwargs):
+        # Determine permissions which allow the holder to create new offence
+        codename_who_can_create = 'officer'
+        compliance_content_type = ContentType.objects.get(model="compliancepermissiongroup")
+        permissions = Permission.objects.filter(codename=codename_who_can_create, content_type_id=compliance_content_type.id)
+
+        # Find groups which has permissions determined above
+        allowed_groups = CompliancePermissionGroup.objects.filter(permissions__in=permissions)
+        for allowed_group in allowed_groups.all():
+            if request.user in allowed_group.members:
+                return Response(True)
+        return Response(False)
+
 
     @list_route(methods=['GET', ])
     def optimised(self, request, *args, **kwargs):

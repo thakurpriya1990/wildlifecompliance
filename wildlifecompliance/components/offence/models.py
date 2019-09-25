@@ -124,7 +124,7 @@ class Offence(RevisionedMixin):
     def get_compliance_permission_group(regionDistrictId, workflow_type):
         region_district = RegionDistrict.objects.filter(id=regionDistrictId)
 
-        # 2. Determine which permission(s) is going to be apllied
+        # 2. Determine which permission(s) is going to be applied
         compliance_content_type = ContentType.objects.get(model="compliancepermissiongroup")
         codename = 'officer'
         if workflow_type == Offence.WORKFLOW_CLOSE:
