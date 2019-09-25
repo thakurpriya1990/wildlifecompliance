@@ -484,8 +484,6 @@ export default {
         return this.inspection.status ? this.inspection.status.id : '';
     },
     readonlyForm: function() {
-        return false;
-
         if (this.inspection.status && this.inspection.status.id === 'await_endorsement') {
             return true;
         } else if (this.inspection.id) {
