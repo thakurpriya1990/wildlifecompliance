@@ -9,6 +9,7 @@ from django.db.models import Q
 from ledger.accounts.models import EmailUser, RevisionedMixin
 from wildlifecompliance.components.main import get_next_value
 from wildlifecompliance.components.main.models import Document, UserAction, CommunicationsLogEntry
+from wildlifecompliance.components.main.related_item import can_close_record
 from wildlifecompliance.components.offence.models import Offence, Offender, SectionRegulation, AllegedOffence
 from wildlifecompliance.components.users.models import RegionDistrict, CompliancePermissionGroup
 
@@ -35,6 +36,7 @@ class SanctionOutcome(models.Model):
     STATUS_AWAITING_PAYMENT = 'awaiting_payment'
     STATUS_AWAITING_REVIEW = 'awaiting_review'
     STATUS_AWAITING_AMENDMENT = 'awaiting_amendment'
+    STATUS_AWAITING_REMEDIATION_ACTIONS = 'awaiting_remediation_actions'
     STATUS_DECLINED = 'declined'
     STATUS_WITHDRAWN = 'withdrawn'
     STATUS_CLOSED = 'closed'
@@ -45,6 +47,9 @@ class SanctionOutcome(models.Model):
         (STATUS_AWAITING_PAYMENT, 'Awaiting Payment'),
         (STATUS_AWAITING_REVIEW, 'Awaiting Review'),
         (STATUS_AWAITING_AMENDMENT, 'Awaiting Amendment'),
+        (STATUS_AWAITING_REMEDIATION_ACTIONS, 'Awaiting Remediation Actions'),  # TODO: implement pending closuer of SanctionOutcome with type RemediationActions
+                                                                                # This is pending closure status
+                                                                               # Once all the remediation actions are closed, this status should become closed...
         (STATUS_DECLINED, 'Declined'),
         (STATUS_WITHDRAWN, 'Withdrawn'),
         (STATUS_CLOSED, 'closed'),
@@ -201,14 +206,29 @@ class SanctionOutcome(models.Model):
         self.save()
 
     def endorse(self, request):
-        self.status = self.STATUS_AWAITING_PAYMENT
+        if self.status == SanctionOutcome.TYPE_INFRINGEMENT_NOTICE:
+            self.status = SanctionOutcome.STATUS_AWAITING_PAYMENT
+        elif self.status in (SanctionOutcome.TYPE_CAUTION_NOTICE, SanctionOutcome.TYPE_LETTER_OF_ADVICE):
+            self.status = SanctionOutcome.STATUS_CLOSED
+
+            # Trigger the close() function of each parent entity of this sanction outcome
+            close_record, parents = can_close_record(self, request)
+            for parent in parents:
+                if parent.status == 'pending_closure':
+                    parent.close(request)
+        elif self.status == SanctionOutcome.TYPE_REMEDIATION_NOTICE:
+            self.status = SanctionOutcome.STATUS_AWAITING_REMEDIATION_ACTIONS
+
+            # TODO: Implement pending closure of this sanction outcome
+
         new_group = SanctionOutcome.get_compliance_permission_group(self.regionDistrictId, SanctionOutcome.WORKFLOW_ENDORSE)
         self.allocated_group = new_group
-        current_datetime = datetime.datetime.now()
-        self.date_of_issue = current_datetime.date()
-        self.time_of_issue = current_datetime.time()
-        self.log_user_action(SanctionOutcomeUserAction.ACTION_ENDORSE.format(self.lodgement_number), request)
+        if not self.issued_on_paper:
+            self.date_of_issue = datetime.datetime.now().date()
+            self.time_of_issue = datetime.datetime.now().time()
         self.save()
+
+        self.log_user_action(SanctionOutcomeUserAction.ACTION_ENDORSE.format(self.lodgement_number), request)
 
     def decline(self, request):
         self.status = self.STATUS_DECLINED
@@ -216,6 +236,12 @@ class SanctionOutcome(models.Model):
         self.allocated_group = new_group
         self.log_user_action(SanctionOutcomeUserAction.ACTION_DECLINE.format(self.lodgement_number), request)
         self.save()
+
+        # Trigger the close() function of each parent entity of this sanction outcome
+        close_record, parents = can_close_record(self, request)
+        for parent in parents:
+            if parent.status == 'pending_closure':
+                parent.close(request)
 
     def return_to_officer(self, request):
         self.status = self.STATUS_AWAITING_AMENDMENT
@@ -230,6 +256,12 @@ class SanctionOutcome(models.Model):
         self.allocated_group = new_group
         self.log_user_action(SanctionOutcomeUserAction.ACTION_WITHDRAW.format(self.lodgement_number), request)
         self.save()
+
+        # Trigger the close() function of each parent entity of this sanction outcome
+        close_record, parents = can_close_record(self, request)
+        for parent in parents:
+            if parent.status == 'pending_closure':
+                parent.close(request)
 
     class Meta:
         app_label = 'wildlifecompliance'
