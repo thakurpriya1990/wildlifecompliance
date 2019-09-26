@@ -395,7 +395,7 @@ export default {
     current_type: {
       handler: function(){
         let vm = this;
-        vm.sanction_outcome.current_offence = {};
+  //      vm.sanction_outcome.current_offence = {};
       }
     },
     isModalOpen: {
