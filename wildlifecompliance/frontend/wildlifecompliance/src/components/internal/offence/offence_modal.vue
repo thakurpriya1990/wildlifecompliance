@@ -635,7 +635,11 @@ export default {
             return res
           }
       } catch(err) {
+          console.log('--- err ---');
+          console.log(err);
+          console.log('--- END: err ---');
           this.errorResponse = err.statusText;
+          return err;
       }
     },
     addEventListeners: function() {

@@ -372,6 +372,7 @@ export default {
                     {
                         data: "Action",
                         mRender: function(data, type, row) {
+                            console.log('aho');
                             let ret = '';
                             if (data.in_editable_status){
                                 if (data.already_included){

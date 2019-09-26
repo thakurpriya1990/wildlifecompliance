@@ -195,12 +195,18 @@ export const offenceStore = {
                 // Construct payload to store data to be sent
                 let payload = new Object();
                 Object.assign(payload, state.offence);
+
+                // Format date
                 if (payload.occurrence_date_from) {
                     payload.occurrence_date_from = moment(payload.occurrence_date_from, 'DD/MM/YYYY').format('YYYY-MM-DD');
                 }
                 if (payload.occurrence_date_to) {
                     payload.occurrence_date_to = moment(payload.occurrence_date_to, 'DD/MM/YYYY').format('YYYY-MM-DD');
                 }
+
+                console.log('payload offence');
+                console.log(payload);
+
                 payload.status = 'open'
 
                 // Send data to the server
@@ -228,12 +234,33 @@ export const offenceStore = {
 
                 let payload = new Object();
                 Object.assign(payload, state.offence);
+
+                console.log('payload before');
+                console.log(payload);
+
                 if (payload.occurrence_date_from) {
                     payload.occurrence_date_from = moment(payload.occurrence_date_from, 'DD/MM/YYYY').format('YYYY-MM-DD');
+                } else {
+                    payload.occurrence_date_from = null
                 }
+
                 if (payload.occurrence_date_to) {
                     payload.occurrence_date_to = moment(payload.occurrence_date_to, 'DD/MM/YYYY').format('YYYY-MM-DD');
+                } else {
+                    payload.occurrence_date_to = null
                 }
+
+                // Set null when "" (empty string) otherwise validation error raised at the server side...
+                if (!payload.occurrence_time_from) {
+                    payload.occurrence_time_from = null;
+                }
+                if (!payload.occurrence_time_to) {
+                    payload.occurrence_time_to = null;
+                }
+
+                console.log('payload before');
+                console.log(payload);
+
                 const savedOffence = await Vue.http.post(fetchUrl, payload);
                 await dispatch("setOffence", savedOffence.body);
                 await swal("Saved", "The record has been saved", "success");
