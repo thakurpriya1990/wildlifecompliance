@@ -167,21 +167,21 @@ class UserProfileSerializer(serializers.ModelSerializer):
         return instance
 
 class ComplianceManagementSaveUserAddressSerializer(serializers.ModelSerializer):
-    user_id = serializers.IntegerField(
-        required=False, write_only=True, allow_null=True)
-    #line1 = serializers.CharField(allow_blank=True)  # We need allow_blank=True otherwise blank is not allowed by blank=False setting in the model
-    #postcode = serializers.CharField(allow_blank=True)  # We need allow_blank=True otherwise blank is not allowed by blank=False setting in the model
-    #locality = serializers.CharField(allow_blank=True)  # We need allow_blank=True otherwise blank is not allowed by blank=False setting in the model
-    #country = serializers.CharField(allow_blank=True)  # We need allow_blank=True otherwise blank is not allowed by blank=False setting in the model
-    #user_id = serializers.IntegerField(required=False, write_only=True, allow_null=True)
+    #user_id = serializers.IntegerField(
+    #    required=False, write_only=True, allow_null=True)
+    line1 = serializers.CharField(allow_blank=True)  # We need allow_blank=True otherwise blank is not allowed by blank=False setting in the model
+    postcode = serializers.CharField(allow_blank=True)  # We need allow_blank=True otherwise blank is not allowed by blank=False setting in the model
+    locality = serializers.CharField(allow_blank=True)  # We need allow_blank=True otherwise blank is not allowed by blank=False setting in the model
+    country = serializers.CharField(allow_blank=True)  # We need allow_blank=True otherwise blank is not allowed by blank=False setting in the model
+    user_id = serializers.IntegerField(required=False, write_only=True, allow_null=True)
 
     class Meta:
         model = Address
         fields = (
             'id',
             'line1',
-            'line2',
-            'line3',
+            #'line2',
+            #'line3',
             'locality',
             'state',
             'country',
@@ -194,35 +194,43 @@ class ComplianceManagementSaveUserAddressSerializer(serializers.ModelSerializer)
 class ComplianceManagementSaveUserSerializer(serializers.ModelSerializer):
     residential_address_id = serializers.IntegerField(
         required=False, write_only=True, allow_null=True)
-    #residential_address = UserAddressSerializer()
-    #personal_details = serializers.SerializerMethodField()
-    #address_details = serializers.SerializerMethodField()
-    #contact_details = serializers.SerializerMethodField()
-    #wildlifecompliance_organisations = serializers.SerializerMethodField()
-    #identification = DocumentSerializer()
 
     class Meta:
         model = EmailUser
         fields = (
-            #'title',
             'id',
             'last_name',
             'first_name',
             'dob',
             'email',
-            #'identification',
             'residential_address_id',
             'phone_number',
             'mobile_number',
-            #'fax_number',
-            #'character_flagged',
-            #'character_comments',
-            #'wildlifecompliance_organisations',
-            #'personal_details',
-            #'address_details',
-            #'contact_details'
         )
         read_only_fields = ('id',)
+
+
+class ComplianceManagementUserSerializer(serializers.ModelSerializer):
+    #residential_address = UserAddressSerializer(required=False)
+    residential_address = ComplianceManagementSaveUserAddressSerializer(
+            required=False,
+            read_only=True)
+
+    class Meta:
+        model = EmailUser
+        fields = (
+            'id',
+            'last_name',
+            'first_name',
+            'dob',
+            'email',
+            'residential_address',
+            'residential_address_id',
+            'phone_number',
+            'mobile_number',
+        )
+        #read_only_fields = ('id',)
+
 
 class UserSerializer(serializers.ModelSerializer):
     residential_address = UserAddressSerializer()

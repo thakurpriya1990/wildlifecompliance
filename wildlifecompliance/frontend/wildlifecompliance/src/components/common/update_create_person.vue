@@ -16,7 +16,7 @@
                             <label for="" class="col-sm-3 control-label">Given Name(s)</label>
                             <div class="col-sm-6">
                                 <div v-if="email_user">
-                                    <input type="text" class="form-control" name="first_name" placeholder="" v-model="email_user.first_name" v-bind:key="email_user.id">
+                                    <input :readonly="personalDetailsReadOnly" type="text" class="form-control" name="first_name" placeholder="" v-model="email_user.first_name" v-bind:key="email_user.id">
                                 </div>
                             </div>
                         </div>
@@ -24,7 +24,7 @@
                             <label for="" class="col-sm-3 control-label">Last Name</label>
                             <div class="col-sm-6">
                                 <div v-if="email_user">
-                                    <input type="text" class="form-control" name="last_name" placeholder="" v-model="email_user.last_name" v-bind:key="email_user.id">
+                                    <input :readonly="personalDetailsReadOnly" type="text" class="form-control" name="last_name" placeholder="" v-model="email_user.last_name" v-bind:key="email_user.id">
                                 </div>
                             </div>
                         </div>
@@ -32,7 +32,7 @@
                             <label for="" class="col-sm-3 control-label" >Date of Birth</label>
                             <div class="col-sm-6">
                                 <div v-if="email_user">
-                                    <input type="date" class="form-control" name="dob" placeholder="" v-model="email_user.dob" v-bind:key="email_user.id">
+                                    <input :readonly="personalDetailsReadOnly" type="date" class="form-control" name="dob" placeholder="" v-model="email_user.dob" v-bind:key="email_user.id">
                                 </div>
                             </div>
                         </div>
@@ -226,7 +226,12 @@ export default {
     computed: {
         personId: function() {
             return this.email_user.id;
-        }
+        },
+        personalDetailsReadOnly: function() {
+            if (this.email_user.id) {
+                return true;
+            }
+        },
     },
     watch: {
         personId: {
@@ -331,19 +336,25 @@ export default {
         },
         saveData: async function() {
             try{
+                if (this.email_user.residential_address && !this.email_user.residential_address.line1) {
+                    this.email_user.residential_address = null;
+                }
+                console.log(this.email_user)
                 let fetchUrl = ''
                 if (this.email_user.id) {
-                    console.log(this.email_user.id)
+                    //console.log(this.email_user.id)
                     fetchUrl = helpers.add_endpoint_join(api_endpoints.compliance_management_users, this.email_user.id + '/update_person/');
                 } else {
-                    console.log(this.email_user.id)
-                    console.log(api_endpoints.compliance_management_users)
+                    //console.log(this.email_user.id)
+                    //console.log(api_endpoints.compliance_management_users)
                     fetchUrl = api_endpoints.compliance_management_users
-                    console.log(fetchUrl)
+                    //console.log(fetchUrl)
                 }
 
                 let savedEmailUser = await Vue.http.post(fetchUrl, this.email_user);
-                console.log(savedEmailUser)
+                this.email_user = savedEmailUser.body;
+                !this.email_user.residential_address ? this.email_user.residential_address = {} : null
+                //console.log(savedEmailUser)
                 this.$emit('person-saved', {'person': savedEmailUser.body, 'error': null});
             } catch (err) {
                 this.$emit('person-saved', {'person': null, 'error': err});

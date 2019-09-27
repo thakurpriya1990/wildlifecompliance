@@ -227,7 +227,7 @@
                                   <CreateNewOrganisation/>
                                 </div>
                             </div></div-->
-                            <div class="col-sm-12 form-group"><div class="row">
+                            <div class="form-group"><div class="row">
                               <label class="col-sm-4" for="inspection_inform">Inform party being inspected</label>
                               <input :disabled="readonlyForm" type="checkbox" id="inspection_inform" v-model="inspection.inform_party_being_inspected">
                               
@@ -801,13 +801,13 @@ export default {
               this.inspection.individual_inspected.full_name, 
               this.inspection.individual_inspected.dob].
               filter(Boolean).join(", ");
-          this.$refs.search_person.setInput(value);
+          this.$refs.search_person_organisation.setInput(value);
       } else if (this.inspection.organisation_inspected) {
           let value = [
               this.inspection.organisation_inspected.name,
               this.inspection.organisation_inspected.abn].
               filter(Boolean).join(", ");
-          this.$refs.search_person.setInput(value);
+          this.$refs.search_person_organisation.setInput(value);
       }
       // load Inspection report
       //await this.$refs.inspection_report_file.get_documents();

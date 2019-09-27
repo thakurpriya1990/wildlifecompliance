@@ -16,12 +16,12 @@
         <div v-else-if="showCreateUpdate && searchType === 'organisation'" class="col-sm-2">
             <input :disabled="!isEditable" type="button" class="btn btn-primary" value="Create/Update Organisation" @click.prevent="createUpdateOrganisationClicked()" />
         </div>
-        <div v-if="showCreateUpdate" class="col-sm-12 form-group"><div class="row">
+        <div class="col-sm-12 form-group"><div class="row">
             <div class="col-sm-12" v-if="displayUpdateCreatePerson">
               <updateCreatePerson 
               displayComponent 
               :personToUpdate="entity.id" 
-              @person-saved="createUpdatePerson"/>
+              @person-saved="savePerson"/>
             </div>
             <div class="col-sm-12" v-if="displayUpdateCreateOrganisation">
               <updateCreateOrganisation displayComponent @organisation-saved=""/>
@@ -140,16 +140,17 @@ export default {
         createUpdateOrganisationClicked: function() {
           this.displayUpdateCreateOrganisation = !this.displayUpdateCreateOrganisation;
         },
-        createUpdatePerson: function(obj) {
+        savePerson: function(obj) {
             console.log(obj);
             if(obj.person){
-                this.setPartyInspected({data_type: 'individual', id: obj.person.id});
+                this.$emit('entity-selected', {data_type: 'individual', id: obj.person.id});
 
             // Set fullname and DOB into the input box
             let full_name = [obj.person.first_name, obj.person.last_name].filter(Boolean).join(" ");
             let dob = obj.person.dob ? "DOB:" + obj.person.dob : "DOB: ---";
             let value = [full_name, dob].filter(Boolean).join(", ");
-            this.$refs.search_person_org.setInput(value);
+            //this.$refs.search_person_org.setInput(value);
+            this.setInput(value);
           } else if (obj.err) {
             console.log(err);
           } else {
@@ -223,6 +224,7 @@ export default {
             .on("keyup", function(ev) {
                 var keyCode = ev.keyCode || ev.which;
                 if ((48 <= keyCode && keyCode <= 90) || (96 <= keyCode && keyCode <= 105) || keyCode == 8 || keyCode == 46) {
+                    console.log(ev.target.value)
                     vm.search_person_or_organisation(ev.target.value);
                     return false;
                 }
@@ -298,8 +300,27 @@ export default {
         this.$nextTick(()=>{
             this.initAwesomplete();
             this.searchType = this.search_type;
+            //if (this.inspection.party_inspected === 'individual') {
+            //    this.entity.id = this.inspection.individual_inspected_id;
+            //    this.entity.data_type = 'individual'
+            //} else if (this.inspection.party_inspected === 'organisation') {
+            //    this.entity.id = this.inspection.organisation_inspected_id;
+            //    this.entity.data_type = 'organisation'
+            //}
+
         });
-    }
+    },
+    //mounted: function() {
+    //    this.$nextTick(()=>{
+    //        if (this.inspection.party_inspected === 'individual') {
+    //            this.entity.id = this.inspection.individual_inspected_id;
+    //            this.entity.data_type = 'individual'
+    //        } else if (this.inspection.party_inspected === 'organisation') {
+    //            this.entity.id = this.inspection.organisation_inspected_id;
+    //            this.entity.data_type = 'organisation'
+    //        }
+    //    });
+    //},
 }
 </script>
 
