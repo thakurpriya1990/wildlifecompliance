@@ -2,7 +2,15 @@
     <div class="">
         <div id="map-filter">
             <div>
-                <label class="">Offence Status</label>
+                <label class="">Inspection Types</label>
+                <select class="form-control" v-model="filterInspectionType">
+                    <option v-for="option in type_choices" :value="option.id" v-bind:key="option.id">
+                        {{ option.inspection_type }}
+                    </option>
+                </select>
+            </div>
+            <div>
+                <label class="">Inspection Status</label>
                 <select class="form-control" v-model="filterStatus">
                     <option v-for="option in status_choices" :value="option.id" v-bind:key="option.id">
                         {{ option.display }}
@@ -10,7 +18,7 @@
                 </select>
             </div>
             <div>
-                <label class="">Date From</label>
+                <label class="">Planned Date From</label>
                 <div class="input-group date" ref="lodgementDateFromPicker">
                     <input type="text" class="form-control" placeholder="DD/MM/YYYY" v-model="filterDateFrom" />
                     <span class="input-group-addon">
@@ -19,7 +27,7 @@
                 </div>
             </div>
             <div>
-                <label class="">Date To</label>
+                <label class="">Planned Date To</label>
                 <div class="input-group date" ref="lodgementDateToPicker">
                     <input type="text" class="form-control" placeholder="DD/MM/YYYY" v-model="filterDateTo" />
                     <span class="input-group-addon">
@@ -168,25 +176,32 @@ module.exports = {
             tileLayer: null, // Base layer (Open street map)
             tileLayerSat: null, // Base layer (satelllite)
             popup: null,
-            opt_url : helpers.add_endpoint_json(api_endpoints.offence, "optimised"),
+            opt_url : helpers.add_endpoint_json(api_endpoints.inspection, "optimised"),
 
             /*
              * Filers:
              * value of the "value" attribute of the option is stored. 
              * The value of this is used queryset.filter() in the backend.
              */
+            filterInspectionType: 'all',
             filterStatus: 'all',
             filterDateFrom: '',
             filterDateTo: '',
 
             status_choices: [],
+            type_choices: [],
             cursor_location: null,
         }
     },
     created: async function() {
-        let returned_status_choices = await cache_helper.getSetCacheList('Offence_StatusChoices', '/api/offence/status_choices');
+        let returned_status_choices = await cache_helper.getSetCacheList('Inspection_StatusChoices', '/api/inspection/status_choices');
         Object.assign(this.status_choices, returned_status_choices);
         this.status_choices.splice(0, 0, {id: 'all', display: 'All'});
+
+        let returned_inspection_types = await cache_helper.getSetCacheList('InspectionTypes', api_endpoints.inspection_types);
+        console.log(returned_inspection_types);
+        Object.assign(this.type_choices, returned_inspection_types);
+        this.type_choices.splice(0, 0, {id: 'all', inspection_type: 'All'});
     },
     mounted(){
         let vm = this;
@@ -201,12 +216,18 @@ module.exports = {
         filterStatus: function () {
             this.loadLocations();
         },
+        filterInspectionType: function () {
+            this.loadLocations();
+        },
         filterDateFrom: function(){
+            console.log('filterDateFrom');
             if (!this.filterDateFrom){
                 /* When empty string */
                 this.loadLocations();
             } else {
-                let result = this.datetime_pattern.exec(this.filterDateFrom);
+                //let result = this.datetime_pattern.exec(this.filterDateFrom);
+                let result = this.filterDateFrom.match(this.datetime_pattern);
+
                 if (result){
                     /* When date is set */
                     this.loadLocations();
@@ -214,6 +235,7 @@ module.exports = {
             }
         },
         filterDateTo: function(){
+            console.log('filterDateTo');
             if (!this.filterDateTo){
                 /* When empty string */
                 this.loadLocations();
@@ -235,18 +257,18 @@ module.exports = {
             let el_to = $(vm.$refs.lodgementDateToPicker);
 
             // Date "From" field
-            el_fr.datetimepicker({ format: 'DD/MM/YYYY', maxDate: moment().millisecond(0).second(0).minute(0).hour(0), showClear: true });
+            el_fr.datetimepicker({ format: 'DD/MM/YYYY', minDate: moment().millisecond(0).second(0).minute(0).hour(0), showClear: true });
             el_fr.on('dp.change', function (e) {
                 if (el_fr.data('DateTimePicker').date()) {
                     vm.filterDateFrom = e.date.format('DD/MM/YYYY');
-                    el_to.data('DateTimePicker').minDate(e.date);
+                    //el_to.data('DateTimePicker').minDate(e.date);
                 } else if (el_fr.data('date') === "") {
                     vm.filterDateFrom = "";
                 }
             });
 
             // Date "To" field
-            el_to.datetimepicker({ format: 'DD/MM/YYYY', maxDate: moment().millisecond(0).second(0).minute(0).hour(0), showClear: true });
+            el_to.datetimepicker({ format: 'DD/MM/YYYY', minDate: moment().millisecond(0).second(0).minute(0).hour(0), showClear: true });
             el_to.on('dp.change', function (e) {
                 if (el_to.data('DateTimePicker').date()) {
                     vm.filterDateTo = e.date.format('DD/MM/YYYY');
@@ -392,6 +414,7 @@ module.exports = {
             }
             let myData = {
                 "status": vm.filterStatus,
+                "inspection_type": vm.filterInspectionType,
                 "date_from" : vm.filterDateFrom,
                 "date_to" : vm.filterDateTo,
             };
@@ -408,29 +431,31 @@ module.exports = {
                 }
             });
         },
-        addMarkers(offences){
+        addMarkers(inspections){
             console.log('addMarkers');
 
             let self = this;
             self.mcg.clearLayers();
 
-            if (offences && offences.length > 0){
-                for (var i = 0; i < offences.length; i++){
-                    if(offences[i].location){
-                        let offence = offences[i];
-                        let coords = offence.location.geometry.coordinates;
+            if (inspections && inspections.length > 0){
+                for (var i = 0; i < inspections.length; i++){
+                    if(inspections[i].location){
+                        let inspection = inspections[i];
+                        let coords = inspection.location.geometry.coordinates;
 
                         /* Select a marker file, according to the classification */
                         let filename = 'marker-gray-locked.svg';
-                        if (offence.status){
-                            if (offence.status == 'open'){
+                        if (inspection.status){
+                            if (inspection.status == 'open'){
                                 filename = 'marker-green-locked.svg';
-                            } else if (offence.status == 'discarded'){
+                            } else if (inspection.status == 'await_endorsement'){
                                 filename = 'marker-blue-locked.svg';
-                            } else if (offence.status == 'closing'){
-                                filename = 'marker-orange-locked.svg';
-                            } else if (offence.status == 'closed'){
+                            } else if (inspection.status == 'discarded'){
+                                filename = 'marker-yellow-locked.svg';
+                            } else if (inspection.status == 'closed'){
                                 filename = 'marker-red-locked.svg';
+                            } else if (inspection.status == 'pending_closure'){
+                                filename = 'marker-orange-locked.svg';
                             }
                         }
 
@@ -452,27 +477,27 @@ module.exports = {
                         /* dynamically construct content of the popup */
                         myMarker.on('click', (ev)=>{
                             let popup = ev.target.getPopup();
-                            self.$http.get('/api/offence/' + offence.id).then(response => {
-                                let offence = response.body;
-                                popup.setContent(self.construct_content(offence, coords));
+                            self.$http.get('/api/inspection/' + inspection.id).then(response => {
+                                let inspection = response.body;
+                                popup.setContent(self.construct_content(inspection, coords));
                             });
                         })
                     }
                 }
             }
         },
-        construct_content: function (offence, coords){
+        construct_content: function (inspection, coords){
             let classification_str = '---';
-            if (offence.classification){
-                classification_str = offence.classification.name;
+            if (inspection.classification){
+                classification_str = inspection.classification.name;
             }
 
             let report_type_str = '---';
-            if (offence.report_type){
-                report_type_str = offence.report_type.report_type;
+            if (inspection.report_type){
+                report_type_str = inspection.report_type.report_type;
             }
 
-            let content = '<div class="popup-title-main">' + offence.number + '</div>';
+            let content = '<div class="popup-title-main">' + inspection.number + '</div>';
             content    += '<div class="popup-title">Classification</div>'
                         + '<div class="popup-coords">'
                         + classification_str
@@ -483,24 +508,24 @@ module.exports = {
                         + report_type_str
                         + '</div>'
 
-            if (offence.location.properties.street){
+            if (inspection.location.properties.street){
                 content += '<div class="popup-title">Address</div>'
                 + '<div class="popup-address">'
-                + offence.location.properties.street + '<br />'
-                + offence.location.properties.town_suburb + '<br />'
-                + offence.location.properties.state + '<br />'
-                + offence.location.properties.postcode
+                + inspection.location.properties.street + '<br />'
+                + inspection.location.properties.town_suburb + '<br />'
+                + inspection.location.properties.state + '<br />'
+                + inspection.location.properties.postcode
                 + '</div>'
 
             }else{
                 content += '<div class="popup-title">Details</div>'
                 + '<div class="popup-address">'
-                + offence.location.properties.details.substring(0, 10)
+                + inspection.location.properties.details.substring(0, 10)
                 + '</div>'
             }
 
             content += '<div class="popup-link">'
-                + '<a href="/internal/offence/' + offence.id + '">View</a>'
+                + '<a href="/internal/inspection/' + inspection.id + '">View</a>'
                 + '</div>';
 
             return content;

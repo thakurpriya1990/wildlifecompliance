@@ -130,6 +130,7 @@
                 <div class="container-fluid">
                     <ul class="nav nav-pills aho2">
                         <li class="nav-item active"><a data-toggle="tab" :href="'#'+iTab">Inspection</a></li>
+                        <li class="nav-item"><a data-toggle="tab" :href="'#'+lTab" @click="mapTabClicked">Location</a></li>
                         <li class="nav-item"><a data-toggle="tab" :href="'#'+cTab">Checklist</a></li>
                         <li class="nav-item"><a data-toggle="tab" :href="'#'+oTab">Outcomes</a></li>
                         <li class="nav-item"><a data-toggle="tab" :href="'#'+rTab">Related Items</a></li>
@@ -258,6 +259,42 @@
             
                           
                         </div>  
+
+                        <div :id="lTab" class="tab-pane fade in">
+                            <FormSection :formCollapse="false" label="Location">
+                                    <MapLocation v-if="inspection.location" v-bind:key="lTab" ref="mapLocationComponent" :readonly="readonlyForm" :marker_longitude="inspection.location.geometry.coordinates[0]" :marker_latitude="inspection.location.geometry.coordinates[1]" @location-updated="locationUpdated"/>
+                                    <div :id="idLocationFieldsAddress" v-if="inspection.location">
+                                        <div class="col-sm-12 form-group"><div class="row">
+                                            <label class="col-sm-4">Street</label>
+                                            <input class="form-control" v-model="inspection.location.properties.street" readonly />
+                                        </div></div>
+                                        <div class="col-sm-12 form-group"><div class="row">
+                                            <label class="col-sm-4">Town/Suburb</label>
+                                            <input class="form-control" v-model="inspection.location.properties.town_suburb" readonly />
+                                        </div></div>
+                                        <div class="col-sm-12 form-group"><div class="row">
+                                            <label class="col-sm-4">State</label>
+                                            <input class="form-control" v-model="inspection.location.properties.state" readonly />
+                                        </div></div>
+                                        <div class="col-sm-12 form-group"><div class="row">
+                                            <label class="col-sm-4">Postcode</label>
+                                            <input class="form-control" v-model="inspection.location.properties.postcode" readonly />
+                                        </div></div>
+                                        <div class="col-sm-12 form-group"><div class="row">
+                                            <label class="col-sm-4">Country</label>
+                                            <input class="form-control" v-model="inspection.location.properties.country" readonly />
+                                        </div></div>
+                                    </div>
+
+                                    <div :id="idLocationFieldsDetails" v-if="inspection.location">
+                                        <div class="col-sm-12 form-group"><div class="row">
+                                            <label class="col-sm-4">Details</label>
+                                            <textarea class="form-control location_address_field" v-model="inspection.location.properties.details" />
+                                        </div></div>
+                                    </div>
+                            </FormSection>
+                        </div>
+
                         <div :id="cTab" class="tab-pane fade in">
                             <FormSection :formCollapse="false" label="Checklist">
                                 <div class="col-sm-12 form-group"><div class="row">
@@ -316,7 +353,7 @@
           <InspectionWorkflow ref="add_workflow" :workflow_type="workflow_type" v-bind:key="workflowBindId" />
         </div-->
         <div v-if="offenceInitialised">
-            <Offence ref="offence" :parent_update_function="loadInspection" />
+            <Offence ref="offence" :parent_update_function="loadInspection" :region_id="inspection.region_id" :district_id="inspection.district_id" :allocated_group_id="inspection.allocated_group_id" />
         </div>
         <div v-if="sanctionOutcomeInitialised">
             <SanctionOutcome ref="sanction_outcome" :parent_update_function="loadInspection"/>
@@ -343,6 +380,7 @@ import SanctionOutcome from '../sanction_outcome/sanction_outcome_modal';
 import filefield from '@/components/common/compliance_file.vue';
 import InspectionWorkflow from './inspection_workflow.vue';
 import RelatedItems from "@common-components/related_items.vue";
+import MapLocation from "../../common/map_location";
 require("select2/dist/css/select2.min.css");
 require("select2-bootstrap-theme/dist/select2-bootstrap.min.css");
 
@@ -355,10 +393,13 @@ export default {
       rTab: 'rTab'+this._uid,
       oTab: 'oTab'+this._uid,
       cTab: 'cTab'+this._uid,
+      lTab: 'lTab'+this._uid,
       current_schema: [],
       //createInspectionBindId: '',
       workflowBindId: '',
       inspectionTeam: null,
+            idLocationFieldsAddress: this.guid + "LocationFieldsAddress",
+            idLocationFieldsDetails: this.guid + "LocationFieldsDetails",
       dtHeadersInspectionTeam: [
           'Name',
           'Role',
@@ -427,6 +468,7 @@ export default {
     filefield,
     InspectionWorkflow,
     RelatedItems,
+    MapLocation,
   },
   computed: {
     ...mapGetters('inspectionStore', {
@@ -550,6 +592,115 @@ export default {
       setPartyInspected: 'setPartyInspected',
       setRelatedItems: 'setRelatedItems',
     }),
+        mapTabClicked: function() {
+            // Call this function to render the map correctly
+            // In some case, leaflet map is not rendered correctly...   Just partialy shown...
+            if(this.$refs.mapLocationComponent){
+                this.$refs.mapLocationComponent.invalidateSize();
+            }
+        },
+        locationUpdated: function(latlng){
+            console.log('locationUpdated');
+            console.log(latlng);
+            // Update coordinate
+            this.inspection.location.geometry.coordinates[1] = latlng.lat;
+            this.inspection.location.geometry.coordinates[0] = latlng.lng;
+            // Update Address/Details
+            this.reverseGeocoding(latlng);
+        },
+        reverseGeocoding: function(coordinates_4326) {
+          var self = this;
+
+          $.ajax({
+            url: "https://mapbox.dpaw.wa.gov.au/geocoding/v5/mapbox.places/" + coordinates_4326.lng + "," + coordinates_4326.lat + ".json?" +
+              $.param({
+                limit: 1,
+                types: "address"
+              }),
+            dataType: "json",
+            success: function(data, status, xhr) {
+              let address_found = false;
+              if (data.features && data.features.length > 0) {
+                for (var i = 0; i < data.features.length; i++) {
+                  if (data.features[i].place_type.includes("address")) {
+                    self.setAddressFields(data.features[i]);
+                    address_found = true;
+                  }
+                }
+              }
+              if (address_found) {
+                self.showHideAddressDetailsFields(true, false);
+                self.setLocationDetailsFieldEmpty();
+              } else {
+                self.showHideAddressDetailsFields(false, true);
+                self.setLocationAddressEmpty();
+              }
+            }
+          });
+        },
+        setAddressFields(feature) {
+            if (this.inspection.location){
+                  let state_abbr_list = {
+                    "New South Wales": "NSW",
+                    Queensland: "QLD",
+                    "South Australia": "SA",
+                    Tasmania: "TAS",
+                    Victoria: "VIC",
+                    "Western Australia": "WA",
+                    "Northern Territory": "NT",
+                    "Australian Capital Territory": "ACT"
+                  };
+                  let address_arr = feature.place_name.split(",");
+
+                  /* street */
+                  this.inspection.location.properties.street = address_arr[0];
+
+                  /*
+                   * Split the string into suburb, state and postcode
+                   */
+                  let reg = /^([a-zA-Z0-9\s]*)\s(New South Wales|Queensland|South Australia|Tasmania|Victoria|Western Australia|Northern Territory|Australian Capital Territory){1}\s+(\d{4})$/gi;
+                  let result = reg.exec(address_arr[1]);
+
+                  /* suburb */
+                  this.inspection.location.properties.town_suburb = result[1].trim();
+
+                  /* state */
+                  let state_abbr = state_abbr_list[result[2].trim()];
+                  this.inspection.location.properties.state = state_abbr;
+
+                  /* postcode */
+                  this.inspection.location.properties.postcode = result[3].trim();
+
+                  /* country */
+                  this.inspection.location.properties.country = "Australia";
+            }
+        },
+        showHideAddressDetailsFields: function(showAddressFields, showDetailsFields) {
+          if (showAddressFields) {
+            $("#" + this.idLocationFieldsAddress).fadeIn();
+          } else {
+            $("#" + this.idLocationFieldsAddress).fadeOut();
+          }
+          if (showDetailsFields) {
+            $("#" + this.idLocationFieldsDetails).fadeIn();
+          } else {
+            $("#" + this.idLocationFieldsDetails).fadeOut();
+          }
+        },
+        setLocationAddressEmpty() {
+            if(this.inspection.location){
+                this.inspection.location.properties.town_suburb = "";
+                this.inspection.location.properties.street = "";
+                this.inspection.location.properties.state = "";
+                this.inspection.location.properties.postcode = "";
+                this.inspection.location.properties.country = "";
+            }
+        },
+        setLocationDetailsFieldEmpty() {
+            if(this.inspection.location){
+                this.inspection.location.properties.details = "";
+            }
+        },
     constructInspectionTeamTable: function() {
         console.log('constructInspectionTeamTable');
         this.$refs.inspection_team_table.vmDataTable.clear().draw();

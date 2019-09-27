@@ -8,7 +8,7 @@ from django.utils.encoding import python_2_unicode_compatible
 from ledger.accounts.models import EmailUser, RevisionedMixin
 from ledger.licence.models import LicenceType
 from wildlifecompliance.components.organisations.models import Organisation
-from wildlifecompliance.components.call_email.models import CallEmail
+from wildlifecompliance.components.call_email.models import CallEmail, Location
 from wildlifecompliance.components.main.models import (
         CommunicationsLogEntry,
         UserAction, 
@@ -102,6 +102,12 @@ class Inspection(RevisionedMixin):
         related_name='inspection_call_email',
         null=True
         )
+    location = models.ForeignKey(
+        Location,
+        null=True,
+        blank=True,
+        related_name="inspection_location",
+    )
     individual_inspected = models.ForeignKey(
         EmailUser, 
         related_name='individual_inspected',

@@ -103,18 +103,20 @@ export default {
     };
   },
     computed: {
-      //  marker_lat: function() {
-      //      return this.marker_latitude;
-      //  },
-      //  marker_lng: function() {
-      //      return this.marker_longitude;
-      //  },
+     //   marker_lat: function() {
+     //       return this.marker_latitude;
+     //   },
+     //   marker_lng: function() {
+     //       return this.marker_longitude;
+     //   },
     },
     watch: {
         marker_latitude: function(){
+            console.log('watch lat');
             this.marker_lat = this.marker_latitude;
         },
         marker_longitude: function(){
+            console.log('watch lng');
             this.marker_lng = this.marker_longitude;
         },
         marker_lat: function(){
@@ -128,7 +130,6 @@ export default {
             }
         }
     },
-    
   mounted: function() {
     let vm = this;
 
@@ -255,10 +256,10 @@ export default {
                 if (!self.readonly){
                   if (!self.feature_marker) {
                     self.addMarker([latlng.lat, latlng.lng]);
-                  } else {
-                        self.marker_lat = latlng.lat;
-                        self.marker_lng = latlng.lng;
-                  }
+                  } 
+                  self.marker_lat = latlng.lat;
+                  self.marker_lng = latlng.lng;
+                  self.refreshMarkerLocation();
                 }
             }
           }
@@ -294,14 +295,16 @@ export default {
                 });
             }
 
-                 
-
-            //this.setMarkerCentre();
-
             this.$emit('location-updated', {'lat': this.marker_lat, 'lng': this.marker_lng});
       }
     },
     initMap: function() {
+        // Dependingn on when the coordinates are passed to this component,
+        // this.marker_lat and this.marker_lng are not updated properly...
+        // Therefore update them here to make sure
+        this.marker_lat = this.marker_latitude;
+        this.marker_lng = this.marker_longitude;
+
         if (this.marker_lat && this.marker_lng) {
             this.mainMap = Leaf.map(this.idMap).setView([this.marker_lat, this.marker_lng], 12);
         } else {
