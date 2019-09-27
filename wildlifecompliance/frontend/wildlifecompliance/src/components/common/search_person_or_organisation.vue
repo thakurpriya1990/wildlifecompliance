@@ -16,12 +16,13 @@
         <div v-else-if="showCreateUpdate && searchType === 'organisation'" class="col-sm-2">
             <input :disabled="!isEditable" type="button" class="btn btn-primary" value="Create/Update Organisation" @click.prevent="createUpdateOrganisationClicked()" />
         </div>
-        <div class="col-sm-12 form-group"><div class="row">
+        <div class="form-group"><div class="row">
             <div class="col-sm-12" v-if="displayUpdateCreatePerson">
               <updateCreatePerson 
               displayComponent 
-              :personToUpdate="entity.id" 
-              @person-saved="savePerson"/>
+              :personToUpdate="entity.id"
+              @person-saved="savePerson"
+              v-bind:key="updateCreatePersonBindId"/>
             </div>
             <div class="col-sm-12" v-if="displayUpdateCreateOrganisation">
               <updateCreateOrganisation displayComponent @organisation-saved=""/>
@@ -84,6 +85,11 @@ export default {
         labelTitle: function() {
             if (this.searchType) {
                 return "Search " + this.searchType;
+            }
+        },
+        updateCreatePersonBindId: function() {
+            if (this.entity.data_type && this.entity.id) {
+                return this.entity.data_type + '_' + this.entity.id
             }
         },
     },

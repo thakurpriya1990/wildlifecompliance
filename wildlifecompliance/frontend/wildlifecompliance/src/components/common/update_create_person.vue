@@ -280,7 +280,7 @@ export default {
             if (this.personId) {
                 this.setExistingPerson(this.personId);
             } else {
-                this.setDefautlPerson();
+                this.setDefaultPerson();
             }
         },
         setExistingPerson: function(id){
@@ -296,7 +296,7 @@ export default {
         setPersonId: function(id){
             this.email_user.id = id;
         },
-        setDefautlPerson: function(){
+        setDefaultPerson: function(){
             let email_user = {
                 id: null,
                 first_name: '',
