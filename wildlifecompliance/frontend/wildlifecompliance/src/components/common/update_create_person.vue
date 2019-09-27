@@ -332,13 +332,18 @@ export default {
         saveData: async function() {
             try{
                 let fetchUrl = ''
-                if (!this.email_user.id) {
-                    fetchUrl = helpers.add_endpoint_json(api_endpoints.users);
+                if (this.email_user.id) {
+                    console.log(this.email_user.id)
+                    fetchUrl = helpers.add_endpoint_join(api_endpoints.compliance_management_users, this.email_user.id + '/update_person/');
                 } else {
-                    fetchUrl = helpers.add_endpoint_json(api_endpoints.users, this.email_user.id + '/update_person/');
+                    console.log(this.email_user.id)
+                    console.log(api_endpoints.compliance_management_users)
+                    fetchUrl = api_endpoints.compliance_management_users
+                    console.log(fetchUrl)
                 }
 
                 let savedEmailUser = await Vue.http.post(fetchUrl, this.email_user);
+                console.log(savedEmailUser)
                 this.$emit('person-saved', {'person': savedEmailUser.body, 'error': null});
             } catch (err) {
                 this.$emit('person-saved', {'person': null, 'error': err});
