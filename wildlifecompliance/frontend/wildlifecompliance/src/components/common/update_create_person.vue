@@ -51,7 +51,7 @@
                         <div class="form-group">
                         <label for="" class="col-sm-3 control-label">Street</label>
                         <div class="col-sm-6">
-                            <div v-if="email_user"><div v-if="email_user.residential_address">
+                            <div v-if="email_user"><div>
                                 <input type="text" class="form-control" name="street" placeholder="" v-model="email_user.residential_address.line1" v-bind:key="email_user.residential_address.id">
                             </div></div>
                         </div>
@@ -59,7 +59,7 @@
                     <div class="form-group">
                         <label for="" class="col-sm-3 control-label" >Town/Suburb</label>
                         <div class="col-sm-6">
-                            <div v-if="email_user"><div v-if="email_user.residential_address">
+                            <div v-if="email_user"><div>
                                 <input type="text" class="form-control" name="surburb" placeholder="" v-model="email_user.residential_address.locality" v-bind:key="email_user.residential_address.id">
                             </div></div>
                         </div>
@@ -67,13 +67,13 @@
                         <div class="form-group">
                         <label for="" class="col-sm-3 control-label">State</label>
                         <div class="col-sm-2">
-                            <div v-if="email_user"><div v-if="email_user.residential_address">
+                            <div v-if="email_user"><div>
                                 <input type="text" class="form-control" name="country" placeholder="" v-model="email_user.residential_address.state" v-bind:key="email_user.residential_address.id">
                             </div></div>
                         </div>
                         <label for="" class="col-sm-2 control-label">Postcode</label>
                         <div class="col-sm-2">
-                            <div v-if="email_user"><div v-if="email_user.residential_address">
+                            <div v-if="email_user"><div>
                                 <input type="text" class="form-control" name="postcode" placeholder="" v-model="email_user.residential_address.postcode" v-bind:key="email_user.residential_address.id">
                             </div></div>
                         </div>
@@ -81,7 +81,7 @@
                         <div class="form-group">
                         <label for="" class="col-sm-3 control-label" >Country</label>
                         <div class="col-sm-4">
-                            <div v-if="email_user"><div v-if="email_user.residential_address">
+                            <div v-if="email_user"><div>
                                 <select class="form-control" name="country" v-model="email_user.residential_address.country" v-bind:key="email_user.residential_address.id">
                                     <option v-for="c in countries" :value="c.alpha2Code">{{ c.name }}</option>
                                 </select>
@@ -182,11 +182,6 @@ export default {
             }
         }
     },
-    computed: {
-        personId: function() {
-            return this.email_user.id;
-        }
-    },
     props: {
         displayComponent: {
             type: Boolean,
@@ -223,6 +218,15 @@ export default {
             required: false,
             default: 300,
         },
+        personToUpdate: {
+            type: Number,
+            required: false,
+        },
+    },
+    computed: {
+        personId: function() {
+            return this.email_user.id;
+        }
     },
     watch: {
         personId: {
@@ -279,7 +283,9 @@ export default {
 
             let initialisers = [utils.fetchUser(id)];
             Promise.all(initialisers).then(data => {
+                console.log(data[0])
                 vm.email_user = data[0];
+                !vm.email_user.residential_address ? vm.email_user.residential_address = {} : null
             });
         },
         setPersonId: function(id){
@@ -325,11 +331,17 @@ export default {
         },
         saveData: async function() {
             try{
-                let fetchUrl = helpers.add_endpoint_json(api_endpoints.users, 'create_new_person');
+                let fetchUrl = ''
+                if (!this.email_user.id) {
+                    fetchUrl = helpers.add_endpoint_json(api_endpoints.users);
+                } else {
+                    fetchUrl = helpers.add_endpoint_json(api_endpoints.users, this.email_user.id + '/update_person/');
+                }
+
                 let savedEmailUser = await Vue.http.post(fetchUrl, this.email_user);
-                this.$emit('new-person-created', {'person': savedEmailUser.body, 'error': null});
+                this.$emit('person-saved', {'person': savedEmailUser.body, 'error': null});
             } catch (err) {
-                this.$emit('new-person-created', {'person': null, 'error': err});
+                this.$emit('person-saved', {'person': null, 'error': err});
             }
         },
         showHideElement: function() {
@@ -353,7 +365,13 @@ export default {
             vm.isAddressDetailsOpen = vm.defaultOpenAddressDetails;
             vm.isContactDetailsOpen = vm.defaultOpenContactDetails;
         })
-    }
+    },
+    created: function() {
+        if (this.personToUpdate) {
+            this.setExistingPerson(this.personToUpdate);
+            //Object.assign(this.email_user, this.personToUpdate);
+        }
+    },
 }
 </script>
 

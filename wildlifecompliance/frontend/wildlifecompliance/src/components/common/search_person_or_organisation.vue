@@ -18,10 +18,13 @@
         </div>
         <div v-if="showCreateUpdate" class="col-sm-12 form-group"><div class="row">
             <div class="col-sm-12" v-if="displayUpdateCreatePerson">
-              <updateCreatePerson displayComponent @person-saved="createUpdatePerson"/>
+              <updateCreatePerson 
+              displayComponent 
+              :personToUpdate="entity.id" 
+              @person-saved="createUpdatePerson"/>
             </div>
             <div class="col-sm-12" v-if="displayUpdateCreateOrganisation">
-              <updateCreateOrganisation @organisation-saved=""/>
+              <updateCreateOrganisation displayComponent @organisation-saved=""/>
             </div>
         </div></div>
     </div>
@@ -63,9 +66,16 @@ export default {
     watch: {
         entity: {
             handler: function (){
-                this.$emit('entity-selected', { 
-                    id: this.entity_id, 
-                    data_type: this.entity_data_type });
+                if (this.entity.id) {
+                    this.$emit('entity-selected', { 
+                        id: this.entity.id, 
+                        data_type: this.entity.data_type });
+                }
+                if (this.entity.id && this.entity.data_type === 'individual') {
+                    this.displayUpdateCreatePerson = true;
+                } else if (this.entity.id && this.entity.data_type === 'organisation') {
+                    this.displayUpdateCreateOrganisation = true;
+                }
             },
             deep: true
         },
@@ -238,7 +248,7 @@ export default {
                 // id is an Emailuser.id when data_type is 'individual' or 
                 // an Organisation.id when data_type is 'organisation'
                 vm.$nextTick(() => {
-                    vm.entity.id = data_item_id
+                    vm.entity.id = parseInt(data_item_id)
                     vm.entity.data_type = data_type
                     //vm.$emit('entity-selected', { 
                     //    id: this.entity_id, 
