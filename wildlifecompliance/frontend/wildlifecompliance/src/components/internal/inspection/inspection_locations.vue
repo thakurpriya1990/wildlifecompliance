@@ -2,6 +2,14 @@
     <div class="">
         <div id="map-filter">
             <div>
+                <label class="">Inspection Types</label>
+                <select class="form-control" v-model="filterInspectionType">
+                    <option v-for="option in type_choices" :value="option.id" v-bind:key="option.id">
+                        {{ option.inspection_type }}
+                    </option>
+                </select>
+            </div>
+            <div>
                 <label class="">Inspection Status</label>
                 <select class="form-control" v-model="filterStatus">
                     <option v-for="option in status_choices" :value="option.id" v-bind:key="option.id">
@@ -175,11 +183,13 @@ module.exports = {
              * value of the "value" attribute of the option is stored. 
              * The value of this is used queryset.filter() in the backend.
              */
+            filterInspectionType: 'all',
             filterStatus: 'all',
             filterDateFrom: '',
             filterDateTo: '',
 
             status_choices: [],
+            type_choices: [],
             cursor_location: null,
         }
     },
@@ -187,6 +197,11 @@ module.exports = {
         let returned_status_choices = await cache_helper.getSetCacheList('Inspection_StatusChoices', '/api/inspection/status_choices');
         Object.assign(this.status_choices, returned_status_choices);
         this.status_choices.splice(0, 0, {id: 'all', display: 'All'});
+
+        let returned_inspection_types = await cache_helper.getSetCacheList('InspectionTypes', api_endpoints.inspection_types);
+        console.log(returned_inspection_types);
+        Object.assign(this.type_choices, returned_inspection_types);
+        this.type_choices.splice(0, 0, {id: 'all', inspection_type: 'All'});
     },
     mounted(){
         let vm = this;
@@ -199,6 +214,9 @@ module.exports = {
     },
     watch: {
         filterStatus: function () {
+            this.loadLocations();
+        },
+        filterInspectionType: function () {
             this.loadLocations();
         },
         filterDateFrom: function(){
@@ -387,7 +405,6 @@ module.exports = {
             });
         },
         loadLocations(){
-            console.log('loadLocations');
             let vm = this;
 
             /* Cancel all the previous requests */
@@ -397,6 +414,7 @@ module.exports = {
             }
             let myData = {
                 "status": vm.filterStatus,
+                "inspection_type": vm.filterInspectionType,
                 "date_from" : vm.filterDateFrom,
                 "date_to" : vm.filterDateTo,
             };

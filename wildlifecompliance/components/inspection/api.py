@@ -472,12 +472,16 @@ class InspectionViewSet(viewsets.ModelViewSet):
     def optimised(self, request, *args, **kwargs):
         queryset = self.get_queryset().exclude(location__isnull=True)
 
+        filter_inspection_type = request.query_params.get('inspection_type', '')
+        filter_inspection_type = '' if filter_inspection_type.lower() == 'all' else filter_inspection_type
         filter_status = request.query_params.get('status', '')
         filter_status = '' if filter_status.lower() == 'all' else filter_status
         filter_date_from = request.query_params.get('date_from', '')
         filter_date_to = request.query_params.get('date_to', '')
 
         q_list = []
+        if filter_inspection_type:
+            q_list.append(Q(inspection_type__id=filter_inspection_type))
         if filter_status:
             q_list.append(Q(status__exact=filter_status))
         if filter_date_from:

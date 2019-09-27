@@ -27,7 +27,8 @@ class SanctionOutcome(models.Model):
     WORKFLOW_SEND_TO_MANAGER = 'send_to_manager'
     WORKFLOW_ENDORSE = 'endorse'
     WORKFLOW_DECLINE = 'decline'
-    WORKFLOW_WITHDRAW = 'withdraw'
+    WORKFLOW_WITHDRAW_BY_MANAGER = 'withdraw_by_manager'
+    WORKFLOW_WITHDRAW_BY_INC = 'withdraw_by_inc'  # INC: infringement notice coordinator
     WORKFLOW_RETURN_TO_OFFICER = 'return_to_officer'
     WORKFLOW_CLOSE = 'close'
 
@@ -49,7 +50,7 @@ class SanctionOutcome(models.Model):
         (STATUS_AWAITING_AMENDMENT, 'Awaiting Amendment'),
         (STATUS_AWAITING_REMEDIATION_ACTIONS, 'Awaiting Remediation Actions'),  # TODO: implement pending closuer of SanctionOutcome with type RemediationActions
                                                                                 # This is pending closure status
-                                                                               # Once all the remediation actions are closed, this status should become closed...
+                                                                                # Once all the remediation actions are closed, this status should become closed...
         (STATUS_DECLINED, 'Declined'),
         (STATUS_WITHDRAWN, 'Withdrawn'),
         (STATUS_CLOSED, 'closed'),
@@ -172,9 +173,12 @@ class SanctionOutcome(models.Model):
         elif workflow_type == SanctionOutcome.WORKFLOW_RETURN_TO_OFFICER:
             codename = 'officer'
             per_district = True
-        elif workflow_type == SanctionOutcome.WORKFLOW_WITHDRAW:
-            codename = '---'
+        elif workflow_type == SanctionOutcome.WORKFLOW_WITHDRAW_BY_INC:
+            codename = 'infringement_notice_coordinator'
             per_district = False
+        elif workflow_type == SanctionOutcome.WORKFLOW_WITHDRAW_BY_MANAGER:
+            codename = 'manager'
+            per_district = True
         elif workflow_type == SanctionOutcome.WORKFLOW_CLOSE:
             codename = '---'
             per_district = False
@@ -250,9 +254,22 @@ class SanctionOutcome(models.Model):
         self.log_user_action(SanctionOutcomeUserAction.ACTION_RETURN_TO_OFFICER.format(self.lodgement_number), request)
         self.save()
 
-    def withdraw(self, request):
+    def withdraw_by_inc(self, request):
         self.status = self.STATUS_WITHDRAWN
-        new_group = SanctionOutcome.get_compliance_permission_group(self.regionDistrictId, SanctionOutcome.WORKFLOW_WITHDRAW)
+        new_group = SanctionOutcome.get_compliance_permission_group(self.regionDistrictId, SanctionOutcome.WORKFLOW_WITHDRAW_BY_INC)
+        self.allocated_group = new_group
+        self.log_user_action(SanctionOutcomeUserAction.ACTION_WITHDRAW.format(self.lodgement_number), request)
+        self.save()
+
+        # Trigger the close() function of each parent entity of this sanction outcome
+        close_record, parents = can_close_record(self, request)
+        for parent in parents:
+            if parent.status == 'pending_closure':
+                parent.close(request)
+
+    def withdraw_by_namager(self, request):
+        self.status = self.STATUS_WITHDRAWN
+        new_group = SanctionOutcome.get_compliance_permission_group(self.regionDistrictId, SanctionOutcome.WORKFLOW_WITHDRAW_BY_MANAGER)
         self.allocated_group = new_group
         self.log_user_action(SanctionOutcomeUserAction.ACTION_WITHDRAW.format(self.lodgement_number), request)
         self.save()
