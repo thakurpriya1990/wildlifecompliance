@@ -479,8 +479,8 @@ class OffenceViewSet(viewsets.ModelViewSet):
                 #                request)
 
                 # 3. Create relations between this offence and the alleged 0ffence(s)
-                for dict in request_data['alleged_offences']:
-                    section_regulation = SectionRegulation.objects.get(id=dict['id'])
+                for alleged_offence in request_data['alleged_offences']:
+                    section_regulation = SectionRegulation.objects.get(id=alleged_offence['section_regulation']['id'])
                     # Insert a record into the through table
                     alleged_offence = AllegedOffence.objects.create(section_regulation=section_regulation, offence=saved_offence_instance)
 

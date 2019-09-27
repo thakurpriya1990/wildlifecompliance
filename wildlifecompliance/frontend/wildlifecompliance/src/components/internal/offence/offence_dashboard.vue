@@ -239,6 +239,9 @@ export default {
         setCreateOffenceBindId: function() {
             let timeNow = Date.now()
             this.createOffenceBindId = 'inspection' + timeNow.toString();
+
+            console.log('setCreateOffenceBindId');
+            console.log(this.createOffenceBindId);
         },
         addEventListeners: function () {
             this.attachFromDatePicker();

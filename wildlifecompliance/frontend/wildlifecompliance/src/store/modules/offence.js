@@ -9,42 +9,9 @@ import moment from 'moment';
 export const offenceStore = {
     namespaced: true,
     state: {
-        offence: {
-            id: null,
-            call_email_id: null,
-            inspection_id: null,
-            identifier: '',
-            status: 'draft',
-            offenders: [],
-            alleged_offences: [],
-            location: {
-                type: 'Feature',
-                properties: {
-                    town_suburb: null,
-                    street: null,
-                    state: 'WA',
-                    postcode: null,
-                    country: 'Australia',
-                    details: ''
-                },
-                geometry: {
-                    'type': 'Point',
-                    'coordinates': []
-                }
-            },
-            occurrence_from_to: true,
-            occurrence_date_from: null,
-            occurrence_date_to: null,
-            occurrence_time_from: null,
-            occurrence_time_to: null,
-            details: '',
-            region_id: null,
-            district_id: null,
-            assigned_to_id: null,
-            allocated_group: [],
-            allocated_group_id: null,
-            lodgement_number: '',
-        }
+        // offence doesn't have any contents in it.
+        // you can call setOffenceEmpty to store default contents
+        offence: {}
     },
     getters: {
         offence: state => state.offence,
@@ -90,7 +57,6 @@ export const offenceStore = {
             state.offence.inspection_id = id;
         },
         updateOffence(state, offence) {
-            console.log('updateOffence');
             if (!offence.location) {
                 /* When location is null, set default object */
                 offence.location =
@@ -119,7 +85,6 @@ export const offenceStore = {
             Vue.set(state, 'offence', offence);
         },
         updateOffenceEmpty(state){
-            console.log('updateOffenceEmpty');
             let offence = {
                 id: null,
                 call_email_id: null,
@@ -148,7 +113,13 @@ export const offenceStore = {
                 occurrence_date_to: null,
                 occurrence_time_from: null,
                 occurrence_time_to: null,
-                details: ''
+                details: '',
+                region_id: null,
+                district_id: null,
+                assigned_to_id: null,
+                allocated_group: [],
+                allocated_group_id: null,
+                lodgement_number: '',
             };
             Vue.set(state, 'offence', offence);
         },
@@ -181,8 +152,12 @@ export const offenceStore = {
     actions: {
         async loadOffence({ dispatch, }, { offence_id }) {
             try {
-                const returnedOffence = await Vue.http.get(helpers.add_endpoint_json(api_endpoints.offence, offence_id));
-                await dispatch("setOffence", returnedOffence.body);
+                if (offence_id) {
+                    const returnedOffence = await Vue.http.get(helpers.add_endpoint_json(api_endpoints.offence, offence_id));
+                    await dispatch("setOffence", returnedOffence.body);
+                } else {
+                    dispatch("setOffenceEmpty");
+                }
             } catch (err) {
                 console.log(err);
             }
@@ -277,7 +252,6 @@ export const offenceStore = {
             commit("updateOffence", offence);
         },
         setOffenceEmpty({ commit, }){
-            console.log('setOffenceEmpty');
             commit("updateOffenceEmpty");
         },
         setLocationPoint({ commit, }, point) {

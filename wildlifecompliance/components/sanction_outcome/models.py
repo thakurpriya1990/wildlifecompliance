@@ -210,9 +210,9 @@ class SanctionOutcome(models.Model):
         self.save()
 
     def endorse(self, request):
-        if self.status == SanctionOutcome.TYPE_INFRINGEMENT_NOTICE:
+        if self.type == SanctionOutcome.TYPE_INFRINGEMENT_NOTICE:
             self.status = SanctionOutcome.STATUS_AWAITING_PAYMENT
-        elif self.status in (SanctionOutcome.TYPE_CAUTION_NOTICE, SanctionOutcome.TYPE_LETTER_OF_ADVICE):
+        elif self.type in (SanctionOutcome.TYPE_CAUTION_NOTICE, SanctionOutcome.TYPE_LETTER_OF_ADVICE):
             self.status = SanctionOutcome.STATUS_CLOSED
 
             # Trigger the close() function of each parent entity of this sanction outcome
@@ -220,7 +220,7 @@ class SanctionOutcome(models.Model):
             for parent in parents:
                 if parent.status == 'pending_closure':
                     parent.close(request)
-        elif self.status == SanctionOutcome.TYPE_REMEDIATION_NOTICE:
+        elif self.type == SanctionOutcome.TYPE_REMEDIATION_NOTICE:
             self.status = SanctionOutcome.STATUS_AWAITING_REMEDIATION_ACTIONS
 
             # TODO: Implement pending closure of this sanction outcome
