@@ -69,10 +69,10 @@ from wildlifecompliance.components.inspection.serializers import (
     InspectionDatatableSerializer,
     UpdateAssignedToIdSerializer,
     InspectionTypeSerializer,
-    #InspectionTeamSerializer,
+    # InspectionTeamSerializer,
     EmailUserSerializer,
     InspectionTypeSchemaSerializer,
-    )
+    InspectionOptimisedSerializer)
 from wildlifecompliance.components.users.models import (
     CompliancePermissionGroup,    
 )
@@ -468,12 +468,54 @@ class InspectionViewSet(viewsets.ModelViewSet):
         raise serializers.ValidationError(str(e))
 
 
+    @list_route(methods=['GET', ])
+    def optimised(self, request, *args, **kwargs):
+        queryset = self.get_queryset().exclude(location__isnull=True)
+
+        filter_inspection_type = request.query_params.get('inspection_type', '')
+        filter_inspection_type = '' if filter_inspection_type.lower() == 'all' else filter_inspection_type
+        filter_status = request.query_params.get('status', '')
+        filter_status = '' if filter_status.lower() == 'all' else filter_status
+        filter_date_from = request.query_params.get('date_from', '')
+        filter_date_to = request.query_params.get('date_to', '')
+
+        q_list = []
+        if filter_inspection_type:
+            q_list.append(Q(inspection_type__id=filter_inspection_type))
+        if filter_status:
+            q_list.append(Q(status__exact=filter_status))
+        if filter_date_from:
+            date_from = datetime.strptime(filter_date_from, '%d/%m/%Y')
+            q_list.append(Q(planned_for_date__gte=date_from))
+        if filter_date_to:
+            date_to = datetime.strptime(filter_date_to, '%d/%m/%Y')
+            q_list.append(Q(planned_for_date__lte=date_to))
+
+        print q_list
+
+        queryset = queryset.filter(reduce(operator.and_, q_list)) if len(q_list) else queryset
+
+        serializer = InspectionOptimisedSerializer(queryset, many=True)
+        return Response(serializer.data)
+
+
     #@detail_route(methods=['PUT', ])
     @renderer_classes((JSONRenderer,))
     #def inspection_save(self, request, workflow=False, *args, **kwargs):
     def update(self, request, workflow=False, *args, **kwargs):
         try:
             with transaction.atomic():
+                # 1. Save Location
+                if (
+                        request.data.get('location', {}).get('geometry', {}).get('coordinates', {}) or
+                        request.data.get('location', {}).get('properties', {}).get('postcode', {}) or
+                        request.data.get('location', {}).get('properties', {}).get('details', {})
+                ):
+                    location_request_data = request.data.get('location')
+                    returned_location = save_location(location_request_data)
+                    if returned_location:
+                        request.data.update({'location_id': returned_location.get('id')})
+
                 instance = self.get_object()
                 # record individual inspected before update
                 individual_inspected_id = instance.individual_inspected_id
@@ -666,6 +708,17 @@ class InspectionViewSet(viewsets.ModelViewSet):
         print(request.data)
         try:
             with transaction.atomic():
+                # 1. Save Location
+                if (
+                    request.data.get('location', {}).get('geometry', {}).get('coordinates', {}) or
+                    request.data.get('location', {}).get('properties', {}).get('postcode', {}) or
+                    request.data.get('location', {}).get('properties', {}).get('details', {})
+                ):
+                    location_request_data = request.data.get('location')
+                    returned_location = save_location(location_request_data)
+                    if returned_location:
+                        request.data.update({'location_id': returned_location.get('id')})
+
                 serializer = SaveInspectionSerializer(
                         data=request.data, 
                         partial=True

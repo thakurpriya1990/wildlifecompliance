@@ -371,7 +371,7 @@
         <div v-if="workflow_type">
           <CallWorkflow ref="add_workflow" :workflow_type="workflow_type" v-bind:key="workflowBindId" />
         </div>
-        <Offence ref="offence" :parent_update_function="loadCallEmail"/>
+        <Offence ref="offence" :parent_update_function="loadCallEmail" :region_id="call_email.region_id" :district_id="call_email.district_id" :allocated_group_id="call_email.allocated_group_id" />
         <div v-if="sanctionOutcomeInitialised">
             <SanctionOutcome ref="sanction_outcome" :parent_update_function="loadCallEmail"/>
         </div>

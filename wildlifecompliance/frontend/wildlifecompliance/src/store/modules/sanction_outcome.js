@@ -55,38 +55,30 @@ export const sanctionOutcomeStore = {
         },
         async saveSanctionOutcome({ dispatch, state }) {
             console.log('saveSanctionOutcome');
-            //try {
-                // Construct url endpoint
-                let putUrl = helpers.add_endpoint_join(api_endpoints.sanction_outcome, state.sanction_outcome.id + '/');
-                console.log(putUrl);
+            // Construct url endpoint
+            let putUrl = helpers.add_endpoint_join(api_endpoints.sanction_outcome, state.sanction_outcome.id + '/');
 
-                // Construct payload to store data to be sent
-                let payload = {};
-                Object.assign(payload, state.sanction_outcome);
+            // Construct payload to store data to be sent
+            let payload = {};
+            Object.assign(payload, state.sanction_outcome);
 
-                // format 'type'
-                payload.type = payload.type.id;
+            // format 'type'
+            payload.type = payload.type.id;
 
-                // Send data to the server
-                let savedSanctionOutcome = await Vue.http.put(putUrl, payload);
+            // Send data to the server
+            console.log('payload');
+            console.log(payload);
 
-                // Update sanction outcome in the vuex store
-                await dispatch("setSanctionOutcome", savedSanctionOutcome.body);
+            let savedSanctionOutcome = await Vue.http.put(putUrl, payload);
 
-                // Display message
-                await swal("Saved", "The record has been saved", "success");
+            // Update sanction outcome in the vuex store
+            await dispatch("setSanctionOutcome", savedSanctionOutcome.body);
 
-                // Return the saved data just in case needed
-                return savedSanctionOutcome;
-          //  } catch (err) {
-          //      console.log('err');
-          //      console.log(err);
-          //      if (err.body.non_field_errors){
-          //          await swal("Error", err.body.non_field_errors[0], "error");
-          //      } else {
-          //          await swal("Error", "There was an error saving the record", "error");
-          //      }
-          //  }
+            // Display message
+            await swal("Saved", "The record has been saved", "success");
+
+            // Return the saved data just in case needed
+            return savedSanctionOutcome;
         },
         setSanctionOutcome({ commit, }, sanction_outcome) {
             commit("updateSanctionOutcome", sanction_outcome);

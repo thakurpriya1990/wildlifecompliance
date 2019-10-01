@@ -827,8 +827,6 @@ class RegionDistrictViewSet(viewsets.ModelViewSet):
 
     @detail_route(methods=['POST', ])
     def get_compliance_group_by_region_district(self, request, *args, **kwargs):
-        print("get_compliance_group_by_region_district")
-        print(request.data)
         try:
             instance = self.get_object()
             group_permission = request.data.get('group_permission')

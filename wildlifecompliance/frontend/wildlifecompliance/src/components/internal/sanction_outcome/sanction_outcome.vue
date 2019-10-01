@@ -64,15 +64,26 @@
                             </div>
 -->
 
-                            <div v-if="visibilityWithdrawButton" class="row action-button">
+                            <div v-if="visibilityWithdrawButtonForInc" class="row action-button">
                                 <div class="col-sm-12">
-                                    <a @click="addWorkflow('withdraw')" class="btn btn-primary btn-block">
-                                        Withdraw
+                                    <a @click="addWorkflow('withdraw_by_inc')" class="btn btn-primary btn-block">
+                                        Withdraw (inc)
                                     </a>
                                 </div>
                             </div>
                             <div v-else>
-                                Withdraw
+                                Withdraw by INC
+                            </div>
+
+                            <div v-if="visibilityWithdrawButtonForManager" class="row action-button">
+                                <div class="col-sm-12">
+                                    <a @click="addWorkflow('withdraw_by_manager')" class="btn btn-primary btn-block">
+                                        Withdraw (manager)
+                                    </a>
+                                </div>
+                            </div>
+                            <div v-else>
+                                Withdraw by manager
                             </div>
 
                             <div v-if="visibilitySendToManagerButton" class="row action-button">
@@ -372,6 +383,7 @@ export default {
                     {
                         data: "Action",
                         mRender: function(data, type, row) {
+                            console.log('aho');
                             let ret = '';
                             if (data.in_editable_status){
                                 if (data.already_included){
@@ -487,11 +499,28 @@ export default {
             }
             return visibility;
         },
-        visibilityWithdrawButton: function() {
+        visibilityWithdrawButtonForManager: function() {
+            console.log('visibilityW');
             let visibility = false;
             if (this.sanction_outcome.can_user_action){
-                if (this.sanction_outcome.status.id === this.STATUS_AWAITING_PAYMENT){
-                    visibility = true;
+                if (this.sanction_outcome.type.id == 'infringement_notice'){
+                    if (this.sanction_outcome.status.id === this.STATUS_AWAITING_ENDORSEMENT && this.sanction_outcome.issued_on_paper){
+                        // This is when Manager withdraw paper issued infringement notice
+                        visibility = true;
+                    }
+                }
+            }
+            return visibility;
+        },
+        visibilityWithdrawButtonForInc: function() {
+            console.log('visibilityW');
+            let visibility = false;
+            if (this.sanction_outcome.can_user_action){
+                if (this.sanction_outcome.type.id == 'infringement_notice'){
+                    if (this.sanction_outcome.status.id === this.STATUS_AWAITING_PAYMENT){
+                        // This is when Infringement Notice Coordinator withdraw
+                        visibility = true;
+                    }
                 }
             }
             return visibility;
@@ -572,7 +601,7 @@ export default {
             let el_issue_time = $(vm.$refs.timeOfIssuePicker);
 
             // Issue "Date" field
-            el_issue_date.datetimepicker({ format: "DD/MM/YYYY", maxDate: "now", showClear: true });
+            el_issue_date.datetimepicker({ format: "DD/MM/YYYY", maxDate: moment().millisecond(0).second(0).minute(0).hour(0), showClear: true });
             el_issue_date.on("dp.change", function(e) {
               if (el_issue_date.data("DateTimePicker").date()) {
                 vm.sanction_outcome.date_of_issue = e.date.format("DD/MM/YYYY");

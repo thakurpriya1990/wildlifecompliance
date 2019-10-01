@@ -383,7 +383,17 @@ class SaveOffenceSerializer(serializers.ModelSerializer):
         read_only_fields = ()
 
     def validate(self, data):
-        # Add object level validation here if needed
+        field_errors = {}
+        non_field_errors = []
+
+        if not data['region_id']:
+            non_field_errors.append('Offence must have a region.')
+
+        if field_errors:
+            raise serializers.ValidationError(field_errors)
+        if non_field_errors:
+            raise serializers.ValidationError(non_field_errors)
+
         return data
 
 
