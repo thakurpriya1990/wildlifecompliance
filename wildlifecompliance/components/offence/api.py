@@ -3,6 +3,8 @@ import operator
 import traceback
 from datetime import datetime
 
+from django.contrib.auth.models import Permission
+from django.contrib.contenttypes.models import ContentType
 from django.core.exceptions import ValidationError
 from django.db import transaction
 from django.http import HttpResponse
@@ -34,6 +36,7 @@ from wildlifecompliance.components.offence.serializers import (
     UpdateAssignedToIdSerializer, UpdateOffenderAttributeSerializer, OffenceOptimisedSerializer,
     # UpdateAllegedOffenceAttributeSerializer, OffenceUserActionSerializer)
     UpdateAllegedOffenceAttributeSerializer, OffenceUserActionSerializer, OffenceCommsLogEntrySerializer)
+from wildlifecompliance.components.users.models import CompliancePermissionGroup
 from wildlifecompliance.helpers import is_internal
 
 
@@ -55,9 +58,9 @@ class OffenceFilterBackend(DatatablesFilterBackend):
                          Q(offender__person__first_name__icontains=search_text) | \
                          Q(offender__person__last_name__icontains=search_text) | \
                          Q(offender__person__email__icontains=search_text) | \
-                         Q(offender__organisation__name__icontains=search_text) | \
-                         Q(offender__organisation__abn__icontains=search_text) | \
-                         Q(offender__organisation__trading_name__icontains=search_text)
+                         Q(offender__organisation__organisation__name__icontains=search_text) | \
+                         Q(offender__organisation__organisation__abn__icontains=search_text) | \
+                         Q(offender__organisation__organisation__trading_name__icontains=search_text)
 
         type = request.GET.get('type',).lower()
         if type and type != 'all':
@@ -198,6 +201,22 @@ class OffenceViewSet(viewsets.ModelViewSet):
         except Exception as e:
             print(traceback.print_exc())
             raise serializers.ValidationError(str(e))
+
+
+    @list_route(methods=['GET', ])
+    def can_user_create(self, request, *args, **kwargs):
+        # Determine permissions which allow the holder to create new offence
+        codename_who_can_create = 'officer'
+        compliance_content_type = ContentType.objects.get(model="compliancepermissiongroup")
+        permissions = Permission.objects.filter(codename=codename_who_can_create, content_type_id=compliance_content_type.id)
+
+        # Find groups which has permissions determined above
+        allowed_groups = CompliancePermissionGroup.objects.filter(permissions__in=permissions)
+        for allowed_group in allowed_groups.all():
+            if request.user in allowed_group.members:
+                return Response(True)
+        return Response(False)
+
 
     @list_route(methods=['GET', ])
     def optimised(self, request, *args, **kwargs):
@@ -434,7 +453,15 @@ class OffenceViewSet(viewsets.ModelViewSet):
                 serializer.is_valid(raise_exception=True)
                 saved_offence_instance = serializer.save()  # Here, relations between this offence and location, and this offence and call_email/inspection are created
 
-                # 2. Update parents
+                # 2.1. Determine allocated group and save it
+                new_group = Offence.get_compliance_permission_group(saved_offence_instance.regionDistrictId)
+                saved_offence_instance.allocated_group = new_group
+                saved_offence_instance.assigned_to = None
+                saved_offence_instance.responsible_officer = request.user
+                saved_offence_instance.log_user_action(OffenceUserAction.ACTION_CREATE.format(saved_offence_instance.lodgement_number), request)
+                saved_offence_instance.save()
+
+                # 2.2. Update parents
                 self.update_parent(request, saved_offence_instance)
                 
                 ## 2a. Log it to the call email, if applicable
@@ -452,8 +479,8 @@ class OffenceViewSet(viewsets.ModelViewSet):
                 #                request)
 
                 # 3. Create relations between this offence and the alleged 0ffence(s)
-                for dict in request_data['alleged_offences']:
-                    section_regulation = SectionRegulation.objects.get(id=dict['id'])
+                for alleged_offence in request_data['alleged_offences']:
+                    section_regulation = SectionRegulation.objects.get(id=alleged_offence['section_regulation']['id'])
                     # Insert a record into the through table
                     alleged_offence = AllegedOffence.objects.create(section_regulation=section_regulation, offence=saved_offence_instance)
 
@@ -474,11 +501,12 @@ class OffenceViewSet(viewsets.ModelViewSet):
                 headers = self.get_success_headers(serializer.data)
                 return_serializer = OffenceSerializer(instance=saved_offence_instance, context={'request': request})
                 # return_serializer = InspectionSerializer(saved_instance, context={'request': request})
-                return Response(
+                ret = Response(
                     return_serializer.data,
                     status=status.HTTP_201_CREATED,
                     headers=headers
                 )
+                return ret
 
         except serializers.ValidationError:
             print(traceback.print_exc())

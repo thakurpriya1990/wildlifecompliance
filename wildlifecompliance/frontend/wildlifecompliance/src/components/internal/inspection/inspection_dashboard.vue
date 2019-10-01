@@ -61,6 +61,11 @@
             </div>
         </div>
         </FormSection>
+
+        <FormSection :label="`Location`" :Index="`1`">
+            <MapLocations />
+        </FormSection>
+
         <div v-if="inspectionInitialised">
             <InspectionModal ref="add_inspection"  v-bind:key="createInspectionBindId"/>
         </div>
@@ -75,6 +80,7 @@
     import { mapState, mapGetters, mapActions, mapMutations } from "vuex";
     import FormSection from "@/components/forms/section_toggle.vue";
     import InspectionModal from "./create_inspection_modal.vue";
+    import MapLocations from "./inspection_locations.vue";
     
     export default {
         name: 'InspectionTableDash',
@@ -270,6 +276,7 @@
             datatable,
             FormSection,
             InspectionModal,
+            MapLocations,
         },
         computed: {
         },

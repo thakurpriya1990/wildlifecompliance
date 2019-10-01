@@ -6,6 +6,7 @@ from ledger.accounts.models import RevisionedMixin, EmailUser
 from wildlifecompliance.components.call_email.models import Location, CallEmail
 from wildlifecompliance.components.inspection.models import Inspection
 from wildlifecompliance.components.main.models import UserAction, Document, CommunicationsLogEntry
+from wildlifecompliance.components.main.related_item import can_close_record
 from wildlifecompliance.components.users.models import RegionDistrict, CompliancePermissionGroup
 from wildlifecompliance.components.organisations.models import Organisation
 
@@ -28,12 +29,13 @@ class SectionRegulation(RevisionedMixin):
 
 
 class Offence(RevisionedMixin):
+    WORKFLOW_CREATE = 'create'
     WORKFLOW_CLOSE = 'close'
 
     STATUS_DRAFT = 'draft'
     STATUS_OPEN = 'open'
     STATUS_CLOSED = 'closed'
-    STATUS_CLOSING = 'closing'
+    STATUS_PENDING_CLOSURE = 'pending_closure'
     STATUS_DISCARDED = 'discarded'
 
     EDITABLE_STATUSES = (STATUS_DRAFT, STATUS_OPEN)
@@ -41,7 +43,7 @@ class Offence(RevisionedMixin):
     STATUS_CHOICES = (
         (STATUS_DRAFT, 'Draft'),
         (STATUS_OPEN, 'Open'),
-        (STATUS_CLOSING, 'Closing'),
+        (STATUS_PENDING_CLOSURE, 'Pending Closure'),
         (STATUS_CLOSED, 'Closed'),
         (STATUS_DISCARDED, 'Discarded'),
     )
@@ -121,19 +123,13 @@ class Offence(RevisionedMixin):
         return self.lodgement_number
 
     @staticmethod
-    def get_compliance_permission_group(regionDistrictId, workflow_type):
+    def get_compliance_permission_group(regionDistrictId):
         region_district = RegionDistrict.objects.filter(id=regionDistrictId)
 
-        # 2. Determine which permission(s) is going to be apllied
+        # 2. Determine which permission(s) is going to be applied
         compliance_content_type = ContentType.objects.get(model="compliancepermissiongroup")
         codename = 'officer'
-        if workflow_type == Offence.WORKFLOW_CLOSE:
-            codename = 'officer'
-            per_district = True
-        else:
-            # Should not reach here
-            # instance.save()
-            pass
+        per_district = True
 
         permissions = Permission.objects.filter(codename=codename, content_type_id=compliance_content_type.id)
 
@@ -155,13 +151,19 @@ class Offence(RevisionedMixin):
         return self.identifier
 
     def close(self, request):
-        self.status = self.STATUS_CLOSING
-        new_group = Offence.get_compliance_permission_group(self.regionDistrictId, Offence.WORKFLOW_CLOSE)
-        self.allocated_group = new_group
-        self.assigned_to = None
-        self.responsible_officer = request.user
-        self.log_user_action(OffenceUserAction.ACTION_CLOSE.format(self.lodgement_number), request)
+        close_record, parents = can_close_record(self, request)
+        if close_record:
+            self.status =  self.STATUS_CLOSED
+            self.log_user_action(OffenceUserAction.ACTION_CLOSE.format(self.lodgement_number), request)
+        else:
+            self.status =  self.STATUS_PENDING_CLOSURE
+            self.log_user_action(OffenceUserAction.ACTION_PENDING_CLOSURE.format(self.lodgement_number), request)
         self.save()
+
+        if parents and self.status == self.STATUS_CLOSED:
+            for parent in parents:
+                if parent.status == 'pending_closure':
+                    parent.close(request)
 
 
 class AllegedOffence(RevisionedMixin):
@@ -235,6 +237,8 @@ class Offender(models.Model):
 
 class OffenceUserAction(UserAction):
     ACTION_CLOSE = "Close offence: {}"
+    ACTION_PENDING_CLOSURE = "Mark Inspection {} as pending closure"
+    ACTION_CREATE = "Create offence: {}"
     ACTION_REMOVE_ALLEGED_OFFENCE = "Remove alleged offence: {}, Reason: {}"
     ACTION_REMOVE_OFFENDER = "Remove offender: {}, Reason: {}"
     ACTION_RESTORE_ALLEGED_OFFENCE = "Restore alleged offence: {}"

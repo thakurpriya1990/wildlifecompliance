@@ -16,13 +16,51 @@ export const inspectionStore = {
     },
     getters: {
         inspection: state => state.inspection,
-        
+        inspection_latitude(state) {
+            if (state.inspection.location) {
+                if (state.inspection.location.geometry) {
+                    if (state.inspection.location.geometry.coordinates.length > 0) {
+                        return state.inspection.location.geometry.coordinates[1];
+                    } else {return "";}
+                } else {return "";}
+            } else {return "";}
+        },
+        inspection_longitude(state) {
+            if (state.inspection.location) {
+                if (state.inspection.location.geometry) {
+                    if (state.inspection.location.geometry.coordinates.length > 0) {
+                        return state.inspection.location.geometry.coordinates[0];
+                    } else {return "";}
+                } else {return "";}
+            } else {return "";}
+        },
     },
     mutations: {
         updateInspection(state, inspection) {
             Vue.set(state, 'inspection', {
                 ...inspection
             });
+            console.log('updateInspection');
+            if (!inspection.location) {
+                /* When location is null, set default object */
+                Vue.set(state.inspection, 'location', 
+                    {
+                        "type": "Feature",
+                        properties: {
+                            town_suburb: null,
+                            street: null,
+                            state: null,
+                            postcode: null,
+                            country: null,
+                        },
+                        id: null,
+                        geometry: {
+                            "type": "Point",
+                            "coordinates": [],
+                        },
+                    }
+                ); 
+            }
             if (state.inspection.planned_for_date) {
                 state.inspection.planned_for_date = moment(state.inspection.planned_for_date, 'YYYY-MM-DD').format('DD/MM/YYYY');
             }
@@ -67,7 +105,22 @@ export const inspectionStore = {
         updateRelatedItems(state, related_items) {
             Vue.set(state.inspection, 'related_items', related_items);
         },
-        
+        updateLocationPoint(state, point) {
+            state.inspection.location.geometry.coordinates = point;
+        },
+        updateLocationAddress(state, location_properties) {
+            state.inspection.location.properties = location_properties;
+        },
+        updateLocationAddressEmpty(state) {
+            state.inspection.location.properties.town_suburb = "";
+            state.inspection.location.properties.street = "";
+            state.inspection.location.properties.state = "";
+            state.inspection.location.properties.postcode = "";
+            state.inspection.location.properties.country = "";
+        },
+        updateLocationDetailsFieldEmpty(state) {
+            state.inspection.location.properties.details = "";
+        },
     },
     actions: {
         async loadInspection({ dispatch, commit }, { inspection_id }) {

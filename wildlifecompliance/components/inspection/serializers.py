@@ -4,6 +4,7 @@ from rest_framework.fields import CharField
 from rest_framework_gis.serializers import GeoFeatureModelSerializer, GeometryField
 
 from ledger.accounts.models import EmailUser, Address
+from wildlifecompliance.components.call_email.serializers import LocationSerializer, LocationSerializerOptimized
 from wildlifecompliance.components.inspection.models import (
     Inspection,
     InspectionUserAction,
@@ -140,6 +141,7 @@ class InspectionSerializer(serializers.ModelSerializer):
     related_items = serializers.SerializerMethodField()
     inspection_report = serializers.SerializerMethodField()
     data = InspectionFormDataRecordSerializer(many=True)
+    location = LocationSerializer(read_only=True)
 
     class Meta:
         model = Inspection
@@ -174,6 +176,7 @@ class InspectionSerializer(serializers.ModelSerializer):
                 'district_id',
                 'data',
                 'all_officers',
+                'location',
                 )
         read_only_fields = (
                 'id',
@@ -266,7 +269,9 @@ class SaveInspectionSerializer(serializers.ModelSerializer):
         required=False, write_only=True, allow_null=True)
     call_email_id = serializers.IntegerField(
         required=False, write_only=True, allow_null=True)
-    
+    location_id = serializers.IntegerField(
+        required=False, write_only=True, allow_null=True)
+
     class Meta:
         model = Inspection
         fields = (
@@ -283,6 +288,7 @@ class SaveInspectionSerializer(serializers.ModelSerializer):
                 'organisation_inspected_id',
                 'inform_party_being_inspected',
                 'call_email_id',
+                'location_id',
                 )
         read_only_fields = (
                 'id',
@@ -317,6 +323,20 @@ class InspectionCommsLogEntrySerializer(CommunicationLogEntrySerializer):
 
     def get_documents(self, obj):
         return [[d.name, d._file.url] for d in obj.documents.all()]
+
+
+class InspectionOptimisedSerializer(serializers.ModelSerializer):
+    location = LocationSerializerOptimized()
+
+    class Meta:
+        model = Inspection
+        fields = (
+            'id',
+            'status',
+            'location',
+            'number',
+        )
+        read_only_fields = ('id', )
 
 
 class InspectionDatatableSerializer(serializers.ModelSerializer):
