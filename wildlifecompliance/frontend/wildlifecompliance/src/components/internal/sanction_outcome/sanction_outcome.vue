@@ -51,18 +51,6 @@
                             Action 
                         </div>
                         <div class="panel-body panel-collapse">
-<!--                            
-                            <div v-if="visibilitySaveButton" class="row action-button">
-                                <div class="col-sm-12">
-                                    <a @click="save" class="btn btn-primary btn-block">
-                                        Save
-                                    </a>
-                                </div>
-                            </div>
-                            <div v-else>
-                                Save
-                            </div>
--->
 
                             <div v-if="visibilityWithdrawButtonForInc" class="row action-button">
                                 <div class="col-sm-12">
@@ -70,9 +58,6 @@
                                         Withdraw (inc)
                                     </a>
                                 </div>
-                            </div>
-                            <div v-else>
-                                Withdraw by INC
                             </div>
 
                             <div v-if="visibilityWithdrawButtonForManager" class="row action-button">
@@ -82,9 +67,6 @@
                                     </a>
                                 </div>
                             </div>
-                            <div v-else>
-                                Withdraw by manager
-                            </div>
 
                             <div v-if="visibilitySendToManagerButton" class="row action-button">
                                 <div class="col-sm-12">
@@ -92,9 +74,6 @@
                                         Send to Manager
                                     </a>
                                 </div>
-                            </div>
-                            <div v-else>
-                                Send To Manager
                             </div>
 
                             <div v-if="visibilityEndorseButton" class="row action-button">
@@ -104,9 +83,6 @@
                                     </a>
                                 </div>
                             </div>
-                            <div v-else>
-                                Endorse
-                            </div>
 
                             <div v-if="visibilityDeclineButton" class="row action-button">
                                 <div class="col-sm-12">
@@ -115,9 +91,6 @@
                                     </a>
                                 </div>
                             </div>
-                            <div v-else>
-                                Declilne
-                            </div>
 
                             <div v-if="visibilityReturnToOfficerButton" class="row action-button">
                                 <div class="col-sm-12">
@@ -125,9 +98,6 @@
                                         Return to Officer
                                     </a>
                                 </div>
-                            </div>
-                            <div v-else>
-                                Return to Officer
                             </div>
                         </div>
                     </div>

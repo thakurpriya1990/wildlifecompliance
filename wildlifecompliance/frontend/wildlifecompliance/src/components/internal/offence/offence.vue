@@ -51,27 +51,12 @@
                             Action 
                         </div>
                         <div class="panel-body panel-collapse">
-<!--
-                            <div v-if="visibilitySaveButton" class="row action-button">
-                                <div class="col-sm-12">
-                                    <a @click="save()" class="btn btn-primary btn-block">
-                                        Save
-                                    </a>
-                                </div>
-                            </div>
-                            <div v-else>
-                                Save
-                            </div>
--->
                             <div v-if="visibilitySanctionOutcomeButton" class="row action-button">
                                 <div class="col-sm-12">
                                     <a @click="openSanctionOutcome()" class="btn btn-primary btn-block">
                                         Sanction Outcome
                                     </a>
                                 </div>
-                            </div>
-                            <div v-else>
-                                Sanction Outcome
                             </div>
 
                             <div v-if="visibilityCloseButton" class="row action-button">
@@ -80,9 +65,6 @@
                                         Close
                                     </a>
                                 </div>
-                            </div>
-                            <div v-else>
-                                Close
                             </div>
                         </div>
                     </div>
@@ -263,7 +245,7 @@
                                 <FormSection :formCollapse="false" label="Related Items" Index="4">
                                     <div class="col-sm-12 form-group"><div class="row">
                                         <div class="col-sm-12">
-                                            <RelatedItems v-bind:key="relatedItemsBindId" :parent_update_related_items="setRelatedItems" />
+                                            <RelatedItems v-bind:key="relatedItemsBindId" :parent_update_related_items="setRelatedItems" :readonlyForm="readonlyForm" />
                                         </div>
                                     </div></div>
                                 </FormSection>
