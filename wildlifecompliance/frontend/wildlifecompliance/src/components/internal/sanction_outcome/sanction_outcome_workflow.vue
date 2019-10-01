@@ -71,7 +71,10 @@ export default {
         }),
         modalTitle: function() {
             switch(this.workflow_type){
-                case 'withdraw':
+                case 'withdraw_by_manager':
+                    return "Withdraw";
+                    break;
+                case 'withdraw_by_inc':
                     return "Withdraw";
                     break;
                 case 'send_to_manager':

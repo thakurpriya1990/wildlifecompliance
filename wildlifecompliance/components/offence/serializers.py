@@ -1,11 +1,14 @@
 from django.db.models import Q
 from rest_framework import serializers
+
+from wildlifecompliance.components.main.serializers import CommunicationLogEntrySerializer
 from wildlifecompliance.components.organisations.models import Organisation
 from wildlifecompliance.components.call_email.serializers import LocationSerializer, EmailUserSerializer, \
     LocationSerializerOptimized
 from wildlifecompliance.components.main.fields import CustomChoiceField
 from wildlifecompliance.components.main.related_item import get_related_items
-from wildlifecompliance.components.offence.models import Offence, SectionRegulation, Offender, AllegedOffence
+from wildlifecompliance.components.offence.models import Offence, SectionRegulation, Offender, AllegedOffence, \
+    OffenceUserAction, OffenceCommsLogEntry
 from wildlifecompliance.components.sanction_outcome.models import SanctionOutcome, AllegedCommittedOffence
 from wildlifecompliance.components.users.serializers import CompliancePermissionGroupMembersSerializer
 
@@ -114,7 +117,7 @@ class OffenceDatatableSerializer(serializers.ModelSerializer):
         process_url = '<a href=/internal/offence/' + str(obj.id) + '>Process</a>'
         returned_url = ''
 
-        if obj.status == Offence.STATUS_CLOSED:
+        if obj.status not in Offence.EDITABLE_STATUSES:
             returned_url = view_url
         elif user_id == obj.assigned_to_id:
             returned_url = process_url
@@ -161,12 +164,12 @@ class OffenceDatatableSerializer(serializers.ModelSerializer):
 class OffenceSerializer(serializers.ModelSerializer):
     status = CustomChoiceField(read_only=True)
     location = LocationSerializer(read_only=True)
-    alleged_offences = serializers.SerializerMethodField(read_only=True)
-    # alleged_offences = AllegedOffenceSerializer(read_only=True, many=True)
-    offenders = serializers.SerializerMethodField(read_only=True)
+    alleged_offences = serializers.SerializerMethodField()
+    offenders = serializers.SerializerMethodField()
     allocated_group = serializers.SerializerMethodField()
     user_in_group = serializers.SerializerMethodField()
     can_user_action = serializers.SerializerMethodField()
+    can_user_edit = serializers.SerializerMethodField()
     user_is_assignee = serializers.SerializerMethodField()
     related_items = serializers.SerializerMethodField()
     in_editable_status = serializers.SerializerMethodField()
@@ -186,6 +189,7 @@ class OffenceSerializer(serializers.ModelSerializer):
             'allocated_group_id',
             'user_in_group',
             'can_user_action',
+            'can_user_edit',
             'user_is_assignee',
             'related_items',
             'district',
@@ -263,6 +267,13 @@ class OffenceSerializer(serializers.ModelSerializer):
                 if user_id == member.id:
                     return True
         return False
+
+    def get_can_user_edit(self, obj):
+        can_edit = False
+        if self.get_can_user_action(obj):
+            if obj.status in Offence.EDITABLE_STATUSES:
+                can_edit = True
+        return can_edit
 
     def get_can_user_action(self, obj):
         # User can have action buttons
@@ -372,7 +383,17 @@ class SaveOffenceSerializer(serializers.ModelSerializer):
         read_only_fields = ()
 
     def validate(self, data):
-        # Add object level validation here if needed
+        field_errors = {}
+        non_field_errors = []
+
+        if not data['region_id']:
+            non_field_errors.append('Offence must have a region.')
+
+        if field_errors:
+            raise serializers.ValidationError(field_errors)
+        if non_field_errors:
+            raise serializers.ValidationError(non_field_errors)
+
         return data
 
 
@@ -390,3 +411,25 @@ class SaveOffenderSerializer(serializers.ModelSerializer):
             'organisation_id',
         )
         read_only_fields = ()
+
+
+class OffenceUserActionSerializer(serializers.ModelSerializer):
+    who = serializers.CharField(source='who.get_full_name')
+
+    class Meta:
+        model = OffenceUserAction
+        fields = '__all__'
+
+
+class OffenceCommsLogEntrySerializer(CommunicationLogEntrySerializer):
+    documents = serializers.SerializerMethodField()
+
+    class Meta:
+        model = OffenceCommsLogEntry
+        fields = '__all__'
+        read_only_fields = (
+            'customer',
+        )
+
+    def get_documents(self, obj):
+        return [[d.name, d._file.url] for d in obj.documents.all()]

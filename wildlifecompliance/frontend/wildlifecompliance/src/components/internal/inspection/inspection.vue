@@ -130,6 +130,7 @@
                 <div class="container-fluid">
                     <ul class="nav nav-pills aho2">
                         <li class="nav-item active"><a data-toggle="tab" :href="'#'+iTab">Inspection</a></li>
+                        <li class="nav-item"><a data-toggle="tab" :href="'#'+lTab" @click="mapTabClicked">Location</a></li>
                         <li class="nav-item"><a data-toggle="tab" :href="'#'+cTab">Checklist</a></li>
                         <li class="nav-item"><a data-toggle="tab" :href="'#'+oTab">Outcomes</a></li>
                         <li class="nav-item"><a data-toggle="tab" :href="'#'+rTab">Related Items</a></li>
@@ -174,7 +175,7 @@
                               </div>
                             </div>
 
-                            <div class="col-sm-12 form-group"><div class="row">
+                            <div class="form-group"><div class="row">
                                 <label class="col-sm-3">Planned for (Date)</label>
                                 <div class="col-sm-3">
                                     <div class="input-group date" ref="plannedForDatePicker">
@@ -195,34 +196,39 @@
                                     </div>
                                 </div>
                             </div></div>
-                            <div class="col-sm-12 form-group"><div class="row">
+                            <!--div class="col-sm-12 form-group"><div class="row">
                                 <label class="col-sm-4">Party Inspected</label>
                                     <input :disabled="readonlyForm" class="col-sm-1" id="individual" type="radio" v-model="inspection.party_inspected" v-bind:value="`individual`">
                                     <label class="col-sm-1" for="individual">Person</label>
                                     <input :disabled="readonlyForm" class="col-sm-1" id="organisation" type="radio" v-model="inspection.party_inspected" v-bind:value="`organisation`">
                                     <label class="col-sm-1" for="organisation">Organisation</label>
-                            </div></div>
+                            </div></div-->
                             
-                            <div class="col-sm-12 form-group"><div class="row">
-                                <div class="col-sm-8">
-                                    <SearchPerson :excludeStaff="true" :isEditable="!readonlyForm" classNames="form-control" elementId="search-person" :search_type="inspection.party_inspected" @person-selected="personSelected"ref="search_person"/>
-                                </div>
+                            <div class="form-group"><div class="row">
+                                    <SearchPersonOrganisation 
+                                    :excludeStaff="true" 
+                                    :isEditable="!readonlyForm" 
+                                    classNames="form-control" 
+                                    :search_type="inspection.party_inspected" 
+                                    @entity-selected="entitySelected" 
+                                    showCreateUpdate
+                                    ref="search_person_organisation"/>
                                 <!--div class="col-sm-1">
                                     <input type="button" class="btn btn-primary" value="Add" @click.prevent="addOffenderClicked()" />
                                 </div-->
-                                <div class="col-sm-2">
+                                <!--div class="col-sm-2">
                                     <input :disabled="readonlyForm" type="button" class="btn btn-primary" value="Create New Person" @click.prevent="createNewPersonClicked()" />
-                                </div>
+                                </div-->
                             </div></div>
-                            <div class="col-sm-12 form-group"><div class="row">
+                            <!--div class="col-sm-12 form-group"><div class="row">
                                 <div class="col-sm-12" v-if="!readonlyForm">
                                   <CreateNewPerson :displayComponent="displayCreateNewPerson" @new-person-created="newPersonCreated"/>
                                 </div>
                                 <div class="col-sm-12" v-if="!readonlyForm">
                                   <CreateNewOrganisation/>
                                 </div>
-                            </div></div>
-                            <div class="col-sm-12 form-group"><div class="row">
+                            </div></div-->
+                            <div class="form-group"><div class="row">
                               <label class="col-sm-4" for="inspection_inform">Inform party being inspected</label>
                               <input :disabled="readonlyForm" type="checkbox" id="inspection_inform" v-model="inspection.inform_party_being_inspected">
                               
@@ -258,6 +264,42 @@
             
                           
                         </div>  
+
+                        <div :id="lTab" class="tab-pane fade in">
+                            <FormSection :formCollapse="false" label="Location">
+                                    <MapLocation v-if="inspection.location" v-bind:key="lTab" ref="mapLocationComponent" :readonly="readonlyForm" :marker_longitude="inspection.location.geometry.coordinates[0]" :marker_latitude="inspection.location.geometry.coordinates[1]" @location-updated="locationUpdated"/>
+                                    <div :id="idLocationFieldsAddress" v-if="inspection.location">
+                                        <div class="col-sm-12 form-group"><div class="row">
+                                            <label class="col-sm-4">Street</label>
+                                            <input class="form-control" v-model="inspection.location.properties.street" readonly />
+                                        </div></div>
+                                        <div class="col-sm-12 form-group"><div class="row">
+                                            <label class="col-sm-4">Town/Suburb</label>
+                                            <input class="form-control" v-model="inspection.location.properties.town_suburb" readonly />
+                                        </div></div>
+                                        <div class="col-sm-12 form-group"><div class="row">
+                                            <label class="col-sm-4">State</label>
+                                            <input class="form-control" v-model="inspection.location.properties.state" readonly />
+                                        </div></div>
+                                        <div class="col-sm-12 form-group"><div class="row">
+                                            <label class="col-sm-4">Postcode</label>
+                                            <input class="form-control" v-model="inspection.location.properties.postcode" readonly />
+                                        </div></div>
+                                        <div class="col-sm-12 form-group"><div class="row">
+                                            <label class="col-sm-4">Country</label>
+                                            <input class="form-control" v-model="inspection.location.properties.country" readonly />
+                                        </div></div>
+                                    </div>
+
+                                    <div :id="idLocationFieldsDetails" v-if="inspection.location">
+                                        <div class="col-sm-12 form-group"><div class="row">
+                                            <label class="col-sm-4">Details</label>
+                                            <textarea class="form-control location_address_field" v-model="inspection.location.properties.details" />
+                                        </div></div>
+                                    </div>
+                            </FormSection>
+                        </div>
+
                         <div :id="cTab" class="tab-pane fade in">
                             <FormSection :formCollapse="false" label="Checklist">
                                 <div class="col-sm-12 form-group"><div class="row">
@@ -279,7 +321,7 @@
                                             <label class="control-label pull-left"  for="Name">Inspection Report</label>
                                         </div>
                                         <div class="col-sm-9" v-if="inspection.inspectionReportDocumentUrl">
-                                            <filefield ref="inspection_report_file" name="inspection-report-file" :isRepeatable="false" :documentActionUrl="inspection.inspectionReportDocumentUrl" @update-parent="loadInspectionReport"/>
+                                            <filefield ref="inspection_report_file" name="inspection-report-file" :isRepeatable="false" :documentActionUrl="inspection.inspectionReportDocumentUrl" @update-parent="loadInspectionReport" :readonly="readonlyForm"/>
                                         </div>
                                     </div>
                                 </div>
@@ -289,7 +331,7 @@
                             <FormSection :formCollapse="false" label="Related Items">
                                 <div class="col-sm-12 form-group"><div class="row">
                                     <div class="col-sm-12" v-if="relatedItemsVisibility">
-                                        <RelatedItems v-bind:key="relatedItemsBindId" :parent_update_related_items="setRelatedItems" :readonlyForm="readonlyForm"/>
+                                        <RelatedItems v-bind:key="relatedItemsBindId" :parent_update_related_items="setRelatedItems" :readonlyForm="!canUserAction"/>
                                     </div>
                                 </div></div>
                             </FormSection>
@@ -316,7 +358,7 @@
           <InspectionWorkflow ref="add_workflow" :workflow_type="workflow_type" v-bind:key="workflowBindId" />
         </div-->
         <div v-if="offenceInitialised">
-            <Offence ref="offence" :parent_update_function="loadInspection" />
+            <Offence ref="offence" :parent_update_function="loadInspection" :region_id="inspection.region_id" :district_id="inspection.district_id" :allocated_group_id="inspection.allocated_group_id" />
         </div>
         <div v-if="sanctionOutcomeInitialised">
             <SanctionOutcome ref="sanction_outcome" :parent_update_function="loadInspection"/>
@@ -327,9 +369,9 @@
 <script>
 import Vue from "vue";
 import FormSection from "@/components/forms/section_toggle.vue";
-import SearchPerson from "@/components/common/search_person.vue";
-import CreateNewPerson from "@common-components/create_new_person.vue";
-import CreateNewOrganisation from "@common-components/create_new_organisation.vue";
+import SearchPersonOrganisation from "@/components/common/search_person_or_organisation.vue";
+//import CreateNewPerson from "@common-components/create_new_person.vue";
+//import CreateNewOrganisation from "@common-components/create_new_organisation.vue";
 import CommsLogs from "@common-components/comms_logs.vue";
 import datatable from '@vue-utils/datatable.vue'
 import { api_endpoints, helpers, cache_helper } from "@/utils/hooks";
@@ -343,6 +385,7 @@ import SanctionOutcome from '../sanction_outcome/sanction_outcome_modal';
 import filefield from '@/components/common/compliance_file.vue';
 import InspectionWorkflow from './inspection_workflow.vue';
 import RelatedItems from "@common-components/related_items.vue";
+import MapLocation from "../../common/map_location";
 require("select2/dist/css/select2.min.css");
 require("select2-bootstrap-theme/dist/select2-bootstrap.min.css");
 
@@ -355,10 +398,13 @@ export default {
       rTab: 'rTab'+this._uid,
       oTab: 'oTab'+this._uid,
       cTab: 'cTab'+this._uid,
+      lTab: 'lTab'+this._uid,
       current_schema: [],
       //createInspectionBindId: '',
       workflowBindId: '',
       inspectionTeam: null,
+            idLocationFieldsAddress: this.guid + "LocationFieldsAddress",
+            idLocationFieldsDetails: this.guid + "LocationFieldsDetails",
       dtHeadersInspectionTeam: [
           'Name',
           'Role',
@@ -376,7 +422,7 @@ export default {
                   data: 'Action',
                   mRender: function(data, type, row) {
                       let links = '';
-                      if (row.Action.can_user_action) {
+                      if (row.Action.readonlyForm) {
                           if (row.Action.action === 'Member') {
                               links = '<a href="#" class="make_team_lead" data-member-id="' + row.Action.id + '">Make Team Lead</a><br>'
                           } 
@@ -419,14 +465,15 @@ export default {
     CommsLogs,
     FormSection,
     datatable,
-    SearchPerson,
-    CreateNewPerson,
-    CreateNewOrganisation,
+    SearchPersonOrganisation,
+    //CreateNewPerson,
+    //CreateNewOrganisation,
     Offence,
     SanctionOutcome,
     filefield,
     InspectionWorkflow,
     RelatedItems,
+    MapLocation,
   },
   computed: {
     ...mapGetters('inspectionStore', {
@@ -550,6 +597,115 @@ export default {
       setPartyInspected: 'setPartyInspected',
       setRelatedItems: 'setRelatedItems',
     }),
+        mapTabClicked: function() {
+            // Call this function to render the map correctly
+            // In some case, leaflet map is not rendered correctly...   Just partialy shown...
+            if(this.$refs.mapLocationComponent){
+                this.$refs.mapLocationComponent.invalidateSize();
+            }
+        },
+        locationUpdated: function(latlng){
+            console.log('locationUpdated');
+            console.log(latlng);
+            // Update coordinate
+            this.inspection.location.geometry.coordinates[1] = latlng.lat;
+            this.inspection.location.geometry.coordinates[0] = latlng.lng;
+            // Update Address/Details
+            this.reverseGeocoding(latlng);
+        },
+        reverseGeocoding: function(coordinates_4326) {
+          var self = this;
+
+          $.ajax({
+            url: "https://mapbox.dpaw.wa.gov.au/geocoding/v5/mapbox.places/" + coordinates_4326.lng + "," + coordinates_4326.lat + ".json?" +
+              $.param({
+                limit: 1,
+                types: "address"
+              }),
+            dataType: "json",
+            success: function(data, status, xhr) {
+              let address_found = false;
+              if (data.features && data.features.length > 0) {
+                for (var i = 0; i < data.features.length; i++) {
+                  if (data.features[i].place_type.includes("address")) {
+                    self.setAddressFields(data.features[i]);
+                    address_found = true;
+                  }
+                }
+              }
+              if (address_found) {
+                self.showHideAddressDetailsFields(true, false);
+                self.setLocationDetailsFieldEmpty();
+              } else {
+                self.showHideAddressDetailsFields(false, true);
+                self.setLocationAddressEmpty();
+              }
+            }
+          });
+        },
+        setAddressFields(feature) {
+            if (this.inspection.location){
+                  let state_abbr_list = {
+                    "New South Wales": "NSW",
+                    Queensland: "QLD",
+                    "South Australia": "SA",
+                    Tasmania: "TAS",
+                    Victoria: "VIC",
+                    "Western Australia": "WA",
+                    "Northern Territory": "NT",
+                    "Australian Capital Territory": "ACT"
+                  };
+                  let address_arr = feature.place_name.split(",");
+
+                  /* street */
+                  this.inspection.location.properties.street = address_arr[0];
+
+                  /*
+                   * Split the string into suburb, state and postcode
+                   */
+                  let reg = /^([a-zA-Z0-9\s]*)\s(New South Wales|Queensland|South Australia|Tasmania|Victoria|Western Australia|Northern Territory|Australian Capital Territory){1}\s+(\d{4})$/gi;
+                  let result = reg.exec(address_arr[1]);
+
+                  /* suburb */
+                  this.inspection.location.properties.town_suburb = result[1].trim();
+
+                  /* state */
+                  let state_abbr = state_abbr_list[result[2].trim()];
+                  this.inspection.location.properties.state = state_abbr;
+
+                  /* postcode */
+                  this.inspection.location.properties.postcode = result[3].trim();
+
+                  /* country */
+                  this.inspection.location.properties.country = "Australia";
+            }
+        },
+        showHideAddressDetailsFields: function(showAddressFields, showDetailsFields) {
+          if (showAddressFields) {
+            $("#" + this.idLocationFieldsAddress).fadeIn();
+          } else {
+            $("#" + this.idLocationFieldsAddress).fadeOut();
+          }
+          if (showDetailsFields) {
+            $("#" + this.idLocationFieldsDetails).fadeIn();
+          } else {
+            $("#" + this.idLocationFieldsDetails).fadeOut();
+          }
+        },
+        setLocationAddressEmpty() {
+            if(this.inspection.location){
+                this.inspection.location.properties.town_suburb = "";
+                this.inspection.location.properties.street = "";
+                this.inspection.location.properties.state = "";
+                this.inspection.location.properties.postcode = "";
+                this.inspection.location.properties.country = "";
+            }
+        },
+        setLocationDetailsFieldEmpty() {
+            if(this.inspection.location){
+                this.inspection.location.properties.details = "";
+            }
+        },
     constructInspectionTeamTable: function() {
         console.log('constructInspectionTeamTable');
         this.$refs.inspection_team_table.vmDataTable.clear().draw();
@@ -560,7 +716,8 @@ export default {
 
             let actionColumn = new Object();
             Object.assign(actionColumn, this.inspectionTeam[i]);
-            actionColumn.can_user_action = this.inspection.can_user_action;
+            //actionColumn.can_user_action = this.inspection.can_user_action;
+            actionColumn.readonlyForm = this.inspection.readonlyForm;
 
             //if (!already_exists) {
             if (this.inspectionTeam[i].id) {
@@ -671,7 +828,7 @@ export default {
             action: 'make_team_lead'
         });
     },
-    personSelected: function(para) {
+    entitySelected: function(para) {
         console.log(para);
         this.setPartyInspected(para);
     },
@@ -789,20 +946,24 @@ export default {
             description: "",
           });
     
-      // Set Individual or Organisation in search field
-      if (this.inspection.individual_inspected) {
-          let value = [
-              this.inspection.individual_inspected.full_name, 
-              this.inspection.individual_inspected.dob].
-              filter(Boolean).join(", ");
-          this.$refs.search_person.setInput(value);
-      } else if (this.inspection.organisation_inspected) {
-          let value = [
-              this.inspection.organisation_inspected.name,
-              this.inspection.organisation_inspected.abn].
-              filter(Boolean).join(", ");
-          this.$refs.search_person.setInput(value);
-      }
+      //// Set Individual or Organisation in search field
+      //if (this.inspection.individual_inspected) {
+      //    let value = [
+      //        this.inspection.individual_inspected.full_name, 
+      //        this.inspection.individual_inspected.dob].
+      //        filter(Boolean).join(", ");
+      //    this.$refs.search_person_organisation.setInput(value);
+      //    this.$refs.search_person_organisation.entity.id = this.inspection.individual_inspected.id
+      //    this.$refs.search_person_organisation.entity.data_type = 'individual'
+      //} else if (this.inspection.organisation_inspected) {
+      //    let value = [
+      //        this.inspection.organisation_inspected.name,
+      //        this.inspection.organisation_inspected.abn].
+      //        filter(Boolean).join(", ");
+      //    this.$refs.search_person_organisation.setInput(value);
+      //    this.$refs.search_person_organisation.entity.id = this.inspection.organisation_inspected.id
+      //    this.$refs.search_person_organisation.entity.data_type = 'organisation'
+      //}
       // load Inspection report
       //await this.$refs.inspection_report_file.get_documents();
       
@@ -810,6 +971,24 @@ export default {
       this.$nextTick(async () => {
           if (this.inspection.inspection_type_id) {
               await this.loadSchema();
+          }
+          // Set Individual or Organisation in search field
+          if (this.inspection.individual_inspected) {
+              let value = [
+                  this.inspection.individual_inspected.full_name, 
+                  this.inspection.individual_inspected.dob].
+                  filter(Boolean).join(", ");
+              this.$refs.search_person_organisation.setInput(value);
+              this.$refs.search_person_organisation.entity.id = this.inspection.individual_inspected.id
+              this.$refs.search_person_organisation.entity.data_type = 'individual'
+          } else if (this.inspection.organisation_inspected) {
+              let value = [
+                  this.inspection.organisation_inspected.name,
+                  this.inspection.organisation_inspected.abn].
+                  filter(Boolean).join(", ");
+              this.$refs.search_person_organisation.setInput(value);
+              this.$refs.search_person_organisation.entity.id = this.inspection.organisation_inspected.id
+              this.$refs.search_person_organisation.entity.data_type = 'organisation'
           }
       });
       // calling modifyInspectionTeam with null parameters returns the current list
@@ -844,6 +1023,24 @@ export default {
       this.$nextTick(async () => {
           this.addEventListeners();
           this.constructInspectionTeamTable();
+          //// Set Individual or Organisation in search field
+          //if (this.inspection.individual_inspected) {
+          //    let value = [
+          //        this.inspection.individual_inspected.full_name, 
+          //        this.inspection.individual_inspected.dob].
+          //        filter(Boolean).join(", ");
+          //    this.$refs.search_person_organisation.setInput(value);
+          //    this.$refs.search_person_organisation.entity.id = this.inspection.individual_inspected.id
+          //    this.$refs.search_person_organisation.entity.data_type = 'individual'
+          //} else if (this.inspection.organisation_inspected) {
+          //    let value = [
+          //        this.inspection.organisation_inspected.name,
+          //        this.inspection.organisation_inspected.abn].
+          //        filter(Boolean).join(", ");
+          //    this.$refs.search_person_organisation.setInput(value);
+          //    this.$refs.search_person_organisation.entity.id = this.inspection.organisation_inspected.id
+          //    this.$refs.search_person_organisation.entity.data_type = 'organisation'
+          //}
       });
   }
 };

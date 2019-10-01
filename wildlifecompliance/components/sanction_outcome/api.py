@@ -589,10 +589,12 @@ class SanctionOutcomeViewSet(viewsets.ModelViewSet):
                     instance.return_to_officer(request)
                     # Email to the responsible officer
                     email_data = prepare_mail(request, instance, workflow_entry, send_mail, instance.responsible_officer.id)
-                elif workflow_type == SanctionOutcome.WORKFLOW_WITHDRAW:
-                    # Only infringement notice coordinator can withdraw
-                    instance.withdraw(request)
-                    # No need to email
+                elif workflow_type == SanctionOutcome.WORKFLOW_WITHDRAW_BY_INC:
+                    #  withdraw by Infringement notice coordinator
+                    instance.withdraw_by_inc(request)
+                elif workflow_type == SanctionOutcome.WORKFLOW_WITHDRAW_BY_MANAGER:
+                    #  withdraw by manager
+                    instance.withdraw_by_manager(request)
                 else:
                     # Should not reach here
                     # instance.save()

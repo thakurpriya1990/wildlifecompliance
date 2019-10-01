@@ -113,8 +113,8 @@ class SanctionOutcomeSerializer(serializers.ModelSerializer):
             'type',
             'status',
             'lodgement_number',
-            'region',
-            'district',
+            'region_id',
+            'district_id',
             'identifier',
             'offence',
             'offender',
@@ -277,25 +277,32 @@ class SaveSanctionOutcomeSerializer(serializers.ModelSerializer):
             'time_of_issue',
         )
 
-    def validate_offender_id(self, value):
-        # raise serializers.ValidationError('This is ValidationError in validate_offender_id() method in the serializer')
-        return value
-
-    def validate_district_id(self, value):
-        # raise serializers.ValidationError('This is ValidationError in validate_district_id() method in the serializer')
-        return value
-
     def validate(self, sanction_outcome):
-        # TODO: implement validation if needed
-        field_error = False
-        non_field_error = False
-        # This approach might be the best way to validation.  Becuase you can get multiple error messages at once
-        if field_error:
-            # For field erros
-            raise serializers.ValidationError({'field_1': ['error message 1A', 'error message 1B', 'error message 1C'], 'field_2': ['error message 1', 'error message 2']})
-        if non_field_error:
-            # For non_field_errors
-            raise serializers.ValidationError(['This is the 1st non_field_error', 'This is the 2nd non_field_error'])
+        # field_errors = {}
+        # # TODO: validate
+        # # Sample: field_errors['field_name1'] = ['error1', 'error2']
+        #
+        # non_field_errors = []
+        # if sanction_outcome['offender'] and not sanction_outcome['offence']:
+        #     non_field_errors.append('An offence must be selected to save offender(s).')
+        #
+        # if sanction_outcome['alleged_committed_offences'].length and not sanction_outcome['offence']:
+        #     non_field_errors.append('An offence must be selected to save alleged offence(s).')
+        #
+        # # validate if offender is registered under the offence
+        # if sanction_outcome['offender'] not in sanction_outcome['offence'].offender_set:
+        #     non_field_errors.append('Offender must be registered under the selected offence.')
+        #
+        # # make issued_on_papaer true whenever the type is letter_of_advice
+        # if sanction_outcome['type'] == SanctionOutcome.TYPE_LETTER_OF_ADVICE:
+        #     sanction_outcome['issued_on_paper'] = True
+        #
+        # # This approach might be the best way to validation.
+        # # You can get multiple error messages at once, though it is not possible to raise both field-errors and non-field-errors at once
+        # if field_errors:
+        #     raise serializers.ValidationError(field_errors)
+        # if non_field_errors:
+        #     raise serializers.ValidationError(non_field_errors)
 
         return sanction_outcome
 
@@ -311,20 +318,6 @@ class SaveRemediationActionSerializer(serializers.ModelSerializer):
             'due_date',
             'sanction_outcome_id',
         )
-
-
-class SanctionOutcomeCommsLogEntrySerializer(CommunicationLogEntrySerializer):
-    documents = serializers.SerializerMethodField()
-
-    class Meta:
-        model = SanctionOutcomeCommsLogEntry
-        fields = '__all__'
-        read_only_fields = (
-            'customer',
-        )
-
-    def get_documents(self, obj):
-        return [[d.name, d._file.url] for d in obj.documents.all()]
 
 
 class SanctionOutcomeUserActionSerializer(serializers.ModelSerializer):

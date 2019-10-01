@@ -9,42 +9,9 @@ import moment from 'moment';
 export const offenceStore = {
     namespaced: true,
     state: {
-        offence: {
-            id: null,
-            call_email_id: null,
-            inspection_id: null,
-            identifier: '',
-            status: 'draft',
-            offenders: [],
-            alleged_offences: [],
-            location: {
-                type: 'Feature',
-                properties: {
-                    town_suburb: null,
-                    street: null,
-                    state: 'WA',
-                    postcode: null,
-                    country: 'Australia',
-                    details: ''
-                },
-                geometry: {
-                    'type': 'Point',
-                    'coordinates': []
-                }
-            },
-            occurrence_from_to: true,
-            occurrence_date_from: null,
-            occurrence_date_to: null,
-            occurrence_time_from: null,
-            occurrence_time_to: null,
-            details: '',
-            region_id: null,
-            district_id: null,
-            assigned_to_id: null,
-            allocated_group: [],
-            allocated_group_id: null,
-            lodgement_number: '',
-        }
+        // offence doesn't have any contents in it.
+        // you can call setOffenceEmpty to store default contents
+        offence: {}
     },
     getters: {
         offence: state => state.offence,
@@ -90,7 +57,6 @@ export const offenceStore = {
             state.offence.inspection_id = id;
         },
         updateOffence(state, offence) {
-            console.log('updateOffence');
             if (!offence.location) {
                 /* When location is null, set default object */
                 offence.location =
@@ -119,7 +85,6 @@ export const offenceStore = {
             Vue.set(state, 'offence', offence);
         },
         updateOffenceEmpty(state){
-            console.log('updateOffenceEmpty');
             let offence = {
                 id: null,
                 call_email_id: null,
@@ -148,7 +113,13 @@ export const offenceStore = {
                 occurrence_date_to: null,
                 occurrence_time_from: null,
                 occurrence_time_to: null,
-                details: ''
+                details: '',
+                region_id: null,
+                district_id: null,
+                assigned_to_id: null,
+                allocated_group: [],
+                allocated_group_id: null,
+                lodgement_number: '',
             };
             Vue.set(state, 'offence', offence);
         },
@@ -181,33 +152,44 @@ export const offenceStore = {
     actions: {
         async loadOffence({ dispatch, }, { offence_id }) {
             try {
-                const returnedOffence = await Vue.http.get(helpers.add_endpoint_json(api_endpoints.offence, offence_id));
-                await dispatch("setOffence", returnedOffence.body);
+                if (offence_id) {
+                    const returnedOffence = await Vue.http.get(helpers.add_endpoint_json(api_endpoints.offence, offence_id));
+                    await dispatch("setOffence", returnedOffence.body);
+                } else {
+                    dispatch("setOffenceEmpty");
+                }
             } catch (err) {
                 console.log(err);
             }
         },
-        async saveOffence({dispatch, state}) {
+        async saveOffence({dispatch, state, commit}) {
             try{
+                console.log('try in offence.js');
                 // Construct url endpoint
                 let fetchUrl = helpers.add_endpoint_join(api_endpoints.offence, state.offence.id + '/');
 
                 // Construct payload to store data to be sent
                 let payload = new Object();
                 Object.assign(payload, state.offence);
+
+                // Format date
                 if (payload.occurrence_date_from) {
                     payload.occurrence_date_from = moment(payload.occurrence_date_from, 'DD/MM/YYYY').format('YYYY-MM-DD');
                 }
                 if (payload.occurrence_date_to) {
                     payload.occurrence_date_to = moment(payload.occurrence_date_to, 'DD/MM/YYYY').format('YYYY-MM-DD');
                 }
+
+                console.log('payload offence');
+                console.log(payload);
+
                 payload.status = 'open'
 
                 // Send data to the server
                 const savedOffence = await Vue.http.put(fetchUrl, payload);
 
                 // Restore returned data into the stre
-                Vue.set(this, 'offence', savedOffence.body);
+                commit("updateOffence", savedOffence.body);
 
                 // Display message
                 await swal("Saved", "The record has been saved", "success");
@@ -215,6 +197,8 @@ export const offenceStore = {
                 // Return the saved data just in case needed
                 return savedOffence;
             } catch (err) {
+                console.log('catch(err) in offence.js');
+
                 if (err.body.non_field_errors){
                     await swal("Error", err.body.non_field_errors[0], "error");
                 } else {
@@ -223,34 +207,38 @@ export const offenceStore = {
             }
         },
         async createOffence({dispatch, state}){
-            try{
-                let fetchUrl = '/api/offence/';
+            let fetchUrl = '/api/offence/';
 
-                let payload = new Object();
-                Object.assign(payload, state.offence);
-                if (payload.occurrence_date_from) {
-                    payload.occurrence_date_from = moment(payload.occurrence_date_from, 'DD/MM/YYYY').format('YYYY-MM-DD');
-                }
-                if (payload.occurrence_date_to) {
-                    payload.occurrence_date_to = moment(payload.occurrence_date_to, 'DD/MM/YYYY').format('YYYY-MM-DD');
-                }
-                const savedOffence = await Vue.http.post(fetchUrl, payload);
-                await dispatch("setOffence", savedOffence.body);
-                await swal("Saved", "The record has been saved", "success");
-                return savedOffence;
-            } catch (err) {
-                if (err.body.non_field_errors){
-                    await swal("Error", err.body.non_field_errors[0], "error");
-                } else {
-                    await swal("Error", "There was an error saving the record", "error");
-                }
+            let payload = new Object();
+            Object.assign(payload, state.offence);
+
+            if (payload.occurrence_date_from) {
+                payload.occurrence_date_from = moment(payload.occurrence_date_from, 'DD/MM/YYYY').format('YYYY-MM-DD');
+            } else {
+                payload.occurrence_date_from = null
             }
+
+            if (payload.occurrence_date_to) {
+                payload.occurrence_date_to = moment(payload.occurrence_date_to, 'DD/MM/YYYY').format('YYYY-MM-DD');
+            } else {
+                payload.occurrence_date_to = null
+            }
+
+            if (!payload.occurrence_time_from) {
+                payload.occurrence_time_from = null;
+            }
+            if (!payload.occurrence_time_to) {
+                payload.occurrence_time_to = null;
+            }
+
+            const savedOffence = await Vue.http.post(fetchUrl, payload);
+            await dispatch("setOffence", savedOffence.body);
+            return savedOffence;
         },
         setOffence({ commit, }, offence) {
             commit("updateOffence", offence);
         },
         setOffenceEmpty({ commit, }){
-            console.log('setOffenceEmpty');
             commit("updateOffenceEmpty");
         },
         setLocationPoint({ commit, }, point) {

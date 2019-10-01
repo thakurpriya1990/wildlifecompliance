@@ -343,18 +343,20 @@ class CallEmail(RevisionedMixin):
         self.save()
 
     def allocate_for_inspection(self, request):
-        self.status = self.STATUS_OPEN_INSPECTION
+        #self.status = self.STATUS_OPEN_INSPECTION
         self.log_user_action(
                 CallEmailUserAction.ACTION_ALLOCATE_FOR_INSPECTION.format(self.number), 
                 request)
-        self.save()
+        #self.save()
+        self.close(request)
 
     def allocate_for_case(self, request):
-        self.status = self.STATUS_OPEN_CASE
+        #self.status = self.STATUS_OPEN_CASE
         self.log_user_action(
-                CallEmailUserAction.ACTION_ALLOCATE_FOR_CASE.format(self.number), 
+                CallEmailUserAction.ACTION_ALLOCATE_FOR_CASE.format(self.number),
                 request)
-        self.save()
+        #self.save()
+        self.close(request)
 
     def close(self, request):
         close_record, parents = can_close_record(self, request)
