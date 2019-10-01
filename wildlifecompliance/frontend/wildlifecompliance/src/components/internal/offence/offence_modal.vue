@@ -187,6 +187,15 @@
                 </div>
             </div>
             <div slot="footer">
+                <div v-if="errorResponse" class="form-group">
+                    <div class="row">
+                        <div class="col-sm-12">
+                            <strong>
+                                <span style="white-space: pre;" v-html="errorResponse"></span>
+                            </strong>
+                        </div>
+                    </div>
+                </div>
                 <button type="button" v-if="processingDetails" disabled class="btn btn-default" @click="ok"><i class="fa fa-spinner fa-spin"></i> Adding</button>
                 <button type="button" v-else class="btn btn-default" @click="ok">Ok</button>
                 <button type="button" class="btn btn-default" @click="cancel">Cancel</button>
@@ -649,32 +658,63 @@ export default {
             this.$refs.alleged_offence_table.vmDataTable.row.add({ allegedOffence: allegedOffence, offence: this.offence }).draw();
         },
     ok: async function() {
-        this.processingDetails = true;
-        let response = await this.sendData();
-        if (response.ok) {
-            // Refresh offence table on the dashboard page
-            if (this.$parent.$refs.offence_table){
-                this.$parent.$refs.offence_table.vmDataTable.ajax.reload();
+        try {
+            this.processingDetails = true;
+            let response = await this.sendData();
+
+            console.log('try in ok()');
+            console.log(response);
+
+            if (response.ok) {
+                await swal("Saved", "The record has been saved", "success");
+
+                // Refresh offence table on the dashboard page
+                if (this.$parent.$refs.offence_table){
+                    this.$parent.$refs.offence_table.vmDataTable.ajax.reload();
+                }
+
+                // For CallEmail related items table
+                if (this.$parent.call_email) {
+                    await this.parent_update_function({
+                    call_email_id: this.$parent.call_email.id,
+                    });
+                }
+                if (this.$parent.inspection) {
+                    await this.parent_update_function({
+                        inspection_id: this.$parent.inspection.id,
+                    });
+                }
             }
 
-            // For CallEmail related items table
-            if (this.$parent.call_email) {
-                await this.parent_update_function({
-                call_email_id: this.$parent.call_email.id,
-                });
+            if (this.$parent.$refs.related_items_table) {
+                this.$parent.constructRelatedItemsTable();
             }
-            if (this.$parent.inspection) {
-                await this.parent_update_function({
-                    inspection_id: this.$parent.inspection.id,
-                });
-            }
-        }
-        if (this.$parent.$refs.related_items_table) {
-            this.$parent.constructRelatedItemsTable();
-        }
 
-        this.setOffenceEmpty();
-        this.close();
+            this.setOffenceEmpty();
+            this.close();
+            this.processingDetails = false;
+        } catch(err) {
+            this.processingDetails = false;
+            this.processError(err);
+        }
+    },
+    processError: function(err) {
+        let errorText = '';
+        if (err.body.non_field_errors) {
+            for (let i=0; i<err.body.non_field_errors.length; i++){
+                errorText += err.body.non_field_errors[i] + '<br />';
+            }
+        } else {
+            for (let field_name in err.body){
+                if (err.body.hasOwnProperty(field_name)){
+                    errorText += field_name + ':<br />';
+                    for (let j=0; j<err.body[field_name].length; j++){
+                        errorText += err.body[field_name][j] + '<br />';
+                    }
+                }
+            }
+        }
+        this.errorResponse = errorText;
     },
     cancel: function() {
       this.processingDetails = false;
@@ -690,42 +730,24 @@ export default {
       this.$refs.mapOffenceComponent.mapTabClicked();
     },
     sendData: async function() {
-      let vm = this;
+        let vm = this;
 
-      // If exists, set call_email id and other attributes to the offence
-      if (this.$parent.call_email) {
-          vm.setCallEmailId(this.$parent.call_email.id);
-      }
+        // If exists, set call_email id and other attributes to the offence
+        if (this.$parent.call_email) {
+            vm.setCallEmailId(this.$parent.call_email.id);
+        }
 
-      // If exists, set inspection id to the offence
-      if (this.$parent.inspection) {
-          vm.setInspectionId(this.$parent.inspection.id);
-      }
+        // If exists, set inspection id to the offence
+        if (this.$parent.inspection) {
+            vm.setInspectionId(this.$parent.inspection.id);
+        }
 
-      // Collect offenders data from the datatable, and set them to the vuex
-      let offenders = vm.$refs.offender_table.vmDataTable.rows().data().toArray();
-      vm.setOffenders(offenders);
+        // Collect offenders data from the datatable, and set them to the vuex
+        let offenders = vm.$refs.offender_table.vmDataTable.rows().data().toArray();
+        vm.setOffenders(offenders);
 
-      // Collect alleged offence data from the datatable, and set them to the vuex
-    //  let alleged_offences = vm.$refs.alleged_offence_table.vmDataTable.rows().data().toArray();
-    //  let alleged_offence_ids = alleged_offences.map(a => {
-    //    return { id: a.id }; // We just need id to create relations between the offence and the alleged offence(s)
-    //  });
-    //  vm.setAllegedOffenceIds(alleged_offence_ids);
-
-      try {
-          let res = await vm.createOffence();;
-          console.log(res);
-          if (res.ok) {
-            return res
-          }
-      } catch(err) {
-          console.log('--- err ---');
-          console.log(err);
-          console.log('--- END: err ---');
-          this.errorResponse = err.statusText;
-          return err;
-      }
+        let res = await vm.createOffence();;
+        return res
     },
     addEventListeners: function() {
       let vm = this;

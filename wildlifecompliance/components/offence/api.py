@@ -501,11 +501,12 @@ class OffenceViewSet(viewsets.ModelViewSet):
                 headers = self.get_success_headers(serializer.data)
                 return_serializer = OffenceSerializer(instance=saved_offence_instance, context={'request': request})
                 # return_serializer = InspectionSerializer(saved_instance, context={'request': request})
-                return Response(
+                ret = Response(
                     return_serializer.data,
                     status=status.HTTP_201_CREATED,
                     headers=headers
                 )
+                return ret
 
         except serializers.ValidationError:
             print(traceback.print_exc())

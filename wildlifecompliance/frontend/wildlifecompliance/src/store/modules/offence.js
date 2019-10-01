@@ -164,6 +164,7 @@ export const offenceStore = {
         },
         async saveOffence({dispatch, state, commit}) {
             try{
+                console.log('try in offence.js');
                 // Construct url endpoint
                 let fetchUrl = helpers.add_endpoint_join(api_endpoints.offence, state.offence.id + '/');
 
@@ -196,6 +197,8 @@ export const offenceStore = {
                 // Return the saved data just in case needed
                 return savedOffence;
             } catch (err) {
+                console.log('catch(err) in offence.js');
+
                 if (err.body.non_field_errors){
                     await swal("Error", err.body.non_field_errors[0], "error");
                 } else {
@@ -204,49 +207,33 @@ export const offenceStore = {
             }
         },
         async createOffence({dispatch, state}){
-            try{
-                let fetchUrl = '/api/offence/';
+            let fetchUrl = '/api/offence/';
 
-                let payload = new Object();
-                Object.assign(payload, state.offence);
+            let payload = new Object();
+            Object.assign(payload, state.offence);
 
-                console.log('payload before');
-                console.log(payload);
-
-                if (payload.occurrence_date_from) {
-                    payload.occurrence_date_from = moment(payload.occurrence_date_from, 'DD/MM/YYYY').format('YYYY-MM-DD');
-                } else {
-                    payload.occurrence_date_from = null
-                }
-
-                if (payload.occurrence_date_to) {
-                    payload.occurrence_date_to = moment(payload.occurrence_date_to, 'DD/MM/YYYY').format('YYYY-MM-DD');
-                } else {
-                    payload.occurrence_date_to = null
-                }
-
-                // Set null when "" (empty string) otherwise validation error raised at the server side...
-                if (!payload.occurrence_time_from) {
-                    payload.occurrence_time_from = null;
-                }
-                if (!payload.occurrence_time_to) {
-                    payload.occurrence_time_to = null;
-                }
-
-                console.log('payload before');
-                console.log(payload);
-
-                const savedOffence = await Vue.http.post(fetchUrl, payload);
-                await dispatch("setOffence", savedOffence.body);
-                await swal("Saved", "The record has been saved", "success");
-                return savedOffence;
-            } catch (err) {
-                if (err.body.non_field_errors){
-                    await swal("Error", err.body.non_field_errors[0], "error");
-                } else {
-                    await swal("Error", "There was an error saving the record", "error");
-                }
+            if (payload.occurrence_date_from) {
+                payload.occurrence_date_from = moment(payload.occurrence_date_from, 'DD/MM/YYYY').format('YYYY-MM-DD');
+            } else {
+                payload.occurrence_date_from = null
             }
+
+            if (payload.occurrence_date_to) {
+                payload.occurrence_date_to = moment(payload.occurrence_date_to, 'DD/MM/YYYY').format('YYYY-MM-DD');
+            } else {
+                payload.occurrence_date_to = null
+            }
+
+            if (!payload.occurrence_time_from) {
+                payload.occurrence_time_from = null;
+            }
+            if (!payload.occurrence_time_to) {
+                payload.occurrence_time_to = null;
+            }
+
+            const savedOffence = await Vue.http.post(fetchUrl, payload);
+            await dispatch("setOffence", savedOffence.body);
+            return savedOffence;
         },
         setOffence({ commit, }, offence) {
             commit("updateOffence", offence);
