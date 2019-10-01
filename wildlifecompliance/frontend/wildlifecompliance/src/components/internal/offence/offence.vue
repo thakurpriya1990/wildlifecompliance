@@ -214,9 +214,9 @@
                                     </div></div>
 
                                     <div class="col-sm-12 form-group"><div class="row">
-                                        <div class="col-sm-12">
+                                        <!--div class="col-sm-12">
                                           <CreateNewPerson :displayComponent="displayCreateNewPerson" @new-person-created="newPersonCreated"/>
-                                        </div>
+                                        </div-->
 
                                         <div class="col-sm-12">
                                             <datatable ref="offender_table" id="offender-table" :dtOptions="dtOptionsOffender" :dtHeaders="dtHeadersOffender" />
@@ -305,8 +305,8 @@ import { mapState, mapGetters, mapActions, mapMutations } from "vuex";
 import CommsLogs from "@common-components/comms_logs.vue";
 import filefield from '@/components/common/compliance_file.vue';
 import OffenceWorkflow from './offence_workflow';
-import PersonSearch from "@common-components/search_person.vue";
-import CreateNewPerson from "@common-components/create_new_person.vue";
+import PersonSearch from "@common-components/search_person_or_organisation.vue";
+//import CreateNewPerson from "@common-components/create_new_person.vue";
 import MapLocation from "../../common/map_location";
 import SanctionOutcome from '../sanction_outcome/sanction_outcome_modal';
 import 'bootstrap/dist/css/bootstrap.css';
@@ -544,7 +544,7 @@ export default {
         datatable,
         PersonSearch,
         MapLocation,
-        CreateNewPerson,
+        //CreateNewPerson,
         RelatedItems,
         SanctionOutcome,
     },

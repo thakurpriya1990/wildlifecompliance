@@ -1,6 +1,44 @@
 <template lang="html">
     <div class="">
-        <input :id="elemId" :class="classNames" :readonly="!isEditable" />
+        <div class="col-sm-12 form-group"><div class="row">
+                <label class="col-sm-4">{{ labelTitle }}</label>
+                <input :disabled="!isEditable" class="col-sm-1" id="individual" type="radio" v-model="searchType" v-bind:value="`individual`">
+                <label class="col-sm-1" for="individual">Person</label>
+                <input :disabled="!isEditable" class="col-sm-1" id="organisation" type="radio" v-model="searchType" v-bind:value="`organisation`">
+                <label class="col-sm-1" for="organisation">Organisation</label>
+        </div></div>
+        <div class="form-group"><div class="row">
+            <div class="col-sm-12">
+                <div class="col-sm-8">
+                    <input :id="elemId" :class="classNames" :readonly="!isEditable" ref="search_person_org"/>
+                </div>
+                <div v-if="showCreateUpdate && searchType === 'individual'" class="col-sm-2">
+                    <input :disabled="!isEditable" type="button" class="btn btn-primary" value="Create New Person" @click.prevent="createNewPerson()" />
+                    <!--input :disabled="!isEditable" type="button" class="btn btn-primary" value="Create/Update Person" @click.prevent="createUpdatePersonClicked()" /-->
+                </div>
+                <div v-else-if="showCreateUpdate && searchType === 'organisation'" class="col-sm-2">
+                    <input :disabled="!isEditable" type="button" class="btn btn-primary" value="Create/Update Organisation" @click.prevent="createUpdateOrganisationClicked()" />
+                </div>
+            </div>
+        </div></div>
+        <div class="form-group"><div class="row">
+            <div class="col-sm-8" v-if="errorText">
+                <strong><span style="white-space: pre;">{{ errorText }}</span></strong>
+            </div>
+        </div></div>
+        <div class="form-group"><div class="row">
+            <div class="col-sm-12" v-if="displayUpdateCreatePerson">
+              <updateCreatePerson 
+              displayComponent 
+              :personToUpdate="entity.id"
+              @person-saved="savePerson"
+              v-bind:key="updateCreatePersonBindId"
+              ref="update_create_person"/>
+            </div>
+            <div class="col-sm-12" v-if="displayUpdateCreateOrganisation">
+              <updateCreateOrganisation displayComponent @organisation-saved=""/>
+            </div>
+        </div></div>
     </div>
 </template>
 
@@ -9,24 +47,72 @@ import Awesomplete from "awesomplete";
 import $ from "jquery";
 import "bootstrap/dist/css/bootstrap.css";
 import "awesomplete/awesomplete.css";
+import updateCreatePerson from '@common-components/update_create_person.vue'
+import updateCreateOrganisation from '@common-components/update_create_organisation.vue'
 
 export default {
-    name: "search-person",
+    name: "search-person-organisation",
     data: function(){
         let vm = this;
         vm.awesomplete_obj = null;
 
         return {
-            elemId: 'create_new_person_' + vm._uid,
+            //elemId: 'create_new_person_' + vm._uid,
+            elemId: this.search_type + vm._uid,
+            entity: {
+                id: null,
+                data_type: null
+            },
+            //entity_id: null,
+            //entity_data_type: null,
+            displayUpdateCreatePerson: false,
+            displayUpdateCreateOrganisation: false,
+            searchType: '',
+            errorText: '',
+
         }
+    },
+    components: {
+        updateCreatePerson,
+        updateCreateOrganisation,
+    },
+    watch: {
+        entity: {
+            handler: function (){
+                if (this.entity.id) {
+                    this.$emit('entity-selected', { 
+                        id: this.entity.id, 
+                        data_type: this.entity.data_type });
+                }
+                if (this.entity.id && this.entity.data_type === 'individual') {
+                    this.displayUpdateCreatePerson = true;
+                } else if (this.entity.id && this.entity.data_type === 'organisation') {
+                    this.displayUpdateCreateOrganisation = true;
+                }
+            },
+            deep: true
+        },
+    },
+    computed: {
+        labelTitle: function() {
+            if (this.searchType) {
+                return "Search " + this.searchType;
+            }
+        },
+        updateCreatePersonBindId: function() {
+            if (this.entity.data_type && this.entity.id) {
+                return this.entity.data_type + '_' + this.entity.id
+            }
+        },
     },
     props: {
         // This prop is not used any more.  Instead elemId in the data is used.
-        elementId: {
-            required: false
-        },
+        //elementId: {
+        //    required: false
+        //},
         classNames: {
-            required: false
+            required: false,
+            default: 'form-control',
         },
         maxItems: {
             required: false,
@@ -45,20 +131,59 @@ export default {
             type: Boolean,
             required: false,
             default: false,
-        }
+        },
+        showCreateUpdate: {
+            type: Boolean,
+            required: false,
+            default: false,
+        },
     },
     methods: {
+        createNewPerson: function() {
+            this.$refs.update_create_person.setDefaultPerson();
+            this.setInput('');
+        },
+        removeOrganisation: function() {
+            //this.$refs.update_create_person.setDefaultPerson();
+        },
         clearInput: function(){
             document.getElementById(this.elemId).value = "";
         },
-        setInput: function(offender_str){
-            document.getElementById(this.elemId).value = offender_str;
+        setInput: function(person_org_str){
+            console.log("setInput")
+            document.getElementById(this.elemId).value = person_org_str;
         },
         markMatchedText(original_text, input) {
             let ret_text = original_text.replace(new RegExp(input, "gi"), function( a, b) {
                 return "<mark>" + a + "</mark>";
             });
             return ret_text;
+        },
+        createUpdatePersonClicked: function() {
+          //this.newPersonBeingCreated = true;
+          this.displayUpdateCreatePerson = !this.displayUpdateCreatePerson;
+        },
+        createUpdateOrganisationClicked: function() {
+          this.displayUpdateCreateOrganisation = !this.displayUpdateCreateOrganisation;
+        },
+        savePerson: function(obj) {
+            console.log("savePerson")
+            console.log(obj);
+            if(obj.person){
+                this.$emit('entity-selected', {data_type: 'individual', id: obj.person.id});
+
+                // Set fullname and DOB into the input box
+                let full_name = [obj.person.first_name, obj.person.last_name].filter(Boolean).join(" ");
+                let dob = obj.person.dob ? "DOB:" + obj.person.dob : "DOB: ---";
+                let value = [full_name, dob].filter(Boolean).join(", ");
+                //this.$refs.search_person_org.setInput(value);
+                this.setInput(value);
+            } else if (obj.error) {
+                console.log(obj.error);
+                this.errorText = obj.error;
+            } else {
+                // Should not reach here
+            }
         },
         initAwesomplete: function() {
             let vm = this;
@@ -127,6 +252,7 @@ export default {
             .on("keyup", function(ev) {
                 var keyCode = ev.keyCode || ev.which;
                 if ((48 <= keyCode && keyCode <= 90) || (96 <= keyCode && keyCode <= 105) || keyCode == 8 || keyCode == 46) {
+                    console.log(ev.target.value)
                     vm.search_person_or_organisation(ev.target.value);
                     return false;
                 }
@@ -151,7 +277,14 @@ export default {
                 // 
                 // id is an Emailuser.id when data_type is 'individual' or 
                 // an Organisation.id when data_type is 'organisation'
-                vm.$emit('person-selected', { id: data_item_id, data_type: data_type });
+                vm.$nextTick(() => {
+                    vm.entity.id = parseInt(data_item_id)
+                    vm.entity.data_type = data_type
+                    //vm.$emit('entity-selected', { 
+                    //    id: this.entity_id, 
+                    //    data_type: this.entity_data_type });
+                });
+                // vm.$emit('entity-selected', { id: data_item_id, data_type: data_type });
             });
         },
         search_person_or_organisation(searchTerm){
@@ -192,11 +325,31 @@ export default {
         },
     },
     created: function() {
-        let vm = this;
-        vm.$nextTick(()=>{
-            vm.initAwesomplete();
+        this.$nextTick(()=>{
+            this.initAwesomplete();
+            this.searchType = this.search_type;
+
+            //if (this.inspection.party_inspected === 'individual') {
+            //    this.entity.id = this.inspection.individual_inspected_id;
+            //    this.entity.data_type = 'individual'
+            //} else if (this.inspection.party_inspected === 'organisation') {
+            //    this.entity.id = this.inspection.organisation_inspected_id;
+            //    this.entity.data_type = 'organisation'
+            //}
+
         });
-    }
+    },
+    //mounted: function() {
+    //    this.$nextTick(()=>{
+    //        if (this.inspection.party_inspected === 'individual') {
+    //            this.entity.id = this.inspection.individual_inspected_id;
+    //            this.entity.data_type = 'individual'
+    //        } else if (this.inspection.party_inspected === 'organisation') {
+    //            this.entity.id = this.inspection.organisation_inspected_id;
+    //            this.entity.data_type = 'organisation'
+    //        }
+    //    });
+    //},
 }
 </script>
 

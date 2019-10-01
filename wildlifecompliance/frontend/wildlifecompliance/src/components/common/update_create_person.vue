@@ -16,7 +16,7 @@
                             <label for="" class="col-sm-3 control-label">Given Name(s)</label>
                             <div class="col-sm-6">
                                 <div v-if="email_user">
-                                    <input type="text" class="form-control" name="first_name" placeholder="" v-model="email_user.first_name" v-bind:key="email_user.id">
+                                    <input :readonly="personalDetailsReadOnly" type="text" class="form-control" name="first_name" placeholder="" v-model="email_user.first_name" v-bind:key="email_user.id">
                                 </div>
                             </div>
                         </div>
@@ -24,7 +24,7 @@
                             <label for="" class="col-sm-3 control-label">Last Name</label>
                             <div class="col-sm-6">
                                 <div v-if="email_user">
-                                    <input type="text" class="form-control" name="last_name" placeholder="" v-model="email_user.last_name" v-bind:key="email_user.id">
+                                    <input :readonly="personalDetailsReadOnly" type="text" class="form-control" name="last_name" placeholder="" v-model="email_user.last_name" v-bind:key="email_user.id">
                                 </div>
                             </div>
                         </div>
@@ -32,7 +32,7 @@
                             <label for="" class="col-sm-3 control-label" >Date of Birth</label>
                             <div class="col-sm-6">
                                 <div v-if="email_user">
-                                    <input type="date" class="form-control" name="dob" placeholder="" v-model="email_user.dob" v-bind:key="email_user.id">
+                                    <input :readonly="personalDetailsReadOnly" type="date" class="form-control" name="dob" placeholder="" v-model="email_user.dob" v-bind:key="email_user.id">
                                 </div>
                             </div>
                         </div>
@@ -51,7 +51,7 @@
                         <div class="form-group">
                         <label for="" class="col-sm-3 control-label">Street</label>
                         <div class="col-sm-6">
-                            <div v-if="email_user"><div v-if="email_user.residential_address">
+                            <div v-if="email_user"><div>
                                 <input type="text" class="form-control" name="street" placeholder="" v-model="email_user.residential_address.line1" v-bind:key="email_user.residential_address.id">
                             </div></div>
                         </div>
@@ -59,7 +59,7 @@
                     <div class="form-group">
                         <label for="" class="col-sm-3 control-label" >Town/Suburb</label>
                         <div class="col-sm-6">
-                            <div v-if="email_user"><div v-if="email_user.residential_address">
+                            <div v-if="email_user"><div>
                                 <input type="text" class="form-control" name="surburb" placeholder="" v-model="email_user.residential_address.locality" v-bind:key="email_user.residential_address.id">
                             </div></div>
                         </div>
@@ -67,13 +67,13 @@
                         <div class="form-group">
                         <label for="" class="col-sm-3 control-label">State</label>
                         <div class="col-sm-2">
-                            <div v-if="email_user"><div v-if="email_user.residential_address">
+                            <div v-if="email_user"><div>
                                 <input type="text" class="form-control" name="country" placeholder="" v-model="email_user.residential_address.state" v-bind:key="email_user.residential_address.id">
                             </div></div>
                         </div>
                         <label for="" class="col-sm-2 control-label">Postcode</label>
                         <div class="col-sm-2">
-                            <div v-if="email_user"><div v-if="email_user.residential_address">
+                            <div v-if="email_user"><div>
                                 <input type="text" class="form-control" name="postcode" placeholder="" v-model="email_user.residential_address.postcode" v-bind:key="email_user.residential_address.id">
                             </div></div>
                         </div>
@@ -81,7 +81,7 @@
                         <div class="form-group">
                         <label for="" class="col-sm-3 control-label" >Country</label>
                         <div class="col-sm-4">
-                            <div v-if="email_user"><div v-if="email_user.residential_address">
+                            <div v-if="email_user"><div>
                                 <select class="form-control" name="country" v-model="email_user.residential_address.country" v-bind:key="email_user.residential_address.id">
                                     <option v-for="c in countries" :value="c.alpha2Code">{{ c.name }}</option>
                                 </select>
@@ -127,7 +127,7 @@
                 </div>
             </div>
 
-            <input v-if="displaySaveButton" type="button" class="pull-right btn btn-primary" value="Save" @click.prevent="saveData" />
+            <input v-if="displaySaveButton" type="button" class="pull-right btn btn-primary" value="Save Person" @click.prevent="saveData" />
         </div>
     </div>
 </template>
@@ -182,11 +182,6 @@ export default {
             }
         }
     },
-    computed: {
-        personId: function() {
-            return this.email_user.id;
-        }
-    },
     props: {
         displayComponent: {
             type: Boolean,
@@ -222,6 +217,20 @@ export default {
             type: Number,
             required: false,
             default: 300,
+        },
+        personToUpdate: {
+            type: Number,
+            required: false,
+        },
+    },
+    computed: {
+        personId: function() {
+            return this.email_user.id;
+        },
+        personalDetailsReadOnly: function() {
+            if (this.email_user.id) {
+                return true;
+            }
         },
     },
     watch: {
@@ -271,7 +280,7 @@ export default {
             if (this.personId) {
                 this.setExistingPerson(this.personId);
             } else {
-                this.setDefautlPerson();
+                this.setDefaultPerson();
             }
         },
         setExistingPerson: function(id){
@@ -279,13 +288,15 @@ export default {
 
             let initialisers = [utils.fetchUser(id)];
             Promise.all(initialisers).then(data => {
+                console.log(data[0])
                 vm.email_user = data[0];
+                !vm.email_user.residential_address ? vm.email_user.residential_address = {} : null
             });
         },
         setPersonId: function(id){
             this.email_user.id = id;
         },
-        setDefautlPerson: function(){
+        setDefaultPerson: function(){
             let email_user = {
                 id: null,
                 first_name: '',
@@ -302,7 +313,7 @@ export default {
                 mobile_number: '',
                 email: '',
             };
-            Vue.set(data, 'email_user', email_user);
+            Vue.set(this._data, 'email_user', email_user);
         },
         handleSlideElement: function(elem_id){
             let elem = $('#' + elem_id);
@@ -325,11 +336,32 @@ export default {
         },
         saveData: async function() {
             try{
-                let fetchUrl = helpers.add_endpoint_json(api_endpoints.users, 'create_new_person');
+                if (this.email_user.residential_address && !this.email_user.residential_address.line1) {
+                    this.email_user.residential_address = null;
+                }
+                console.log(this.email_user)
+                let fetchUrl = ''
+                if (this.email_user.id) {
+                    //console.log(this.email_user.id)
+                    fetchUrl = helpers.add_endpoint_join(api_endpoints.compliance_management_users, this.email_user.id + '/update_person/');
+                } else {
+                    //console.log(this.email_user.id)
+                    //console.log(api_endpoints.compliance_management_users)
+                    fetchUrl = api_endpoints.compliance_management_users
+                    //console.log(fetchUrl)
+                }
+
                 let savedEmailUser = await Vue.http.post(fetchUrl, this.email_user);
-                this.$emit('new-person-created', {'person': savedEmailUser.body, 'error': null});
+                this.email_user = savedEmailUser.body;
+                !this.email_user.residential_address ? this.email_user.residential_address = {} : null
+                //console.log(savedEmailUser)
+                this.$emit('person-saved', {'person': savedEmailUser.body, 'error': null});
             } catch (err) {
-                this.$emit('new-person-created', {'person': null, 'error': err});
+                // this.$emit('person-saved', {'person': null, 'error': err});
+                if (err.bodyText) {
+                    let errorText = 'Error: ' + err.bodyText;
+                    this.$emit('person-saved', {'person': null, 'error': errorText});
+                }
             }
         },
         showHideElement: function() {
@@ -341,6 +373,7 @@ export default {
         }
     },
     mounted: function() {
+        console.log("create person mounted")
         let vm = this;
         let elem = document.getElementById(vm.elementId);
         vm.mainElement = $(elem);
@@ -353,7 +386,13 @@ export default {
             vm.isAddressDetailsOpen = vm.defaultOpenAddressDetails;
             vm.isContactDetailsOpen = vm.defaultOpenContactDetails;
         })
-    }
+    },
+    created: function() {
+        if (this.personToUpdate) {
+            this.setExistingPerson(this.personToUpdate);
+            //Object.assign(this.email_user, this.personToUpdate);
+        }
+    },
 }
 </script>
 

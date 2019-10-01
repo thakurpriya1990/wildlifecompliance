@@ -49,5 +49,6 @@ module.exports = {
     call_email_paginated: '/api/call_email_paginated/',
     inspection: '/api/inspection/',
     temporary_document: '/api/temporary_document/',
+    compliance_management_users: '/api/compliance_management_users/',
 }
 
