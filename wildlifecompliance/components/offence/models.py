@@ -243,6 +243,8 @@ class OffenceUserAction(UserAction):
     ACTION_REMOVE_OFFENDER = "Remove offender: {}, Reason: {}"
     ACTION_RESTORE_ALLEGED_OFFENCE = "Restore alleged offence: {}"
     ACTION_RESTORE_OFFENDER = "Restore offender: {}"
+    ACTION_ADD_WEAK_LINK = "Create manual link between {}: {} and {}: {}"
+    ACTION_REMOVE_WEAK_LINK = "Remove manual link between {}: {} and {}: {}"
 
     class Meta:
         app_label = 'wildlifecompliance'

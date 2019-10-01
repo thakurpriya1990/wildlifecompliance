@@ -72,6 +72,7 @@ router.register(r'organisation_requests_paginated',
 router.register(r'organisation_contacts', org_api.OrganisationContactViewSet)
 router.register(r'my_organisations', org_api.MyOrganisationsViewSet)
 router.register(r'users', users_api.UserViewSet)
+router.register(r'compliance_management_users', users_api.ComplianceManagementUserViewSet)
 router.register(r'users_paginated', users_api.UserPaginatedViewSet)
 router.register(r'profiles', users_api.ProfileViewSet)
 router.register(r'my_profiles', users_api.MyProfilesViewSet)

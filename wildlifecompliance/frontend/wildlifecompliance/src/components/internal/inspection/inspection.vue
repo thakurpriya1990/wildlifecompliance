@@ -175,7 +175,7 @@
                               </div>
                             </div>
 
-                            <div class="col-sm-12 form-group"><div class="row">
+                            <div class="form-group"><div class="row">
                                 <label class="col-sm-3">Planned for (Date)</label>
                                 <div class="col-sm-3">
                                     <div class="input-group date" ref="plannedForDatePicker">
@@ -196,34 +196,39 @@
                                     </div>
                                 </div>
                             </div></div>
-                            <div class="col-sm-12 form-group"><div class="row">
+                            <!--div class="col-sm-12 form-group"><div class="row">
                                 <label class="col-sm-4">Party Inspected</label>
                                     <input :disabled="readonlyForm" class="col-sm-1" id="individual" type="radio" v-model="inspection.party_inspected" v-bind:value="`individual`">
                                     <label class="col-sm-1" for="individual">Person</label>
                                     <input :disabled="readonlyForm" class="col-sm-1" id="organisation" type="radio" v-model="inspection.party_inspected" v-bind:value="`organisation`">
                                     <label class="col-sm-1" for="organisation">Organisation</label>
-                            </div></div>
+                            </div></div-->
                             
-                            <div class="col-sm-12 form-group"><div class="row">
-                                <div class="col-sm-8">
-                                    <SearchPerson :excludeStaff="true" :isEditable="!readonlyForm" classNames="form-control" elementId="search-person" :search_type="inspection.party_inspected" @person-selected="personSelected"ref="search_person"/>
-                                </div>
+                            <div class="form-group"><div class="row">
+                                    <SearchPersonOrganisation 
+                                    :excludeStaff="true" 
+                                    :isEditable="!readonlyForm" 
+                                    classNames="form-control" 
+                                    :search_type="inspection.party_inspected" 
+                                    @entity-selected="entitySelected" 
+                                    showCreateUpdate
+                                    ref="search_person_organisation"/>
                                 <!--div class="col-sm-1">
                                     <input type="button" class="btn btn-primary" value="Add" @click.prevent="addOffenderClicked()" />
                                 </div-->
-                                <div class="col-sm-2">
+                                <!--div class="col-sm-2">
                                     <input :disabled="readonlyForm" type="button" class="btn btn-primary" value="Create New Person" @click.prevent="createNewPersonClicked()" />
-                                </div>
+                                </div-->
                             </div></div>
-                            <div class="col-sm-12 form-group"><div class="row">
+                            <!--div class="col-sm-12 form-group"><div class="row">
                                 <div class="col-sm-12" v-if="!readonlyForm">
                                   <CreateNewPerson :displayComponent="displayCreateNewPerson" @new-person-created="newPersonCreated"/>
                                 </div>
                                 <div class="col-sm-12" v-if="!readonlyForm">
                                   <CreateNewOrganisation/>
                                 </div>
-                            </div></div>
-                            <div class="col-sm-12 form-group"><div class="row">
+                            </div></div-->
+                            <div class="form-group"><div class="row">
                               <label class="col-sm-4" for="inspection_inform">Inform party being inspected</label>
                               <input :disabled="readonlyForm" type="checkbox" id="inspection_inform" v-model="inspection.inform_party_being_inspected">
                               
@@ -316,7 +321,7 @@
                                             <label class="control-label pull-left"  for="Name">Inspection Report</label>
                                         </div>
                                         <div class="col-sm-9" v-if="inspection.inspectionReportDocumentUrl">
-                                            <filefield ref="inspection_report_file" name="inspection-report-file" :isRepeatable="false" :documentActionUrl="inspection.inspectionReportDocumentUrl" @update-parent="loadInspectionReport"/>
+                                            <filefield ref="inspection_report_file" name="inspection-report-file" :isRepeatable="false" :documentActionUrl="inspection.inspectionReportDocumentUrl" @update-parent="loadInspectionReport" :readonly="readonlyForm"/>
                                         </div>
                                     </div>
                                 </div>
@@ -326,7 +331,7 @@
                             <FormSection :formCollapse="false" label="Related Items">
                                 <div class="col-sm-12 form-group"><div class="row">
                                     <div class="col-sm-12" v-if="relatedItemsVisibility">
-                                        <RelatedItems v-bind:key="relatedItemsBindId" :parent_update_related_items="setRelatedItems" :readonlyForm="readonlyForm"/>
+                                        <RelatedItems v-bind:key="relatedItemsBindId" :parent_update_related_items="setRelatedItems" :readonlyForm="!canUserAction"/>
                                     </div>
                                 </div></div>
                             </FormSection>
@@ -364,9 +369,9 @@
 <script>
 import Vue from "vue";
 import FormSection from "@/components/forms/section_toggle.vue";
-import SearchPerson from "@/components/common/search_person.vue";
-import CreateNewPerson from "@common-components/create_new_person.vue";
-import CreateNewOrganisation from "@common-components/create_new_organisation.vue";
+import SearchPersonOrganisation from "@/components/common/search_person_or_organisation.vue";
+//import CreateNewPerson from "@common-components/create_new_person.vue";
+//import CreateNewOrganisation from "@common-components/create_new_organisation.vue";
 import CommsLogs from "@common-components/comms_logs.vue";
 import datatable from '@vue-utils/datatable.vue'
 import { api_endpoints, helpers, cache_helper } from "@/utils/hooks";
@@ -417,7 +422,7 @@ export default {
                   data: 'Action',
                   mRender: function(data, type, row) {
                       let links = '';
-                      if (row.Action.can_user_action) {
+                      if (row.Action.readonlyForm) {
                           if (row.Action.action === 'Member') {
                               links = '<a href="#" class="make_team_lead" data-member-id="' + row.Action.id + '">Make Team Lead</a><br>'
                           } 
@@ -460,9 +465,9 @@ export default {
     CommsLogs,
     FormSection,
     datatable,
-    SearchPerson,
-    CreateNewPerson,
-    CreateNewOrganisation,
+    SearchPersonOrganisation,
+    //CreateNewPerson,
+    //CreateNewOrganisation,
     Offence,
     SanctionOutcome,
     filefield,
@@ -711,7 +716,8 @@ export default {
 
             let actionColumn = new Object();
             Object.assign(actionColumn, this.inspectionTeam[i]);
-            actionColumn.can_user_action = this.inspection.can_user_action;
+            //actionColumn.can_user_action = this.inspection.can_user_action;
+            actionColumn.readonlyForm = this.inspection.readonlyForm;
 
             //if (!already_exists) {
             if (this.inspectionTeam[i].id) {
@@ -822,7 +828,7 @@ export default {
             action: 'make_team_lead'
         });
     },
-    personSelected: function(para) {
+    entitySelected: function(para) {
         console.log(para);
         this.setPartyInspected(para);
     },
@@ -940,20 +946,24 @@ export default {
             description: "",
           });
     
-      // Set Individual or Organisation in search field
-      if (this.inspection.individual_inspected) {
-          let value = [
-              this.inspection.individual_inspected.full_name, 
-              this.inspection.individual_inspected.dob].
-              filter(Boolean).join(", ");
-          this.$refs.search_person.setInput(value);
-      } else if (this.inspection.organisation_inspected) {
-          let value = [
-              this.inspection.organisation_inspected.name,
-              this.inspection.organisation_inspected.abn].
-              filter(Boolean).join(", ");
-          this.$refs.search_person.setInput(value);
-      }
+      //// Set Individual or Organisation in search field
+      //if (this.inspection.individual_inspected) {
+      //    let value = [
+      //        this.inspection.individual_inspected.full_name, 
+      //        this.inspection.individual_inspected.dob].
+      //        filter(Boolean).join(", ");
+      //    this.$refs.search_person_organisation.setInput(value);
+      //    this.$refs.search_person_organisation.entity.id = this.inspection.individual_inspected.id
+      //    this.$refs.search_person_organisation.entity.data_type = 'individual'
+      //} else if (this.inspection.organisation_inspected) {
+      //    let value = [
+      //        this.inspection.organisation_inspected.name,
+      //        this.inspection.organisation_inspected.abn].
+      //        filter(Boolean).join(", ");
+      //    this.$refs.search_person_organisation.setInput(value);
+      //    this.$refs.search_person_organisation.entity.id = this.inspection.organisation_inspected.id
+      //    this.$refs.search_person_organisation.entity.data_type = 'organisation'
+      //}
       // load Inspection report
       //await this.$refs.inspection_report_file.get_documents();
       
@@ -961,6 +971,24 @@ export default {
       this.$nextTick(async () => {
           if (this.inspection.inspection_type_id) {
               await this.loadSchema();
+          }
+          // Set Individual or Organisation in search field
+          if (this.inspection.individual_inspected) {
+              let value = [
+                  this.inspection.individual_inspected.full_name, 
+                  this.inspection.individual_inspected.dob].
+                  filter(Boolean).join(", ");
+              this.$refs.search_person_organisation.setInput(value);
+              this.$refs.search_person_organisation.entity.id = this.inspection.individual_inspected.id
+              this.$refs.search_person_organisation.entity.data_type = 'individual'
+          } else if (this.inspection.organisation_inspected) {
+              let value = [
+                  this.inspection.organisation_inspected.name,
+                  this.inspection.organisation_inspected.abn].
+                  filter(Boolean).join(", ");
+              this.$refs.search_person_organisation.setInput(value);
+              this.$refs.search_person_organisation.entity.id = this.inspection.organisation_inspected.id
+              this.$refs.search_person_organisation.entity.data_type = 'organisation'
           }
       });
       // calling modifyInspectionTeam with null parameters returns the current list
@@ -995,6 +1023,24 @@ export default {
       this.$nextTick(async () => {
           this.addEventListeners();
           this.constructInspectionTeamTable();
+          //// Set Individual or Organisation in search field
+          //if (this.inspection.individual_inspected) {
+          //    let value = [
+          //        this.inspection.individual_inspected.full_name, 
+          //        this.inspection.individual_inspected.dob].
+          //        filter(Boolean).join(", ");
+          //    this.$refs.search_person_organisation.setInput(value);
+          //    this.$refs.search_person_organisation.entity.id = this.inspection.individual_inspected.id
+          //    this.$refs.search_person_organisation.entity.data_type = 'individual'
+          //} else if (this.inspection.organisation_inspected) {
+          //    let value = [
+          //        this.inspection.organisation_inspected.name,
+          //        this.inspection.organisation_inspected.abn].
+          //        filter(Boolean).join(", ");
+          //    this.$refs.search_person_organisation.setInput(value);
+          //    this.$refs.search_person_organisation.entity.id = this.inspection.organisation_inspected.id
+          //    this.$refs.search_person_organisation.entity.data_type = 'organisation'
+          //}
       });
   }
 };
