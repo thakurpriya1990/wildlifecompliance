@@ -666,8 +666,6 @@ export default {
             console.log(response);
 
             if (response.ok) {
-                await swal("Saved", "The record has been saved", "success");
-
                 // Refresh offence table on the dashboard page
                 if (this.$parent.$refs.offence_table){
                     this.$parent.$refs.offence_table.vmDataTable.ajax.reload();
