@@ -422,7 +422,8 @@ export default {
                   data: 'Action',
                   mRender: function(data, type, row) {
                       let links = '';
-                      if (row.Action.readonlyForm) {
+                      console.log(row.Action)
+                      if (!row.Action.readonlyForm) {
                           if (row.Action.action === 'Member') {
                               links = '<a href="#" class="make_team_lead" data-member-id="' + row.Action.id + '">Make Team Lead</a><br>'
                           } 
@@ -489,13 +490,14 @@ export default {
         return this.inspection.status ? this.inspection.status.id : '';
     },
     readonlyForm: function() {
+        let readonly = true
         if (this.inspection.status && this.inspection.status.id === 'await_endorsement') {
-            return true;
         } else if (this.inspection.id) {
-            return !this.inspection.can_user_action;
+            readonly = !this.inspection.can_user_action;
         } else {
-            return true;
         }
+        console.log(readonly)
+        return readonly
     },
     canUserAction: function() {
         return this.inspection.can_user_action;
@@ -717,7 +719,7 @@ export default {
             let actionColumn = new Object();
             Object.assign(actionColumn, this.inspectionTeam[i]);
             //actionColumn.can_user_action = this.inspection.can_user_action;
-            actionColumn.readonlyForm = this.inspection.readonlyForm;
+            actionColumn.readonlyForm = this.readonlyForm;
 
             //if (!already_exists) {
             if (this.inspectionTeam[i].id) {

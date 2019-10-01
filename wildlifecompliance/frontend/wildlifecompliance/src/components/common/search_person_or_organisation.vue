@@ -21,11 +21,11 @@
                 </div>
             </div>
         </div></div>
-        <div class="form-group"><div class="row">
+        <!--div class="form-group"><div class="row">
             <div class="col-sm-8" v-if="errorText">
                 <strong><span style="white-space: pre;">{{ errorText }}</span></strong>
             </div>
-        </div></div>
+        </div></div-->
         <div class="form-group"><div class="row">
             <div class="col-sm-12" v-if="displayUpdateCreatePerson">
               <updateCreatePerson 
@@ -140,8 +140,11 @@ export default {
     },
     methods: {
         createNewPerson: function() {
-            this.$refs.update_create_person.setDefaultPerson();
-            this.setInput('');
+            this.displayUpdateCreatePerson = !this.displayUpdateCreatePerson;
+            this.$nextTick(() => {
+                this.$refs.update_create_person.setDefaultPerson();
+                this.setInput('');
+            });
         },
         removeOrganisation: function() {
             //this.$refs.update_create_person.setDefaultPerson();
@@ -158,10 +161,6 @@ export default {
                 return "<mark>" + a + "</mark>";
             });
             return ret_text;
-        },
-        createUpdatePersonClicked: function() {
-          //this.newPersonBeingCreated = true;
-          this.displayUpdateCreatePerson = !this.displayUpdateCreatePerson;
         },
         createUpdateOrganisationClicked: function() {
           this.displayUpdateCreateOrganisation = !this.displayUpdateCreateOrganisation;
