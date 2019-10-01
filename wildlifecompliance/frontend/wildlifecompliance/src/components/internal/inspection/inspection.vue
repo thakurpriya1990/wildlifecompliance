@@ -795,20 +795,24 @@ export default {
             description: "",
           });
     
-      // Set Individual or Organisation in search field
-      if (this.inspection.individual_inspected) {
-          let value = [
-              this.inspection.individual_inspected.full_name, 
-              this.inspection.individual_inspected.dob].
-              filter(Boolean).join(", ");
-          this.$refs.search_person_organisation.setInput(value);
-      } else if (this.inspection.organisation_inspected) {
-          let value = [
-              this.inspection.organisation_inspected.name,
-              this.inspection.organisation_inspected.abn].
-              filter(Boolean).join(", ");
-          this.$refs.search_person_organisation.setInput(value);
-      }
+      //// Set Individual or Organisation in search field
+      //if (this.inspection.individual_inspected) {
+      //    let value = [
+      //        this.inspection.individual_inspected.full_name, 
+      //        this.inspection.individual_inspected.dob].
+      //        filter(Boolean).join(", ");
+      //    this.$refs.search_person_organisation.setInput(value);
+      //    this.$refs.search_person_organisation.entity.id = this.inspection.individual_inspected.id
+      //    this.$refs.search_person_organisation.entity.data_type = 'individual'
+      //} else if (this.inspection.organisation_inspected) {
+      //    let value = [
+      //        this.inspection.organisation_inspected.name,
+      //        this.inspection.organisation_inspected.abn].
+      //        filter(Boolean).join(", ");
+      //    this.$refs.search_person_organisation.setInput(value);
+      //    this.$refs.search_person_organisation.entity.id = this.inspection.organisation_inspected.id
+      //    this.$refs.search_person_organisation.entity.data_type = 'organisation'
+      //}
       // load Inspection report
       //await this.$refs.inspection_report_file.get_documents();
       
@@ -816,6 +820,24 @@ export default {
       this.$nextTick(async () => {
           if (this.inspection.inspection_type_id) {
               await this.loadSchema();
+          }
+          // Set Individual or Organisation in search field
+          if (this.inspection.individual_inspected) {
+              let value = [
+                  this.inspection.individual_inspected.full_name, 
+                  this.inspection.individual_inspected.dob].
+                  filter(Boolean).join(", ");
+              this.$refs.search_person_organisation.setInput(value);
+              this.$refs.search_person_organisation.entity.id = this.inspection.individual_inspected.id
+              this.$refs.search_person_organisation.entity.data_type = 'individual'
+          } else if (this.inspection.organisation_inspected) {
+              let value = [
+                  this.inspection.organisation_inspected.name,
+                  this.inspection.organisation_inspected.abn].
+                  filter(Boolean).join(", ");
+              this.$refs.search_person_organisation.setInput(value);
+              this.$refs.search_person_organisation.entity.id = this.inspection.organisation_inspected.id
+              this.$refs.search_person_organisation.entity.data_type = 'organisation'
           }
       });
       // calling modifyInspectionTeam with null parameters returns the current list
@@ -850,6 +872,24 @@ export default {
       this.$nextTick(async () => {
           this.addEventListeners();
           this.constructInspectionTeamTable();
+          //// Set Individual or Organisation in search field
+          //if (this.inspection.individual_inspected) {
+          //    let value = [
+          //        this.inspection.individual_inspected.full_name, 
+          //        this.inspection.individual_inspected.dob].
+          //        filter(Boolean).join(", ");
+          //    this.$refs.search_person_organisation.setInput(value);
+          //    this.$refs.search_person_organisation.entity.id = this.inspection.individual_inspected.id
+          //    this.$refs.search_person_organisation.entity.data_type = 'individual'
+          //} else if (this.inspection.organisation_inspected) {
+          //    let value = [
+          //        this.inspection.organisation_inspected.name,
+          //        this.inspection.organisation_inspected.abn].
+          //        filter(Boolean).join(", ");
+          //    this.$refs.search_person_organisation.setInput(value);
+          //    this.$refs.search_person_organisation.entity.id = this.inspection.organisation_inspected.id
+          //    this.$refs.search_person_organisation.entity.data_type = 'organisation'
+          //}
       });
   }
 };

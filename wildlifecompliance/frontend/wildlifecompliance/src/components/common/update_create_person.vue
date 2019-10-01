@@ -313,7 +313,7 @@ export default {
                 mobile_number: '',
                 email: '',
             };
-            Vue.set(data, 'email_user', email_user);
+            Vue.set(this._data, 'email_user', email_user);
         },
         handleSlideElement: function(elem_id){
             let elem = $('#' + elem_id);
@@ -357,7 +357,11 @@ export default {
                 //console.log(savedEmailUser)
                 this.$emit('person-saved', {'person': savedEmailUser.body, 'error': null});
             } catch (err) {
-                this.$emit('person-saved', {'person': null, 'error': err});
+                // this.$emit('person-saved', {'person': null, 'error': err});
+                if (err.bodyText) {
+                    let errorText = 'Error: ' + err.bodyText;
+                    this.$emit('person-saved', {'person': null, 'error': errorText});
+                }
             }
         },
         showHideElement: function() {
@@ -369,6 +373,7 @@ export default {
         }
     },
     mounted: function() {
+        console.log("create person mounted")
         let vm = this;
         let elem = document.getElementById(vm.elementId);
         vm.mainElement = $(elem);

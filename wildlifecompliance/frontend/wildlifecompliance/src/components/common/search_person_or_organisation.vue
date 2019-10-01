@@ -7,22 +7,33 @@
                 <input :disabled="!isEditable" class="col-sm-1" id="organisation" type="radio" v-model="searchType" v-bind:value="`organisation`">
                 <label class="col-sm-1" for="organisation">Organisation</label>
         </div></div>
-        <div class="col-sm-8">
-            <input :id="elemId" :class="classNames" :readonly="!isEditable" ref="search_person_org"/>
-        </div>
-        <div v-if="showCreateUpdate && searchType === 'individual'" class="col-sm-2">
-            <input :disabled="!isEditable" type="button" class="btn btn-primary" value="Create/Update Person" @click.prevent="createUpdatePersonClicked()" />
-        </div>
-        <div v-else-if="showCreateUpdate && searchType === 'organisation'" class="col-sm-2">
-            <input :disabled="!isEditable" type="button" class="btn btn-primary" value="Create/Update Organisation" @click.prevent="createUpdateOrganisationClicked()" />
-        </div>
+        <div class="form-group"><div class="row">
+            <div class="col-sm-12">
+                <div class="col-sm-8">
+                    <input :id="elemId" :class="classNames" :readonly="!isEditable" ref="search_person_org"/>
+                </div>
+                <div v-if="showCreateUpdate && searchType === 'individual'" class="col-sm-2">
+                    <input :disabled="!isEditable" type="button" class="btn btn-primary" value="Create New Person" @click.prevent="createNewPerson()" />
+                    <!--input :disabled="!isEditable" type="button" class="btn btn-primary" value="Create/Update Person" @click.prevent="createUpdatePersonClicked()" /-->
+                </div>
+                <div v-else-if="showCreateUpdate && searchType === 'organisation'" class="col-sm-2">
+                    <input :disabled="!isEditable" type="button" class="btn btn-primary" value="Create/Update Organisation" @click.prevent="createUpdateOrganisationClicked()" />
+                </div>
+            </div>
+        </div></div>
+        <div class="form-group"><div class="row">
+            <div class="col-sm-8" v-if="errorText">
+                <strong><span style="white-space: pre;">{{ errorText }}</span></strong>
+            </div>
+        </div></div>
         <div class="form-group"><div class="row">
             <div class="col-sm-12" v-if="displayUpdateCreatePerson">
               <updateCreatePerson 
               displayComponent 
               :personToUpdate="entity.id"
               @person-saved="savePerson"
-              v-bind:key="updateCreatePersonBindId"/>
+              v-bind:key="updateCreatePersonBindId"
+              ref="update_create_person"/>
             </div>
             <div class="col-sm-12" v-if="displayUpdateCreateOrganisation">
               <updateCreateOrganisation displayComponent @organisation-saved=""/>
@@ -57,6 +68,7 @@ export default {
             displayUpdateCreatePerson: false,
             displayUpdateCreateOrganisation: false,
             searchType: '',
+            errorText: '',
 
         }
     },
@@ -127,11 +139,19 @@ export default {
         },
     },
     methods: {
+        createNewPerson: function() {
+            this.$refs.update_create_person.setDefaultPerson();
+            this.setInput('');
+        },
+        removeOrganisation: function() {
+            //this.$refs.update_create_person.setDefaultPerson();
+        },
         clearInput: function(){
             document.getElementById(this.elemId).value = "";
         },
-        setInput: function(offender_str){
-            document.getElementById(this.elemId).value = offender_str;
+        setInput: function(person_org_str){
+            console.log("setInput")
+            document.getElementById(this.elemId).value = person_org_str;
         },
         markMatchedText(original_text, input) {
             let ret_text = original_text.replace(new RegExp(input, "gi"), function( a, b) {
@@ -147,21 +167,23 @@ export default {
           this.displayUpdateCreateOrganisation = !this.displayUpdateCreateOrganisation;
         },
         savePerson: function(obj) {
+            console.log("savePerson")
             console.log(obj);
             if(obj.person){
                 this.$emit('entity-selected', {data_type: 'individual', id: obj.person.id});
 
-            // Set fullname and DOB into the input box
-            let full_name = [obj.person.first_name, obj.person.last_name].filter(Boolean).join(" ");
-            let dob = obj.person.dob ? "DOB:" + obj.person.dob : "DOB: ---";
-            let value = [full_name, dob].filter(Boolean).join(", ");
-            //this.$refs.search_person_org.setInput(value);
-            this.setInput(value);
-          } else if (obj.err) {
-            console.log(err);
-          } else {
-            // Should not reach here
-          }
+                // Set fullname and DOB into the input box
+                let full_name = [obj.person.first_name, obj.person.last_name].filter(Boolean).join(" ");
+                let dob = obj.person.dob ? "DOB:" + obj.person.dob : "DOB: ---";
+                let value = [full_name, dob].filter(Boolean).join(", ");
+                //this.$refs.search_person_org.setInput(value);
+                this.setInput(value);
+            } else if (obj.error) {
+                console.log(obj.error);
+                this.errorText = obj.error;
+            } else {
+                // Should not reach here
+            }
         },
         initAwesomplete: function() {
             let vm = this;
@@ -306,6 +328,7 @@ export default {
         this.$nextTick(()=>{
             this.initAwesomplete();
             this.searchType = this.search_type;
+
             //if (this.inspection.party_inspected === 'individual') {
             //    this.entity.id = this.inspection.individual_inspected_id;
             //    this.entity.data_type = 'individual'
