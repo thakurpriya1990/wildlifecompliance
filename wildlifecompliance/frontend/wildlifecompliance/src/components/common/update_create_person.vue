@@ -234,11 +234,11 @@ export default {
         },
     },
     watch: {
-        personId: {
-            handler: function() {
-                this.handlePersonIdChanged();
-            }
-        },
+        //personId: {
+        //    handler: function() {
+        //        this.handlePersonIdChanged();
+        //    }
+        //},
         displayComponent: {
             handler: function() {
                 this.showHideElement();
@@ -276,28 +276,33 @@ export default {
         }
     },
     methods: {
-        handlePersonIdChanged: function(){
-            if (this.personId) {
-                this.setExistingPerson(this.personId);
-            } else {
-                this.setDefaultPerson();
-            }
-        },
+        //handlePersonIdChanged: function(){
+        //    if (this.personId) {
+        //        this.setExistingPerson(this.personId);
+        //    } else {
+        //        this.setDefaultPerson();
+        //    }
+        //},
         setExistingPerson: function(id){
             let vm = this;
 
             let initialisers = [utils.fetchUser(id)];
             Promise.all(initialisers).then(data => {
-                console.log(data[0])
-                vm.email_user = data[0];
-                !vm.email_user.residential_address ? vm.email_user.residential_address = {} : null
+                //console.log(data[0])
+                //let user_data = data[0];
+                Object.assign(vm.email_user, data[0])
+                if (!vm.email_user.residential_address) {
+                    vm.email_user.residential_address = vm.getDefaultAddress()
+                }
+                //!vm.email_user.residential_address ? vm.email_user.residential_address = {} : null
             });
         },
         setPersonId: function(id){
             this.email_user.id = id;
         },
         setDefaultPerson: function(){
-            let email_user = {
+            console.log("setDefaultPerson")
+            let user_data = {
                 id: null,
                 first_name: '',
                 last_name: '',
@@ -313,7 +318,23 @@ export default {
                 mobile_number: '',
                 email: '',
             };
-            Vue.set(this._data, 'email_user', email_user);
+            Object.assign(this.email_user, user_data);
+            console.log(this.email_user)
+            //this.email_user = user_data;
+            //Vue.set(this._data, 'email_user', email_user);
+        },
+        getDefaultAddress: function(){
+            console.log("setDefaultAddress")
+            let residential_address_data = {
+                    line1: '',
+                    locality: '',
+                    state: 'WA',
+                    postcode: '',
+                    country: 'AU'
+                };
+            //this.email_user.residential_address = residential_address_data;
+            //console.log(this.email_user)
+            return residential_address_data;
         },
         handleSlideElement: function(elem_id){
             let elem = $('#' + elem_id);
@@ -336,26 +357,31 @@ export default {
         },
         saveData: async function() {
             try{
-                if (this.email_user.residential_address && !this.email_user.residential_address.line1) {
-                    this.email_user.residential_address = null;
+                let payload = {}
+                Object.assign(payload, this.email_user)
+                if (payload.residential_address && !payload.residential_address.line1) {
+                    payload.residential_address = null;
                 }
-                console.log(this.email_user)
                 let fetchUrl = ''
-                if (this.email_user.id) {
+                if (payload.id) {
                     //console.log(this.email_user.id)
-                    fetchUrl = helpers.add_endpoint_join(api_endpoints.compliance_management_users, this.email_user.id + '/update_person/');
+                    fetchUrl = helpers.add_endpoint_join(api_endpoints.compliance_management_users, payload.id + '/update_person/');
                 } else {
-                    if (!this.email_user.first_name || !this.email_user.last_name || !this.email_user.dob) {
+                    if (!payload.first_name || !payload.last_name || !payload.dob) {
                         await swal("Error", "Fill out all Personal Details fields", "error");
                     } else {
                         fetchUrl = api_endpoints.compliance_management_users;
                     }
                 }
 
-                let savedEmailUser = await Vue.http.post(fetchUrl, this.email_user);
-                this.email_user = savedEmailUser.body;
-                !this.email_user.residential_address ? this.email_user.residential_address = {} : null
-                //console.log(savedEmailUser)
+                let savedEmailUser = await Vue.http.post(fetchUrl, payload);
+                //this.email_user = savedEmailUser.body;
+                if (!savedEmailUser.body.residential_address) {
+                    savedEmailUser.body.residential_address = this.getDefaultAddress()
+                    console.log(savedEmailUser.body)
+                }
+                //this.email_user = savedEmailUser.body;
+                Object.assign(this.email_user, savedEmailUser.body);
                 this.$emit('person-saved', {'person': savedEmailUser.body, 'errorMessage': null});
             } catch (err) {
                 // this.$emit('person-saved', {'person': null, 'error': err});
@@ -373,14 +399,6 @@ export default {
             }
         }
     },
-    //beforeRouteLeave (to, from, next) {
-    //    const answer = window.confirm('Do you really want to leave? you have unsaved changes!')
-    //    if (answer) {
-    //        next()
-    //        } else {
-    //            next(false)
-    //        }
-    //},
     mounted: function() {
         console.log("create person mounted")
         let vm = this;

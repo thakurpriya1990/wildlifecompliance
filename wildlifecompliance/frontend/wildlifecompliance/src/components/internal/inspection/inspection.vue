@@ -907,7 +907,20 @@ export default {
           '.make_team_lead',
           vm.makeTeamLead,
           );
+      window.addEventListener('beforeunload', vm.leaving);
+      window.addEventListener('onblur', vm.leaving);
+
     },
+    leaving: function(e) {
+        let vm = this;
+        let dialogText = '';
+        if (!vm.proposal_readonly && !vm.submitting){
+            e.returnValue = dialogText;
+            return dialogText;
+        }
+        //return dialogText
+    },
+      
     updateAssignedToId: async function (user) {
         let url = helpers.add_endpoint_join(
             api_endpoints.inspection, 
@@ -1044,18 +1057,6 @@ export default {
           //    this.$refs.search_person_organisation.entity.data_type = 'organisation'
           //}
       });
-  },
-  beforeRouteUpdate: function (to, from, next) {
-      console.log("does this fire")
-  },
-  beforeRouteLeave: function (to, from, next) {
-      console.log("beforerouteleave")
-      const answer = window.confirm('Do you really want to leave? you have unsaved changes!')
-      if (answer) {
-          next()
-          } else {
-              next(false)
-          }
   },
 
 };
