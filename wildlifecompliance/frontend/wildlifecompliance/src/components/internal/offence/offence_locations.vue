@@ -2,6 +2,14 @@
     <div class="">
         <div id="map-filter">
             <div>
+                <label class="">Sanction Outcome Types</label>
+                <select class="form-control" v-model="filterSanctionOutcomeType">
+                    <option v-for="option in sanction_outcome_type_choices" :value="option.id" v-bind:key="option.id">
+                        {{ option.display }}
+                    </option>
+                </select>
+            </div>
+            <div>
                 <label class="">Offence Status</label>
                 <select class="form-control" v-model="filterStatus">
                     <option v-for="option in status_choices" :value="option.id" v-bind:key="option.id">
@@ -178,8 +186,10 @@ module.exports = {
             filterStatus: 'all',
             filterDateFrom: '',
             filterDateTo: '',
+            filterSanctionOutcomeType: 'all',
 
             status_choices: [],
+            sanction_outcome_type_choices: [],
             cursor_location: null,
         }
     },
@@ -187,6 +197,10 @@ module.exports = {
         let returned_status_choices = await cache_helper.getSetCacheList('Offence_StatusChoices', '/api/offence/status_choices');
         Object.assign(this.status_choices, returned_status_choices);
         this.status_choices.splice(0, 0, {id: 'all', display: 'All'});
+
+        let returned_choices = await cache_helper.getSetCacheList('SanctionOutcome_TypeChoices', '/api/sanction_outcome/types');
+        Object.assign(this.sanction_outcome_type_choices, returned_choices);
+        this.sanction_outcome_type_choices.splice(0, 0, {id: 'all', display: 'All'});
     },
     mounted(){
         let vm = this;
@@ -199,6 +213,9 @@ module.exports = {
     },
     watch: {
         filterStatus: function () {
+            this.loadLocations();
+        },
+        filterSanctionOutcomeType: function(){
             this.loadLocations();
         },
         filterDateFrom: function(){
@@ -394,6 +411,7 @@ module.exports = {
                 "status": vm.filterStatus,
                 "date_from" : vm.filterDateFrom,
                 "date_to" : vm.filterDateTo,
+                "sanction_outcome_type": vm.filterSanctionOutcomeType,
             };
 
             vm.ajax_for_location = $.ajax({
