@@ -288,20 +288,16 @@ export default {
 
             let initialisers = [utils.fetchUser(id)];
             Promise.all(initialisers).then(data => {
-                //console.log(data[0])
-                //let user_data = data[0];
                 Object.assign(vm.email_user, data[0])
                 if (!vm.email_user.residential_address) {
                     vm.email_user.residential_address = vm.getDefaultAddress()
                 }
-                //!vm.email_user.residential_address ? vm.email_user.residential_address = {} : null
             });
         },
         setPersonId: function(id){
             this.email_user.id = id;
         },
         setDefaultPerson: function(){
-            console.log("setDefaultPerson")
             let user_data = {
                 id: null,
                 first_name: '',
@@ -320,11 +316,8 @@ export default {
             };
             Object.assign(this.email_user, user_data);
             console.log(this.email_user)
-            //this.email_user = user_data;
-            //Vue.set(this._data, 'email_user', email_user);
         },
         getDefaultAddress: function(){
-            console.log("setDefaultAddress")
             let residential_address_data = {
                     line1: '',
                     locality: '',
@@ -332,8 +325,6 @@ export default {
                     postcode: '',
                     country: 'AU'
                 };
-            //this.email_user.residential_address = residential_address_data;
-            //console.log(this.email_user)
             return residential_address_data;
         },
         handleSlideElement: function(elem_id){
@@ -364,11 +355,16 @@ export default {
                 }
                 let fetchUrl = ''
                 if (payload.id) {
-                    //console.log(this.email_user.id)
-                    fetchUrl = helpers.add_endpoint_join(api_endpoints.compliance_management_users, payload.id + '/update_person/');
+                    if (!payload.email) {
+                        await swal("Error", "Ensure the email field is not blank", "error");
+                        return;
+                    } else {
+                        fetchUrl = helpers.add_endpoint_join(api_endpoints.compliance_management_users, payload.id + '/update_person/');
+                    }
                 } else {
-                    if (!payload.first_name || !payload.last_name || !payload.dob) {
-                        await swal("Error", "Fill out all Personal Details fields", "error");
+                    if (!payload.first_name || !payload.last_name || !payload.dob || !payload.email) {
+                        await swal("Error", "Fill out all Personal Details and email fields", "error");
+                        return;
                     } else {
                         fetchUrl = api_endpoints.compliance_management_users;
                     }
@@ -382,6 +378,7 @@ export default {
                 }
                 //this.email_user = savedEmailUser.body;
                 Object.assign(this.email_user, savedEmailUser.body);
+                await swal("Saved", "Person has been saved", "success");
                 this.$emit('person-saved', {'person': savedEmailUser.body, 'errorMessage': null});
             } catch (err) {
                 // this.$emit('person-saved', {'person': null, 'error': err});
@@ -417,6 +414,10 @@ export default {
     created: function() {
         if (this.personToUpdate) {
             this.setExistingPerson(this.personToUpdate);
+            this.$emit('person-saved', {
+                'person': this.email_user,
+                'errorMessage': null,
+                'updateSearchBox': true});
             //Object.assign(this.email_user, this.personToUpdate);
         }
     },

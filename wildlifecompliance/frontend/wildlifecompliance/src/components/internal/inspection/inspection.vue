@@ -206,13 +206,15 @@
                             
                             <div class="form-group"><div class="row">
                                     <SearchPersonOrganisation 
+                                    :parentEntity="inspectedEntity"
                                     :excludeStaff="true" 
                                     :isEditable="!readonlyForm" 
                                     classNames="form-control" 
                                     :search_type="inspection.party_inspected" 
                                     @entity-selected="entitySelected" 
                                     showCreateUpdate
-                                    ref="search_person_organisation"/>
+                                    ref="search_person_organisation"
+                                    v-bind:key="updateSearchPersonOrganisationBindId"/>
                                 <!--div class="col-sm-1">
                                     <input type="button" class="btn btn-primary" value="Add" @click.prevent="addOffenderClicked()" />
                                 </div-->
@@ -480,6 +482,11 @@ export default {
     ...mapGetters('inspectionStore', {
       inspection: "inspection",
     }),
+    updateSearchPersonOrganisationBindId: function() {
+        if (this.inspectedEntity.data_type && this.inspectedEntity.id) {
+            return this.inspectedEntity.data_type + '_' + this.inspectedEntity.id
+        }
+    },
     csrf_token: function() {
       return helpers.getCookie("csrftoken");
     },
@@ -574,6 +581,17 @@ export default {
         } else {
             return false
         }
+    },
+    inspectedEntity: function() {
+        let entity = {}
+        if (this.inspection.individual_inspected) {
+            entity.id = this.inspection.individual_inspected.id;
+            entity.data_type = 'individual';
+        } else if (this.inspection.organisation_inspected) {
+            entity.id = this.inspection.organisation_inspected.id;
+            entity.data_type = 'organisation';
+        }
+        return entity;
     },
   },
   filters: {
@@ -987,24 +1005,24 @@ export default {
           if (this.inspection.inspection_type_id) {
               await this.loadSchema();
           }
-          // Set Individual or Organisation in search field
-          if (this.inspection.individual_inspected) {
-              let value = [
-                  this.inspection.individual_inspected.full_name, 
-                  this.inspection.individual_inspected.dob].
-                  filter(Boolean).join(", ");
-              this.$refs.search_person_organisation.setInput(value);
-              this.$refs.search_person_organisation.entity.id = this.inspection.individual_inspected.id
-              this.$refs.search_person_organisation.entity.data_type = 'individual'
-          } else if (this.inspection.organisation_inspected) {
-              let value = [
-                  this.inspection.organisation_inspected.name,
-                  this.inspection.organisation_inspected.abn].
-                  filter(Boolean).join(", ");
-              this.$refs.search_person_organisation.setInput(value);
-              this.$refs.search_person_organisation.entity.id = this.inspection.organisation_inspected.id
-              this.$refs.search_person_organisation.entity.data_type = 'organisation'
-          }
+          //// Set Individual or Organisation in search field
+          //if (this.inspection.individual_inspected) {
+          //    let value = [
+          //        this.inspection.individual_inspected.full_name, 
+          //        this.inspection.individual_inspected.dob].
+          //        filter(Boolean).join(", ");
+          //    this.$refs.search_person_organisation.setInput(value);
+          //    this.$refs.search_person_organisation.entity.id = this.inspection.individual_inspected.id
+          //    this.$refs.search_person_organisation.entity.data_type = 'individual'
+          //} else if (this.inspection.organisation_inspected) {
+          //    let value = [
+          //        this.inspection.organisation_inspected.name,
+          //        this.inspection.organisation_inspected.abn].
+          //        filter(Boolean).join(", ");
+          //    this.$refs.search_person_organisation.setInput(value);
+          //    this.$refs.search_person_organisation.entity.id = this.inspection.organisation_inspected.id
+          //    this.$refs.search_person_organisation.entity.data_type = 'organisation'
+          //}
       });
       // calling modifyInspectionTeam with null parameters returns the current list
       this.modifyInspectionTeam({user_id: null, action: null});

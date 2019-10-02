@@ -17,7 +17,8 @@
                     <!--input :disabled="!isEditable" type="button" class="btn btn-primary" value="Create/Update Person" @click.prevent="createUpdatePersonClicked()" /-->
                 </div>
                 <div v-else-if="showCreateUpdate && searchType === 'organisation'" class="col-sm-2">
-                    <input :disabled="!isEditable" type="button" class="btn btn-primary" value="Create/Update Organisation" @click.prevent="createUpdateOrganisationClicked()" />
+                    <!--input :disabled="!isEditable" type="button" class="btn btn-primary" value="Create/Update Organisation" @click.prevent="createUpdateOrganisationClicked()" /-->
+                    <input :disabled="!isEditable" type="button" class="btn btn-primary" value="Create New Organisation" @click.prevent="createNewOrganisation" />
                 </div>
             </div>
         </div></div>
@@ -137,16 +138,24 @@ export default {
             required: false,
             default: false,
         },
+        parentEntity: {
+            type: Object,
+        },
     },
     methods: {
         createNewPerson: function() {
-            this.displayUpdateCreatePerson = !this.displayUpdateCreatePerson;
+            this.entity = {
+                id: null,
+                data_type: null
+            },
             this.$nextTick(() => {
-                this.$refs.update_create_person.setDefaultPerson();
+                this.displayUpdateCreatePerson = true;
                 this.setInput('');
+                this.$refs.update_create_person.setDefaultPerson();
             });
         },
-        removeOrganisation: function() {
+        createNewOrganisation: function() {
+            this.displayUpdateCreateOrganisation = !this.displayUpdateCreateOrganisation;
             //this.$refs.update_create_person.setDefaultPerson();
         },
         clearInput: function(){
@@ -167,14 +176,22 @@ export default {
         },
         savePerson: async function(obj) {
             console.log("savePerson")
-            console.log(obj);
+            if (obj.person) {
+                console.log(obj);
+            }
             if(obj.person){
-                this.$emit('entity-selected', {data_type: 'individual', id: obj.person.id});
+                if (!obj.updateSearchBox) {
+                    this.$emit('entity-selected', {data_type: 'individual', id: obj.person.id});
+                }
 
                 // Set fullname and DOB into the input box
+                console.log(obj.person.first_name)
                 let full_name = [obj.person.first_name, obj.person.last_name].filter(Boolean).join(" ");
                 let dob = obj.person.dob ? "DOB:" + obj.person.dob : "DOB: ---";
+                console.log(full_name)
+                console.log(dob)
                 let value = [full_name, dob].filter(Boolean).join(", ");
+                console.log(value)
                 //this.$refs.search_person_org.setInput(value);
                 this.setInput(value);
             } else if (obj.errorMessage) {
@@ -329,6 +346,11 @@ export default {
         this.$nextTick(()=>{
             this.initAwesomplete();
             this.searchType = this.search_type;
+            if (this.parentEntity) {
+                console.log(this.parentEntity)
+                Object.assign(this.entity, this.parentEntity)
+                //this.entity = this.parentEntity;
+            }
 
             //if (this.inspection.party_inspected === 'individual') {
             //    this.entity.id = this.inspection.individual_inspected_id;
