@@ -345,22 +345,23 @@ export default {
                     //console.log(this.email_user.id)
                     fetchUrl = helpers.add_endpoint_join(api_endpoints.compliance_management_users, this.email_user.id + '/update_person/');
                 } else {
-                    //console.log(this.email_user.id)
-                    //console.log(api_endpoints.compliance_management_users)
-                    fetchUrl = api_endpoints.compliance_management_users
-                    //console.log(fetchUrl)
+                    if (!this.email_user.first_name || !this.email_user.last_name || !this.email_user.dob) {
+                        await swal("Error", "Fill out all Personal Details fields", "error");
+                    } else {
+                        fetchUrl = api_endpoints.compliance_management_users;
+                    }
                 }
 
                 let savedEmailUser = await Vue.http.post(fetchUrl, this.email_user);
                 this.email_user = savedEmailUser.body;
                 !this.email_user.residential_address ? this.email_user.residential_address = {} : null
                 //console.log(savedEmailUser)
-                this.$emit('person-saved', {'person': savedEmailUser.body, 'error': null});
+                this.$emit('person-saved', {'person': savedEmailUser.body, 'errorMessage': null});
             } catch (err) {
                 // this.$emit('person-saved', {'person': null, 'error': err});
                 if (err.bodyText) {
-                    let errorText = 'Error: ' + err.bodyText;
-                    this.$emit('person-saved', {'person': null, 'error': errorText});
+                    //let errorText = 'Error: ' + err.bodyText;
+                    this.$emit('person-saved', { 'person': null, 'errorMessage': err.bodyText });
                 }
             }
         },
@@ -372,6 +373,14 @@ export default {
             }
         }
     },
+    //beforeRouteLeave (to, from, next) {
+    //    const answer = window.confirm('Do you really want to leave? you have unsaved changes!')
+    //    if (answer) {
+    //        next()
+    //        } else {
+    //            next(false)
+    //        }
+    //},
     mounted: function() {
         console.log("create person mounted")
         let vm = this;

@@ -165,7 +165,7 @@ export default {
         createUpdateOrganisationClicked: function() {
           this.displayUpdateCreateOrganisation = !this.displayUpdateCreateOrganisation;
         },
-        savePerson: function(obj) {
+        savePerson: async function(obj) {
             console.log("savePerson")
             console.log(obj);
             if(obj.person){
@@ -177,9 +177,11 @@ export default {
                 let value = [full_name, dob].filter(Boolean).join(", ");
                 //this.$refs.search_person_org.setInput(value);
                 this.setInput(value);
-            } else if (obj.error) {
-                console.log(obj.error);
-                this.errorText = obj.error;
+            } else if (obj.errorMessage) {
+                //console.log(obj.errorMessage);
+                let errorMessage = obj.errorMessage
+                await swal("Error", errorMessage, "error");
+                //this.errorText = obj.error;
             } else {
                 // Should not reach here
             }

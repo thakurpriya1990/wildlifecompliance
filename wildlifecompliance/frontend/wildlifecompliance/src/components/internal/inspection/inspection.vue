@@ -1044,7 +1044,20 @@ export default {
           //    this.$refs.search_person_organisation.entity.data_type = 'organisation'
           //}
       });
-  }
+  },
+  beforeRouteUpdate: function (to, from, next) {
+      console.log("does this fire")
+  },
+  beforeRouteLeave: function (to, from, next) {
+      console.log("beforerouteleave")
+      const answer = window.confirm('Do you really want to leave? you have unsaved changes!')
+      if (answer) {
+          next()
+          } else {
+              next(false)
+          }
+  },
+
 };
 </script>
 
