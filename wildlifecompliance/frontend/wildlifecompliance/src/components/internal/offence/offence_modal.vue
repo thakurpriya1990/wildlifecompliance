@@ -662,9 +662,6 @@ export default {
             this.processingDetails = true;
             let response = await this.sendData();
 
-            console.log('try in ok()');
-            console.log(response);
-
             if (response.ok) {
                 // Refresh offence table on the dashboard page
                 if (this.$parent.$refs.offence_table){
@@ -692,8 +689,8 @@ export default {
             this.close();
             this.processingDetails = false;
         } catch(err) {
-            this.processingDetails = false;
             this.processError(err);
+            this.processingDetails = false;
         }
     },
     processError: function(err) {

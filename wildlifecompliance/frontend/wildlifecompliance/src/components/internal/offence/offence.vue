@@ -272,7 +272,7 @@
         </div>
 
         <div v-if="sanctionOutcomeInitialised">
-            <SanctionOutcome ref="sanction_outcome" />
+            <SanctionOutcome ref="sanction_outcome" :parent_update_function="loadOffenceVuex" />
         </div>
     </div>
 </template>
