@@ -199,6 +199,7 @@
                                 initialSearchType="individual" 
                                 @entity-selected="entitySelected" 
                                 showCreateUpdate
+                                personOnly
                                 ref="search_person_organisation"
                                 v-bind:key="updateSearchPersonOrganisationBindId"/>
                             </div>

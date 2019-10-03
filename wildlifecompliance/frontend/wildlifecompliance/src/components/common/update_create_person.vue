@@ -234,11 +234,6 @@ export default {
         },
     },
     watch: {
-        //personId: {
-        //    handler: function() {
-        //        this.handlePersonIdChanged();
-        //    }
-        //},
         displayComponent: {
             handler: function() {
                 this.showHideElement();
@@ -276,13 +271,6 @@ export default {
         }
     },
     methods: {
-        //handlePersonIdChanged: function(){
-        //    if (this.personId) {
-        //        this.setExistingPerson(this.personId);
-        //    } else {
-        //        this.setDefaultPerson();
-        //    }
-        //},
         setExistingPerson: function(id){
             let vm = this;
 
@@ -371,19 +359,15 @@ export default {
                 }
 
                 let savedEmailUser = await Vue.http.post(fetchUrl, payload);
-                //this.email_user = savedEmailUser.body;
                 if (!savedEmailUser.body.residential_address) {
                     savedEmailUser.body.residential_address = this.getDefaultAddress()
                     console.log(savedEmailUser.body)
                 }
-                //this.email_user = savedEmailUser.body;
                 Object.assign(this.email_user, savedEmailUser.body);
                 await swal("Saved", "Person has been saved", "success");
                 this.$emit('person-saved', {'person': savedEmailUser.body, 'errorMessage': null});
             } catch (err) {
-                // this.$emit('person-saved', {'person': null, 'error': err});
                 if (err.bodyText) {
-                    //let errorText = 'Error: ' + err.bodyText;
                     this.$emit('person-saved', { 'person': null, 'errorMessage': err.bodyText });
                 }
             }
@@ -414,14 +398,6 @@ export default {
     created: function() {
         if (this.personToUpdate) {
             this.setExistingPerson(this.personToUpdate);
-            //this.$nextTick(()=>{
-            //    this.$emit('person-saved', {
-            //        'person': this.email_user,
-            //        'errorMessage': null,
-            //    });
-            //});
-            //Object.assign(this.email_user, this.personToUpdate);
-                    //'updateSearchBox': true
         }
     },
 }

@@ -2,10 +2,12 @@
     <div class="">
         <div class="col-sm-12 form-group"><div class="row">
                 <label class="col-sm-4">{{ labelTitle }}</label>
-                <input :disabled="!isEditable" class="col-sm-1" id="individual" type="radio" v-model="searchType" v-bind:value="`individual`">
-                <label class="col-sm-1" for="individual">Person</label>
-                <input :disabled="!isEditable" class="col-sm-1" id="organisation" type="radio" v-model="searchType" v-bind:value="`organisation`">
-                <label class="col-sm-1" for="organisation">Organisation</label>
+                <div v-if="!personOnly">
+                    <input :disabled="!isEditable" class="col-sm-1" id="individual" type="radio" v-model="searchType" v-bind:value="`individual`">
+                    <label class="col-sm-1" for="individual">Person</label>
+                    <input :disabled="!isEditable" class="col-sm-1" id="organisation" type="radio" v-model="searchType" v-bind:value="`organisation`">
+                    <label class="col-sm-1" for="organisation">Organisation</label>
+                </div>
         </div></div>
         <div class="form-group"><div class="row">
             <div class="col-sm-12">
@@ -14,19 +16,12 @@
                 </div>
                 <div v-if="showCreateUpdate && searchType === 'individual'" class="col-sm-2">
                     <input :disabled="!isEditable" type="button" class="btn btn-primary" value="Create New Person" @click.prevent="createNewPerson()" />
-                    <!--input :disabled="!isEditable" type="button" class="btn btn-primary" value="Create/Update Person" @click.prevent="createUpdatePersonClicked()" /-->
                 </div>
                 <div v-else-if="showCreateUpdate && searchType === 'organisation'" class="col-sm-2">
-                    <!--input :disabled="!isEditable" type="button" class="btn btn-primary" value="Create/Update Organisation" @click.prevent="createUpdateOrganisationClicked()" /-->
                     <input :disabled="!isEditable" type="button" class="btn btn-primary" value="Create New Organisation" @click.prevent="createNewOrganisation" />
                 </div>
             </div>
         </div></div>
-        <!--div class="form-group"><div class="row">
-            <div class="col-sm-8" v-if="errorText">
-                <strong><span style="white-space: pre;">{{ errorText }}</span></strong>
-            </div>
-        </div></div-->
         <div class="form-group"><div class="row">
             <div class="col-sm-12" v-if="displayUpdateCreatePerson">
               <updateCreatePerson 
@@ -36,7 +31,7 @@
               v-bind:key="updateCreatePersonBindId"
               ref="update_create_person"/>
             </div>
-            <div class="col-sm-12" v-if="displayUpdateCreateOrganisation">
+            <div class="col-sm-12" v-if="displayUpdateCreateOrganisation && !personOnly">
               <updateCreateOrganisation displayComponent @organisation-saved=""/>
             </div>
         </div></div>
@@ -57,14 +52,10 @@ export default {
         let vm = this
         vm.awesomplete_obj = null;
         return {
-            //elemId: 'create_new_person_' + vm._uid,
-            //emId: this.searchType + vm._uid,
             entity: {
                 id: null,
                 data_type: null
             },
-            //entity_id: null,
-            //entity_data_type: null,
             displayUpdateCreatePerson: false,
             displayUpdateCreateOrganisation: false,
             searchType: '',
@@ -72,10 +63,6 @@ export default {
             uuid: 0,
         }
     },
-    //beforeCreate() {
-    //    //this.uuid = uuid.toString();
-    //    this.uuid += 1;
-    //},
     components: {
         updateCreatePerson,
         updateCreateOrganisation,
@@ -87,13 +74,13 @@ export default {
                     this.$emit('entity-selected', { 
                         id: this.entity.id, 
                         data_type: this.entity.data_type });
-                    //this.awesomplete_obj.evaluate();
                 }
                 if (this.entity.id && this.entity.data_type === 'individual') {
                     this.displayUpdateCreateOrganisation = false;
                     this.displayUpdateCreatePerson = true;
                 } else if (this.entity.id && this.entity.data_type === 'organisation') {
                     this.displayUpdateCreatePerson = false;
+                    // TODO: swap following two lines once create org implemented
                     //this.displayUpdateCreateOrganisation = true;
                     this.displayUpdateCreateOrganisation = false;
                 }
@@ -127,10 +114,6 @@ export default {
         },
     },
     props: {
-        // This prop is not used any more.  Instead elemId in the data is used.
-        //elementId: {
-        //    required: false
-        //},
         classNames: {
             required: false,
             default: 'form-control',
@@ -166,6 +149,11 @@ export default {
             type: String,
             required: false,
         },
+        personOnly: {
+            type: Boolean,
+            required: false,
+            default: false,
+        },
     },
     methods: {
         createNewPerson: function() {
@@ -182,8 +170,7 @@ export default {
             });
         },
         createNewOrganisation: function() {
-            this.displayUpdateCreateOrganisation = !this.displayUpdateCreateOrganisation;
-            //this.$refs.update_create_person.setDefaultPerson();
+            //this.displayUpdateCreateOrganisation = !this.displayUpdateCreateOrganisation;
         },
         clearInput: function(){
             document.getElementById(this.elemId).value = "";
@@ -202,7 +189,6 @@ export default {
           this.displayUpdateCreateOrganisation = !this.displayUpdateCreateOrganisation;
         },
         savePerson: async function(obj) {
-            console.log("savePerson")
             if (obj.person) {
                 console.log(obj);
             }
@@ -212,22 +198,13 @@ export default {
                 }
 
                 // Set fullname and DOB into the input box
-                console.log(obj.person.first_name)
                 let full_name = [obj.person.first_name, obj.person.last_name].filter(Boolean).join(" ");
                 let dob = obj.person.dob ? "DOB:" + obj.person.dob : "DOB: ---";
-                console.log(full_name)
-                console.log(dob)
                 let value = [full_name, dob].filter(Boolean).join(", ");
-                console.log(value)
-                //this.$refs.search_person_org.setInput(value);
                 this.setInput(value);
             } else if (obj.errorMessage) {
-                //console.log(obj.errorMessage);
                 let errorMessage = obj.errorMessage
                 await swal("Error", errorMessage, "error");
-                //this.errorText = obj.error;
-            } else {
-                // Should not reach here
             }
         },
         initAwesomplete: function() {
@@ -328,13 +305,7 @@ export default {
                     console.log(data_type)
                     let data_item_id_int = parseInt(data_item_id);
                     vm.entity = {'id': data_item_id_int, 'data_type': data_type};
-                    //vm.entity.id = parseInt(data_item_id)
-                    //vm.entity.data_type = data_type
-                    //vm.$emit('entity-selected', { 
-                    //    id: this.entity_id, 
-                    //    data_type: this.entity_data_type });
                 });
-                // vm.$emit('entity-selected', { id: data_item_id, data_type: data_type });
             });
         },
         search_person_or_organisation(searchTerm){
@@ -380,36 +351,13 @@ export default {
         this.searchType = this.initialSearchType;
         this.$nextTick(()=>{
             console.log(this)
-            //Object.assign(this.searchType, this.initialSearchType);
-            //this.searchType = this.initialSearchType;
             if (this.parentEntity) {
                 console.log(this.parentEntity)
                 Object.assign(this.entity, this.parentEntity)
-                //this.entity = this.parentEntity;
             }
             this.initAwesomplete();
-
-            //if (this.inspection.party_inspected === 'individual') {
-            //    this.entity.id = this.inspection.individual_inspected_id;
-            //    this.entity.data_type = 'individual'
-            //} else if (this.inspection.party_inspected === 'organisation') {
-            //    this.entity.id = this.inspection.organisation_inspected_id;
-            //    this.entity.data_type = 'organisation'
-            //}
-
         });
     },
-    //mounted: function() {
-    //    this.$nextTick(()=>{
-    //        if (this.inspection.party_inspected === 'individual') {
-    //            this.entity.id = this.inspection.individual_inspected_id;
-    //            this.entity.data_type = 'individual'
-    //        } else if (this.inspection.party_inspected === 'organisation') {
-    //            this.entity.id = this.inspection.organisation_inspected_id;
-    //            this.entity.data_type = 'organisation'
-    //        }
-    //    });
-    //},
 }
 </script>
 
