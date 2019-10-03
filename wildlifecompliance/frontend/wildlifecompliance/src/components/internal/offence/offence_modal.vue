@@ -742,7 +742,7 @@ export default {
     },
     cancel: function() {
         // for call_email offenceBindId
-        if (this.$parent) {
+        if (this.$parent.call_email) {
             this.$parent.updateUuid();
         }
 
