@@ -192,7 +192,16 @@
                             </div></div>
             
                             <div v-show="statusId !=='draft'">
-                                <SearchPerson />
+                                <SearchPersonOrganisation 
+                                :parentEntity="callerEntity"
+                                :isEditable="personSearchVisibility" 
+                                classNames="form-control" 
+                                initialSearchType="individual" 
+                                @entity-selected="entitySelected" 
+                                showCreateUpdate
+                                personOnly
+                                ref="search_person_organisation"
+                                v-bind:key="updateSearchPersonOrganisationBindId"/>
                             </div>
                           </FormSection>
             
@@ -371,7 +380,13 @@
         <div v-if="workflow_type">
           <CallWorkflow ref="add_workflow" :workflow_type="workflow_type" v-bind:key="workflowBindId" />
         </div>
-        <Offence ref="offence" :parent_update_function="loadCallEmail" :region_id="call_email.region_id" :district_id="call_email.district_id" :allocated_group_id="call_email.allocated_group_id" />
+        <Offence 
+        ref="offence" 
+        :parent_update_function="loadCallEmail" 
+        :region_id="call_email.region_id" 
+        :district_id="call_email.district_id" 
+        :allocated_group_id="call_email.allocated_group_id" 
+        v-bind:key="offenceBindId"/>
         <div v-if="sanctionOutcomeInitialised">
             <SanctionOutcome ref="sanction_outcome" :parent_update_function="loadCallEmail"/>
         </div>
@@ -389,7 +404,7 @@ import MapLocation from "./map_location.vue";
 import datatable from '@vue-utils/datatable.vue'
 import { api_endpoints, helpers, cache_helper } from "@/utils/hooks";
 //import SearchPerson from "./search_person.vue";
-import SearchPerson from "@common-components/search_person_or_organisation.vue";
+import SearchPersonOrganisation from "@common-components/search_person_or_organisation.vue";
 import utils from "@/components/external/utils";
 import { mapState, mapGetters, mapActions, mapMutations } from "vuex";
 import moment from 'moment';
@@ -407,6 +422,7 @@ export default {
   name: "ViewCallEmail",
   data: function() {
     return {
+      uuid: 0,
       cTab: 'cTab'+this._uid,
       rTab: 'rTab'+this._uid,
       sanctionOutcomeKey: 'sanctionOutcome' + this._uid,
@@ -475,7 +491,7 @@ export default {
     CommsLogs,
     FormSection,
     MapLocation,
-    SearchPerson,
+    SearchPersonOrganisation,
     CallWorkflow,
     Offence,
     //datatable,
@@ -491,8 +507,32 @@ export default {
       renderer_form_data: 'renderer_form_data',
       //current_user: 'current_user',
     }),
+    personSearchVisibility: function() {
+        let visible = false;
+        if (this.statusId.length > 0 && this.statusId !=='draft') {
+            visible = true;
+        }
+        return visible;
+    },
+    updateSearchPersonOrganisationBindId: function() {
+        let bindId = 'individual';
+        if (this.call_email.email_user && this.call_email.email_user.id) {
+            bindId += this.call_email.email_user.id;
+        } else {
+            bindId += '0'
+        }
+        return bindId
+    },
     csrf_token: function() {
       return helpers.getCookie("csrftoken");
+    },
+    callerEntity: function() {
+        let entity = {};
+        if (this.call_email.email_user && this.call_email.email_user.id) {
+            entity.id = this.call_email.email_user.id;
+            entity.data_type = 'individual';
+        }
+        return entity;
     },
     occurrenceDateLabel: function() {
       if (this.call_email.occurrence_from_to) {
@@ -562,6 +602,10 @@ export default {
             return false
         }
     },
+    offenceBindId: function() {
+        //this.uuid += 1
+        return 'offence' + this.uuid;
+    },
   },
   filters: {
     formatDate: function(data) {
@@ -580,10 +624,18 @@ export default {
       setTimeOfCall: 'setTimeOfCall',
       setDateOfCall: 'setDateOfCall',
       setRelatedItems: 'setRelatedItems',
+      setCaller: 'setCaller',
     }),
     ...mapActions({
       saveFormData: 'saveFormData',
     }),
+    updateUuid: function() {
+        this.uuid += 1;
+    },
+    entitySelected: function(para) {
+        console.log(para);
+        this.setCaller(para);
+    },
     updateWorkflowBindId: function() {
         let timeNow = Date.now()
         if (this.workflow_type) {

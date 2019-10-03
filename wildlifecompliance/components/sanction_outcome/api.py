@@ -18,8 +18,10 @@ from rest_framework.response import Response
 from rest_framework_datatables.filters import DatatablesFilterBackend
 from rest_framework_datatables.pagination import DatatablesPageNumberPagination
 
-from wildlifecompliance.components.main.process_document import process_generic_document
-
+from wildlifecompliance.components.main.process_document import (
+        process_generic_document,
+        save_comms_log_document_obj
+        )
 from wildlifecompliance.components.call_email.models import CallEmail, CallEmailUserAction
 from wildlifecompliance.components.inspection.models import Inspection, InspectionUserAction
 from wildlifecompliance.components.main.email import prepare_mail
@@ -33,6 +35,7 @@ from wildlifecompliance.components.sanction_outcome.serializers import SanctionO
     AllegedCommittedOffenceSerializer, AllegedCommittedOffenceCreateSerializer
 from wildlifecompliance.components.users.models import CompliancePermissionGroup, RegionDistrict
 from wildlifecompliance.helpers import is_internal
+from wildlifecompliance.components.main.models import TemporaryDocumentCollection
 
 logger = logging.getLogger('compliancemanagement')
 
@@ -564,6 +567,14 @@ class SanctionOutcomeViewSet(viewsets.ModelViewSet):
                     workflow_entry = instance.comms_logs.get(id=comms_log_id)
                 else:
                     workflow_entry = self.add_comms_log(request, instance, workflow=True)
+                    temporary_document_collection_id = request.data.get('temporary_document_collection_id')
+                    if temporary_document_collection_id:
+                        temp_doc_collection, created = TemporaryDocumentCollection.objects.get_or_create(
+                                id=temporary_document_collection_id)
+                        if temp_doc_collection:
+                            for doc in temp_doc_collection.documents.all():
+                                save_comms_log_document_obj(instance, workflow_entry, doc)
+                            temp_doc_collection.delete()
 
                 # Set status
                 workflow_type = request.data.get('workflow_type')
