@@ -99,7 +99,7 @@ class TemporaryDocumentCollectionViewSet(viewsets.ModelViewSet):
                 delete_document(request, instance, comms_instance=None, document_type=None)
 
             elif action == 'cancel':
-                delete_document(request, instance, comms_instance=None, document_type=None)
+                cancel_document(request, instance, comms_instance=None, document_type=None)
 
             elif action == 'save':
                 save_document(request, instance, comms_instance=None, document_type=None)

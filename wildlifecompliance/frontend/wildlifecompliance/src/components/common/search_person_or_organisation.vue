@@ -2,10 +2,12 @@
     <div class="">
         <div class="col-sm-12 form-group"><div class="row">
                 <label class="col-sm-4">{{ labelTitle }}</label>
-                <input :disabled="!isEditable" class="col-sm-1" id="individual" type="radio" v-model="searchType" v-bind:value="`individual`">
-                <label class="col-sm-1" for="individual">Person</label>
-                <input :disabled="!isEditable" class="col-sm-1" id="organisation" type="radio" v-model="searchType" v-bind:value="`organisation`">
-                <label class="col-sm-1" for="organisation">Organisation</label>
+                <div v-if="!personOnly">
+                    <input :disabled="!isEditable" class="col-sm-1" id="individual" type="radio" v-model="searchType" v-bind:value="`individual`">
+                    <label class="col-sm-1" for="individual">Person</label>
+                    <input :disabled="!isEditable" class="col-sm-1" id="organisation" type="radio" v-model="searchType" v-bind:value="`organisation`">
+                    <label class="col-sm-1" for="organisation">Organisation</label>
+                </div>
         </div></div>
         <div class="form-group"><div class="row">
             <div class="col-sm-12">
@@ -14,16 +16,10 @@
                 </div>
                 <div v-if="showCreateUpdate && searchType === 'individual'" class="col-sm-2">
                     <input :disabled="!isEditable" type="button" class="btn btn-primary" value="Create New Person" @click.prevent="createNewPerson()" />
-                    <!--input :disabled="!isEditable" type="button" class="btn btn-primary" value="Create/Update Person" @click.prevent="createUpdatePersonClicked()" /-->
                 </div>
                 <div v-else-if="showCreateUpdate && searchType === 'organisation'" class="col-sm-2">
-                    <input :disabled="!isEditable" type="button" class="btn btn-primary" value="Create/Update Organisation" @click.prevent="createUpdateOrganisationClicked()" />
+                    <input :disabled="!isEditable" type="button" class="btn btn-primary" value="Create New Organisation" @click.prevent="createNewOrganisation" />
                 </div>
-            </div>
-        </div></div>
-        <div class="form-group"><div class="row">
-            <div class="col-sm-8" v-if="errorText">
-                <strong><span style="white-space: pre;">{{ errorText }}</span></strong>
             </div>
         </div></div>
         <div class="form-group"><div class="row">
@@ -35,7 +31,7 @@
               v-bind:key="updateCreatePersonBindId"
               ref="update_create_person"/>
             </div>
-            <div class="col-sm-12" v-if="displayUpdateCreateOrganisation">
+            <div class="col-sm-12" v-if="displayUpdateCreateOrganisation && !personOnly">
               <updateCreateOrganisation displayComponent @organisation-saved=""/>
             </div>
         </div></div>
@@ -53,23 +49,18 @@ import updateCreateOrganisation from '@common-components/update_create_organisat
 export default {
     name: "search-person-organisation",
     data: function(){
-        let vm = this;
+        let vm = this
         vm.awesomplete_obj = null;
-
         return {
-            //elemId: 'create_new_person_' + vm._uid,
-            elemId: this.search_type + vm._uid,
             entity: {
                 id: null,
                 data_type: null
             },
-            //entity_id: null,
-            //entity_data_type: null,
             displayUpdateCreatePerson: false,
             displayUpdateCreateOrganisation: false,
             searchType: '',
             errorText: '',
-
+            uuid: 0,
         }
     },
     components: {
@@ -85,31 +76,44 @@ export default {
                         data_type: this.entity.data_type });
                 }
                 if (this.entity.id && this.entity.data_type === 'individual') {
+                    this.displayUpdateCreateOrganisation = false;
                     this.displayUpdateCreatePerson = true;
                 } else if (this.entity.id && this.entity.data_type === 'organisation') {
-                    this.displayUpdateCreateOrganisation = true;
+                    this.displayUpdateCreatePerson = false;
+                    // TODO: swap following two lines once create org implemented
+                    //this.displayUpdateCreateOrganisation = true;
+                    this.displayUpdateCreateOrganisation = false;
                 }
             },
             deep: true
         },
     },
     computed: {
+        elemId: function() {
+            this.uuid += 1
+            let domId = this.searchType + this.uuid + 'search';
+
+            if (this.domIdHelper) {
+                domId += this.domIdHelper;
+            }
+            return domId;
+        },
         labelTitle: function() {
             if (this.searchType) {
                 return "Search " + this.searchType;
             }
         },
         updateCreatePersonBindId: function() {
-            if (this.entity.data_type && this.entity.id) {
-                return this.entity.data_type + '_' + this.entity.id
+            let bindId = 'person'
+            if (this.entity.data_type === 'individual' && this.entity.id) {
+                bindId += this.entity.id
+            } else {
+                bindId += this.uuid;
             }
+            return bindId;
         },
     },
     props: {
-        // This prop is not used any more.  Instead elemId in the data is used.
-        //elementId: {
-        //    required: false
-        //},
         classNames: {
             required: false,
             default: 'form-control',
@@ -118,7 +122,7 @@ export default {
             required: false,
             default: 10
         },
-        search_type: {
+        initialSearchType: {
             required: false,
             default: 'individual' // 'individual' or 'organisation'
                                   //  This variable can be changed dynamically, for example, by the selection of radio buttons
@@ -137,14 +141,36 @@ export default {
             required: false,
             default: false,
         },
+        parentEntity: {
+            type: Object,
+            required: false,
+        },
+        domIdHelper: {
+            type: String,
+            required: false,
+        },
+        personOnly: {
+            type: Boolean,
+            required: false,
+            default: false,
+        },
     },
     methods: {
         createNewPerson: function() {
-            this.$refs.update_create_person.setDefaultPerson();
-            this.setInput('');
+            this.entity = {
+                id: null,
+                data_type: null
+            },
+            this.$nextTick(() => {
+                this.displayUpdateCreatePerson = true;
+                this.setInput('');
+                if (this.$refs.update_create_person && this.$refs.update_create_person.email_user) {
+                    this.$refs.update_create_person.setDefaultPerson();
+                }
+            });
         },
-        removeOrganisation: function() {
-            //this.$refs.update_create_person.setDefaultPerson();
+        createNewOrganisation: function() {
+            //this.displayUpdateCreateOrganisation = !this.displayUpdateCreateOrganisation;
         },
         clearInput: function(){
             document.getElementById(this.elemId).value = "";
@@ -159,33 +185,30 @@ export default {
             });
             return ret_text;
         },
-        createUpdatePersonClicked: function() {
-          //this.newPersonBeingCreated = true;
-          this.displayUpdateCreatePerson = !this.displayUpdateCreatePerson;
-        },
         createUpdateOrganisationClicked: function() {
           this.displayUpdateCreateOrganisation = !this.displayUpdateCreateOrganisation;
         },
-        savePerson: function(obj) {
-            console.log("savePerson")
-            console.log(obj);
+        savePerson: async function(obj) {
+            if (obj.person) {
+                console.log(obj);
+            }
             if(obj.person){
-                this.$emit('entity-selected', {data_type: 'individual', id: obj.person.id});
+                if (!obj.updateSearchBox) {
+                    this.$emit('entity-selected', {data_type: 'individual', id: obj.person.id});
+                }
 
                 // Set fullname and DOB into the input box
                 let full_name = [obj.person.first_name, obj.person.last_name].filter(Boolean).join(" ");
                 let dob = obj.person.dob ? "DOB:" + obj.person.dob : "DOB: ---";
                 let value = [full_name, dob].filter(Boolean).join(", ");
-                //this.$refs.search_person_org.setInput(value);
                 this.setInput(value);
-            } else if (obj.error) {
-                console.log(obj.error);
-                this.errorText = obj.error;
-            } else {
-                // Should not reach here
+            } else if (obj.errorMessage) {
+                let errorMessage = obj.errorMessage
+                await swal("Error", errorMessage, "error");
             }
         },
         initAwesomplete: function() {
+            console.log("initAwesomplete");
             let vm = this;
 
             let element_search = document.getElementById(vm.elemId);
@@ -200,7 +223,7 @@ export default {
                     return ret;
                 },
                 data: function(item, input) {
-                    if (vm.search_type == "individual") {
+                    if (vm.searchType == "individual") {
                         let f_name = item.first_name ? item.first_name : "";
                         let l_name = item.last_name ? item.last_name : "";
             
@@ -278,16 +301,15 @@ export default {
                 // id is an Emailuser.id when data_type is 'individual' or 
                 // an Organisation.id when data_type is 'organisation'
                 vm.$nextTick(() => {
-                    vm.entity.id = parseInt(data_item_id)
-                    vm.entity.data_type = data_type
-                    //vm.$emit('entity-selected', { 
-                    //    id: this.entity_id, 
-                    //    data_type: this.entity_data_type });
+                    console.log(data_item_id)
+                    console.log(data_type)
+                    let data_item_id_int = parseInt(data_item_id);
+                    vm.entity = {'id': data_item_id_int, 'data_type': data_type};
                 });
-                // vm.$emit('entity-selected', { id: data_item_id, data_type: data_type });
             });
         },
         search_person_or_organisation(searchTerm){
+            console.log("search_person_or_organisation");
             var vm = this;
             let suggest_list_offender = [];
             suggest_list_offender.length = 0;
@@ -300,7 +322,7 @@ export default {
             }
 
             let search_url = "";
-            if (vm.search_type == "individual") {
+            if (vm.searchType == "individual") {
                 search_url = "/api/search_user/?search=";
             } else {
                 search_url = "/api/search_organisation/?search=";
@@ -325,31 +347,17 @@ export default {
         },
     },
     created: function() {
+        this.uuid += 1;
+        this.searchType = this.initialSearchType;
         this.$nextTick(()=>{
+            console.log(this)
+            if (this.parentEntity) {
+                console.log(this.parentEntity)
+                Object.assign(this.entity, this.parentEntity)
+            }
             this.initAwesomplete();
-            this.searchType = this.search_type;
-
-            //if (this.inspection.party_inspected === 'individual') {
-            //    this.entity.id = this.inspection.individual_inspected_id;
-            //    this.entity.data_type = 'individual'
-            //} else if (this.inspection.party_inspected === 'organisation') {
-            //    this.entity.id = this.inspection.organisation_inspected_id;
-            //    this.entity.data_type = 'organisation'
-            //}
-
         });
     },
-    //mounted: function() {
-    //    this.$nextTick(()=>{
-    //        if (this.inspection.party_inspected === 'individual') {
-    //            this.entity.id = this.inspection.individual_inspected_id;
-    //            this.entity.data_type = 'individual'
-    //        } else if (this.inspection.party_inspected === 'organisation') {
-    //            this.entity.id = this.inspection.organisation_inspected_id;
-    //            this.entity.data_type = 'organisation'
-    //        }
-    //    });
-    //},
 }
 </script>
 

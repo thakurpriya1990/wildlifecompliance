@@ -234,11 +234,6 @@ export default {
         },
     },
     watch: {
-        personId: {
-            handler: function() {
-                this.handlePersonIdChanged();
-            }
-        },
         displayComponent: {
             handler: function() {
                 this.showHideElement();
@@ -276,28 +271,22 @@ export default {
         }
     },
     methods: {
-        handlePersonIdChanged: function(){
-            if (this.personId) {
-                this.setExistingPerson(this.personId);
-            } else {
-                this.setDefaultPerson();
-            }
-        },
         setExistingPerson: function(id){
             let vm = this;
 
             let initialisers = [utils.fetchUser(id)];
             Promise.all(initialisers).then(data => {
-                console.log(data[0])
-                vm.email_user = data[0];
-                !vm.email_user.residential_address ? vm.email_user.residential_address = {} : null
+                Object.assign(vm.email_user, data[0])
+                if (!vm.email_user.residential_address) {
+                    vm.email_user.residential_address = vm.getDefaultAddress()
+                }
             });
         },
         setPersonId: function(id){
             this.email_user.id = id;
         },
         setDefaultPerson: function(){
-            let email_user = {
+            let user_data = {
                 id: null,
                 first_name: '',
                 last_name: '',
@@ -313,7 +302,18 @@ export default {
                 mobile_number: '',
                 email: '',
             };
-            Vue.set(this._data, 'email_user', email_user);
+            Object.assign(this.email_user, user_data);
+            console.log(this.email_user)
+        },
+        getDefaultAddress: function(){
+            let residential_address_data = {
+                    line1: '',
+                    locality: '',
+                    state: 'WA',
+                    postcode: '',
+                    country: 'AU'
+                };
+            return residential_address_data;
         },
         handleSlideElement: function(elem_id){
             let elem = $('#' + elem_id);
@@ -336,31 +336,39 @@ export default {
         },
         saveData: async function() {
             try{
-                if (this.email_user.residential_address && !this.email_user.residential_address.line1) {
-                    this.email_user.residential_address = null;
+                let payload = {}
+                Object.assign(payload, this.email_user)
+                if (payload.residential_address && !payload.residential_address.line1) {
+                    payload.residential_address = null;
                 }
-                console.log(this.email_user)
                 let fetchUrl = ''
-                if (this.email_user.id) {
-                    //console.log(this.email_user.id)
-                    fetchUrl = helpers.add_endpoint_join(api_endpoints.compliance_management_users, this.email_user.id + '/update_person/');
+                if (payload.id) {
+                    if (!payload.email) {
+                        await swal("Error", "Ensure the email field is not blank", "error");
+                        return;
+                    } else {
+                        fetchUrl = helpers.add_endpoint_join(api_endpoints.compliance_management_users, payload.id + '/update_person/');
+                    }
                 } else {
-                    //console.log(this.email_user.id)
-                    //console.log(api_endpoints.compliance_management_users)
-                    fetchUrl = api_endpoints.compliance_management_users
-                    //console.log(fetchUrl)
+                    if (!payload.first_name || !payload.last_name || !payload.dob || !payload.email) {
+                        await swal("Error", "Fill out all Personal Details and email fields", "error");
+                        return;
+                    } else {
+                        fetchUrl = api_endpoints.compliance_management_users;
+                    }
                 }
 
-                let savedEmailUser = await Vue.http.post(fetchUrl, this.email_user);
-                this.email_user = savedEmailUser.body;
-                !this.email_user.residential_address ? this.email_user.residential_address = {} : null
-                //console.log(savedEmailUser)
-                this.$emit('person-saved', {'person': savedEmailUser.body, 'error': null});
+                let savedEmailUser = await Vue.http.post(fetchUrl, payload);
+                if (!savedEmailUser.body.residential_address) {
+                    savedEmailUser.body.residential_address = this.getDefaultAddress()
+                    console.log(savedEmailUser.body)
+                }
+                Object.assign(this.email_user, savedEmailUser.body);
+                await swal("Saved", "Person has been saved", "success");
+                this.$emit('person-saved', {'person': savedEmailUser.body, 'errorMessage': null});
             } catch (err) {
-                // this.$emit('person-saved', {'person': null, 'error': err});
                 if (err.bodyText) {
-                    let errorText = 'Error: ' + err.bodyText;
-                    this.$emit('person-saved', {'person': null, 'error': errorText});
+                    this.$emit('person-saved', { 'person': null, 'errorMessage': err.bodyText });
                 }
             }
         },
@@ -390,7 +398,6 @@ export default {
     created: function() {
         if (this.personToUpdate) {
             this.setExistingPerson(this.personToUpdate);
-            //Object.assign(this.email_user, this.personToUpdate);
         }
     },
 }
