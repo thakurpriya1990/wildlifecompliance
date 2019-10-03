@@ -210,7 +210,7 @@
                                     :excludeStaff="true" 
                                     :isEditable="!readonlyForm" 
                                     classNames="form-control" 
-                                    :search_type="inspection.party_inspected" 
+                                    :initialSearchType="inspection.party_inspected" 
                                     @entity-selected="entitySelected" 
                                     showCreateUpdate
                                     ref="search_person_organisation"

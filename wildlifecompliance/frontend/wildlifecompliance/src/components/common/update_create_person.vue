@@ -414,11 +414,14 @@ export default {
     created: function() {
         if (this.personToUpdate) {
             this.setExistingPerson(this.personToUpdate);
-            this.$emit('person-saved', {
-                'person': this.email_user,
-                'errorMessage': null,
-                'updateSearchBox': true});
+            //this.$nextTick(()=>{
+            //    this.$emit('person-saved', {
+            //        'person': this.email_user,
+            //        'errorMessage': null,
+            //    });
+            //});
             //Object.assign(this.email_user, this.personToUpdate);
+                    //'updateSearchBox': true
         }
     },
 }

@@ -54,12 +54,11 @@ import updateCreateOrganisation from '@common-components/update_create_organisat
 export default {
     name: "search-person-organisation",
     data: function(){
-        let vm = this;
+        let vm = this
         vm.awesomplete_obj = null;
-
         return {
             //elemId: 'create_new_person_' + vm._uid,
-            elemId: this.search_type + vm._uid,
+            //emId: this.searchType + vm._uid,
             entity: {
                 id: null,
                 data_type: null
@@ -70,9 +69,13 @@ export default {
             displayUpdateCreateOrganisation: false,
             searchType: '',
             errorText: '',
-
+            uuid: 0,
         }
     },
+    //beforeCreate() {
+    //    //this.uuid = uuid.toString();
+    //    this.uuid += 1;
+    //},
     components: {
         updateCreatePerson,
         updateCreateOrganisation,
@@ -84,26 +87,43 @@ export default {
                     this.$emit('entity-selected', { 
                         id: this.entity.id, 
                         data_type: this.entity.data_type });
+                    //this.awesomplete_obj.evaluate();
                 }
                 if (this.entity.id && this.entity.data_type === 'individual') {
+                    this.displayUpdateCreateOrganisation = false;
                     this.displayUpdateCreatePerson = true;
                 } else if (this.entity.id && this.entity.data_type === 'organisation') {
-                    this.displayUpdateCreateOrganisation = true;
+                    this.displayUpdateCreatePerson = false;
+                    //this.displayUpdateCreateOrganisation = true;
+                    this.displayUpdateCreateOrganisation = false;
                 }
             },
             deep: true
         },
     },
     computed: {
+        elemId: function() {
+            this.uuid += 1
+            let domId = this.searchType + this.uuid + 'search';
+
+            if (this.domIdHelper) {
+                domId += this.domIdHelper;
+            }
+            return domId;
+        },
         labelTitle: function() {
             if (this.searchType) {
                 return "Search " + this.searchType;
             }
         },
         updateCreatePersonBindId: function() {
-            if (this.entity.data_type && this.entity.id) {
-                return this.entity.data_type + '_' + this.entity.id
+            let bindId = 'person'
+            if (this.entity.data_type === 'individual' && this.entity.id) {
+                bindId += this.entity.id
+            } else {
+                bindId += this.uuid;
             }
+            return bindId;
         },
     },
     props: {
@@ -119,7 +139,7 @@ export default {
             required: false,
             default: 10
         },
-        search_type: {
+        initialSearchType: {
             required: false,
             default: 'individual' // 'individual' or 'organisation'
                                   //  This variable can be changed dynamically, for example, by the selection of radio buttons
@@ -140,6 +160,11 @@ export default {
         },
         parentEntity: {
             type: Object,
+            required: false,
+        },
+        domIdHelper: {
+            type: String,
+            required: false,
         },
     },
     methods: {
@@ -151,7 +176,9 @@ export default {
             this.$nextTick(() => {
                 this.displayUpdateCreatePerson = true;
                 this.setInput('');
-                this.$refs.update_create_person.setDefaultPerson();
+                if (this.$refs.update_create_person && this.$refs.update_create_person.email_user) {
+                    this.$refs.update_create_person.setDefaultPerson();
+                }
             });
         },
         createNewOrganisation: function() {
@@ -204,6 +231,7 @@ export default {
             }
         },
         initAwesomplete: function() {
+            console.log("initAwesomplete");
             let vm = this;
 
             let element_search = document.getElementById(vm.elemId);
@@ -218,7 +246,7 @@ export default {
                     return ret;
                 },
                 data: function(item, input) {
-                    if (vm.search_type == "individual") {
+                    if (vm.searchType == "individual") {
                         let f_name = item.first_name ? item.first_name : "";
                         let l_name = item.last_name ? item.last_name : "";
             
@@ -296,8 +324,12 @@ export default {
                 // id is an Emailuser.id when data_type is 'individual' or 
                 // an Organisation.id when data_type is 'organisation'
                 vm.$nextTick(() => {
-                    vm.entity.id = parseInt(data_item_id)
-                    vm.entity.data_type = data_type
+                    console.log(data_item_id)
+                    console.log(data_type)
+                    let data_item_id_int = parseInt(data_item_id);
+                    vm.entity = {'id': data_item_id_int, 'data_type': data_type};
+                    //vm.entity.id = parseInt(data_item_id)
+                    //vm.entity.data_type = data_type
                     //vm.$emit('entity-selected', { 
                     //    id: this.entity_id, 
                     //    data_type: this.entity_data_type });
@@ -306,6 +338,7 @@ export default {
             });
         },
         search_person_or_organisation(searchTerm){
+            console.log("search_person_or_organisation");
             var vm = this;
             let suggest_list_offender = [];
             suggest_list_offender.length = 0;
@@ -318,7 +351,7 @@ export default {
             }
 
             let search_url = "";
-            if (vm.search_type == "individual") {
+            if (vm.searchType == "individual") {
                 search_url = "/api/search_user/?search=";
             } else {
                 search_url = "/api/search_organisation/?search=";
@@ -343,14 +376,18 @@ export default {
         },
     },
     created: function() {
+        this.uuid += 1;
+        this.searchType = this.initialSearchType;
         this.$nextTick(()=>{
-            this.initAwesomplete();
-            this.searchType = this.search_type;
+            console.log(this)
+            //Object.assign(this.searchType, this.initialSearchType);
+            //this.searchType = this.initialSearchType;
             if (this.parentEntity) {
                 console.log(this.parentEntity)
                 Object.assign(this.entity, this.parentEntity)
                 //this.entity = this.parentEntity;
             }
+            this.initAwesomplete();
 
             //if (this.inspection.party_inspected === 'individual') {
             //    this.entity.id = this.inspection.individual_inspected_id;
