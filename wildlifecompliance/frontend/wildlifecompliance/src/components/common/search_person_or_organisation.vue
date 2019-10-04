@@ -204,8 +204,6 @@ export default {
           this.displayUpdateCreateOrganisation = !this.displayUpdateCreateOrganisation;
         },
         savePerson: async function(obj) {
-            if (obj.person) {
-            }
             if(obj.person){
                 if (!obj.updateSearchBox) {
                     this.$emit('entity-selected', {data_type: 'individual', id: obj.person.id});
