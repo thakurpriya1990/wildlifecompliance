@@ -14,10 +14,10 @@
                 <div class="col-sm-8">
                     <input :id="elemId" :class="classNames" :readonly="!isEditable" ref="search_person_org"/>
                 </div>
-                <div v-if="showCreateUpdate && searchType === 'individual'" class="col-sm-2">
+                <div v-if="showCreateNewPerson" class="col-sm-2">
                     <input :disabled="!isEditable" type="button" class="btn btn-primary" value="Create New Person" @click.prevent="createNewPerson()" />
                 </div>
-                <div v-else-if="showCreateUpdate && searchType === 'organisation'" class="col-sm-2">
+                <div v-else-if="showCreateNewOrganisation" class="col-sm-2">
                     <input :disabled="!isEditable" type="button" class="btn btn-primary" value="Create New Organisation" @click.prevent="createNewOrganisation" />
                 </div>
             </div>
@@ -26,13 +26,18 @@
             <div class="col-sm-12" v-if="displayUpdateCreatePerson">
               <updateCreatePerson 
               displayComponent 
+              :isEditable="isEditable"
               :personToUpdate="entity.id"
               @person-saved="savePerson"
               v-bind:key="updateCreatePersonBindId"
               ref="update_create_person"/>
             </div>
             <div class="col-sm-12" v-if="displayUpdateCreateOrganisation && !personOnly">
-              <updateCreateOrganisation displayComponent @organisation-saved=""/>
+              <updateCreateOrganisation 
+              displayComponent 
+              @organisation-saved=""
+              ref="update_create_organisation"
+              />
             </div>
         </div></div>
     </div>
@@ -61,6 +66,8 @@ export default {
             searchType: '',
             errorText: '',
             uuid: 0,
+            showCreateNewPerson: false,
+            showCreateNewOrganisation: false,
         }
     },
     components: {
@@ -156,6 +163,14 @@ export default {
         },
     },
     methods: {
+        parentSave: async function() {
+            if (this.searchType === 'individual') {
+                await this.$refs.update_create_person.parentSave()
+            } else if (this.searchType === 'organisation') {
+                await this.$refs.update_create_organisation.parentSave()
+            }
+        },
+
         createNewPerson: function() {
             this.entity = {
                 id: null,
@@ -166,6 +181,7 @@ export default {
                 this.setInput('');
                 if (this.$refs.update_create_person && this.$refs.update_create_person.email_user) {
                     this.$refs.update_create_person.setDefaultPerson();
+                    this.$emit('entity-selected', {data_type: 'individual', id: null});
                 }
             });
         },
@@ -176,7 +192,6 @@ export default {
             document.getElementById(this.elemId).value = "";
         },
         setInput: function(person_org_str){
-            console.log("setInput")
             document.getElementById(this.elemId).value = person_org_str;
         },
         markMatchedText(original_text, input) {
@@ -189,9 +204,6 @@ export default {
           this.displayUpdateCreateOrganisation = !this.displayUpdateCreateOrganisation;
         },
         savePerson: async function(obj) {
-            if (obj.person) {
-                console.log(obj);
-            }
             if(obj.person){
                 if (!obj.updateSearchBox) {
                     this.$emit('entity-selected', {data_type: 'individual', id: obj.person.id});
@@ -208,7 +220,6 @@ export default {
             }
         },
         initAwesomplete: function() {
-            console.log("initAwesomplete");
             let vm = this;
 
             let element_search = document.getElementById(vm.elemId);
@@ -275,7 +286,6 @@ export default {
             .on("keyup", function(ev) {
                 var keyCode = ev.keyCode || ev.which;
                 if ((48 <= keyCode && keyCode <= 90) || (96 <= keyCode && keyCode <= 105) || keyCode == 8 || keyCode == 46) {
-                    console.log(ev.target.value)
                     vm.search_person_or_organisation(ev.target.value);
                     return false;
                 }
@@ -301,15 +311,12 @@ export default {
                 // id is an Emailuser.id when data_type is 'individual' or 
                 // an Organisation.id when data_type is 'organisation'
                 vm.$nextTick(() => {
-                    console.log(data_item_id)
-                    console.log(data_type)
                     let data_item_id_int = parseInt(data_item_id);
                     vm.entity = {'id': data_item_id_int, 'data_type': data_type};
                 });
             });
         },
         search_person_or_organisation(searchTerm){
-            console.log("search_person_or_organisation");
             var vm = this;
             let suggest_list_offender = [];
             suggest_list_offender.length = 0;
@@ -341,6 +348,14 @@ export default {
                     }
                     vm.awesomplete_obj.list = suggest_list_offender;
                     vm.awesomplete_obj.evaluate();
+                    // show 'Create' buttons
+                    if (searchTerm.length >=2 && suggest_list_offender.length > 0) {
+                        if (vm.showCreateUpdate && vm.searchType === 'individual') {
+                            vm.showCreateNewPerson = true;
+                        } else if (vm.showCreateUpdate && vm.searchType === 'organisation') {
+                            vm.showCreateNewOrganisation = true;
+                        }
+                    }
                 },
                 error: function(e) {}
             });
@@ -350,9 +365,7 @@ export default {
         this.uuid += 1;
         this.searchType = this.initialSearchType;
         this.$nextTick(()=>{
-            console.log(this)
             if (this.parentEntity) {
-                console.log(this.parentEntity)
                 Object.assign(this.entity, this.parentEntity)
             }
             this.initAwesomplete();
