@@ -509,7 +509,7 @@ export default {
     }),
     personSearchVisibility: function() {
         let visible = false;
-        if (this.statusId.length > 0 && this.statusId !=='draft') {
+        if (this.statusId ==='open') {
             visible = true;
         }
         return visible;
@@ -670,6 +670,7 @@ export default {
     },
     save: async function () {
         if (this.call_email.id) {
+            await this.$refs.search_person_organisation.parentSave()
             await this.saveCallEmail({ route: false, crud: 'save' });
         } else {
             await this.saveCallEmail({ route: false, crud: 'create'});
@@ -680,6 +681,7 @@ export default {
     },
     saveExit: async function() {
       if (this.call_email.id) {
+        await this.$refs.search_person_organisation.parentSave()
         await this.saveCallEmail({ route: true, crud: 'save' });
       } else {
         await this.saveCallEmail({ route: true, crud: 'create'});
@@ -797,6 +799,9 @@ export default {
           vm.call_email.time_of_call = "";
         }
       });
+      // TODO: add conditional logic
+      //window.addEventListener('beforeunload', (e) => {e.returnValue = ''});
+      //window.addEventListener('onblur', (e) => {e.returnValue = ''});
     },
   },
   created: async function() {

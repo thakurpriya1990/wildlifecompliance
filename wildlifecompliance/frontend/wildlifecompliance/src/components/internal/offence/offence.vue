@@ -956,9 +956,11 @@ export default {
             }
             this.constructAllegedOffencesTable();
         },
-        addOffenderClicked: function() {
+        addOffenderClicked: async function() {
             console.log('addOffenderClicked');
             if (this.current_offender && this.current_offender.id && this.current_offender.data_type) {
+                // save person before adding to offender list
+                await this.$refs.search_offender.parentSave()
 
                 // Check if the item is already in the list
                 let already_exists = false;
@@ -1186,8 +1188,9 @@ export default {
         },
         setCurrentOffender: function(data_type, id) {
           let vm = this;
-
-          if (data_type == "individual") {
+          if (!id) {
+              this.current_offender = null;
+          } else if (data_type == "individual") {
             let initialisers = [utils.fetchUser(id)];
             Promise.all(initialisers).then(data => {
               vm.current_offender = data[0];

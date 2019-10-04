@@ -52,7 +52,7 @@
                         <label for="" class="col-sm-3 control-label">Street</label>
                         <div class="col-sm-6">
                             <div v-if="email_user"><div>
-                                <input type="text" class="form-control" name="street" placeholder="" v-model="email_user.residential_address.line1" v-bind:key="email_user.residential_address.id">
+                                <input :readonly="!isEditable" type="text" class="form-control" name="street" placeholder="" v-model="email_user.residential_address.line1" v-bind:key="email_user.residential_address.id">
                             </div></div>
                         </div>
                         </div>
@@ -60,7 +60,7 @@
                         <label for="" class="col-sm-3 control-label" >Town/Suburb</label>
                         <div class="col-sm-6">
                             <div v-if="email_user"><div>
-                                <input type="text" class="form-control" name="surburb" placeholder="" v-model="email_user.residential_address.locality" v-bind:key="email_user.residential_address.id">
+                                <input :readonly="!isEditable" type="text" class="form-control" name="surburb" placeholder="" v-model="email_user.residential_address.locality" v-bind:key="email_user.residential_address.id">
                             </div></div>
                         </div>
                         </div>
@@ -68,13 +68,13 @@
                         <label for="" class="col-sm-3 control-label">State</label>
                         <div class="col-sm-2">
                             <div v-if="email_user"><div>
-                                <input type="text" class="form-control" name="country" placeholder="" v-model="email_user.residential_address.state" v-bind:key="email_user.residential_address.id">
+                                <input :readonly="!isEditable" type="text" class="form-control" name="country" placeholder="" v-model="email_user.residential_address.state" v-bind:key="email_user.residential_address.id">
                             </div></div>
                         </div>
                         <label for="" class="col-sm-2 control-label">Postcode</label>
                         <div class="col-sm-2">
                             <div v-if="email_user"><div>
-                                <input type="text" class="form-control" name="postcode" placeholder="" v-model="email_user.residential_address.postcode" v-bind:key="email_user.residential_address.id">
+                                <input :readonly="!isEditable" type="text" class="form-control" name="postcode" placeholder="" v-model="email_user.residential_address.postcode" v-bind:key="email_user.residential_address.id">
                             </div></div>
                         </div>
                         </div>
@@ -82,7 +82,7 @@
                         <label for="" class="col-sm-3 control-label" >Country</label>
                         <div class="col-sm-4">
                             <div v-if="email_user"><div>
-                                <select class="form-control" name="country" v-model="email_user.residential_address.country" v-bind:key="email_user.residential_address.id">
+                                <select :disabled="!isEditable" class="form-control" name="country" v-model="email_user.residential_address.country" v-bind:key="email_user.residential_address.id">
                                     <option v-for="c in countries" :value="c.alpha2Code">{{ c.name }}</option>
                                 </select>
                             </div></div>
@@ -104,7 +104,7 @@
                         <label for="" class="col-sm-3 control-label">Phone (work)</label>
                         <div class="col-sm-6">
                             <div v-if="email_user">
-                                <input type="text" class="form-control" name="phone" placeholder="" v-model="email_user.phone_number" v-bind:key="email_user.id">
+                                <input :readonly="!isEditable" type="text" class="form-control" name="phone" placeholder="" v-model="email_user.phone_number" v-bind:key="email_user.id">
                             </div>
                         </div>
                         </div>
@@ -112,7 +112,7 @@
                         <label for="" class="col-sm-3 control-label" >Mobile</label>
                         <div class="col-sm-6">
                             <div v-if="email_user">
-                                <input type="text" class="form-control" name="mobile" placeholder="" v-model="email_user.mobile_number" v-bind:key="email_user.id">
+                                <input :readonly="!isEditable" type="text" class="form-control" name="mobile" placeholder="" v-model="email_user.mobile_number" v-bind:key="email_user.id">
                             </div>
                         </div>
                         </div>
@@ -120,14 +120,19 @@
                         <label for="" class="col-sm-3 control-label" >Email</label>
                         <div class="col-sm-6">
                             <div v-if="email_user">
-                                <input type="email" class="form-control" name="email" placeholder="" v-model="email_user.email" v-bind:key="email_user.id"> </div>
+                                <input :readonly="!isEditable" type="email" class="form-control" name="email" placeholder="" v-model="email_user.email" v-bind:key="email_user.id"> </div>
                             </div>
                         </div>
                     </form>
                 </div>
             </div>
 
-            <input v-if="displaySaveButton" type="button" class="pull-right btn btn-primary" value="Save Person" @click.prevent="saveData" />
+            <input 
+            :disabled="!saveButtonEnabled"
+            type="button" 
+            class="pull-right btn btn-primary" 
+            :value="saveButtonText" 
+            @click.prevent="saveData" />
         </div>
     </div>
 </template>
@@ -158,6 +163,7 @@ export default {
             objectAlert: false,
             loading: [],
             countries: [],
+            saveButtonEnabled: false,
 
             // New toggles
             isPersonalDetailsOpen: null,
@@ -222,6 +228,10 @@ export default {
             type: Number,
             required: false,
         },
+        isEditable: {
+            type: Boolean,
+            default: false,
+        },
     },
     computed: {
         personId: function() {
@@ -232,6 +242,23 @@ export default {
                 return true;
             }
         },
+        computedEmailUser: function() {
+            let computedUser = Object.assign({}, this.email_user);
+            if (this.email_user && this.email_user.residential_address) {
+                Object.assign(computedUser.residential_address, this.email_user.residential_address);
+            }
+            return computedUser;
+        },
+        saveButtonText: function() {
+            let buttonText = '';
+            if (this.email_user && this.email_user.id) {
+                buttonText = 'Update Person'
+            } else {
+                buttonText = 'Save New Person'
+            }
+            return buttonText;
+        },
+
     },
     watch: {
         displayComponent: {
@@ -268,7 +295,18 @@ export default {
                     elem.slideUp(this.slideUpMiliSecond);
                 }
             }
-        }
+        },
+        computedEmailUser: {
+            deep: true,
+            handler: function(newVal, oldVal) {
+                if (oldVal.id && oldVal !== newVal) {
+                    this.saveButtonEnabled = true;
+                } else {
+                    this.saveButtonEnabled = false;
+                }
+            },
+        },
+
     },
     methods: {
         setExistingPerson: function(id){
@@ -303,7 +341,6 @@ export default {
                 email: '',
             };
             Object.assign(this.email_user, user_data);
-            console.log(this.email_user)
         },
         getDefaultAddress: function(){
             let residential_address_data = {
@@ -334,6 +371,11 @@ export default {
                 vm.countries = data[0];
             });
         },
+        parentSave: async function() {
+            if (this.saveButtonEnabled) {
+                await this.saveData()
+            }
+        },
         saveData: async function() {
             try{
                 let payload = {}
@@ -361,7 +403,6 @@ export default {
                 let savedEmailUser = await Vue.http.post(fetchUrl, payload);
                 if (!savedEmailUser.body.residential_address) {
                     savedEmailUser.body.residential_address = this.getDefaultAddress()
-                    console.log(savedEmailUser.body)
                 }
                 Object.assign(this.email_user, savedEmailUser.body);
                 await swal("Saved", "Person has been saved", "success");
@@ -381,7 +422,6 @@ export default {
         }
     },
     mounted: function() {
-        console.log("create person mounted")
         let vm = this;
         let elem = document.getElementById(vm.elementId);
         vm.mainElement = $(elem);
