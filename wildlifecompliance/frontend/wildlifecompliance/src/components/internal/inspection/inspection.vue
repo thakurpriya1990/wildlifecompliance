@@ -870,6 +870,9 @@ export default {
     },
     save: async function () {
         if (this.inspection.id) {
+            if (this.$refs.search_person_organisation) {
+                await this.$refs.search_person_organisation.parentSave();
+            }
             await this.saveInspection({ create: false, internal: false });
         } else {
             await this.saveInspection({ create: true, internal: false });
@@ -883,6 +886,9 @@ export default {
     },
     saveExit: async function() {
       if (this.inspection.id) {
+          if (this.$refs.search_person_organisation) {
+              await this.$refs.search_person_organisation.parentSave()
+          }
           await this.saveInspection({ create: false, internal: false });
       } else {
           await this.saveInspection({ create: true, internal: false });
@@ -925,19 +931,21 @@ export default {
           '.make_team_lead',
           vm.makeTeamLead,
           );
-      window.addEventListener('beforeunload', vm.leaving);
-      window.addEventListener('onblur', vm.leaving);
-
+      //window.addEventListener('beforeunload', vm.leaving);
+      //window.addEventListener('onblur', vm.leaving);
+      // TODO: add conditional logic
+      //window.addEventListener('beforeunload', (e) => {e.returnValue = ''});
+      //window.addEventListener('onblur', (e) => {e.returnValue = ''});
     },
-    leaving: function(e) {
-        let vm = this;
-        let dialogText = '';
-        if (!vm.proposal_readonly && !vm.submitting){
-            e.returnValue = dialogText;
-            return dialogText;
-        }
-        //return dialogText
-    },
+    //leaving: function(e) {
+    //    let vm = this;
+    //    let dialogText = '';
+    //    if (!vm.proposal_readonly && !vm.submitting){
+    //        e.returnValue = dialogText;
+    //        return dialogText;
+    //    }
+    //    //return dialogText
+    //},
       
     updateAssignedToId: async function (user) {
         let url = helpers.add_endpoint_join(

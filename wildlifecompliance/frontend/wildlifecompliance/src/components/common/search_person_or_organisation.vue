@@ -14,10 +14,10 @@
                 <div class="col-sm-8">
                     <input :id="elemId" :class="classNames" :readonly="!isEditable" ref="search_person_org"/>
                 </div>
-                <div v-if="showCreateUpdate && searchType === 'individual'" class="col-sm-2">
+                <div v-if="showCreateNewPerson" class="col-sm-2">
                     <input :disabled="!isEditable" type="button" class="btn btn-primary" value="Create New Person" @click.prevent="createNewPerson()" />
                 </div>
-                <div v-else-if="showCreateUpdate && searchType === 'organisation'" class="col-sm-2">
+                <div v-else-if="showCreateNewOrganisation" class="col-sm-2">
                     <input :disabled="!isEditable" type="button" class="btn btn-primary" value="Create New Organisation" @click.prevent="createNewOrganisation" />
                 </div>
             </div>
@@ -32,7 +32,11 @@
               ref="update_create_person"/>
             </div>
             <div class="col-sm-12" v-if="displayUpdateCreateOrganisation && !personOnly">
-              <updateCreateOrganisation displayComponent @organisation-saved=""/>
+              <updateCreateOrganisation 
+              displayComponent 
+              @organisation-saved=""
+              ref="update_create_organisation"
+              />
             </div>
         </div></div>
     </div>
@@ -61,6 +65,8 @@ export default {
             searchType: '',
             errorText: '',
             uuid: 0,
+            showCreateNewPerson: false,
+            showCreateNewOrganisation: false,
         }
     },
     components: {
@@ -156,6 +162,14 @@ export default {
         },
     },
     methods: {
+        parentSave: async function() {
+            if (this.searchType === 'individual') {
+                await this.$refs.update_create_person.parentSave()
+            } else if (this.searchType === 'organisation') {
+                await this.$refs.update_create_organisation.parentSave()
+            }
+        },
+
         createNewPerson: function() {
             this.entity = {
                 id: null,
@@ -277,6 +291,13 @@ export default {
                 if ((48 <= keyCode && keyCode <= 90) || (96 <= keyCode && keyCode <= 105) || keyCode == 8 || keyCode == 46) {
                     console.log(ev.target.value)
                     vm.search_person_or_organisation(ev.target.value);
+                    //// show 'Create' buttons
+                    //if (vm.showCreateUpdate && vm.searchType === 'individual') {
+                    //    vm.showCreateNewPerson = true;
+                    //} else if (vm.showCreateUpdate && vm.searchType === 'organisation') {
+                    //    vm.showCreateNewOrganisation = true;
+                    //}
+
                     return false;
                 }
             })
@@ -341,6 +362,14 @@ export default {
                     }
                     vm.awesomplete_obj.list = suggest_list_offender;
                     vm.awesomplete_obj.evaluate();
+                    // show 'Create' buttons
+                    if (searchTerm.length >=2 && suggest_list_offender.length > 0) {
+                        if (vm.showCreateUpdate && vm.searchType === 'individual') {
+                            vm.showCreateNewPerson = true;
+                        } else if (vm.showCreateUpdate && vm.searchType === 'organisation') {
+                            vm.showCreateNewOrganisation = true;
+                        }
+                    }
                 },
                 error: function(e) {}
             });

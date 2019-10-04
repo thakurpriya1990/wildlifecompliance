@@ -127,7 +127,12 @@
                 </div>
             </div>
 
-            <input v-if="displaySaveButton" type="button" class="pull-right btn btn-primary" value="Save Person" @click.prevent="saveData" />
+            <input 
+            :disabled="!saveButtonEnabled"
+            type="button" 
+            class="pull-right btn btn-primary" 
+            :value="saveButtonText" 
+            @click.prevent="saveData" />
         </div>
     </div>
 </template>
@@ -158,6 +163,7 @@ export default {
             objectAlert: false,
             loading: [],
             countries: [],
+            saveButtonEnabled: false,
 
             // New toggles
             isPersonalDetailsOpen: null,
@@ -232,6 +238,23 @@ export default {
                 return true;
             }
         },
+        computedEmailUser: function() {
+            let computedUser = Object.assign({}, this.email_user);
+            if (this.email_user && this.email_user.residential_address) {
+                Object.assign(computedUser.residential_address, this.email_user.residential_address);
+            }
+            return computedUser;
+        },
+        saveButtonText: function() {
+            let buttonText = '';
+            if (this.email_user && this.email_user.id) {
+                buttonText = 'Update Person'
+            } else {
+                buttonText = 'Save New Person'
+            }
+            return buttonText;
+        },
+
     },
     watch: {
         displayComponent: {
@@ -268,7 +291,18 @@ export default {
                     elem.slideUp(this.slideUpMiliSecond);
                 }
             }
-        }
+        },
+        computedEmailUser: {
+            deep: true,
+            handler: function(newVal, oldVal) {
+                if (oldVal.id && oldVal !== newVal) {
+                    this.saveButtonEnabled = true;
+                } else {
+                    this.saveButtonEnabled = false;
+                }
+            },
+        },
+
     },
     methods: {
         setExistingPerson: function(id){
@@ -333,6 +367,11 @@ export default {
             Promise.all(initialisers).then(data => {
                 vm.countries = data[0];
             });
+        },
+        parentSave: async function() {
+            if (this.saveButtonEnabled) {
+                await this.saveData()
+            }
         },
         saveData: async function() {
             try{
