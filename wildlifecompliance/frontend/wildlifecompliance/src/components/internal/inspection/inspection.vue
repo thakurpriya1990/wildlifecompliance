@@ -175,7 +175,7 @@
                               </div>
                             </div>
 
-                            <div class="col-sm-12 form-group"><div class="row">
+                            <div class="form-group"><div class="row">
                                 <label class="col-sm-3">Planned for (Date)</label>
                                 <div class="col-sm-3">
                                     <div class="input-group date" ref="plannedForDatePicker">
@@ -196,34 +196,41 @@
                                     </div>
                                 </div>
                             </div></div>
-                            <div class="col-sm-12 form-group"><div class="row">
+                            <!--div class="col-sm-12 form-group"><div class="row">
                                 <label class="col-sm-4">Party Inspected</label>
                                     <input :disabled="readonlyForm" class="col-sm-1" id="individual" type="radio" v-model="inspection.party_inspected" v-bind:value="`individual`">
                                     <label class="col-sm-1" for="individual">Person</label>
                                     <input :disabled="readonlyForm" class="col-sm-1" id="organisation" type="radio" v-model="inspection.party_inspected" v-bind:value="`organisation`">
                                     <label class="col-sm-1" for="organisation">Organisation</label>
-                            </div></div>
+                            </div></div-->
                             
-                            <div class="col-sm-12 form-group"><div class="row">
-                                <div class="col-sm-8">
-                                    <SearchPerson :excludeStaff="true" :isEditable="!readonlyForm" classNames="form-control" elementId="search-person" :search_type="inspection.party_inspected" @person-selected="personSelected"ref="search_person"/>
-                                </div>
+                            <div class="form-group"><div class="row">
+                                    <SearchPersonOrganisation 
+                                    :parentEntity="inspectedEntity"
+                                    :excludeStaff="true" 
+                                    :isEditable="!readonlyForm" 
+                                    classNames="form-control" 
+                                    :initialSearchType="inspection.party_inspected" 
+                                    @entity-selected="entitySelected" 
+                                    showCreateUpdate
+                                    ref="search_person_organisation"
+                                    v-bind:key="updateSearchPersonOrganisationBindId"/>
                                 <!--div class="col-sm-1">
                                     <input type="button" class="btn btn-primary" value="Add" @click.prevent="addOffenderClicked()" />
                                 </div-->
-                                <div class="col-sm-2">
+                                <!--div class="col-sm-2">
                                     <input :disabled="readonlyForm" type="button" class="btn btn-primary" value="Create New Person" @click.prevent="createNewPersonClicked()" />
-                                </div>
+                                </div-->
                             </div></div>
-                            <div class="col-sm-12 form-group"><div class="row">
+                            <!--div class="col-sm-12 form-group"><div class="row">
                                 <div class="col-sm-12" v-if="!readonlyForm">
                                   <CreateNewPerson :displayComponent="displayCreateNewPerson" @new-person-created="newPersonCreated"/>
                                 </div>
                                 <div class="col-sm-12" v-if="!readonlyForm">
                                   <CreateNewOrganisation/>
                                 </div>
-                            </div></div>
-                            <div class="col-sm-12 form-group"><div class="row">
+                            </div></div-->
+                            <div class="form-group"><div class="row">
                               <label class="col-sm-4" for="inspection_inform">Inform party being inspected</label>
                               <input :disabled="readonlyForm" type="checkbox" id="inspection_inform" v-model="inspection.inform_party_being_inspected">
                               
@@ -316,7 +323,7 @@
                                             <label class="control-label pull-left"  for="Name">Inspection Report</label>
                                         </div>
                                         <div class="col-sm-9" v-if="inspection.inspectionReportDocumentUrl">
-                                            <filefield ref="inspection_report_file" name="inspection-report-file" :isRepeatable="false" :documentActionUrl="inspection.inspectionReportDocumentUrl" @update-parent="loadInspectionReport"/>
+                                            <filefield ref="inspection_report_file" name="inspection-report-file" :isRepeatable="false" :documentActionUrl="inspection.inspectionReportDocumentUrl" @update-parent="loadInspectionReport" :readonly="readonlyForm"/>
                                         </div>
                                     </div>
                                 </div>
@@ -326,7 +333,7 @@
                             <FormSection :formCollapse="false" label="Related Items">
                                 <div class="col-sm-12 form-group"><div class="row">
                                     <div class="col-sm-12" v-if="relatedItemsVisibility">
-                                        <RelatedItems v-bind:key="relatedItemsBindId" :parent_update_related_items="setRelatedItems" :readonlyForm="readonlyForm"/>
+                                        <RelatedItems v-bind:key="relatedItemsBindId" :parent_update_related_items="setRelatedItems" :readonlyForm="!canUserAction"/>
                                     </div>
                                 </div></div>
                             </FormSection>
@@ -364,9 +371,9 @@
 <script>
 import Vue from "vue";
 import FormSection from "@/components/forms/section_toggle.vue";
-import SearchPerson from "@/components/common/search_person.vue";
-import CreateNewPerson from "@common-components/create_new_person.vue";
-import CreateNewOrganisation from "@common-components/create_new_organisation.vue";
+import SearchPersonOrganisation from "@/components/common/search_person_or_organisation.vue";
+//import CreateNewPerson from "@common-components/create_new_person.vue";
+//import CreateNewOrganisation from "@common-components/create_new_organisation.vue";
 import CommsLogs from "@common-components/comms_logs.vue";
 import datatable from '@vue-utils/datatable.vue'
 import { api_endpoints, helpers, cache_helper } from "@/utils/hooks";
@@ -417,7 +424,8 @@ export default {
                   data: 'Action',
                   mRender: function(data, type, row) {
                       let links = '';
-                      if (row.Action.can_user_action) {
+                      console.log(row.Action)
+                      if (!row.Action.readonlyForm) {
                           if (row.Action.action === 'Member') {
                               links = '<a href="#" class="make_team_lead" data-member-id="' + row.Action.id + '">Make Team Lead</a><br>'
                           } 
@@ -460,9 +468,9 @@ export default {
     CommsLogs,
     FormSection,
     datatable,
-    SearchPerson,
-    CreateNewPerson,
-    CreateNewOrganisation,
+    SearchPersonOrganisation,
+    //CreateNewPerson,
+    //CreateNewOrganisation,
     Offence,
     SanctionOutcome,
     filefield,
@@ -474,6 +482,11 @@ export default {
     ...mapGetters('inspectionStore', {
       inspection: "inspection",
     }),
+    updateSearchPersonOrganisationBindId: function() {
+        if (this.inspectedEntity.data_type && this.inspectedEntity.id) {
+            return this.inspectedEntity.data_type + '_' + this.inspectedEntity.id
+        }
+    },
     csrf_token: function() {
       return helpers.getCookie("csrftoken");
     },
@@ -484,13 +497,14 @@ export default {
         return this.inspection.status ? this.inspection.status.id : '';
     },
     readonlyForm: function() {
+        let readonly = true
         if (this.inspection.status && this.inspection.status.id === 'await_endorsement') {
-            return true;
         } else if (this.inspection.id) {
-            return !this.inspection.can_user_action;
+            readonly = !this.inspection.can_user_action;
         } else {
-            return true;
         }
+        console.log(readonly)
+        return readonly
     },
     canUserAction: function() {
         return this.inspection.can_user_action;
@@ -567,6 +581,17 @@ export default {
         } else {
             return false
         }
+    },
+    inspectedEntity: function() {
+        let entity = {}
+        if (this.inspection.individual_inspected) {
+            entity.id = this.inspection.individual_inspected.id;
+            entity.data_type = 'individual';
+        } else if (this.inspection.organisation_inspected) {
+            entity.id = this.inspection.organisation_inspected.id;
+            entity.data_type = 'organisation';
+        }
+        return entity;
     },
   },
   filters: {
@@ -711,7 +736,8 @@ export default {
 
             let actionColumn = new Object();
             Object.assign(actionColumn, this.inspectionTeam[i]);
-            actionColumn.can_user_action = this.inspection.can_user_action;
+            //actionColumn.can_user_action = this.inspection.can_user_action;
+            actionColumn.readonlyForm = this.readonlyForm;
 
             //if (!already_exists) {
             if (this.inspectionTeam[i].id) {
@@ -822,7 +848,7 @@ export default {
             action: 'make_team_lead'
         });
     },
-    personSelected: function(para) {
+    entitySelected: function(para) {
         console.log(para);
         this.setPartyInspected(para);
     },
@@ -844,6 +870,9 @@ export default {
     },
     save: async function () {
         if (this.inspection.id) {
+            if (this.$refs.search_person_organisation) {
+                await this.$refs.search_person_organisation.parentSave();
+            }
             await this.saveInspection({ create: false, internal: false });
         } else {
             await this.saveInspection({ create: true, internal: false });
@@ -857,6 +886,9 @@ export default {
     },
     saveExit: async function() {
       if (this.inspection.id) {
+          if (this.$refs.search_person_organisation) {
+              await this.$refs.search_person_organisation.parentSave()
+          }
           await this.saveInspection({ create: false, internal: false });
       } else {
           await this.saveInspection({ create: true, internal: false });
@@ -899,7 +931,22 @@ export default {
           '.make_team_lead',
           vm.makeTeamLead,
           );
+      //window.addEventListener('beforeunload', vm.leaving);
+      //window.addEventListener('onblur', vm.leaving);
+      // TODO: add conditional logic
+      //window.addEventListener('beforeunload', (e) => {e.returnValue = ''});
+      //window.addEventListener('onblur', (e) => {e.returnValue = ''});
     },
+    //leaving: function(e) {
+    //    let vm = this;
+    //    let dialogText = '';
+    //    if (!vm.proposal_readonly && !vm.submitting){
+    //        e.returnValue = dialogText;
+    //        return dialogText;
+    //    }
+    //    //return dialogText
+    //},
+      
     updateAssignedToId: async function (user) {
         let url = helpers.add_endpoint_join(
             api_endpoints.inspection, 
@@ -940,20 +987,24 @@ export default {
             description: "",
           });
     
-      // Set Individual or Organisation in search field
-      if (this.inspection.individual_inspected) {
-          let value = [
-              this.inspection.individual_inspected.full_name, 
-              this.inspection.individual_inspected.dob].
-              filter(Boolean).join(", ");
-          this.$refs.search_person.setInput(value);
-      } else if (this.inspection.organisation_inspected) {
-          let value = [
-              this.inspection.organisation_inspected.name,
-              this.inspection.organisation_inspected.abn].
-              filter(Boolean).join(", ");
-          this.$refs.search_person.setInput(value);
-      }
+      //// Set Individual or Organisation in search field
+      //if (this.inspection.individual_inspected) {
+      //    let value = [
+      //        this.inspection.individual_inspected.full_name, 
+      //        this.inspection.individual_inspected.dob].
+      //        filter(Boolean).join(", ");
+      //    this.$refs.search_person_organisation.setInput(value);
+      //    this.$refs.search_person_organisation.entity.id = this.inspection.individual_inspected.id
+      //    this.$refs.search_person_organisation.entity.data_type = 'individual'
+      //} else if (this.inspection.organisation_inspected) {
+      //    let value = [
+      //        this.inspection.organisation_inspected.name,
+      //        this.inspection.organisation_inspected.abn].
+      //        filter(Boolean).join(", ");
+      //    this.$refs.search_person_organisation.setInput(value);
+      //    this.$refs.search_person_organisation.entity.id = this.inspection.organisation_inspected.id
+      //    this.$refs.search_person_organisation.entity.data_type = 'organisation'
+      //}
       // load Inspection report
       //await this.$refs.inspection_report_file.get_documents();
       
@@ -962,6 +1013,24 @@ export default {
           if (this.inspection.inspection_type_id) {
               await this.loadSchema();
           }
+          //// Set Individual or Organisation in search field
+          //if (this.inspection.individual_inspected) {
+          //    let value = [
+          //        this.inspection.individual_inspected.full_name, 
+          //        this.inspection.individual_inspected.dob].
+          //        filter(Boolean).join(", ");
+          //    this.$refs.search_person_organisation.setInput(value);
+          //    this.$refs.search_person_organisation.entity.id = this.inspection.individual_inspected.id
+          //    this.$refs.search_person_organisation.entity.data_type = 'individual'
+          //} else if (this.inspection.organisation_inspected) {
+          //    let value = [
+          //        this.inspection.organisation_inspected.name,
+          //        this.inspection.organisation_inspected.abn].
+          //        filter(Boolean).join(", ");
+          //    this.$refs.search_person_organisation.setInput(value);
+          //    this.$refs.search_person_organisation.entity.id = this.inspection.organisation_inspected.id
+          //    this.$refs.search_person_organisation.entity.data_type = 'organisation'
+          //}
       });
       // calling modifyInspectionTeam with null parameters returns the current list
       this.modifyInspectionTeam({user_id: null, action: null});
@@ -995,8 +1064,27 @@ export default {
       this.$nextTick(async () => {
           this.addEventListeners();
           this.constructInspectionTeamTable();
+          //// Set Individual or Organisation in search field
+          //if (this.inspection.individual_inspected) {
+          //    let value = [
+          //        this.inspection.individual_inspected.full_name, 
+          //        this.inspection.individual_inspected.dob].
+          //        filter(Boolean).join(", ");
+          //    this.$refs.search_person_organisation.setInput(value);
+          //    this.$refs.search_person_organisation.entity.id = this.inspection.individual_inspected.id
+          //    this.$refs.search_person_organisation.entity.data_type = 'individual'
+          //} else if (this.inspection.organisation_inspected) {
+          //    let value = [
+          //        this.inspection.organisation_inspected.name,
+          //        this.inspection.organisation_inspected.abn].
+          //        filter(Boolean).join(", ");
+          //    this.$refs.search_person_organisation.setInput(value);
+          //    this.$refs.search_person_organisation.entity.id = this.inspection.organisation_inspected.id
+          //    this.$refs.search_person_organisation.entity.data_type = 'organisation'
+          //}
       });
-  }
+  },
+
 };
 </script>
 

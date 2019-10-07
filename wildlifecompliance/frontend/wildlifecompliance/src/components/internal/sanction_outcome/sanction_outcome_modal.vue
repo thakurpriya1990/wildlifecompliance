@@ -139,7 +139,12 @@
                                 </div>
                                 <div id="paper_id_notice">
                                     <div v-if="sanction_outcome.issued_on_paper" class="col-sm-7">
-                                        <filefield ref="sanction_outcome_file" name="sanction-outcome-file" :createDocumentActionUrl="createDocumentActionUrl" :isRepeatable="true" :disabled="!sanction_outcome.issued_on_paper"/>
+                                        <filefield 
+                                        ref="sanction_outcome_file" 
+                                        name="sanction-outcome-file" 
+                                        documentActionUrl="temporary_document" 
+                                        :isRepeatable="true" 
+                                        :disabled="!sanction_outcome.issued_on_paper"/>
                                     </div>
                                 </div>
                             </div></div>

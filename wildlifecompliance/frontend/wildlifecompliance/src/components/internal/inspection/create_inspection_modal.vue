@@ -78,7 +78,12 @@
                                     <label class="control-label pull-left"  for="Name">Attachments</label>
                                 </div>
             			        <div class="col-sm-9">
-                                    <filefield ref="comms_log_file" name="comms-log-file" :isRepeatable="true" documentActionUrl="temporary_document" @update-temp-doc-coll-id="setTemporaryDocumentCollectionId"/>
+                                    <filefield 
+                                    ref="comms_log_file" 
+                                    name="comms-log-file" 
+                                    :isRepeatable="true" 
+                                    documentActionUrl="temporary_document" 
+                                    @update-temp-doc-coll-id="setTemporaryDocumentCollectionId"/>
                                 </div>
                             </div>
                         </div>

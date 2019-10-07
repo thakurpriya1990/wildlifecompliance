@@ -173,32 +173,40 @@
                             </div>
                             <div :id="offenderTab" class="tab-pane face in">
                                 <FormSection :formCollapse="false" label="Offender(s)" Index="2">
-                                    <div class="col-sm-12 form-group"><div class="row">
+                                    <!--div class="col-sm-12 form-group"><div class="row">
                                         <input :disabled="readonlyForm" class="col-sm-1" id="offender_individual" type="radio" v-model="offender_search_type" value="individual">
                                         <label class="col-sm-1 radio-button-label" for="offender_individual">Individual</label>
                                         <input :disabled="readonlyForm" class="col-sm-1" id="offender_organisation" type="radio" v-model="offender_search_type" value="organisation">
                                         <label class="col-sm-1 radio-button-label" for="offender_organisation">Organisation</label>
-                                    </div></div>
+                                    </div></div-->
 
                                     <div class="col-sm-12 form-group"><div class="row">
                                         <label class="col-sm-2">Offender</label>
                                         <div v-show="!readonlyForm">
-                                            <div class="col-sm-6">
-                                                <PersonSearch ref="person_search" elementId="idSetInParent" classNames="col-sm-5 form-control" @person-selected="personSelected" :search_type="offender_search_type" />
+                                            <div>
+                                                <SearchPersonOrganisation 
+                                                :excludeStaff="true" 
+                                                classNames="form-control" 
+                                                @entity-selected="personSelected" 
+                                                showCreateUpdate
+                                                ref="search_offender"
+                                                domIdHelper="offender"
+                                                v-bind:key="updateSearchPersonOrganisationBindId"/>
+                                                <!--PersonSearch ref="person_search" elementId="idSetInParent" classNames="col-sm-5 form-control" @person-selected="personSelected" :search_type="offender_search_type" /-->
                                             </div>
-                                            <div class="col-sm-1">
-                                                <input type="button" class="btn btn-primary" value="Add" @click.prevent="addOffenderClicked()" />
+                                            <div>
+                                                <input type="button" class="btn btn-primary" value="Add to Offender List" @click.prevent="addOffenderClicked()" />
                                             </div>
-                                            <div class="col-sm-2">
+                                            <!--div class="col-sm-2">
                                                 <input type="button" class="btn btn-primary" value="Create New Person" @click.prevent="createNewPersonClicked()" />
-                                            </div>
+                                            </div-->
                                         </div>
                                     </div></div>
 
-                                    <div class="col-sm-12 form-group"><div class="row">
-                                        <div class="col-sm-12">
+                                    <div class="form-group"><div class="row">
+                                        <!--div class="col-sm-12">
                                           <CreateNewPerson :displayComponent="displayCreateNewPerson" @new-person-created="newPersonCreated"/>
-                                        </div>
+                                        </div-->
 
                                         <div class="col-sm-12">
                                             <datatable ref="offender_table" id="offender-table" :dtOptions="dtOptionsOffender" :dtHeaders="dtHeadersOffender" />
@@ -287,8 +295,8 @@ import { mapState, mapGetters, mapActions, mapMutations } from "vuex";
 import CommsLogs from "@common-components/comms_logs.vue";
 import filefield from '@/components/common/compliance_file.vue';
 import OffenceWorkflow from './offence_workflow';
-import PersonSearch from "@common-components/search_person.vue";
-import CreateNewPerson from "@common-components/create_new_person.vue";
+import SearchPersonOrganisation from "@common-components/search_person_or_organisation.vue";
+//import CreateNewPerson from "@common-components/create_new_person.vue";
 import MapLocation from "../../common/map_location";
 import SanctionOutcome from '../sanction_outcome/sanction_outcome_modal';
 import 'bootstrap/dist/css/bootstrap.css';
@@ -315,6 +323,7 @@ export default {
         vm.awe = null;
 
         return {
+            uuid: 0,
             workflow_type :'',
             workflowBindId :'',
             offender_search_type: "individual",
@@ -335,7 +344,7 @@ export default {
                 offence_text: ""
             },
             current_offender: null,  // Store the offender temporarily once selected in awesomplete. Cleared when clicking on the "Add" button.
-            offender_search_type: "individual",
+            //offender_search_type: "individual",
 
             comms_url: helpers.add_endpoint_json(
                 api_endpoints.offence,
@@ -524,9 +533,9 @@ export default {
         OffenceWorkflow,
         CommsLogs,
         datatable,
-        PersonSearch,
+        SearchPersonOrganisation,
         MapLocation,
-        CreateNewPerson,
+        //CreateNewPerson,
         RelatedItems,
         SanctionOutcome,
     },
@@ -539,6 +548,10 @@ export default {
         },
         canUserEdit: function() {
             return this.offence.can_user_edit;
+        },
+        updateSearchPersonOrganisationBindId: function() {
+            this.uuid += 1
+            return 'offender' + this.uuid
         },
         occurrenceDateLabel: function() {
             if (this.offence.occurrence_from_to) {
@@ -786,21 +799,21 @@ export default {
                 this.$refs.mapLocationComponent.invalidateSize();
             }
         },
-        newPersonCreated: function(obj) {
-          if(obj.person){
-            this.setCurrentOffender('individual', obj.person.id);
+        //newPersonCreated: function(obj) {
+        //  if(obj.person){
+        //    this.setCurrentOffender('individual', obj.person.id);
 
-            // Set fullname and DOB into the input box
-            let full_name = [obj.person.first_name, obj.person.last_name].filter(Boolean).join(" ");
-            let dob = obj.person.dob ? "DOB:" + obj.person.dob : "DOB: ---";
-            let value = [full_name, dob].filter(Boolean).join(", ");
-            this.$refs.person_search.setInput(value);
-          } else if (obj.err) {
-            console.log(err);
-          } else {
-            // Should not reach here
-          }
-        },
+        //    // Set fullname and DOB into the input box
+        //    let full_name = [obj.person.first_name, obj.person.last_name].filter(Boolean).join(" ");
+        //    let dob = obj.person.dob ? "DOB:" + obj.person.dob : "DOB: ---";
+        //    let value = [full_name, dob].filter(Boolean).join(", ");
+        //    this.$refs.search_offender.setInput(value);
+        //  } else if (obj.err) {
+        //    console.log(err);
+        //  } else {
+        //    // Should not reach here
+        //  }
+        //},
         personSelected: function(para) {
             console.log('personSelected');
             let vm = this;
@@ -925,9 +938,11 @@ export default {
             }
             this.constructAllegedOffencesTable();
         },
-        addOffenderClicked: function() {
+        addOffenderClicked: async function() {
             console.log('addOffenderClicked');
             if (this.current_offender && this.current_offender.id && this.current_offender.data_type) {
+                // save person before adding to offender list
+                await this.$refs.search_offender.parentSave()
 
                 // Check if the item is already in the list
                 let already_exists = false;
@@ -1155,8 +1170,9 @@ export default {
         },
         setCurrentOffender: function(data_type, id) {
           let vm = this;
-
-          if (data_type == "individual") {
+          if (!id) {
+              this.current_offender = null;
+          } else if (data_type == "individual") {
             let initialisers = [utils.fetchUser(id)];
             Promise.all(initialisers).then(data => {
               vm.current_offender = data[0];
@@ -1185,7 +1201,7 @@ export default {
         setCurrentOffenderEmpty: function() {
             this.current_offender = null;
             $("#offender_input").val("");
-            this.$refs.person_search.clearInput();
+            this.$refs.search_offender.clearInput();
         },
         setCurrentAllegedOffenceEmpty: function() {
             this.current_alleged_offence = null;
