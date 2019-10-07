@@ -824,8 +824,11 @@ export default {
         }
     },
   },
+  destroyed: function() {
+      window.removeEventListener('beforeunload', this.leaving);
+      window.removeEventListener('onblur', this.leaving);
+  },
   created: async function() {
-    
     if (this.$route.params.call_email_id) {
       await this.loadCallEmail({ call_email_id: this.$route.params.call_email_id });
     }
