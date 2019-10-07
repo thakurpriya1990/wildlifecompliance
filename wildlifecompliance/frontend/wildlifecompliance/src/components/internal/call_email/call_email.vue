@@ -509,7 +509,7 @@ export default {
     }),
     personSearchVisibility: function() {
         let visible = false;
-        if (this.statusId.length > 0 && this.statusId !=='draft') {
+        if (this.statusId ==='open') {
             visible = true;
         }
         return visible;

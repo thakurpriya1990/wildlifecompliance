@@ -570,7 +570,7 @@ export default {
       let vm = this;
       vm.newPersonBeingCreated = false;
     },
-    addOffenderClicked: function() {
+    addOffenderClicked: async function() {
       let vm = this;
 
       if (
@@ -578,6 +578,8 @@ export default {
         vm.current_offender.id &&
         vm.current_offender.data_type
       ) {
+        // save person before adding to offender list
+        await this.$refs.search_offender.parentSave()
         let already_exists = false;
 
         let ids = vm.$refs.offender_table.vmDataTable.columns(0).data()[0];
@@ -968,8 +970,9 @@ export default {
     },
     setCurrentOffender: function(data_type, id) {
       let vm = this;
-
-      if (data_type == "individual") {
+      if (!id) {
+          this.current_offender = null;
+      } else if (data_type == "individual") {
         let initialisers = [utils.fetchUser(id)];
         Promise.all(initialisers).then(data => {
           vm.current_offender = data[0];
