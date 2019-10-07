@@ -829,7 +829,6 @@ export default {
       window.removeEventListener('onblur', this.leaving);
   },
   created: async function() {
-    console.log(" ")
     if (this.$route.params.call_email_id) {
       await this.loadCallEmail({ call_email_id: this.$route.params.call_email_id });
     }

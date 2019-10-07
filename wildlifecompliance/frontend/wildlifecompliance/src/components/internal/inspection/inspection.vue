@@ -1036,55 +1036,8 @@ export default {
       this.$nextTick(async () => {
           this.addEventListeners();
           this.constructInspectionTeamTable();
-          //// Set Individual or Organisation in search field
-          //if (this.inspection.individual_inspected) {
-          //    let value = [
-          //        this.inspection.individual_inspected.full_name, 
-          //        this.inspection.individual_inspected.dob].
-          //        filter(Boolean).join(", ");
-          //    this.$refs.search_person_organisation.setInput(value);
-          //    this.$refs.search_person_organisation.entity.id = this.inspection.individual_inspected.id
-          //    this.$refs.search_person_organisation.entity.data_type = 'individual'
-          //} else if (this.inspection.organisation_inspected) {
-          //    let value = [
-          //        this.inspection.organisation_inspected.name,
-          //        this.inspection.organisation_inspected.abn].
-          //        filter(Boolean).join(", ");
-          //    this.$refs.search_person_organisation.setInput(value);
-          //    this.$refs.search_person_organisation.entity.id = this.inspection.organisation_inspected.id
-          //    this.$refs.search_person_organisation.entity.data_type = 'organisation'
-          //}
       });
   },
-  //beforeRouteLeave (to, from, next) {
-  //      const answer = window.confirm('Do you really want to leave? you have unsaved changes!')
-  //      if (answer) {
-  //              next()
-  //            } else {
-  //                    next(false)
-  //                  }
-  //},
-  //beforeRouteLeave: async function(to, from, next) {
-  //    console.log("beforeRouteLeave")
-  //    //this.leaving()
-  //    if (this.formChanged){
-  //        let answer = await swal({
-  //            'title': 'Warning', 
-  //            'titleText': 'You have unsaved changes', 
-  //            'type': 'warning',
-  //            'confirmButtonText': 'Continue',
-  //            'showCancelButton': true
-  //        });
-  //        if (answer && answer.dismiss === 'cancel') {
-  //            next(false)
-  //        } else {
-  //            next()
-  //        }
-  //    } else {
-  //        next()
-  //    }
-  //},
-
 };
 </script>
 
