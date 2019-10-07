@@ -50,6 +50,7 @@ import "bootstrap/dist/css/bootstrap.css";
 import "awesomplete/awesomplete.css";
 import updateCreatePerson from '@common-components/update_create_person.vue'
 import updateCreateOrganisation from '@common-components/update_create_organisation.vue'
+import hash from 'object-hash';
 
 export default {
     name: "search-person-organisation",
@@ -96,6 +97,13 @@ export default {
         },
     },
     computed: {
+        formChanged: function(){
+            let changed = false;
+            if(this.object_hash !== hash(this.entity)){
+                changed = true;
+            }
+            return changed;
+        },
         elemId: function() {
             this.uuid += 1
             let domId = this.searchType + this.uuid + 'search';
@@ -370,6 +378,7 @@ export default {
             }
             this.initAwesomplete();
         });
+        this.object_hash = hash(this.entity);
     },
 }
 </script>
