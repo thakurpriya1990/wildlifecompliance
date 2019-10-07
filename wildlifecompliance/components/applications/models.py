@@ -2744,13 +2744,74 @@ class ApplicationFormDataRecord(models.Model):
                 )} for item in missing_fields]
             )
 
+    @staticmethod
+    def render_defined_conditions(application, data_source):
+
+        def parse_component(component, schema_name, adjusted_by_fields, activity):    
+
+            if set(['StandardCondition']).issubset(component):
+                condition = ApplicationStandardCondition.objects.filter(code=component['StandardCondition'],
+                                                                        obsolete=False ).first()
+                if condition:
+                    ApplicationCondition.objects.create(standard_condition=condition,
+                                                        is_rendered=True,
+                                                        standard=True,
+                                                        application=application,
+                                                        licence_activity=LicenceActivity.objects.get(id=component['licence_activity_id']),
+                                                        return_type=condition.return_type)
+
+        for selected_activity in application.activities:
+            schema_fields = application.get_schema_fields_for_purposes(
+                selected_activity.purposes.values_list('id', flat=True)
+            )
+            renderedConditions = ApplicationCondition.objects.filter(application_id=application.id, 
+                                                                 licence_activity_id=selected_activity.licence_activity_id, 
+                                                                 is_rendered=True 
+                                                                ).delete()        
+
+            # Adjustments based on selected options (radios and checkboxes)
+            adjusted_by_fields = {}
+            for form_data_record in data_source:
+                try:
+                    # Retrieve dictionary of fields from a model instance
+                    data_record = form_data_record.__dict__
+                except AttributeError:
+                    # If a raw form data (POST) is supplied, form_data_record is a key
+                    data_record = data_source[form_data_record]
+
+                schema_name = data_record['schema_name']
+                if schema_name not in schema_fields:
+                    continue
+                schema_data = schema_fields[schema_name]
+
+                if 'options' in schema_data:
+                    for option in schema_data['options']:
+                        # Only modifications if the current option is selected
+                        if option['value'] != data_record['value']:
+                            continue
+                        parse_component(
+                            component=option,
+                            schema_name=schema_name,
+                            adjusted_by_fields=adjusted_by_fields,
+                            activity=selected_activity
+                        )
+
+                # If this is a checkbox - skip unchecked ones
+                elif data_record['value'] == 'on':
+                    parse_component(
+                        component=schema_data,
+                        schema_name=schema_name,
+                        adjusted_by_fields=adjusted_by_fields,
+                        activity=selected_activity
+                    )
+
 
 @python_2_unicode_compatible
 class ApplicationStandardCondition(RevisionedMixin):
     text = models.TextField()
     code = models.CharField(max_length=10, unique=True)
     obsolete = models.BooleanField(default=False)
-    return_type = models.ForeignKey('wildlifecompliance.ReturnType', null=True)
+    return_type = models.ForeignKey('wildlifecompliance.ReturnType', null=True, blank=True)
 
     def __str__(self):
         return self.code
@@ -2763,7 +2824,7 @@ class DefaultCondition(OrderedModel):
     condition = models.TextField(null=True, blank=True)
     licence_activity = models.ForeignKey(
         'wildlifecompliance.LicenceActivity', null=True)
-    return_type = models.ForeignKey('wildlifecompliance.ReturnType', null=True)
+    return_type = models.ForeignKey('wildlifecompliance.ReturnType', null=True, blank=True)
 
     class Meta:
         app_label = 'wildlifecompliance'
@@ -2785,6 +2846,7 @@ class ApplicationCondition(OrderedModel):
         DefaultCondition, null=True, blank=True)
     is_default = models.BooleanField(default=False)
     standard = models.BooleanField(default=True)
+    is_rendered = models.BooleanField(default=False)
     application = models.ForeignKey(Application, related_name='conditions')
     due_date = models.DateField(null=True, blank=True)
     recurrence = models.BooleanField(default=False)
@@ -2795,7 +2857,7 @@ class ApplicationCondition(OrderedModel):
     recurrence_schedule = models.IntegerField(null=True, blank=True)
     licence_activity = models.ForeignKey(
         'wildlifecompliance.LicenceActivity', null=True)
-    return_type = models.ForeignKey('wildlifecompliance.ReturnType', null=True)
+    return_type = models.ForeignKey('wildlifecompliance.ReturnType', null=True, blank=True)
     # order = models.IntegerField(default=1)
 
     class Meta:

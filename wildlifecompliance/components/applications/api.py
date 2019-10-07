@@ -1028,6 +1028,8 @@ class ApplicationViewSet(viewsets.ModelViewSet):
                 request.data,
                 action=ApplicationFormDataRecord.ACTION_TYPE_ASSIGN_VALUE
             )
+            # Render any Application Standard Conditions triggered from Form.
+            ApplicationFormDataRecord.render_defined_conditions(instance, request.data)
             return Response({'success': True})
         except MissingFieldsException as e:
             return Response({
