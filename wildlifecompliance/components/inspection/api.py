@@ -112,7 +112,7 @@ class InspectionFilterBackend(DatatablesFilterBackend):
                 planned_for_str = inspection.planned_for_date.strftime('%d/%m/%Y') if inspection.planned_for_date else ''
                 if (search_text in (inspection.number.lower() if inspection.number else '')
                     or search_text in (inspection.status.lower() if inspection.status else '')
-                    or search_text in (inspection.inspection_type.description.lower() if inspection.inspection_type else '')
+                    or search_text in (inspection.inspection_type.inspection_type.lower() if inspection.inspection_type else '')
                     or search_text in (planned_for_str.lower() if planned_for_str else '')
                     or search_text in (inspection.title.lower() if inspection.title else '')
                     or search_text in (
@@ -139,7 +139,7 @@ class InspectionFilterBackend(DatatablesFilterBackend):
         if inspection_filter != 'all':
             inspection_filter_inspection_ids = []
             for inspection in queryset:
-                if inspection_filter in inspection.inspection_type.description.lower() if inspection.inspection_type else '':
+                if inspection_filter in inspection.inspection_type.inspection_type.lower() if inspection.inspection_type else '':
                     inspection_filter_inspection_ids.append(inspection.id)
             queryset = queryset.filter(id__in=inspection_filter_inspection_ids)
 
