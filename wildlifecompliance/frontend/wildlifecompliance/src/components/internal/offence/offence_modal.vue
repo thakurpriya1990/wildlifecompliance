@@ -688,12 +688,7 @@ export default {
             this.processingDetails = true;
             let response = await this.sendData();
 
-            console.log('try in ok()');
-            console.log(response);
-
             if (response.ok) {
-                await swal("Saved", "The record has been saved", "success");
-
                 // Refresh offence table on the dashboard page
                 if (this.$parent.$refs.offence_table){
                     this.$parent.$refs.offence_table.vmDataTable.ajax.reload();
@@ -720,8 +715,8 @@ export default {
             this.close();
             this.processingDetails = false;
         } catch(err) {
-            this.processingDetails = false;
             this.processError(err);
+            this.processingDetails = false;
         }
     },
     processError: function(err) {
@@ -752,10 +747,11 @@ export default {
         this.close();
     },
     close: function() {
-      this.processingDetails = false;
-      this.isModalOpen = false;
-      this.setOffenceEmpty();  // Make offence default
+        this.processingDetails = false;
+        this.isModalOpen = false;
+        this.setOffenceEmpty();  // Make offence default
         this.constructAllegedOffencesTable();
+        this.errorResponse = '';
     },
     mapOffenceClicked: function() {
       this.$refs.mapOffenceComponent.mapTabClicked();
@@ -788,11 +784,7 @@ export default {
       let el_to_time = $(vm.$refs.occurrenceTimeToPicker);
 
       // "From" field
-      el_fr_date.datetimepicker({
-        format: "DD/MM/YYYY",
-        maxDate: "now",
-        showClear: true
-      });
+      el_fr_date.datetimepicker({ format: "DD/MM/YYYY", maxDate: "now", showClear: true });
       el_fr_date.on("dp.change", function(e) {
         if (el_fr_date.data("DateTimePicker").date()) {
           vm.offence.occurrence_date_from = e.date.format("DD/MM/YYYY");
@@ -810,11 +802,7 @@ export default {
       });
 
       // "To" field
-      el_to_date.datetimepicker({
-        format: "DD/MM/YYYY",
-        maxDate: "now",
-        showClear: true
-      });
+      el_to_date.datetimepicker({ format: "DD/MM/YYYY", maxDate: "now", showClear: true });
       el_to_date.on("dp.change", function(e) {
         if (el_to_date.data("DateTimePicker").date()) {
           vm.offence.occurrence_date_to = e.date.format("DD/MM/YYYY");
