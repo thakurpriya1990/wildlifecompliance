@@ -36,6 +36,7 @@ from wildlifecompliance.components.offence.serializers import (
     UpdateAssignedToIdSerializer, UpdateOffenderAttributeSerializer, OffenceOptimisedSerializer,
     # UpdateAllegedOffenceAttributeSerializer, OffenceUserActionSerializer)
     UpdateAllegedOffenceAttributeSerializer, OffenceUserActionSerializer, OffenceCommsLogEntrySerializer)
+from wildlifecompliance.components.sanction_outcome.models import SanctionOutcome
 from wildlifecompliance.components.users.models import CompliancePermissionGroup
 from wildlifecompliance.helpers import is_internal
 
@@ -226,18 +227,24 @@ class OffenceViewSet(viewsets.ModelViewSet):
         filter_status = '' if filter_status.lower() == 'all' else filter_status
         filter_date_from = request.query_params.get('date_from', '')
         filter_date_to = request.query_params.get('date_to', '')
+        filter_sanction_outcome_type = request.query_params.get('sanction_outcome_type', '')
+        filter_sanction_outcome_type = '' if filter_sanction_outcome_type.lower() == 'all' else filter_sanction_outcome_type
 
         q_list = []
         if filter_status:
-            q_list.append(Q(status__exact=filter_status))
+            q_list.append(Q(status=filter_status))
         if filter_date_from:
             date_from = datetime.strptime(filter_date_from, '%d/%m/%Y')
             q_list.append(Q(occurrence_date_from__gte=date_from))
         if filter_date_to:
             date_to = datetime.strptime(filter_date_to, '%d/%m/%Y')
             q_list.append(Q(occurrence_date_to__lte=date_to))
+        if filter_sanction_outcome_type:
+            offence_ids = SanctionOutcome.objects.filter(type=filter_sanction_outcome_type).values_list('offence__id', flat=True).distinct()
+            q_list.apend(Q(id__in=offence_ids))
 
         queryset = queryset.filter(reduce(operator.and_, q_list)) if len(q_list) else queryset
+
 
         serializer = OffenceOptimisedSerializer(queryset, many=True)
         return Response(serializer.data)

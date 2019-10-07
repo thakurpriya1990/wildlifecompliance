@@ -51,18 +51,6 @@
                             Action 
                         </div>
                         <div class="panel-body panel-collapse">
-<!--                            
-                            <div v-if="visibilitySaveButton" class="row action-button">
-                                <div class="col-sm-12">
-                                    <a @click="save" class="btn btn-primary btn-block">
-                                        Save
-                                    </a>
-                                </div>
-                            </div>
-                            <div v-else>
-                                Save
-                            </div>
--->
 
                             <div v-if="visibilityWithdrawButtonForInc" class="row action-button">
                                 <div class="col-sm-12">
@@ -70,9 +58,6 @@
                                         Withdraw (inc)
                                     </a>
                                 </div>
-                            </div>
-                            <div v-else>
-                                Withdraw by INC
                             </div>
 
                             <div v-if="visibilityWithdrawButtonForManager" class="row action-button">
@@ -82,9 +67,6 @@
                                     </a>
                                 </div>
                             </div>
-                            <div v-else>
-                                Withdraw by manager
-                            </div>
 
                             <div v-if="visibilitySendToManagerButton" class="row action-button">
                                 <div class="col-sm-12">
@@ -92,9 +74,6 @@
                                         Send to Manager
                                     </a>
                                 </div>
-                            </div>
-                            <div v-else>
-                                Send To Manager
                             </div>
 
                             <div v-if="visibilityEndorseButton" class="row action-button">
@@ -104,9 +83,6 @@
                                     </a>
                                 </div>
                             </div>
-                            <div v-else>
-                                Endorse
-                            </div>
 
                             <div v-if="visibilityDeclineButton" class="row action-button">
                                 <div class="col-sm-12">
@@ -115,9 +91,6 @@
                                     </a>
                                 </div>
                             </div>
-                            <div v-else>
-                                Declilne
-                            </div>
 
                             <div v-if="visibilityReturnToOfficerButton" class="row action-button">
                                 <div class="col-sm-12">
@@ -125,9 +98,6 @@
                                         Return to Officer
                                     </a>
                                 </div>
-                            </div>
-                            <div v-else>
-                                Return to Officer
                             </div>
                         </div>
                     </div>
@@ -307,6 +277,7 @@ import CommsLogs from "@common-components/comms_logs.vue";
 import filefield from '@/components/common/compliance_file.vue';
 import SanctionOutcomeWorkflow from './sanction_outcome_workflow';
 import 'bootstrap/dist/css/bootstrap.css';
+import hash from 'object-hash';
 
 export default {
     name: 'ViewSanctionOutcome',
@@ -325,6 +296,7 @@ export default {
             soTab: 'soTab' + this._uid,
             deTab: 'deTab' + this._uid,
             reTab: 'reTab' + this._uid,
+            object_hash : null,
             comms_url: helpers.add_endpoint_json(
                 api_endpoints.sanction_outcome,
                 this.$route.params.sanction_outcome_id + "/comms_log"
@@ -416,6 +388,7 @@ export default {
     created: async function() {
         if (this.$route.params.sanction_outcome_id) {
             await this.loadSanctionOutcome({ sanction_outcome_id: this.$route.params.sanction_outcome_id });
+            this.object_hash = hash(this.sanction_outcome);
             this.createStorageAllegedCommittedOffences();
             this.constructAllegedCommittedOffencesTable();
         }
@@ -429,6 +402,13 @@ export default {
         ...mapGetters('sanctionOutcomeStore', {
             sanction_outcome: "sanction_outcome",
         }),
+        formChanged: function(){
+            if(this.object_hash != hash(this.sanction_outcome)){
+                return true;
+            } else {
+                return false;
+            }
+        },
         readonlyForm: function() {
             return !this.canUserEditForm;
         },
@@ -625,6 +605,17 @@ export default {
             $("#alleged-committed-offence-table").on("click", ".remove_alleged_committed_offence", this.removeAllegedOffenceClicked);
             $("#alleged-committed-offence-table").on("click", ".restore_alleged_committed_offence", this.restoreAllegedOffenceClicked);
             $("#alleged-committed-offence-table").on("click", ".include_alleged_committed_offence", this.includeAllegedOffenceClicked);
+
+            window.addEventListener('beforeunload', this.leaving);
+            window.addEventListener('onblur', this.leaving);
+        },
+        leaving: function(e) {
+            let vm = this;
+            let dialogText = 'You have some unsaved changes.';
+            if (vm.formChanged){
+                e.returnValue = dialogText;
+                return dialogText;
+            }
         },
         removeAllegedOffenceClicked: function(e) {
             let acoId = parseInt(e.target.getAttribute("data-alleged-committed-offence-id"));
