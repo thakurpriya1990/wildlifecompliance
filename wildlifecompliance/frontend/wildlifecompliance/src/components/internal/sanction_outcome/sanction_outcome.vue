@@ -402,13 +402,6 @@ export default {
         ...mapGetters('sanctionOutcomeStore', {
             sanction_outcome: "sanction_outcome",
         }),
-        formChanged: function(){
-            if(this.object_hash != hash(this.sanction_outcome)){
-                return true;
-            } else {
-                return false;
-            }
-        },
         readonlyForm: function() {
             return !this.canUserEditForm;
         },
@@ -549,6 +542,13 @@ export default {
             setAssignedToId: 'setAssignedToId',
             setCanUserAction: 'setCanUserAction',
         }),
+        formChanged: function(){
+            if(this.object_hash != hash(this.sanction_outcome)){
+                return true;
+            } else {
+                return false;
+            }
+        },
         createStorageAllegedCommittedOffences: function() {
             if (this.sanction_outcome && this.sanction_outcome.alleged_committed_offences){
                 for (let i=0; i<this.sanction_outcome.alleged_committed_offences.length; i++){

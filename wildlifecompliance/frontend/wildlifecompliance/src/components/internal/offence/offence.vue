@@ -304,6 +304,7 @@ import "awesomplete/awesomplete.css";
 import RelatedItems from "@common-components/related_items.vue";
 import moment from 'moment';
 import uuid from 'uuid';
+import hash from 'object-hash';
 
 export default {
     name: 'ViewOffence',
@@ -336,6 +337,7 @@ export default {
             idLocationFieldsAddress: vm.guid + "LocationFieldsAddress",
             idLocationFieldsDetails: vm.guid + "LocationFieldsDetails",
             sanctionOutcomeInitialised: false,
+            object_hash : null,
 
             current_alleged_offence: {  // Store the alleged offence temporarily once selected in awesomplete. Cleared when clicking on the "Add" button.
                 id: null,
@@ -630,6 +632,13 @@ export default {
             setCanUserAction: 'setCanUserAction',
             setRelatedItems: 'setRelatedItems',
         }),
+        formChanged: function(){
+            if(this.object_hash != hash(this.offence)){
+                return true;
+            } else {
+                return false;
+            }
+        },
         save: async function(){
             try {
                 await this.saveOffence();
@@ -642,6 +651,15 @@ export default {
                 } else {
                     await swal("Error", "There was an error saving the record", "error");
                 }
+            }
+        },
+        leaving: function(e) {
+            console.log('leaving');
+            let vm = this;
+            let dialogText = 'You have some unsaved changes.';
+            if (vm.formChanged()){
+                e.returnValue = dialogText;
+                return dialogText;
             }
         },
         saveExit: async function() {
@@ -1208,63 +1226,66 @@ export default {
             $("#alleged-offence").val("");
         },
         addEventListeners: function() {
-          let vm = this;
-          let el_fr_date = $(vm.$refs.occurrenceDateFromPicker);
-          let el_fr_time = $(vm.$refs.occurrenceTimeFromPicker);
-          let el_to_date = $(vm.$refs.occurrenceDateToPicker);
-          let el_to_time = $(vm.$refs.occurrenceTimeToPicker);
+            let vm = this;
+            let el_fr_date = $(vm.$refs.occurrenceDateFromPicker);
+            let el_fr_time = $(vm.$refs.occurrenceTimeFromPicker);
+            let el_to_date = $(vm.$refs.occurrenceDateToPicker);
+            let el_to_time = $(vm.$refs.occurrenceTimeToPicker);
 
-          // "From" field
-          el_fr_date.datetimepicker({ format: "DD/MM/YYYY", maxDate: moment().millisecond(0).second(0).minute(0).hour(0), showClear: true });
-          el_fr_date.on("dp.change", function(e) {
-            if (el_fr_date.data("DateTimePicker").date()) {
-              vm.offence.occurrence_date_from = e.date.format("DD/MM/YYYY");
-            } else if (el_fr_date.data("date") === "") {
-              vm.offence.occurrence_date_from = "";
-            }
-          });
-          el_fr_time.datetimepicker({ format: "LT", showClear: true });
-          el_fr_time.on("dp.change", function(e) {
-            if (el_fr_time.data("DateTimePicker").date()) {
-              vm.offence.occurrence_time_from = e.date.format("LT");
-            } else if (el_fr_time.data("date") === "") {
-              vm.offence.occurrence_time_from = "";
-            }
-          });
+            // "From" field
+            el_fr_date.datetimepicker({ format: "DD/MM/YYYY", maxDate: moment().millisecond(0).second(0).minute(0).hour(0), showClear: true });
+            el_fr_date.on("dp.change", function(e) {
+              if (el_fr_date.data("DateTimePicker").date()) {
+                vm.offence.occurrence_date_from = e.date.format("DD/MM/YYYY");
+              } else if (el_fr_date.data("date") === "") {
+                vm.offence.occurrence_date_from = "";
+              }
+            });
+            el_fr_time.datetimepicker({ format: "LT", showClear: true });
+            el_fr_time.on("dp.change", function(e) {
+              if (el_fr_time.data("DateTimePicker").date()) {
+                vm.offence.occurrence_time_from = e.date.format("LT");
+              } else if (el_fr_time.data("date") === "") {
+                vm.offence.occurrence_time_from = "";
+              }
+            });
 
-          // "To" field
-          el_to_date.datetimepicker({ format: "DD/MM/YYYY", maxDate: moment().millisecond(0).second(0).minute(0).hour(0), showClear: true });
-          el_to_date.on("dp.change", function(e) {
-            if (el_to_date.data("DateTimePicker").date()) {
-              vm.offence.occurrence_date_to = e.date.format("DD/MM/YYYY");
-            } else if (el_to_date.data("date") === "") {
-              vm.offence.occurrence_date_to = "";
-            }
-          });
-          el_to_time.datetimepicker({ format: "LT", showClear: true });
-          el_to_time.on("dp.change", function(e) {
-            if (el_to_time.data("DateTimePicker").date()) {
-              vm.offence.occurrence_time_to = e.date.format("LT");
-            } else if (el_to_time.data("date") === "") {
-              vm.offence.occurrence_time_to = "";
-            }
-          });
+            // "To" field
+            el_to_date.datetimepicker({ format: "DD/MM/YYYY", maxDate: moment().millisecond(0).second(0).minute(0).hour(0), showClear: true });
+            el_to_date.on("dp.change", function(e) {
+              if (el_to_date.data("DateTimePicker").date()) {
+                vm.offence.occurrence_date_to = e.date.format("DD/MM/YYYY");
+              } else if (el_to_date.data("date") === "") {
+                vm.offence.occurrence_date_to = "";
+              }
+            });
+            el_to_time.datetimepicker({ format: "LT", showClear: true });
+            el_to_time.on("dp.change", function(e) {
+              if (el_to_time.data("DateTimePicker").date()) {
+                vm.offence.occurrence_time_to = e.date.format("LT");
+              } else if (el_to_time.data("date") === "") {
+                vm.offence.occurrence_time_to = "";
+              }
+            });
 
-          $("#alleged-offence-table").on("click", ".remove_button", vm.removeAllegedOffenceClicked);
-          $("#alleged-offence-table").on("click", ".restore_button", vm.restoreAllegedOffenceClicked);
-          $("#alleged-offence-table").on("blur", ".reason_element", vm.reasonAllegedOffenceLostFocus);
+            $("#alleged-offence-table").on("click", ".remove_button", vm.removeAllegedOffenceClicked);
+            $("#alleged-offence-table").on("click", ".restore_button", vm.restoreAllegedOffenceClicked);
+            $("#alleged-offence-table").on("blur", ".reason_element", vm.reasonAllegedOffenceLostFocus);
 
-          $("#offender-table").on("click", ".remove_button", vm.removeOffenderClicked);
-          $("#offender-table").on("click", ".restore_button", vm.restoreOffenderClicked);
-          $("#offender-table").on("blur", ".reason_element", vm.reasonOffenderLostFocus);
+            $("#offender-table").on("click", ".remove_button", vm.removeOffenderClicked);
+            $("#offender-table").on("click", ".restore_button", vm.restoreOffenderClicked);
+            $("#offender-table").on("blur", ".reason_element", vm.reasonOffenderLostFocus);
+
+            window.addEventListener('beforeunload', this.leaving);
+            window.addEventListener('onblur', this.leaving);
         },
     },
     created: async function() {
         if (this.$route.params.offence_id) {
-            console.log('created');
             await this.loadOffenceVuex({offence_id: this.$route.params.offence_id});
             this.constructAllegedOffencesTable();
             this.constructOffendersTable();
+            this.object_hash = hash(this.offence);
         }
         this.$nextTick(function() {
             this.initAwesompleteAllegedOffence();
