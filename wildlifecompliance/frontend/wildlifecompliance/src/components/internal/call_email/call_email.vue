@@ -417,11 +417,13 @@ require("select2/dist/css/select2.min.css");
 require("select2-bootstrap-theme/dist/select2-bootstrap.min.css");
 import Inspection from '../inspection/create_inspection_modal';
 import RelatedItems from "@common-components/related_items.vue";
+import hash from 'object-hash';
 
 export default {
   name: "ViewCallEmail",
   data: function() {
     return {
+      object_hash: null,
       uuid: 0,
       cTab: 'cTab'+this._uid,
       rTab: 'rTab'+this._uid,
@@ -606,6 +608,13 @@ export default {
         //this.uuid += 1
         return 'offence' + this.uuid;
     },
+    formChanged: function(){
+        let changed = false;
+        if(this.object_hash !== hash(this.call_email)){
+            changed = true;
+        }
+        return changed;
+    },
   },
   filters: {
     formatDate: function(data) {
@@ -670,7 +679,9 @@ export default {
     },
     save: async function () {
         if (this.call_email.id) {
-            await this.$refs.search_person_organisation.parentSave()
+            if (this.$refs.search_person_organisation.formChanged) {
+                await this.$refs.search_person_organisation.parentSave()
+            }
             await this.saveCallEmail({ route: false, crud: 'save' });
         } else {
             await this.saveCallEmail({ route: false, crud: 'create'});
@@ -681,7 +692,9 @@ export default {
     },
     saveExit: async function() {
       if (this.call_email.id) {
-        await this.$refs.search_person_organisation.parentSave()
+        if (this.$refs.search_person_organisation.formChanged) {
+            await this.$refs.search_person_organisation.parentSave()
+        }
         await this.saveCallEmail({ route: true, crud: 'save' });
       } else {
         await this.saveCallEmail({ route: true, crud: 'create'});
@@ -799,9 +812,16 @@ export default {
           vm.call_email.time_of_call = "";
         }
       });
-      // TODO: add conditional logic
-      //window.addEventListener('beforeunload', (e) => {e.returnValue = ''});
-      //window.addEventListener('onblur', (e) => {e.returnValue = ''});
+      window.addEventListener('beforeunload', this.leaving);
+      window.addEventListener('onblur', this.leaving);
+    },
+    leaving: function(e) {
+        //let vm = this;
+        let dialogText = 'You have some unsaved changes.';
+        if (this.formChanged){
+            e.returnValue = dialogText;
+            return dialogText;
+        }
     },
   },
   created: async function() {
@@ -866,7 +886,7 @@ export default {
     if (!this.call_email.time_of_call && this.call_email.can_user_edit_form) {
         this.setTimeOfCall(moment().format('LT'));
     }
-    
+    this.object_hash = hash(this.call_email);
   },
   mounted: function() {
       let vm = this;
