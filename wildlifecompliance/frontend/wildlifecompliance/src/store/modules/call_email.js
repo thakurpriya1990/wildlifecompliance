@@ -270,6 +270,11 @@ export const callemailStore = {
         updateRelatedItems(state, related_items) {
             Vue.set(state.call_email, 'related_items', related_items);
         },
+        updateCaller(state, data) {
+            if (data.data_type === 'individual') {
+                Vue.set(state.call_email, 'email_user_id', data.id);
+            }
+        },
     },
     actions: {
         async loadCallEmail({ dispatch, commit }, { call_email_id }) {
@@ -472,6 +477,9 @@ export const callemailStore = {
         },
         setRelatedItems({ commit }, related_items ) {
             commit("updateRelatedItems", related_items);
+        },
+        setCaller({ commit }, data) {
+            commit("updateCaller", data);
         },
     },
 };

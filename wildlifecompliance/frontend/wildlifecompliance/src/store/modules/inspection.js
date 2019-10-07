@@ -90,12 +90,14 @@ export const inspectionStore = {
         },
         updatePartyInspected(state, data) {
             if (data.data_type === 'individual') {
+                Vue.set(state.inspection, 'party_inspected', data.data_type);
                 Vue.set(state.inspection, 'individual_inspected_id', data.id);
                 if (state.inspection.organisation_inspected_id) {
                     state.inspection.organisation_inspected_id = null;
                 }
             }
             if (data.data_type === 'organisation') {
+                Vue.set(state.inspection, 'party_inspected', data.data_type);
                 Vue.set(state.inspection, 'organisation_inspected_id', data.id);
                 if (state.inspection.individual_inspected_id) {
                     state.inspection.individual_inspected_id = null;

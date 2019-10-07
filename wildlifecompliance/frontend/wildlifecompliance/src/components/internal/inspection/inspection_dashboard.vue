@@ -7,8 +7,8 @@
                 <div class="form-group">
                     <label for="">Type</label>
                     <select class="form-control" v-model="filterInspectionType">
-                        <option v-for="option in inspectionTypes" :value="option.description" v-bind:key="option.id">
-                            {{ option.description }} 
+                        <option v-for="option in inspectionTypes" :value="option.inspection_type" v-bind:key="option.id">
+                            {{ option.inspection_type }} 
                         </option>
                     </select>
                 </div>
@@ -164,7 +164,7 @@
                             orderable: true,
                             mRender: function (data, type, full) {
                                 if (data) {
-                                    return data.description;
+                                    return data.inspection_type;
                                 } else {
                                     return '';
                                 }
@@ -252,6 +252,7 @@
                 {
                 id: "all",
                 description: "All",
+                inspection_type: "All",
                 });
 
         },
