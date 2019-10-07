@@ -999,8 +999,14 @@ export default {
       });
       // calling modifyInspectionTeam with null parameters returns the current list
       this.modifyInspectionTeam({user_id: null, action: null});
+      // create object hash
       this.object_hash = hash(this.inspection);
   },
+  destroyed: function() {
+      window.removeEventListener('beforeunload', this.leaving);
+      window.removeEventListener('onblur', this.leaving);
+  },
+
   mounted: function() {
       let vm = this;
 
@@ -1050,6 +1056,34 @@ export default {
           //}
       });
   },
+  //beforeRouteLeave (to, from, next) {
+  //      const answer = window.confirm('Do you really want to leave? you have unsaved changes!')
+  //      if (answer) {
+  //              next()
+  //            } else {
+  //                    next(false)
+  //                  }
+  //},
+  //beforeRouteLeave: async function(to, from, next) {
+  //    console.log("beforeRouteLeave")
+  //    //this.leaving()
+  //    if (this.formChanged){
+  //        let answer = await swal({
+  //            'title': 'Warning', 
+  //            'titleText': 'You have unsaved changes', 
+  //            'type': 'warning',
+  //            'confirmButtonText': 'Continue',
+  //            'showCancelButton': true
+  //        });
+  //        if (answer && answer.dismiss === 'cancel') {
+  //            next(false)
+  //        } else {
+  //            next()
+  //        }
+  //    } else {
+  //        next()
+  //    }
+  //},
 
 };
 </script>
