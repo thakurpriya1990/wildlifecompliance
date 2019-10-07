@@ -20,7 +20,7 @@ from rest_framework_datatables.pagination import DatatablesPageNumberPagination
 
 from wildlifecompliance.components.main.process_document import (
         process_generic_document,
-        save_comms_log_document_obj
+        save_default_document_obj
         )
 from wildlifecompliance.components.call_email.models import CallEmail, CallEmailUserAction
 from wildlifecompliance.components.inspection.models import Inspection, InspectionUserAction
@@ -398,6 +398,15 @@ class SanctionOutcomeViewSet(viewsets.ModelViewSet):
                     serializer = SaveSanctionOutcomeSerializer(data=request_data, partial=True)
                 serializer.is_valid(raise_exception=True)
                 instance = serializer.save()
+                # save temporary doc
+                temporary_document_collection_id = request.data.get('temporary_document_collection_id')
+                if temporary_document_collection_id:
+                    temp_doc_collection, created = TemporaryDocumentCollection.objects.get_or_create(
+                            id=temporary_document_collection_id)
+                    if temp_doc_collection:
+                        for doc in temp_doc_collection.documents.all():
+                            save_default_document_obj(instance, doc)
+                        temp_doc_collection.delete()
 
                 # Create relations between this sanction outcome and the alleged offence(s)
                 for id in request_data['alleged_offence_ids_included']:
@@ -567,14 +576,6 @@ class SanctionOutcomeViewSet(viewsets.ModelViewSet):
                     workflow_entry = instance.comms_logs.get(id=comms_log_id)
                 else:
                     workflow_entry = self.add_comms_log(request, instance, workflow=True)
-                    temporary_document_collection_id = request.data.get('temporary_document_collection_id')
-                    if temporary_document_collection_id:
-                        temp_doc_collection, created = TemporaryDocumentCollection.objects.get_or_create(
-                                id=temporary_document_collection_id)
-                        if temp_doc_collection:
-                            for doc in temp_doc_collection.documents.all():
-                                save_comms_log_document_obj(instance, workflow_entry, doc)
-                            temp_doc_collection.delete()
 
                 # Set status
                 workflow_type = request.data.get('workflow_type')
