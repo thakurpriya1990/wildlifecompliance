@@ -143,6 +143,7 @@
                                         ref="sanction_outcome_file" 
                                         name="sanction-outcome-file" 
                                         documentActionUrl="temporary_document" 
+                                        @update-temp-doc-coll-id="setTemporaryDocumentCollectionId"
                                         :isRepeatable="true" 
                                         :disabled="!sanction_outcome.issued_on_paper"/>
                                     </div>
@@ -272,6 +273,7 @@ export default {
       let vm = this;
   
       return {
+        temporary_document_collection_id: null,
         nTab: "nTab" + vm._uid,
         aTab: "aTab" + vm._uid,
         dTab: "dTab" + vm._uid,
@@ -500,6 +502,9 @@ export default {
         ...mapActions("offenceStore", {
 
         }),
+        setTemporaryDocumentCollectionId: function(val) {
+            this.temporary_document_collection_id = val;
+        },
         ok: async function() {
             try{
                 this.processingDetails = true;
@@ -772,6 +777,8 @@ export default {
           }
           payload.alleged_offence_ids_included = alleged_offence_ids_included;
           payload.alleged_offence_ids_excluded = alleged_offence_ids_excluded;
+          // temporary doc
+          this.temporary_document_collection_id ? payload.temporary_document_collection_id = this.temporary_document_collection_id : null;
   
           // Retrieve remediation actions and set them to the payload
           let remediation_actions = vm.$refs.tbl_remediation_actions.vmDataTable.rows().data().toArray();
