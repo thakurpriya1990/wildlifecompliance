@@ -467,15 +467,17 @@ export default {
         return this.sanction_outcome.type == "" ? false : true;
       },
       displaySendToManagerButton: function() {
-        let retValue = false;
-        if (!this.processingDetails && this.sanction_outcome.type) {
-          if (this.regionDistrictId) {
-            if ((this.sanction_outcome.issued_on_paper && this.sanction_outcome.date_of_issue) || !this.sanction_outcome.issued_on_paper) {
-              retValue = true;
-            }
+          return true;
+
+          let retValue = false;
+          if (!this.processingDetails && this.sanction_outcome.type) {
+              if (this.regionDistrictId) {
+                  if ((this.sanction_outcome.issued_on_paper && this.sanction_outcome.date_of_issue) || !this.sanction_outcome.issued_on_paper) {
+                      retValue = true;
+                  }
+              }
           }
-        }
-        return retValue;
+          return retValue;
       },
       displayRemediationActions: function() {
         return this.sanction_outcome.type == "remediation_notice" ? true : false;
