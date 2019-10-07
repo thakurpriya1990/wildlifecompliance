@@ -207,7 +207,6 @@ export default {
                         searchable: false,
                         orderable: false,
                         mRender: function (data, type, row){
-                            console.log(data);
                             if (data){
                                 return data;
                             } else { 
@@ -276,11 +275,6 @@ export default {
     },
     methods: {
         updateDistricts: function(updateFromUI) {
-            console.log('updateDistricts');
-            // if (updateFromUI) {
-            //     // We don't want to clear the default district selection when initially loaded, which derived from the call_email
-            //     this.sanction_outcome.district_id = null;
-            // }
             this.sanction_outcome_availableDistricts = []; // This is a list of options for district
             for (let record of this.sanction_outcome_regionDistricts) {
                 if (this.filterRegionId == record.id) {

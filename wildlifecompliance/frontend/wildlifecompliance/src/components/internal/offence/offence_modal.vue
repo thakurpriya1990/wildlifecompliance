@@ -753,11 +753,7 @@ export default {
       let el_to_time = $(vm.$refs.occurrenceTimeToPicker);
 
       // "From" field
-      el_fr_date.datetimepicker({
-        format: "DD/MM/YYYY",
-        maxDate: "now",
-        showClear: true
-      });
+      el_fr_date.datetimepicker({ format: "DD/MM/YYYY", maxDate: "now", showClear: true });
       el_fr_date.on("dp.change", function(e) {
         if (el_fr_date.data("DateTimePicker").date()) {
           vm.offence.occurrence_date_from = e.date.format("DD/MM/YYYY");
@@ -775,11 +771,7 @@ export default {
       });
 
       // "To" field
-      el_to_date.datetimepicker({
-        format: "DD/MM/YYYY",
-        maxDate: "now",
-        showClear: true
-      });
+      el_to_date.datetimepicker({ format: "DD/MM/YYYY", maxDate: "now", showClear: true });
       el_to_date.on("dp.change", function(e) {
         if (el_to_date.data("DateTimePicker").date()) {
           vm.offence.occurrence_date_to = e.date.format("DD/MM/YYYY");

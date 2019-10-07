@@ -194,6 +194,12 @@ module.exports = {
         }
     },
     created: async function() {
+        console.log('moment()');
+        console.log(moment().toString());
+        console.log('moment()...');
+        console.log(moment().millisecond(0).second(0).minute(0).hour(0).toString());
+
+
         let returned_status_choices = await cache_helper.getSetCacheList('Offence_StatusChoices', '/api/offence/status_choices');
         Object.assign(this.status_choices, returned_status_choices);
         this.status_choices.splice(0, 0, {id: 'all', display: 'All'});
