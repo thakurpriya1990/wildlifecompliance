@@ -883,8 +883,12 @@ export default {
                 await this.$refs.search_person_organisation.parentSave();
             }
             await this.saveInspection({ create: false, internal: false });
+            // recalc hash after save
+            this.object_hash = hash(this.call_email);
         } else {
             await this.saveInspection({ create: true, internal: false });
+            // recalc hash after save
+            this.object_hash = hash(this.call_email);
             this.$nextTick(function () {
                 this.$router.push(
                   { name: 'view-inspection', 
@@ -898,8 +902,14 @@ export default {
           if (this.$refs.search_person_organisation) {
               await this.$refs.search_person_organisation.parentSave()
           }
+          // remove redundant eventListeners
+          window.removeEventListener('beforeunload', this.leaving);
+          window.removeEventListener('onblur', this.leaving);
           await this.saveInspection({ create: false, internal: false });
       } else {
+          // remove redundant eventListeners
+          window.removeEventListener('beforeunload', this.leaving);
+          window.removeEventListener('onblur', this.leaving);
           await this.saveInspection({ create: true, internal: false });
       }
       this.$router.push({ name: 'internal-inspection-dash' });
