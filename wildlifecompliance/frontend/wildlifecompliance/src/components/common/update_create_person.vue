@@ -301,6 +301,8 @@ export default {
             handler: function(newVal, oldVal) {
                 if (oldVal.id && oldVal !== newVal) {
                     this.saveButtonEnabled = true;
+                } else if (this.email_user && !this.email_user.id) {
+                    this.saveButtonEnabled = true;
                 } else {
                     this.saveButtonEnabled = false;
                 }

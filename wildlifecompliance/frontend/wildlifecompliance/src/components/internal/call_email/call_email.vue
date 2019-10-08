@@ -198,6 +198,7 @@
                                 classNames="form-control" 
                                 initialSearchType="individual" 
                                 @entity-selected="entitySelected" 
+                                @save-individual="saveIndividual" 
                                 showCreateUpdate
                                 personOnly
                                 ref="search_person_organisation"
@@ -677,9 +678,13 @@ export default {
           this.$refs.inspection.isModalOpen = true
       });
     },
-    save: async function () {
+    saveIndividual: function() {
+      let noPersonSave = true;
+      this.save(noPersonSave)
+    },
+    save: async function (noPersonSave) {
         if (this.call_email.id) {
-            if (this.$refs.search_person_organisation.formChanged) {
+            if (this.$refs.search_person_organisation.formChanged && !noPersonSave) {
                 await this.$refs.search_person_organisation.parentSave()
             }
             await this.saveCallEmail({ route: false, crud: 'save' });
@@ -690,9 +695,9 @@ export default {
             });
         }
     },
-    saveExit: async function() {
+    saveExit: async function(noPersonSave) {
       if (this.call_email.id) {
-        if (this.$refs.search_person_organisation.formChanged) {
+        if (this.$refs.search_person_organisation.formChanged && !noPersonSave) {
             await this.$refs.search_person_organisation.parentSave()
         }
         await this.saveCallEmail({ route: true, crud: 'save' });
