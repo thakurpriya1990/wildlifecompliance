@@ -178,10 +178,6 @@ export default {
             } else if (this.searchType === 'organisation') {
                 await this.$refs.update_create_organisation.parentSave()
             }
-            //// update CallEmail parent if necessary
-            //if (this.$parent.formChanged) {
-            //    this.$parent.save();
-            //}
         },
 
         createNewPerson: function() {
