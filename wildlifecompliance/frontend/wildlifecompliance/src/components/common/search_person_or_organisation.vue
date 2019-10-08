@@ -172,6 +172,7 @@ export default {
     },
     methods: {
         parentSave: async function() {
+            console.log("parent save")
             if (this.searchType === 'individual') {
                 await this.$refs.update_create_person.parentSave()
             } else if (this.searchType === 'organisation') {
@@ -214,8 +215,10 @@ export default {
         savePerson: async function(obj) {
             if(obj.person){
                 if (!obj.updateSearchBox) {
-                    this.$emit('entity-selected', {data_type: 'individual', id: obj.person.id});
+                    await this.$emit('entity-selected', {data_type: 'individual', id: obj.person.id});
+                    await this.$emit('save-individual', {data_type: 'individual', id: obj.person.id});
                 }
+
 
                 // Set fullname and DOB into the input box
                 let full_name = [obj.person.first_name, obj.person.last_name].filter(Boolean).join(" ");
