@@ -688,9 +688,11 @@ export default {
                 await this.$refs.search_person_organisation.parentSave()
             }
             await this.saveCallEmail({ route: false, crud: 'save' });
+            // recalc hash after save
             this.object_hash = hash(this.call_email);
         } else {
             await this.saveCallEmail({ route: false, crud: 'create'});
+            // recalc hash after save
             this.object_hash = hash(this.call_email);
             this.$nextTick(function () {
                 this.$router.push({name: 'view-call-email', params: {call_email_id: this.call_email.id}});
@@ -702,10 +704,12 @@ export default {
         if (this.$refs.search_person_organisation.formChanged && !noPersonSave) {
             await this.$refs.search_person_organisation.parentSave()
         }
+        // remove redundant eventListeners
         window.removeEventListener('beforeunload', this.leaving);
         window.removeEventListener('onblur', this.leaving);
         await this.saveCallEmail({ route: true, crud: 'save' });
       } else {
+        // remove redundant eventListeners
         window.removeEventListener('beforeunload', this.leaving);
         window.removeEventListener('onblur', this.leaving);
         await this.saveCallEmail({ route: true, crud: 'create'});
