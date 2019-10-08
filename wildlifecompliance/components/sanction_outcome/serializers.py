@@ -105,6 +105,7 @@ class SanctionOutcomeSerializer(serializers.ModelSerializer):
     can_user_action = serializers.SerializerMethodField()
     user_is_assignee = serializers.SerializerMethodField()
     related_items = serializers.SerializerMethodField()
+    paper_notices = serializers.SerializerMethodField()
 
     class Meta:
         model = SanctionOutcome
@@ -122,6 +123,7 @@ class SanctionOutcomeSerializer(serializers.ModelSerializer):
             'alleged_committed_offences',
             'issued_on_paper',
             'paper_id',
+            'paper_notices',
             'description',
             'date_of_issue',
             'time_of_issue',
@@ -134,6 +136,9 @@ class SanctionOutcomeSerializer(serializers.ModelSerializer):
             'related_items',
         )
         read_only_fields = ()
+
+    def get_paper_notices(self, obj):
+        return [[r.name, r._file.url] for r in obj.documents.all()]
 
     def get_allocated_group(self, obj):
         allocated_group = [{

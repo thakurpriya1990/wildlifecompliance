@@ -23,6 +23,13 @@ export const sanctionOutcomeStore = {
             if (state.sanction_outcome.date_of_issue) {
                 state.sanction_outcome.date_of_issue = moment(state.sanction_outcome.date_of_issue, 'YYYY-MM-DD').format('DD/MM/YYYY');
             }
+
+            let sanctionOutcomeDocumentUrl = helpers.add_endpoint_join(
+                api_endpoints.sanction_outcome,
+                state.sanction_outcome.id + "/process_default_document/"
+                )
+            Vue.set(state.sanction_outcome, 'sanctionOutcomeDocumentUrl', sanctionOutcomeDocumentUrl); 
+
             let commsLogsDocumentUrl = helpers.add_endpoint_join(
                 api_endpoints.sanction_outcome,
                 state.sanction_outcome.id + "/process_comms_log_document/"
