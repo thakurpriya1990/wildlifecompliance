@@ -20,7 +20,7 @@ from rest_framework_datatables.pagination import DatatablesPageNumberPagination
 
 from wildlifecompliance.components.main.process_document import (
         process_generic_document,
-        save_comms_log_document_obj
+        save_default_document_obj
         )
 from wildlifecompliance.components.call_email.models import CallEmail, CallEmailUserAction
 from wildlifecompliance.components.inspection.models import Inspection, InspectionUserAction
@@ -253,7 +253,10 @@ class SanctionOutcomeViewSet(viewsets.ModelViewSet):
             raise
         except ValidationError as e:
             print(traceback.print_exc())
-            raise serializers.ValidationError(repr(e.error_dict))
+            if hasattr(e, 'error_dict'):
+                raise serializers.ValidationError(repr(e.error_dict))
+            else:
+                raise serializers.ValidationError(repr(e[0].encode('utf-8')))
         except Exception as e:
             print(traceback.print_exc())
             raise serializers.ValidationError(str(e))
@@ -270,7 +273,10 @@ class SanctionOutcomeViewSet(viewsets.ModelViewSet):
             raise
         except ValidationError as e:
             print(traceback.print_exc())
-            raise serializers.ValidationError(repr(e.error_dict))
+            if hasattr(e, 'error_dict'):
+                raise serializers.ValidationError(repr(e.error_dict))
+            else:
+                raise serializers.ValidationError(repr(e[0].encode('utf-8')))
         except Exception as e:
             print(traceback.print_exc())
             raise serializers.ValidationError(str(e))
@@ -287,7 +293,10 @@ class SanctionOutcomeViewSet(viewsets.ModelViewSet):
             raise
         except ValidationError as e:
             print(traceback.print_exc())
-            raise serializers.ValidationError(repr(e.error_dict))
+            if hasattr(e, 'error_dict'):
+                raise serializers.ValidationError(repr(e.error_dict))
+            else:
+                raise serializers.ValidationError(repr(e[0].encode('utf-8')))
         except Exception as e:
             print(traceback.print_exc())
             raise serializers.ValidationError(str(e))
@@ -308,6 +317,11 @@ class SanctionOutcomeViewSet(viewsets.ModelViewSet):
 
                 # No workflow
                 # No allocated group changes
+
+                # Add number of files attached to the instance
+                # By the filefield component in the front end, files should be already uploaded as attachment of this instance
+                num_of_documents = instance.documents.all().count()
+                request_data['num_of_documents_attached'] = num_of_documents  # Pass number of files attached for validation
 
                 serializer = SaveSanctionOutcomeSerializer(instance, data=request_data, partial=True)
                 serializer.is_valid(raise_exception=True)
@@ -349,6 +363,8 @@ class SanctionOutcomeViewSet(viewsets.ModelViewSet):
                                 serializer.save()
                                 instance.log_user_action(SanctionOutcomeUserAction.ACTION_INCLUDE_ALLEGED_COMMITTED_OFFENCE.format(existing_aco.alleged_offence), request)
 
+                instance.log_user_action(SanctionOutcomeUserAction.ACTION_SAVE.format(instance), request)
+
                 # Save remediation action, and link to the sanction outcome
 
                 # Return
@@ -359,7 +375,10 @@ class SanctionOutcomeViewSet(viewsets.ModelViewSet):
             raise
         except ValidationError as e:
             print(traceback.print_exc())
-            raise serializers.ValidationError(repr(e.error_dict))
+            if hasattr(e, 'error_dict'):
+                raise serializers.ValidationError(repr(e.error_dict))
+            else:
+                raise serializers.ValidationError(repr(e[0].encode('utf-8')))
         except Exception as e:
             print(traceback.print_exc())
             raise serializers.ValidationError(str(e))
@@ -390,6 +409,17 @@ class SanctionOutcomeViewSet(viewsets.ModelViewSet):
                     group = groups.first()
                 request_data['allocated_group_id'] = group.id
 
+                # Count number of files uploaded
+                num_of_documents = 0
+                temporary_document_collection_id = request.data.get('temporary_document_collection_id')
+                if temporary_document_collection_id:
+                    temp_doc_collection, created = TemporaryDocumentCollection.objects.get_or_create(
+                        id=temporary_document_collection_id)
+                    if temp_doc_collection:
+                        num_of_documents = temp_doc_collection.documents.count()
+                request_data['num_of_documents_attached'] = num_of_documents  # Pass number of files attached for validation
+                                                                              # You can access this data by self.initial_data['num_of_documents_attached'] in validate(self, data) method
+
                 # Save sanction outcome (offence, offender, alleged_offences)
                 if hasattr(request_data, 'id') and request_data['id']:
                     instance = SanctionOutcome.objects.get(id=request_data['id'])
@@ -398,6 +428,12 @@ class SanctionOutcomeViewSet(viewsets.ModelViewSet):
                     serializer = SaveSanctionOutcomeSerializer(data=request_data, partial=True)
                 serializer.is_valid(raise_exception=True)
                 instance = serializer.save()
+
+                # Link temp uploaded files to the sanction outcome
+                if num_of_documents:
+                    for doc in temp_doc_collection.documents.all():
+                        save_default_document_obj(instance, doc)
+                    temp_doc_collection.delete()
 
                 # Create relations between this sanction outcome and the alleged offence(s)
                 for id in request_data['alleged_offence_ids_included']:
@@ -466,7 +502,10 @@ class SanctionOutcomeViewSet(viewsets.ModelViewSet):
             raise
         except ValidationError as e:
             print(traceback.print_exc())
-            raise serializers.ValidationError(repr(e.error_dict))
+            if hasattr(e, 'error_dict'):
+                raise serializers.ValidationError(repr(e.error_dict))
+            else:
+                raise serializers.ValidationError(repr(e[0].encode('utf-8')))
         except Exception as e:
             print(traceback.print_exc())
             raise serializers.ValidationError(str(e))
@@ -522,7 +561,10 @@ class SanctionOutcomeViewSet(viewsets.ModelViewSet):
             raise
         except ValidationError as e:
             print(traceback.print_exc())
-            raise serializers.ValidationError(repr(e.error_dict))
+            if hasattr(e, 'error_dict'):
+                raise serializers.ValidationError(repr(e.error_dict))
+            else:
+                raise serializers.ValidationError(repr(e[0].encode('utf-8')))
         except Exception as e:
             print(traceback.print_exc())
             raise serializers.ValidationError(str(e))
@@ -567,14 +609,6 @@ class SanctionOutcomeViewSet(viewsets.ModelViewSet):
                     workflow_entry = instance.comms_logs.get(id=comms_log_id)
                 else:
                     workflow_entry = self.add_comms_log(request, instance, workflow=True)
-                    temporary_document_collection_id = request.data.get('temporary_document_collection_id')
-                    if temporary_document_collection_id:
-                        temp_doc_collection, created = TemporaryDocumentCollection.objects.get_or_create(
-                                id=temporary_document_collection_id)
-                        if temp_doc_collection:
-                            for doc in temp_doc_collection.documents.all():
-                                save_comms_log_document_obj(instance, workflow_entry, doc)
-                            temp_doc_collection.delete()
 
                 # Set status
                 workflow_type = request.data.get('workflow_type')
@@ -629,7 +663,10 @@ class SanctionOutcomeViewSet(viewsets.ModelViewSet):
             raise
         except ValidationError as e:
             print(traceback.print_exc())
-            raise serializers.ValidationError(repr(e.error_dict))
+            if hasattr(e, 'error_dict'):
+                raise serializers.ValidationError(repr(e.error_dict))
+            else:
+                raise serializers.ValidationError(repr(e[0].encode('utf-8')))
         except Exception as e:
             print(traceback.print_exc())
             raise serializers.ValidationError(str(e))
@@ -669,7 +706,10 @@ class SanctionOutcomeViewSet(viewsets.ModelViewSet):
             raise
         except ValidationError as e:
             print(traceback.print_exc())
-            raise serializers.ValidationError(repr(e.error_dict))
+            if hasattr(e, 'error_dict'):
+                raise serializers.ValidationError(repr(e.error_dict))
+            else:
+                raise serializers.ValidationError(repr(e[0].encode('utf-8')))
         except Exception as e:
             print(traceback.print_exc())
             raise serializers.ValidationError(str(e))

@@ -390,12 +390,14 @@ import RelatedItems from "@common-components/related_items.vue";
 import MapLocation from "../../common/map_location";
 require("select2/dist/css/select2.min.css");
 require("select2-bootstrap-theme/dist/select2-bootstrap.min.css");
+import hash from 'object-hash';
 
 
 export default {
   name: "ViewInspection",
   data: function() {
     return {
+      object_hash: null,
       iTab: 'iTab'+this._uid,
       rTab: 'rTab'+this._uid,
       oTab: 'oTab'+this._uid,
@@ -592,6 +594,13 @@ export default {
             entity.data_type = 'organisation';
         }
         return entity;
+    },
+    formChanged: function(){
+        let changed = false;
+        if(this.object_hash !== hash(this.inspection)){
+            changed = true;
+        }
+        return changed;
     },
   },
   filters: {
@@ -874,8 +883,12 @@ export default {
                 await this.$refs.search_person_organisation.parentSave();
             }
             await this.saveInspection({ create: false, internal: false });
+            // recalc hash after save
+            this.object_hash = hash(this.call_email);
         } else {
             await this.saveInspection({ create: true, internal: false });
+            // recalc hash after save
+            this.object_hash = hash(this.call_email);
             this.$nextTick(function () {
                 this.$router.push(
                   { name: 'view-inspection', 
@@ -889,8 +902,14 @@ export default {
           if (this.$refs.search_person_organisation) {
               await this.$refs.search_person_organisation.parentSave()
           }
+          // remove redundant eventListeners
+          window.removeEventListener('beforeunload', this.leaving);
+          window.removeEventListener('onblur', this.leaving);
           await this.saveInspection({ create: false, internal: false });
       } else {
+          // remove redundant eventListeners
+          window.removeEventListener('beforeunload', this.leaving);
+          window.removeEventListener('onblur', this.leaving);
           await this.saveInspection({ create: true, internal: false });
       }
       this.$router.push({ name: 'internal-inspection-dash' });
@@ -931,21 +950,17 @@ export default {
           '.make_team_lead',
           vm.makeTeamLead,
           );
-      //window.addEventListener('beforeunload', vm.leaving);
-      //window.addEventListener('onblur', vm.leaving);
-      // TODO: add conditional logic
-      //window.addEventListener('beforeunload', (e) => {e.returnValue = ''});
-      //window.addEventListener('onblur', (e) => {e.returnValue = ''});
+      window.addEventListener('beforeunload', this.leaving);
+      window.addEventListener('onblur', this.leaving);
     },
-    //leaving: function(e) {
-    //    let vm = this;
-    //    let dialogText = '';
-    //    if (!vm.proposal_readonly && !vm.submitting){
-    //        e.returnValue = dialogText;
-    //        return dialogText;
-    //    }
-    //    //return dialogText
-    //},
+    leaving: function(e) {
+        let vm = this;
+        let dialogText = '';
+        if (this.formChanged){
+            e.returnValue = dialogText;
+            return dialogText;
+        }
+    },
       
     updateAssignedToId: async function (user) {
         let url = helpers.add_endpoint_join(
@@ -986,55 +1001,22 @@ export default {
             id: "",
             description: "",
           });
-    
-      //// Set Individual or Organisation in search field
-      //if (this.inspection.individual_inspected) {
-      //    let value = [
-      //        this.inspection.individual_inspected.full_name, 
-      //        this.inspection.individual_inspected.dob].
-      //        filter(Boolean).join(", ");
-      //    this.$refs.search_person_organisation.setInput(value);
-      //    this.$refs.search_person_organisation.entity.id = this.inspection.individual_inspected.id
-      //    this.$refs.search_person_organisation.entity.data_type = 'individual'
-      //} else if (this.inspection.organisation_inspected) {
-      //    let value = [
-      //        this.inspection.organisation_inspected.name,
-      //        this.inspection.organisation_inspected.abn].
-      //        filter(Boolean).join(", ");
-      //    this.$refs.search_person_organisation.setInput(value);
-      //    this.$refs.search_person_organisation.entity.id = this.inspection.organisation_inspected.id
-      //    this.$refs.search_person_organisation.entity.data_type = 'organisation'
-      //}
-      // load Inspection report
-      //await this.$refs.inspection_report_file.get_documents();
-      
       // load current Inspection renderer schema
       this.$nextTick(async () => {
           if (this.inspection.inspection_type_id) {
               await this.loadSchema();
           }
-          //// Set Individual or Organisation in search field
-          //if (this.inspection.individual_inspected) {
-          //    let value = [
-          //        this.inspection.individual_inspected.full_name, 
-          //        this.inspection.individual_inspected.dob].
-          //        filter(Boolean).join(", ");
-          //    this.$refs.search_person_organisation.setInput(value);
-          //    this.$refs.search_person_organisation.entity.id = this.inspection.individual_inspected.id
-          //    this.$refs.search_person_organisation.entity.data_type = 'individual'
-          //} else if (this.inspection.organisation_inspected) {
-          //    let value = [
-          //        this.inspection.organisation_inspected.name,
-          //        this.inspection.organisation_inspected.abn].
-          //        filter(Boolean).join(", ");
-          //    this.$refs.search_person_organisation.setInput(value);
-          //    this.$refs.search_person_organisation.entity.id = this.inspection.organisation_inspected.id
-          //    this.$refs.search_person_organisation.entity.data_type = 'organisation'
-          //}
       });
       // calling modifyInspectionTeam with null parameters returns the current list
       this.modifyInspectionTeam({user_id: null, action: null});
+      // create object hash
+      this.object_hash = hash(this.inspection);
   },
+  destroyed: function() {
+      window.removeEventListener('beforeunload', this.leaving);
+      window.removeEventListener('onblur', this.leaving);
+  },
+
   mounted: function() {
       let vm = this;
 
@@ -1064,27 +1046,8 @@ export default {
       this.$nextTick(async () => {
           this.addEventListeners();
           this.constructInspectionTeamTable();
-          //// Set Individual or Organisation in search field
-          //if (this.inspection.individual_inspected) {
-          //    let value = [
-          //        this.inspection.individual_inspected.full_name, 
-          //        this.inspection.individual_inspected.dob].
-          //        filter(Boolean).join(", ");
-          //    this.$refs.search_person_organisation.setInput(value);
-          //    this.$refs.search_person_organisation.entity.id = this.inspection.individual_inspected.id
-          //    this.$refs.search_person_organisation.entity.data_type = 'individual'
-          //} else if (this.inspection.organisation_inspected) {
-          //    let value = [
-          //        this.inspection.organisation_inspected.name,
-          //        this.inspection.organisation_inspected.abn].
-          //        filter(Boolean).join(", ");
-          //    this.$refs.search_person_organisation.setInput(value);
-          //    this.$refs.search_person_organisation.entity.id = this.inspection.organisation_inspected.id
-          //    this.$refs.search_person_organisation.entity.data_type = 'organisation'
-          //}
       });
   },
-
 };
 </script>
 

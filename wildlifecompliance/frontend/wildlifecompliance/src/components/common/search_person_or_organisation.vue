@@ -50,6 +50,7 @@ import "bootstrap/dist/css/bootstrap.css";
 import "awesomplete/awesomplete.css";
 import updateCreatePerson from '@common-components/update_create_person.vue'
 import updateCreateOrganisation from '@common-components/update_create_organisation.vue'
+import hash from 'object-hash';
 
 export default {
     name: "search-person-organisation",
@@ -96,6 +97,13 @@ export default {
         },
     },
     computed: {
+        formChanged: function(){
+            let changed = false;
+            if(this.object_hash !== hash(this.entity)){
+                changed = true;
+            }
+            return changed;
+        },
         elemId: function() {
             this.uuid += 1
             let domId = this.searchType + this.uuid + 'search';
@@ -164,6 +172,7 @@ export default {
     },
     methods: {
         parentSave: async function() {
+            console.log("parent save")
             if (this.searchType === 'individual') {
                 await this.$refs.update_create_person.parentSave()
             } else if (this.searchType === 'organisation') {
@@ -206,8 +215,10 @@ export default {
         savePerson: async function(obj) {
             if(obj.person){
                 if (!obj.updateSearchBox) {
-                    this.$emit('entity-selected', {data_type: 'individual', id: obj.person.id});
+                    await this.$emit('entity-selected', {data_type: 'individual', id: obj.person.id});
+                    await this.$emit('save-individual', {data_type: 'individual', id: obj.person.id});
                 }
+
 
                 // Set fullname and DOB into the input box
                 let full_name = [obj.person.first_name, obj.person.last_name].filter(Boolean).join(" ");
@@ -370,6 +381,7 @@ export default {
             }
             this.initAwesomplete();
         });
+        this.object_hash = hash(this.entity);
     },
 }
 </script>

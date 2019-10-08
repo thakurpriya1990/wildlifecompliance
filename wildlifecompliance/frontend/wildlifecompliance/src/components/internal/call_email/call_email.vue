@@ -198,6 +198,7 @@
                                 classNames="form-control" 
                                 initialSearchType="individual" 
                                 @entity-selected="entitySelected" 
+                                @save-individual="saveIndividual" 
                                 showCreateUpdate
                                 personOnly
                                 ref="search_person_organisation"
@@ -417,11 +418,13 @@ require("select2/dist/css/select2.min.css");
 require("select2-bootstrap-theme/dist/select2-bootstrap.min.css");
 import Inspection from '../inspection/create_inspection_modal';
 import RelatedItems from "@common-components/related_items.vue";
+import hash from 'object-hash';
 
 export default {
   name: "ViewCallEmail",
   data: function() {
     return {
+      object_hash: null,
       uuid: 0,
       cTab: 'cTab'+this._uid,
       rTab: 'rTab'+this._uid,
@@ -606,6 +609,13 @@ export default {
         //this.uuid += 1
         return 'offence' + this.uuid;
     },
+    formChanged: function(){
+        let changed = false;
+        if(this.object_hash !== hash(this.call_email)){
+            changed = true;
+        }
+        return changed;
+    },
   },
   filters: {
     formatDate: function(data) {
@@ -668,22 +678,40 @@ export default {
           this.$refs.inspection.isModalOpen = true
       });
     },
-    save: async function () {
+    saveIndividual: function() {
+      let noPersonSave = true;
+      this.save(noPersonSave)
+    },
+    save: async function (noPersonSave) {
         if (this.call_email.id) {
-            await this.$refs.search_person_organisation.parentSave()
+            if (this.$refs.search_person_organisation.formChanged && !noPersonSave) {
+                await this.$refs.search_person_organisation.parentSave()
+            }
             await this.saveCallEmail({ route: false, crud: 'save' });
+            // recalc hash after save
+            this.object_hash = hash(this.call_email);
         } else {
             await this.saveCallEmail({ route: false, crud: 'create'});
+            // recalc hash after save
+            this.object_hash = hash(this.call_email);
             this.$nextTick(function () {
                 this.$router.push({name: 'view-call-email', params: {call_email_id: this.call_email.id}});
             });
         }
     },
-    saveExit: async function() {
+    saveExit: async function(noPersonSave) {
       if (this.call_email.id) {
-        await this.$refs.search_person_organisation.parentSave()
+        if (this.$refs.search_person_organisation.formChanged && !noPersonSave) {
+            await this.$refs.search_person_organisation.parentSave()
+        }
+        // remove redundant eventListeners
+        window.removeEventListener('beforeunload', this.leaving);
+        window.removeEventListener('onblur', this.leaving);
         await this.saveCallEmail({ route: true, crud: 'save' });
       } else {
+        // remove redundant eventListeners
+        window.removeEventListener('beforeunload', this.leaving);
+        window.removeEventListener('onblur', this.leaving);
         await this.saveCallEmail({ route: true, crud: 'create'});
       }
     },
@@ -799,13 +827,23 @@ export default {
           vm.call_email.time_of_call = "";
         }
       });
-      // TODO: add conditional logic
-      //window.addEventListener('beforeunload', (e) => {e.returnValue = ''});
-      //window.addEventListener('onblur', (e) => {e.returnValue = ''});
+      window.addEventListener('beforeunload', this.leaving);
+      window.addEventListener('onblur', this.leaving);
+    },
+    leaving: function(e) {
+        //let vm = this;
+        let dialogText = 'You have some unsaved changes.';
+        if (this.formChanged){
+            e.returnValue = dialogText;
+            return dialogText;
+        }
     },
   },
+  destroyed: function() {
+      window.removeEventListener('beforeunload', this.leaving);
+      window.removeEventListener('onblur', this.leaving);
+  },
   created: async function() {
-    
     if (this.$route.params.call_email_id) {
       await this.loadCallEmail({ call_email_id: this.$route.params.call_email_id });
     }
@@ -866,7 +904,7 @@ export default {
     if (!this.call_email.time_of_call && this.call_email.can_user_edit_form) {
         this.setTimeOfCall(moment().format('LT'));
     }
-    
+    this.object_hash = hash(this.call_email);
   },
   mounted: function() {
       let vm = this;
