@@ -31,7 +31,7 @@ class ApplicationCondition(admin.ModelAdmin):
 
 @admin.register(models.DefaultCondition)
 class DefaultCondition(admin.ModelAdmin):
-    pass
+    list_display = ['licence_activity', 'standard_condition']
 
 
 @admin.register(models.ActivityPermissionGroup)

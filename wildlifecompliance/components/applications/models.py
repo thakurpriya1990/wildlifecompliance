@@ -934,14 +934,15 @@ class Application(RevisionedMixin):
                             licence_activity=activity["id"])
                         if (qs):
                             for q in qs:
+                                standard_condition = ApplicationStandardCondition.objects.get(id=q.standard_condition_id)
                                 ApplicationCondition.objects.create(
-                                    default_condition=q,
                                     is_default=True,
-                                    standard=False,
+                                    standard=True,
+                                    standard_condition=standard_condition,
                                     application=self,
                                     licence_activity=LicenceActivity.objects.get(
                                         id=activity["id"]),
-                                    return_type=q.return_type)
+                                    return_type=standard_condition.return_type)
 
                 self.save()
                 officer_groups = ActivityPermissionGroup.objects.filter(
@@ -2757,7 +2758,7 @@ class ApplicationFormDataRecord(models.Model):
                                                         is_rendered=True,
                                                         standard=True,
                                                         application=application,
-                                                        licence_activity=LicenceActivity.objects.get(id=component['licence_activity_id']),
+                                                        licence_activity=LicenceActivity.objects.get(id=activity.licence_activity_id),
                                                         return_type=condition.return_type)
 
         for selected_activity in application.activities:
@@ -2821,10 +2822,11 @@ class ApplicationStandardCondition(RevisionedMixin):
 
 
 class DefaultCondition(OrderedModel):
-    condition = models.TextField(null=True, blank=True)
+    comments = models.TextField(null=True, blank=True)
     licence_activity = models.ForeignKey(
         'wildlifecompliance.LicenceActivity', null=True)
-    return_type = models.ForeignKey('wildlifecompliance.ReturnType', null=True, blank=True)
+    standard_condition = models.ForeignKey(
+        ApplicationStandardCondition, null=True)      
 
     class Meta:
         app_label = 'wildlifecompliance'
