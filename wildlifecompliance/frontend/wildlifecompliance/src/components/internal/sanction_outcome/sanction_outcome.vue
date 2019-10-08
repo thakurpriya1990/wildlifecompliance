@@ -466,7 +466,7 @@ export default {
         visibilitySaveButton: function() {
             let visibility = false;
             if (this.sanction_outcome.can_user_action){
-                if (this.sanction_outcome.status.id === this.STATUS_DRAFT){
+                if (this.sanction_outcome.status.id === this.STATUS_DRAFT || this.sanction_outcome.status.id === this.STATUS_AWAITING_AMENDMENT){
                     visibility = true;
                 }
             }

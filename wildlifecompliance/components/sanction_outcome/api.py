@@ -358,6 +358,8 @@ class SanctionOutcomeViewSet(viewsets.ModelViewSet):
                                 serializer.save()
                                 instance.log_user_action(SanctionOutcomeUserAction.ACTION_INCLUDE_ALLEGED_COMMITTED_OFFENCE.format(existing_aco.alleged_offence), request)
 
+                instance.log_user_action(SanctionOutcomeUserAction.ACTION_SAVE.format(instance), request)
+
                 # Save remediation action, and link to the sanction outcome
 
                 # Return
