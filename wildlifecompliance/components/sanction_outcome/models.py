@@ -365,15 +365,11 @@ class SanctionOutcomeCommsLogEntry(CommunicationsLogEntry):
 
 class SanctionOutcomeUserAction(UserAction):
     ACTION_SEND_TO_MANAGER = "Send Sanction Outcome {} to manager"
+    ACTION_SAVE = "Save Sanction Outcome {}"
     ACTION_ENDORSE = "Endorse Sanction Outcome {}"
     ACTION_DECLINE = "Decline Sanction Outcome {}"
     ACTION_RETURN_TO_OFFICER = "Request amendment for Sanction Outcome {}"
     ACTION_WITHDRAW = "Withdraw Sanction Outcome {}"
-    # ACTION_EXTEND_DUE_DATE = "Extend Sanction Outcome {} Payment Due Date"
-    # ACTION_SEND_TO_DOT = "Send Sanction Outcome {} to Department of Transport"
-    # ACTION_SEND_TO_FINES_ENFORCEMENT_UNIT = "Send Sanction Outcome {} to Fined Enforcement Unit"
-    # ACTION_ESCALATE_FOR_WITHDRAWAL = "Escalate Sanction Outcome {} for Withdrawal"
-    # ACTION_RETURN_TO_INFRINGEMENT_NOTICE_COORDINATOR = "Return Sanction Outcome {} to Infringement Notice Coordinator"
     ACTION_CLOSE = "Close Sanction Outcome {}"
     ACTION_ADD_WEAK_LINK = "Create manual link between Sanction Outcome: {} and {}: {}"
     ACTION_REMOVE_WEAK_LINK = "Remove manual link between Sanction Outcome: {} and {}: {}"

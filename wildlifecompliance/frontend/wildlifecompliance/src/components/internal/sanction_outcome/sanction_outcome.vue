@@ -55,7 +55,7 @@
                             <div v-if="visibilityWithdrawButtonForInc" class="row action-button">
                                 <div class="col-sm-12">
                                     <a @click="addWorkflow('withdraw_by_inc')" class="btn btn-primary btn-block">
-                                        Withdraw (inc)
+                                        Withdraw
                                     </a>
                                 </div>
                             </div>
@@ -63,7 +63,7 @@
                             <div v-if="visibilityWithdrawButtonForManager" class="row action-button">
                                 <div class="col-sm-12">
                                     <a @click="addWorkflow('withdraw_by_manager')" class="btn btn-primary btn-block">
-                                        Withdraw (manager)
+                                        Withdraw
                                     </a>
                                 </div>
                             </div>
@@ -184,6 +184,31 @@
                                         </div>
                                     </div></div>
 
+                                       <div class="col-sm-12 form-group"><div class="row">
+                                           <div class="col-sm-3">
+                                               <label class="control-label pull-left">Paper ID</label>
+                                           </div>
+                                           <div class="col-sm-7">
+                                               <input type="text" :readonly="readonlyForm" class="form-control" name="paper_id" placeholder="" v-model="sanction_outcome.paper_id" :disabled="!sanction_outcome.issued_on_paper" /> 
+                                           </div>
+                                       </div></div>
+
+                                       <div class="col-sm-12 form-group"><div class="row">
+                                           <div class="col-sm-3">
+                                               <label class="control-label pull-left">Paper notice</label>
+                                           </div>
+                                           <div id="paper_id_notice">
+                                               <div v-if="sanction_outcome.issued_on_paper" class="col-sm-7">
+                                                   <filefield ref="sanction_outcome_file" 
+                                                              name="sanction-outcome-file" 
+                                                              :documentActionUrl="sanction_outcome.sanctionOutcomeDocumentUrl" 
+                                                              @update-parent="loadSanctionOutcomeDocument" 
+                                                              :isRepeatable="true" 
+                                                              :readonly="readonlyForm" />
+                                               </div>
+                                           </div>
+                                       </div></div>
+
                                 </FormSection>
                             </div>
 
@@ -291,6 +316,7 @@ export default {
         vm.STATUS_DECLINED = 'declined';
 
         return {
+            temporary_document_collection_id: null,
             workflow_type :'',
             workflowBindId :'',
             soTab: 'soTab' + this._uid,
@@ -355,7 +381,6 @@ export default {
                     {
                         data: "Action",
                         mRender: function(data, type, row) {
-                            console.log('aho');
                             let ret = '';
                             if (data.in_editable_status){
                                 if (data.already_included){
@@ -384,13 +409,14 @@ export default {
         SanctionOutcomeWorkflow,
         CommsLogs,
         datatable,
+        filefield,
     },
     created: async function() {
         if (this.$route.params.sanction_outcome_id) {
             await this.loadSanctionOutcome({ sanction_outcome_id: this.$route.params.sanction_outcome_id });
-            this.object_hash = hash(this.sanction_outcome);
             this.createStorageAllegedCommittedOffences();
             this.constructAllegedCommittedOffencesTable();
+            this.object_hash = hash(this.sanction_outcome);
         }
     },
     mounted: function() {
@@ -402,13 +428,6 @@ export default {
         ...mapGetters('sanctionOutcomeStore', {
             sanction_outcome: "sanction_outcome",
         }),
-        formChanged: function(){
-            if(this.object_hash != hash(this.sanction_outcome)){
-                return true;
-            } else {
-                return false;
-            }
-        },
         readonlyForm: function() {
             return !this.canUserEditForm;
         },
@@ -473,19 +492,18 @@ export default {
         visibilitySaveButton: function() {
             let visibility = false;
             if (this.sanction_outcome.can_user_action){
-                if (this.sanction_outcome.status.id === this.STATUS_DRAFT){
+                if (this.sanction_outcome.status.id === this.STATUS_DRAFT || this.sanction_outcome.status.id === this.STATUS_AWAITING_AMENDMENT){
                     visibility = true;
                 }
             }
             return visibility;
         },
         visibilityWithdrawButtonForManager: function() {
-            console.log('visibilityW');
             let visibility = false;
             if (this.sanction_outcome.can_user_action){
                 if (this.sanction_outcome.type.id == 'infringement_notice'){
                     if (this.sanction_outcome.status.id === this.STATUS_AWAITING_ENDORSEMENT && this.sanction_outcome.issued_on_paper){
-                        // This is when Manager withdraw paper issued infringement notice
+                        // Manager can withdraw paper issued infringement notice
                         visibility = true;
                     }
                 }
@@ -493,7 +511,6 @@ export default {
             return visibility;
         },
         visibilityWithdrawButtonForInc: function() {
-            console.log('visibilityW');
             let visibility = false;
             if (this.sanction_outcome.can_user_action){
                 if (this.sanction_outcome.type.id == 'infringement_notice'){
@@ -527,7 +544,10 @@ export default {
             let visibility = false;
             if (this.sanction_outcome.can_user_action){
                 if (this.sanction_outcome.status.id === this.STATUS_AWAITING_ENDORSEMENT || this.sanction_outcome.status.id === this.STATUS_AWAITING_REVIEW){
-                    visibility = true;
+                    if (!this.sanction_outcome.issued_on_paper){
+                        // Only sanction outcome not issued on paper can be declined, otherwise withdraw
+                        visibility = true;
+                    }
                 }
             }
             return visibility;
@@ -549,6 +569,17 @@ export default {
             setAssignedToId: 'setAssignedToId',
             setCanUserAction: 'setCanUserAction',
         }),
+        loadSanctionOutcomeDocument: function() {
+            console.log("loadSanctionOutcomeDocument")
+        //    this.loadSanctionOutcome({sanction_outcome_id: this.sanction_outcome.id});
+        },
+        formChanged: function(){
+            if(this.object_hash != hash(this.sanction_outcome)){
+                return true;
+            } else {
+                return false;
+            }
+        },
         createStorageAllegedCommittedOffences: function() {
             if (this.sanction_outcome && this.sanction_outcome.alleged_committed_offences){
                 for (let i=0; i<this.sanction_outcome.alleged_committed_offences.length; i++){
@@ -562,6 +593,7 @@ export default {
             try {
                 await this.saveSanctionOutcome();
                 this.constructAllegedCommittedOffencesTable();
+                this.object_hash = hash(this.sanction_outcome)
             } catch (err) {
                 console.log(err);
                 if (err.body.non_field_errors) {
@@ -572,8 +604,16 @@ export default {
             }
         },
         saveExit: async function() {
+            // remove redundant eventListeners
+            window.removeEventListener('beforeunload', this.leaving);
+            window.removeEventListener('onblur', this.leaving);
+
             await this.saveSanctionOutcome();
             this.$router.push({ name: 'internal-offence-dash' });
+        },
+        destroyed: function() {
+            window.removeEventListener('beforeunload', this.leaving);
+            window.removeEventListener('onblur', this.leaving);
         },
         setUpDateTimePicker: function() {
             let vm = this;
