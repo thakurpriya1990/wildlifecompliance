@@ -318,6 +318,11 @@ class SanctionOutcomeViewSet(viewsets.ModelViewSet):
                 # No workflow
                 # No allocated group changes
 
+                # Add number of files attached to the instance
+                # By the filefield component in the front end, files should be already uploaded as attachment of this instance
+                num_of_documents = instance.documents.all().count()
+                request_data['num_of_documents_attached'] = num_of_documents  # Pass number of files attached for validation
+
                 serializer = SaveSanctionOutcomeSerializer(instance, data=request_data, partial=True)
                 serializer.is_valid(raise_exception=True)
                 instance = serializer.save()
@@ -357,6 +362,8 @@ class SanctionOutcomeViewSet(viewsets.ModelViewSet):
                                 serializer.is_valid(raise_exception=True)
                                 serializer.save()
                                 instance.log_user_action(SanctionOutcomeUserAction.ACTION_INCLUDE_ALLEGED_COMMITTED_OFFENCE.format(existing_aco.alleged_offence), request)
+
+                instance.log_user_action(SanctionOutcomeUserAction.ACTION_SAVE.format(instance), request)
 
                 # Save remediation action, and link to the sanction outcome
 
@@ -409,8 +416,7 @@ class SanctionOutcomeViewSet(viewsets.ModelViewSet):
                     temp_doc_collection, created = TemporaryDocumentCollection.objects.get_or_create(
                         id=temporary_document_collection_id)
                     if temp_doc_collection:
-                        for doc in temp_doc_collection.documents.all():
-                            num_of_documents = num_of_documents + 1
+                        num_of_documents = temp_doc_collection.documents.count()
                 request_data['num_of_documents_attached'] = num_of_documents  # Pass number of files attached for validation
                                                                               # You can access this data by self.initial_data['num_of_documents_attached'] in validate(self, data) method
 
