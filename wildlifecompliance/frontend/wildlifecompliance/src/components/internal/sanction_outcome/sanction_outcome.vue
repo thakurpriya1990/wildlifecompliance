@@ -432,7 +432,6 @@ export default {
             return !this.canUserEditForm;
         },
         canUserEditForm: function() {
-            console.log('canUserEdit');
             let canUserEdit = false;
             if (this.sanction_outcome.can_user_action){
                 if (this.sanction_outcome.status.id === this.STATUS_AWAITING_AMENDMENT || this.sanction_outcome.status.id === this.STATUS_DRAFT){
@@ -463,7 +462,6 @@ export default {
             let ret = '';
             if (this.sanction_outcome){
                 if (this.sanction_outcome.offence){
-                    console.log('displayOffence');
                     ret = this.sanction_outcome.offence.lodgement_number;
                 }
             }
@@ -571,7 +569,6 @@ export default {
         }),
         loadSanctionOutcomeDocument: function() {
             console.log("loadSanctionOutcomeDocument")
-        //    this.loadSanctionOutcome({sanction_outcome_id: this.sanction_outcome.id});
         },
         formChanged: function(){
             if(this.object_hash != hash(this.sanction_outcome)){
@@ -595,7 +592,6 @@ export default {
                 this.constructAllegedCommittedOffencesTable();
                 this.object_hash = hash(this.sanction_outcome)
             } catch (err) {
-                console.log(err);
                 if (err.body.non_field_errors) {
                     await swal("Error", err.body.non_field_errors[0], "error");
                 } else {
@@ -652,7 +648,7 @@ export default {
         leaving: function(e) {
             let vm = this;
             let dialogText = 'You have some unsaved changes.';
-            if (vm.formChanged){
+            if (vm.formChanged()){
                 e.returnValue = dialogText;
                 return dialogText;
             }
@@ -732,7 +728,6 @@ export default {
                 url,
                 payload
             );
-            console.log(res.body);
             this.setAssignedToId(res.body.assigned_to_id);
             this.setCanUserAction(res.body.can_user_action);
         },
