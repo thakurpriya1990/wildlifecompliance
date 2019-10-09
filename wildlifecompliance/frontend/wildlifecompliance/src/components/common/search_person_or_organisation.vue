@@ -388,7 +388,8 @@ export default {
 
 <style>
 .awesomplete > ul {
-    margin-top: 2.5em;
+    margin-top: 0 !important;
+    z-index: 10000;
 }
 .awesomplete > ul > li {
     border-bottom: 1px solid lightgray;
