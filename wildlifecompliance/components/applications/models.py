@@ -1792,7 +1792,7 @@ class Application(RevisionedMixin):
         timedelta = datetime.timedelta
         for condition in self.conditions.all():
             try:
-                if condition.due_date and condition.due_date >= today:
+                if condition.return_type and condition.due_date and condition.due_date >= today:
                     current_date = condition.due_date
                     # create a first Return
                     try:
