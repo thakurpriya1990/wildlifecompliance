@@ -323,7 +323,13 @@
                                             <label class="control-label pull-left"  for="Name">Inspection Report</label>
                                         </div>
                                         <div class="col-sm-9" v-if="inspection.inspectionReportDocumentUrl">
-                                            <filefield ref="inspection_report_file" name="inspection-report-file" :isRepeatable="false" :documentActionUrl="inspection.inspectionReportDocumentUrl" @update-parent="loadInspectionReport" :readonly="readonlyForm"/>
+                                            <filefield 
+                                            ref="inspection_report_file" 
+                                            name="inspection-report-file" 
+                                            :isRepeatable="false" 
+                                            :documentActionUrl="inspection.inspectionReportDocumentUrl" 
+                                            @update-parent="loadInspectionReport" 
+                                            :readonly="readonlyForm"/>
                                         </div>
                                     </div>
                                 </div>
@@ -798,9 +804,9 @@ export default {
         // Should not reach here
       }
     },
-    loadInspectionReport: function() {
+    loadInspectionReport: async function() {
         console.log("loadInspectionReport")
-        this.loadInspection({inspection_id: this.inspection.id});
+        await this.loadInspection({inspection_id: this.inspection.id});
     },
 
     loadSchema: function() {
@@ -884,11 +890,11 @@ export default {
             }
             await this.saveInspection({ create: false, internal: false });
             // recalc hash after save
-            this.object_hash = hash(this.call_email);
+            this.object_hash = hash(this.inspection);
         } else {
             await this.saveInspection({ create: true, internal: false });
             // recalc hash after save
-            this.object_hash = hash(this.call_email);
+            this.object_hash = hash(this.inspection);
             this.$nextTick(function () {
                 this.$router.push(
                   { name: 'view-inspection', 
