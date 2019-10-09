@@ -642,6 +642,8 @@ export default {
         save: async function(){
             try {
                 await this.saveOffence();
+                await swal("Saved", "The record has been saved", "success");
+
                 this.constructOffendersTable();
                 this.constructAllegedOffencesTable();
                 this.object_hash = hash(this.sanction_outcome)
@@ -1225,12 +1227,12 @@ export default {
           }
         },
         setCurrentOffenderEmpty: function() {
-            this.current_offender = null;
+            this.current_offender = {};
             $("#offender_input").val("");
             this.$refs.search_offender.clearInput();
         },
         setCurrentAllegedOffenceEmpty: function() {
-            this.current_alleged_offence = null;
+            this.current_alleged_offence = {};
             $("#alleged-offence").val("");
         },
         addEventListeners: function() {

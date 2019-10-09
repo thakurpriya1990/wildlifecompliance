@@ -589,6 +589,8 @@ export default {
         save: async function() {
             try {
                 await this.saveSanctionOutcome();
+                await swal("Saved", "The record has been saved", "success");
+
                 this.constructAllegedCommittedOffencesTable();
                 this.object_hash = hash(this.sanction_outcome)
             } catch (err) {
@@ -600,12 +602,21 @@ export default {
             }
         },
         saveExit: async function() {
-            // remove redundant eventListeners
-            window.removeEventListener('beforeunload', this.leaving);
-            window.removeEventListener('onblur', this.leaving);
+            try {
+                await this.saveSanctionOutcome();
+                await swal("Saved", "The record has been saved", "success");
+                // remove redundant eventListeners
+                window.removeEventListener('beforeunload', this.leaving);
+                window.removeEventListener('onblur', this.leaving);
 
-            await this.saveSanctionOutcome();
-            this.$router.push({ name: 'internal-offence-dash' });
+                this.$router.push({ name: 'internal-offence-dash' });
+            } catch(err) {
+                if (err.body.non_field_errors) {
+                    await swal("Error", err.body.non_field_errors[0], "error");
+                } else {
+                    await swal("Error", "There was an error saving the record", "error");
+                }
+            }
         },
         destroyed: function() {
             window.removeEventListener('beforeunload', this.leaving);

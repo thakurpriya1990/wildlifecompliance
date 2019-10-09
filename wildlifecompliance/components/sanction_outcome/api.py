@@ -321,9 +321,8 @@ class SanctionOutcomeViewSet(viewsets.ModelViewSet):
                 # Add number of files attached to the instance
                 # By the filefield component in the front end, files should be already uploaded as attachment of this instance
                 num_of_documents = instance.documents.all().count()
-                request_data['num_of_documents_attached'] = num_of_documents  # Pass number of files attached for validation
 
-                serializer = SaveSanctionOutcomeSerializer(instance, data=request_data, partial=True)
+                serializer = SaveSanctionOutcomeSerializer(instance, data=request_data, partial=True, context={'num_of_documents_attached': num_of_documents})
                 serializer.is_valid(raise_exception=True)
                 instance = serializer.save()
 
@@ -369,6 +368,13 @@ class SanctionOutcomeViewSet(viewsets.ModelViewSet):
 
                 # Return
                 return self.retrieve(request)
+                # headers = self.get_success_headers(serializer.data)
+                # return_serializer = SanctionOutcomeSerializer(instance, context={'request': request})
+                # return Response(
+                #     return_serializer.data,
+                #     status=status.HTTP_200_OK,
+                #     headers=headers
+                # )
 
         except serializers.ValidationError:
             print(traceback.print_exc())
@@ -417,15 +423,15 @@ class SanctionOutcomeViewSet(viewsets.ModelViewSet):
                         id=temporary_document_collection_id)
                     if temp_doc_collection:
                         num_of_documents = temp_doc_collection.documents.count()
-                request_data['num_of_documents_attached'] = num_of_documents  # Pass number of files attached for validation
+                # request_data['num_of_documents_attached'] = num_of_documents  # Pass number of files attached for validation
                                                                               # You can access this data by self.initial_data['num_of_documents_attached'] in validate(self, data) method
 
                 # Save sanction outcome (offence, offender, alleged_offences)
                 if hasattr(request_data, 'id') and request_data['id']:
                     instance = SanctionOutcome.objects.get(id=request_data['id'])
-                    serializer = SaveSanctionOutcomeSerializer(instance, data=request_data, partial=True)
+                    serializer = SaveSanctionOutcomeSerializer(instance, data=request_data, partial=True, context={'num_of_documents_attached': num_of_documents})
                 else:
-                    serializer = SaveSanctionOutcomeSerializer(data=request_data, partial=True)
+                    serializer = SaveSanctionOutcomeSerializer(data=request_data, partial=True, context={'num_of_documents_attached': num_of_documents})
                 serializer.is_valid(raise_exception=True)
                 instance = serializer.save()
 
