@@ -594,11 +594,7 @@ export default {
                 this.constructAllegedCommittedOffencesTable();
                 this.object_hash = hash(this.sanction_outcome)
             } catch (err) {
-                if (err.body.non_field_errors) {
-                    await swal("Error", err.body.non_field_errors[0], "error");
-                } else {
-                    await swal("Error", "There was an error saving the record", "error");
-                }
+                this.processError(err);
             }
         },
         saveExit: async function() {
@@ -611,12 +607,33 @@ export default {
 
                 this.$router.push({ name: 'internal-offence-dash' });
             } catch(err) {
-                if (err.body.non_field_errors) {
-                    await swal("Error", err.body.non_field_errors[0], "error");
-                } else {
-                    await swal("Error", "There was an error saving the record", "error");
+                this.processError(err);
+            }
+        },
+        processError: async function(err){
+            let errorText = '';
+            if (err.body.non_field_errors) {
+                // When non field errors raised
+                for (let i=0; i<err.body.non_field_errors.length; i++){
+                    errorText += err.body.non_field_errors[i] + '<br />';
+                }
+            } else if(Array.isArray(err.body)) {
+                // When general errors raised
+                for (let i=0; i<err.body.length; i++){
+                    errorText += err.body[i] + '<br />';
+                }
+            } else {
+                // When field errors raised
+                for (let field_name in err.body){
+                    if (err.body.hasOwnProperty(field_name)){
+                        errorText += field_name + ':<br />';
+                        for (let j=0; j<err.body[field_name].length; j++){
+                            errorText += err.body[field_name][j] + '<br />';
+                        }
+                    }
                 }
             }
+            await swal("Error", errorText, "error");
         },
         destroyed: function() {
             window.removeEventListener('beforeunload', this.leaving);
@@ -633,7 +650,7 @@ export default {
               if (el_issue_date.data("DateTimePicker").date()) {
                 vm.sanction_outcome.date_of_issue = e.date.format("DD/MM/YYYY");
               } else if (el_issue_date.data("date") === "") {
-                vm.sanction_outcome.date_of_issue = "";
+                vm.sanction_outcome.date_of_issue = null;
               }
             });
 
@@ -643,7 +660,7 @@ export default {
               if (el_issue_time.data("DateTimePicker").date()) {
                 vm.sanction_outcome.time_of_issue = e.date.format("LT");
               } else if (el_issue_time.data("date") === "") {
-                vm.sanction_outcome.time_of_issue = "";
+                vm.sanction_outcome.time_of_issue = null;
               }
             });
         },

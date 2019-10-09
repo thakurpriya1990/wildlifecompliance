@@ -527,13 +527,20 @@ export default {
                 this.processingDetails = false;
             }
         },
-        processError(err){
+        processError: async function(err){
             let errorText = '';
             if (err.body.non_field_errors) {
+                // When non field errors raised
                 for (let i=0; i<err.body.non_field_errors.length; i++){
                     errorText += err.body.non_field_errors[i] + '<br />';
                 }
+            } else if(Array.isArray(err.body)) {
+                // When general errors raised
+                for (let i=0; i<err.body.length; i++){
+                    errorText += err.body[i] + '<br />';
+                }
             } else {
+                // When field errors raised
                 for (let field_name in err.body){
                     if (err.body.hasOwnProperty(field_name)){
                         errorText += field_name + ':<br />';
@@ -543,7 +550,7 @@ export default {
                     }
                 }
             }
-            this.errorResponse = errorText;
+            await swal("Error", errorText, "error");
         },
       ...mapActions({
         loadAllocatedGroup: 'loadAllocatedGroup',  // defined in store/modules/user.js
@@ -653,7 +660,7 @@ export default {
           if (el_issue_date.data("DateTimePicker").date()) {
             vm.sanction_outcome.date_of_issue = e.date.format("DD/MM/YYYY");
           } else if (el_issue_date.data("date") === "") {
-            vm.sanction_outcome.date_of_issue = "";
+            vm.sanction_outcome.date_of_issue = null;
           }
         });
   
@@ -663,7 +670,7 @@ export default {
           if (el_issue_time.data("DateTimePicker").date()) {
             vm.sanction_outcome.time_of_issue = e.date.format("LT");
           } else if (el_issue_time.data("date") === "") {
-            vm.sanction_outcome.time_of_issue = "";
+            vm.sanction_outcome.time_of_issue = null;
           }
         });
   
@@ -676,7 +683,7 @@ export default {
           if (el_due_date.data("DateTimePicker").date()) {
             vm.current_remediation_action.due_date = e.date.format("DD/MM/YYYY");
           } else if (el_due_date.data("date") === "") {
-            vm.current_remediation_action.due_date = "";
+            vm.current_remediation_action.due_date = null;
           }
         });
   

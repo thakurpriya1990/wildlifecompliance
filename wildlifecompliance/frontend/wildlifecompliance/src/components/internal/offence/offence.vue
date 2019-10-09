@@ -648,12 +648,7 @@ export default {
                 this.constructAllegedOffencesTable();
                 this.object_hash = hash(this.sanction_outcome)
             } catch (err) {
-                console.log('error here');
-                if (err.body.non_field_errors){
-                    await swal("Error", err.body.non_field_errors[0], "error");
-                } else {
-                    await swal("Error", "There was an error saving the record", "error");
-                }
+                this.processError(err);
             }
         },
         leaving: function(e) {
@@ -669,12 +664,43 @@ export default {
             window.removeEventListener('onblur', this.leaving);
         },
         saveExit: async function() {
-            // remove redundant eventListeners
-            window.removeEventListener('beforeunload', this.leaving);
-            window.removeEventListener('onblur', this.leaving);
+            try {
+                await this.saveOffence();
+                await swal("Saved", "The record has been saved", "success");
 
-            await this.saveOffence();
-            this.$router.push({ name: 'internal-offence-dash' });
+                // remove redundant eventListeners
+                window.removeEventListener('beforeunload', this.leaving);
+                window.removeEventListener('onblur', this.leaving);
+
+                this.$router.push({ name: 'internal-offence-dash' });
+            } catch (err) {
+                this.processError(err);
+            }
+        },
+        processError: async function(err){
+            let errorText = '';
+            if (err.body.non_field_errors) {
+                // When non field errors raised
+                for (let i=0; i<err.body.non_field_errors.length; i++){
+                    errorText += err.body.non_field_errors[i] + '<br />';
+                }
+            } else if(Array.isArray(err.body)) {
+                // When general errors raised
+                for (let i=0; i<err.body.length; i++){
+                    errorText += err.body[i] + '<br />';
+                }
+            } else {
+                // When field errors raised
+                for (let field_name in err.body){
+                    if (err.body.hasOwnProperty(field_name)){
+                        errorText += field_name + ':<br />';
+                        for (let j=0; j<err.body[field_name].length; j++){
+                            errorText += err.body[field_name][j] + '<br />';
+                        }
+                    }
+                }
+            }
+            await swal("Error", errorText, "error");
         },
         updateAssignedToId: async function (user) {
             let url = helpers.add_endpoint_join(api_endpoints.offence, this.offence.id + '/update_assigned_to_id/');
@@ -1248,7 +1274,7 @@ export default {
               if (el_fr_date.data("DateTimePicker").date()) {
                 vm.offence.occurrence_date_from = e.date.format("DD/MM/YYYY");
               } else if (el_fr_date.data("date") === "") {
-                vm.offence.occurrence_date_from = "";
+                vm.offence.occurrence_date_from = null;
               }
             });
             el_fr_time.datetimepicker({ format: "LT", showClear: true });
@@ -1256,7 +1282,7 @@ export default {
               if (el_fr_time.data("DateTimePicker").date()) {
                 vm.offence.occurrence_time_from = e.date.format("LT");
               } else if (el_fr_time.data("date") === "") {
-                vm.offence.occurrence_time_from = "";
+                vm.offence.occurrence_time_from = null;
               }
             });
 
@@ -1266,7 +1292,7 @@ export default {
               if (el_to_date.data("DateTimePicker").date()) {
                 vm.offence.occurrence_date_to = e.date.format("DD/MM/YYYY");
               } else if (el_to_date.data("date") === "") {
-                vm.offence.occurrence_date_to = "";
+                vm.offence.occurrence_date_to = null;
               }
             });
             el_to_time.datetimepicker({ format: "LT", showClear: true });
@@ -1274,7 +1300,7 @@ export default {
               if (el_to_time.data("DateTimePicker").date()) {
                 vm.offence.occurrence_time_to = e.date.format("LT");
               } else if (el_to_time.data("date") === "") {
-                vm.offence.occurrence_time_to = "";
+                vm.offence.occurrence_time_to = null;
               }
             });
 
