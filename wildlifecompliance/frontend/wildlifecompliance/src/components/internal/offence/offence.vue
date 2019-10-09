@@ -644,6 +644,7 @@ export default {
                 await this.saveOffence();
                 this.constructOffendersTable();
                 this.constructAllegedOffencesTable();
+                this.object_hash = hash(this.sanction_outcome)
             } catch (err) {
                 console.log('error here');
                 if (err.body.non_field_errors){
@@ -654,7 +655,6 @@ export default {
             }
         },
         leaving: function(e) {
-            console.log('leaving');
             let vm = this;
             let dialogText = 'You have some unsaved changes.';
             if (vm.formChanged()){
@@ -662,7 +662,15 @@ export default {
                 return dialogText;
             }
         },
+        destroyed: function() {
+            window.removeEventListener('beforeunload', this.leaving);
+            window.removeEventListener('onblur', this.leaving);
+        },
         saveExit: async function() {
+            // remove redundant eventListeners
+            window.removeEventListener('beforeunload', this.leaving);
+            window.removeEventListener('onblur', this.leaving);
+
             await this.saveOffence();
             this.$router.push({ name: 'internal-offence-dash' });
         },
