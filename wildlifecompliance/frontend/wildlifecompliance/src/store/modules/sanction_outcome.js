@@ -69,6 +69,14 @@ export const sanctionOutcomeStore = {
             let payload = {};
             Object.assign(payload, state.sanction_outcome);
 
+            console.log('before')
+            console.log(payload)
+            if(payload.date_of_issue){
+                payload.date_of_issue = moment(payload.date_of_issue, "DD/MM/YYYY").format("YYYY-MM-DD");
+            }
+            console.log('after')
+            console.log(payload)
+
             // format 'type'
             payload.type = payload.type.id;
 
