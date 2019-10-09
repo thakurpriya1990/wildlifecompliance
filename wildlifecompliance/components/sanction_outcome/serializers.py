@@ -207,6 +207,7 @@ class SanctionOutcomeDatatableSerializer(serializers.ModelSerializer):
     type = CustomChoiceField(read_only=True)
     user_action = serializers.SerializerMethodField()
     offender = OffenderSerializer(read_only=True,)
+    paper_notices = serializers.SerializerMethodField()
 
     class Meta:
         model = SanctionOutcome
@@ -227,8 +228,12 @@ class SanctionOutcomeDatatableSerializer(serializers.ModelSerializer):
             'date_of_issue',
             'time_of_issue',
             'user_action',
+            'paper_notices',
         )
         read_only_fields = ()
+
+    def get_paper_notices(self, obj):
+        return [[r.name, r._file.url] for r in obj.documents.all()]
 
     def get_user_action(self, obj):
         user_id = self.context.get('request', {}).user.id
