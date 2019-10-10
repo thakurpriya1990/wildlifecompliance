@@ -1,3 +1,4 @@
+from django.db.models import Q
 from rest_framework import serializers
 from rest_framework.validators import UniqueTogetherValidator
 
@@ -59,7 +60,7 @@ class AllegedCommittedOffenceCreateSerializer(serializers.ModelSerializer):
 
 class AllegedCommittedOffenceSerializer(serializers.ModelSerializer):
     alleged_offence = AllegedOffenceSerializer(read_only=True,)
-    removed_by_id = serializers.IntegerField(write_only=True, required=False)
+    # removed_by_id = serializers.IntegerField(write_only=True, required=False)
     in_editable_status = serializers.SerializerMethodField()
     can_user_restore = serializers.SerializerMethodField()
 
@@ -68,10 +69,10 @@ class AllegedCommittedOffenceSerializer(serializers.ModelSerializer):
         fields = (
             'id',
             'included',
-            'removed',
-            'reason_for_removal',
-            'removed_by',
-            'removed_by_id',
+            # 'removed',
+            # 'reason_for_removal',
+            # 'removed_by',
+            # 'removed_by_id',
             'alleged_offence',
             'in_editable_status',
             'can_user_restore',
@@ -80,7 +81,7 @@ class AllegedCommittedOffenceSerializer(serializers.ModelSerializer):
     def get_in_editable_status(self, obj):
         # Check if the sanction outcome is in the status of STATUS_AWAITING_AMENDMENT or SanctionOutcome,
         # Which means the sanction outcome is under some officer at the moment, therefore it should be editable
-        return obj.sanction_outcome.status in (SanctionOutcome.STATUS_AWAITING_AMENDMENT, SanctionOutcome.STATUS_DRAFT)
+        return obj.sanction_outcome.status in (SanctionOutcome.STATUS_DRAFT,)
 
     def get_can_user_restore(self, obj):
         can_user_restore = False
@@ -119,7 +120,6 @@ class SanctionOutcomeSerializer(serializers.ModelSerializer):
             'identifier',
             'offence',
             'offender',
-            # 'alleged_offences',
             'alleged_committed_offences',
             'issued_on_paper',
             'paper_id',
@@ -187,9 +187,20 @@ class SanctionOutcomeSerializer(serializers.ModelSerializer):
     def get_related_items(self, obj):
         return get_related_items(obj)
 
-    def get_alleged_committed_offences(self, obj):
-        qs_details = AllegedCommittedOffence.objects.filter(sanction_outcome=obj)
-        return [AllegedCommittedOffenceSerializer(item, context={'request': self.context.get('request', {})}).data for item in qs_details]
+    def get_alleged_committed_offences(self, so_obj):
+        ao_ids_already_included = AllegedCommittedOffence.objects.filter(sanction_outcome=so_obj).values_list('alleged_offence__id', flat=True)
+
+        # Check if there is newly aded alleged offence to be added to this sanction outcome
+        if so_obj.status != 'draft':
+            # Only when sanction outcome is in draft status, newly added alleged offence should be added
+            # Query newly added alleged offence which is not included yet
+            # However whenever new alleged offence is added to the offence, it should be added to the sanction outcomes under the offence at the moment.
+            qs_allegedOffences = AllegedOffence.objects.filter(Q(offence=so_obj.offence) & Q(removed=False)).exclude(Q(id__in=ao_ids_already_included))
+            for ao in qs_allegedOffences:
+                aco = AllegedCommittedOffence.objects.create(alleged_offence=ao, sanction_outcome=so_obj)
+
+        qs_allegedCommittedOffences = AllegedCommittedOffence.objects.filter(sanction_outcome=so_obj)
+        return [AllegedCommittedOffenceSerializer(item, context={'request': self.context.get('request', {})}).data for item in qs_allegedCommittedOffences]
 
 
 class UpdateAssignedToIdSerializer(serializers.ModelSerializer):

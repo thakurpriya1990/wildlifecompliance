@@ -713,9 +713,9 @@ export default {
 
             this.setOffenceEmpty();
             this.close();
-            this.processingDetails = false;
         } catch(err) {
             this.processError(err);
+        } finally {
             this.processingDetails = false;
         }
     },
