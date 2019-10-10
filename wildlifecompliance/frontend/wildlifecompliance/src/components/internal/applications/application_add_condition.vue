@@ -44,7 +44,7 @@
                                 </div>
                             </div>
                             <div class="form-group">
-                                <div class="row" v-show="showDueDate">
+                                <div class="row" v-if="!condition.standard || showDueDate">
                                     <div class="col-sm-3">
                                         <label class="control-label pull-left"  for="Name">Due Date</label>
                                     </div>
@@ -200,7 +200,7 @@ export default {
             }
         },
         setShowDueDate: function(val) {
-            //Only show the Due Date field for Conditions which require a return.
+            //Only show the Due Date field for Conditions which require a return.         
             let condition = this.conditions.filter(function(e) {return e.id == val})
             this.showDueDate=condition[0].require_return
         },       
@@ -216,6 +216,7 @@ export default {
             if(datePicker) {
                 datePicker.clear();
             }
+            this.showDueDate = false;
             this.validation_form.resetForm();
         },
         fetchContact: function(id){
@@ -335,15 +336,17 @@ export default {
        eventListeners:function () {
             let vm = this;
             // Initialise Date Picker
-            $(vm.$refs.due_date).datetimepicker(vm.datepickerOptions);
-            $(vm.$refs.due_date).on('dp.change', function(e){
-                if ($(vm.$refs.due_date).data('DateTimePicker').date()) {
-                    vm.condition.due_date =  e.date.format('DD/MM/YYYY');
-                }
-                else if ($(vm.$refs.due_date).data('date') === "") {
-                    vm.condition.due_date = "";
-                }
-             });
+            //$(vm.$refs.due_date).datetimepicker(vm.datepickerOptions);
+            //console.log('eventListener')
+            //$(vm.$refs.due_date).on('dp.change', function(e){
+            //    console.log('changeDate')
+            //    if ($(vm.$refs.due_date).data('DateTimePicker').date()) {
+            //        vm.condition.due_date =  e.date.format('DD/MM/YYYY');
+            //    }
+            //    else if ($(vm.$refs.due_date).data('date') === "") {
+            //        vm.condition.due_date = "";
+            //    }
+            /// });
 
             // Intialise select2
             $(vm.$refs.standard_req).select2({
@@ -360,6 +363,23 @@ export default {
                 var selected = $(e.currentTarget);
                 vm.condition.standard_condition = selected.val();
             });
+       }
+   },
+   updated:function () {
+
+       let vm = this;
+       if (!vm.condition.standard || vm.showDueDate) {
+            $(vm.$refs.due_date).datetimepicker(vm.datepickerOptions);
+            console.log('updated func')
+            $(vm.$refs.due_date).on('dp.change', function(e){
+                console.log('changeDate')
+                if ($(vm.$refs.due_date).data('DateTimePicker').date()) {
+                    vm.condition.due_date =  e.date.format('DD/MM/YYYY');
+                }
+                else if ($(vm.$refs.due_date).data('date') === "") {
+                    vm.condition.due_date = "";
+                }
+             });       
        }
    },
    mounted:function () {
