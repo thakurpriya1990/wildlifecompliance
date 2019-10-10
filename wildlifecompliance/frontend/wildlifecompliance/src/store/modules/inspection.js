@@ -216,7 +216,9 @@ export const inspectionStore = {
                 } else {
                     await swal("Error", "There was an error saving the record", "error");
                 }
-                return window.location.href = "/internal/inspection/";
+                //return window.location.href = "/internal/inspection/";
+                console.log(savedInspection);
+                return savedInspection;
             }
             // internal arg used when file upload triggers record creation
             if (internal) {
@@ -226,6 +228,7 @@ export const inspectionStore = {
             // update inspection
             else if (!create) {
                 await swal("Saved", "The record has been saved", "success");
+                return savedInspection;
             }
         },
         

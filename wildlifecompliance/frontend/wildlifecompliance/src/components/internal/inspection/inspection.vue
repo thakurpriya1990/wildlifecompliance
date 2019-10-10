@@ -929,21 +929,26 @@ export default {
         }
     },
     saveExit: async function() {
+      let savedInspection = null;
+      let savedPerson = null;
       if (this.inspection.id) {
           if (this.$refs.search_person_organisation) {
-              await this.$refs.search_person_organisation.parentSave()
+              let savedPerson = await this.$refs.search_person_organisation.parentSave()
           }
-          // remove redundant eventListeners
-          window.removeEventListener('beforeunload', this.leaving);
-          window.removeEventListener('onblur', this.leaving);
-          await this.saveInspection({ create: false, internal: false });
+          // if person save ok, continue with Inspection save
+          if (savedPerson && savedPerson.ok) {
+              savedInspection = await this.saveInspection({ create: false, internal: false });
+          }
       } else {
-          // remove redundant eventListeners
-          window.removeEventListener('beforeunload', this.leaving);
-          window.removeEventListener('onblur', this.leaving);
-          await this.saveInspection({ create: true, internal: false });
+          savedInspection = await this.saveInspection({ create: true, internal: false });
       }
-      this.$router.push({ name: 'internal-inspection-dash' });
+      if (savedInspection && savedInspection.ok) {
+        // remove redundant eventListeners
+        window.removeEventListener('beforeunload', this.leaving);
+        window.removeEventListener('onblur', this.leaving);
+        // return to dash
+        this.$router.push({ name: 'internal-inspection-dash' });
+      }
     },
     addEventListeners: function() {
       let vm = this;

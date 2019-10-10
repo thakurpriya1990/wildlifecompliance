@@ -196,7 +196,6 @@
                                 classNames="form-control" 
                                 initialSearchType="individual" 
                                 @entity-selected="entitySelected" 
-                                @save-individual="saveIndividual" 
                                 showCreateUpdate
                                 personOnly
                                 ref="search_person_organisation"
@@ -676,10 +675,10 @@ export default {
           this.$refs.inspection.isModalOpen = true
       });
     },
-    saveIndividual: function() {
-      let noPersonSave = true;
-      this.save(noPersonSave)
-    },
+    //saveIndividual: function() {
+    //  let noPersonSave = true;
+    //  this.save(noPersonSave)
+    //},
     save: async function (noPersonSave) {
         if (this.call_email.id) {
             if (this.$refs.search_person_organisation.formChanged && !noPersonSave) {

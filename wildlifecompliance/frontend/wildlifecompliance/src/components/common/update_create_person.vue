@@ -32,7 +32,18 @@
                             <label for="" class="col-sm-3 control-label" >Date of Birth</label>
                             <div class="col-sm-6">
                                 <div v-if="email_user">
-                                    <input :readonly="personalDetailsReadOnly" type="date" class="form-control" name="dob" placeholder="" v-model="email_user.dob" v-bind:key="email_user.id">
+                                    <div class="input-group date" ref="dobDatePicker">
+                                        <input 
+                                        :disabled="personalDetailsReadOnly" 
+                                        type="text" class="form-control" 
+                                        placeholder="DD/MM/YYYY" 
+                                        v-model="email_user.dob" 
+                                        v-bind:key="email_user.id" />
+                                        <span class="input-group-addon">
+                                            <span class="glyphicon glyphicon-calendar"></span>
+                                        </span>
+                                    </div>
+                                    <!--input :readonly="personalDetailsReadOnly" type="date" class="form-control" name="dob" placeholder="" v-model="email_user.dob" v-bind:key="email_user.id"-->
                                 </div>
                             </div>
                         </div>
@@ -311,6 +322,25 @@ export default {
 
     },
     methods: {
+        addEventListeners: function() {
+          let vm = this;
+          let el_fr_date = $(vm.$refs.dobDatePicker);
+          //let el_fr_time = $(vm.$refs.plannedForTimePicker);
+
+          // "From" field
+          el_fr_date.datetimepicker({
+            format: "DD/MM/YYYY",
+            maxDate: "now",
+            showClear: true
+          });
+          el_fr_date.on("dp.change", function(e) {
+            if (el_fr_date.data("DateTimePicker").date()) {
+              vm.email_user.dob = e.date.format("DD/MM/YYYY");
+            } else if (el_fr_date.data("date") === "") {
+              vm.email_user.dob = "";
+            }
+          });
+        },
         setExistingPerson: function(id){
             let vm = this;
 
@@ -374,16 +404,23 @@ export default {
             });
         },
         parentSave: async function() {
+            let parent_save = true;
+            let savedEmailUser = null;
             if (this.saveButtonEnabled) {
-                await this.saveData()
+                savedEmailUser = await this.saveData(parent_save)
             }
+            return savedEmailUser;
         },
-        saveData: async function() {
+        saveData: async function(parent_save) {
+            let savedEmailUser = null;
             try{
                 let payload = {}
                 Object.assign(payload, this.email_user)
                 if (payload.residential_address && !payload.residential_address.line1) {
                     payload.residential_address = null;
+                }
+                if (payload.dob) {
+                    payload.dob = moment(payload.dob, 'DD/MM/YYYY').format('YYYY-MM-DD');
                 }
                 let fetchUrl = ''
                 if (payload.id) {
@@ -402,18 +439,21 @@ export default {
                     }
                 }
 
-                let savedEmailUser = await Vue.http.post(fetchUrl, payload);
+                savedEmailUser = await Vue.http.post(fetchUrl, payload);
                 if (!savedEmailUser.body.residential_address) {
                     savedEmailUser.body.residential_address = this.getDefaultAddress()
                 }
                 Object.assign(this.email_user, savedEmailUser.body);
-                await swal("Saved", "Person has been saved", "success");
+                if (!parent_save) {
+                    await swal("Saved", "Person has been saved", "success");
+                }
                 this.$emit('person-saved', {'person': savedEmailUser.body, 'errorMessage': null});
             } catch (err) {
                 if (err.bodyText) {
                     this.$emit('person-saved', { 'person': null, 'errorMessage': err.bodyText });
                 }
             }
+            return savedEmailUser;
         },
         showHideElement: function() {
             if(this.displayComponent) {
@@ -435,6 +475,7 @@ export default {
             vm.isPersonalDetailsOpen = vm.defaultOpenPersonalDetails;
             vm.isAddressDetailsOpen = vm.defaultOpenAddressDetails;
             vm.isContactDetailsOpen = vm.defaultOpenContactDetails;
+            vm.addEventListeners();
         })
     },
     created: function() {
