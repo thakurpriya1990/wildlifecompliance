@@ -904,9 +904,14 @@ class ApplicationConditionSerializer(serializers.ModelSerializer):
 
 
 class ApplicationStandardConditionSerializer(serializers.ModelSerializer):
+    require_return = serializers.SerializerMethodField()
+
     class Meta:
         model = ApplicationStandardCondition
-        fields = ('id', 'code', 'text')
+        fields = ('id', 'code', 'text', 'require_return')
+
+    def get_require_return(self, obj):
+        return True if obj.return_type else False
 
 
 class ApplicationProposedIssueSerializer(serializers.ModelSerializer):

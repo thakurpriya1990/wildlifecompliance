@@ -19,8 +19,8 @@
                                     </div>
                                     <div class="col-sm-9" v-if="condition.standard">
                                         <div style="width:70% !important">
-                                            <select class="form-control" ref="standard_req" name="standard_condition" v-model="condition.standard_condition">
-                                                <option v-for="r in conditions" :value="r.id">{{r.code}} {{r.text}}</option>
+                                            <select class="form-control" ref="standard_req" name="standard_condition" v-model="condition.standard_condition" v-on:change="setShowDueDate($event.target.value)">
+                                                <option v-for="r in conditions" :value="r.id" >{{r.code}} {{r.text}}</option>
                                             </select>
                                         </div>
                                     </div>
@@ -44,7 +44,7 @@
                                 </div>
                             </div>
                             <div class="form-group">
-                                <div class="row">
+                                <div class="row" v-show="showDueDate">
                                     <div class="col-sm-3">
                                         <label class="control-label pull-left"  for="Name">Due Date</label>
                                     </div>
@@ -166,7 +166,8 @@ export default {
                 keepInvalid:true,
                 allowInputToggle:true
             },
-            validDate: false
+            validDate: false,
+            showDueDate: false
         }
     },
     computed: {
@@ -198,6 +199,11 @@ export default {
                 vm.sendData();
             }
         },
+        setShowDueDate: function(val) {
+            //Only show the Due Date field for Conditions which require a return.
+            let condition = this.conditions.filter(function(e) {return e.id == val})
+            this.showDueDate=condition[0].require_return
+        },       
         cancel:function () {
             this.close()
         },
