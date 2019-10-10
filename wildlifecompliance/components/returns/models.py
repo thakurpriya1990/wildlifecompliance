@@ -367,20 +367,6 @@ class Return(models.Model):
         return self.lodgement_number
 
 
-class ReturnListener(object):
-    """
-    Listener object signalling additional processing outside Return model.
-    """
-    @staticmethod
-    @receiver(post_save, sender=Return)
-    def post_create(sender, instance, created, **kwargs):
-        if not created:
-            return
-        if instance.has_sheet:
-            # create default species data for Return running sheets.
-            instance.sheet.set_licence_species
-
-
 class ReturnData(object):
     """
     Informational data of requirements supporting licence condition.
