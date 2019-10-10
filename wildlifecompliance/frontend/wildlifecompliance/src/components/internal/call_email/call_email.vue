@@ -691,25 +691,35 @@ export default {
             await this.saveCallEmail({ route: false, crud: 'create'});
             // recalc hash after save
             this.object_hash = hash(this.call_email);
-            this.$nextTick(function () {
-                this.$router.push({name: 'view-call-email', params: {call_email_id: this.call_email.id}});
-            });
+            //this.$nextTick(function () {
+            //    this.$router.push({name: 'view-call-email', params: {call_email_id: this.call_email.id}});
+            //});
         }
     },
-    saveExit: async function(noPersonSave) {
+    saveExit: async function() {
+      console.log("saveexit")
+      let savedPerson = null;
+      let savedCallEmail = null;
       if (this.call_email.id) {
-        if (this.$refs.search_person_organisation.formChanged && !noPersonSave) {
-            await this.$refs.search_person_organisation.parentSave()
+        if (this.$refs.search_person_organisation) {
+            savedPerson = await this.$refs.search_person_organisation.parentSave()
+            console.log(savedPerson)
         }
-        // remove redundant eventListeners
-        window.removeEventListener('beforeunload', this.leaving);
-        window.removeEventListener('onblur', this.leaving);
-        await this.saveCallEmail({ route: true, crud: 'save' });
+        if (savedPerson && savedPerson.ok) {
+            // remove redundant eventListeners
+            window.removeEventListener('beforeunload', this.leaving);
+            window.removeEventListener('onblur', this.leaving);
+            savedCallEmail = await this.saveCallEmail({ route: true, crud: 'save' });
+        }
       } else {
         // remove redundant eventListeners
         window.removeEventListener('beforeunload', this.leaving);
         window.removeEventListener('onblur', this.leaving);
-        await this.saveCallEmail({ route: true, crud: 'create'});
+        savedCallEmail = await this.saveCallEmail({ route: true, crud: 'create'});
+      }
+      console.log(savedCallEmail);
+      if (savedCallEmail && savedCallEmail.ok) {
+        this.$router.push({name: 'internal-call-email-dash'});
       }
     },
     duplicate: async function() {

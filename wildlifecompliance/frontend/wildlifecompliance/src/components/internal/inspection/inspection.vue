@@ -355,7 +355,7 @@
             <div class="navbar-inner">
                 <div class="container">
                     <p class="pull-right" style="margin-top:5px;">
-                        <input type="button" @click.prevent="saveExit" class="btn btn-primary" value="Save and Exit"/>
+                        <input type="button" @click.prevent="save(exit)" class="btn btn-primary" value="Save and Exit"/>
                         <input type="button" @click.prevent="save" class="btn btn-primary" value="Save and Continue"/>
                     </p>
                 </div>
@@ -908,41 +908,47 @@ export default {
       });
       // this.$refs.add_workflow.isModalOpen = true;
     },
-    save: async function () {
-        if (this.inspection.id) {
-            if (this.$refs.search_person_organisation) {
-                await this.$refs.search_person_organisation.parentSave();
-            }
-            await this.saveInspection({ create: false, internal: false });
-            // recalc hash after save
-            this.object_hash = hash(this.inspection);
-        } else {
-            await this.saveInspection({ create: true, internal: false });
-            // recalc hash after save
-            this.object_hash = hash(this.inspection);
-            this.$nextTick(function () {
-                this.$router.push(
-                  { name: 'view-inspection', 
-                    params: { id: this.inspection.id }
-                  });
-            });
-        }
-    },
-    saveExit: async function() {
+    //save: async function () {
+    //    let savedInspection = null;
+    //    let savedPerson = null;
+    //    if (this.inspection.id) {
+    //        if (this.$refs.search_person_organisation) {
+    //            savedPerson = await this.$refs.search_person_organisation.parentSave();
+    //        }
+    //        await this.saveInspection({ create: false, internal: false });
+    //        // recalc hash after save
+    //        this.object_hash = hash(this.inspection);
+    //    } else {
+    //        await this.saveInspection({ create: true, internal: false });
+    //        // recalc hash after save
+    //        this.object_hash = hash(this.inspection);
+    //        this.$nextTick(function () {
+    //            this.$router.push(
+    //              { name: 'view-inspection', 
+    //                params: { id: this.inspection.id }
+    //              });
+    //        });
+    //    }
+    //},
+      save: async function({'exit': 'false'}) {
       let savedInspection = null;
       let savedPerson = null;
       if (this.inspection.id) {
           if (this.$refs.search_person_organisation) {
-              let savedPerson = await this.$refs.search_person_organisation.parentSave()
+              console.log("savePerson")
+              savedPerson = await this.$refs.search_person_organisation.parentSave()
+              // if person save ok, continue with Inspection save
+              if (savedPerson && savedPerson.ok) {
+                  savedInspection = await this.saveInspection({ create: false, internal: false });
+              }
           }
-          // if person save ok, continue with Inspection save
-          if (savedPerson && savedPerson.ok) {
-              savedInspection = await this.saveInspection({ create: false, internal: false });
-          }
+          console.log("no savePerson")
+          savedInspection = await this.saveInspection({ create: false, internal: false });
       } else {
           savedInspection = await this.saveInspection({ create: true, internal: false });
       }
-      if (savedInspection && savedInspection.ok) {
+      console.log(savedInspection);
+      if (savedInspection && savedInspection.ok && exit) {
         // remove redundant eventListeners
         window.removeEventListener('beforeunload', this.leaving);
         window.removeEventListener('onblur', this.leaving);

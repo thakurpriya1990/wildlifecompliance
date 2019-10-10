@@ -385,7 +385,7 @@ export const callemailStore = {
                 } else {
                     await swal("Error", "There was an error saving the record", "error");
                 }
-                return window.location.href = "/internal/call_email/";
+                //return window.location.href = "/internal/call_email/";
             }
             if (crud === 'duplicate') {
                 return window.location.href = "/internal/call_email/" + callId;
@@ -397,11 +397,12 @@ export const callemailStore = {
                     return savedCallEmail;
                 }
             }
-            if (route) {
-                return window.location.href = "/internal/call_email/";
-            } else {
-                return callId;
-            }
+            //if (route) {
+            //    return window.location.href = "/internal/call_email/";
+            //} else {
+            //    return callId;
+            //}
+            return callId;
         },
         setAllocatedGroupList({ commit }, data) {
             commit('updateAllocatedGroupList', data);

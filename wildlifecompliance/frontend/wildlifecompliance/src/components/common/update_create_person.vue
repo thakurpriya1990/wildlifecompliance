@@ -153,10 +153,11 @@ import Vue from 'vue';
 import $ from "jquery";
 import { api_endpoints, helpers } from '@/utils/hooks'
 import utils from '../internal/utils'
-import "bootstrap/dist/css/bootstrap.css";
+import "bootstrap/dist/css/bootstrap.css"
+//import moment from 'moment'
 
 export default {
-    name: "create-new-person",
+    name: "update-create-person",
 
     data: function(){
         let vm = this;
@@ -323,8 +324,8 @@ export default {
     },
     methods: {
         addEventListeners: function() {
-          let vm = this;
-          let el_fr_date = $(vm.$refs.dobDatePicker);
+          //let vm = this;
+          let el_fr_date = $(this.$refs.dobDatePicker);
           //let el_fr_time = $(vm.$refs.plannedForTimePicker);
 
           // "From" field
@@ -333,11 +334,11 @@ export default {
             maxDate: "now",
             showClear: true
           });
-          el_fr_date.on("dp.change", function(e) {
+          el_fr_date.on("dp.change", (e) => {
             if (el_fr_date.data("DateTimePicker").date()) {
-              vm.email_user.dob = e.date.format("DD/MM/YYYY");
+              this.email_user.dob = e.date.format("DD/MM/YYYY");
             } else if (el_fr_date.data("date") === "") {
-              vm.email_user.dob = "";
+              this.email_user.dob = "";
             }
           });
         },
@@ -440,6 +441,7 @@ export default {
                 }
 
                 savedEmailUser = await Vue.http.post(fetchUrl, payload);
+                console.log(savedEmailUser)
                 if (!savedEmailUser.body.residential_address) {
                     savedEmailUser.body.residential_address = this.getDefaultAddress()
                 }
@@ -447,10 +449,11 @@ export default {
                 if (!parent_save) {
                     await swal("Saved", "Person has been saved", "success");
                 }
-                this.$emit('person-saved', {'person': savedEmailUser.body, 'errorMessage': null});
+                //this.$emit('person-saved', {'person': savedEmailUser.body, 'errorMessage': null});
             } catch (err) {
                 if (err.bodyText) {
-                    this.$emit('person-saved', { 'person': null, 'errorMessage': err.bodyText });
+                    await swal("Error", err.bodyText, "error");
+                    //this.$emit('person-saved', { 'person': null, 'errorMessage': err.bodyText });
                 }
             }
             return savedEmailUser;
@@ -482,6 +485,22 @@ export default {
         if (this.personToUpdate) {
             this.setExistingPerson(this.personToUpdate);
         }
+        //this.email_user.dob = moment(this.email_user.dob, 'YYYY-MM-DD').format('DD/MM/YYYY');
+        //this.$nextTick(() => {
+        //  let el_fr_date = $(this.$refs.dobDatePicker);
+        //  el_fr_date.datetimepicker({
+        //    format: "DD/MM/YYYY",
+        //    maxDate: "now",
+        //    showClear: true
+        //  });
+        //  el_fr_date.on("dp.change", (e) => {
+        //    if (el_fr_date.data("DateTimePicker").date()) {
+        //        this.email_user.dob = e.date.format("DD/MM/YYYY");
+        //    } else if (el_fr_date.data("date") === "") {
+        //      this.email_user.dob = "";
+        //    }
+        //  });
+        //});
     },
 }
 </script>
