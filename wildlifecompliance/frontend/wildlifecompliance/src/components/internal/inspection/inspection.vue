@@ -45,7 +45,7 @@
                             </div>
                           </div>
                         </div>
-                        <div v-if="inspection.user_in_group">
+                        <div v-if="statusId !== 'open' && inspection.user_in_group">
                             <a @click="updateAssignedToId('current_user')" class="btn pull-right">
                                 Assign to me
                             </a>
@@ -351,22 +351,27 @@
             </div>          
           </div>
 
-        <div class="navbar navbar-fixed-bottom" style="background-color: #f5f5f5 ">
-                        <div class="navbar-inner">
-                            <div class="container">
-                                <p class="pull-right" style="margin-top:5px;">
-                                    
-                                    <input type="button" @click.prevent="saveExit" class="btn btn-primary" value="Save and Exit"/>
-                                    <input type="button" @click.prevent="save" class="btn btn-primary" value="Save and Continue"/>
-                                </p>
-                            </div>
-                        </div>
-        </div>          
+        <div v-if="inspection.can_user_action" class="navbar navbar-fixed-bottom" style="background-color: #f5f5f5 ">
+            <div class="navbar-inner">
+                <div class="container">
+                    <p class="pull-right" style="margin-top:5px;">
+                        <input type="button" @click.prevent="saveExit" class="btn btn-primary" value="Save and Exit"/>
+                        <input type="button" @click.prevent="save" class="btn btn-primary" value="Save and Continue"/>
+                    </p>
+                </div>
+            </div>
+        </div>
         <!--div v-if="workflow_type">
           <InspectionWorkflow ref="add_workflow" :workflow_type="workflow_type" v-bind:key="workflowBindId" />
         </div-->
         <div v-if="offenceInitialised">
-            <Offence ref="offence" :parent_update_function="loadInspection" :region_id="inspection.region_id" :district_id="inspection.district_id" :allocated_group_id="inspection.allocated_group_id" />
+            <Offence 
+            ref="offence" 
+            :parent_update_function="loadInspection" 
+            :region_id="inspection.region_id" 
+            :district_id="inspection.district_id" 
+            :allocated_group_id="inspection.allocated_group_id" 
+            v-bind:key="offenceBindId" />
         </div>
         <div v-if="sanctionOutcomeInitialised">
             <SanctionOutcome ref="sanction_outcome" :parent_update_function="loadInspection"/>
@@ -403,6 +408,7 @@ export default {
   name: "ViewInspection",
   data: function() {
     return {
+      uuid: 0,
       object_hash: null,
       iTab: 'iTab'+this._uid,
       rTab: 'rTab'+this._uid,
@@ -412,6 +418,7 @@ export default {
       current_schema: [],
       //createInspectionBindId: '',
       workflowBindId: '',
+      //offenceBindId: '',
       inspectionTeam: null,
             idLocationFieldsAddress: this.guid + "LocationFieldsAddress",
             idLocationFieldsDetails: this.guid + "LocationFieldsDetails",
@@ -607,6 +614,13 @@ export default {
             changed = true;
         }
         return changed;
+    },
+    offenceBindId: function() {
+        let offence_bind_id = ''
+        //let timeNow = Date.now()
+        //this.uuid += 1
+        offence_bind_id = 'offence' + parseInt(this.uuid);
+        return offence_bind_id;
     },
   },
   filters: {
@@ -834,6 +848,7 @@ export default {
       });
     },
     open_offence(){
+      this.uuid += 1;
       this.offenceInitialised = true;
       this.$nextTick(() => {
           this.$refs.offence.isModalOpen = true;
@@ -868,6 +883,7 @@ export default {
         this.setPartyInspected(para);
     },
     updateWorkflowBindId: function() {
+        //let workflowBindId = ''
         let timeNow = Date.now()
         if (this.workflow_type) {
             this.workflowBindId = this.workflow_type + '_' + timeNow.toString();
@@ -875,6 +891,15 @@ export default {
             this.workflowBindId = timeNow.toString();
         }
     },
+    //updateOffenceBindId: function() {
+    //    //let offenceBindId = ''
+    //    let timeNow = Date.now()
+    //    if (this.$refs.offence && this.$refs.offence.id) {
+    //        this.offenceBindId = this.$refs.offence.id + '_' + timeNow.toString();
+    //    } else {
+    //        this.offenceBindId = timeNow.toString();
+    //    }
+    //},
     addWorkflow(workflow_type) {
       this.workflow_type = workflow_type;
       this.updateWorkflowBindId();

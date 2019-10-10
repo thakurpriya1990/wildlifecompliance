@@ -10,7 +10,6 @@
       </div>
           <div class="col-md-3">
             <CommsLogs :comms_url="comms_url" :logs_url="logs_url" :comms_add_url="comms_add_url" :disable_add_entry="false"/>
-            
             <div class="row">
                 <div class="panel panel-default">
                     <div class="panel-heading">
@@ -32,7 +31,6 @@
                           </div>
                           <div class="row">
                             <div class="col-sm-12">
-                              
                               <select :disabled="!call_email.user_in_group" class="form-control" v-model="call_email.assigned_to_id" @change="updateAssignedToId()">
                                 <option  v-for="option in call_email.allocated_group" :value="option.id" v-bind:key="option.id">
                                   {{ option.full_name }} 
@@ -74,13 +72,13 @@
                           </div>
                         </div>
 
-                        <div v-if="statusId ==='open' && canUserAction" class="row action-button">
+                        <!--div v-if="statusId ==='open' && canUserAction" class="row action-button">
                           <div class="col-sm-12">
                                 <a ref="save" @click="save()" class="btn btn-primary btn-block">
                                   Save
                                 </a>
                           </div>
-                        </div>
+                        </div-->
 
                         <!-- <div class="row">
                           <div class="col-sm-12"/>
@@ -367,7 +365,7 @@
             </div>          
           </div>
 
-        <div v-if="statusId ==='draft'" class="navbar navbar-fixed-bottom" style="background-color: #f5f5f5 ">
+        <div v-if="call_email.can_user_action" class="navbar navbar-fixed-bottom" style="background-color: #f5f5f5 ">
                         <div class="navbar-inner">
                             <div class="container">
                                 <p class="pull-right" style="margin-top:5px;">
