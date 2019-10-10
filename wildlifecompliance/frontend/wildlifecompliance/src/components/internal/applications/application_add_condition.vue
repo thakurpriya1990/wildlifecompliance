@@ -335,19 +335,6 @@ export default {
        },
        eventListeners:function () {
             let vm = this;
-            // Initialise Date Picker
-            //$(vm.$refs.due_date).datetimepicker(vm.datepickerOptions);
-            //console.log('eventListener')
-            //$(vm.$refs.due_date).on('dp.change', function(e){
-            //    console.log('changeDate')
-            //    if ($(vm.$refs.due_date).data('DateTimePicker').date()) {
-            //        vm.condition.due_date =  e.date.format('DD/MM/YYYY');
-            //    }
-            //    else if ($(vm.$refs.due_date).data('date') === "") {
-            //        vm.condition.due_date = "";
-            //    }
-            /// });
-
             // Intialise select2
             $(vm.$refs.standard_req).select2({
                 "theme": "bootstrap",
@@ -366,20 +353,18 @@ export default {
        }
    },
    updated:function () {
-
        let vm = this;
+       // Initialise Date Picker
        if (!vm.condition.standard || vm.showDueDate) {
             $(vm.$refs.due_date).datetimepicker(vm.datepickerOptions);
-            console.log('updated func')
             $(vm.$refs.due_date).on('dp.change', function(e){
-                console.log('changeDate')
                 if ($(vm.$refs.due_date).data('DateTimePicker').date()) {
                     vm.condition.due_date =  e.date.format('DD/MM/YYYY');
                 }
                 else if ($(vm.$refs.due_date).data('date') === "") {
                     vm.condition.due_date = "";
                 }
-             });       
+            });       
        }
    },
    mounted:function () {
