@@ -135,7 +135,7 @@ export const inspectionStore = {
 
                 /* Set Inspection object */
                 //await dispatch("setInspection", returnedInspection.body);
-                commit("updateInspection", returnedInspection.body);
+                await dispatch("setInspection", returnedInspection.body);
 
                 for (let form_data_record of returnedInspection.body.data) {
                     await dispatch("setFormValue", {

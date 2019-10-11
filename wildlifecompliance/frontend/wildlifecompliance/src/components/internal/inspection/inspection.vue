@@ -31,7 +31,7 @@
                           <div class="row">
                             <div v-if="statusId === 'open'" class="col-sm-12">
                               <select :disabled="!inspection.user_in_group" class="form-control" v-model="inspection.assigned_to_id" @change="updateAssignedToId()">
-                                <option  v-for="option in inspectionTeam" :value="option.id" v-bind:key="option.id">
+                                <option  v-for="option in inspection.inspection_team" :value="option.id" v-bind:key="option.id">
                                   {{ option.full_name }} 
                                 </option>
                               </select>
@@ -45,7 +45,7 @@
                             </div>
                           </div>
                         </div>
-                        <div v-if="statusId !== 'open' && inspection.user_in_group">
+                        <div v-if="inspection.user_in_group">
                             <a @click="updateAssignedToId('current_user')" class="btn pull-right">
                                 Assign to me
                             </a>
@@ -419,9 +419,9 @@ export default {
       //createInspectionBindId: '',
       workflowBindId: '',
       //offenceBindId: '',
-      inspectionTeam: null,
-            idLocationFieldsAddress: this.guid + "LocationFieldsAddress",
-            idLocationFieldsDetails: this.guid + "LocationFieldsDetails",
+      //inspectionTeam: null,
+      idLocationFieldsAddress: this.guid + "LocationFieldsAddress",
+      idLocationFieldsDetails: this.guid + "LocationFieldsDetails",
       dtHeadersInspectionTeam: [
           'Name',
           'Role',
@@ -439,7 +439,8 @@ export default {
                   data: 'Action',
                   mRender: function(data, type, row) {
                       let links = '';
-                      //console.log(row.Action)
+                      console.log("row.Action")
+                      console.log(row.Action)
                       if (!row.Action.readonlyForm) {
                           if (row.Action.action === 'Member') {
                               links = '<a href="#" class="make_team_lead" data-member-id="' + row.Action.id + '">Make Team Lead</a><br>'
@@ -624,6 +625,9 @@ export default {
         offence_bind_id = 'offence' + parseInt(this.uuid);
         return offence_bind_id;
     },
+    inspectionTeam: function() {
+        return this.inspection.inspection_team;
+    },
   },
   filters: {
     formatDate: function(data) {
@@ -758,29 +762,30 @@ export default {
             }
         },
     constructInspectionTeamTable: function() {
-        console.log('constructInspectionTeamTable');
+        //console.log('constructInspectionTeamTable');
+        //console.log(this.inspection.inspection_team);
         this.$refs.inspection_team_table.vmDataTable.clear().draw();
 
-        if(this.inspectionTeam){
-          for(let i = 0; i< this.inspectionTeam.length; i++){
+        if(this.inspection.inspection_team){
+          for(let i = 0; i< this.inspection.inspection_team.length; i++){
             //let already_exists = this.$refs.related_items_table.vmDataTable.columns(0).data()[0].includes(this.displayedEntity.related_items[i].id);
 
             let actionColumn = new Object();
-            Object.assign(actionColumn, this.inspectionTeam[i]);
+            Object.assign(actionColumn, this.inspection.inspection_team[i]);
             //actionColumn.can_user_action = this.inspection.can_user_action;
             actionColumn.readonlyForm = this.readonlyForm;
             // Prevent removal of last team member (plus blank entry)
-            if (this.inspectionTeam.length > 2) {
+            if (this.inspection.inspection_team.length > 2) {
                 actionColumn.can_remove = true;
             }
 
             //if (!already_exists) {
-            if (this.inspectionTeam[i].id) {
+            if (this.inspection.inspection_team[i].id) {
             this.$refs.inspection_team_table.vmDataTable.row.add(
                 {
                     // 'id': this.inspectionTeam[i].id,
-                    'full_name': this.inspectionTeam[i].full_name,
-                    'member_role': this.inspectionTeam[i].member_role,
+                    'full_name': this.inspection.inspection_team[i].full_name,
+                    'member_role': this.inspection.inspection_team[i].member_role,
                     'Action': actionColumn,
                 }
             ).draw();
@@ -799,19 +804,23 @@ export default {
         }
 
         let inspectionTeamResponse = await Vue.http.post(inspectionTeamUrl, payload);
-        this.inspectionTeam = inspectionTeamResponse.body;
-        this.inspectionTeam.splice(0, 0,
-          {
-            action: "",
-            member_role: "",
-            full_name: "",
-            id: null,
-          });
+        await this.setInspection(inspectionTeamResponse.body);
+        //this.inspectionTeam = inspectionTeamResponse.body;
+        //this.inspectionTeam.splice(0, 0,
+        //  {
+        //    action: "",
+        //    member_role: "",
+        //    full_name: "",
+        //    id: null,
+        //  });
+        this.$nextTick(() => {
+            this.constructInspectionTeamTable()
+        });
     },
-    newPersonCreated: function(obj) {
+    newPersonCreated: async function(obj) {
         console.log(obj);
         if(obj.person){
-            this.setPartyInspected({data_type: 'individual', id: obj.person.id});
+            await this.setPartyInspected({data_type: 'individual', id: obj.person.id});
 
         // Set fullname and DOB into the input box
         let full_name = [obj.person.first_name, obj.person.last_name].filter(Boolean).join(" ");
@@ -1030,7 +1039,9 @@ export default {
             payload
         );
         await this.setInspection(res.body); 
-        this.constructInspectionTeamTable()
+        this.$nextTick(() => {
+            this.constructInspectionTeamTable();
+        });
     },
   },
   created: async function() {
@@ -1058,7 +1069,7 @@ export default {
           }
       });
       // calling modifyInspectionTeam with null parameters returns the current list
-      this.modifyInspectionTeam({user_id: null, action: null});
+      //this.modifyInspectionTeam({user_id: null, action: null});
       // create object hash
       this.object_hash = hash(this.inspection);
   },
