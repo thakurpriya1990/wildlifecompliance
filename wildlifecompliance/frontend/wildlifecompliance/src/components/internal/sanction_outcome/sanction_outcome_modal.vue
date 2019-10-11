@@ -514,9 +514,7 @@ export default {
 
                 if(response.ok){
                     if (this.$parent.offence) {
-                        await this.parent_update_function({
-                          offence_id: this.$parent.offence.id,
-                        });
+                        await this.parent_update_function();
                     }
                 }
 

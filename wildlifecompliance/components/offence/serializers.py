@@ -230,11 +230,11 @@ class OffenceSerializer(serializers.ModelSerializer):
                 Q(alleged_offence=alleged_offence)
             ).count()
 
-            # number_linked_to_sanction_outcomes_active
-            ret_obj['number_linked_sanction_outcomes_active'] = AllegedCommittedOffence.objects_active.filter(
-                Q(alleged_offence=alleged_offence) &
-                Q(sanction_outcome__in=SanctionOutcome.objects_active.all())
-            ).count()
+            # number_linked_to_sanction_outcomes which includes alleged offence and its status is other than draft
+            ret_obj['number_linked_sanction_outcomes_active'] = AllegedCommittedOffence.objects.filter(
+                Q(included=True) &
+                Q(alleged_offence=alleged_offence)
+            ).exclude(Q(sanction_outcome__status=SanctionOutcome.STATUS_DRAFT)).count()
 
             ret_list.append(ret_obj)
         return ret_list
@@ -297,6 +297,29 @@ class OffenceSerializer(serializers.ModelSerializer):
 
     def get_related_items(self, obj):
         return get_related_items(obj)
+
+
+class UpdateAllegedCommittedOffenceSerializer(serializers.ModelSerializer):
+
+    class Meta:
+        model = AllegedCommittedOffence
+        fields = (
+            'included',
+        )
+
+    def validate(self, data):
+        field_errors = {}
+        non_field_errors = []
+
+        if self.instance.included and self.instance.sanction_outcome.status != SanctionOutcome.STATUS_DRAFT and not data['included']:
+            non_field_errors.append('Alleged offence cannot be removed if it is included in the sanction outcome with the status other than draft')
+
+        if field_errors:
+            raise serializers.ValidationError(field_errors)
+        if non_field_errors:
+            raise serializers.ValidationError(non_field_errors)
+
+        return data
 
 
 class UpdateAllegedOffenceAttributeSerializer(serializers.ModelSerializer):

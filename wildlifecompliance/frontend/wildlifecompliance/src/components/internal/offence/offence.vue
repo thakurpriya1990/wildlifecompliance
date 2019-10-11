@@ -280,7 +280,7 @@
         </div>
 
         <div v-if="sanctionOutcomeInitialised">
-            <SanctionOutcome ref="sanction_outcome" :parent_update_function="loadOffenceVuex" />
+            <SanctionOutcome ref="sanction_outcome" :parent_update_function="constructOffenceDedicatedPage" />
         </div>
     </div>
 </template>
@@ -632,6 +632,12 @@ export default {
             setCanUserAction: 'setCanUserAction',
             setRelatedItems: 'setRelatedItems',
         }),
+        constructOffenceDedicatedPage: async function(){
+            await this.loadOffenceVuex({offence_id: this.$route.params.offence_id});
+            this.constructAllegedOffencesTable();
+            this.constructOffendersTable();
+            this.object_hash = hash(this.offence);
+        },
         formChanged: function(){
             if(this.object_hash != hash(this.offence)){
                 return true;
@@ -1318,10 +1324,11 @@ export default {
     },
     created: async function() {
         if (this.$route.params.offence_id) {
-            await this.loadOffenceVuex({offence_id: this.$route.params.offence_id});
-            this.constructAllegedOffencesTable();
-            this.constructOffendersTable();
-            this.object_hash = hash(this.offence);
+            await this.constructOffenceDedicatedPage();
+          //  await this.loadOffenceVuex({offence_id: this.$route.params.offence_id});
+          //  this.constructAllegedOffencesTable();
+          //  this.constructOffendersTable();
+          //  this.object_hash = hash(this.offence);
         }
         this.$nextTick(function() {
             this.initAwesompleteAllegedOffence();

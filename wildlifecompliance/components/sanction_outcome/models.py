@@ -297,20 +297,22 @@ class SanctionOutcome(models.Model):
         ordering = ['-id']
 
 
-class AllegedCommittedOffenceActiveManager(models.Manager):
-    def get_query_set(self):
-        return super(AllegedCommittedOffenceActiveManager, self).get_query_set().exclude(Q(removed=True))
+# class AllegedCommittedOffenceActiveManager(models.Manager):
+#     def get_query_set(self):
+#         return super(AllegedCommittedOffenceActiveManager, self).get_query_set().exclude(Q(removed=True))
 
 
 class AllegedCommittedOffence(RevisionedMixin):
     alleged_offence = models.ForeignKey(AllegedOffence, null=False,)
     sanction_outcome = models.ForeignKey(SanctionOutcome, null=False,)
     included = models.BooleanField(default=True)  # True means sanction_outcome is included in the sanction_outcome
+
+    # TODO: following three fields are not used probably
     reason_for_removal = models.TextField(blank=True)
     removed = models.BooleanField(default=False)  # Never make this field False once becomes True. Rather you have to create another record making this field False.
     removed_by = models.ForeignKey(EmailUser, null=True, related_name='alleged_committed_offence_removed_by')
-    objects = models.Manager()
-    objects_active = AllegedCommittedOffenceActiveManager()
+    # objects = models.Manager()
+    # objects_active = AllegedCommittedOffenceActiveManager()
 
     class Meta:
         app_label = 'wildlifecompliance'
