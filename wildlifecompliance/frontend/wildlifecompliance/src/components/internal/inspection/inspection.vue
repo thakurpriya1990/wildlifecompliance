@@ -805,14 +805,6 @@ export default {
 
         let inspectionTeamResponse = await Vue.http.post(inspectionTeamUrl, payload);
         await this.setInspection(inspectionTeamResponse.body);
-        //this.inspectionTeam = inspectionTeamResponse.body;
-        //this.inspectionTeam.splice(0, 0,
-        //  {
-        //    action: "",
-        //    member_role: "",
-        //    full_name: "",
-        //    id: null,
-        //  });
         this.$nextTick(() => {
             this.constructInspectionTeamTable()
         });
@@ -906,15 +898,6 @@ export default {
             this.workflowBindId = timeNow.toString();
         }
     },
-    //updateOffenceBindId: function() {
-    //    //let offenceBindId = ''
-    //    let timeNow = Date.now()
-    //    if (this.$refs.offence && this.$refs.offence.id) {
-    //        this.offenceBindId = this.$refs.offence.id + '_' + timeNow.toString();
-    //    } else {
-    //        this.offenceBindId = timeNow.toString();
-    //    }
-    //},
     addWorkflow(workflow_type) {
       this.workflow_type = workflow_type;
       this.updateWorkflowBindId();
@@ -923,28 +906,6 @@ export default {
       });
       // this.$refs.add_workflow.isModalOpen = true;
     },
-    //save: async function () {
-    //    let savedInspection = null;
-    //    let savedPerson = null;
-    //    if (this.inspection.id) {
-    //        if (this.$refs.search_person_organisation) {
-    //            savedPerson = await this.$refs.search_person_organisation.parentSave();
-    //        }
-    //        await this.saveInspection({ create: false, internal: false });
-    //        // recalc hash after save
-    //        this.object_hash = hash(this.inspection);
-    //    } else {
-    //        await this.saveInspection({ create: true, internal: false });
-    //        // recalc hash after save
-    //        this.object_hash = hash(this.inspection);
-    //        this.$nextTick(function () {
-    //            this.$router.push(
-    //              { name: 'view-inspection', 
-    //                params: { id: this.inspection.id }
-    //              });
-    //        });
-    //    }
-    //},
     save: async function(returnToDash) {
       console.log(returnToDash)
       let savedInspection = null;

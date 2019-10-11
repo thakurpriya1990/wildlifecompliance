@@ -488,22 +488,6 @@ export default {
         if (this.personToUpdate) {
             this.setExistingPerson(this.personToUpdate);
         }
-        //this.email_user.dob = moment(this.email_user.dob, 'YYYY-MM-DD').format('DD/MM/YYYY');
-        //this.$nextTick(() => {
-        //  let el_fr_date = $(this.$refs.dobDatePicker);
-        //  el_fr_date.datetimepicker({
-        //    format: "DD/MM/YYYY",
-        //    maxDate: "now",
-        //    showClear: true
-        //  });
-        //  el_fr_date.on("dp.change", (e) => {
-        //    if (el_fr_date.data("DateTimePicker").date()) {
-        //        this.email_user.dob = e.date.format("DD/MM/YYYY");
-        //    } else if (el_fr_date.data("date") === "") {
-        //      this.email_user.dob = "";
-        //    }
-        //  });
-        //});
     },
 }
 </script>

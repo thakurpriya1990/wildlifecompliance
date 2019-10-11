@@ -709,32 +709,6 @@ export default {
             this.$router.push({ name: 'internal-call-email-dash' });
         }
     },
-    //saveExit: async function() {
-    //  console.log("saveexit")
-    //  let savedPerson = null;
-    //  let savedCallEmail = null;
-    //  if (this.call_email.id) {
-    //    if (this.$refs.search_person_organisation) {
-    //        savedPerson = await this.$refs.search_person_organisation.parentSave()
-    //        console.log(savedPerson)
-    //    }
-    //    if (savedPerson && savedPerson.ok) {
-    //        // remove redundant eventListeners
-    //        window.removeEventListener('beforeunload', this.leaving);
-    //        window.removeEventListener('onblur', this.leaving);
-    //        savedCallEmail = await this.saveCallEmail({ route: true, crud: 'save' });
-    //    }
-    //  } else {
-    //    // remove redundant eventListeners
-    //    window.removeEventListener('beforeunload', this.leaving);
-    //    window.removeEventListener('onblur', this.leaving);
-    //    savedCallEmail = await this.saveCallEmail({ route: true, crud: 'create'});
-    //  }
-    //  console.log(savedCallEmail);
-    //  if (savedCallEmail && savedCallEmail.ok) {
-    //    this.$router.push({name: 'internal-call-email-dash'});
-    //  }
-    //},
     duplicate: async function() {
       await this.saveCallEmail({ route: false, crud: 'duplicate'});
     },

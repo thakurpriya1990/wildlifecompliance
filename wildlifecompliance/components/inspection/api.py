@@ -357,8 +357,6 @@ class InspectionViewSet(viewsets.ModelViewSet):
     @detail_route(methods=['POST', ])
     @renderer_classes((JSONRenderer,))
     def modify_inspection_team(self, request, instance=None, workflow=False, user_id=None, *args, **kwargs):
-        print("modify insp")
-        print(request.data)
         try:
             with transaction.atomic():
                 if not instance:
@@ -413,12 +411,6 @@ class InspectionViewSet(viewsets.ModelViewSet):
                     if workflow:
                         return instance
                     else:
-                        #serializer = EmailUserSerializer(
-                        #    instance.inspection_team.all(),
-                        #    context={
-                        #        'inspection_team_lead_id': instance.inspection_team_lead_id
-                        #    },
-                        #    many=True)
                         serializer = InspectionSerializer(instance, context={'request': request})
                         return Response(
                             serializer.data,
@@ -426,12 +418,6 @@ class InspectionViewSet(viewsets.ModelViewSet):
                         )
                 # List view - no modification
                 else:
-                    #serializer = EmailUserSerializer(
-                    #    instance.inspection_team.all(),
-                    #    context={
-                    #        'inspection_team_lead_id': instance.inspection_team_lead_id
-                    #    },
-                    #    many=True)
                     serializer = InspectionSerializer(instance, context={'request': request})
                     return Response(
                         serializer.data,
