@@ -191,13 +191,13 @@ class SanctionOutcomeSerializer(serializers.ModelSerializer):
         ao_ids_already_included = AllegedCommittedOffence.objects.filter(sanction_outcome=so_obj).values_list('alleged_offence__id', flat=True)
 
         # Check if there is newly aded alleged offence to be added to this sanction outcome
-        if so_obj.status != 'draft':
+        if so_obj.status == SanctionOutcome.STATUS_DRAFT:
             # Only when sanction outcome is in draft status, newly added alleged offence should be added
             # Query newly added alleged offence which is not included yet
             # However whenever new alleged offence is added to the offence, it should be added to the sanction outcomes under the offence at the moment.
             qs_allegedOffences = AllegedOffence.objects.filter(Q(offence=so_obj.offence) & Q(removed=False)).exclude(Q(id__in=ao_ids_already_included))
             for ao in qs_allegedOffences:
-                aco = AllegedCommittedOffence.objects.create(alleged_offence=ao, sanction_outcome=so_obj)
+                aco = AllegedCommittedOffence.objects.create(included=False, alleged_offence=ao, sanction_outcome=so_obj)
 
         qs_allegedCommittedOffences = AllegedCommittedOffence.objects.filter(sanction_outcome=so_obj)
         return [AllegedCommittedOffenceSerializer(item, context={'request': self.context.get('request', {})}).data for item in qs_allegedCommittedOffences]
