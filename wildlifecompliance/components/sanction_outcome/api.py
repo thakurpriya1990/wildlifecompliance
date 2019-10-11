@@ -321,9 +321,8 @@ class SanctionOutcomeViewSet(viewsets.ModelViewSet):
                 # Add number of files attached to the instance
                 # By the filefield component in the front end, files should be already uploaded as attachment of this instance
                 num_of_documents = instance.documents.all().count()
-                request_data['num_of_documents_attached'] = num_of_documents  # Pass number of files attached for validation
 
-                serializer = SaveSanctionOutcomeSerializer(instance, data=request_data, partial=True)
+                serializer = SaveSanctionOutcomeSerializer(instance, data=request_data, partial=True, context={'num_of_documents_attached': num_of_documents})
                 serializer.is_valid(raise_exception=True)
                 instance = serializer.save()
 
@@ -332,36 +331,48 @@ class SanctionOutcomeViewSet(viewsets.ModelViewSet):
                 # Once removed=True, never set removed=False
                 for existing_aco in AllegedCommittedOffence.objects.filter(sanction_outcome=instance):
                     for new_aco in request_data.get('alleged_committed_offences', {}):
-                        if existing_aco.id == new_aco.get('id'):
+                        if existing_aco.id == new_aco.get('id') and existing_aco.included != new_aco.get('included'):
+                            serializer = AllegedCommittedOffenceSerializer(existing_aco, data={'included': new_aco.get('included')}, partial=True)
+                            serializer.is_valid(raise_exception=True)
+                            serializer.save()
+                            if existing_aco.included:
+                                instance.log_user_action(SanctionOutcomeUserAction.ACTION_RESTORE_ALLEGED_COMMITTED_OFFENCE.format(existing_aco.alleged_offence), request)
+                            else:
+                                instance.log_user_action(SanctionOutcomeUserAction.ACTION_REMOVE_ALLEGED_COMMITTED_OFFENCE.format(existing_aco.alleged_offence), request)
+
+                # for existing_aco in AllegedCommittedOffence.objects.filter(sanction_outcome=instance):
+                #     for new_aco in request_data.get('alleged_committed_offences', {}):
+                #         if existing_aco.id == new_aco.get('id'):
+
                             # existing alleged committed offence (existing_aco) is being modified
                             # to the new alleged committed offence (new_aco)
-                            if existing_aco.included:
-                                if not existing_aco.removed and new_aco.get('removed'):
-                                    # when existing alleged committed offence is going to be removed
-                                    serializer = AllegedCommittedOffenceSerializer(existing_aco, data={'removed': True, 'removed_by_id': request.user.id})
-                                    serializer.is_valid(raise_exception=True)
-                                    serializer.save()
-                                    instance.log_user_action(SanctionOutcomeUserAction.ACTION_REMOVE_ALLEGED_COMMITTED_OFFENCE.format(existing_aco.alleged_offence), request)
-
-                                elif existing_aco.removed and not new_aco.get('removed'):
-                                    # When restore removed alleged committed offence again
-                                    existing = AllegedCommittedOffence.objects.filter(sanction_outcome=instance,
-                                                                                      alleged_offence=existing_aco.alleged_offence,
-                                                                                      included=True,
-                                                                                      removed=False)
-                                    if not existing:
-                                        # There are no active same alleged offences
-                                        serializer = AllegedCommittedOffenceCreateSerializer(data={'sanction_outcome_id': instance.id, 'alleged_offence_id': existing_aco.alleged_offence.id,})
-                                        serializer.is_valid(raise_exception=True)
-                                        serializer.save()
-                                        instance.log_user_action(SanctionOutcomeUserAction.ACTION_RESTORE_ALLEGED_COMMITTED_OFFENCE.format(existing_aco.alleged_offence), request)
-
-                            elif not existing_aco.included and new_aco.get('included'):
-                                # when new alleged committed offence is going to be included
-                                serializer = AllegedCommittedOffenceSerializer(existing_aco, data={'included': True})
-                                serializer.is_valid(raise_exception=True)
-                                serializer.save()
-                                instance.log_user_action(SanctionOutcomeUserAction.ACTION_INCLUDE_ALLEGED_COMMITTED_OFFENCE.format(existing_aco.alleged_offence), request)
+                            # if existing_aco.included:
+                            #     if not existing_aco.removed and new_aco.get('removed'):
+                            #         # when existing alleged committed offence is going to be removed
+                            #         serializer = AllegedCommittedOffenceSerializer(existing_aco, data={'removed': True, 'removed_by_id': request.user.id})
+                            #         serializer.is_valid(raise_exception=True)
+                            #         serializer.save()
+                            #         instance.log_user_action(SanctionOutcomeUserAction.ACTION_REMOVE_ALLEGED_COMMITTED_OFFENCE.format(existing_aco.alleged_offence), request)
+                            #
+                            #     elif existing_aco.removed and not new_aco.get('removed'):
+                            #         # When restore removed alleged committed offence again
+                            #         existing = AllegedCommittedOffence.objects.filter(sanction_outcome=instance,
+                            #                                                           alleged_offence=existing_aco.alleged_offence,
+                            #                                                           included=True,
+                            #                                                           removed=False)
+                            #         if not existing:
+                            #             # There are no active same alleged offences
+                            #             serializer = AllegedCommittedOffenceCreateSerializer(data={'sanction_outcome_id': instance.id, 'alleged_offence_id': existing_aco.alleged_offence.id,})
+                            #             serializer.is_valid(raise_exception=True)
+                            #             serializer.save()
+                            #             instance.log_user_action(SanctionOutcomeUserAction.ACTION_RESTORE_ALLEGED_COMMITTED_OFFENCE.format(existing_aco.alleged_offence), request)
+                            #
+                            # elif not existing_aco.included and new_aco.get('included'):
+                            #     # when new alleged committed offence is going to be included
+                            #     serializer = AllegedCommittedOffenceSerializer(existing_aco, data={'included': True})
+                            #     serializer.is_valid(raise_exception=True)
+                            #     serializer.save()
+                            #     instance.log_user_action(SanctionOutcomeUserAction.ACTION_INCLUDE_ALLEGED_COMMITTED_OFFENCE.format(existing_aco.alleged_offence), request)
 
                 instance.log_user_action(SanctionOutcomeUserAction.ACTION_SAVE.format(instance), request)
 
@@ -369,6 +380,13 @@ class SanctionOutcomeViewSet(viewsets.ModelViewSet):
 
                 # Return
                 return self.retrieve(request)
+                # headers = self.get_success_headers(serializer.data)
+                # return_serializer = SanctionOutcomeSerializer(instance, context={'request': request})
+                # return Response(
+                #     return_serializer.data,
+                #     status=status.HTTP_200_OK,
+                #     headers=headers
+                # )
 
         except serializers.ValidationError:
             print(traceback.print_exc())
@@ -417,15 +435,15 @@ class SanctionOutcomeViewSet(viewsets.ModelViewSet):
                         id=temporary_document_collection_id)
                     if temp_doc_collection:
                         num_of_documents = temp_doc_collection.documents.count()
-                request_data['num_of_documents_attached'] = num_of_documents  # Pass number of files attached for validation
+                # request_data['num_of_documents_attached'] = num_of_documents  # Pass number of files attached for validation
                                                                               # You can access this data by self.initial_data['num_of_documents_attached'] in validate(self, data) method
 
                 # Save sanction outcome (offence, offender, alleged_offences)
                 if hasattr(request_data, 'id') and request_data['id']:
                     instance = SanctionOutcome.objects.get(id=request_data['id'])
-                    serializer = SaveSanctionOutcomeSerializer(instance, data=request_data, partial=True)
+                    serializer = SaveSanctionOutcomeSerializer(instance, data=request_data, partial=True, context={'num_of_documents_attached': num_of_documents})
                 else:
-                    serializer = SaveSanctionOutcomeSerializer(data=request_data, partial=True)
+                    serializer = SaveSanctionOutcomeSerializer(data=request_data, partial=True, context={'num_of_documents_attached': num_of_documents})
                 serializer.is_valid(raise_exception=True)
                 instance = serializer.save()
 
