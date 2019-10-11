@@ -163,7 +163,7 @@ export const offenceStore = {
             }
         },
         async saveOffence({dispatch, state, commit}) {
-            try{
+            //try{
                 console.log('try in offence.js');
                 // Construct url endpoint
                 let fetchUrl = helpers.add_endpoint_join(api_endpoints.offence, state.offence.id + '/');
@@ -192,19 +192,19 @@ export const offenceStore = {
                 commit("updateOffence", savedOffence.body);
 
                 // Display message
-                await swal("Saved", "The record has been saved", "success");
+           //     await swal("Saved", "The record has been saved", "success");
 
                 // Return the saved data just in case needed
                 return savedOffence;
-            } catch (err) {
-                console.log('catch(err) in offence.js');
+          //  } catch (err) {
+          //      console.log('catch(err) in offence.js');
 
-                if (err.body.non_field_errors){
-                    await swal("Error", err.body.non_field_errors[0], "error");
-                } else {
-                    await swal("Error", "There was an error saving the record", "error");
-                }
-            }
+          //      if (err.body.non_field_errors){
+          //          await swal("Error", err.body.non_field_errors[0], "error");
+          //      } else {
+          //          await swal("Error", "There was an error saving the record", "error");
+          //      }
+          //  }
         },
         async createOffence({dispatch, state}){
             let fetchUrl = '/api/offence/';

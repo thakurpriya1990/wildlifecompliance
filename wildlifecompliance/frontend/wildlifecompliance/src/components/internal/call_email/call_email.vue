@@ -10,7 +10,6 @@
       </div>
           <div class="col-md-3">
             <CommsLogs :comms_url="comms_url" :logs_url="logs_url" :comms_add_url="comms_add_url" :disable_add_entry="false"/>
-            
             <div class="row">
                 <div class="panel panel-default">
                     <div class="panel-heading">
@@ -32,7 +31,6 @@
                           </div>
                           <div class="row">
                             <div class="col-sm-12">
-                              
                               <select :disabled="!call_email.user_in_group" class="form-control" v-model="call_email.assigned_to_id" @change="updateAssignedToId()">
                                 <option  v-for="option in call_email.allocated_group" :value="option.id" v-bind:key="option.id">
                                   {{ option.full_name }} 
@@ -74,13 +72,13 @@
                           </div>
                         </div>
 
-                        <div v-if="statusId ==='open' && canUserAction" class="row action-button">
+                        <!--div v-if="statusId ==='open' && canUserAction" class="row action-button">
                           <div class="col-sm-12">
                                 <a ref="save" @click="save()" class="btn btn-primary btn-block">
                                   Save
                                 </a>
                           </div>
-                        </div>
+                        </div-->
 
                         <!-- <div class="row">
                           <div class="col-sm-12"/>
@@ -198,7 +196,6 @@
                                 classNames="form-control" 
                                 initialSearchType="individual" 
                                 @entity-selected="entitySelected" 
-                                @save-individual="saveIndividual" 
                                 showCreateUpdate
                                 personOnly
                                 ref="search_person_organisation"
@@ -367,13 +364,13 @@
             </div>          
           </div>
 
-        <div v-if="statusId ==='draft'" class="navbar navbar-fixed-bottom" style="background-color: #f5f5f5 ">
+        <div v-if="call_email.can_user_action" class="navbar navbar-fixed-bottom" style="background-color: #f5f5f5 ">
                         <div class="navbar-inner">
                             <div class="container">
                                 <p class="pull-right" style="margin-top:5px;">
                                     
-                                    <input type="button" @click.prevent="saveExit" class="btn btn-primary" value="Save and Exit"/>
-                                    <input type="button" @click.prevent="save" class="btn btn-primary" value="Save and Continue"/>
+                                    <input type="button" @click.prevent="save('exit')" class="btn btn-primary" value="Save and Exit"w/>
+                                    <input type="button" @click.prevent="save('noexit')" class="btn btn-primary" value="Save and Continue" />
                                 </p>
                             </div>
                         </div>
@@ -678,42 +675,39 @@ export default {
           this.$refs.inspection.isModalOpen = true
       });
     },
-    saveIndividual: function() {
-      let noPersonSave = true;
-      this.save(noPersonSave)
-    },
-    save: async function (noPersonSave) {
+    //saveIndividual: function() {
+    //  let noPersonSave = true;
+    //  this.save(noPersonSave)
+    //},
+    save: async function (returnToDash) {
+        console.log(returnToDash)
+        let savedCallEmail = null;
+        let savedPerson = null;
         if (this.call_email.id) {
-            if (this.$refs.search_person_organisation.formChanged && !noPersonSave) {
-                await this.$refs.search_person_organisation.parentSave()
+            if (this.$refs.search_person_organisation && this.$refs.search_person_organisation.entity.id) {
+                savedPerson = await this.$refs.search_person_organisation.parentSave()
+                // if person save ok, continue with Inspection save
+                if (savedPerson && savedPerson.ok) {
+                    savedCallEmail = await this.saveCallEmail({ crud: 'save' });
+                }
+            // no search_person_org
+            } else {
+                savedCallEmail = await this.saveCallEmail({ crud: 'save' });
             }
-            await this.saveCallEmail({ route: false, crud: 'save' });
-            // recalc hash after save
-            this.object_hash = hash(this.call_email);
         } else {
-            await this.saveCallEmail({ route: false, crud: 'create'});
-            // recalc hash after save
-            this.object_hash = hash(this.call_email);
-            this.$nextTick(function () {
-                this.$router.push({name: 'view-call-email', params: {call_email_id: this.call_email.id}});
-            });
+            // new CallEmail
+            savedCallEmail = await this.saveCallEmail({ crud: 'create'});
         }
-    },
-    saveExit: async function(noPersonSave) {
-      if (this.call_email.id) {
-        if (this.$refs.search_person_organisation.formChanged && !noPersonSave) {
-            await this.$refs.search_person_organisation.parentSave()
+        console.log(savedCallEmail)
+        // recalc hash after save
+        this.object_hash = hash(this.call_email);
+        if (savedCallEmail && savedCallEmail.ok && returnToDash === 'exit') {
+            // remove redundant eventListeners
+            window.removeEventListener('beforeunload', this.leaving);
+            window.removeEventListener('onblur', this.leaving);
+            // return to dash
+            this.$router.push({ name: 'internal-call-email-dash' });
         }
-        // remove redundant eventListeners
-        window.removeEventListener('beforeunload', this.leaving);
-        window.removeEventListener('onblur', this.leaving);
-        await this.saveCallEmail({ route: true, crud: 'save' });
-      } else {
-        // remove redundant eventListeners
-        window.removeEventListener('beforeunload', this.leaving);
-        window.removeEventListener('onblur', this.leaving);
-        await this.saveCallEmail({ route: true, crud: 'create'});
-      }
     },
     duplicate: async function() {
       await this.saveCallEmail({ route: false, crud: 'duplicate'});
