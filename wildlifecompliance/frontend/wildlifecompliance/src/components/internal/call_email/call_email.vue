@@ -684,7 +684,8 @@ export default {
         let savedCallEmail = null;
         let savedPerson = null;
         if (this.call_email.id) {
-            if (this.$refs.search_person_organisation && this.$refs.search_person_organisation.entity.id) {
+            // if (this.$refs.search_person_organisation && this.$refs.search_person_organisation.entity.id) {
+            if (this.$refs.search_person_organisation) {
                 savedPerson = await this.$refs.search_person_organisation.parentSave()
                 // if person save ok, continue with Inspection save
                 if (savedPerson && savedPerson.ok) {
