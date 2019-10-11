@@ -351,7 +351,10 @@ class OffenceViewSet(viewsets.ModelViewSet):
                         # Which should be added to all the sanction outcomes under the offence if the status is 'draft'
                         sanction_outcomes = SanctionOutcome.objects.filter(status=SanctionOutcome.STATUS_DRAFT)
                         for so in sanction_outcomes:
-                            aco = AllegedCommittedOffence.objects.create(alleged_offence=alleged_offence, sanction_outcome=so)
+                            if so.type == SanctionOutcome.TYPE_INFRINGEMENT_NOTICE:
+                                aco = AllegedCommittedOffence.objects.create(included=False, alleged_offence=alleged_offence, sanction_outcome=so)
+                            else:
+                                aco = AllegedCommittedOffence.objects.create(alleged_offence=alleged_offence, sanction_outcome=so)
                     else:
                         serializer = None
                         alleged_offence_removed = False
