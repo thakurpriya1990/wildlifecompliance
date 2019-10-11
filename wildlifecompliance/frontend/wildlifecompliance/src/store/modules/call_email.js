@@ -322,7 +322,7 @@ export const callemailStore = {
                 }
             }
         },
-        async saveCallEmail({ dispatch, state, rootGetters}, { route, crud, internal }) {
+        async saveCallEmail({ dispatch, state, rootGetters}, { crud, internal }) {
             console.log("saveCallEmail");
             console.log("internal");
             console.log(internal);
@@ -397,12 +397,8 @@ export const callemailStore = {
                     return savedCallEmail;
                 }
             }
-            //if (route) {
-            //    return window.location.href = "/internal/call_email/";
-            //} else {
-            //    return callId;
-            //}
-            return callId;
+            //return callId;
+            return savedCallEmail;
         },
         setAllocatedGroupList({ commit }, data) {
             commit('updateAllocatedGroupList', data);

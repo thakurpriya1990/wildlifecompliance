@@ -355,8 +355,8 @@
             <div class="navbar-inner">
                 <div class="container">
                     <p class="pull-right" style="margin-top:5px;">
-                        <input type="button" @click.prevent="save(exit)" class="btn btn-primary" value="Save and Exit"/>
-                        <input type="button" @click.prevent="save" class="btn btn-primary" value="Save and Continue"/>
+                        <input type="button" @click.prevent="save('exit')" class="btn btn-primary" value="Save and Exit"/>
+                        <input type="button" @click.prevent="save('noexit')" class="btn btn-primary" value="Save and Continue"/>
                     </p>
                 </div>
             </div>
@@ -439,12 +439,14 @@ export default {
                   data: 'Action',
                   mRender: function(data, type, row) {
                       let links = '';
-                      console.log(row.Action)
+                      //console.log(row.Action)
                       if (!row.Action.readonlyForm) {
                           if (row.Action.action === 'Member') {
                               links = '<a href="#" class="make_team_lead" data-member-id="' + row.Action.id + '">Make Team Lead</a><br>'
                           } 
-                          links += '<a href="#" class="remove_button" data-member-id="' + row.Action.id + '">Remove</a>'
+                          if (row.Action.can_remove) {
+                              links += '<a href="#" class="remove_button" data-member-id="' + row.Action.id + '">Remove</a>'
+                          }
                           return links
                       } else {
                           return ''
@@ -767,6 +769,10 @@ export default {
             Object.assign(actionColumn, this.inspectionTeam[i]);
             //actionColumn.can_user_action = this.inspection.can_user_action;
             actionColumn.readonlyForm = this.readonlyForm;
+            // Prevent removal of last team member (plus blank entry)
+            if (this.inspectionTeam.length > 2) {
+                actionColumn.can_remove = true;
+            }
 
             //if (!already_exists) {
             if (this.inspectionTeam[i].id) {
@@ -930,7 +936,8 @@ export default {
     //        });
     //    }
     //},
-      save: async function({'exit': 'false'}) {
+    save: async function(returnToDash) {
+      console.log(returnToDash)
       let savedInspection = null;
       let savedPerson = null;
       if (this.inspection.id) {
@@ -941,14 +948,15 @@ export default {
               if (savedPerson && savedPerson.ok) {
                   savedInspection = await this.saveInspection({ create: false, internal: false });
               }
+          } else {
+              console.log("no savePerson")
+              savedInspection = await this.saveInspection({ create: false, internal: false });
           }
-          console.log("no savePerson")
-          savedInspection = await this.saveInspection({ create: false, internal: false });
       } else {
           savedInspection = await this.saveInspection({ create: true, internal: false });
       }
       console.log(savedInspection);
-      if (savedInspection && savedInspection.ok && exit) {
+      if (savedInspection && savedInspection.ok && returnToDash === 'exit') {
         // remove redundant eventListeners
         window.removeEventListener('beforeunload', this.leaving);
         window.removeEventListener('onblur', this.leaving);

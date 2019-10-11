@@ -369,8 +369,8 @@
                             <div class="container">
                                 <p class="pull-right" style="margin-top:5px;">
                                     
-                                    <input type="button" @click.prevent="saveExit" class="btn btn-primary" value="Save and Exit"/>
-                                    <input type="button" @click.prevent="save" class="btn btn-primary" value="Save and Continue"/>
+                                    <input type="button" @click.prevent="save('exit')" class="btn btn-primary" value="Save and Exit"w/>
+                                    <input type="button" @click.prevent="save('noexit')" class="btn btn-primary" value="Save and Continue" />
                                 </p>
                             </div>
                         </div>
@@ -679,49 +679,62 @@ export default {
     //  let noPersonSave = true;
     //  this.save(noPersonSave)
     //},
-    save: async function (noPersonSave) {
+    save: async function (returnToDash) {
+        console.log(returnToDash)
+        let savedCallEmail = null;
+        let savedPerson = null;
         if (this.call_email.id) {
-            if (this.$refs.search_person_organisation.formChanged && !noPersonSave) {
-                await this.$refs.search_person_organisation.parentSave()
+            if (this.$refs.search_person_organisation && this.$refs.search_person_organisation.entity.id) {
+                savedPerson = await this.$refs.search_person_organisation.parentSave()
+                // if person save ok, continue with Inspection save
+                if (savedPerson && savedPerson.ok) {
+                    savedCallEmail = await this.saveCallEmail({ crud: 'save' });
+                }
+            // no search_person_org
+            } else {
+                savedCallEmail = await this.saveCallEmail({ crud: 'save' });
             }
-            await this.saveCallEmail({ route: false, crud: 'save' });
-            // recalc hash after save
-            this.object_hash = hash(this.call_email);
         } else {
-            await this.saveCallEmail({ route: false, crud: 'create'});
-            // recalc hash after save
-            this.object_hash = hash(this.call_email);
-            //this.$nextTick(function () {
-            //    this.$router.push({name: 'view-call-email', params: {call_email_id: this.call_email.id}});
-            //});
+            // new CallEmail
+            savedCallEmail = await this.saveCallEmail({ crud: 'create'});
         }
-    },
-    saveExit: async function() {
-      console.log("saveexit")
-      let savedPerson = null;
-      let savedCallEmail = null;
-      if (this.call_email.id) {
-        if (this.$refs.search_person_organisation) {
-            savedPerson = await this.$refs.search_person_organisation.parentSave()
-            console.log(savedPerson)
-        }
-        if (savedPerson && savedPerson.ok) {
+        console.log(savedCallEmail)
+        // recalc hash after save
+        this.object_hash = hash(this.call_email);
+        if (savedCallEmail && savedCallEmail.ok && returnToDash === 'exit') {
             // remove redundant eventListeners
             window.removeEventListener('beforeunload', this.leaving);
             window.removeEventListener('onblur', this.leaving);
-            savedCallEmail = await this.saveCallEmail({ route: true, crud: 'save' });
+            // return to dash
+            this.$router.push({ name: 'internal-call-email-dash' });
         }
-      } else {
-        // remove redundant eventListeners
-        window.removeEventListener('beforeunload', this.leaving);
-        window.removeEventListener('onblur', this.leaving);
-        savedCallEmail = await this.saveCallEmail({ route: true, crud: 'create'});
-      }
-      console.log(savedCallEmail);
-      if (savedCallEmail && savedCallEmail.ok) {
-        this.$router.push({name: 'internal-call-email-dash'});
-      }
     },
+    //saveExit: async function() {
+    //  console.log("saveexit")
+    //  let savedPerson = null;
+    //  let savedCallEmail = null;
+    //  if (this.call_email.id) {
+    //    if (this.$refs.search_person_organisation) {
+    //        savedPerson = await this.$refs.search_person_organisation.parentSave()
+    //        console.log(savedPerson)
+    //    }
+    //    if (savedPerson && savedPerson.ok) {
+    //        // remove redundant eventListeners
+    //        window.removeEventListener('beforeunload', this.leaving);
+    //        window.removeEventListener('onblur', this.leaving);
+    //        savedCallEmail = await this.saveCallEmail({ route: true, crud: 'save' });
+    //    }
+    //  } else {
+    //    // remove redundant eventListeners
+    //    window.removeEventListener('beforeunload', this.leaving);
+    //    window.removeEventListener('onblur', this.leaving);
+    //    savedCallEmail = await this.saveCallEmail({ route: true, crud: 'create'});
+    //  }
+    //  console.log(savedCallEmail);
+    //  if (savedCallEmail && savedCallEmail.ok) {
+    //    this.$router.push({name: 'internal-call-email-dash'});
+    //  }
+    //},
     duplicate: async function() {
       await this.saveCallEmail({ route: false, crud: 'duplicate'});
     },

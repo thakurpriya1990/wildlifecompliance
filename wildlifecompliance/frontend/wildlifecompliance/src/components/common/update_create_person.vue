@@ -28,22 +28,20 @@
                                 </div>
                             </div>
                         </div>
-                        <div class="form-group" v-bind:class="{ 'has-error': errorDob }">
+                        <div v-if="email_user" class="form-group" v-bind:class="{ 'has-error': errorDob }">
                             <label for="" class="col-sm-3 control-label" >Date of Birth</label>
                             <div class="col-sm-6">
-                                <div v-if="email_user">
-                                    <div class="input-group date" ref="dobDatePicker">
-                                        <input 
-                                        :disabled="personalDetailsReadOnly" 
-                                        type="text" class="form-control" 
-                                        placeholder="DD/MM/YYYY" 
-                                        v-model="email_user.dob" 
-                                        v-bind:key="email_user.id" />
-                                        <span class="input-group-addon">
-                                            <span class="glyphicon glyphicon-calendar"></span>
-                                        </span>
-                                    </div>
-                                    <!--input :readonly="personalDetailsReadOnly" type="date" class="form-control" name="dob" placeholder="" v-model="email_user.dob" v-bind:key="email_user.id"-->
+                                <div class="input-group date" ref="dobDatePicker">
+                                    <input 
+                                    :disabled="personalDetailsReadOnly" 
+                                    type="text" 
+                                    class="form-control" 
+                                    placeholder="DD/MM/YYYY" 
+                                    v-model="email_user.dob" 
+                                     />
+                                    <span class="input-group-addon">
+                                        <span class="glyphicon glyphicon-calendar"></span>
+                                    </span>
                                 </div>
                             </div>
                         </div>
@@ -154,6 +152,7 @@ import $ from "jquery";
 import { api_endpoints, helpers } from '@/utils/hooks'
 import utils from '../internal/utils'
 import "bootstrap/dist/css/bootstrap.css"
+import 'eonasdan-bootstrap-datetimepicker';
 //import moment from 'moment'
 
 export default {
@@ -343,13 +342,16 @@ export default {
           });
         },
         setExistingPerson: function(id){
-            let vm = this;
+            //let vm = this;
 
             let initialisers = [utils.fetchUser(id)];
-            Promise.all(initialisers).then(data => {
-                Object.assign(vm.email_user, data[0])
-                if (!vm.email_user.residential_address) {
-                    vm.email_user.residential_address = vm.getDefaultAddress()
+            Promise.all(initialisers).then((data) => {
+                Object.assign(this.email_user, data[0])
+                if (!this.email_user.residential_address) {
+                    this.email_user.residential_address = this.getDefaultAddress()
+                }
+                if (this.email_user.dob) {
+                    this.email_user.dob = moment(this.email_user.dob, 'YYYY-MM-DD').format('DD/MM/YYYY');
                 }
             });
         },
@@ -409,6 +411,8 @@ export default {
             let savedEmailUser = null;
             if (this.saveButtonEnabled) {
                 savedEmailUser = await this.saveData(parent_save)
+            } else {
+                savedEmailUser = {'ok': true};
             }
             return savedEmailUser;
         },
@@ -441,7 +445,6 @@ export default {
                 }
 
                 savedEmailUser = await Vue.http.post(fetchUrl, payload);
-                console.log(savedEmailUser)
                 if (!savedEmailUser.body.residential_address) {
                     savedEmailUser.body.residential_address = this.getDefaultAddress()
                 }
