@@ -382,25 +382,35 @@ export default {
                         data: "Action",
                         mRender: function(data, type, row) {
                             let ret = '';
-                            if (data.in_editable_status){
-                                if (!data.included){
-                                    ret = '<a href="#" class="restore_alleged_committed_offence" data-alleged-committed-offence-id="' + data.id + '">Restore</a>';
+                            if (!vm.readonlyForm && data.in_editable_status){
+                                let checked_str = '';
+                                let type_str = '';
+                                let name_str = '';
+                                let action_name = '';
+
+                                if (vm.sanction_outcome.type.id == 'infringement_notice'){
+                                    type_str = 'radio';
+                                    name_str = ' name="aco_radio_group" ';
+                                    if (data.included){
+                                        checked_str = 'checked="checked"';
+                                        action_name = '';
+                                    } else {
+                                        checked_str = '';
+                                        action_name = 'Restore';
+                                    }
                                 } else {
-                                    ret = '<a href="#" class="remove_alleged_committed_offence" data-alleged-committed-offence-id="' + data.id + '">Remove</a>';
+                                    type_str = 'checkbox';
+                                    name_str = ''
+                                    if (data.included){
+                                        checked_str = 'checked="checked"';
+                                        action_name = 'Remove';
+                                    } else {
+                                        checked_str = '';
+                                        action_name = 'Restore';
+                                    }
                                 }
-                              //  if (data.already_included){
-                              //      // This alleged committed offence is already stored in the database as included
-                              //      if (data.removed){
-                              //          if (data.can_user_restore){
-                              //              ret = '<a href="#" class="restore_alleged_committed_offence" data-alleged-committed-offence-id="' + data.id + '">Restore</a>';
-                              //          } else {
-                              //              ret = '';
-                              //          }
-                              //      } else {
-                              //          ret = '<a href="#" class="remove_alleged_committed_offence" data-alleged-committed-offence-id="' + data.id + '">Remove</a>'; }
-                              //  } else {
-                              //      ret = '<input type="checkbox" class="include_alleged_committed_offence" value="' + data.id + '">Include</input>';
-                              //  }
+
+                                ret = '<a><span class="include_alleged_committed_offence" data-alleged-committed-offence-id="' + data.id + '"/>' + action_name + '</span></a>';
                             }
                             return ret;
                         }
@@ -676,7 +686,7 @@ export default {
             this.setUpDateTimePicker();
             $("#alleged-committed-offence-table").on("click", ".remove_alleged_committed_offence", this.removeAllegedOffenceClicked);
             $("#alleged-committed-offence-table").on("click", ".restore_alleged_committed_offence", this.restoreAllegedOffenceClicked);
-            //$("#alleged-committed-offence-table").on("click", ".include_alleged_committed_offence", this.includeAllegedOffenceClicked);
+            $("#alleged-committed-offence-table").on("click", ".include_alleged_committed_offence", this.includeAllegedOffenceClicked);
 
             window.addEventListener('beforeunload', this.leaving);
             window.addEventListener('onblur', this.leaving);
@@ -699,14 +709,28 @@ export default {
             }
             this.constructAllegedCommittedOffencesTable();
         },
-      //  includeAllegedOffenceClicked: function(e){
-      //      let acoId = parseInt(e.target.value);
-      //      for (let i=0; i<this.sanction_outcome.alleged_committed_offences.length; i++){
-      //          if(acoId == this.sanction_outcome.alleged_committed_offences[i].id){
-      //              this.sanction_outcome.alleged_committed_offences[i].included = e.target.checked;
-      //          }
-      //      }
-      //  },
+        includeAllegedOffenceClicked: function(e){
+            let acoId = parseInt(e.target.getAttribute("data-alleged-committed-offence-id"));
+            if(this.sanction_outcome.type.id == 'infringement_notice'){
+                // Set false to all the alleged committed offences
+                for (let i=0; i<this.sanction_outcome.alleged_committed_offences.length; i++){
+                    this.sanction_outcome.alleged_committed_offences[i].included = false;
+                }
+                // Set true to the alleged committed offence clicked
+                for (let i=0; i<this.sanction_outcome.alleged_committed_offences.length; i++){
+                    if(acoId == this.sanction_outcome.alleged_committed_offences[i].id){
+                        this.sanction_outcome.alleged_committed_offences[i].included = true
+                    }
+                }
+            } else {
+                for (let i=0; i<this.sanction_outcome.alleged_committed_offences.length; i++){
+                    if(acoId == this.sanction_outcome.alleged_committed_offences[i].id){
+                        this.sanction_outcome.alleged_committed_offences[i].included = !this.sanction_outcome.alleged_committed_offences[i].included;
+                    }
+                }
+            }
+            this.constructAllegedCommittedOffencesTable();
+        },
         restoreAllegedOffenceClicked: function(e){
             let acoId = parseInt(e.target.getAttribute("data-alleged-committed-offence-id"));
             for (let i=0; i<this.sanction_outcome.alleged_committed_offences.length; i++){
