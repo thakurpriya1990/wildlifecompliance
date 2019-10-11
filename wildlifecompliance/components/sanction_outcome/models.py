@@ -36,7 +36,6 @@ class SanctionOutcome(models.Model):
     STATUS_AWAITING_ENDORSEMENT = 'awaiting_endorsement'
     STATUS_AWAITING_PAYMENT = 'awaiting_payment'
     STATUS_AWAITING_REVIEW = 'awaiting_review'
-    STATUS_AWAITING_AMENDMENT = 'awaiting_amendment'
     STATUS_AWAITING_REMEDIATION_ACTIONS = 'awaiting_remediation_actions'
     STATUS_DECLINED = 'declined'
     STATUS_WITHDRAWN = 'withdrawn'
@@ -47,7 +46,6 @@ class SanctionOutcome(models.Model):
         (STATUS_AWAITING_ENDORSEMENT, 'Awaiting Endorsement'),
         (STATUS_AWAITING_PAYMENT, 'Awaiting Payment'),
         (STATUS_AWAITING_REVIEW, 'Awaiting Review'),
-        (STATUS_AWAITING_AMENDMENT, 'Awaiting Amendment'),
         (STATUS_AWAITING_REMEDIATION_ACTIONS, 'Awaiting Remediation Actions'),  # TODO: implement pending closuer of SanctionOutcome with type RemediationActions
                                                                                 # This is pending closure status
                                                                                 # Once all the remediation actions are closed, this status should become closed...
@@ -80,7 +78,10 @@ class SanctionOutcome(models.Model):
     lodgement_number = models.CharField(max_length=50, blank=True,)
     offence = models.ForeignKey(Offence, related_name='offence_sanction_outcomes', null=True, on_delete=models.SET_NULL,)
     offender = models.ForeignKey(Offender, related_name='sanction_outcome_offender', null=True, on_delete=models.SET_NULL,)
-    alleged_offences = models.ManyToManyField(SectionRegulation, blank=True, related_name='sanction_outcome_alleged_offences')  # TODO: this field is not probably used anymore.
+
+    # TODO: this field is not probably used anymore.
+    alleged_offences = models.ManyToManyField(SectionRegulation, blank=True, related_name='sanction_outcome_alleged_offences')
+
     alleged_committed_offences = models.ManyToManyField(AllegedOffence, related_name='sanction_outcome_alleged_committed_offences', through='AllegedCommittedOffence')
     issued_on_paper = models.BooleanField(default=False) # This is always true when type is letter_of_advice
     paper_id = models.CharField(max_length=50, blank=True,)
@@ -125,14 +126,23 @@ class SanctionOutcome(models.Model):
 
     def save(self, *args, **kwargs):
         super(SanctionOutcome, self).save(*args, **kwargs)
+
+        need_save = False
+
+        # Construct lodgement_number
         if not self.lodgement_number:
             self.lodgement_number = self.prefix_lodgement_nubmer + '{0:06d}'.format(self.pk)
-            self.save()
+            need_save = True
 
-        if self.__original_status != self.status:
-            # status changed
-            if self.status == self.STATUS_DRAFT:
-                pass
+        # No documents are attached when issued_on_paper=False
+        if not self.issued_on_paper:
+            if self.documents.all().count():
+                print('[Warn] This sanction outcome has not been issued on paper, but has documents.')
+                # self.documents.all().delete()
+                # need_save = True
+
+        if need_save:
+            self.save()  # Be carefull, this might lead to the infinite loop
 
         self.__original_status = self.status
 
@@ -248,7 +258,7 @@ class SanctionOutcome(models.Model):
                 parent.close(request)
 
     def return_to_officer(self, request):
-        self.status = self.STATUS_AWAITING_AMENDMENT
+        self.status = self.STATUS_DRAFT
         new_group = SanctionOutcome.get_compliance_permission_group(self.regionDistrictId, SanctionOutcome.WORKFLOW_RETURN_TO_OFFICER)
         self.allocated_group = new_group
         self.log_user_action(SanctionOutcomeUserAction.ACTION_RETURN_TO_OFFICER.format(self.lodgement_number), request)
@@ -287,20 +297,22 @@ class SanctionOutcome(models.Model):
         ordering = ['-id']
 
 
-class AllegedCommittedOffenceActiveManager(models.Manager):
-    def get_query_set(self):
-        return super(AllegedCommittedOffenceActiveManager, self).get_query_set().exclude(Q(removed=True))
+# class AllegedCommittedOffenceActiveManager(models.Manager):
+#     def get_query_set(self):
+#         return super(AllegedCommittedOffenceActiveManager, self).get_query_set().exclude(Q(removed=True))
 
 
 class AllegedCommittedOffence(RevisionedMixin):
     alleged_offence = models.ForeignKey(AllegedOffence, null=False,)
     sanction_outcome = models.ForeignKey(SanctionOutcome, null=False,)
     included = models.BooleanField(default=True)  # True means sanction_outcome is included in the sanction_outcome
+
+    # TODO: following three fields are not used probably
     reason_for_removal = models.TextField(blank=True)
     removed = models.BooleanField(default=False)  # Never make this field False once becomes True. Rather you have to create another record making this field False.
     removed_by = models.ForeignKey(EmailUser, null=True, related_name='alleged_committed_offence_removed_by')
-    objects = models.Manager()
-    objects_active = AllegedCommittedOffenceActiveManager()
+    # objects = models.Manager()
+    # objects_active = AllegedCommittedOffenceActiveManager()
 
     class Meta:
         app_label = 'wildlifecompliance'
