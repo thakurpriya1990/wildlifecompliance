@@ -35,8 +35,9 @@ from wildlifecompliance.components.offence.serializers import (
     OffenceDatatableSerializer,
     UpdateAssignedToIdSerializer, UpdateOffenderAttributeSerializer, OffenceOptimisedSerializer,
     # UpdateAllegedOffenceAttributeSerializer, OffenceUserActionSerializer)
-    UpdateAllegedOffenceAttributeSerializer, OffenceUserActionSerializer, OffenceCommsLogEntrySerializer)
-from wildlifecompliance.components.sanction_outcome.models import SanctionOutcome
+    UpdateAllegedOffenceAttributeSerializer, OffenceUserActionSerializer, OffenceCommsLogEntrySerializer,
+    UpdateAllegedCommittedOffenceSerializer)
+from wildlifecompliance.components.sanction_outcome.models import SanctionOutcome, AllegedCommittedOffence
 from wildlifecompliance.components.users.models import CompliancePermissionGroup
 from wildlifecompliance.helpers import is_internal
 
@@ -341,45 +342,56 @@ class OffenceViewSet(viewsets.ModelViewSet):
                 serializer.is_valid(raise_exception=True)
                 saved_offence_instance = serializer.save()  # Here, relations between this offence and location, and this offence and call_email/inspection are created
 
-                # 3. TODO: Handle alleged offences
+                # 3. Handle alleged offences
                 for item in request_data['alleged_offences']:
                     alleged_offence, created = AllegedOffence.objects.get_or_create(section_regulation_id=item['section_regulation']['id'], offence_id=request_data['id'])
 
-                    if not created:
+                    if created:
+                        # new alleged offence is added to the offence
+                        # Which should be added to all the sanction outcomes under the offence if the status is 'draft'
+                        sanction_outcomes = SanctionOutcome.objects.filter(status=SanctionOutcome.STATUS_DRAFT)
+                        for so in sanction_outcomes:
+                            aco = AllegedCommittedOffence.objects.create(alleged_offence=alleged_offence, sanction_outcome=so)
+                    else:
                         serializer = None
+                        alleged_offence_removed = False
+                        alleged_offence_restored = False
 
                         # Update attributes of existing alleged offence
                         if not alleged_offence.removed and item['removed']:
                             # This alleged offence is going to be removed
+                            alleged_offence_removed = True
                             serializer = UpdateAllegedOffenceAttributeSerializer(alleged_offence, data={
                                 'removed': item['removed'],
                                 'removed_by_id': request.user.id,
                                 'reason_for_removal': item['reason_for_removal']
                             })
-
                         elif alleged_offence.removed and not item['removed']:
-                            # This offender is going to be restored
+                            # This alleged offence is going to be restored
+                            alleged_offence_restored = True
                             serializer = UpdateAllegedOffenceAttributeSerializer(alleged_offence, data={
                                 'removed': item['removed'],
                                 'removed_by_id': None,
                                 'reason_for_removal': ''
                             })
 
-                        else:
-                            # other case where nothing changed on this offender
-                            pass
-
                         if serializer:
                             serializer.is_valid(raise_exception=True)
-
-                            # Action log
-                            if not alleged_offence.removed and item['removed']:
-                                instance.log_user_action(OffenceUserAction.ACTION_REMOVE_ALLEGED_OFFENCE.format(alleged_offence, item['reason_for_removal']), request)
-                            elif alleged_offence.removed and not item['removed']:
-                                instance.log_user_action(OffenceUserAction.ACTION_RESTORE_ALLEGED_OFFENCE.format(alleged_offence), request)
-
                             serializer.save()
 
+                            # Action log
+                            if alleged_offence_removed:
+                                instance.log_user_action(OffenceUserAction.ACTION_REMOVE_ALLEGED_OFFENCE.format(alleged_offence, item['reason_for_removal']), request)
+
+                                # Update alleged committed offence's included status to False
+                                alleged_committed_offences = AllegedCommittedOffence.objects.filter(Q(alleged_offence=alleged_offence))
+                                for aco in alleged_committed_offences.all():
+                                    serializer_aco = UpdateAllegedCommittedOffenceSerializer(aco, data={'included': False}, context={'sanction_outcome': aco.sanction_outcome})
+                                    serializer_aco.is_valid(raise_exception=True)
+                                    serializer_aco.save()
+
+                            elif alleged_offence_restored:
+                                instance.log_user_action(OffenceUserAction.ACTION_RESTORE_ALLEGED_OFFENCE.format(alleged_offence), request)
 
                 # 4. Create relations between this offence and offender(s)
                 for item in request_data['offenders']:

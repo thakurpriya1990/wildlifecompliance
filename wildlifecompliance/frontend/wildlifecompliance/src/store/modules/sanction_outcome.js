@@ -69,28 +69,17 @@ export const sanctionOutcomeStore = {
             let payload = {};
             Object.assign(payload, state.sanction_outcome);
 
-            console.log('before')
-            console.log(payload)
             if(payload.date_of_issue){
                 payload.date_of_issue = moment(payload.date_of_issue, "DD/MM/YYYY").format("YYYY-MM-DD");
             }
-            console.log('after')
-            console.log(payload)
 
             // format 'type'
             payload.type = payload.type.id;
-
-            // Send data to the server
-            console.log('payload');
-            console.log(payload);
 
             let savedSanctionOutcome = await Vue.http.put(putUrl, payload);
 
             // Update sanction outcome in the vuex store
             await dispatch("setSanctionOutcome", savedSanctionOutcome.body);
-
-            // Display message
-            await swal("Saved", "The record has been saved", "success");
 
             // Return the saved data just in case needed
             return savedSanctionOutcome;
