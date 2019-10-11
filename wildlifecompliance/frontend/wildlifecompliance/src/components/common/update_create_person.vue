@@ -407,16 +407,15 @@ export default {
             });
         },
         parentSave: async function() {
-            let parent_save = true;
             let savedEmailUser = null;
             if (this.saveButtonEnabled) {
-                savedEmailUser = await this.saveData(parent_save)
+                savedEmailUser = await this.saveData('parentSave')
             } else {
                 savedEmailUser = {'ok': true};
             }
             return savedEmailUser;
         },
-        saveData: async function(parent_save) {
+        saveData: async function(parentSave) {
             let savedEmailUser = null;
             try{
                 let payload = {}
@@ -449,7 +448,8 @@ export default {
                     savedEmailUser.body.residential_address = this.getDefaultAddress()
                 }
                 Object.assign(this.email_user, savedEmailUser.body);
-                if (!parent_save) {
+                this.email_user.dob = moment(this.email_user.dob, 'YYYY-MM-DD').format('DD/MM/YYYY');
+                if (!(parentSave === 'parentSave')) {
                     await swal("Saved", "Person has been saved", "success");
                 }
                 //this.$emit('person-saved', {'person': savedEmailUser.body, 'errorMessage': null});
