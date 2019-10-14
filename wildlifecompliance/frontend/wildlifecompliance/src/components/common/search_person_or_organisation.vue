@@ -127,6 +127,20 @@ export default {
             }
             return bindId;
         },
+        entityIsPerson: function() {
+            let check = false;
+            if (this.entity.data_type === 'individual' && this.entity.id) {
+                check = true
+            }
+            return check;
+        },
+        entityIsOrganisation: function() {
+            let check = false;
+            if (this.entity.data_type === 'organisation' && this.entity.id) {
+                check = true
+            }
+            return check;
+        },
     },
     props: {
         classNames: {

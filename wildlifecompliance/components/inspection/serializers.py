@@ -400,6 +400,10 @@ class InspectionDatatableSerializer(serializers.ModelSerializer):
             returned_url = view_url
         elif user_id == obj.assigned_to_id:
             returned_url = process_url
+        if obj.status == 'open' and obj.inspection_team and not obj.assigned_to_id:
+            for member in obj.inspection_team.all():
+                if user_id == member.id:
+                    returned_url = process_url
         elif (obj.allocated_group
                 and not obj.assigned_to_id):
             for member in obj.allocated_group.members:
