@@ -885,9 +885,9 @@ export default {
             action: 'make_team_lead'
         });
     },
-    entitySelected: function(para) {
+    entitySelected: async function(para) {
         console.log(para);
-        this.setPartyInspected(para);
+        await this.setPartyInspected(para);
     },
     updateWorkflowBindId: function() {
         //let workflowBindId = ''
