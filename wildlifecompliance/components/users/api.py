@@ -589,7 +589,7 @@ class ComplianceManagementUserViewSet(viewsets.ModelViewSet):
                     request_data.update({'email': email_address})
                 
                 email_user_instance = EmailUser.objects.create_user(email_address, '')
-                res = self.update_person(request, email_user_instance)
+                res = self.update_person(request, instance=email_user_instance)
                 return res
                 #print("user_serializer_data")
                 #print(type(user_serializer_data))

@@ -135,7 +135,7 @@ export const inspectionStore = {
 
                 /* Set Inspection object */
                 //await dispatch("setInspection", returnedInspection.body);
-                commit("updateInspection", returnedInspection.body);
+                await dispatch("setInspection", returnedInspection.body);
 
                 for (let form_data_record of returnedInspection.body.data) {
                     await dispatch("setFormValue", {
@@ -203,7 +203,7 @@ export const inspectionStore = {
                         //state.inspection.id + "/inspection_save/"
                         state.inspection.id + '/'
                         )
-                        savedInspection = await Vue.http.put(fetchUrl, payload);
+                    savedInspection = await Vue.http.put(fetchUrl, payload);
                 }
                 await dispatch("setInspection", savedInspection.body);
                 inspectionId = savedInspection.body.id;
@@ -216,17 +216,18 @@ export const inspectionStore = {
                 } else {
                     await swal("Error", "There was an error saving the record", "error");
                 }
-                return window.location.href = "/internal/inspection/";
+                //return window.location.href = "/internal/inspection/";
+                //console.log(savedInspection);
             }
             // internal arg used when file upload triggers record creation
             if (internal) {
                 console.log("modal file create")
-                return savedInspection;
             }
             // update inspection
             else if (!create) {
                 await swal("Saved", "The record has been saved", "success");
             }
+            return savedInspection;
         },
         
         setInspection({ commit, }, inspection) {

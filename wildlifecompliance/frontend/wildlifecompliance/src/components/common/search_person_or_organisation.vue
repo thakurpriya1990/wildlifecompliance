@@ -172,12 +172,15 @@ export default {
     },
     methods: {
         parentSave: async function() {
+            let savedEntity = null;
             console.log("parent save")
             if (this.searchType === 'individual') {
-                await this.$refs.update_create_person.parentSave()
+                savedEntity = await this.$refs.update_create_person.parentSave()
             } else if (this.searchType === 'organisation') {
-                await this.$refs.update_create_organisation.parentSave()
+                savedEntity = await this.$refs.update_create_organisation.parentSave()
             }
+            console.log(savedEntity)
+            return savedEntity;
         },
 
         createNewPerson: function() {
@@ -216,7 +219,7 @@ export default {
             if(obj.person){
                 if (!obj.updateSearchBox) {
                     await this.$emit('entity-selected', {data_type: 'individual', id: obj.person.id});
-                    await this.$emit('save-individual', {data_type: 'individual', id: obj.person.id});
+                    //await this.$emit('save-individual', {data_type: 'individual', id: obj.person.id});
                 }
 
 
