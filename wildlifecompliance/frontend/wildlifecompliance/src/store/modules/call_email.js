@@ -288,7 +288,7 @@ export const callemailStore = {
                     );
 
                 /* Set CallEmail object */
-                commit("updateCallEmail", returnedCallEmail.body);
+                await dispatch("setCallEmail", returnedCallEmail.body);
 
                 for (let form_data_record of returnedCallEmail.body.data) {
                     await dispatch("setFormValue", {
@@ -322,7 +322,7 @@ export const callemailStore = {
                 }
             }
         },
-        async saveCallEmail({ dispatch, state, rootGetters}, { route, crud, internal }) {
+        async saveCallEmail({ dispatch, state, rootGetters}, { crud, internal }) {
             console.log("saveCallEmail");
             console.log("internal");
             console.log(internal);
@@ -385,7 +385,7 @@ export const callemailStore = {
                 } else {
                     await swal("Error", "There was an error saving the record", "error");
                 }
-                return window.location.href = "/internal/call_email/";
+                //return window.location.href = "/internal/call_email/";
             }
             if (crud === 'duplicate') {
                 return window.location.href = "/internal/call_email/" + callId;
@@ -397,11 +397,8 @@ export const callemailStore = {
                     return savedCallEmail;
                 }
             }
-            if (route) {
-                return window.location.href = "/internal/call_email/";
-            } else {
-                return callId;
-            }
+            //return callId;
+            return savedCallEmail;
         },
         setAllocatedGroupList({ commit }, data) {
             commit('updateAllocatedGroupList', data);

@@ -411,26 +411,14 @@ class InspectionViewSet(viewsets.ModelViewSet):
                     if workflow:
                         return instance
                     else:
-                        serializer = EmailUserSerializer(
-                            instance.inspection_team.all(),
-                            context={
-                                'inspection_team_lead_id': instance.inspection_team_lead_id
-                            },
-                            many=True)
-                        # serializer = InspectionSerializer(instance, context={'request': request})
+                        serializer = InspectionSerializer(instance, context={'request': request})
                         return Response(
                             serializer.data,
                             status=status.HTTP_201_CREATED,
                         )
                 # List view - no modification
                 else:
-                    serializer = EmailUserSerializer(
-                        instance.inspection_team.all(),
-                        context={
-                            'inspection_team_lead_id': instance.inspection_team_lead_id
-                        },
-                        many=True)
-                    # serializer = InspectionSerializer(instance, context={'request': request})
+                    serializer = InspectionSerializer(instance, context={'request': request})
                     return Response(
                         serializer.data,
                         status=status.HTTP_200_OK,

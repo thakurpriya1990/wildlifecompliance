@@ -215,6 +215,7 @@ class ComplianceManagementUserSerializer(serializers.ModelSerializer):
     residential_address = ComplianceManagementSaveUserAddressSerializer(
             required=False,
             read_only=True)
+    #dob = serializers.SerializerMethodField()
 
     class Meta:
         model = EmailUser
@@ -230,6 +231,14 @@ class ComplianceManagementUserSerializer(serializers.ModelSerializer):
             'mobile_number',
         )
         #read_only_fields = ('id',)
+
+    #def get_dob(self, obj):
+    #    dob = None
+    #    if obj.dob:
+    #        dob = obj.dob.strftime('%d/%m/%Y')
+    #    print("dob")
+    #    print(dob)
+    #    return dob
 
 
 class UserSerializer(serializers.ModelSerializer):
