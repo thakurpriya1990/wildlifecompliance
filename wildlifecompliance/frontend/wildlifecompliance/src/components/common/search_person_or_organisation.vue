@@ -69,6 +69,8 @@ export default {
             uuid: 0,
             showCreateNewPerson: false,
             showCreateNewOrganisation: false,
+            creatingPerson: false,
+            creatingOrganisation: false,
         }
     },
     components: {
@@ -86,11 +88,13 @@ export default {
                 if (this.entity.id && this.entity.data_type === 'individual') {
                     this.displayUpdateCreateOrganisation = false;
                     this.displayUpdateCreatePerson = true;
+                    this.creatingPerson = false;
                 } else if (this.entity.id && this.entity.data_type === 'organisation') {
                     this.displayUpdateCreatePerson = false;
                     // TODO: swap following two lines once create org implemented
                     //this.displayUpdateCreateOrganisation = true;
                     this.displayUpdateCreateOrganisation = false;
+                    this.creatingOrganisation = false;
                 }
             },
             deep: true
@@ -129,14 +133,14 @@ export default {
         },
         entityIsPerson: function() {
             let check = false;
-            if (this.entity.data_type === 'individual' && this.entity.id) {
+            if ((this.entity.data_type === 'individual' && this.entity.id) || this.creatingPerson) {
                 check = true
             }
             return check;
         },
         entityIsOrganisation: function() {
             let check = false;
-            if (this.entity.data_type === 'organisation' && this.entity.id) {
+            if ((this.entity.data_type === 'organisation' && this.entity.id) || this.creatingOrganisation) {
                 check = true
             }
             return check;
@@ -198,6 +202,7 @@ export default {
         },
 
         createNewPerson: function() {
+            this.creatingPerson = true;
             this.entity = {
                 id: null,
                 data_type: null
@@ -212,6 +217,7 @@ export default {
             });
         },
         createNewOrganisation: function() {
+            this.creatingOrganisation = true;
             //this.displayUpdateCreateOrganisation = !this.displayUpdateCreateOrganisation;
         },
         clearInput: function(){
