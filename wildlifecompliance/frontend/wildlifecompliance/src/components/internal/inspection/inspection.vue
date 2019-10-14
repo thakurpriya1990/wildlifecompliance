@@ -409,7 +409,7 @@ export default {
   data: function() {
     return {
       uuid: 0,
-      object_hash: null,
+      objectHash: null,
       iTab: 'iTab'+this._uid,
       rTab: 'rTab'+this._uid,
       oTab: 'oTab'+this._uid,
@@ -499,6 +499,9 @@ export default {
   computed: {
     ...mapGetters('inspectionStore', {
       inspection: "inspection",
+    }),
+    ...mapGetters({
+        renderer_form_data: 'renderer_form_data'
     }),
     updateSearchPersonOrganisationBindId: function() {
         if (this.inspectedEntity.data_type && this.inspectedEntity.id) {
@@ -611,13 +614,6 @@ export default {
         }
         return entity;
     },
-    formChanged: function(){
-        let changed = false;
-        if(this.object_hash !== hash(this.inspection)){
-            changed = true;
-        }
-        return changed;
-    },
     offenceBindId: function() {
         let offence_bind_id = ''
         //let timeNow = Date.now()
@@ -641,6 +637,11 @@ export default {
           },
           deep: true
       },
+      //inspection: {
+      //    handler: function (){
+      //        this.simplifiedInspection = Object.assign({}, this.inspection);
+      //        this.inspectionHash = hash(this.simplified
+
   },
   methods: {
     ...mapActions('inspectionStore', {
@@ -652,6 +653,20 @@ export default {
       setPartyInspected: 'setPartyInspected',
       setRelatedItems: 'setRelatedItems',
     }),
+    formChanged: function(){
+        let changed = false;
+        // Inspection
+        let copiedInspection = Object.assign({}, this.inspection);
+        let trimmedObject = this.removeRedundantHashAttributes(copiedInspection);
+        // Renderer Form Data
+        let copiedRendererFormData = Object.assign({}, this.renderer_form_data);
+        trimmedObject.renderer_form_data = copiedRendererFormData
+        
+        if(this.objectHash !== hash(trimmedObject)){
+            changed = true;
+        }
+        return changed;
+    },
         mapTabClicked: function() {
             // Call this function to render the map correctly
             // In some case, leaflet map is not rendered correctly...   Just partialy shown...
@@ -925,7 +940,8 @@ export default {
       } else {
           savedInspection = await this.saveInspection({ create: true, internal: false });
       }
-      console.log(savedInspection);
+      this.calculateHash();
+      //console.log(savedInspection);
       if (savedInspection && savedInspection.ok && returnToDash === 'exit') {
         // remove redundant eventListeners
         window.removeEventListener('beforeunload', this.leaving);
@@ -976,12 +992,34 @@ export default {
     leaving: function(e) {
         let vm = this;
         let dialogText = '';
-        if (this.formChanged){
+        if (this.formChanged()){
             e.returnValue = dialogText;
             return dialogText;
         }
     },
-      
+    calculateHash: function() {
+        // Inspection
+        let copiedInspection = Object.assign({}, this.inspection);
+        let trimmedObject = this.removeRedundantHashAttributes(copiedInspection);
+        // Renderer Form Data
+        let copiedRendererFormData = Object.assign({}, this.renderer_form_data);
+        trimmedObject.renderer_form_data = copiedRendererFormData
+        this.objectHash = hash(trimmedObject)
+    },
+    removeRedundantHashAttributes: function(obj) {
+        delete obj.assigned_to_id;
+        delete obj.all_officers;
+        delete obj.allocated_group;
+        delete obj.schema;
+        delete obj.related_items;
+        delete obj.can_user_action;
+        delete obj.user_in_group;
+        delete obj.user_is_assignee;
+        delete obj.data;
+        delete obj.inspection_report;
+        return obj
+    },
+
     updateAssignedToId: async function (user) {
         let url = helpers.add_endpoint_join(
             api_endpoints.inspection, 
@@ -1032,7 +1070,8 @@ export default {
       // calling modifyInspectionTeam with null parameters returns the current list
       //this.modifyInspectionTeam({user_id: null, action: null});
       // create object hash
-      this.object_hash = hash(this.inspection);
+      //this.object_hash = hash(this.inspection);
+      this.calculateHash();
   },
   destroyed: function() {
       window.removeEventListener('beforeunload', this.leaving);
