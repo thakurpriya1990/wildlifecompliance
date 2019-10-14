@@ -655,14 +655,11 @@ export default {
     }),
     formChanged: function(){
         let changed = false;
-        // Inspection
         let copiedInspection = Object.assign({}, this.inspection);
         let trimmedObject = this.removeRedundantHashAttributes(copiedInspection);
-        // Renderer Form Data
-        let copiedRendererFormData = Object.assign({}, this.renderer_form_data);
-        trimmedObject.renderer_form_data = copiedRendererFormData
-        
-        if(this.objectHash !== hash(trimmedObject)){
+        let objectToHash = this.addHashAttributes(trimmedObject);
+
+        if(this.objectHash !== hash(objectToHash)){
             changed = true;
         }
         return changed;
@@ -1001,10 +998,13 @@ export default {
         // Inspection
         let copiedInspection = Object.assign({}, this.inspection);
         let trimmedObject = this.removeRedundantHashAttributes(copiedInspection);
-        // Renderer Form Data
+        let objectToHash = this.addHashAttributes(trimmedObject);
+        this.objectHash = hash(objectToHash)
+    },
+    addHashAttributes: function(obj) {
         let copiedRendererFormData = Object.assign({}, this.renderer_form_data);
-        trimmedObject.renderer_form_data = copiedRendererFormData
-        this.objectHash = hash(trimmedObject)
+        obj.renderer_form_data = copiedRendererFormData;
+        return obj;
     },
     removeRedundantHashAttributes: function(obj) {
         delete obj.assigned_to_id;

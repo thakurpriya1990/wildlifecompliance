@@ -421,7 +421,7 @@ export default {
   name: "ViewCallEmail",
   data: function() {
     return {
-      object_hash: null,
+      objectHash: null,
       uuid: 0,
       cTab: 'cTab'+this._uid,
       rTab: 'rTab'+this._uid,
@@ -606,13 +606,6 @@ export default {
         //this.uuid += 1
         return 'offence' + this.uuid;
     },
-    formChanged: function(){
-        let changed = false;
-        if(this.object_hash !== hash(this.call_email)){
-            changed = true;
-        }
-        return changed;
-    },
   },
   filters: {
     formatDate: function(data) {
@@ -642,6 +635,52 @@ export default {
     entitySelected: function(para) {
         console.log(para);
         this.setCaller(para);
+    },
+    formChanged: function(){
+        let changed = false;
+        let copiedCallEmail = Object.assign({}, this.call_email);
+        //let trimmedObject = this.removeRedundantHashAttributes(copiedCallEmail);
+        //let objectToHash = this.addHashAttributes(trimmedObject);
+        this.removeRedundantHashAttributes(copiedCallEmail);
+        this.addHashAttributes(copiedCallEmail);
+        console.log(copiedCallEmail)
+        console.log(this.call_email)
+        
+        if(this.objectHash !== hash(copiedCallEmail)){
+            changed = true;
+        }
+        return changed;
+    },
+    calculateHash: function() {
+        let copiedCallEmail = Object.assign({}, this.call_email);
+        //console.log(copiedCallEmail)
+        //let trimmedObject = this.removeRedundantHashAttributes(copiedCallEmail);
+        this.removeRedundantHashAttributes(copiedCallEmail);
+        //let objectToHash = this.addHashAttributes(trimmedObject);
+        this.addHashAttributes(copiedCallEmail);
+
+        this.objectHash = hash(copiedCallEmail);
+
+    },
+    addHashAttributes: function(obj) {
+        let copiedRendererFormData = Object.assign({}, this.renderer_form_data);
+        obj.renderer_form_data = copiedRendererFormData;
+        obj.callerEntity = this.callerEntity;
+        return obj;
+    },
+    removeRedundantHashAttributes: function(obj) {
+        delete obj.assigned_to_id;
+        delete obj.allocated_group;
+        delete obj.schema;
+        delete obj.related_items;
+        delete obj.can_user_action;
+        delete obj.can_user_edit_form;
+        delete obj.can_user_search_person;
+        delete obj.user_in_group;
+        delete obj.user_is_assignee;
+        delete obj.user_is_volunteer ;
+        delete obj.volunteer_list;
+        delete obj.data;
     },
     updateWorkflowBindId: function() {
         let timeNow = Date.now()
@@ -700,7 +739,7 @@ export default {
         }
         console.log(savedCallEmail)
         // recalc hash after save
-        this.object_hash = hash(this.call_email);
+        this.calculateHash();
         if (savedCallEmail && savedCallEmail.ok && returnToDash === 'exit') {
             // remove redundant eventListeners
             window.removeEventListener('beforeunload', this.leaving);
@@ -827,7 +866,7 @@ export default {
     leaving: function(e) {
         //let vm = this;
         let dialogText = 'You have some unsaved changes.';
-        if (this.formChanged){
+        if (this.formChanged()){
             e.returnValue = dialogText;
             return dialogText;
         }
@@ -898,7 +937,7 @@ export default {
     if (!this.call_email.time_of_call && this.call_email.can_user_edit_form) {
         this.setTimeOfCall(moment().format('LT'));
     }
-    this.object_hash = hash(this.call_email);
+    this.calculateHash();
   },
   mounted: function() {
       let vm = this;
