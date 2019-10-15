@@ -911,7 +911,7 @@ export default {
       let savedInspection = null;
       let savedPerson = null;
       if (this.inspection.id) {
-          if (this.$refs.search_person_organisation) {
+          if (this.$refs.search_person_organisation && this.$refs.search_person_organisation.entityIsPerson) {
               console.log("savePerson")
               savedPerson = await this.$refs.search_person_organisation.parentSave()
               // if person save ok, continue with Inspection save
