@@ -409,7 +409,7 @@ export default {
   data: function() {
     return {
       uuid: 0,
-      object_hash: null,
+      objectHash: null,
       iTab: 'iTab'+this._uid,
       rTab: 'rTab'+this._uid,
       oTab: 'oTab'+this._uid,
@@ -480,6 +480,22 @@ export default {
       ),
       sanctionOutcomeInitialised: false,
       offenceInitialised: false,
+      hashAttributeWhitelist: [
+          "allocated_group_id",
+          "call_email_id",
+          "details",
+          "district_id",
+          "individual_inspected_id",
+          "inform_party_being_inspected",
+          "inspection_type_id",
+          "location",
+          "organisation_inspected_id",
+          "party_inspected",
+          "planned_for_date",
+          "planned_for_time",
+          "region_id",
+          "title",
+          ],
     };
   },
   components: {
@@ -499,6 +515,9 @@ export default {
   computed: {
     ...mapGetters('inspectionStore', {
       inspection: "inspection",
+    }),
+    ...mapGetters({
+        renderer_form_data: 'renderer_form_data'
     }),
     updateSearchPersonOrganisationBindId: function() {
         if (this.inspectedEntity.data_type && this.inspectedEntity.id) {
@@ -610,13 +629,6 @@ export default {
             entity.data_type = 'organisation';
         }
         return entity;
-    },
-    formChanged: function(){
-        let changed = false;
-        if(this.object_hash !== hash(this.inspection)){
-            changed = true;
-        }
-        return changed;
     },
     offenceBindId: function() {
         let offence_bind_id = ''
@@ -885,9 +897,9 @@ export default {
             action: 'make_team_lead'
         });
     },
-    entitySelected: function(para) {
+    entitySelected: async function(para) {
         console.log(para);
-        this.setPartyInspected(para);
+        await this.setPartyInspected(para);
     },
     updateWorkflowBindId: function() {
         //let workflowBindId = ''
@@ -925,7 +937,8 @@ export default {
       } else {
           savedInspection = await this.saveInspection({ create: true, internal: false });
       }
-      console.log(savedInspection);
+      this.calculateHash();
+      //console.log(savedInspection);
       if (savedInspection && savedInspection.ok && returnToDash === 'exit') {
         // remove redundant eventListeners
         window.removeEventListener('beforeunload', this.leaving);
@@ -976,12 +989,42 @@ export default {
     leaving: function(e) {
         let vm = this;
         let dialogText = '';
-        if (this.formChanged){
+        if (this.formChanged()){
             e.returnValue = dialogText;
             return dialogText;
         }
     },
-      
+    formChanged: function(){
+        let changed = false;
+        let copiedInspection = {};
+        Object.getOwnPropertyNames(this.inspection).forEach(
+            (val, idx, array) => {
+                if (this.hashAttributeWhitelist.includes(val)) {
+                    copiedInspection[val] = this.inspection[val]
+                }
+            });
+        this.addHashAttributes(copiedInspection);
+        if(this.objectHash !== hash(copiedInspection)){
+            changed = true;
+        }
+        return changed;
+    },
+    calculateHash: function() {
+        let copiedInspection = {}
+        Object.getOwnPropertyNames(this.inspection).forEach(
+            (val, idx, array) => {
+                if (this.hashAttributeWhitelist.includes(val)) {
+                    copiedInspection[val] = this.inspection[val]
+                }
+            });
+        this.addHashAttributes(copiedInspection);
+        this.objectHash = hash(copiedInspection);
+    },
+    addHashAttributes: function(obj) {
+        let copiedRendererFormData = Object.assign({}, this.renderer_form_data);
+        obj.renderer_form_data = copiedRendererFormData;
+        return obj;
+    },
     updateAssignedToId: async function (user) {
         let url = helpers.add_endpoint_join(
             api_endpoints.inspection, 
@@ -1032,7 +1075,8 @@ export default {
       // calling modifyInspectionTeam with null parameters returns the current list
       //this.modifyInspectionTeam({user_id: null, action: null});
       // create object hash
-      this.object_hash = hash(this.inspection);
+      //this.object_hash = hash(this.inspection);
+      this.calculateHash();
   },
   destroyed: function() {
       window.removeEventListener('beforeunload', this.leaving);
