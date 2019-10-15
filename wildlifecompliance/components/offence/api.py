@@ -242,7 +242,7 @@ class OffenceViewSet(viewsets.ModelViewSet):
             q_list.append(Q(occurrence_date_to__lte=date_to))
         if filter_sanction_outcome_type:
             offence_ids = SanctionOutcome.objects.filter(type=filter_sanction_outcome_type).values_list('offence__id', flat=True).distinct()
-            q_list.apend(Q(id__in=offence_ids))
+            q_list.append(Q(id__in=offence_ids))
 
         queryset = queryset.filter(reduce(operator.and_, q_list)) if len(q_list) else queryset
 
