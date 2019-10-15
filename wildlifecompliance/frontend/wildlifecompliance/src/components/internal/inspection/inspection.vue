@@ -480,6 +480,22 @@ export default {
       ),
       sanctionOutcomeInitialised: false,
       offenceInitialised: false,
+      hashAttributeWhitelist: [
+          "allocated_group_id",
+          "call_email_id",
+          "details",
+          "district_id",
+          "individual_inspected_id",
+          "inform_party_being_inspected",
+          "inspection_type_id",
+          "location",
+          "organisation_inspected_id",
+          "party_inspected",
+          "planned_for_date",
+          "planned_for_time",
+          "region_id",
+          "title",
+          ],
     };
   },
   components: {
@@ -637,11 +653,6 @@ export default {
           },
           deep: true
       },
-      //inspection: {
-      //    handler: function (){
-      //        this.simplifiedInspection = Object.assign({}, this.inspection);
-      //        this.inspectionHash = hash(this.simplified
-
   },
   methods: {
     ...mapActions('inspectionStore', {
@@ -985,8 +996,13 @@ export default {
     },
     formChanged: function(){
         let changed = false;
-        let copiedInspection = Object.assign({}, this.inspection);
-        this.removeHashAttributes(copiedInspection);
+        let copiedInspection = {};
+        Object.getOwnPropertyNames(this.inspection).forEach(
+            (val, idx, array) => {
+                if (this.hashAttributeWhitelist.includes(val)) {
+                    copiedInspection[val] = this.inspection[val]
+                }
+            });
         this.addHashAttributes(copiedInspection);
         if(this.objectHash !== hash(copiedInspection)){
             changed = true;
@@ -994,33 +1010,21 @@ export default {
         return changed;
     },
     calculateHash: function() {
-        // Inspection
-        let copiedInspection = Object.assign({}, this.inspection);
-        //let trimmedObject = this.removeRedundantHashAttributes(copiedInspection);
-        //let objectToHash = this.addHashAttributes(trimmedObject);
-        this.removeHashAttributes(copiedInspection);
+        let copiedInspection = {}
+        Object.getOwnPropertyNames(this.inspection).forEach(
+            (val, idx, array) => {
+                if (this.hashAttributeWhitelist.includes(val)) {
+                    copiedInspection[val] = this.inspection[val]
+                }
+            });
         this.addHashAttributes(copiedInspection);
-        this.objectHash = hash(copiedInspection)
+        this.objectHash = hash(copiedInspection);
     },
     addHashAttributes: function(obj) {
         let copiedRendererFormData = Object.assign({}, this.renderer_form_data);
         obj.renderer_form_data = copiedRendererFormData;
         return obj;
     },
-    removeHashAttributes: function(obj) {
-        delete obj.assigned_to_id;
-        delete obj.all_officers;
-        delete obj.allocated_group;
-        delete obj.schema;
-        delete obj.related_items;
-        delete obj.can_user_action;
-        delete obj.user_in_group;
-        delete obj.user_is_assignee;
-        delete obj.data;
-        delete obj.inspection_report;
-        return obj
-    },
-
     updateAssignedToId: async function (user) {
         let url = helpers.add_endpoint_join(
             api_endpoints.inspection, 

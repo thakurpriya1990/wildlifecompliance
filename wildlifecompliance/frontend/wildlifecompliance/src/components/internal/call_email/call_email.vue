@@ -485,6 +485,32 @@ export default {
       sanctionOutcomeInitialised: false,
       offenceInitialised: false,
       inspectionInitialised: false,
+      hashAttributeWhitelist: [
+          "allocated_group_id",
+          "location",
+          "location_id",
+          "classification",
+          "classification_id",
+          "lodgement_date",
+          "number",
+          "caller",
+          "report_type_id",
+          "caller_phone_number",
+          "anonymous_call",
+          "caller_wishes_to_remain_anonymous",
+          "occurrence_from_to",
+          "occurrence_date_from",
+          "occurrence_time_start",
+          "occurrence_date_to",
+          "occurrence_time_end",
+          "date_of_call",
+          "time_of_call",
+          "advice_given",
+          "advice_details",
+          "region_id",
+          "district_id",
+          "case_priority_id",
+          ]
     };
   },
   components: {
@@ -632,55 +658,41 @@ export default {
     updateUuid: function() {
         this.uuid += 1;
     },
-    entitySelected: function(para) {
+    entitySelected: async function(para) {
         console.log(para);
-        this.setCaller(para);
+        await this.setCaller(para);
     },
     formChanged: function(){
         let changed = false;
-        let copiedCallEmail = Object.assign({}, this.call_email);
-        //let trimmedObject = this.removeRedundantHashAttributes(copiedCallEmail);
-        //let objectToHash = this.addHashAttributes(trimmedObject);
-        this.removeHashAttributes(copiedCallEmail);
+        let copiedCallEmail = {};
+        Object.getOwnPropertyNames(this.call_email).forEach(
+            (val, idx, array) => {
+                if (this.hashAttributeWhitelist.includes(val)) {
+                    copiedCallEmail[val] = this.call_email[val]
+                }
+            });
         this.addHashAttributes(copiedCallEmail);
-        console.log(copiedCallEmail)
-        console.log(this.call_email)
-        
         if(this.objectHash !== hash(copiedCallEmail)){
             changed = true;
         }
         return changed;
     },
     calculateHash: function() {
-        let copiedCallEmail = Object.assign({}, this.call_email);
-        //console.log(copiedCallEmail)
-        //let trimmedObject = this.removeRedundantHashAttributes(copiedCallEmail);
-        this.removeHashAttributes(copiedCallEmail);
-        //let objectToHash = this.addHashAttributes(trimmedObject);
+        let copiedCallEmail = {}
+        Object.getOwnPropertyNames(this.call_email).forEach(
+            (val, idx, array) => {
+                if (this.hashAttributeWhitelist.includes(val)) {
+                    copiedCallEmail[val] = this.call_email[val]
+                }
+            });
         this.addHashAttributes(copiedCallEmail);
-
         this.objectHash = hash(copiedCallEmail);
-
     },
     addHashAttributes: function(obj) {
         let copiedRendererFormData = Object.assign({}, this.renderer_form_data);
         obj.renderer_form_data = copiedRendererFormData;
-        obj.callerEntity = this.callerEntity;
-        return obj;
-    },
-    removeHashAttributes: function(obj) {
-        delete obj.assigned_to_id;
-        delete obj.allocated_group;
-        delete obj.schema;
-        delete obj.related_items;
-        delete obj.can_user_action;
-        delete obj.can_user_edit_form;
-        delete obj.can_user_search_person;
-        delete obj.user_in_group;
-        delete obj.user_is_assignee;
-        delete obj.user_is_volunteer ;
-        delete obj.volunteer_list;
-        delete obj.data;
+        let copiedCallerEntity = Object.assign({}, this.callerEntity);
+        obj.callerEntity = copiedCallerEntity;
     },
     updateWorkflowBindId: function() {
         let timeNow = Date.now()
@@ -983,6 +995,7 @@ export default {
       
       vm.$nextTick(() => {
           vm.addEventListeners();
+          //this.calculateHash();
       });
 
   }
