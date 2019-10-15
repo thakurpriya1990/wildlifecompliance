@@ -452,7 +452,7 @@ export default {
                 if (!(parentSave === 'parentSave')) {
                     await swal("Saved", "Person has been saved", "success");
                 }
-                //this.$emit('person-saved', {'person': savedEmailUser.body, 'errorMessage': null});
+                this.$emit('person-saved', {'person': savedEmailUser.body, 'errorMessage': null});
             } catch (err) {
                 if (err.bodyText) {
                     await swal("Error", err.bodyText, "error");
