@@ -456,7 +456,7 @@ export default {
             await this.loadSanctionOutcome({ sanction_outcome_id: this.$route.params.sanction_outcome_id });
             this.createStorageAllegedCommittedOffences();
             this.constructAllegedCommittedOffencesTable();
-            this.calculateHash()
+            this.updateObjectHash()
         }
     },
     mounted: function() {
@@ -616,13 +616,10 @@ export default {
             setCanUserAction: 'setCanUserAction',
             setRelatedItems: 'setRelatedItems',
         }),
-      //  addHashAttributes: function(obj) {
-      //      let copiedRendererFormData = Object.assign({}, this.renderer_form_data);
-      //      obj.renderer_form_data = copiedRendererFormData;
-      //      return obj;
-      //  },
+        updateObjectHash: function() {
+            this.objectHash = this.calculateHash();
+        },
         calculateHash: function() {
-            console.log('calculateHash');
             let copiedObject = {}
             Object.getOwnPropertyNames(this.sanction_outcome).forEach(
                 (val, idx, array) => {
@@ -630,24 +627,14 @@ export default {
                         copiedObject[val] = this.sanction_outcome[val]
                     }
                 });
-            this.objectHash = hash(copiedObject);
+            return hash(copiedObject);
         },
         sanctionOutcomeDocumentUploaded: function() {
             console.log('sanctionOutcomeDocumentUploaded');
-            this.calculateHash();
         },
         formChanged: function(){
-            console.log('formChanged');
             let changed = false;
-            let copiedObject = {};
-            Object.getOwnPropertyNames(this.sanction_outcome).forEach(
-                (val, idx, array) => {
-                    if (this.hashAttributeWhitelist.includes(val)) {
-                        copiedObject[val] = this.sanction_outcome[val]
-                    }
-                });
-            //this.addHashAttributes(copiedObject);
-            if(this.objectHash !== hash(copiedObject)){
+            if(this.objectHash !== this.calculateHash()){
                 changed = true;
             }
             return changed;
@@ -667,7 +654,7 @@ export default {
                 await swal("Saved", "The record has been saved", "success");
 
                 this.constructAllegedCommittedOffencesTable();
-                this.calculateHash()
+                this.updateObjectHash()
             } catch (err) {
                 this.processError(err);
             }
