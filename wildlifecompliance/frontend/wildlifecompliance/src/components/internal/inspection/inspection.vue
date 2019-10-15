@@ -653,17 +653,6 @@ export default {
       setPartyInspected: 'setPartyInspected',
       setRelatedItems: 'setRelatedItems',
     }),
-    formChanged: function(){
-        let changed = false;
-        let copiedInspection = Object.assign({}, this.inspection);
-        let trimmedObject = this.removeRedundantHashAttributes(copiedInspection);
-        let objectToHash = this.addHashAttributes(trimmedObject);
-
-        if(this.objectHash !== hash(objectToHash)){
-            changed = true;
-        }
-        return changed;
-    },
         mapTabClicked: function() {
             // Call this function to render the map correctly
             // In some case, leaflet map is not rendered correctly...   Just partialy shown...
@@ -994,19 +983,31 @@ export default {
             return dialogText;
         }
     },
+    formChanged: function(){
+        let changed = false;
+        let copiedInspection = Object.assign({}, this.inspection);
+        this.removeHashAttributes(copiedInspection);
+        this.addHashAttributes(copiedInspection);
+        if(this.objectHash !== hash(copiedInspection)){
+            changed = true;
+        }
+        return changed;
+    },
     calculateHash: function() {
         // Inspection
         let copiedInspection = Object.assign({}, this.inspection);
-        let trimmedObject = this.removeRedundantHashAttributes(copiedInspection);
-        let objectToHash = this.addHashAttributes(trimmedObject);
-        this.objectHash = hash(objectToHash)
+        //let trimmedObject = this.removeRedundantHashAttributes(copiedInspection);
+        //let objectToHash = this.addHashAttributes(trimmedObject);
+        this.removeHashAttributes(copiedInspection);
+        this.addHashAttributes(copiedInspection);
+        this.objectHash = hash(copiedInspection)
     },
     addHashAttributes: function(obj) {
         let copiedRendererFormData = Object.assign({}, this.renderer_form_data);
         obj.renderer_form_data = copiedRendererFormData;
         return obj;
     },
-    removeRedundantHashAttributes: function(obj) {
+    removeHashAttributes: function(obj) {
         delete obj.assigned_to_id;
         delete obj.all_officers;
         delete obj.allocated_group;

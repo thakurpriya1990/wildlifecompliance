@@ -641,7 +641,7 @@ export default {
         let copiedCallEmail = Object.assign({}, this.call_email);
         //let trimmedObject = this.removeRedundantHashAttributes(copiedCallEmail);
         //let objectToHash = this.addHashAttributes(trimmedObject);
-        this.removeRedundantHashAttributes(copiedCallEmail);
+        this.removeHashAttributes(copiedCallEmail);
         this.addHashAttributes(copiedCallEmail);
         console.log(copiedCallEmail)
         console.log(this.call_email)
@@ -655,7 +655,7 @@ export default {
         let copiedCallEmail = Object.assign({}, this.call_email);
         //console.log(copiedCallEmail)
         //let trimmedObject = this.removeRedundantHashAttributes(copiedCallEmail);
-        this.removeRedundantHashAttributes(copiedCallEmail);
+        this.removeHashAttributes(copiedCallEmail);
         //let objectToHash = this.addHashAttributes(trimmedObject);
         this.addHashAttributes(copiedCallEmail);
 
@@ -668,7 +668,7 @@ export default {
         obj.callerEntity = this.callerEntity;
         return obj;
     },
-    removeRedundantHashAttributes: function(obj) {
+    removeHashAttributes: function(obj) {
         delete obj.assigned_to_id;
         delete obj.allocated_group;
         delete obj.schema;
