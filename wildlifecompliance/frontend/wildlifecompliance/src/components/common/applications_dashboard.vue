@@ -185,7 +185,7 @@ export default {
                     let links = '';
                     if (!vm.is_external){
                         const finalised = ['approved', 'declined'].includes(full.processing_status.id);
-                        links += (full.can_be_processed && full.user_in_officers_and_assessors) ?
+                        links += (full.can_be_processed && full.user_in_officers) ?
                             `<a href='/internal/application/${full.id}'>Process</a><br/>` :
                             `<a href='/${finalised ? 'internal' : 'external'}/application/${full.id}'>View</a><br/>`;
                     }

@@ -523,7 +523,7 @@ class DTInternalApplicationSerializer(BaseApplicationSerializer):
     assigned_officer = serializers.CharField(
         source='assigned_officer.get_full_name')
     can_be_processed = serializers.SerializerMethodField(read_only=True)
-    user_in_officers_and_assessors = serializers.SerializerMethodField(read_only=True)
+    user_in_officers = serializers.SerializerMethodField(read_only=True)
     application_type = CustomChoiceField(read_only=True)
 
     class Meta:
@@ -548,7 +548,7 @@ class DTInternalApplicationSerializer(BaseApplicationSerializer):
             'payment_status',
             'assigned_officer',
             'can_be_processed',
-            'user_in_officers_and_assessors',
+            'user_in_officers',
             'application_type',
             'activities'
         )
@@ -557,11 +557,13 @@ class DTInternalApplicationSerializer(BaseApplicationSerializer):
         # of fields that are not listed as 'data' in the datatable columns
         datatables_always_serialize = fields
 
-    def get_user_in_officers_and_assessors(self, obj):
-        if self.context['request'].user and self.context['request'].user in obj.officers_and_assessors:
+    def get_user_in_officers(self, obj):
+        groups = obj.get_permission_groups(['licensing_officer','issuing_officer']).values_list('id', flat=True)
+        can_process = EmailUser.objects.filter(groups__id__in=groups).distinct()               
+        if self.context['request'].user and self.context['request'].user in can_process:
             return True
-        return False
 
+        return False
 
 class DTExternalApplicationSerializer(BaseApplicationSerializer):
     submitter = EmailUserSerializer()
@@ -956,6 +958,7 @@ class DTAssessmentSerializer(serializers.ModelSerializer):
         source='application.application_type',
         choices=Application.APPLICATION_TYPE_CHOICES,
         read_only=True)
+    can_be_processed = serializers.SerializerMethodField(read_only=True)    
 
     class Meta:
         model = Assessment
@@ -971,7 +974,8 @@ class DTAssessmentSerializer(serializers.ModelSerializer):
             'applicant',
             'application_category',
             'application_type',
-            'application_id'
+            'application_id',
+            'can_be_processed'
         )
         # the serverSide functionality of datatables is such that only columns that have field 'data'
         # defined are requested from the serializer. Use datatables_always_serialize to force render
@@ -980,3 +984,11 @@ class DTAssessmentSerializer(serializers.ModelSerializer):
 
     def get_submitter(self, obj):
         return EmailUserSerializer(obj.application.submitter).data
+
+    def get_can_be_processed(self, obj):
+        groups = obj.application.get_permission_groups(['assessor']).values_list('id', flat=True)
+        can_process = EmailUser.objects.filter(groups__id__in=groups).distinct()               
+        if self.context['request'].user and self.context['request'].user in can_process and obj.status == obj.STATUS_AWAITING_ASSESSMENT:
+            return True
+
+        return False
