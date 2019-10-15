@@ -125,9 +125,7 @@ class SanctionOutcomeFilterBackend(DatatablesFilterBackend):
 
 class SanctionOutcomePaginatedViewSet(viewsets.ModelViewSet):
     filter_backends = (SanctionOutcomeFilterBackend,)
-    # filter_backends = (DatatablesFilterBackend,)
     pagination_class = DatatablesPageNumberPagination
-    # renderer_classes = (InspectionRenderer,)
     queryset = SanctionOutcome.objects.none()
     serializer_class = SanctionOutcomeDatatableSerializer
     page_size = 10
@@ -141,8 +139,23 @@ class SanctionOutcomePaginatedViewSet(viewsets.ModelViewSet):
     @list_route(methods=['GET', ])
     def get_paginated_datatable(self, request, *args, **kwargs):
         queryset = self.get_queryset()
-
         queryset = self.filter_queryset(queryset)
+        self.paginator.page_size = queryset.count()
+        result_page = self.paginator.paginate_queryset(queryset, request)
+        serializer = SanctionOutcomeDatatableSerializer(result_page, many=True, context={'request': request})
+        ret = self.paginator.get_paginated_response(serializer.data)
+        return ret
+
+    @list_route(methods=['GET', ])
+    def user_datatable_list(self, request, *args, **kwargs):
+        """
+        This function is called from the external dashboard page by external user
+        """
+        queryset = SanctionOutcome.objects.filter(Q(offender__person=request.user) &
+                                                  Q(offender__removed=False) &
+                                                  Q(status__in=(SanctionOutcome.STATUS_AWAITING_PAYMENT,
+                                                                SanctionOutcome.STATUS_AWAITING_REMEDIATION_ACTIONS,
+                                                                SanctionOutcome.STATUS_CLOSED)))
         self.paginator.page_size = queryset.count()
         result_page = self.paginator.paginate_queryset(queryset, request)
         serializer = SanctionOutcomeDatatableSerializer(result_page, many=True, context={'request': request})
