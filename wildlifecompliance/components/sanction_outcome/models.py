@@ -23,6 +23,15 @@ class SanctionOutcomeActiveManager(models.Manager):
         )
 
 
+class SanctionOutcomeExternalManager(models.Manager):
+    def get_query_set(self):
+        return super(SanctionOutcomeExternalManager, self).get_query_set().filter(
+            Q(offender__removed=False) &
+            Q(status__in=(SanctionOutcome.STATUS_AWAITING_PAYMENT,
+                          SanctionOutcome.STATUS_AWAITING_REMEDIATION_ACTIONS,
+                          SanctionOutcome.STATUS_CLOSED)))
+
+
 class SanctionOutcome(models.Model):
     WORKFLOW_SEND_TO_MANAGER = 'send_to_manager'
     WORKFLOW_ENDORSE = 'endorse'
@@ -41,10 +50,18 @@ class SanctionOutcome(models.Model):
     STATUS_WITHDRAWN = 'withdrawn'
     STATUS_CLOSED = 'closed'
 
+    STATUS_CHOICES_FOR_EXTERNAL = (
+        (STATUS_AWAITING_PAYMENT, 'Awaiting Payment'),
+        (STATUS_AWAITING_REMEDIATION_ACTIONS, 'Awaiting Remediation Actions'),
+        # (STATUS_DECLINED, 'Declined'),
+        # (STATUS_WITHDRAWN, 'Withdrawn'),
+        (STATUS_CLOSED, 'closed'),
+    )
     STATUS_CHOICES = (
         (STATUS_DRAFT, 'Draft'),
         (STATUS_AWAITING_ENDORSEMENT, 'Awaiting Endorsement'),
-        (STATUS_AWAITING_PAYMENT, 'Awaiting Payment'),
+        (STATUS_AWAITING_PAYMENT, 'Awaiting Payment'),  # TODO: implement pending closuer of SanctionOutcome with type RemediationActions
+                                                        # This is pending closure status
         (STATUS_AWAITING_REVIEW, 'Awaiting Review'),
         (STATUS_AWAITING_REMEDIATION_ACTIONS, 'Awaiting Remediation Actions'),  # TODO: implement pending closuer of SanctionOutcome with type RemediationActions
                                                                                 # This is pending closure status
@@ -99,6 +116,7 @@ class SanctionOutcome(models.Model):
 
     objects = models.Manager()
     objects_active = SanctionOutcomeActiveManager()
+    objects_for_external = SanctionOutcomeExternalManager()
 
 
     @property
