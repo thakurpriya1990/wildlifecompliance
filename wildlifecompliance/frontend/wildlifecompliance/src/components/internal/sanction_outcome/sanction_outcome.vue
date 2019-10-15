@@ -264,9 +264,16 @@
                                 </FormSection>
                             </div>
 
-                            <div :id="reTab" class="tab-pane fade in active">
-                                
+                            <div :id="reTab" class="tab-pane fade in">
+                                <FormSection :formCollapse="false" label="Related Items" Index="4">
+                                    <div class="col-sm-12 form-group"><div class="row">
+                                        <div class="col-sm-12">
+                                            <RelatedItems v-bind:key="relatedItemsBindId" :parent_update_related_items="setRelatedItems" :readonlyForm="readonlyForm" />
+                                        </div>
+                                    </div></div>
+                                </FormSection>
                             </div>
+                                
                         </div>
                     </div>
                 </div>
@@ -303,6 +310,7 @@ import filefield from '@/components/common/compliance_file.vue';
 import SanctionOutcomeWorkflow from './sanction_outcome_workflow';
 import 'bootstrap/dist/css/bootstrap.css';
 import hash from 'object-hash';
+import RelatedItems from "@common-components/related_items.vue";
 
 export default {
     name: 'ViewSanctionOutcome',
@@ -425,6 +433,7 @@ export default {
         CommsLogs,
         datatable,
         filefield,
+        RelatedItems,
     },
     created: async function() {
         if (this.$route.params.sanction_outcome_id) {
@@ -443,6 +452,14 @@ export default {
         ...mapGetters('sanctionOutcomeStore', {
             sanction_outcome: "sanction_outcome",
         }),
+        relatedItemsBindId: function() {
+            let timeNow = Date.now()
+            if (this.sanction_outcome && this.sanction_outcome.id) {
+                return 'sanction_outcome_' + this.sanction_outcome.id + '_' + this._uid;
+            } else {
+                return timeNow.toString();
+            }
+        },
         readonlyForm: function() {
             return !this.canUserEditForm;
         },
@@ -581,6 +598,7 @@ export default {
             saveSanctionOutcome: 'saveSanctionOutcome',
             setAssignedToId: 'setAssignedToId',
             setCanUserAction: 'setCanUserAction',
+            setRelatedItems: 'setRelatedItems',
         }),
         sanctionOutcomeDocumentUploaded: function() {
             console.log('sanctionOutcomeDocumentUploaded');
