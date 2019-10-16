@@ -21,6 +21,29 @@ from django.core.exceptions import ValidationError
 logger = logging.getLogger(__name__)
 
 
+class LegalCasePriority(models.Model):
+    case_priority = models.CharField(max_length=50)
+    schema = JSONField(null=True)
+    version = models.SmallIntegerField(default=1, blank=False, null=False)
+    description = models.CharField(max_length=255, blank=True, null=True)
+    replaced_by = models.ForeignKey(
+        'self', on_delete=models.PROTECT, blank=True, null=True)
+    date_created = models.DateTimeField(auto_now_add=True, null=True)
+    #approval_document = models.ForeignKey(
+    #    'InspectionTypeApprovalDocument',
+    #    related_name='inspection_type',
+    #    null=True)
+
+    class Meta:
+        app_label = 'wildlifecompliance'
+        verbose_name = 'CM_CasePriority'
+        verbose_name_plural = 'CM_CasePriorities'
+        unique_together = ('case_priority', 'version')
+
+    def __str__(self):
+        return '{0}, v.{1}'.format(self.case_priority, self.version)
+
+
 class LegalCase(RevisionedMixin):
     STATUS_OPEN = 'open'
     #STATUS_WITH_MANAGER = 'with_manager'
@@ -49,8 +72,8 @@ class LegalCase(RevisionedMixin):
             )
     details = models.TextField(blank=True, null=True)
     number = models.CharField(max_length=50, blank=True, null=True)
-    created_date = models.DateField(null=True)
-    created_time = models.TimeField(blank=True, null=True)
+    case_created_date = models.DateField(null=True)
+    case_created_time = models.TimeField(blank=True, null=True)
     call_email = models.ForeignKey(
         CallEmail, 
         related_name='legal_case_call_email',
@@ -61,11 +84,25 @@ class LegalCase(RevisionedMixin):
         related_name='legal_case_assigned_to',
         null=True
         )
-    #allocated_group = models.ForeignKey(
-    #    CompliancePermissionGroup,
-    #    related_name='inspection_allocated_group', 
-    #    null=True
-    #    )
+    allocated_group = models.ForeignKey(
+        CompliancePermissionGroup,
+        related_name='legal_case_allocated_group', 
+        null=True
+        )
+    region = models.ForeignKey(
+        RegionDistrict, 
+        related_name='legal_case_region', 
+        null=True
+    )
+    district = models.ForeignKey(
+        RegionDistrict, 
+        related_name='legal_case_district', 
+        null=True
+    )
+    legal_case_priority = models.ForeignKey(
+            LegalCasePriority,
+            null=True
+            )
 
     class Meta:
         app_label = 'wildlifecompliance'
@@ -142,25 +179,25 @@ class LegalCaseCommsLogDocument(Document):
 
 
 class LegalCaseUserAction(UserAction):
-    ACTION_CREATE_INSPECTION = "Create Inspection {}"
-    ACTION_SAVE_INSPECTION_ = "Save Inspection {}"
-    ACTION_OFFENCE = "Create Offence {}"
-    ACTION_SANCTION_OUTCOME = "Create Sanction Outcome {}"
-    ACTION_SEND_TO_MANAGER = "Send Inspection {} to Manager"
-    ACTION_CLOSE = "Close Inspection {}"
-    ACTION_PENDING_CLOSURE = "Mark Inspection {} as pending closure"
-    ACTION_REQUEST_AMENDMENT = "Request amendment for {}"
-    ACTION_ENDORSEMENT = "Inspection {} has been endorsed by {}"
-    # ACTION_ADD_WEAK_LINK = "Create manual link between Inspection: {} and {}: {}"
-    # ACTION_REMOVE_WEAK_LINK = "Remove manual link between Inspection: {} and {}: {}"
-    ACTION_ADD_WEAK_LINK = "Create manual link between {}: {} and {}: {}"
-    ACTION_REMOVE_WEAK_LINK = "Remove manual link between {}: {} and {}: {}"
-    ACTION_MAKE_TEAM_LEAD = "Make {} team lead"
-    ACTION_ADD_TEAM_MEMBER = "Add {} to team"
-    ACTION_REMOVE_TEAM_MEMBER = "Remove {} from team"
-    ACTION_UPLOAD_INSPECTION_REPORT = "Upload Inspection Report '{}'"
-    ACTION_CHANGE_INDIVIDUAL_INSPECTED = "Change individual inspected from {} to {}"
-    ACTION_CHANGE_ORGANISATION_INSPECTED = "Change organisation inspected from {} to {}"
+    ACTION_CREATE_LEGAL_CASE = "Create Case {}"
+    ACTION_SAVE_LEGAL_CASE = "Save Case {}"
+    #ACTION_OFFENCE = "Create Offence {}"
+    #ACTION_SANCTION_OUTCOME = "Create Sanction Outcome {}"
+    #ACTION_SEND_TO_MANAGER = "Send Inspection {} to Manager"
+    #ACTION_CLOSE = "Close Inspection {}"
+    #ACTION_PENDING_CLOSURE = "Mark Inspection {} as pending closure"
+    #ACTION_REQUEST_AMENDMENT = "Request amendment for {}"
+    #ACTION_ENDORSEMENT = "Inspection {} has been endorsed by {}"
+    ## ACTION_ADD_WEAK_LINK = "Create manual link between Inspection: {} and {}: {}"
+    ## ACTION_REMOVE_WEAK_LINK = "Remove manual link between Inspection: {} and {}: {}"
+    #ACTION_ADD_WEAK_LINK = "Create manual link between {}: {} and {}: {}"
+    #ACTION_REMOVE_WEAK_LINK = "Remove manual link between {}: {} and {}: {}"
+    #ACTION_MAKE_TEAM_LEAD = "Make {} team lead"
+    #ACTION_ADD_TEAM_MEMBER = "Add {} to team"
+    #ACTION_REMOVE_TEAM_MEMBER = "Remove {} from team"
+    #ACTION_UPLOAD_INSPECTION_REPORT = "Upload Inspection Report '{}'"
+    #ACTION_CHANGE_INDIVIDUAL_INSPECTED = "Change individual inspected from {} to {}"
+    #ACTION_CHANGE_ORGANISATION_INSPECTED = "Change organisation inspected from {} to {}"
 
     class Meta:
         app_label = 'wildlifecompliance'

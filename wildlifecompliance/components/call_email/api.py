@@ -57,9 +57,6 @@ from wildlifecompliance.components.call_email.models import (
     Referrer,
     CallEmailUserAction,
     MapLayer,
-    CasePriority,
-    #InspectionType,
-    # ExternalOrganisation,
     CallEmailLogEntry,
     )
 from wildlifecompliance.components.call_email.serializers import (
@@ -84,7 +81,6 @@ from wildlifecompliance.components.call_email.serializers import (
     CallEmailDatatableSerializer,
     SaveUserAddressSerializer,
     #InspectionTypeSerializer,
-    CasePrioritySerializer,
     # ExternalOrganisationSerializer,
     CallEmailAllocatedGroupSerializer,
     UpdateAssignedToIdSerializer
@@ -803,17 +799,6 @@ class ReferrerViewSet(viewsets.ModelViewSet):
         if is_internal(self.request):
             return Referrer.objects.all()
         return Referrer.objects.none()
-
-
-class CasePriorityViewSet(viewsets.ModelViewSet):
-    queryset = CasePriority.objects.all()
-    serializer_class = CasePrioritySerializer
-
-    def get_queryset(self):
-        user = self.request.user
-        if is_internal(self.request):
-            return CasePriority.objects.all()
-        return CasePriority.objects.none()
 
 
 class ReportTypeViewSet(viewsets.ModelViewSet):
