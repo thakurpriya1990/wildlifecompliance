@@ -41,6 +41,12 @@ class SanctionOutcome(models.Model):
     WORKFLOW_RETURN_TO_OFFICER = 'return_to_officer'
     WORKFLOW_CLOSE = 'close'
 
+    PAYMENT_STATUS_UNPAID = 'unpaid'
+    PAYMENT_STATUS_PAID = 'paid'
+    PAYMENT_STATUS_CHOICES = (
+        (PAYMENT_STATUS_PAID, 'Paid'),
+        (PAYMENT_STATUS_UNPAID, 'Unpaid')
+    )
     STATUS_DRAFT = 'draft'
     STATUS_AWAITING_ENDORSEMENT = 'awaiting_endorsement'
     STATUS_AWAITING_PAYMENT = 'awaiting_payment'
@@ -49,7 +55,6 @@ class SanctionOutcome(models.Model):
     STATUS_DECLINED = 'declined'
     STATUS_WITHDRAWN = 'withdrawn'
     STATUS_CLOSED = 'closed'
-
     STATUS_CHOICES_FOR_EXTERNAL = (
         (STATUS_AWAITING_PAYMENT, 'Awaiting Payment'),
         (STATUS_AWAITING_REMEDIATION_ACTIONS, 'Awaiting Remediation Actions'),
@@ -87,6 +92,7 @@ class SanctionOutcome(models.Model):
 
     type = models.CharField(max_length=30, choices=TYPE_CHOICES, blank=True,)
     status = models.CharField(max_length=40, choices=STATUS_CHOICES, default=__original_status,)
+    payment_status = models.CharField(max_length=40, choices=PAYMENT_STATUS_CHOICES, blank=True,)
 
     region = models.ForeignKey(RegionDistrict, related_name='sanction_outcome_region', null=True,)
     district = models.ForeignKey(RegionDistrict, related_name='sanction_outcome_district', null=True,)
