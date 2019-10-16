@@ -34,7 +34,7 @@
                         <div class="col-md-3">
                             <div class="form-group">
                                 <label for="">Payment status</label>
-                                <select class="form-control" v-model="filterStatus">
+                                <select class="form-control" v-model="filterPaymentStatus">
                                     <option v-for="option in sanction_outcome_payment_statuses" :value="option.id" v-bind:key="option.id">
                                         {{ option.display }}
                                     </option>
@@ -175,9 +175,9 @@ export default {
                         }
                     },
                     {
-                        mRender: function (data, type, full) {
-                            return '---';
-                        }
+                        data: 'payment_status.name',
+                        searchable: true,
+                        orderable: true,
                     },
                     {
                         data: 'paper_notices',
@@ -282,6 +282,8 @@ export default {
             this.sanction_outcome_statuses.splice(0, 0, {id: 'all', display: 'All'});
         },
         constructOptionsPaymentStatus: async function() {
+            let returned = await cache_helper.getSetCacheList('SanctionOutcomePaymentStatuses', '/api/sanction_outcome/payment_statuses.json');
+            Object.assign(this.sanction_outcome_payment_statuses, returned);
             this.sanction_outcome_payment_statuses.splice(0, 0, {id: 'all', display: 'All'});
         },
       //  addEventListeners: function(){

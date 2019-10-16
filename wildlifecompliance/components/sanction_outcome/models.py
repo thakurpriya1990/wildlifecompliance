@@ -246,6 +246,7 @@ class SanctionOutcome(models.Model):
     def endorse(self, request):
         if self.type == SanctionOutcome.TYPE_INFRINGEMENT_NOTICE:
             self.status = SanctionOutcome.STATUS_AWAITING_PAYMENT
+            self.payment_status = SanctionOutcome.PAYMENT_STATUS_UNPAID
         elif self.type in (SanctionOutcome.TYPE_CAUTION_NOTICE, SanctionOutcome.TYPE_LETTER_OF_ADVICE):
             self.status = SanctionOutcome.STATUS_CLOSED
             self.save()  # This makes sure this sanction outcome status sets to 'closed'

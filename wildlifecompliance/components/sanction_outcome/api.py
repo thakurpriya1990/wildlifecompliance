@@ -70,7 +70,7 @@ class SanctionOutcomeFilterBackend(DatatablesFilterBackend):
         if status and status != 'all':
             q_objects &= Q(status=status)
 
-        payment_status = request.GET.get('payment_status',).lower()
+        payment_status = request.GET.get('payment_status', '').lower()
         if payment_status and payment_status != 'all':
             q_objects &= Q(payment_status=payment_status)
 
