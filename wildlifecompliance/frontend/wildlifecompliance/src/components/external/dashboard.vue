@@ -38,7 +38,7 @@ export default {
             applications_url: helpers.add_endpoint_join(api_endpoints.applications_paginated,'external_datatable_list/?format=datatables'),
             licences_url: helpers.add_endpoint_join(api_endpoints.licences_paginated,'external_datatable_list/?format=datatables'),
             returns_url: helpers.add_endpoint_join(api_endpoints.returns_paginated,'user_datatable_list/?format=datatables'),
-            sanction_outcome_url: helpers.add_endpoint_join(api_endpoints.sanction_outcome_paginated,'user_datatable_list/?format=datatables'),
+            sanction_outcome_url: helpers.add_endpoint_join(api_endpoints.sanction_outcome_paginated,'external_datatable_list/?format=datatables'),
             empty_list: '/api/empty_list',
         }
     },

@@ -147,7 +147,7 @@ class SanctionOutcomePaginatedViewSet(viewsets.ModelViewSet):
         return ret
 
     @list_route(methods=['GET', ])
-    def user_datatable_list(self, request, *args, **kwargs):
+    def external_datatable_list(self, request, *args, **kwargs):
         """
         This function is called from the external dashboard page by external user
         """

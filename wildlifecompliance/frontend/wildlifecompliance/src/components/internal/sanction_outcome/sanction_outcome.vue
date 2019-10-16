@@ -629,15 +629,15 @@ export default {
                 });
             return hash(copiedObject);
         },
-        sanctionOutcomeDocumentUploaded: function() {
-            console.log('sanctionOutcomeDocumentUploaded');
-        },
         formChanged: function(){
             let changed = false;
             if(this.objectHash !== this.calculateHash()){
                 changed = true;
             }
             return changed;
+        },
+        sanctionOutcomeDocumentUploaded: function() {
+            console.log('sanctionOutcomeDocumentUploaded');
         },
         createStorageAllegedCommittedOffences: function() {
             if (this.sanction_outcome && this.sanction_outcome.alleged_committed_offences){
@@ -838,6 +838,7 @@ export default {
             );
             this.setAssignedToId(res.body.assigned_to_id);
             this.setCanUserAction(res.body.can_user_action);
+            this.updateObjectHash();
         },
     }
 }

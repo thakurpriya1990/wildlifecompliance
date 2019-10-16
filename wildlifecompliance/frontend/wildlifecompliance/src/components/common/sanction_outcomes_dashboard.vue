@@ -111,10 +111,6 @@ export default {
             filterDateFrom: '',
             filterDateTo: '',
 
-         //   filterStatus: 'All',
-         //   filterDueDateFrom: '',
-         //   filterDueDateTo: '',
-
             dateFormat: 'DD/MM/YYYY',
             datepickerOptions:{
                 format: 'DD/MM/YYYY',
