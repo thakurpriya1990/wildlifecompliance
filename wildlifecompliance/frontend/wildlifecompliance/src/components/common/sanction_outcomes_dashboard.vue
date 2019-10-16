@@ -137,6 +137,10 @@ export default {
                         d.payment_status = vm.filterPaymentStatus;
                         d.date_from = vm.filterDateFrom;
                         d.date_to = vm.filterDateTo;
+                    },
+                    complete: function(jqXHR, textStatus){
+                        // A function to be called when the request succeeds.
+                        vm.$emit('records_total', jqXHR.responseJSON.recordsTotal);
                     }
                 },
                 columns: [
@@ -150,6 +154,7 @@ export default {
                         searchable: true,
                         orderable: true,
                         mRender: function (data, type, full) {
+                            console.log(full);
                             return data.name;
                         }
                     },

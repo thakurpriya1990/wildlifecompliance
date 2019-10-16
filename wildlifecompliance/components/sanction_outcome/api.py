@@ -58,9 +58,9 @@ class SanctionOutcomeFilterBackend(DatatablesFilterBackend):
                          Q(offender__person__first_name__icontains=search_text) | \
                          Q(offender__person__last_name__icontains=search_text) | \
                          Q(offender__person__email__icontains=search_text) | \
-                         Q(offender__organisation__name__icontains=search_text) | \
-                         Q(offender__organisation__abn__icontains=search_text) | \
-                         Q(offender__organisation__trading_name__icontains=search_text)
+                         Q(offender__organisation__organisation__name__icontains=search_text) | \
+                         Q(offender__organisation__organisation__abn__icontains=search_text) | \
+                         Q(offender__organisation__organisation__trading_name__icontains=search_text)
 
         type = request.GET.get('type', '').lower()
         if type and type != 'all':

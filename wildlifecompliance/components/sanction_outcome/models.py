@@ -5,9 +5,9 @@ from django.contrib.contenttypes.models import ContentType
 from django.core.exceptions import ValidationError
 from django.db import models
 from django.db.models import Q
+from django.db.models.signals import post_save
 
 from ledger.accounts.models import EmailUser, RevisionedMixin
-from wildlifecompliance.components.main import get_next_value
 from wildlifecompliance.components.main.models import Document, UserAction, CommunicationsLogEntry
 from wildlifecompliance.components.main.related_item import can_close_record
 from wildlifecompliance.components.offence.models import Offence, Offender, SectionRegulation, AllegedOffence
@@ -322,9 +322,10 @@ class SanctionOutcome(models.Model):
         ordering = ['-id']
 
 
-# class AllegedCommittedOffenceActiveManager(models.Manager):
-#     def get_query_set(self):
-#         return super(AllegedCommittedOffenceActiveManager, self).get_query_set().exclude(Q(removed=True))
+def perform_can_close_record(sender, instance, **kwargs):
+    pass
+
+post_save.connect(perform_can_close_record, sender=SanctionOutcome)
 
 
 class AllegedCommittedOffence(RevisionedMixin):

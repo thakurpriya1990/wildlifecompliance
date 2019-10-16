@@ -294,7 +294,6 @@ class SaveSanctionOutcomeSerializer(serializers.ModelSerializer):
             'region_id',
             'district_id',
             'allocated_group_id',
-            'payment_status',
             'issued_on_paper',
             'paper_id',
             'description',
@@ -334,12 +333,12 @@ class SaveSanctionOutcomeSerializer(serializers.ModelSerializer):
         """
         return super(SaveSanctionOutcomeSerializer, self).create(validated_data)
 
-    def update(self, validated_data):
+    def update(self, instance, validated_data):
         """
         this method is called when updating existing record after the validate() method.
         here is the best place to edit data here if needed
         """
-        return super(SaveSanctionOutcomeSerializer, self).update(validated_data)
+        return super(SaveSanctionOutcomeSerializer, self).update(instance, validated_data)
 
 
 class SaveRemediationActionSerializer(serializers.ModelSerializer):
