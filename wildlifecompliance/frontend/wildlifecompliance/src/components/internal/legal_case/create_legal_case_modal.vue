@@ -263,6 +263,10 @@ export default {
               const response = await this.sendData();
               console.log(response);
               if (response.ok) {
+                  // For LegalCase Dashboard
+                  if (this.$parent.$refs.legal_case_table) {
+                      this.$parent.$refs.legal_case_table.vmDataTable.ajax.reload()
+                  }
                   // For CallEmail related items table
                   if (this.parent_call_email) {
                       //await this.parent_update_function({
