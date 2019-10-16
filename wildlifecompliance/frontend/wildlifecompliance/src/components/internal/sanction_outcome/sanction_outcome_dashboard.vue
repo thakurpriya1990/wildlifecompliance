@@ -189,11 +189,9 @@ export default {
                         orderable: true,
                     },
                     {
+                        data: 'payment_status.name',
                         searchable: true,
                         orderable: false,
-                        mRender: function (data, type, row){
-                            return '---';
-                        }
                     },
                     {
                         data: 'paper_notices',
@@ -351,7 +349,9 @@ export default {
             this.sanction_outcome_statuses.splice(0, 0, {id: 'all', display: 'All'});
         },
         constructOptionsPaymentStatus: async function() {
-
+            let returned = await cache_helper.getSetCacheList('SanctionOutcomePaymentStatuses', '/api/sanction_outcome/payment_statuses.json');
+            Object.assign(this.sanction_outcome_payment_statuses, returned);
+            this.sanction_outcome_payment_statuses.splice(0, 0, {id: 'all', display: 'All'});
         },
         constructOptionsRegion: async function() {
             console.log('constructOptionsRegion()')

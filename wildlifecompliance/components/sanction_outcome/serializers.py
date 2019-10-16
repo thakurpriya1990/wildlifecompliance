@@ -98,6 +98,7 @@ class AllegedCommittedOffenceSerializer(serializers.ModelSerializer):
 class SanctionOutcomeSerializer(serializers.ModelSerializer):
     status = CustomChoiceField(read_only=True)
     type = CustomChoiceField(read_only=True)
+    payment_status = CustomChoiceField(read_only=True)
     alleged_committed_offences = serializers.SerializerMethodField()
     offender = OffenderSerializer(read_only=True,)
     offence = OffenceSerializer(read_only=True,)
@@ -114,6 +115,7 @@ class SanctionOutcomeSerializer(serializers.ModelSerializer):
             'id',
             'type',
             'status',
+            'payment_status',
             'lodgement_number',
             'region_id',
             'district_id',
@@ -215,6 +217,7 @@ class UpdateAssignedToIdSerializer(serializers.ModelSerializer):
 
 class SanctionOutcomeDatatableSerializer(serializers.ModelSerializer):
     status = CustomChoiceField(read_only=True)
+    payment_status = CustomChoiceField(read_only=True)
     type = CustomChoiceField(read_only=True)
     user_action = serializers.SerializerMethodField()
     offender = OffenderSerializer(read_only=True,)
@@ -226,6 +229,7 @@ class SanctionOutcomeDatatableSerializer(serializers.ModelSerializer):
             'id',
             'type',
             'status',
+            'payment_status',
             'lodgement_number',
             'region',
             'district',

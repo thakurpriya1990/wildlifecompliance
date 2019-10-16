@@ -70,9 +70,9 @@ class SanctionOutcomeFilterBackend(DatatablesFilterBackend):
         if status and status != 'all':
             q_objects &= Q(status=status)
 
-        # payment_status = request.GET.get('payment_status',).lower()
-        # if payment_status and payment_status != 'all':
-        #     q_objects &= Q(payment_status=payment_status)
+        payment_status = request.GET.get('payment_status',).lower()
+        if payment_status and payment_status != 'all':
+            q_objects &= Q(payment_status=payment_status)
 
         date_from = request.GET.get('date_from', '').lower()
         if date_from:
@@ -182,6 +182,14 @@ class SanctionOutcomeViewSet(viewsets.ModelViewSet):
     def statuses(self, request, *args, **kwargs):
         res_obj = []
         for choice in SanctionOutcome.STATUS_CHOICES:
+            res_obj.append({'id': choice[0], 'display': choice[1]});
+        res_json = json.dumps(res_obj)
+        return HttpResponse(res_json, content_type='application/json')
+
+    @list_route(methods=['GET', ])
+    def payment_statuses(self, request, *args, **kwargs):
+        res_obj = []
+        for choice in SanctionOutcome.PAYMENT_STATUS_CHOICES:
             res_obj.append({'id': choice[0], 'display': choice[1]});
         res_json = json.dumps(res_obj)
         return HttpResponse(res_json, content_type='application/json')
