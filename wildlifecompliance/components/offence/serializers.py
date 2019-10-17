@@ -437,11 +437,18 @@ class SaveOffenderSerializer(serializers.ModelSerializer):
 
 
 class OffenceUserActionSerializer(serializers.ModelSerializer):
-    who = serializers.CharField(source='who.get_full_name')
+    who = serializers.SerializerMethodField()
 
     class Meta:
         model = OffenceUserAction
         fields = '__all__'
+
+    def get_who(self, obj):
+        if obj.who:
+            return obj.who.get_full_name()
+        else:
+            # When who==None, which means System performed the action
+            return 'System'
 
 
 class OffenceCommsLogEntrySerializer(CommunicationLogEntrySerializer):
