@@ -383,7 +383,7 @@ class SanctionOutcomeCommsLogEntry(CommunicationsLogEntry):
         app_label = 'wildlifecompliance'
 
 
-class SanctionOutcomeUserAction(UserAction):
+class SanctionOutcomeUserAction(models.Model):
     ACTION_SEND_TO_MANAGER = "Send Sanction Outcome {} to manager"
     ACTION_SAVE = "Save Sanction Outcome {}"
     ACTION_ENDORSE = "Endorse Sanction Outcome {}"
@@ -397,6 +397,11 @@ class SanctionOutcomeUserAction(UserAction):
     ACTION_RESTORE_ALLEGED_COMMITTED_OFFENCE = "Restore alleged committed offence: {}"
     ACTION_INCLUDE_ALLEGED_COMMITTED_OFFENCE = "Include alleged committed offence: {}"
 
+    who = models.ForeignKey(EmailUser, null=True, blank=True)
+    when = models.DateTimeField(null=False, blank=False, auto_now_add=True)
+    what = models.TextField(blank=False)
+    sanction_outcome = models.ForeignKey(SanctionOutcome, related_name='action_logs')
+
     class Meta:
         app_label = 'wildlifecompliance'
         ordering = ('-when',)
@@ -409,4 +414,3 @@ class SanctionOutcomeUserAction(UserAction):
             what=str(action)
         )
 
-    sanction_outcome = models.ForeignKey(SanctionOutcome, related_name='action_logs')
