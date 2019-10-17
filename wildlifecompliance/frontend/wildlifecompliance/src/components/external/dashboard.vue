@@ -15,7 +15,6 @@
         <LicenceDashTable level='external' :url='licences_url'/>
         <ReturnDashTable level='external' :url='returns_url'/>
     </div>
-    <SanctionOutcomeDashTable level='external' :url='sanction_outcome_url'/>
 </div>
 </template>
 <script>
@@ -24,7 +23,6 @@ import datatable from '@/utils/vue/datatable.vue'
 import ApplicationDashTable from '@common-components/applications_dashboard.vue'
 import LicenceDashTable from '@common-components/licences_dashboard.vue'
 import ReturnDashTable from '@common-components/returns_dashboard.vue'
-import SanctionOutcomeDashTable from '@common-components/sanction_outcomes_dashboard.vue'
 import {
   api_endpoints,
   helpers
@@ -38,7 +36,6 @@ export default {
             applications_url: helpers.add_endpoint_join(api_endpoints.applications_paginated,'external_datatable_list/?format=datatables'),
             licences_url: helpers.add_endpoint_join(api_endpoints.licences_paginated,'external_datatable_list/?format=datatables'),
             returns_url: helpers.add_endpoint_join(api_endpoints.returns_paginated,'user_datatable_list/?format=datatables'),
-            sanction_outcome_url: helpers.add_endpoint_join(api_endpoints.sanction_outcome_paginated,'external_datatable_list/?format=datatables'),
             empty_list: '/api/empty_list',
         }
     },
@@ -46,7 +43,6 @@ export default {
         ApplicationDashTable,
         LicenceDashTable,
         ReturnDashTable,
-        SanctionOutcomeDashTable,
     },
     watch: {},
     computed: {
