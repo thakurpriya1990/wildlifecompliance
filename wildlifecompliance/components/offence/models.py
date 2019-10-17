@@ -151,7 +151,7 @@ class Offence(RevisionedMixin):
         return self.identifier
 
     def close(self, request):
-        close_record, parents = can_close_record(self, request)
+        close_record, parents = can_close_record(self)
         if close_record:
             self.status =  self.STATUS_CLOSED
             self.log_user_action(OffenceUserAction.ACTION_CLOSE.format(self.lodgement_number), request)
@@ -237,7 +237,7 @@ class Offender(models.Model):
 
 class OffenceUserAction(UserAction):
     ACTION_CLOSE = "Close offence: {}"
-    ACTION_PENDING_CLOSURE = "Mark Inspection {} as pending closure"
+    ACTION_PENDING_CLOSURE = "Mark offence {} as pending closure"
     ACTION_CREATE = "Create offence: {}"
     ACTION_REMOVE_ALLEGED_OFFENCE = "Remove alleged offence: {}, Reason: {}"
     ACTION_REMOVE_OFFENDER = "Remove offender: {}, Reason: {}"
