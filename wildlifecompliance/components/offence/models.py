@@ -2,6 +2,8 @@ from django.contrib.auth.models import Permission
 from django.contrib.contenttypes.models import ContentType
 from django.core.exceptions import ValidationError
 from django.db import models
+from django.db.models.signals import post_save
+
 from ledger.accounts.models import RevisionedMixin, EmailUser
 from wildlifecompliance.components.call_email.models import Location, CallEmail
 from wildlifecompliance.components.inspection.models import Inspection
@@ -38,7 +40,8 @@ class Offence(RevisionedMixin):
     STATUS_PENDING_CLOSURE = 'pending_closure'
     STATUS_DISCARDED = 'discarded'
 
-    EDITABLE_STATUSES = (STATUS_DRAFT, STATUS_OPEN)
+    EDITABLE_STATUSES = (STATUS_DRAFT, STATUS_OPEN,)
+    FINAL_STATUSES = (STATUS_CLOSED, STATUS_DISCARDED,)
 
     STATUS_CHOICES = (
         (STATUS_DRAFT, 'Draft'),
@@ -163,10 +166,15 @@ class Offence(RevisionedMixin):
             self.log_user_action(OffenceUserAction.ACTION_PENDING_CLOSURE.format(self.lodgement_number), request)
         self.save()
 
-        if parents and self.status == self.STATUS_CLOSED:
-            for parent in parents:
-                if parent.status == 'pending_closure':
-                    parent.close(request)
+def perform_can_close_record(sender, instance, **kwargs):
+    # Trigger the close() function of each parent entity of this offence
+    if instance.status in (Offence.FINAL_STATUSES):
+        close_record, parents = can_close_record(instance)
+        for parent in parents:
+            if parent.status == 'pending_closure':
+                parent.close()
+
+post_save.connect(perform_can_close_record, sender=Offence)
 
 
 class AllegedOffence(RevisionedMixin):
