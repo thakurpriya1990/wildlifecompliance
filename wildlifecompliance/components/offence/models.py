@@ -2,10 +2,12 @@ from django.contrib.auth.models import Permission
 from django.contrib.contenttypes.models import ContentType
 from django.core.exceptions import ValidationError
 from django.db import models
+from django.db.models.signals import post_save
+
 from ledger.accounts.models import RevisionedMixin, EmailUser
 from wildlifecompliance.components.call_email.models import Location, CallEmail
 from wildlifecompliance.components.inspection.models import Inspection
-from wildlifecompliance.components.main.models import UserAction, Document, CommunicationsLogEntry
+from wildlifecompliance.components.main.models import Document, CommunicationsLogEntry
 from wildlifecompliance.components.main.related_item import can_close_record
 from wildlifecompliance.components.users.models import RegionDistrict, CompliancePermissionGroup
 from wildlifecompliance.components.organisations.models import Organisation
@@ -38,7 +40,8 @@ class Offence(RevisionedMixin):
     STATUS_PENDING_CLOSURE = 'pending_closure'
     STATUS_DISCARDED = 'discarded'
 
-    EDITABLE_STATUSES = (STATUS_DRAFT, STATUS_OPEN)
+    EDITABLE_STATUSES = (STATUS_DRAFT, STATUS_OPEN,)
+    FINAL_STATUSES = (STATUS_CLOSED, STATUS_DISCARDED,)
 
     STATUS_CHOICES = (
         (STATUS_DRAFT, 'Draft'),
@@ -114,8 +117,11 @@ class Offence(RevisionedMixin):
             self.lodgement_number = 'OF{0:06d}'.format(self.pk)
             self.save()
 
-    def log_user_action(self, action, request):
-        return OffenceUserAction.log_action(self, action, request.user)
+    def log_user_action(self, action, request=None):
+        if request:
+            return OffenceUserAction.log_action(self, action, request.user)
+        else:
+            return OffenceUserAction.log_action(self, action)
 
     @property
     def get_related_items_identifier(self):
@@ -150,8 +156,8 @@ class Offence(RevisionedMixin):
         #return '{}, {}'.format(self.identifier, self.details)
         return self.identifier
 
-    def close(self, request):
-        close_record, parents = can_close_record(self, request)
+    def close(self, request=None):
+        close_record, parents = can_close_record(self)
         if close_record:
             self.status =  self.STATUS_CLOSED
             self.log_user_action(OffenceUserAction.ACTION_CLOSE.format(self.lodgement_number), request)
@@ -160,10 +166,15 @@ class Offence(RevisionedMixin):
             self.log_user_action(OffenceUserAction.ACTION_PENDING_CLOSURE.format(self.lodgement_number), request)
         self.save()
 
-        if parents and self.status == self.STATUS_CLOSED:
-            for parent in parents:
-                if parent.status == 'pending_closure':
-                    parent.close(request)
+def perform_can_close_record(sender, instance, **kwargs):
+    # Trigger the close() function of each parent entity of this offence
+    if instance.status in (Offence.FINAL_STATUSES):
+        close_record, parents = can_close_record(instance)
+        for parent in parents:
+            if parent.status == 'pending_closure':
+                parent.close()
+
+post_save.connect(perform_can_close_record, sender=Offence)
 
 
 class AllegedOffence(RevisionedMixin):
@@ -235,9 +246,9 @@ class Offender(models.Model):
         super(Offender, self).clean()
 
 
-class OffenceUserAction(UserAction):
+class OffenceUserAction(models.Model):
     ACTION_CLOSE = "Close offence: {}"
-    ACTION_PENDING_CLOSURE = "Mark Inspection {} as pending closure"
+    ACTION_PENDING_CLOSURE = "Mark offence {} as pending closure"
     ACTION_CREATE = "Create offence: {}"
     ACTION_REMOVE_ALLEGED_OFFENCE = "Remove alleged offence: {}, Reason: {}"
     ACTION_REMOVE_OFFENDER = "Remove offender: {}, Reason: {}"
@@ -246,19 +257,22 @@ class OffenceUserAction(UserAction):
     ACTION_ADD_WEAK_LINK = "Create manual link between {}: {} and {}: {}"
     ACTION_REMOVE_WEAK_LINK = "Remove manual link between {}: {} and {}: {}"
 
+    who = models.ForeignKey(EmailUser, null=True, blank=True)
+    when = models.DateTimeField(null=False, blank=False, auto_now_add=True)
+    what = models.TextField(blank=False)
+    offence = models.ForeignKey(Offence, related_name='action_logs')
+
     class Meta:
         app_label = 'wildlifecompliance'
         ordering = ('-when',)
 
     @classmethod
-    def log_action(cls, obj, action, user):
+    def log_action(cls, obj, action, user=None):
         return cls.objects.create(
             offence=obj,
             who=user,
             what=str(action)
         )
-
-    offence = models.ForeignKey(Offence, related_name='action_logs')
 
 
 class OffenceCommsLogDocument(Document):

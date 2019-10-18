@@ -51,44 +51,44 @@ class SanctionOutcomeFilterBackend(DatatablesFilterBackend):
         q_objects = Q()
 
         # Filter by the search_text
-        search_text = request.GET.get('search[value]')
+        search_text = request.GET.get('search[value]', '')
         if search_text:
             q_objects &= Q(lodgement_number__icontains=search_text) | \
                          Q(identifier__icontains=search_text) | \
                          Q(offender__person__first_name__icontains=search_text) | \
                          Q(offender__person__last_name__icontains=search_text) | \
                          Q(offender__person__email__icontains=search_text) | \
-                         Q(offender__organisation__name__icontains=search_text) | \
-                         Q(offender__organisation__abn__icontains=search_text) | \
-                         Q(offender__organisation__trading_name__icontains=search_text)
+                         Q(offender__organisation__organisation__name__icontains=search_text) | \
+                         Q(offender__organisation__organisation__abn__icontains=search_text) | \
+                         Q(offender__organisation__organisation__trading_name__icontains=search_text)
 
-        type = request.GET.get('type',).lower()
+        type = request.GET.get('type', '').lower()
         if type and type != 'all':
             q_objects &= Q(type=type)
 
-        status = request.GET.get('status',).lower()
+        status = request.GET.get('status', '').lower()
         if status and status != 'all':
             q_objects &= Q(status=status)
 
-        # payment_status = request.GET.get('payment_status',).lower()
-        # if payment_status and payment_status != 'all':
-        #     q_objects &= Q(payment_status=payment_status)
+        payment_status = request.GET.get('payment_status', '').lower()
+        if payment_status and payment_status != 'all':
+            q_objects &= Q(payment_status=payment_status)
 
-        date_from = request.GET.get('date_from',).lower()
+        date_from = request.GET.get('date_from', '').lower()
         if date_from:
             date_from = datetime.strptime(date_from, '%d/%m/%Y')
             q_objects &= Q(date_of_issue__gte=date_from)
 
-        date_to = request.GET.get('date_to',).lower()
+        date_to = request.GET.get('date_to', '').lower()
         if date_to:
             date_to = datetime.strptime(date_to, '%d/%m/%Y')
             q_objects &= Q(date_of_issue__lte=date_to)
 
-        region_id = request.GET.get('region_id',).lower()
+        region_id = request.GET.get('region_id', '').lower()
         if region_id and region_id != 'all':
             q_objects &= Q(region__id=region_id)
 
-        district_id = request.GET.get('district_id',).lower()
+        district_id = request.GET.get('district_id', '').lower()
         if district_id and district_id != 'all':
             q_objects &= Q(district__id=district_id)
 
@@ -125,9 +125,7 @@ class SanctionOutcomeFilterBackend(DatatablesFilterBackend):
 
 class SanctionOutcomePaginatedViewSet(viewsets.ModelViewSet):
     filter_backends = (SanctionOutcomeFilterBackend,)
-    # filter_backends = (DatatablesFilterBackend,)
     pagination_class = DatatablesPageNumberPagination
-    # renderer_classes = (InspectionRenderer,)
     queryset = SanctionOutcome.objects.none()
     serializer_class = SanctionOutcomeDatatableSerializer
     page_size = 10
@@ -141,7 +139,19 @@ class SanctionOutcomePaginatedViewSet(viewsets.ModelViewSet):
     @list_route(methods=['GET', ])
     def get_paginated_datatable(self, request, *args, **kwargs):
         queryset = self.get_queryset()
+        queryset = self.filter_queryset(queryset)
+        self.paginator.page_size = queryset.count()
+        result_page = self.paginator.paginate_queryset(queryset, request)
+        serializer = SanctionOutcomeDatatableSerializer(result_page, many=True, context={'request': request})
+        ret = self.paginator.get_paginated_response(serializer.data)
+        return ret
 
+    @list_route(methods=['GET', ])
+    def external_datatable_list(self, request, *args, **kwargs):
+        """
+        This function is called from the external dashboard page by external user
+        """
+        queryset = SanctionOutcome.objects_for_external.filter(Q(offender__person=request.user))
         queryset = self.filter_queryset(queryset)
         self.paginator.page_size = queryset.count()
         result_page = self.paginator.paginate_queryset(queryset, request)
@@ -172,6 +182,22 @@ class SanctionOutcomeViewSet(viewsets.ModelViewSet):
     def statuses(self, request, *args, **kwargs):
         res_obj = []
         for choice in SanctionOutcome.STATUS_CHOICES:
+            res_obj.append({'id': choice[0], 'display': choice[1]});
+        res_json = json.dumps(res_obj)
+        return HttpResponse(res_json, content_type='application/json')
+
+    @list_route(methods=['GET', ])
+    def payment_statuses(self, request, *args, **kwargs):
+        res_obj = []
+        for choice in SanctionOutcome.PAYMENT_STATUS_CHOICES:
+            res_obj.append({'id': choice[0], 'display': choice[1]});
+        res_json = json.dumps(res_obj)
+        return HttpResponse(res_json, content_type='application/json')
+
+    @list_route(methods=['GET', ])
+    def statuses_for_external(self, request, *args, **kwargs):
+        res_obj = []
+        for choice in SanctionOutcome.STATUS_CHOICES_FOR_EXTERNAL:
             res_obj.append({'id': choice[0], 'display': choice[1]});
         res_json = json.dumps(res_obj)
         return HttpResponse(res_json, content_type='application/json')
