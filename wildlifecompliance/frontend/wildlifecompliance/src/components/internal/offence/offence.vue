@@ -337,7 +337,24 @@ export default {
             idLocationFieldsAddress: vm.guid + "LocationFieldsAddress",
             idLocationFieldsDetails: vm.guid + "LocationFieldsDetails",
             sanctionOutcomeInitialised: false,
-            object_hash : null,
+            objectHash : null,
+            hashAttributeWhitelist: [
+                'alleged_offences',
+                'allocated_group_id',
+                'date_of_issue',
+                'details',
+                'district_id',
+                'identifier',
+                'location',
+                'lodgement_number',
+                'occurrence_date_from',
+                'occurrence_date_to',
+                'occurrence_time_from',
+                'occurrence_time_to',
+                'occurrence_from_to',
+                'offenders',
+                'region_id',
+            ],
 
             current_alleged_offence: {  // Store the alleged offence temporarily once selected in awesomplete. Cleared when clicking on the "Add" button.
                 id: null,
@@ -636,14 +653,27 @@ export default {
             await this.loadOffenceVuex({offence_id: this.$route.params.offence_id});
             this.constructAllegedOffencesTable();
             this.constructOffendersTable();
-            this.object_hash = hash(this.offence);
+            this.updateObjectHash();
+        },
+        updateObjectHash: function() {
+            this.objectHash = this.calculateHash();
+        },
+        calculateHash: function() {
+            let copiedObject = {}
+            Object.getOwnPropertyNames(this.offence).forEach(
+                (val, idx, array) => {
+                    if (this.hashAttributeWhitelist.includes(val)) {
+                        copiedObject[val] = this.offence[val]
+                    }
+                });
+            return hash(copiedObject);
         },
         formChanged: function(){
-            if(this.object_hash != hash(this.offence)){
-                return true;
-            } else {
-                return false;
+            let changed = false;
+            if(this.objectHash !== this.calculateHash()){
+                changed = true;
             }
+            return changed;
         },
         save: async function(){
             try {
@@ -652,7 +682,7 @@ export default {
 
                 this.constructOffendersTable();
                 this.constructAllegedOffencesTable();
-                this.object_hash = hash(this.sanction_outcome)
+                this.updateObjectHash();
             } catch (err) {
                 this.processError(err);
             }
@@ -709,6 +739,7 @@ export default {
             await swal("Error", errorText, "error");
         },
         updateAssignedToId: async function (user) {
+            console.log('updateAssignedToId');
             let url = helpers.add_endpoint_join(api_endpoints.offence, this.offence.id + '/update_assigned_to_id/');
             let payload = null;
             if (user === 'current_user' && this.offence.user_in_group) {
@@ -726,6 +757,7 @@ export default {
             this.setCanUserAction(res.body.can_user_action);
             this.constructOffendersTable();
             this.constructAllegedOffencesTable();
+            this.updateObjectHash();
         },
         openSanctionOutcome: function() {
           this.sanctionOutcomeInitialised = true;
@@ -1328,7 +1360,7 @@ export default {
           //  await this.loadOffenceVuex({offence_id: this.$route.params.offence_id});
           //  this.constructAllegedOffencesTable();
           //  this.constructOffendersTable();
-          //  this.object_hash = hash(this.offence);
+          //  this.objectHash = hash(this.offence);
         }
         this.$nextTick(function() {
             this.initAwesompleteAllegedOffence();
