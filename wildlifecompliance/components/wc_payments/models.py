@@ -2,8 +2,9 @@ from __future__ import unicode_literals
 
 from datetime import datetime, timedelta
 from django.db import models, transaction
-from django.utils.encoding import python_2_unicode_compatible
 from django.utils import timezone
+from django.utils.encoding import python_2_unicode_compatible
+# from django.utils import timezone
 from ledger.accounts.models import EmailUser, RevisionedMixin
 from ledger.payments.models import Invoice
 #from commercialoperator.components.proposals.models import Proposal
@@ -15,12 +16,16 @@ from ledger.checkout.utils import calculate_excl_gst
 import logging
 logger = logging.getLogger(__name__)
 
+def expiry_default():
+    return timezone.now() + timedelta(minutes=30)
+
+
 class Payment(RevisionedMixin):
 
     send_invoice = models.BooleanField(default=False)
     confirmation_sent = models.BooleanField(default=False)
-    created = models.DateTimeField(default=timezone.now())
-    expiry_time = models.DateTimeField(default=timezone.now() + timedelta(minutes=30), blank=True, null=True)
+    created = models.DateTimeField(default=timezone.now)  # default should be callable otherwise it is called only once when the server starts
+    expiry_time = models.DateTimeField(blank=True, null=True)
 
     class Meta:
         app_label = 'wildlifecompliance'
@@ -104,8 +109,6 @@ class InfringementPenalty(Payment):
         (PAYMENT_TYPE_RECEPTION, 'Reception booking'),
         (PAYMENT_TYPE_BLACK, 'Black booking'),
         (PAYMENT_TYPE_TEMPORARY, 'Temporary reservation'),
-#        (4, 'Cancelled Booking'),
-#        (5, 'Changed Booking')
     )
 
     sanction_outcome = models.ForeignKey(SanctionOutcome, on_delete=models.PROTECT, blank=True, null=True, related_name='infringement_penalties')
