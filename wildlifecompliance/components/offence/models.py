@@ -4,6 +4,7 @@ from django.core.exceptions import ValidationError
 from django.db import models
 from ledger.accounts.models import RevisionedMixin, EmailUser
 from wildlifecompliance.components.call_email.models import Location, CallEmail
+from wildlifecompliance.components.legal_case.models import LegalCase
 from wildlifecompliance.components.inspection.models import Inspection
 from wildlifecompliance.components.main.models import UserAction, Document, CommunicationsLogEntry
 from wildlifecompliance.components.main.related_item import can_close_record
@@ -68,6 +69,12 @@ class Offence(RevisionedMixin):
         null=True,
         blank=True,
         related_name='offence_call_eamil',
+    )
+    legal_case = models.ForeignKey(
+        LegalCase,
+        null=True,
+        blank=True,
+        related_name='offence_legal_case',
     )
     inspection = models.ForeignKey(
         Inspection,

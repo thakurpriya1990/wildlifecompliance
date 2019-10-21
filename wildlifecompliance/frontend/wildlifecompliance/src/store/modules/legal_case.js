@@ -9,7 +9,7 @@ import moment from 'moment';
 export const legalCaseStore = {
     namespaced: true,
     state: {
-        legalCase: {
+        legal_case: {
             
         },
         
@@ -52,7 +52,7 @@ export const legalCaseStore = {
         },
     },
     actions: {
-        async loadlegalCase({ dispatch, commit }, { legal_case_id }) {
+        async loadLegalCase({ dispatch, commit }, { legal_case_id }) {
             try {
                 const returnedLegalCase = await Vue.http.get(
                     helpers.add_endpoint_json(
@@ -86,41 +86,34 @@ export const legalCaseStore = {
         //         console.log(err);
         //     }
         // },
-        // TODO: convert to legal_case
-        async saveInspection({ dispatch, state, rootGetters }, { create, internal }) {
-            let inspectionId = null;
-            let savedInspection = null;
+        async saveLegalCase({ dispatch, state, rootGetters }, { create, internal }) {
+            let legalCaseId = null;
+            let savedLegalCase = null;
             try {
                 let payload = new Object();
-                Object.assign(payload, state.inspection);
+                Object.assign(payload, state.legal_case);
                 console.log(payload);
-                if (payload.planned_for_date) {
-                    payload.planned_for_date = moment(payload.planned_for_date, 'DD/MM/YYYY').format('YYYY-MM-DD');
-                } else if (payload.planned_for_date === '') {
-                    payload.planned_for_date = null;
-                }
-                // Renderer data
-                if (state.inspection.schema) {
-                if (state.inspection.schema.length > 0) {
-                    payload.renderer_data = rootGetters.renderer_form_data;
-                    }
+                if (payload.case_created_date) {
+                    payload.case_created_date = moment(payload.planned_for_date, 'DD/MM/YYYY').format('YYYY-MM-DD');
+                } else if (payload.case_created_date === '') {
+                    payload.case_created_date = null;
                 }
 
                 let fetchUrl = null;
                 if (create) {
-                    fetchUrl = api_endpoints.inspection;
-                    savedInspection = await Vue.http.post(fetchUrl, payload);
+                    fetchUrl = api_endpoints.legal_case;
+                    savedLegalCase = await Vue.http.post(fetchUrl, payload);
                 } else {
                     // update Inspection
                     fetchUrl = helpers.add_endpoint_join(
-                        api_endpoints.inspection,
+                        api_endpoints.legal_case,
                         //state.inspection.id + "/inspection_save/"
-                        state.inspection.id + '/'
+                        state.legal_case.id + '/'
                         )
-                    savedInspection = await Vue.http.put(fetchUrl, payload);
+                    savedLegalCase = await Vue.http.put(fetchUrl, payload);
                 }
-                await dispatch("setInspection", savedInspection.body);
-                inspectionId = savedInspection.body.id;
+                await dispatch("setLegalCase", savedLegalCase.body);
+                legalCaseId = savedLegalCase.body.id;
 
             } catch (err) {
                 console.log(err);
@@ -141,7 +134,7 @@ export const legalCaseStore = {
             else if (!create) {
                 await swal("Saved", "The record has been saved", "success");
             }
-            return savedInspection;
+            return savedLegalCase;
         },
         
         setLegalCase({ commit, }, legal_case) {
