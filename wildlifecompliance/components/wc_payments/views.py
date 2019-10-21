@@ -1,62 +1,71 @@
-from django.http import Http404, HttpResponse, HttpResponseRedirect, JsonResponse
-from django.core.urlresolvers import reverse
-from django.contrib.auth.decorators import login_required
-from django.shortcuts import render, get_object_or_404, redirect
-from django.views.generic import ListView, DetailView, CreateView, UpdateView, DeleteView, FormView
+# # from django.http import Http404, HttpResponse, HttpResponseRedirect, JsonResponse
+# # from django.core.urlresolvers import reverse
+# # from django.contrib.auth.decorators import login_required
+# from django.shortcuts import render, get_object_or_404, redirect
+# from django.views.generic import ListView, DetailView, CreateView, UpdateView, DeleteView, FormView
+from django.shortcuts import get_object_or_404, redirect, render
 from django.views.generic.base import View, TemplateView
-from django.conf import settings
-from django.contrib.auth.mixins import UserPassesTestMixin, LoginRequiredMixin
-from django.views.decorators.csrf import csrf_protect
-from django.core.exceptions import ValidationError
+# from django.conf import settings
+# from django.contrib.auth.mixins import UserPassesTestMixin, LoginRequiredMixin
+# from django.views.decorators.csrf import csrf_protect
+# from django.core.exceptions import ValidationError
 from django.db import transaction
 
-from datetime import datetime, timedelta, date
-from django.utils import timezone
-from dateutil.relativedelta import relativedelta
+# from datetime import datetime, timedelta, date
+# from django.utils import timezone
+# from dateutil.relativedelta import relativedelta
+#
+# from commercialoperator.components.proposals.models import Proposal
+# from commercialoperator.components.compliances.models import Compliance
+# from commercialoperator.components.main.models import Park
+# from commercialoperator.components.organisations.models import Organisation
+# from commercialoperator.components.bookings.context_processors import commercialoperator_url, template_context
+# from commercialoperator.components.bookings.invoice_pdf import create_invoice_pdf_bytes
+# from commercialoperator.components.bookings.confirmation_pdf import create_confirmation_pdf_bytes
+# from commercialoperator.components.bookings.monthly_confirmation_pdf import create_monthly_confirmation_pdf_bytes
+# from commercialoperator.components.bookings.email import (
+#     send_invoice_tclass_email_notification,
+#     send_confirmation_tclass_email_notification,
+#     send_application_fee_invoice_tclass_email_notification,
+#     send_application_fee_confirmation_tclass_email_notification,
+# )
+# from commercialoperator.components.bookings.utils import (
+#     create_booking,
+#     get_session_booking,
+#     set_session_booking,
+#     delete_session_booking,
+#     create_lines,
+#     checkout,
+#     create_fee_lines,
+#     get_session_application_invoice,
+#     set_session_application_invoice,
+#     delete_session_application_invoice,
+#     calc_payment_due_date,
+#     create_bpay_invoice,
+# )
 
-from commercialoperator.components.proposals.models import Proposal
-from commercialoperator.components.compliances.models import Compliance
-from commercialoperator.components.main.models import Park
-from commercialoperator.components.organisations.models import Organisation
-from commercialoperator.components.bookings.context_processors import commercialoperator_url, template_context
-from commercialoperator.components.bookings.invoice_pdf import create_invoice_pdf_bytes
-from commercialoperator.components.bookings.confirmation_pdf import create_confirmation_pdf_bytes
-from commercialoperator.components.bookings.monthly_confirmation_pdf import create_monthly_confirmation_pdf_bytes
-from commercialoperator.components.bookings.email import (
-    send_invoice_tclass_email_notification,
-    send_confirmation_tclass_email_notification,
-    send_application_fee_invoice_tclass_email_notification,
-    send_application_fee_confirmation_tclass_email_notification,
-)
-from commercialoperator.components.bookings.utils import (
-    create_booking,
-    get_session_booking,
-    set_session_booking,
-    delete_session_booking,
-    create_lines,
-    checkout,
-    create_fee_lines,
-    get_session_application_invoice,
-    set_session_application_invoice,
-    delete_session_application_invoice,
-    calc_payment_due_date,
-    create_bpay_invoice,
-)
-
-from commercialoperator.components.proposals.serializers import ProposalSerializer
+# from commercialoperator.components.proposals.serializers import ProposalSerializer
 
 from ledger.checkout.utils import create_basket_session, create_checkout_session, place_order_submission, get_cookie_basket
 from ledger.payments.utils import oracle_parser_on_invoice,update_payments
 import json
 from decimal import Decimal
 
-from commercialoperator.components.bookings.models import Booking, ParkBooking, BookingInvoice, ApplicationFee, ApplicationFeeInvoice
+# from commercialoperator.components.bookings.models import Booking, ParkBooking, BookingInvoice, ApplicationFee, ApplicationFeeInvoice
 from ledger.payments.models import Invoice
 from ledger.basket.models import Basket
 from ledger.payments.mixins import InvoiceOwnerMixin
 from oscar.apps.order.models import Order
 
 import logging
+
+from wildlifecompliance.components.main.utils import checkout
+from wildlifecompliance.components.wc_payments.context_processors import template_context
+from wildlifecompliance.components.wc_payments.models import InfringementPenalty, InfringementPenaltyInvoice
+from wildlifecompliance.components.wc_payments.utils import set_session_infringement_invoice, create_infringement_lines, \
+    get_session_infringement_invoice, delete_session_infringement_invoice
+from wildlifecompliance.components.sanction_outcome.models import SanctionOutcome
+
 logger = logging.getLogger('payment_checkout')
 
 
@@ -64,7 +73,7 @@ class InfringementPenaltyView(TemplateView):
     template_name = 'wildlifecompliance/payments/success.html'
 
     def get_object(self):
-        return get_object_or_404(Proposal, id=self.kwargs['sanction_outcome_id'])
+        return get_object_or_404(SanctionOutcome, id=self.kwargs['sanction_outcome_id'])
 
     def post(self, request, *args, **kwargs):
 
@@ -94,7 +103,7 @@ class InfringementPenaltyView(TemplateView):
             raise
 
 
-from commercialoperator.components.proposals.utils import proposal_submit
+# from commercialoperator.components.proposals.utils import proposal_submit
 class InfringementPenaltySuccessView(TemplateView):
     template_name = 'wildlifecompliance/payments/success.html'
 
@@ -117,7 +126,8 @@ class InfringementPenaltySuccessView(TemplateView):
             if self.request.user.is_authenticated():
                 basket = Basket.objects.filter(status='Submitted', owner=request.user).order_by('-id')[:1]
             else:
-                basket = Basket.objects.filter(status='Submitted', owner=booking.proposal.submitter).order_by('-id')[:1]
+                # basket = Basket.objects.filter(status='Submitted', owner=booking.proposal.submitter).order_by('-id')[:1]
+                basket = Basket.objects.filter(status='Submitted', owner=None).order_by('-id')[:1]
 
             order = Order.objects.get(basket=basket[0])
             invoice = Invoice.objects.get(order_number=order.number)
@@ -134,7 +144,7 @@ class InfringementPenaltySuccessView(TemplateView):
                     logger.error('{} tried paying an infringement penalty with an incorrect invoice'.format('User {} with id {}'.format(sanction_outcome.offender.get_full_name(), sanction_outcome.offender.id) if sanction_outcome.offender else 'An anonymous user'))
                     #return redirect('external', args=(proposal.id,))
                     return redirect('external')
-                if inv.system not in ['0111']: # TODO Change to corrwct VALUE
+                if inv.system not in ['0111']: # TODO Change to correct VALUE
                     logger.error('{} tried paying an infringement penalty with an invoice from another system with reference number {}'.format('User {} with id {}'.format(sanction_outcome.offender.get_full_name(), sanction_outcome.offender.id) if sanction_outcome.offender else 'An anonymous user',inv.reference))
                     #return redirect('external-proposal-detail', args=(proposal.id,))
                     return redirect('external')
@@ -168,7 +178,7 @@ class InfringementPenaltySuccessView(TemplateView):
                     return render(request, self.template_name, context)
 
         except Exception as e:
-            if ('wc_last_infringement_invoice' in request.session) and ApplicationFee.objects.filter(id=request.session['wc_last_infringement_invoice']).exists():
+            if ('wc_last_infringement_invoice' in request.session) and InfringementPenalty.objects.filter(id=request.session['wc_last_infringement_invoice']).exists():
                 infringement_penalty = InfringementPenalty.objects.get(id=request.session['wc_last_infringement_invoice'])
                 sanction_outcome = infringement_penalty.sanction_outcome
 
