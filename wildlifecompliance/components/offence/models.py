@@ -239,12 +239,6 @@ class Offender(models.Model):
         else:
             return '---'
 
-    def clean(self):
-        if (self.person and self.organisation) or (not self.person and not self.organisation):
-            raise ValidationError('An offender must be either a person or an organisation.')
-
-        super(Offender, self).clean()
-
 
 class OffenceUserAction(models.Model):
     ACTION_CLOSE = "Close offence: {}"

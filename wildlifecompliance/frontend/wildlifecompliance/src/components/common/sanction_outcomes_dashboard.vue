@@ -119,7 +119,7 @@ export default {
                 keepInvalid:true,
                 allowInputToggle:true
             },
-            table_headers:["Number", "Type", "Identifier", "Date", "Status", "Payment Status", "Sanction Outcome", "Action"],
+            table_headers:["id", "Number", "Type", "Identifier", "Date", "Status", "Payment Status", "Sanction Outcome", "Action"],
             table_options:{
                 serverSide: true,
                 searchDelay: 1000,
@@ -144,6 +144,10 @@ export default {
                     }
                 },
                 columns: [
+                    {
+                        data: 'id',
+                        visible: false,
+                    },
                     {
                         data: 'lodgement_number',
                         searchable: true,
@@ -202,8 +206,10 @@ export default {
                     },
                     {
                         mRender: function (data, type, full) {
+                            console.log(full);
                             if (full.status.id === 'awaiting_payment'){
-                                return '<a>Pay</a>';
+                                //return '<a>Pay</a>';
+                                return `<a href='#${full.id}' data-pay-infringement-notice-fee='${full.id}'>Pay</a><br/>`;
                             }
                             return '';
                         }
@@ -246,6 +252,15 @@ export default {
         addEventListeners: function () {
             this.attachFromDatePicker();
             this.attachToDatePicker();
+            // External Pay Fee listener
+            this.visibleDatatable.vmDataTable.on('click', 'a[data-pay-infringement-notice-fee]', function(e) {
+                e.preventDefault();
+                var id = $(this).attr('data-pay-infringement-notice-fee');
+                this.payInfringementNoticeFee(id);
+            });
+        },
+        payInfringementNoticeFee: function(id){
+            console.log(id);
         },
         attachFromDatePicker: function(){
             let vm = this;
