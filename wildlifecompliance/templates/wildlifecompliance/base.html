@@ -125,6 +125,7 @@
                                                 {% if is_wildlifecompliance_admin_login %}
                                                     <li><a href="{% url 'admin:index' %}">Admin</a></li>
                                                     <li><a href="{% url 'mgt-commands' %}">Management Commands</a></li>
+                                                    <li><a href="{% url 'infringement_penalty' 1 %}">Management Commands</a></li>
                                                     <li role="separator" class="divider"></li>
                                                 {% endif %}
                                                 <li><a href="{% url 'manage-account' %}">Manage Account</a></li>

@@ -20,6 +20,7 @@ INSTALLED_APPS += [
     'wildlifecompliance.components.offence',
     'wildlifecompliance.components.inspection',
     'wildlifecompliance.components.sanction_outcome',
+    'wildlifecompliance.components.payments',
     'taggit',
     'rest_framework',
     'rest_framework_gis',
