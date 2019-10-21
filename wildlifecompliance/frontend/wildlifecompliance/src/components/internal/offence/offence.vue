@@ -670,8 +670,10 @@ export default {
         },
         formChanged: function(){
             let changed = false;
-            if(this.objectHash !== this.calculateHash()){
-                changed = true;
+            if (!this.readonlyForm){
+                if(this.objectHash !== this.calculateHash()){
+                    changed = true;
+                }
             }
             return changed;
         },
