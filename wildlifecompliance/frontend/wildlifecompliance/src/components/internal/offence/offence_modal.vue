@@ -466,6 +466,7 @@ export default {
       setDistrictId: "setDistrictId",
       setAllocatedGroupId: "setAllocatedGroupId",
       setInspectionId: "setInspectionId",
+      setLegalCaseId: "setLegalCaseId",
       createOffence: "createOffence",
       setOffenceEmpty: "setOffenceEmpty",
     }),
@@ -694,15 +695,20 @@ export default {
                     this.$parent.$refs.offence_table.vmDataTable.ajax.reload();
                 }
 
-                // For CallEmail related items table
-                if (this.$parent.call_email) {
+                // For Related items table
+                if (this.$parent.call_email && this.$parent.call_email.id) {
                     await this.parent_update_function({
                     call_email_id: this.$parent.call_email.id,
                     });
                 }
-                if (this.$parent.inspection) {
+                if (this.$parent.inspection && this.$parent.inspection.id) {
                     await this.parent_update_function({
                         inspection_id: this.$parent.inspection.id,
+                    });
+                }
+                if (this.$parent.legal_case && this.$parent.legal_case.id) {
+                    await this.parent_update_function({
+                        legal_case_id: this.$parent.legal_case.id,
                     });
                 }
             }
@@ -766,14 +772,19 @@ export default {
     sendData: async function() {
         let vm = this;
 
-        // If exists, set call_email id and other attributes to the offence
-        if (this.$parent.call_email) {
+        // If exists, set call_email_id and other attributes to the offence
+        if (this.$parent.call_email && this.$parent.call_email.id) {
             vm.setCallEmailId(this.$parent.call_email.id);
         }
 
-        // If exists, set inspection id to the offence
-        if (this.$parent.inspection) {
+        // If exists, set inspection_id to the offence
+        if (this.$parent.inspection && this.$parent.inspection.id) {
             vm.setInspectionId(this.$parent.inspection.id);
+        }
+
+        // If exists, set legal_case_id to the offence
+        if (this.$parent.legal_case && this.$parent.legal_case.id) {
+            vm.setLegalCaseId(this.$parent.legal_case.id);
         }
 
         // Collect offenders data from the datatable, and set them to the vuex

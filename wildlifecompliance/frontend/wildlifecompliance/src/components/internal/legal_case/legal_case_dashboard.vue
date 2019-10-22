@@ -1,18 +1,8 @@
 <template>
     <div class="container" id="internalInspectionDash">
-        <FormSection :label="`Inspection`" :Index="`0`">
+        <FormSection :label="`Case`" :Index="`0`">
 
         <div class="row">
-            <div class="col-md-3">
-                <div class="form-group">
-                    <label for="">Type</label>
-                    <select class="form-control" v-model="filterInspectionType">
-                        <option v-for="option in inspectionTypes" :value="option.inspection_type" v-bind:key="option.id">
-                            {{ option.inspection_type }} 
-                        </option>
-                    </select>
-                </div>
-            </div>
             <div class="col-md-3">
                 <div class="form-group">
                     <label for="">Status</label>
@@ -29,8 +19,8 @@
             <div class="col-md-3">
                 <div class="form-group">
                     <label for="">Planned From</label>
-                    <div class="input-group date" ref="plannedDateFromPicker">
-                        <input type="text" class="form-control" placeholder="DD/MM/YYYY" v-model="filterPlannedFrom">
+                    <div class="input-group date" ref="caseCreatedDateFromPicker">
+                        <input type="text" class="form-control" placeholder="DD/MM/YYYY" v-model="filterCaseCreatedFrom">
                         <span class="input-group-addon">
                             <span class="glyphicon glyphicon-calendar"></span>
                         </span>
@@ -40,8 +30,8 @@
             <div class="col-md-3">
                 <div class="form-group">
                     <label for="">Planned To</label>
-                    <div class="input-group date" ref="plannedDateToPicker">
-                        <input type="text" class="form-control" placeholder="DD/MM/YYYY" v-model="filterPlannedTo">
+                    <div class="input-group date" ref="caseCreatedDateToPicker">
+                        <input type="text" class="form-control" placeholder="DD/MM/YYYY" v-model="filterCaseCreatedTo">
                         <span class="input-group-addon">
                             <span class="glyphicon glyphicon-calendar"></span>
                         </span>
@@ -49,25 +39,25 @@
                 </div>
             </div>
             <div class="col-md-3 pull-right">
-                <button @click.prevent="createInspection"
-                    class="btn btn-primary pull-right">New Inspection</button>
+                <button @click.prevent="createLegalCase"
+                    class="btn btn-primary pull-right">New Case</button>
             </div>    
         </div>
             
 
         <div class="row">
             <div class="col-lg-12">
-                <datatable ref="inspection_table" id="inspection-table" :dtOptions="dtOptions" :dtHeaders="dtHeaders" />
+                <datatable ref="legal_case_table" id="legal-case-table" :dtOptions="dtOptions" :dtHeaders="dtHeaders" />
             </div>
         </div>
         </FormSection>
 
-        <FormSection :label="`Location`" :Index="`1`">
+        <!--FormSection :label="`Location`" :Index="`1`">
             <MapLocations />
-        </FormSection>
+        </FormSection-->
 
-        <div v-if="inspectionInitialised">
-            <InspectionModal ref="add_inspection"  v-bind:key="createInspectionBindId"/>
+        <div v-if="legalCaseInitialised">
+            <CreateLegalCaseModal ref="add_legal_case"  v-bind:key="createLegalCaseBindId"/>
         </div>
 
     </div>
@@ -79,31 +69,26 @@
     import { api_endpoints, helpers, cache_helper } from "@/utils/hooks";
     import { mapState, mapGetters, mapActions, mapMutations } from "vuex";
     import FormSection from "@/components/forms/section_toggle.vue";
-    import InspectionModal from "./create_inspection_modal.vue";
-    import MapLocations from "./inspection_locations.vue";
+    import CreateLegalCaseModal from "./create_legal_case_modal.vue";
     
     export default {
-        name: 'InspectionTableDash',
+        name: 'LegalCaseTableDash',
         data() {
             let vm = this;
             return {
-                classification_types: [],
                 // classificationChoices: [],
-                report_types: [],
                 // Filters
                 filterStatus: 'All',
-                filterInspectionType: 'All',
-                filterTeamLead: 'All',
 
-                filterPlannedFrom: '',
-                filterPlannedTo: '',
+                filterCaseCreatedFrom: '',
+                filterCaseCreatedTo: '',
                 // statusChoices: [],
                 statusChoices: [],
-                inspectionTypes: [],
+                //inspectionTypes: [],
                 
                 dateFormat: 'DD/MM/YYYY',
-                inspectionInitialised: false,
-                createInspectionBindId: '',
+                legalCaseInitialised: false,
+                createLegalCaseBindId: '',
                 // datepickerOptions: {
                 //     format: 'DD/MM/YYYY',
                 //     showClear: true,
@@ -131,22 +116,22 @@
                     responsive: true,
                     processing: true,
                     ajax: {
-                        'url': '/api/inspection_paginated/get_paginated_datatable/?format=datatables',
-                        //'url': '/api/inspection/datatable_list',
+                        'url': '/api/legal_case_paginated/get_paginated_datatable/?format=datatables',
+                        //'url': '/api/legal_case/datatable_list',
                         //'dataSrc': '',
-                        'dataSrc': 'data',
-                        'data': function(d) {
-                            d.status_description = vm.filterStatus;
-                            d.inspection_description = vm.filterInspectionType;
-                            d.date_from = vm.filterPlannedFrom != '' && vm.filterPlannedFrom != null ? moment(vm.filterPlannedFrom, 'DD/MM/YYYY').format('YYYY-MM-DD'): '';
-                            d.date_to = vm.filterPlannedTo != '' && vm.filterPlannedTo != null ? moment(vm.filterPlannedTo, 'DD/MM/YYYY').format('YYYY-MM-DD'): '';
-                        }
+                        //'dataSrc': 'data',
+                        //'data': function(d) {
+                        //    d.status_description = vm.filterStatus;
+                        //    d.inspection_description = vm.filterInspectionType;
+                        //    d.date_from = vm.filterPlannedFrom != '' && vm.filterPlannedFrom != null ? moment(vm.filterPlannedFrom, 'DD/MM/YYYY').format('YYYY-MM-DD'): '';
+                        //    d.date_to = vm.filterPlannedTo != '' && vm.filterPlannedTo != null ? moment(vm.filterPlannedTo, 'DD/MM/YYYY').format('YYYY-MM-DD'): '';
+                        //}
                     },
-                    dom: 'lBfrtip',
-                    buttons: [
-                        'excel',
-                        'csv',
-                        ],
+                    //dom: 'lBfrtip',
+                    //buttons: [
+                    //    'excel',
+                    //    'csv',
+                    //    ],
                     columns: [
                         {
                             data: 'number',
@@ -159,38 +144,14 @@
                             orderable: true
                         },
                         {
-                            data: 'inspection_type',
-                            searchable: false,
-                            orderable: true,
-                            mRender: function (data, type, full) {
-                                if (data) {
-                                    return data.inspection_type;
-                                } else {
-                                    return '';
-                                }
-                            }
-                        },
-                        {
                             data: 'status.name',
                             searchable: false,
                             orderable: true
                         },
                         {
-                            data: 'planned_for',
+                            data: 'created_date',
                             searchable: false,
                             orderable: true
-                        },
-                        {
-                            data: 'inspection_team_lead',
-                            searchable: false,
-                            orderable: true,
-                            mRender: function (data, type, full) {
-                                if (data) {
-                                    return data.full_name;
-                                } else {
-                                    return '';
-                                }
-                            }
                         },
                         {
                             data: "assigned_to",
@@ -214,12 +175,10 @@
                 dtHeaders: [
                     'Number',
                     'Title',
-                    'Inspection Type',
                     'Status',
-                    'Planned for',
-                    'Team Lead',
-                    'Assigned To',
-                    'Action',
+                    'Created Date',
+                    'Assigned to',
+                    'Action'
                 ],
             }
         },
@@ -234,94 +193,72 @@
         created: async function() {
             // Status choices
             let returned_status_choices = await cache_helper.getSetCacheList(
-                'Inspection_StatusChoices', 
-                '/api/inspection/status_choices'
+                'LegalCase_StatusChoices', 
+                '/api/legal_case/status_choices'
                 );
             
             Object.assign(this.statusChoices, returned_status_choices);
             this.statusChoices.splice(0, 0, {id: 'all', display: 'All'});
 
-            // inspection_types
-            let returned_inspection_types = await cache_helper.getSetCacheList(
-                'InspectionTypes', 
-                api_endpoints.inspection_types
-                );
-            Object.assign(this.inspectionTypes, returned_inspection_types);
-            // blank entry allows user to clear selection
-            this.inspectionTypes.splice(0, 0, 
-                {
-                id: "all",
-                description: "All",
-                inspection_type: "All",
-                });
-            console.log(this)
-
         },
         watch: {
             filterStatus: function () {
-                this.$refs.inspection_table.vmDataTable.draw();
+                this.$refs.legal_case_table.vmDataTable.draw();
             },
-            filterInspectionType: function () {
-                this.$refs.inspection_table.vmDataTable.draw();
+            filterCaseCreatedFrom: function () {
+                this.$refs.legal_case_table.vmDataTable.draw();
             },
-            filterTeamLead: function () {
-                this.$refs.inspection_table.vmDataTable.draw();
-            },
-            filterPlannedFrom: function () {
-                this.$refs.inspection_table.vmDataTable.draw();
-            },
-            filterPlannedTo: function () {
-                this.$refs.inspection_table.vmDataTable.draw();
+            filterCaseCreatedTo: function () {
+                this.$refs.legal_case_table.vmDataTable.draw();
             },
         },
         components: {
             datatable,
             FormSection,
-            InspectionModal,
-            MapLocations,
+            CreateLegalCaseModal,
         },
         computed: {
         },
         methods: {
-            ...mapActions('inspectionStore', {
-                saveInspection: "saveInspection",
+            ...mapActions('legalCaseStore', {
+                saveInspection: "saveLegalCase",
             }),
-            createInspection: function() {
-                this.setCreateInspectionBindId()
-                this.inspectionInitialised = true;
+            createLegalCase: function() {
+                this.setCreateLegalCaseBindId()
+                this.legalCaseInitialised = true;
                 this.$nextTick(() => {
-                    this.$refs.add_inspection.isModalOpen = true;
+                    this.$refs.add_legal_case.isModalOpen = true;
                 });
             },
-            setCreateInspectionBindId: function() {
+            setCreateLegalCaseBindId: function() {
                 let timeNow = Date.now()
-                this.createInspectionBindId = 'inspection' + timeNow.toString();
+                this.createLegalCaseBindId = 'legal_case' + timeNow.toString();
             },
-            createInspectionUrl: async function () {
-                const newInspectionId = await this.saveInspection({ create: true });
+            createLegalCaseUrl: async function () {
+                const newLegalCaseId = await this.saveLegalCase({ create: true });
                 
                 this.$router.push({
-                    name: 'view-inspection', 
-                    params: { inspection_id: newInspectionId}
+                    name: 'view-legal-case', 
+                    params: { legal_case_id: newLegalCaseId}
                     });
             },
             addEventListeners: function () {
                 let vm = this;
                 // Initialise Planned Date Filters
-                $(vm.$refs.plannedDateToPicker).datetimepicker(vm.datepickerOptions);
-                $(vm.$refs.plannedDateToPicker).on('dp.change', function (e) {
-                    if ($(vm.$refs.plannedDateToPicker).data('DateTimePicker').date()) {
-                        vm.filterPlannedTo = e.date.format('DD/MM/YYYY');
+                $(vm.$refs.caseCreatedDateToPicker).datetimepicker(vm.datepickerOptions);
+                $(vm.$refs.caseCreatedDateToPicker).on('dp.change', function (e) {
+                    if ($(vm.$refs.caseCreatedDateToPicker).data('DateTimePicker').date()) {
+                        vm.filterCaseCreatedTo = e.date.format('DD/MM/YYYY');
                     } else if ($(vm.$refs.plannedDateToPicker).data('date') === "") {
-                        vm.filterLodgedTo = "";
+                        vm.filterCaseCreatedTo = "";
                     }
                 });
-                $(vm.$refs.plannedDateFromPicker).datetimepicker(vm.datepickerOptions);
-                $(vm.$refs.plannedDateFromPicker).on('dp.change', function (e) {
-                    if ($(vm.$refs.plannedDateFromPicker).data('DateTimePicker').date()) {
-                        vm.filterPlannedFrom = e.date.format('DD/MM/YYYY');
-                    } else if ($(vm.$refs.plannedDateFromPicker).data('date') === "") {
-                        vm.filterPlannedFrom = "";
+                $(vm.$refs.caseCreatedDateFromPicker).datetimepicker(vm.datepickerOptions);
+                $(vm.$refs.caseCreatedDateFromPicker).on('dp.change', function (e) {
+                    if ($(vm.$refs.caseCreatedDateFromPicker).data('DateTimePicker').date()) {
+                        vm.filterCaseCreatedFrom = e.date.format('DD/MM/YYYY');
+                    } else if ($(vm.$refs.caseCreatedDateFromPicker).data('date') === "") {
+                        vm.filterCaseCreatedFrom = "";
                     }
                 });
             },
@@ -330,11 +267,12 @@
             },
             dateSearch: function () {
                 let vm = this;
-                vm.$refs.inspection_table.table.dataTableExt.afnFiltering.push(
+                vm.$refs.legal_case_table.table.dataTableExt.afnFiltering.push(
                     function (settings, data, dataIndex, original) {
-                        let from = vm.filterPlannedFrom;
-                        let to = vm.filterPlannedTo;
-                        let val = original.planned_for_date;
+                        let from = vm.filterCaseCreatedFrom;
+                        let to = vm.filterCaseCreatedTo;
+                        //let val = original.planned_for_date;
+                        let val = original.case_created_date;
 
                         if (from == '' && to == '') {
                             return true;
@@ -372,8 +310,6 @@
                 await vm.initialiseSearch();
                 await vm.addEventListeners();
             });
-            
-            
         }
     }
 </script>

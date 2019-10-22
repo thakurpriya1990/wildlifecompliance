@@ -123,20 +123,14 @@
                                 </a>
                           </div>
                         </div>
-                        <!-- <div class="row">
-                          <div class="col-sm-12"/>
-                        </div> -->
-
                         <div v-if="statusId ==='open' && canUserAction" class="row action-button">
                           <div class="col-sm-12">
-                                <a ref="allocateForCase" @click="addWorkflow('allocate_for_case')" class="btn btn-primary btn-block" >
+                                <!--a ref="allocateForInspection" @click="addWorkflow('allocate_for_inspection')" class="btn btn-primary btn-block"-->
+                                <a ref="allocateForLegalCase" @click="allocateForLegalCase()" class="btn btn-primary btn-block" >
                                   Allocate for Case
                                 </a>
                           </div>
                         </div>
-                        <!-- <div class="row">
-                          <div class="col-sm-12"/>
-                        </div> -->
                         <div v-if="statusId !=='closed' && canUserAction" class="row action-button">
                           <div class="col-sm-12">
                                 <a ref="close" @click="addWorkflow('close')" class="btn btn-primary btn-block">
@@ -391,6 +385,9 @@
         <div v-if="inspectionInitialised">
             <Inspection ref="inspection"/>
         </div>
+        <div v-if="legalCaseInitialised">
+            <CreateLegalCaseModal ref="legal_case"/>
+        </div>
     </div>
 </template>
 <script>
@@ -416,6 +413,7 @@ require("select2-bootstrap-theme/dist/select2-bootstrap.min.css");
 import Inspection from '../inspection/create_inspection_modal';
 import RelatedItems from "@common-components/related_items.vue";
 import hash from 'object-hash';
+import CreateLegalCaseModal from "../legal_case/create_legal_case_modal.vue";
 
 export default {
   name: "ViewCallEmail",
@@ -485,6 +483,7 @@ export default {
       sanctionOutcomeInitialised: false,
       offenceInitialised: false,
       inspectionInitialised: false,
+      legalCaseInitialised: false,
       hashAttributeWhitelist: [
           "allocated_group_id",
           "location",
@@ -524,6 +523,7 @@ export default {
     RelatedItems,
     SanctionOutcome,
     Inspection,
+    CreateLegalCaseModal,
   },
   computed: {
     ...mapGetters('callemailStore', {
@@ -724,6 +724,12 @@ export default {
       this.inspectionInitialised = true;
         this.$nextTick(() => {
           this.$refs.inspection.isModalOpen = true
+      });
+    },
+    allocateForLegalCase() {
+      this.legalCaseInitialised = true;
+        this.$nextTick(() => {
+          this.$refs.legal_case.isModalOpen = true
       });
     },
     //saveIndividual: function() {

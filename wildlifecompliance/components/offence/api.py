@@ -22,6 +22,7 @@ from wildlifecompliance.components.offence.email import send_mail
 from wildlifecompliance.components.organisations.models import Organisation
 from wildlifecompliance.components.call_email.models import CallEmailUserAction, CallEmail
 from wildlifecompliance.components.inspection.models import InspectionUserAction, Inspection
+from wildlifecompliance.components.legal_case.models import LegalCase
 from wildlifecompliance.components.main.api import save_location
 
 from wildlifecompliance.components.offence.models import Offence, SectionRegulation, Offender, AllegedOffence, \
@@ -300,7 +301,20 @@ class OffenceViewSet(viewsets.ModelViewSet):
 
         serializer = OffenceSerializer(queryset, many=True, context={'request': request})
         return Response(serializer.data)
-    
+
+    @list_route(methods=['GET', ])
+    def filter_by_legal_case(self, request, *args, **kwargs):
+        legal_case_id = self.request.query_params.get('legal_case_id', None)
+
+        try:
+            legal_case = LegalCase.objects.get(id=legal_case_id)
+            queryset = self.get_queryset().filter(legal_case__exact=legal_case)
+        except:
+            queryset = self.get_queryset()
+
+        serializer = OffenceSerializer(queryset, many=True, context={'request': request})
+        return Response(serializer.data)
+
     def update_parent(self, request, instance, *args, **kwargs):
         # Log parent actions and update status, if required
         # If CallEmail

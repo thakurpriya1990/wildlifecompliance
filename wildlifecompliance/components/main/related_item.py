@@ -106,6 +106,7 @@ def search_weak_links(request_data):
     from wildlifecompliance.components.inspection.models import Inspection
     from wildlifecompliance.components.offence.models import Offence
     from wildlifecompliance.components.sanction_outcome.models import SanctionOutcome
+    from wildlifecompliance.components.legal_case.models import LegalCase
     qs = []
     related_items = []
     entity = None
@@ -122,6 +123,8 @@ def search_weak_links(request_data):
         entity, created = Offence.objects.get_or_create(id=entity_id_int)
     elif entity_type == 'sanctionoutcome':
         entity, created = SanctionOutcome.objects.get_or_create(id=entity_id_int)
+    elif entity_type == 'legalcase':
+        entity, created = LegalCase.objects.get_or_create(id=entity_id_int)
 
     related_items = get_related_items(entity)
     
@@ -165,6 +168,12 @@ def search_weak_links(request_data):
                 Q(offender__person__first_name__icontains=search_text) |
                 Q(offender__person__last_name__icontains=search_text)
                 )
+    elif 'legal_case' in components_selected:
+        qs = LegalCase.objects.filter(
+                Q(number__icontains=search_text) |
+                Q(identifier__icontains=search_text) |
+                Q(description__icontains=search_text) 
+                )
     return_qs = []
 
     # First 10 records only
@@ -196,7 +205,7 @@ approved_related_item_models = [
         'CallEmail',
         'Inspection',
         'SanctionOutcome',
-        'Case',
+        'LegalCase',
         'EmailUser',
         'Organisation',
         'Offender',
@@ -207,7 +216,7 @@ pending_closure_related_item_models = [
         'CallEmail',
         'Inspection',
         'SanctionOutcome',
-        'Case',
+        'LegalCase',
         ]
 
 approved_email_user_related_items = [
@@ -227,6 +236,7 @@ def format_model_name(model_name):
                 'case': 'Case',
                 'emailuser': 'Person',
                 'organisation': 'Organisation',
+                'legalcase': 'Case',
                 }
         return switcher.get(lower_model_name, '')
 
@@ -239,7 +249,7 @@ def format_url(model_name, obj_id):
                 'inspection': '<a href=/internal/inspection/' + obj_id_str + ' target="_blank">View</a>',
                 'offence': '<a href=/internal/offence/' + obj_id_str + ' target="_blank">View</a>',
                 'sanctionoutcome': '<a href=/internal/sanction_outcome/' + obj_id_str + ' target="_blank">View</a>',
-                'case': '<a href=/internal/case/' + obj_id_str + ' target="_blank">View</a>',
+                'legalcase': '<a href=/internal/legal_case/' + obj_id_str + ' target="_blank">View</a>',
                 'emailuser': '<a href=/internal/users/' + obj_id_str + ' target="_blank">View</a>',
                 'organisation': '<a href=/internal/organisations/' + obj_id_str + ' target="_blank">View</a>',
                 }
@@ -285,6 +295,8 @@ def get_related_items(entity, pending_closure=False, **kwargs):
                         field_objects = get_related_offenders(entity)
                     elif entity._meta.model_name == 'offence':
                         field_objects = f.related_model.objects.filter(offence_id=entity.id)
+                    elif entity._meta.model_name == 'legalcase':
+                        field_objects = f.related_model.objects.filter(legal_case_id=entity.id)
                     for field_object in field_objects:
                         if pending_closure:
                             children.append(field_object)
