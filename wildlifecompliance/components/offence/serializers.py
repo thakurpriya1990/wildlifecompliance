@@ -435,6 +435,20 @@ class SaveOffenderSerializer(serializers.ModelSerializer):
         )
         read_only_fields = ()
 
+    def validate(self, data):
+        field_errors = {}
+        non_field_errors = []
+
+        if (data['person'] and data['organisation']) or (not data['person'] and not data['organisation']):
+            non_field_errors.append('An offender must be either a person or an organisation.')
+
+        if field_errors:
+            raise serializers.ValidationError(field_errors)
+        if non_field_errors:
+            raise serializers.ValidationError(non_field_errors)
+
+        return data
+
 
 class OffenceUserActionSerializer(serializers.ModelSerializer):
     who = serializers.SerializerMethodField()
