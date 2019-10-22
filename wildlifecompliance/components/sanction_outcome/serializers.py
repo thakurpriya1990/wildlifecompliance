@@ -98,6 +98,7 @@ class AllegedCommittedOffenceSerializer(serializers.ModelSerializer):
 class SanctionOutcomeSerializer(serializers.ModelSerializer):
     status = CustomChoiceField(read_only=True)
     type = CustomChoiceField(read_only=True)
+    payment_status = CustomChoiceField(read_only=True)
     alleged_committed_offences = serializers.SerializerMethodField()
     offender = OffenderSerializer(read_only=True,)
     offence = OffenceSerializer(read_only=True,)
@@ -114,6 +115,7 @@ class SanctionOutcomeSerializer(serializers.ModelSerializer):
             'id',
             'type',
             'status',
+            'payment_status',
             'lodgement_number',
             'region_id',
             'district_id',
@@ -191,13 +193,13 @@ class SanctionOutcomeSerializer(serializers.ModelSerializer):
         ao_ids_already_included = AllegedCommittedOffence.objects.filter(sanction_outcome=so_obj).values_list('alleged_offence__id', flat=True)
 
         # Check if there is newly aded alleged offence to be added to this sanction outcome
-        if so_obj.status != 'draft':
+        if so_obj.status == SanctionOutcome.STATUS_DRAFT:
             # Only when sanction outcome is in draft status, newly added alleged offence should be added
             # Query newly added alleged offence which is not included yet
             # However whenever new alleged offence is added to the offence, it should be added to the sanction outcomes under the offence at the moment.
             qs_allegedOffences = AllegedOffence.objects.filter(Q(offence=so_obj.offence) & Q(removed=False)).exclude(Q(id__in=ao_ids_already_included))
             for ao in qs_allegedOffences:
-                aco = AllegedCommittedOffence.objects.create(alleged_offence=ao, sanction_outcome=so_obj)
+                aco = AllegedCommittedOffence.objects.create(included=False, alleged_offence=ao, sanction_outcome=so_obj)
 
         qs_allegedCommittedOffences = AllegedCommittedOffence.objects.filter(sanction_outcome=so_obj)
         return [AllegedCommittedOffenceSerializer(item, context={'request': self.context.get('request', {})}).data for item in qs_allegedCommittedOffences]
@@ -215,6 +217,7 @@ class UpdateAssignedToIdSerializer(serializers.ModelSerializer):
 
 class SanctionOutcomeDatatableSerializer(serializers.ModelSerializer):
     status = CustomChoiceField(read_only=True)
+    payment_status = CustomChoiceField(read_only=True)
     type = CustomChoiceField(read_only=True)
     user_action = serializers.SerializerMethodField()
     offender = OffenderSerializer(read_only=True,)
@@ -226,6 +229,7 @@ class SanctionOutcomeDatatableSerializer(serializers.ModelSerializer):
             'id',
             'type',
             'status',
+            'payment_status',
             'lodgement_number',
             'region',
             'district',
@@ -290,7 +294,6 @@ class SaveSanctionOutcomeSerializer(serializers.ModelSerializer):
             'region_id',
             'district_id',
             'allocated_group_id',
-            # 'alleged_offences',
             'issued_on_paper',
             'paper_id',
             'description',
@@ -322,6 +325,20 @@ class SaveSanctionOutcomeSerializer(serializers.ModelSerializer):
             raise serializers.ValidationError(non_field_errors)
 
         return data
+
+    def create(self, validated_data):
+        """
+        this method is called when creating new record after the validate() method.
+        here is the best place to edit data here if needed
+        """
+        return super(SaveSanctionOutcomeSerializer, self).create(validated_data)
+
+    def update(self, instance, validated_data):
+        """
+        this method is called when updating existing record after the validate() method.
+        here is the best place to edit data here if needed
+        """
+        return super(SaveSanctionOutcomeSerializer, self).update(instance, validated_data)
 
 
 class SaveRemediationActionSerializer(serializers.ModelSerializer):

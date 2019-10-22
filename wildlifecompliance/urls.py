@@ -32,6 +32,7 @@ from wildlifecompliance.components.offence import api as offence_api
 from wildlifecompliance.components.inspection import api as inspection_api
 from wildlifecompliance.components.sanction_outcome import api as sanction_outcome_api
 from wildlifecompliance.components.main import api as main_api
+from wildlifecompliance.components.wc_payments import views as payment_views
 from wildlifecompliance.components.legal_case import api as legal_case_api
 
 from wildlifecompliance.utils import are_migrations_running
@@ -218,6 +219,11 @@ urlpatterns = [
     url(r'^mgt-commands/$',
         views.ManagementCommandsView.as_view(),
         name='mgt-commands'),
+
+    # url(r'^success/infringement_penalty/$', payment_views.InfringementPenaltySuccessView.as_view(), name='infringement_success', namespace='wc_payments'),
+    # url(r'^infringement_penalty/(?P<sanction_outcome_id>\d+)/$', payment_views.InfringementPenaltyView.as_view(), name='infringement_penalty', namespace='wc_payments'),
+    url(r'^success/infringement_penalty/$', payment_views.InfringementPenaltySuccessView.as_view(), name='infringement_success',),
+    url(r'^infringement_penalty/(?P<sanction_outcome_id>\d+)/$', payment_views.InfringementPenaltyView.as_view(), name='infringement_penalty',),
 
 ] + ledger_patterns
 

@@ -425,7 +425,7 @@ def get_related_items(entity, pending_closure=False, **kwargs):
         print(traceback.print_exc())
         raise serializers.ValidationError(str(e))
 
-def can_close_record(entity, request):
+def can_close_record(entity, request=None):
     print("can close record")
     children, parents = get_related_items(entity, pending_closure=True)
     close_record = True

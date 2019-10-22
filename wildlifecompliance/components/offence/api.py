@@ -237,13 +237,13 @@ class OffenceViewSet(viewsets.ModelViewSet):
             q_list.append(Q(status=filter_status))
         if filter_date_from:
             date_from = datetime.strptime(filter_date_from, '%d/%m/%Y')
-            q_list.append(Q(occurrence_date_from__gte=date_from))
+            q_list.append(Q(occurrence_date_from__gte=date_from) | Q(occurrence_date_to__gte=date_from))
         if filter_date_to:
             date_to = datetime.strptime(filter_date_to, '%d/%m/%Y')
-            q_list.append(Q(occurrence_date_to__lte=date_to))
+            q_list.append(Q(occurrence_date_to__lte=date_to) | Q(occurrence_date_from__lte=date_to))
         if filter_sanction_outcome_type:
             offence_ids = SanctionOutcome.objects.filter(type=filter_sanction_outcome_type).values_list('offence__id', flat=True).distinct()
-            q_list.apend(Q(id__in=offence_ids))
+            q_list.append(Q(id__in=offence_ids))
 
         queryset = queryset.filter(reduce(operator.and_, q_list)) if len(q_list) else queryset
 
@@ -363,12 +363,9 @@ class OffenceViewSet(viewsets.ModelViewSet):
                     if created:
                         # new alleged offence is added to the offence
                         # Which should be added to all the sanction outcomes under the offence if the status is 'draft'
-                        sanction_outcomes = SanctionOutcome.objects.filter(status=SanctionOutcome.STATUS_DRAFT)
+                        sanction_outcomes = SanctionOutcome.objects.filter(status=SanctionOutcome.STATUS_DRAFT, offence=instance)
                         for so in sanction_outcomes:
-                            if so.type == SanctionOutcome.TYPE_INFRINGEMENT_NOTICE:
-                                aco = AllegedCommittedOffence.objects.create(included=False, alleged_offence=alleged_offence, sanction_outcome=so)
-                            else:
-                                aco = AllegedCommittedOffence.objects.create(alleged_offence=alleged_offence, sanction_outcome=so)
+                            aco = AllegedCommittedOffence.objects.create(included=False, alleged_offence=alleged_offence, sanction_outcome=so)
                     else:
                         serializer = None
                         alleged_offence_removed = False
@@ -413,7 +410,17 @@ class OffenceViewSet(viewsets.ModelViewSet):
                 # 4. Create relations between this offence and offender(s)
                 for item in request_data['offenders']:
                     if item['person']:
-                        offender, created = Offender.objects.get_or_create(person_id=item['person']['id'], offence_id=request_data['id'])
+                        offender = Offender.objects.filter(person__id=item['person']['id'], offence__id=request_data['id'])
+                        # offender, created = Offender.objects.get_or_create(person_id=item['person']['id'], offence_id=request_data['id'])
+                        if offender.count():
+                            created = False
+                        else:
+                            created = True
+                            serializer_offender = SaveOffenderSerializer(data={'offence_id': instance.id, 'person_id': item['person']['id']})
+                            serializer_offender.is_valid(raise_exception=True)
+                            serializer_offender.save()
+
+
                     elif item['organisation']:
                         offender, created = Offender.objects.get_or_create(organisation_id=item['organisation']['id'], offence_id=request_data['id'])
 
