@@ -158,7 +158,6 @@ export default {
                         searchable: true,
                         orderable: true,
                         mRender: function (data, type, full) {
-                            console.log(full);
                             return data.name;
                         }
                     },
@@ -206,10 +205,9 @@ export default {
                     },
                     {
                         mRender: function (data, type, full) {
-                            console.log(full);
                             if (full.status.id === 'awaiting_payment'){
                                 //return '<a>Pay</a>';
-                                return `<a href='#${full.id}' data-pay-infringement-notice-fee='${full.id}'>Pay</a><br/>`;
+                                return `<a href='#${full.id}' data-pay-infringement-penalty='${full.id}'>Pay</a><br/>`;
                             }
                             return '';
                         }
@@ -252,15 +250,26 @@ export default {
         addEventListeners: function () {
             this.attachFromDatePicker();
             this.attachToDatePicker();
+
+            let vm = this;
             // External Pay Fee listener
-            this.visibleDatatable.vmDataTable.on('click', 'a[data-pay-infringement-notice-fee]', function(e) {
+            vm.$refs.sanction_outcome_table.vmDataTable.on('click', 'a[data-pay-infringement-penalty]', function(e) {
                 e.preventDefault();
-                var id = $(this).attr('data-pay-infringement-notice-fee');
-                this.payInfringementNoticeFee(id);
+                var id = $(e.target).attr('data-pay-infringement-penalty');
+                vm.payInfringementPenalty(id);
             });
         },
-        payInfringementNoticeFee: function(id){
-            console.log(id);
+        payInfringementPenalty: function(sanction_outcome_id){
+            console.log('payInfringementPenalty');
+            this.$http.post(helpers.add_endpoint_join(api_endpoints.sanction_outcome, sanction_outcome_id + '/sanction_outcome_infringement_penalty_checkout/'), sanction_outcome_id).then(res=>{
+                    window.location.href = "/ledger/checkout/checkout/payment-details/";
+                },err=>{
+                    swal(
+                        'Submit Error',
+                        helpers.apiVueResourceError(err),
+                        'error'
+                    )
+                });
         },
         attachFromDatePicker: function(){
             let vm = this;

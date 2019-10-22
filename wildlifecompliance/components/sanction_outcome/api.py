@@ -3,6 +3,7 @@ import logging
 import traceback
 
 from datetime import datetime
+from decimal import Decimal
 
 from django.contrib.auth.models import Permission
 from django.contrib.contenttypes.models import ContentType
@@ -18,6 +19,7 @@ from rest_framework.response import Response
 from rest_framework_datatables.filters import DatatablesFilterBackend
 from rest_framework_datatables.pagination import DatatablesPageNumberPagination
 
+from ledger.checkout.utils import calculate_excl_gst
 from wildlifecompliance.components.main.process_document import (
         process_generic_document,
         save_default_document_obj
@@ -25,6 +27,7 @@ from wildlifecompliance.components.main.process_document import (
 from wildlifecompliance.components.call_email.models import CallEmail, CallEmailUserAction
 from wildlifecompliance.components.inspection.models import Inspection, InspectionUserAction
 from wildlifecompliance.components.main.email import prepare_mail
+from wildlifecompliance.components.main.utils import checkout
 from wildlifecompliance.components.offence.models import SectionRegulation, AllegedOffence
 from wildlifecompliance.components.sanction_outcome.email import send_mail
 from wildlifecompliance.components.sanction_outcome.models import SanctionOutcome, RemediationAction, \
@@ -34,6 +37,7 @@ from wildlifecompliance.components.sanction_outcome.serializers import SanctionO
     UpdateAssignedToIdSerializer, SanctionOutcomeCommsLogEntrySerializer, SanctionOutcomeUserActionSerializer, \
     AllegedCommittedOffenceSerializer, AllegedCommittedOffenceCreateSerializer
 from wildlifecompliance.components.users.models import CompliancePermissionGroup, RegionDistrict
+from wildlifecompliance.components.wc_payments.utils import set_session_infringement_invoice
 from wildlifecompliance.helpers import is_internal
 from wildlifecompliance.components.main.models import TemporaryDocumentCollection
 
@@ -164,10 +168,47 @@ class SanctionOutcomeViewSet(viewsets.ModelViewSet):
     queryset = SanctionOutcome.objects.all()
     serializer_class = SanctionOutcomeSerializer
 
+    @detail_route(methods=['post'])
+    @renderer_classes((JSONRenderer,))
+    def sanction_outcome_infringement_penalty_checkout(self, request, *args, **kwargs):
+        try:
+            instance = self.get_object()
+            product_lines = []
+            # application_submission = u'Application submitted by {} confirmation {}'.format(
+            #     u'{} {}'.format(instance.submitter.first_name, instance.submitter.last_name), instance.lodgement_number)
+            sanction_outcome_submission = u'Sanction outcome: {} submitted by {}'.format(request.user.get_full_name(), instance.lodgement_number)
+            set_session_infringement_invoice(request.session, instance)
+            now = datetime.now().strftime('%Y-%m-%d %H:%M')
+            product_lines.append({
+                # 'ledger_description': '{}'.format(instance.licence_type_name),
+                'ledger_description': 'Infringement Penalty - {} - {}'.format(now, 11111),
+                 'quantity': 1,
+                'price_incl_tax': Decimal(100.00),
+                'price_excl_tax': Decimal(100.00),
+                # 'price_incl_tax': str(instance.application_fee),
+                # 'price_excl_tax': str(calculate_excl_gst(instance.application_fee)),
+                'oracle_code': ''
+            })
+            checkout_result = checkout(request, instance, lines=product_lines, invoice_text=sanction_outcome_submission)
+            return checkout_result
+        except serializers.ValidationError:
+            print(traceback.print_exc())
+            raise
+        except ValidationError as e:
+            if hasattr(e, 'error_dict'):
+                raise serializers.ValidationError(repr(e.error_dict))
+            else:
+                raise serializers.ValidationError(repr(e[0].encode('utf-8')))
+        except Exception as e:
+            print(traceback.print_exc())
+            raise serializers.ValidationError(str(e))
+
     def get_queryset(self):
         # user = self.request.user
         if is_internal(self.request):
             return SanctionOutcome.objects.all()
+        else:
+            return SanctionOutcome.objects_for_external.filter(offender__person=self.request.user)
         return SanctionOutcome.objects.none()
 
     @list_route(methods=['GET', ])

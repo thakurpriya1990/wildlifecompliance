@@ -212,8 +212,6 @@ urlpatterns = [
         views.ManagementCommandsView.as_view(),
         name='mgt-commands'),
 
-    # url(r'^success/infringement_penalty/$', payment_views.InfringementPenaltySuccessView.as_view(), name='infringement_success', namespace='wc_payments'),
-    # url(r'^infringement_penalty/(?P<sanction_outcome_id>\d+)/$', payment_views.InfringementPenaltyView.as_view(), name='infringement_penalty', namespace='wc_payments'),
     url(r'^success/infringement_penalty/$', payment_views.InfringementPenaltySuccessView.as_view(), name='infringement_success',),
     url(r'^infringement_penalty/(?P<sanction_outcome_id>\d+)/$', payment_views.InfringementPenaltyView.as_view(), name='infringement_penalty',),
 
