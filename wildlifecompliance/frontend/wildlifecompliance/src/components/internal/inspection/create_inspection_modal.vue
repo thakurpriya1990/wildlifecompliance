@@ -276,13 +276,14 @@ export default {
                   if (this.$parent.$refs.inspection_table) {
                       this.$parent.$refs.inspection_table.vmDataTable.ajax.reload()
                   }
-                  // For CallEmail related items table
+                  // For related items table
+                  let parent_update_function_payload = null;
                   if (this.parent_call_email) {
-                      //await this.parent_update_function({
-                      await this.loadCallEmail({
-                          call_email_id: this.call_email.id,
-                      });
+                      parent_update_function_payload = { call_email_id: this.call_email.id }
+                  } else if (this.parent_legal_case) {
+                      parent_update_function_payload = { legal_case_id: this.legal_case.id }
                   }
+                  await this.parent_update_function(parent_update_function_payload);
                   if (this.$parent.$refs.related_items_table) {
                       this.$parent.constructRelatedItemsTable();
                   }
