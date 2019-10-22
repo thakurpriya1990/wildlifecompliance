@@ -86,7 +86,7 @@
                                 type="button" 
                                 class="btn btn-primary btn-block" 
                                 value="Sanction Outcome" 
-                                @click.prevent="createNewPerson()" 
+                                @click.prevent="openSanctionOutcome()" 
                                 />
                                 <!--a @click="openSanctionOutcome()" class="btn btn-primary btn-block">
                                   Sanction Outcome
@@ -113,12 +113,8 @@
                     </div>
                 </div>
             </div>
-
-
-            
           </div>
-
-          <div class="col-md-9" id="main-column">  
+          <div class="col-md-9" id="main-column">
             <div class="row">
 
                 <div class="container-fluid">
@@ -129,20 +125,16 @@
                     </ul>
                     <div class="tab-content">
                         <div :id="runTab" class="tab-pane fade in active">
-
                           <FormSection :formCollapse="false" label="Running Sheet" Index="0">
                             <div class="col-sm-12 form-group"><div class="row">
                                 <div>
                                     <!--datatable ref="legal_case_table" id="legal-case-table" :dtOptions="dtOptions" :dtHeaders="dtHeaders" /-->
                                 </div>
                             </div></div>
-                          
                           </FormSection>
-                        </div>  
-
+                        </div>
                         <div :id="cTab" class="tab-pane fade in">
                             <FormSection :formCollapse="false" label="Case Details">
-
                                 <div class="col-sm-12 form-group"><div class="row">
                                     <label class="col-sm-4">Title</label>
                                     <input type="text" class="form-control" v-model="legal_case.title" />
@@ -171,9 +163,8 @@
                             </FormSection>
                         </div>
                     </div>
-                </div>       
-
-            </div>          
+                </div>
+            </div>
           </div>
 
         <div v-if="legal_case.can_user_action" class="navbar navbar-fixed-bottom" style="background-color: #f5f5f5 ">
