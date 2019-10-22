@@ -446,7 +446,7 @@ class LegalCaseViewSet(viewsets.ModelViewSet):
 
     @detail_route(methods=['POST'])
     @renderer_classes((JSONRenderer,))
-    def process_renderer_document(self, request, *args, **kwargs):
+    def process_default_document(self, request, *args, **kwargs):
         try:
             instance = self.get_object()
             returned_data = process_generic_document(request, instance)

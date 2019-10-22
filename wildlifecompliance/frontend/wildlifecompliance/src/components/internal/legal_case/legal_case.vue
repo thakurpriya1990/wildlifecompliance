@@ -151,6 +151,14 @@
                                     <label class="col-sm-4">Details</label>
                                     <textarea class="form-control location_address_field" v-model="legal_case.details" />
                                 </div></div>
+                                <div class="col-sm-9">
+                                    <filefield 
+                                    ref="legal_case_documents" 
+                                    name="legal-case-documents" 
+                                    :isRepeatable="true" 
+                                    :documentActionUrl="legal_case.defaultDocumentUrl" 
+                                    :readonly="readonlyForm"/>
+                                </div>
                             </FormSection>
                         </div>
                         <div :id="rTab" class="tab-pane fade in">

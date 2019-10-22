@@ -26,26 +26,21 @@ export const legalCaseStore = {
             if (state.legal_case.case_created_date) {
                 state.legal_case.case_created_date = moment(state.legal_case.case_created_date, 'YYYY-MM-DD').format('DD/MM/YYYY');
             }
-            //let inspectionReportDocumentUrl = helpers.add_endpoint_join(
-            //    api_endpoints.inspection,
-            //    state.inspection.id + "/process_inspection_report_document/"
-            //    )
-            //Vue.set(state.inspection, 'inspectionReportDocumentUrl', inspectionReportDocumentUrl); 
-            //let rendererDocumentUrl = helpers.add_endpoint_join(
-            //    api_endpoints.inspection,
-            //    state.inspection.id + "/process_renderer_document/"
-            //    )
-            //Vue.set(state.inspection, 'rendererDocumentUrl', rendererDocumentUrl); 
-            //let commsLogsDocumentUrl = helpers.add_endpoint_join(
-            //    api_endpoints.inspection,
-            //    state.inspection.id + "/process_comms_log_document/"
-            //    )
-            //Vue.set(state.inspection, 'commsLogsDocumentUrl', commsLogsDocumentUrl); 
-            //let createInspectionProcessCommsLogsDocumentUrl = helpers.add_endpoint_join(
-            //    api_endpoints.inspection,
-            //    state.inspection.id + "/create_inspection_process_comms_log_document/"
-            //    )
-            //Vue.set(state.inspection, 'createInspectionProcessCommsLogsDocumentUrl', createInspectionProcessCommsLogsDocumentUrl); 
+            let defaultDocumentUrl = helpers.add_endpoint_join(
+                api_endpoints.legal_case,
+                state.legal_case.id + "/process_default_document/"
+                )
+            Vue.set(state.legal_case, 'defaultDocumentUrl', defaultDocumentUrl); 
+            let commsLogsDocumentUrl = helpers.add_endpoint_join(
+                api_endpoints.legal_case,
+                state.legal_case.id + "/process_comms_log_document/"
+                )
+            Vue.set(state.legal_case, 'commsLogsDocumentUrl', commsLogsDocumentUrl); 
+            let createLegalCaseProcessCommsLogsDocumentUrl = helpers.add_endpoint_join(
+                api_endpoints.legal_case,
+                state.legal_case.id + "/create_legal_case_process_comms_log_document/"
+                )
+            Vue.set(state.legal_case, 'createLegalCaseProcessCommsLogsDocumentUrl', createLegalCaseProcessCommsLogsDocumentUrl); 
         },
         updateRelatedItems(state, related_items) {
             Vue.set(state.legal_case, 'related_items', related_items);
@@ -68,24 +63,6 @@ export const legalCaseStore = {
                 console.log(err);
             }
         },
-        // async modifyInspectionTeam({ dispatch, state}, { user_id, action }) {
-        //     console.log("modifyInspectionTeam");
-        //     try {
-        //         const returnedInspection = await Vue.http.post(
-        //             helpers.add_endpoint_join(
-        //                 api_endpoints.inspection,
-        //                 state.inspection.id + '/modify_inspection_team/',
-        //             ),
-        //             { user_id, action }
-        //             );
-
-        //         /* Set Inspection object */
-        //         await dispatch("setInspection", returnedInspection.body);
-
-        //     } catch (err) {
-        //         console.log(err);
-        //     }
-        // },
         async saveLegalCase({ dispatch, state, rootGetters }, { create, internal }) {
             let legalCaseId = null;
             let savedLegalCase = null;
