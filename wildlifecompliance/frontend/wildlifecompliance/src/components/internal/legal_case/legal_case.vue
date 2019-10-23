@@ -128,6 +128,13 @@
                           <FormSection :formCollapse="false" label="Running Sheet" Index="0">
                             <div class="col-sm-12 form-group"><div class="row">
                                 <div>
+                                    <!--div class="col-sm-6"-->
+                                        <label class="col-sm-6">Type !! to open Inspection</label>
+                                        <input id="test1" type="text" class="form-control" />
+                                        <!--label class="col-sm-4">Test 2</label>
+                                        <input id="test2" type="text" class="form-control" /-->
+                                    <!--/div-->
+
                                     <!--datatable ref="legal_case_table" id="legal-case-table" :dtOptions="dtOptions" :dtHeaders="dtHeaders" /-->
                                 </div>
                             </div></div>
@@ -136,21 +143,28 @@
                         <div :id="cTab" class="tab-pane fade in">
                             <FormSection :formCollapse="false" label="Case Details">
                                 <div class="col-sm-12 form-group"><div class="row">
-                                    <label class="col-sm-4">Title</label>
-                                    <input type="text" class="form-control" v-model="legal_case.title" />
+                                    <label class="col-sm-10">Title
+                                        <input type="text" class="form-control" v-model="legal_case.title" />
+                                    </label>
                                 </div></div>
                                 <div class="col-sm-12 form-group"><div class="row">
-                                    <label class="col-sm-4">Details</label>
-                                    <textarea class="form-control location_address_field" v-model="legal_case.details" />
+                                    <label class="col-sm-10">Details
+                                        <textarea class="form-control location_address_field" v-model="legal_case.details" />
+                                    </label>
                                 </div></div>
-                                <div class="col-sm-9">
-                                    <filefield 
-                                    ref="legal_case_documents" 
-                                    name="legal-case-documents" 
-                                    :isRepeatable="true" 
-                                    :documentActionUrl="legal_case.defaultDocumentUrl" 
-                                    :readonly="readonlyForm"/>
-                                </div>
+                                <div class="col-sm-12 form-group"><div class="row">
+                                    <div v-if="legal_case.defaultDocumentUrl">
+                                        <label class="col-sm-10">Documents
+                                            <filefield 
+                                            ref="legal_case_documents" 
+                                            name="legal-case-documents" 
+                                            :isRepeatable="true" 
+                                            :documentActionUrl="legal_case.defaultDocumentUrl" 
+                                            :readonly="readonlyForm"
+                                            />
+                                        </label>
+                                    </div>
+                                </div></div>
                             </FormSection>
                         </div>
                         <div :id="rTab" class="tab-pane fade in">
@@ -256,6 +270,7 @@ export default {
       offenceInitialised: false,
       inspectionInitialised: false,
       hashAttributeWhitelist: [],
+      magicKeyPressed: false,
       //dtOptions: {
       //    serverSide: true,
       //    searchDelay: 1000,
@@ -488,6 +503,7 @@ export default {
     //    }
     //},
     openInspection() {
+      this.uuid += 1;
       this.inspectionInitialised = true;
         this.$nextTick(() => {
           this.$refs.inspection.isModalOpen = true
@@ -571,12 +587,36 @@ export default {
         // return to dash
         this.$router.push({ name: 'internal-legal-case-dash' });
       }
+
+    },
+    test1: function(e) {
+        // keycode 49 = !
+        if (e.which === 49 && this.magicKeyPressed) {
+            // TODO: replace with modal_open call
+            console.log("open modal")
+            this.openInspection()
+            this.magicKeyPressed = false;
+        } else if (e.which === 49) {
+            this.magicKeyPressed = true;
+            // keycode 16 = Shift (must be pressed to access !)
+        } else if (e.which === 16) {
+        } else {
+            this.magicKeyPressed = false;
+        }
+
     },
     addEventListeners: function() {
-      //let vm = this;
+      let vm = this;
+      let test1 = $('#test1');
+      //let test2 = $('#test2');
+      test1.on(
+          'keydown', 
+          function(e) {
+              vm.test1(e)
+          });
+
       //let el_fr_date = $(vm.$refs.plannedForDatePicker);
       //let el_fr_time = $(vm.$refs.plannedForTimePicker);
-
       //// "From" field
       //el_fr_date.datetimepicker({
       //  format: "DD/MM/YYYY",
