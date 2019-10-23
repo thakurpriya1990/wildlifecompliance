@@ -1136,6 +1136,91 @@ class Application(RevisionedMixin):
             request=request
         )
 
+    def assign_application_assessment(self, request):
+        with transaction.atomic():
+            try:
+                assessment_id = request.data.get('assessment_id')
+                assessor_id = request.data.get('assessor_id')
+
+                assessment = Assessment.objects.filter(
+                    id=assessment_id,
+                    application=self
+                ).first()
+
+                if not assessment:
+                    raise Exception("Assessment record ID %s (activity: %s) does not exist!" % (
+                        assessment_id, activity_id))
+
+                assessor_group = request.user.get_wildlifelicence_permission_group(
+                    permission_codename='assessor',
+                    activity_id=assessment.licence_activity_id,
+                    first=True
+                )
+                if not assessor_group:
+                    raise Exception("Missing assessor permissions for Activity ID: %s" % (
+                        assessment.licence_activity_id))
+                # Set the actioner to the assessor
+                assessor = EmailUser.objects.get(id=assessor_id) if assessor_id else assessor_id
+                assessment.actioned_by = assessor
+                assessment.save()
+                # Log application action
+                if (assessor):
+                    self.log_user_action(
+                        ApplicationUserAction.ACTION_ASSESSMENT_ASSIGNED.format(assessment.assessor_group, assessor.get_full_name()), request)
+                else:
+                    self.log_user_action(
+                        ApplicationUserAction.ACTION_ASSESSMENT_UNASSIGNED.format(assessment.assessor_group), request)                    
+
+            except BaseException:
+                raise
+
+    def complete_application_assessments_by_user(self, request):
+        ''' Method to complete all assessments which are assigned to the current user or are unassigned within the
+            current users permissions group.'''
+        with transaction.atomic():
+            try:
+                assessments = Assessment.objects.filter(
+                    status=Assessment.STATUS_AWAITING_ASSESSMENT,
+                    application=self
+                )
+
+                # select each assessment on application.
+                for assessment in assessments:
+
+                    # check user has assessor permission
+                    assessor_group = request.user.get_wildlifelicence_permission_group(
+                        permission_codename='assessor',
+                        activity_id=assessment.licence_activity_id,
+                        first=True
+                    )
+                    if not assessor_group:
+                        continue
+
+                    # check assessment is not assigned to another.
+                    if assessment.assigned_assessor and not assessment.assigned_assessor==request.user:
+                        continue
+
+                    assessment.status = Assessment.STATUS_COMPLETED
+                    assessment.actioned_by = request.user
+                    assessment.save()
+                    # Log application action
+                    self.log_user_action(
+                        ApplicationUserAction.ACTION_ASSESSMENT_COMPLETE.format(assessor_group), request)
+                    # Log entry for organisation
+                    if self.org_applicant:
+                        self.org_applicant.log_user_action(
+                            ApplicationUserAction.ACTION_ASSESSMENT_COMPLETE.format(assessor_group), request)
+                    elif self.proxy_applicant:
+                        self.proxy_applicant.log_user_action(
+                            ApplicationUserAction.ACTION_ASSESSMENT_COMPLETE.format(assessor_group), request)
+                    else:
+                        self.submitter.log_user_action(
+                            ApplicationUserAction.ACTION_ASSESSMENT_COMPLETE.format(assessor_group), request)
+
+                    self.check_assessment_complete(assessment.licence_activity_id)
+            except BaseException:
+                raise
+
     def complete_assessment(self, request):
         with transaction.atomic():
             try:
@@ -2171,6 +2256,12 @@ class Assessment(ApplicationRequest):
     def is_inspection_required(self):
         return self.selected_activity.is_inspection_required
 
+    def assessors(self):
+        return self.assessor_group.members.all()
+
+    @property
+    def assigned_assessor(self):
+        return self.actioned_by
 
 class ApplicationSelectedActivity(models.Model):
     PROPOSED_ACTION_DEFAULT = 'default'
@@ -2900,6 +2991,8 @@ class ApplicationUserAction(UserAction):
     ACTION_ASSESSMENT_RECALLED = "Assessment recalled {}"
     ACTION_ASSESSMENT_RESENT = "Assessment Resent {}"
     ACTION_ASSESSMENT_COMPLETE = "Assessment Completed for group {} "
+    ACTION_ASSESSMENT_ASSIGNED = "Assessment for {} Assigned to {}"
+    ACTION_ASSESSMENT_UNASSIGNED = "Unassigned Assessor from Assessment for {}"    
     ACTION_DECLINE = "Decline application {}"
     ACTION_ENTER_CONDITIONS = "Entered condition for activity {}"
     ACTION_CREATE_CONDITION_ = "Create condition {}"

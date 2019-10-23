@@ -260,6 +260,8 @@ class AssessmentSerializer(serializers.ModelSerializer):
     assessor_group = ActivityPermissionGroupSerializer(read_only=True)
     status = CustomChoiceField(read_only=True)
     inspection_report = serializers.FileField()
+    assessors = EmailUserAppViewSerializer(many=True)
+    assigned_assessor = EmailUserSerializer()  
 
     class Meta:
         model = Assessment
@@ -275,6 +277,8 @@ class AssessmentSerializer(serializers.ModelSerializer):
             'inspection_date',
             'inspection_report',
             'is_inspection_required',
+            'assessors',
+            'assigned_assessor',
         )
 
 
@@ -745,6 +749,7 @@ class InternalApplicationSerializer(BaseApplicationSerializer):
     licence_officers = EmailUserAppViewSerializer(many=True)
     user_in_licence_officers = serializers.SerializerMethodField(read_only=True)
     user_roles = serializers.SerializerMethodField(read_only=True)
+    assessments = AssessmentSerializer(many=True)      
 
     class Meta:
         model = Application
@@ -785,6 +790,7 @@ class InternalApplicationSerializer(BaseApplicationSerializer):
             'licence_officers',
             'user_in_licence_officers',
             'user_roles',
+            'assessments',
         )
         read_only_fields = ('documents', 'conditions')
 

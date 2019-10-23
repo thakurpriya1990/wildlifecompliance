@@ -51,7 +51,7 @@
                                     </div>
                                 </div>
                             </div>
-                             <div class="col-sm-12 top-buffer-s">
+                             <div class="col-sm-12 top-buffer-s" v-if="!isSendingToAssessor && !isOfficerConditions" >
                                 <strong>Assigned Officer</strong><br/>
                                 <div class="form-group">
                                     <template>
@@ -61,6 +61,31 @@
                                         <a v-if="canAssignToOfficer" @click.prevent="assignToMe()" class="actionBtn pull-right">Assign to me</a>
                                     </template>
                                 </div>
+                            </div>
+
+                            <div class="col-sm-12 top-buffer-s" v-if="isSendingToAssessor || isOfficerConditions">
+                                <strong>Assigned Assessors</strong><br/>
+                            
+                                <div v-for="activity_assessment in this.application.assessments">
+                                    <div v-if="activity_assessment.assessor_group.name">
+                                        <div>Assessment for {{activity_assessment.assessor_group.name.split('Wildlife Compliance - Assessors:')[1]}}</div>
+
+                                        <template>
+                                            <!-- display selects when Assessor has been allocated -->
+                                            <select v-if="activity_assessment.assigned_assessor!=null" ref="assigned_assessor" class="form-control" v-on:change="onChangeAssessor(activity_assessment)" v-model="activity_assessment.assigned_assessor.id">
+                                                <option :value="null"></option>                                                
+                                                <option v-for="member in activity_assessment.assessors" :value="member.id" v-bind:key="member.id">{{member.first_name}} {{member.last_name}}</option>
+                                            </select>
+                                            <!-- display select when no Assessor exist -->
+                                            <select v-if="activity_assessment.assigned_assessor==null" ref="assigned_assessor" class="form-control" v-on:change="onChangeAssessor(activity_assessment)" v-model="activity_assessment.assigned_assessor_id" >
+                                                <option :value="null"></option>
+                                                <option v-for="member in activity_assessment.assessors" :value="member.id" v-bind:key="member.id">{{member.first_name}} {{member.last_name}}</option>
+                                            </select>                                           
+                                        </template>
+                           
+                                    </div>
+                                </div>
+
                             </div>
 
                             <template v-if="isFinalised">
@@ -121,6 +146,7 @@
                                             <button class="btn btn-primary top-buffer-s col-xs-12" @click.prevent="toggleApplication({show: true})">Back to Application</button><br/>
                                         </div>
                                     </div>
+                                    <button v-show="showCompleteButton" @click.prevent="completeAssessmentsToMe()" class="btn btn-primary top-buffer-s col-xs-12" >Complete Assessments</button><br/>                                   
                                 </template>
                             </div>
                         </div>
@@ -763,7 +789,20 @@ export default {
         },
         showNavBarBottom: function() {
             return this.canReturnToConditions || (!this.applicationIsDraft && this.canSaveApplication)
-        }
+        },
+        showCompleteButton: function() {
+            for (const assessment of this.application.assessments) {
+                // for assessment that is not assigned.    
+                if (this.userHasRole('assessor', assessment.licence_activity) && (!assessment.assigned_assessor)) {
+                    return true;
+                }
+                // for assessment assigned to current user.
+                if (assessment.assigned_assessor.id===this.current_user.id) {
+                    return true;
+                }
+            }
+            return false;
+        },
     },
     methods: {
         ...mapActions({
@@ -962,7 +1001,6 @@ export default {
             return this.save({ showNotification: false });
         },
         toggleApplication: function({show=false, showFinalised=false}){
-
             this.showingApplication = show;
             if(this.isSendingToAssessor){
                 this.isSendingToAssessor = !show;
@@ -1104,6 +1142,51 @@ export default {
                 });
             }
         },
+        onChangeAssessor: function(assessment){
+            console.log('changeAssesor')
+            console.log(assessment)
+            const data = {
+                "assessment_id" : assessment.id,
+                "assessor_id": assessment.assigned_assessor==null ? assessment.assigned_assessor_id : assessment.assigned_assessor.id
+            }
+            this.$http.post(helpers.add_endpoint_json(
+                    api_endpoints.applications, (this.application.id+'/assign_application_assessment')
+                ), JSON.stringify(data)).then((response) => {
+                    //this.refreshFromResponse(response);
+                    //this.isSendingToAssessor=true;
+                    //this.isOfficerConditions=true;
+                }, (error) => {
+                    this.revert();
+                       swal(
+                        'Application Error',
+                        helpers.apiVueResourceError(error),
+                        'error'
+                        )
+                });            
+        },
+        completeAssessmentsToMe: function(){
+            console.log('completeAssessmentsToMe')
+ 
+            let vm = this;
+            vm.$http.post(helpers.add_endpoint_json(api_endpoints.applications,(vm.application.id+'/complete_application_assessments')))
+                .then((response) => {
+                this.refreshFromResponse(response);
+                swal(
+                    'Complete Assessments',
+                    'Assessments have been marked for completion.',
+                    'success'
+                    );               
+
+            }, (error) => {
+                //vm.revert();
+                //vm.updateAssignedOfficerSelect();
+                swal(
+                    'Application Error',
+                    helpers.apiVueResourceError(error),
+                    'error'
+                )
+            });
+        },
         updateActivityStatus: function(activity_id, status){
             let vm = this;
             let data = {
@@ -1165,6 +1248,7 @@ export default {
         }
     },
     mounted: function() {
+        console.log(this.application)
     },
     updated: function(){
         let vm = this;
