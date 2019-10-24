@@ -146,7 +146,8 @@ class InfringementPenaltySuccessView(TemplateView):
                     logger.error('{} tried paying an infringement penalty with an incorrect invoice'.format('User {} with id {}'.format(sanction_outcome.offender.person.get_full_name(), sanction_outcome.offender.person.id) if sanction_outcome.offender else 'An anonymous user'))
                     #return redirect('external', args=(proposal.id,))
                     return redirect('external')
-                if inv.system not in ['0111']: # TODO Change to correct VALUE
+
+                if inv.system not in ['0999']: # TODO Change to correct VALUE
                     logger.error('{} tried paying an infringement penalty with an invoice from another system with reference number {}'.format('User {} with id {}'.format(sanction_outcome.offender.person.get_full_name(), sanction_outcome.offender.person.id) if sanction_outcome.offender.person else 'An anonymous user',inv.reference))
                     #return redirect('external-proposal-detail', args=(proposal.id,))
                     return redirect('external')
@@ -184,8 +185,8 @@ class InfringementPenaltySuccessView(TemplateView):
                 infringement_penalty = InfringementPenalty.objects.get(id=request.session['wc_last_infringement_invoice'])
                 sanction_outcome = infringement_penalty.sanction_outcome
 
-                recipient = sanction_outcome.offender.email
-                submitter = sanction_outcome.assigned_to.email
+                recipient = sanction_outcome.offender.person.email
+                submitter = sanction_outcome.assigned_to.email if sanction_outcome.assigned_to else None
 
                 if InfringementPenaltyInvoice.objects.filter(infringement_penalty=infringement_penalty).count() > 0:
                     ip_inv = InfringementPenaltyInvoice.objects.filter(infringement_penalty=infringement_penalty)
