@@ -122,12 +122,6 @@
                                             <button class="btn btn-primary top-buffer-s col-xs-12" @click.prevent="togglesendtoAssessor()">Assessments &amp; Conditions</button><br/>
                                         </div>
                                     </div>
-                                    <div v-if="canProposeIssueOrDecline" class="row">
-                                        <div class="col-sm-12">
-                                            <button class="btn btn-danger top-buffer-s col-xs-12" @click.prevent="proposedDecline()">Propose Decline</button>
-                                            <button class="btn btn-success top-buffer-s col-xs-12" @click.prevent="proposedLicence()">Propose Issue</button>
-                                        </div>
-                                    </div>
                                     <div v-if="canIssueDecline" class="row">
                                         <div class="col-sm-12">
                                             <button v-if="!userIsAssignedOfficer" class="btn btn-success top-buffer-s col-xs-12" @click.prevent="toggleIssue()">Issue/Decline</button>
@@ -146,6 +140,12 @@
                                             <button class="btn btn-primary top-buffer-s col-xs-12" @click.prevent="toggleApplication({show: true})">Back to Application</button><br/>
                                         </div>
                                     </div>
+                                    <div v-if="canProposeIssueOrDecline && isSendingToAssessor || isOfficerConditions" class="row">
+                                        <div class="col-sm-12">
+                                            <button class="btn btn-danger top-buffer-s col-xs-12" @click.prevent="proposedDecline()">Propose Decline</button>
+                                            <button class="btn btn-success top-buffer-s col-xs-12" @click.prevent="proposedLicence()">Propose Issue</button>
+                                        </div>
+                                    </div>                                    
                                     <button v-show="showCompleteButton" @click.prevent="completeAssessmentsToMe()" class="btn btn-primary top-buffer-s col-xs-12" >Complete Assessments</button><br/>                                   
                                 </template>
                             </div>
@@ -730,6 +730,10 @@ export default {
             return this.selected_activity_tab_id && this.selectedActivity.processing_status.id == 'with_officer_finalisation' ? true : false;
         },
         canProposeIssueOrDecline: function(){
+            // Officer can propose without conditions.
+            if (this.selectedActivity.processing_status.id == 'with_officer' ) {
+                this.selectedActivity.processing_status.id = 'with_officer_conditions'
+            }
             return this.hasActivityStatus('with_officer_conditions', 1, 'licensing_officer');
         },
         contactsURL: function(){
@@ -1001,6 +1005,7 @@ export default {
             return this.save({ showNotification: false });
         },
         toggleApplication: function({show=false, showFinalised=false}){
+
             this.showingApplication = show;
             if(this.isSendingToAssessor){
                 this.isSendingToAssessor = !show;
@@ -1143,8 +1148,6 @@ export default {
             }
         },
         onChangeAssessor: function(assessment){
-            console.log('changeAssesor')
-            console.log(assessment)
             const data = {
                 "assessment_id" : assessment.id,
                 "assessor_id": assessment.assigned_assessor==null ? assessment.assigned_assessor_id : assessment.assigned_assessor.id
@@ -1153,8 +1156,6 @@ export default {
                     api_endpoints.applications, (this.application.id+'/assign_application_assessment')
                 ), JSON.stringify(data)).then((response) => {
                     //this.refreshFromResponse(response);
-                    //this.isSendingToAssessor=true;
-                    //this.isOfficerConditions=true;
                 }, (error) => {
                     this.revert();
                        swal(
@@ -1165,8 +1166,6 @@ export default {
                 });            
         },
         completeAssessmentsToMe: function(){
-            console.log('completeAssessmentsToMe')
- 
             let vm = this;
             vm.$http.post(helpers.add_endpoint_json(api_endpoints.applications,(vm.application.id+'/complete_application_assessments')))
                 .then((response) => {
@@ -1176,10 +1175,7 @@ export default {
                     'Assessments have been marked for completion.',
                     'success'
                     );               
-
             }, (error) => {
-                //vm.revert();
-                //vm.updateAssignedOfficerSelect();
                 swal(
                     'Application Error',
                     helpers.apiVueResourceError(error),
@@ -1248,7 +1244,6 @@ export default {
         }
     },
     mounted: function() {
-        console.log(this.application)
     },
     updated: function(){
         let vm = this;

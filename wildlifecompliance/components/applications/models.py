@@ -1527,6 +1527,11 @@ class Application(RevisionedMixin):
         with transaction.atomic():
             try:
                 activity_list = details.get('activity', [])
+
+                # Correct processing status if no assessments were required.
+                for activity in activity_list:
+                    self.check_assessment_complete(activity)
+
                 incorrect_statuses = ApplicationSelectedActivity.objects.filter(
                     application_id=self.id,
                     licence_activity_id__in=activity_list
