@@ -33,6 +33,7 @@ from wildlifecompliance.components.inspection import api as inspection_api
 from wildlifecompliance.components.sanction_outcome import api as sanction_outcome_api
 from wildlifecompliance.components.main import api as main_api
 from wildlifecompliance.components.wc_payments import views as payment_views
+from wildlifecompliance.components.legal_case import api as legal_case_api
 
 from wildlifecompliance.utils import are_migrations_running
 
@@ -90,7 +91,7 @@ router.register(r'search_organisation', offence_api.SearchOrganisation)
 router.register(r'map_layers', call_email_api.MapLayerViewSet)
 router.register(r'compliancepermissiongroup', users_api.CompliancePermissionGroupViewSet)
 router.register(r'region_district', users_api.RegionDistrictViewSet)
-router.register(r'case_priorities', call_email_api.CasePriorityViewSet)
+router.register(r'legal_case_priorities', legal_case_api.LegalCasePriorityViewSet)
 router.register(r'inspection_types', inspection_api.InspectionTypeViewSet)
 # router.register(r'offence', offence_api.OffenceViewSet)
 router.register(r'call_email_paginated', call_email_api.CallEmailPaginatedViewSet)
@@ -101,6 +102,8 @@ router.register(r'sanction_outcome_paginated', sanction_outcome_api.SanctionOutc
 router.register(r'offence', offence_api.OffenceViewSet)
 router.register(r'offence_paginated', offence_api.OffencePaginatedViewSet)
 router.register(r'temporary_document', main_api.TemporaryDocumentCollectionViewSet)
+router.register(r'legal_case', legal_case_api.LegalCaseViewSet)
+router.register(r'legal_case_paginated', legal_case_api.LegalCasePaginatedViewSet)
 
 api_patterns = [url(r'^api/my_user_details/$',
                     users_api.GetMyUserDetails.as_view(),
@@ -205,6 +208,11 @@ urlpatterns = [
 
     url(r'^internal/offence/(?P<offence_id>\d+)/$', views.ApplicationView.as_view(),
         name='internal-offence-detail'),
+
+    # following url is defined so that to include url path when sending
+    # inspection emails to users
+    url(r'^internal/legal_case/(?P<legal_case_id>\d+)/$', views.ApplicationView.as_view(),
+        name='internal-legal-case-detail'),
 
     # url(r'^export/xls/$', application_views.export_applications, name='export_applications'),
     url(r'^export/pdf/$', application_views.pdflatex, name='pdf_latex'),

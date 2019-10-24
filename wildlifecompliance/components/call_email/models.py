@@ -153,30 +153,6 @@ class MapLayer(models.Model):
         return '{0}, {1}'.format(self.display_name, self.layer_name)
 
 
-class CasePriority(models.Model):
-    description = models.CharField(max_length=255, blank=True)
-
-    class Meta:
-        app_label = 'wildlifecompliance'
-        verbose_name = 'CM_CasePriority'
-        verbose_name_plural = 'CM_CasePriorities'
-
-    def __str__(self):
-        return self.description
-
-
-# class InspectionType(models.Model):
-#     description = models.CharField(max_length=255, null=True, blank=True)
-
-#     class Meta:
-#         app_label = 'wildlifecompliance'
-#         verbose_name = 'CM_InspectionType'
-#         verbose_name_plural = 'CM_InspectionTypes'
-
-#     def __str__(self):
-#         return self.description
-
-
 class CallEmail(RevisionedMixin):
     STATUS_DRAFT = 'draft'
     STATUS_OPEN = 'open'
@@ -266,16 +242,6 @@ class CallEmail(RevisionedMixin):
         related_name='callemail_allocated_group', 
         null=True
     )
-    case_priority = models.ForeignKey(
-        CasePriority,
-        related_name='callemail_case_priority', 
-        null=True
-    )
-    #inspection_type = models.ForeignKey(
-     #   InspectionType,
-      #  related_name='callemail_inspection_type', 
-       # null=True
-    #)
     
     class Meta:
         app_label = 'wildlifecompliance'
@@ -568,7 +534,7 @@ class CallEmailUserAction(UserAction):
     ACTION_FORWARD_TO_WILDLIFE_PROTECTION_BRANCH = "Forward Call/Email {} to Wildlife Protection Branch"
     ACTION_ALLOCATE_FOR_FOLLOWUP = "Allocate Call/Email {} for follow up"
     ACTION_ALLOCATE_FOR_INSPECTION = "Allocate Call/Email {} for inspection"
-    ACTION_ALLOCATE_FOR_CASE = "Allocate Call/Email {} for case"
+    ACTION_ALLOCATE_FOR_LEGAL_CASE = "Allocate Call/Email {} for case"
     ACTION_CLOSE = "Close Call/Email {}"
     ACTION_PENDING_CLOSURE = "Mark Call/Email {} as pending closure"
     ACTION_OFFENCE = "Create linked offence for Call/Email {}"

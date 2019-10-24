@@ -9,6 +9,7 @@ from ledger.accounts.models import EmailUser, RevisionedMixin
 from ledger.licence.models import LicenceType
 from wildlifecompliance.components.organisations.models import Organisation
 from wildlifecompliance.components.call_email.models import CallEmail, Location
+from wildlifecompliance.components.legal_case.models import LegalCase
 from wildlifecompliance.components.main.models import (
         CommunicationsLogEntry,
         UserAction, 
@@ -100,6 +101,11 @@ class Inspection(RevisionedMixin):
     call_email = models.ForeignKey(
         CallEmail, 
         related_name='inspection_call_email',
+        null=True
+        )
+    legal_case = models.ForeignKey(
+        LegalCase, 
+        related_name='inspection_legal_case',
         null=True
         )
     location = models.ForeignKey(

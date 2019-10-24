@@ -427,6 +427,31 @@ export default {
     ...mapGetters("offenceStore", {
       offence: "offence"
     }),
+    ...mapGetters('inspectionStore', {
+      inspection: "inspection",
+    }),
+    ...mapGetters('legalCaseStore', {
+      legal_case: "legal_case",
+    }),
+    ...mapGetters('callemailStore', {
+      call_email: "call_email",
+    }),
+    parent_legal_case: function() {
+        if (this.legal_case && this.legal_case.id) {
+            return true;
+        }
+    },
+    parent_call_email: function() {
+        if (this.call_email && this.call_email.id) {
+            return true;
+        }
+    },
+    parent_inspection: function() {
+        if (this.inspection && this.inspection.id) {
+            return true;
+        }
+    },
+
     modalTitle: function() {
       return "Identify Offence";
     },
@@ -466,6 +491,7 @@ export default {
       setDistrictId: "setDistrictId",
       setAllocatedGroupId: "setAllocatedGroupId",
       setInspectionId: "setInspectionId",
+      setLegalCaseId: "setLegalCaseId",
       createOffence: "createOffence",
       setOffenceEmpty: "setOffenceEmpty",
     }),
@@ -694,17 +720,18 @@ export default {
                     this.$parent.$refs.offence_table.vmDataTable.ajax.reload();
                 }
 
-                // For CallEmail related items table
-                if (this.$parent.call_email) {
-                    await this.parent_update_function({
-                    call_email_id: this.$parent.call_email.id,
-                    });
+                // For Related items table
+                let parent_update_function_payload = null;
+                if (this.parent_call_email) {
+                    parent_update_function_payload = { call_email_id: this.call_email.id }
                 }
-                if (this.$parent.inspection) {
-                    await this.parent_update_function({
-                        inspection_id: this.$parent.inspection.id,
-                    });
+                if (this.parent_inspection) {
+                    parent_update_function_payload = { inspection_id: this.inspection.id }
                 }
+                if (this.parent_legal_case) {
+                    parent_update_function_payload = { legal_case_id: this.legal_case.id }
+                }
+                await this.parent_update_function(parent_update_function_payload)
             }
 
             if (this.$parent.$refs.related_items_table) {
@@ -766,14 +793,19 @@ export default {
     sendData: async function() {
         let vm = this;
 
-        // If exists, set call_email id and other attributes to the offence
-        if (this.$parent.call_email) {
+        // If exists, set call_email_id and other attributes to the offence
+        if (this.$parent.call_email && this.$parent.call_email.id) {
             vm.setCallEmailId(this.$parent.call_email.id);
         }
 
-        // If exists, set inspection id to the offence
-        if (this.$parent.inspection) {
+        // If exists, set inspection_id to the offence
+        if (this.$parent.inspection && this.$parent.inspection.id) {
             vm.setInspectionId(this.$parent.inspection.id);
+        }
+
+        // If exists, set legal_case_id to the offence
+        if (this.$parent.legal_case && this.$parent.legal_case.id) {
+            vm.setLegalCaseId(this.$parent.legal_case.id);
         }
 
         // Collect offenders data from the datatable, and set them to the vuex

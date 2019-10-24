@@ -171,6 +171,7 @@ class InspectionSerializer(serializers.ModelSerializer):
                 'related_items',
                 'inform_party_being_inspected',
                 'call_email_id',
+                'legal_case_id',
                 'inspection_report',
                 'schema',
                 'region_id',
@@ -298,6 +299,8 @@ class SaveInspectionSerializer(serializers.ModelSerializer):
         required=False, write_only=True, allow_null=True)
     call_email_id = serializers.IntegerField(
         required=False, write_only=True, allow_null=True)
+    legal_case_id = serializers.IntegerField(
+        required=False, write_only=True, allow_null=True)
     location_id = serializers.IntegerField(
         required=False, write_only=True, allow_null=True)
 
@@ -317,6 +320,7 @@ class SaveInspectionSerializer(serializers.ModelSerializer):
                 'organisation_inspected_id',
                 'inform_party_being_inspected',
                 'call_email_id',
+                'legal_case_id',
                 'location_id',
                 )
         read_only_fields = (

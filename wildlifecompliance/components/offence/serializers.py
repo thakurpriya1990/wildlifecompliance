@@ -181,7 +181,8 @@ class OffenceSerializer(serializers.ModelSerializer):
             'identifier',
             'lodgement_number',
             'status',
-            'call_email',
+            'legal_case_id',
+            'call_email', # TODO: should be call_email_id ?
             'region_id',
             'district_id',
             'assigned_to_id',
@@ -379,6 +380,7 @@ class OffenceOptimisedSerializer(serializers.ModelSerializer):
 class SaveOffenceSerializer(serializers.ModelSerializer):
     location_id = serializers.IntegerField(required=False, write_only=True, allow_null=True)
     call_email_id = serializers.IntegerField(required=False, write_only=True, allow_null=True)
+    legal_case_id = serializers.IntegerField(required=False, write_only=True, allow_null=True)
     inspection_id = serializers.IntegerField(required=False, write_only=True, allow_null=True)
     region_id = serializers.IntegerField(required=False, write_only=True, allow_null=True)
     district_id = serializers.IntegerField(required=False, write_only=True, allow_null=True)
@@ -392,6 +394,7 @@ class SaveOffenceSerializer(serializers.ModelSerializer):
             'status',
             'location_id',
             'call_email_id',
+            'legal_case_id',
             'inspection_id',
             'occurrence_from_to',
             'occurrence_date_from',
