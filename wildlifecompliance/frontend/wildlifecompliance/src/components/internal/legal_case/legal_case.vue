@@ -102,14 +102,13 @@
                           </div>
                         </div>
 
-                        <div  class="row action-button">
+                        <div id="close-button" class="row action-button">
                           <div v-if="!readonlyForm" class="col-sm-12">
                                 <a @click="addWorkflow('close')" class="btn btn-primary btn-block">
                                   Close
                                 </a>
                           </div>
                         </div>
-
                     </div>
                 </div>
             </div>
@@ -129,8 +128,8 @@
                             <div class="col-sm-12 form-group"><div class="row">
                                 <div>
                                     <!--div class="col-sm-6"-->
-                                        <label class="col-sm-6">Type !! to open Inspection</label>
-                                        <input id="test1" type="text" class="form-control" />
+                                        <label class="col-sm-10">Type !! to open Inspection or @@ to open Offence</label>
+                                        <input id="test1" type="text" class="form-control" v-model="magicValue" />
                                         <!--label class="col-sm-4">Test 2</label>
                                         <input id="test2" type="text" class="form-control" /-->
                                     <!--/div-->
@@ -218,6 +217,7 @@
             v-bind:key="inspectionBindId" 
             />
         </div>
+        <Magic ref="magic" />
         <!--InspectionWorkflow ref="inspection_workflow" :workflow_type="workflow_type" v-bind:key="workflowBindId" /-->
     </div>
 </template>
@@ -240,6 +240,7 @@ import RelatedItems from "@common-components/related_items.vue";
 require("select2/dist/css/select2.min.css");
 require("select2-bootstrap-theme/dist/select2-bootstrap.min.css");
 import hash from 'object-hash';
+import Magic from './magic';
 
 
 export default {
@@ -271,87 +272,9 @@ export default {
       inspectionInitialised: false,
       hashAttributeWhitelist: [],
       magicKeyPressed: false,
-      //dtOptions: {
-      //    serverSide: true,
-      //    searchDelay: 1000,
-      //    lengthMenu: [ [10, 25, 50, 100, -1], [10, 25, 50, 100, "All"] ],
-      //    order: [
-      //      [0, 'desc']
-      //    ],
-      //    autoWidth: false,
-      //    rowCallback: function (row, data) {
-      //      $(row).addClass('appRecordRow');
-      //    },
-      //    language: {
-      //      processing: "<i class='fa fa-4x fa-spinner fa-spin'></i>"
-      //    },
-      //    responsive: true,
-      //    processing: true,
-      //    ajax: {
-      //      'url': '/api/legal_case_paginated/get_paginated_datatable/?format=datatables',
-      //      //'url': '/api/legal_case/datatable_list',
-      //      //'dataSrc': '',
-      //      //'dataSrc': 'data',
-      //      //'data': function(d) {
-      //      //    d.status_description = vm.filterStatus;
-      //      //    d.inspection_description = vm.filterInspectionType;
-      //      //    d.date_from = vm.filterPlannedFrom != '' && vm.filterPlannedFrom != null ? moment(vm.filterPlannedFrom, 'DD/MM/YYYY').format('YYYY-MM-DD'): '';
-      //      //    d.date_to = vm.filterPlannedTo != '' && vm.filterPlannedTo != null ? moment(vm.filterPlannedTo, 'DD/MM/YYYY').format('YYYY-MM-DD'): '';
-      //      //}
-      //    },
-      //     //dom: 'lBfrtip',
-      //     //buttons: [
-      //     //    'excel',
-      //     //    'csv',
-      //     //    ],
-      //    columns: [
-      //      {
-      //          data: 'number',
-      //          searchable: false,
-      //          //orderable: false
-      //      },
-      //      {
-      //          data: 'title',
-      //          searchable: false,
-      //          orderable: true
-      //      },
-      //      {
-      //          data: 'status.name',
-      //          searchable: false,
-      //          orderable: true
-      //      },
-      //      {
-      //          data: 'created_date',
-      //          searchable: false,
-      //          orderable: true
-      //      },
-      //      {
-      //          data: "assigned_to",
-      //          searchable: false,
-      //          orderable: false,
-      //          mRender: function (data, type, full) {
-      //              if (data) {
-      //                  return data.full_name;
-      //              } else {
-      //                  return '';
-      //              }
-      //          }
-      //      },
-      //      {
-      //          data: 'user_action',
-      //          searchable: false,
-      //          orderable: false
-      //      },
-      //    ],
-      //},
-      //dtHeaders: [
-      //  'Number',
-      //  'Title',
-      //  'Status',
-      //  'Created Date',
-      //  'Assigned to',
-      //  'Action'
-      //],
+      magicKey2Pressed: false,
+      magicValue: null,
+      magic: true,
     };
   },
   components: {
@@ -363,6 +286,7 @@ export default {
     filefield,
     RelatedItems,
     Inspection,
+    Magic
   },
   computed: {
     ...mapGetters('legalCaseStore', {
@@ -456,12 +380,22 @@ export default {
         return inspection_bind_id;
     },
   },
+  watch: {
+      magicValue: {
+          handler: function (){
+              if (this.magicValue && 
+                this.magicValue.toLowerCase().includes('shibaken') &&
+                this.magic) {
+                  //this.constructInspectionTeamTable();
+                  this.magicMethod()
+              }
+          },
+      },
+  },
   filters: {
     formatDate: function(data) {
       return data ? moment(data).format("DD/MM/YYYY HH:mm:ss") : "";
     }
-  },
-  watch: {
   },
   methods: {
     ...mapActions('legalCaseStore', {
@@ -470,38 +404,6 @@ export default {
       setLegalCase: 'setLegalCase',
       setRelatedItems: 'setRelatedItems',
     }),
-    //constructInspectionTeamTable: function() {
-    //    //console.log('constructInspectionTeamTable');
-    //    //console.log(this.inspection.inspection_team);
-    //    this.$refs.inspection_team_table.vmDataTable.clear().draw();
-
-    //    if(this.inspection.inspection_team){
-    //      for(let i = 0; i< this.inspection.inspection_team.length; i++){
-    //        //let already_exists = this.$refs.related_items_table.vmDataTable.columns(0).data()[0].includes(this.displayedEntity.related_items[i].id);
-
-    //        let actionColumn = new Object();
-    //        Object.assign(actionColumn, this.inspection.inspection_team[i]);
-    //        //actionColumn.can_user_action = this.inspection.can_user_action;
-    //        actionColumn.readonlyForm = this.readonlyForm;
-    //        // Prevent removal of last team member (plus blank entry)
-    //        if (this.inspection.inspection_team.length > 2) {
-    //            actionColumn.can_remove = true;
-    //        }
-
-    //        //if (!already_exists) {
-    //        if (this.inspection.inspection_team[i].id) {
-    //        this.$refs.inspection_team_table.vmDataTable.row.add(
-    //            {
-    //                // 'id': this.inspectionTeam[i].id,
-    //                'full_name': this.inspection.inspection_team[i].full_name,
-    //                'member_role': this.inspection.inspection_team[i].member_role,
-    //                'Action': actionColumn,
-    //            }
-    //        ).draw();
-    //        }
-    //      }
-    //    }
-    //},
     openInspection() {
       this.uuid += 1;
       this.inspectionInitialised = true;
@@ -524,34 +426,6 @@ export default {
           this.$refs.offence.isModalOpen = true;
       });
     },
-    //createNewPersonClicked: function() {
-    //  this.newPersonBeingCreated = true;
-    //  this.displayCreateNewPerson = !this.displayCreateNewPerson;
-    //},
-    //addTeamMember: async function() {
-    //    await this.modifyInspectionTeam({
-    //        user_id: this.teamMemberSelected, 
-    //        action: 'add'
-    //    });
-    //},
-    //removeTeamMember: async function(e) {
-    //    let memberId = e.target.getAttribute("data-member-id");
-    //    await this.modifyInspectionTeam({
-    //        user_id: memberId,
-    //        action: 'remove'
-    //    });
-    //},
-    //makeTeamLead: async function(e) {
-    //    let memberId = e.target.getAttribute("data-member-id");
-    //    await this.modifyInspectionTeam({
-    //        user_id: memberId, 
-    //        action: 'make_team_lead'
-    //    });
-    //},
-    //entitySelected: async function(para) {
-    //    console.log(para);
-    //    await this.setPartyInspected(para);
-    //},
     updateWorkflowBindId: function() {
         //let workflowBindId = ''
         let timeNow = Date.now()
@@ -567,7 +441,6 @@ export default {
       this.$nextTick(() => {
         this.$refs.legal_case_workflow.isModalOpen = true;
       });
-      // this.$refs.add_workflow.isModalOpen = true;
     },
     save: async function(returnToDash) {
       console.log(returnToDash)
@@ -589,7 +462,13 @@ export default {
       }
 
     },
+    magicMethod: function() {
+        console.log("magic method");
+        this.$refs.magic.isModalOpen = true;
+        this.magic = false;
+    },
     test1: function(e) {
+
         // keycode 49 = !
         if (e.which === 49 && this.magicKeyPressed) {
             // TODO: replace with modal_open call
@@ -599,9 +478,24 @@ export default {
         } else if (e.which === 49) {
             this.magicKeyPressed = true;
             // keycode 16 = Shift (must be pressed to access !)
+        } else if (e.which === 50 && this.magicKey2Pressed) {
+            // TODO: replace with modal_open call
+            console.log("open modal")
+            this.openOffence()
+            this.magicKey2Pressed = false;
+        } else if (e.which === 50) {
+            this.magicKey2Pressed = true;
+            // keycode 16 = Shift (must be pressed to access !)
         } else if (e.which === 16) {
+            // pass
+        } else if (this.magicValue && 
+            this.magicValue.toLowerCase().includes('shibaken') &&
+            this.magic) {
+            //this.magic = true;
+            this.magicMethod()
         } else {
             this.magicKeyPressed = false;
+            this.magicKey2Pressed = false;
         }
 
     },
@@ -786,9 +680,7 @@ export default {
 .action-button {
     margin-top: 5px;
 }
-#main-column {
-  padding-left: 2%;
-  padding-right: 0;
+#close-button {
   margin-bottom: 50px;
 }
 .awesomplete {
