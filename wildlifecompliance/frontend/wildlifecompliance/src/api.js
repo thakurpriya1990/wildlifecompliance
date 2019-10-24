@@ -51,5 +51,7 @@ module.exports = {
     inspection: '/api/inspection/',
     temporary_document: '/api/temporary_document/',
     compliance_management_users: '/api/compliance_management_users/',
+    legal_case: '/api/legal_case/',
+    legal_case_priorities: '/api/legal_case_priorities/',
 }
 

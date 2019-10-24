@@ -504,19 +504,18 @@ export default {
 
         await this.updateAllocatedGroup();
 
-        // case_priorities
-        let returned_case_priorities = await cache_helper.getSetCacheList(
-            'CasePriorities', 
-            api_endpoints.case_priorities
+        // legal_case_prioritiess
+        let returned_legal_case_priorities = await cache_helper.getSetCacheList(
+            'LegalCasePriorities',
+            api_endpoints.legal_case_priorities
             );
-        Object.assign(this.casePriorities, returned_case_priorities);
+        Object.assign(this.legalCasePriorities, returned_legal_case_priorities);
         // blank entry allows user to clear selection
-        this.casePriorities.splice(0, 0, 
+        this.legalCasePriorities.splice(0, 0, 
             {
               id: "", 
               description: "",
             });
-
         // inspection_types
         let returned_inspection_types = await cache_helper.getSetCacheList(
             'InspectionTypes', 

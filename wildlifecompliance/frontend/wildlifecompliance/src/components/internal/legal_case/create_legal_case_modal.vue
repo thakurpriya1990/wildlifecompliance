@@ -1,6 +1,6 @@
 <template lang="html">
-    <div id="CreateInspection">
-        <modal transition="modal fade" @ok="ok()" @cancel="cancel()" title="Create New Inspection" large force>
+    <div id="CreateLegalCase">
+        <modal transition="modal fade" @ok="ok()" @cancel="cancel()" title="Create New Case" large force>
           <div class="container-fluid">
             <div class="row">
                 <div class="col-sm-12">
@@ -50,12 +50,12 @@
                         <div class="form-group">
                           <div class="row">
                             <div class="col-sm-3">
-                              <label>Inspection Type</label>
+                              <label>Case Priority</label>
                             </div>
                             <div class="col-sm-9">
-                              <select class="form-control" v-model="inspection_type_id">
-                                <option  v-for="option in inspectionTypes" :value="option.id" v-bind:key="option.id">
-                                  {{ option.inspection_type }}
+                              <select class="form-control" v-model="legal_case_priority_id">
+                                <option  v-for="option in legalCasePriorities" :value="option.id" v-bind:key="option.id">
+                                  {{ option.case_priority }}
                                 </option>
                               </select>
                             </div>
@@ -68,7 +68,7 @@
                                   <label class="control-label pull-left" for="details">Details</label>
                               </div>
             			      <div class="col-sm-6">
-                                  <textarea class="form-control" placeholder="add details" id="details" v-model="inspectionDetails"/>
+                                  <textarea class="form-control" placeholder="add details" id="details" v-model="legalCaseDetails"/>
                               </div>
                           </div>
                         </div>
@@ -127,20 +127,19 @@ export default {
             regions: [],
             regionDistricts: [],
             availableDistricts: [],
-            casePriorities: [],
-            inspectionTypes: [],
+            legalCasePriorities: [],
             externalOrganisations: [],
-            inspectionDetails: '',
+            legalCaseDetails: '',
             errorResponse: "",
             region_id: null,
             district_id: null,
             assigned_to_id: null,
-            inspection_type_id: null,
             advice_details: "",
             allocatedGroup: [],
             allocated_group_id: null,
             documentActionUrl: '',
             temporary_document_collection_id: null,
+            legal_case_priority_id: null,
       }
     },
     components: {
@@ -154,7 +153,7 @@ export default {
         assigned_to_id: {
             required,
         },
-        inspection_type_id: {
+        legal_case_priority_id: {
             required,
         },
     },
@@ -165,20 +164,12 @@ export default {
     //       },
     // },
     computed: {
-      ...mapGetters('inspectionStore', {
-        inspection: "inspection",
+      ...mapGetters('legalCaseStore', {
+        inspection: "legal_case",
       }),
       ...mapGetters('callemailStore', {
         call_email: "call_email",
       }),
-      ...mapGetters('legalCaseStore', {
-        legal_case: "legal_case",
-      }),
-      parent_legal_case: function() {
-          if (this.legal_case && this.legal_case.id) {
-              return true;
-          }
-      },
       parent_call_email: function() {
           if (this.call_email && this.call_email.id) {
               return true;
@@ -198,10 +189,10 @@ export default {
       }
     },
     methods: {
-      ...mapActions('inspectionStore', {
-          saveInspection: 'saveInspection',
-          loadInspection: 'loadInspection',
-          setInspection: 'setInspection',
+      ...mapActions('legalCaseStore', {
+          saveInspection: 'saveLegalCase',
+          loadInspection: 'loadLegalCase',
+          setInspection: 'setLegalCase',
       }),
       ...mapActions({
           loadAllocatedGroup: 'loadAllocatedGroup',
@@ -272,18 +263,17 @@ export default {
               const response = await this.sendData();
               console.log(response);
               if (response.ok) {
-                  // For Inspection Dashboard
-                  if (this.$parent.$refs.inspection_table) {
-                      this.$parent.$refs.inspection_table.vmDataTable.ajax.reload()
+                  // For LegalCase Dashboard
+                  if (this.$parent.$refs.legal_case_table) {
+                      this.$parent.$refs.legal_case_table.vmDataTable.ajax.reload()
                   }
-                  // For related items table
-                  let parent_update_function_payload = null;
+                  // For CallEmail related items table
                   if (this.parent_call_email) {
-                      parent_update_function_payload = { call_email_id: this.call_email.id }
-                  } else if (this.parent_legal_case) {
-                      parent_update_function_payload = { legal_case_id: this.legal_case.id }
+                      //await this.parent_update_function({
+                      await this.loadCallEmail({
+                          call_email_id: this.call_email.id,
+                      });
                   }
-                  await this.parent_update_function(parent_update_function_payload);
                   if (this.$parent.$refs.related_items_table) {
                       this.$parent.constructRelatedItemsTable();
                   }
@@ -303,8 +293,8 @@ export default {
               if (this.$v.assigned_to_id.$invalid) {
                   this.errorResponse += 'Officer must be assigned\n';
               }
-              if (this.$v.inspection_type_id.$invalid) {
-                  this.errorResponse += 'Choose Inspection Type\n';
+              if (this.$v.legal_case_priority_id.$invalid) {
+                  this.errorResponse += 'Choose Case Priority\n';
               }
               return false;
           } else {
@@ -317,25 +307,23 @@ export default {
           this.close();
       },
       close: function () {
-          let vm = this;
           this.isModalOpen = false;
       },
       sendData: async function() {
-          let post_url = '';
-          if (!this.inspection.id) {
-              post_url = '/api/inspection/';
-          } else {
-              post_url = '/api/inspection/' + this.inspection.id + '/workflow_action/';
-          }
+          let post_url = '/api/legal_case/';
+          //if (!this.inspection.id) {
+          //    post_url = '/api/legal_case/';
+          //} else {
+          //    post_url = '/api/inspection/' + this.inspection.id + '/workflow_action/';
+          //}
           
           let payload = new FormData();
-          payload.append('details', this.inspectionDetails);
-          this.$refs.comms_log_file.commsLogId ? payload.append('inspection_comms_log_id', this.$refs.comms_log_file.commsLogId) : null;
+          payload.append('details', this.legalCaseDetails);
+          this.$refs.comms_log_file.commsLogId ? payload.append('legal_case_comms_log_id', this.$refs.comms_log_file.commsLogId) : null;
           this.parent_call_email ? payload.append('call_email_id', this.call_email.id) : null;
-          this.parent_legal_case ? payload.append('legal_case_id', this.legal_case.id) : null;
           this.district_id ? payload.append('district_id', this.district_id) : null;
           this.assigned_to_id ? payload.append('assigned_to_id', this.assigned_to_id) : null;
-          this.inspection_type_id ? payload.append('inspection_type_id', this.inspection_type_id) : null;
+          this.inspection_type_id ? payload.append('legal_case_priority_id', this.legal_case_priority_id) : null;
           this.region_id ? payload.append('region_id', this.region_id) : null;
           this.allocated_group_id ? payload.append('allocated_group_id', this.allocated_group_id) : null;
           this.temporary_document_collection_id ? payload.append('temporary_document_collection_id', this.temporary_document_collection_id) : null;
@@ -354,16 +342,16 @@ export default {
               }
           
       },
-      createDocumentActionUrl: async function(done) {
-        if (!this.inspection.id) {
-            // create inspection and update vuex
-            let returned_inspection = await this.saveInspection({ create: true, internal: true })
-            await this.loadInspection({inspection_id: returned_inspection.body.id});
-        }
-        // populate filefield document_action_url
-        this.$refs.comms_log_file.document_action_url = this.inspection.createInspectionProcessCommsLogsDocumentUrl;
-        return done(true);
-      },
+      //createDocumentActionUrl: async function(done) {
+      //  if (!this.inspection.id) {
+      //      // create inspection and update vuex
+      //      let returned_inspection = await this.saveInspection({ create: true, internal: true })
+      //      await this.loadInspection({inspection_id: returned_inspection.body.id});
+      //  }
+      //  // populate filefield document_action_url
+      //  this.$refs.comms_log_file.document_action_url = this.inspection.createInspectionProcessCommsLogsDocumentUrl;
+      //  return done(true);
+      //},
 
     },
     created: async function() {
@@ -387,13 +375,13 @@ export default {
         Object.assign(this.regionDistricts, returned_region_districts);
 
         // inspection_types
-        let returned_inspection_types = await cache_helper.getSetCacheList(
-            'InspectionTypes',
-            api_endpoints.inspection_types
+        let returned_legal_case_priorities = await cache_helper.getSetCacheList(
+            'LegalCasePriorities',
+            api_endpoints.legal_case_priorities
             );
-        Object.assign(this.inspectionTypes, returned_inspection_types);
+        Object.assign(this.legalCasePriorities, returned_legal_case_priorities);
         // blank entry allows user to clear selection
-        this.inspectionTypes.splice(0, 0, 
+        this.legalCasePriorities.splice(0, 0, 
             {
               id: "", 
               description: "",
