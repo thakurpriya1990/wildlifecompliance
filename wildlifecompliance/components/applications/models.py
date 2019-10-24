@@ -2318,7 +2318,7 @@ class ApplicationSelectedActivity(models.Model):
         (PROCESSING_STATUS_WITH_OFFICER, 'With Officer'),
         (PROCESSING_STATUS_WITH_ASSESSOR, 'With Assessor'),
         (PROCESSING_STATUS_OFFICER_CONDITIONS, 'With Officer-Conditions'),
-        (PROCESSING_STATUS_OFFICER_FINALISATION, 'With Officer-Finalisation'),
+        (PROCESSING_STATUS_OFFICER_FINALISATION, 'With Approver'),
         (PROCESSING_STATUS_AWAITING_LICENCE_FEE_PAYMENT, 'Awaiting Licence Fee Payment'),
         (PROCESSING_STATUS_ACCEPTED, 'Accepted'),
         (PROCESSING_STATUS_DECLINED, 'Declined'),
