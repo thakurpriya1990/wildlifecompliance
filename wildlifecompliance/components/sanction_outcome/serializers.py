@@ -98,6 +98,7 @@ class AllegedCommittedOffenceSerializer(serializers.ModelSerializer):
 class SanctionOutcomeSerializer(serializers.ModelSerializer):
     status = CustomChoiceField(read_only=True)
     type = CustomChoiceField(read_only=True)
+    payment_status = CustomChoiceField(read_only=True)
     alleged_committed_offences = serializers.SerializerMethodField()
     offender = OffenderSerializer(read_only=True,)
     offence = OffenceSerializer(read_only=True,)
@@ -114,6 +115,7 @@ class SanctionOutcomeSerializer(serializers.ModelSerializer):
             'id',
             'type',
             'status',
+            'payment_status',
             'lodgement_number',
             'region_id',
             'district_id',
@@ -215,6 +217,7 @@ class UpdateAssignedToIdSerializer(serializers.ModelSerializer):
 
 class SanctionOutcomeDatatableSerializer(serializers.ModelSerializer):
     status = CustomChoiceField(read_only=True)
+    payment_status = CustomChoiceField(read_only=True)
     type = CustomChoiceField(read_only=True)
     user_action = serializers.SerializerMethodField()
     offender = OffenderSerializer(read_only=True,)
@@ -226,6 +229,7 @@ class SanctionOutcomeDatatableSerializer(serializers.ModelSerializer):
             'id',
             'type',
             'status',
+            'payment_status',
             'lodgement_number',
             'region',
             'district',
@@ -290,7 +294,6 @@ class SaveSanctionOutcomeSerializer(serializers.ModelSerializer):
             'region_id',
             'district_id',
             'allocated_group_id',
-            # 'alleged_offences',
             'issued_on_paper',
             'paper_id',
             'description',
@@ -322,6 +325,20 @@ class SaveSanctionOutcomeSerializer(serializers.ModelSerializer):
             raise serializers.ValidationError(non_field_errors)
 
         return data
+
+    def create(self, validated_data):
+        """
+        this method is called when creating new record after the validate() method.
+        here is the best place to edit data here if needed
+        """
+        return super(SaveSanctionOutcomeSerializer, self).create(validated_data)
+
+    def update(self, instance, validated_data):
+        """
+        this method is called when updating existing record after the validate() method.
+        here is the best place to edit data here if needed
+        """
+        return super(SaveSanctionOutcomeSerializer, self).update(instance, validated_data)
 
 
 class SaveRemediationActionSerializer(serializers.ModelSerializer):

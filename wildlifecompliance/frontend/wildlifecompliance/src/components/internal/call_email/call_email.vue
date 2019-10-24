@@ -123,20 +123,14 @@
                                 </a>
                           </div>
                         </div>
-                        <!-- <div class="row">
-                          <div class="col-sm-12"/>
-                        </div> -->
-
                         <div v-if="statusId ==='open' && canUserAction" class="row action-button">
                           <div class="col-sm-12">
-                                <a ref="allocateForCase" @click="addWorkflow('allocate_for_case')" class="btn btn-primary btn-block" >
+                                <!--a ref="allocateForInspection" @click="addWorkflow('allocate_for_inspection')" class="btn btn-primary btn-block"-->
+                                <a ref="allocateForLegalCase" @click="allocateForLegalCase()" class="btn btn-primary btn-block" >
                                   Allocate for Case
                                 </a>
                           </div>
                         </div>
-                        <!-- <div class="row">
-                          <div class="col-sm-12"/>
-                        </div> -->
                         <div v-if="statusId !=='closed' && canUserAction" class="row action-button">
                           <div class="col-sm-12">
                                 <a ref="close" @click="addWorkflow('close')" class="btn btn-primary btn-block">
@@ -391,6 +385,9 @@
         <div v-if="inspectionInitialised">
             <Inspection ref="inspection"/>
         </div>
+        <div v-if="legalCaseInitialised">
+            <CreateLegalCaseModal ref="legal_case"/>
+        </div>
     </div>
 </template>
 <script>
@@ -416,12 +413,13 @@ require("select2-bootstrap-theme/dist/select2-bootstrap.min.css");
 import Inspection from '../inspection/create_inspection_modal';
 import RelatedItems from "@common-components/related_items.vue";
 import hash from 'object-hash';
+import CreateLegalCaseModal from "../legal_case/create_legal_case_modal.vue";
 
 export default {
   name: "ViewCallEmail",
   data: function() {
     return {
-      object_hash: null,
+      objectHash: null,
       uuid: 0,
       cTab: 'cTab'+this._uid,
       rTab: 'rTab'+this._uid,
@@ -485,6 +483,33 @@ export default {
       sanctionOutcomeInitialised: false,
       offenceInitialised: false,
       inspectionInitialised: false,
+      legalCaseInitialised: false,
+      hashAttributeWhitelist: [
+          "allocated_group_id",
+          "location",
+          "location_id",
+          "classification",
+          "classification_id",
+          "lodgement_date",
+          "number",
+          "caller",
+          "report_type_id",
+          "caller_phone_number",
+          "anonymous_call",
+          "caller_wishes_to_remain_anonymous",
+          "occurrence_from_to",
+          "occurrence_date_from",
+          "occurrence_time_start",
+          "occurrence_date_to",
+          "occurrence_time_end",
+          "date_of_call",
+          "time_of_call",
+          "advice_given",
+          "advice_details",
+          "region_id",
+          "district_id",
+          "case_priority_id",
+          ]
     };
   },
   components: {
@@ -498,6 +523,7 @@ export default {
     RelatedItems,
     SanctionOutcome,
     Inspection,
+    CreateLegalCaseModal,
   },
   computed: {
     ...mapGetters('callemailStore', {
@@ -606,13 +632,6 @@ export default {
         //this.uuid += 1
         return 'offence' + this.uuid;
     },
-    formChanged: function(){
-        let changed = false;
-        if(this.object_hash !== hash(this.call_email)){
-            changed = true;
-        }
-        return changed;
-    },
   },
   filters: {
     formatDate: function(data) {
@@ -639,9 +658,41 @@ export default {
     updateUuid: function() {
         this.uuid += 1;
     },
-    entitySelected: function(para) {
+    entitySelected: async function(para) {
         console.log(para);
-        this.setCaller(para);
+        await this.setCaller(para);
+    },
+    formChanged: function(){
+        let changed = false;
+        let copiedCallEmail = {};
+        Object.getOwnPropertyNames(this.call_email).forEach(
+            (val, idx, array) => {
+                if (this.hashAttributeWhitelist.includes(val)) {
+                    copiedCallEmail[val] = this.call_email[val]
+                }
+            });
+        this.addHashAttributes(copiedCallEmail);
+        if(this.objectHash !== hash(copiedCallEmail)){
+            changed = true;
+        }
+        return changed;
+    },
+    calculateHash: function() {
+        let copiedCallEmail = {}
+        Object.getOwnPropertyNames(this.call_email).forEach(
+            (val, idx, array) => {
+                if (this.hashAttributeWhitelist.includes(val)) {
+                    copiedCallEmail[val] = this.call_email[val]
+                }
+            });
+        this.addHashAttributes(copiedCallEmail);
+        this.objectHash = hash(copiedCallEmail);
+    },
+    addHashAttributes: function(obj) {
+        let copiedRendererFormData = Object.assign({}, this.renderer_form_data);
+        obj.renderer_form_data = copiedRendererFormData;
+        let copiedCallerEntity = Object.assign({}, this.callerEntity);
+        obj.callerEntity = copiedCallerEntity;
     },
     updateWorkflowBindId: function() {
         let timeNow = Date.now()
@@ -675,6 +726,12 @@ export default {
           this.$refs.inspection.isModalOpen = true
       });
     },
+    allocateForLegalCase() {
+      this.legalCaseInitialised = true;
+        this.$nextTick(() => {
+          this.$refs.legal_case.isModalOpen = true
+      });
+    },
     //saveIndividual: function() {
     //  let noPersonSave = true;
     //  this.save(noPersonSave)
@@ -700,7 +757,7 @@ export default {
         }
         console.log(savedCallEmail)
         // recalc hash after save
-        this.object_hash = hash(this.call_email);
+        this.calculateHash();
         if (savedCallEmail && savedCallEmail.ok && returnToDash === 'exit') {
             // remove redundant eventListeners
             window.removeEventListener('beforeunload', this.leaving);
@@ -827,7 +884,7 @@ export default {
     leaving: function(e) {
         //let vm = this;
         let dialogText = 'You have some unsaved changes.';
-        if (this.formChanged){
+        if (this.formChanged()){
             e.returnValue = dialogText;
             return dialogText;
         }
@@ -898,7 +955,7 @@ export default {
     if (!this.call_email.time_of_call && this.call_email.can_user_edit_form) {
         this.setTimeOfCall(moment().format('LT'));
     }
-    this.object_hash = hash(this.call_email);
+    this.calculateHash();
   },
   mounted: function() {
       let vm = this;
@@ -944,6 +1001,7 @@ export default {
       
       vm.$nextTick(() => {
           vm.addEventListeners();
+          //this.calculateHash();
       });
 
   }

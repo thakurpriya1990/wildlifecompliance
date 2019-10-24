@@ -44,6 +44,9 @@ export const offenceStore = {
         updateCallEmailId(state, id) {
             state.offence.call_email_id = id;
         },
+        updateLegalCaseId(state, id) {
+            state.offence.legal_case_id = id;
+        },
         updateRegionId(state, id) {
             state.offence.region_id = id;
         },
@@ -261,6 +264,9 @@ export const offenceStore = {
         },
         setCallEmailId({ commit, }, id){
             commit("updateCallEmailId", id);
+        },
+        setLegalCaseId({ commit, }, id){
+            commit("updateLegalCaseId", id);
         },
         setRegionId({ commit, }, id){
             commit("updateRegionId", id);

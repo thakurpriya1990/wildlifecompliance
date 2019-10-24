@@ -8,6 +8,7 @@
                     <option value="inspection">Inspection</option>
                     <option value="offence">Offence</option>
                     <option value="sanction_outcome">Sanction Outcome</option>
+                    <option value="legal_case">Case</option>
                 </select>
             </div>
             <div class="col-sm-4">

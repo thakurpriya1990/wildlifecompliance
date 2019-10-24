@@ -330,7 +330,23 @@ export default {
             soTab: 'soTab' + this._uid,
             deTab: 'deTab' + this._uid,
             reTab: 'reTab' + this._uid,
-            object_hash : null,
+            objectHash : null,
+            hashAttributeWhitelist: [
+                'alleged_committed_offences',
+                'allocated_group_id',
+                'date_of_issue',
+                'description',
+                'district_id',
+                'identifier',
+                'issued_on_paper',
+                'offence',
+                'offender',
+                'paper_id', 
+                'paper_notices',
+                'region_id',
+                'time_of_issue',
+                'type',
+            ],
             comms_url: helpers.add_endpoint_json(
                 api_endpoints.sanction_outcome,
                 this.$route.params.sanction_outcome_id + "/comms_log"
@@ -440,7 +456,7 @@ export default {
             await this.loadSanctionOutcome({ sanction_outcome_id: this.$route.params.sanction_outcome_id });
             this.createStorageAllegedCommittedOffences();
             this.constructAllegedCommittedOffencesTable();
-            this.object_hash = hash(this.sanction_outcome);
+            this.updateObjectHash()
         }
     },
     mounted: function() {
@@ -600,17 +616,30 @@ export default {
             setCanUserAction: 'setCanUserAction',
             setRelatedItems: 'setRelatedItems',
         }),
-        sanctionOutcomeDocumentUploaded: function() {
-            console.log('sanctionOutcomeDocumentUploaded');
-           // this.loadSanctionOutcome;
-           // this.object_hash = hash(this.sanction_outcome);
+        updateObjectHash: function() {
+            this.objectHash = this.calculateHash();
+        },
+        calculateHash: function() {
+            let copiedObject = {}
+            Object.getOwnPropertyNames(this.sanction_outcome).forEach(
+                (val, idx, array) => {
+                    if (this.hashAttributeWhitelist.includes(val)) {
+                        copiedObject[val] = this.sanction_outcome[val]
+                    }
+                });
+            return hash(copiedObject);
         },
         formChanged: function(){
-            if(this.object_hash != hash(this.sanction_outcome)){
-                return true;
-            } else {
-                return false;
+            let changed = false;
+            if (!this.readonlyForm){
+                if(this.objectHash !== this.calculateHash()){
+                    changed = true;
+                }
             }
+            return changed;
+        },
+        sanctionOutcomeDocumentUploaded: function() {
+            console.log('sanctionOutcomeDocumentUploaded');
         },
         createStorageAllegedCommittedOffences: function() {
             if (this.sanction_outcome && this.sanction_outcome.alleged_committed_offences){
@@ -627,7 +656,7 @@ export default {
                 await swal("Saved", "The record has been saved", "success");
 
                 this.constructAllegedCommittedOffencesTable();
-                this.object_hash = hash(this.sanction_outcome)
+                this.updateObjectHash()
             } catch (err) {
                 this.processError(err);
             }
@@ -710,6 +739,7 @@ export default {
             window.addEventListener('onblur', this.leaving);
         },
         leaving: function(e) {
+            console.log('leaving');
             let vm = this;
             let dialogText = 'You have some unsaved changes.';
             if (vm.formChanged()){
@@ -810,6 +840,7 @@ export default {
             );
             this.setAssignedToId(res.body.assigned_to_id);
             this.setCanUserAction(res.body.can_user_action);
+            this.updateObjectHash();
         },
     }
 }

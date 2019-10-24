@@ -5,9 +5,9 @@ from django.contrib.contenttypes.models import ContentType
 from django.core.exceptions import ValidationError
 from django.db import models
 from django.db.models import Q
+from django.db.models.signals import post_save
 
 from ledger.accounts.models import EmailUser, RevisionedMixin
-from wildlifecompliance.components.main import get_next_value
 from wildlifecompliance.components.main.models import Document, UserAction, CommunicationsLogEntry
 from wildlifecompliance.components.main.related_item import can_close_record
 from wildlifecompliance.components.offence.models import Offence, Offender, SectionRegulation, AllegedOffence
@@ -23,6 +23,15 @@ class SanctionOutcomeActiveManager(models.Manager):
         )
 
 
+class SanctionOutcomeExternalManager(models.Manager):
+    def get_query_set(self):
+        return super(SanctionOutcomeExternalManager, self).get_query_set().filter(
+            Q(offender__removed=False) &
+            Q(status__in=(SanctionOutcome.STATUS_AWAITING_PAYMENT,
+                          SanctionOutcome.STATUS_AWAITING_REMEDIATION_ACTIONS,
+                          SanctionOutcome.STATUS_CLOSED)))
+
+
 class SanctionOutcome(models.Model):
     WORKFLOW_SEND_TO_MANAGER = 'send_to_manager'
     WORKFLOW_ENDORSE = 'endorse'
@@ -32,6 +41,12 @@ class SanctionOutcome(models.Model):
     WORKFLOW_RETURN_TO_OFFICER = 'return_to_officer'
     WORKFLOW_CLOSE = 'close'
 
+    PAYMENT_STATUS_UNPAID = 'unpaid'
+    PAYMENT_STATUS_PAID = 'paid'
+    PAYMENT_STATUS_CHOICES = (
+        (PAYMENT_STATUS_PAID, 'Paid'),
+        (PAYMENT_STATUS_UNPAID, 'Unpaid')
+    )
     STATUS_DRAFT = 'draft'
     STATUS_AWAITING_ENDORSEMENT = 'awaiting_endorsement'
     STATUS_AWAITING_PAYMENT = 'awaiting_payment'
@@ -40,11 +55,19 @@ class SanctionOutcome(models.Model):
     STATUS_DECLINED = 'declined'
     STATUS_WITHDRAWN = 'withdrawn'
     STATUS_CLOSED = 'closed'
-
+    STATUS_CHOICES_FOR_EXTERNAL = (
+        (STATUS_AWAITING_PAYMENT, 'Awaiting Payment'),
+        (STATUS_AWAITING_REMEDIATION_ACTIONS, 'Awaiting Remediation Actions'),
+        # (STATUS_DECLINED, 'Declined'),
+        # (STATUS_WITHDRAWN, 'Withdrawn'),
+        (STATUS_CLOSED, 'closed'),
+    )
+    FINAL_STATUSES = (STATUS_DECLINED, STATUS_CLOSED, STATUS_WITHDRAWN,)
     STATUS_CHOICES = (
         (STATUS_DRAFT, 'Draft'),
         (STATUS_AWAITING_ENDORSEMENT, 'Awaiting Endorsement'),
-        (STATUS_AWAITING_PAYMENT, 'Awaiting Payment'),
+        (STATUS_AWAITING_PAYMENT, 'Awaiting Payment'),  # TODO: implement pending closuer of SanctionOutcome with type RemediationActions
+                                                        # This is pending closure status
         (STATUS_AWAITING_REVIEW, 'Awaiting Review'),
         (STATUS_AWAITING_REMEDIATION_ACTIONS, 'Awaiting Remediation Actions'),  # TODO: implement pending closuer of SanctionOutcome with type RemediationActions
                                                                                 # This is pending closure status
@@ -70,6 +93,7 @@ class SanctionOutcome(models.Model):
 
     type = models.CharField(max_length=30, choices=TYPE_CHOICES, blank=True,)
     status = models.CharField(max_length=40, choices=STATUS_CHOICES, default=__original_status,)
+    payment_status = models.CharField(max_length=40, choices=PAYMENT_STATUS_CHOICES, blank=True,)
 
     region = models.ForeignKey(RegionDistrict, related_name='sanction_outcome_region', null=True,)
     district = models.ForeignKey(RegionDistrict, related_name='sanction_outcome_district', null=True,)
@@ -99,6 +123,7 @@ class SanctionOutcome(models.Model):
 
     objects = models.Manager()
     objects_active = SanctionOutcomeActiveManager()
+    objects_for_external = SanctionOutcomeExternalManager()
 
 
     @property
@@ -222,18 +247,13 @@ class SanctionOutcome(models.Model):
     def endorse(self, request):
         if self.type == SanctionOutcome.TYPE_INFRINGEMENT_NOTICE:
             self.status = SanctionOutcome.STATUS_AWAITING_PAYMENT
+            self.payment_status = SanctionOutcome.PAYMENT_STATUS_UNPAID
         elif self.type in (SanctionOutcome.TYPE_CAUTION_NOTICE, SanctionOutcome.TYPE_LETTER_OF_ADVICE):
             self.status = SanctionOutcome.STATUS_CLOSED
+            self.save()  # This makes sure this sanction outcome status sets to 'closed'
 
-            # Trigger the close() function of each parent entity of this sanction outcome
-            close_record, parents = can_close_record(self, request)
-            for parent in parents:
-                if parent.status == 'pending_closure':
-                    parent.close(request)
         elif self.type == SanctionOutcome.TYPE_REMEDIATION_NOTICE:
             self.status = SanctionOutcome.STATUS_AWAITING_REMEDIATION_ACTIONS
-
-            # TODO: Implement pending closure of this sanction outcome
 
         new_group = SanctionOutcome.get_compliance_permission_group(self.regionDistrictId, SanctionOutcome.WORKFLOW_ENDORSE)
         self.allocated_group = new_group
@@ -251,12 +271,6 @@ class SanctionOutcome(models.Model):
         self.log_user_action(SanctionOutcomeUserAction.ACTION_DECLINE.format(self.lodgement_number), request)
         self.save()
 
-        # Trigger the close() function of each parent entity of this sanction outcome
-        close_record, parents = can_close_record(self, request)
-        for parent in parents:
-            if parent.status == 'pending_closure':
-                parent.close(request)
-
     def return_to_officer(self, request):
         self.status = self.STATUS_DRAFT
         new_group = SanctionOutcome.get_compliance_permission_group(self.regionDistrictId, SanctionOutcome.WORKFLOW_RETURN_TO_OFFICER)
@@ -271,24 +285,12 @@ class SanctionOutcome(models.Model):
         self.log_user_action(SanctionOutcomeUserAction.ACTION_WITHDRAW.format(self.lodgement_number), request)
         self.save()
 
-        # Trigger the close() function of each parent entity of this sanction outcome
-        close_record, parents = can_close_record(self, request)
-        for parent in parents:
-            if parent.status == 'pending_closure':
-                parent.close(request)
-
     def withdraw_by_namager(self, request):
         self.status = self.STATUS_WITHDRAWN
         new_group = SanctionOutcome.get_compliance_permission_group(self.regionDistrictId, SanctionOutcome.WORKFLOW_WITHDRAW_BY_MANAGER)
         self.allocated_group = new_group
         self.log_user_action(SanctionOutcomeUserAction.ACTION_WITHDRAW.format(self.lodgement_number), request)
         self.save()
-
-        # Trigger the close() function of each parent entity of this sanction outcome
-        close_record, parents = can_close_record(self, request)
-        for parent in parents:
-            if parent.status == 'pending_closure':
-                parent.close(request)
 
     class Meta:
         app_label = 'wildlifecompliance'
@@ -297,9 +299,15 @@ class SanctionOutcome(models.Model):
         ordering = ['-id']
 
 
-# class AllegedCommittedOffenceActiveManager(models.Manager):
-#     def get_query_set(self):
-#         return super(AllegedCommittedOffenceActiveManager, self).get_query_set().exclude(Q(removed=True))
+def perform_can_close_record(sender, instance, **kwargs):
+    # Trigger the close() function of each parent entity of this sanction outcome
+    if instance.status in (SanctionOutcome.FINAL_STATUSES):
+        close_record, parents = can_close_record(instance)
+        for parent in parents:
+            if parent.status == 'pending_closure':
+                parent.close()
+
+post_save.connect(perform_can_close_record, sender=SanctionOutcome)
 
 
 class AllegedCommittedOffence(RevisionedMixin):
@@ -318,11 +326,6 @@ class AllegedCommittedOffence(RevisionedMixin):
         app_label = 'wildlifecompliance'
         verbose_name = 'CM_AllegedCommittedOffence'
         verbose_name_plural = 'CM_AllegedCommittedOffences'
-
-    # def clean(self):
-    #     raise ValidationError('Error test')
-    #     if not self.included and not self.removed:
-    #         raise ValidationError('Alleged offence: %s is not included, but is going to be removed' % self.alleged_offence)
 
 
 class RemediationAction(models.Model):
@@ -375,7 +378,7 @@ class SanctionOutcomeCommsLogEntry(CommunicationsLogEntry):
         app_label = 'wildlifecompliance'
 
 
-class SanctionOutcomeUserAction(UserAction):
+class SanctionOutcomeUserAction(models.Model):
     ACTION_SEND_TO_MANAGER = "Send Sanction Outcome {} to manager"
     ACTION_SAVE = "Save Sanction Outcome {}"
     ACTION_ENDORSE = "Endorse Sanction Outcome {}"
@@ -389,6 +392,11 @@ class SanctionOutcomeUserAction(UserAction):
     ACTION_RESTORE_ALLEGED_COMMITTED_OFFENCE = "Restore alleged committed offence: {}"
     ACTION_INCLUDE_ALLEGED_COMMITTED_OFFENCE = "Include alleged committed offence: {}"
 
+    who = models.ForeignKey(EmailUser, null=True, blank=True)
+    when = models.DateTimeField(null=False, blank=False, auto_now_add=True)
+    what = models.TextField(blank=False)
+    sanction_outcome = models.ForeignKey(SanctionOutcome, related_name='action_logs')
+
     class Meta:
         app_label = 'wildlifecompliance'
         ordering = ('-when',)
@@ -401,4 +409,3 @@ class SanctionOutcomeUserAction(UserAction):
             what=str(action)
         )
 
-    sanction_outcome = models.ForeignKey(SanctionOutcome, related_name='action_logs')

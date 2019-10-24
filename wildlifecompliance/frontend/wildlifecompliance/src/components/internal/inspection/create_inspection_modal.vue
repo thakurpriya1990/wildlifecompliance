@@ -171,6 +171,14 @@ export default {
       ...mapGetters('callemailStore', {
         call_email: "call_email",
       }),
+      ...mapGetters('legalCaseStore', {
+        legal_case: "legal_case",
+      }),
+      parent_legal_case: function() {
+          if (this.legal_case && this.legal_case.id) {
+              return true;
+          }
+      },
       parent_call_email: function() {
           if (this.call_email && this.call_email.id) {
               return true;
@@ -268,13 +276,14 @@ export default {
                   if (this.$parent.$refs.inspection_table) {
                       this.$parent.$refs.inspection_table.vmDataTable.ajax.reload()
                   }
-                  // For CallEmail related items table
+                  // For related items table
+                  let parent_update_function_payload = null;
                   if (this.parent_call_email) {
-                      //await this.parent_update_function({
-                      await this.loadCallEmail({
-                          call_email_id: this.call_email.id,
-                      });
+                      parent_update_function_payload = { call_email_id: this.call_email.id }
+                  } else if (this.parent_legal_case) {
+                      parent_update_function_payload = { legal_case_id: this.legal_case.id }
                   }
+                  await this.parent_update_function(parent_update_function_payload);
                   if (this.$parent.$refs.related_items_table) {
                       this.$parent.constructRelatedItemsTable();
                   }
@@ -323,6 +332,7 @@ export default {
           payload.append('details', this.inspectionDetails);
           this.$refs.comms_log_file.commsLogId ? payload.append('inspection_comms_log_id', this.$refs.comms_log_file.commsLogId) : null;
           this.parent_call_email ? payload.append('call_email_id', this.call_email.id) : null;
+          this.parent_legal_case ? payload.append('legal_case_id', this.legal_case.id) : null;
           this.district_id ? payload.append('district_id', this.district_id) : null;
           this.assigned_to_id ? payload.append('assigned_to_id', this.assigned_to_id) : null;
           this.inspection_type_id ? payload.append('inspection_type_id', this.inspection_type_id) : null;
