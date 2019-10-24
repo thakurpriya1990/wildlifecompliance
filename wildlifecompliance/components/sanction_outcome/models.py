@@ -120,6 +120,8 @@ class SanctionOutcome(models.Model):
     # Only editable when issued on paper. Otherwise pre-filled with date/time when issuing electronically.
     date_of_issue = models.DateField(null=True, blank=True)
     time_of_issue = models.TimeField(null=True, blank=True)
+    penalty_amount =  models.DecimalField(max_digits=8, decimal_places=2, default='0.00')  # amount of the penalty is copied form the section_regulation
+                                                                                   # according to the infringement notice issue date
 
     objects = models.Manager()
     objects_active = SanctionOutcomeActiveManager()
@@ -245,9 +247,17 @@ class SanctionOutcome(models.Model):
         self.save()
 
     def endorse(self, request):
+        if not self.issued_on_paper:
+            self.date_of_issue = datetime.datetime.now().date()
+            self.time_of_issue = datetime.datetime.now().time()
+        elif not self.date_of_issue:
+            raise ValidationError('Sanction outcome cannot be endorsed without setting date of issue.')
+
         if self.type == SanctionOutcome.TYPE_INFRINGEMENT_NOTICE:
             self.status = SanctionOutcome.STATUS_AWAITING_PAYMENT
             self.payment_status = SanctionOutcome.PAYMENT_STATUS_UNPAID
+            self.penalty_amount = self.retrieve_penalty_amount()
+
         elif self.type in (SanctionOutcome.TYPE_CAUTION_NOTICE, SanctionOutcome.TYPE_LETTER_OF_ADVICE):
             self.status = SanctionOutcome.STATUS_CLOSED
             self.save()  # This makes sure this sanction outcome status sets to 'closed'
@@ -257,9 +267,6 @@ class SanctionOutcome(models.Model):
 
         new_group = SanctionOutcome.get_compliance_permission_group(self.regionDistrictId, SanctionOutcome.WORKFLOW_ENDORSE)
         self.allocated_group = new_group
-        if not self.issued_on_paper:
-            self.date_of_issue = datetime.datetime.now().date()
-            self.time_of_issue = datetime.datetime.now().time()
         self.save()
 
         self.log_user_action(SanctionOutcomeUserAction.ACTION_ENDORSE.format(self.lodgement_number), request)
@@ -292,6 +299,12 @@ class SanctionOutcome(models.Model):
         self.log_user_action(SanctionOutcomeUserAction.ACTION_WITHDRAW.format(self.lodgement_number), request)
         self.save()
 
+    def retrieve_penalty_amount(self):
+        if self.alleged_committed_offences.all().count() != 1:
+            raise ValidationError('There are multiple alleged committed offences in this sanction outcome.')
+        else:
+            return self.alleged_committed_offences.first().retrieve_penalty_amount(self.date_of_issue)
+
     class Meta:
         app_label = 'wildlifecompliance'
         verbose_name = 'CM_SanctionOutcome'
@@ -321,6 +334,9 @@ class AllegedCommittedOffence(RevisionedMixin):
     removed_by = models.ForeignKey(EmailUser, null=True, related_name='alleged_committed_offence_removed_by')
     # objects = models.Manager()
     # objects_active = AllegedCommittedOffenceActiveManager()
+
+    def retrieve_penalty_amount(self, date_of_issue):
+        return self.alleged_offence.retrieve_penalty_amount(date_of_issue)
 
     class Meta:
         app_label = 'wildlifecompliance'

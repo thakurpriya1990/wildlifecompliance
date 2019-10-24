@@ -2,6 +2,7 @@ from django.contrib.auth.models import Permission
 from django.contrib.contenttypes.models import ContentType
 from django.core.exceptions import ValidationError
 from django.db import models
+from django.db.models import Q
 from django.db.models.signals import post_save
 
 from ledger.accounts.models import RevisionedMixin, EmailUser
@@ -18,7 +19,7 @@ class SectionRegulation(RevisionedMixin):
     act = models.CharField(max_length=100, blank=True)
     name = models.CharField(max_length=50, blank=True, verbose_name='Regulation')
     offence_text = models.CharField(max_length=200, blank=True)
-    amount =  models.DecimalField(max_digits=8, decimal_places=2, default='0.00')  # TODO: make this history toraceable
+    amount =  models.DecimalField(max_digits=8, decimal_places=2, default='0.00')
 
     class Meta:
         app_label = 'wildlifecompliance'
@@ -26,8 +27,26 @@ class SectionRegulation(RevisionedMixin):
         verbose_name_plural = 'CM_Sections/Regulations'
         ordering = ('act', 'name')
 
+    def retrieve_penalty_amount(self, date_of_issue):
+        return PenaltyAmount.objects.filter(
+            Q(section_regulation=self) &
+            Q(date_of_enforcement__lte=date_of_issue)).order_by('date_of_enforcement', 'time_of_enforcement').last().amount
+
     def __str__(self):
         return '{}:{}:{}'.format(self.act, self.name, self.offence_text)
+
+
+class PenaltyAmount(RevisionedMixin):
+    amount =  models.DecimalField(max_digits=8, decimal_places=2, default='0.00')
+    date_of_enforcement = models.DateField(blank=True, null=True)
+    time_of_enforcement = models.DateField(blank=True, null=True)
+    section_regulation = models.ForeignKey(SectionRegulation, related_name='penalty_amounts')
+
+    class Meta:
+        app_label = 'wildlifecompliance'
+        verbose_name = 'CM_PenaltyAmount'
+        verbose_name_plural = 'CM_PenaltyAmounts'
+        ordering = ('date_of_enforcement', 'time_of_enforcement')  # oldest record first, latest record last
 
 
 class Offence(RevisionedMixin):
@@ -196,6 +215,9 @@ class AllegedOffence(RevisionedMixin):
 
     def __str__(self):
         return self.section_regulation.__str__()
+
+    def retrieve_penalty_amount(self, date_of_issue):
+        return self.section_regulation.retrieve_penalty_amount(date_of_issue)
 
     class Meta:
         app_label = 'wildlifecompliance'
