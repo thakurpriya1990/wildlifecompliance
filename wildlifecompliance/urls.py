@@ -179,16 +179,13 @@ urlpatterns = [
 
     # following url is defined so that to include url path when sending
     # application emails to users
-    url(r'^internal/application/(?P<application_pk>\d+)/$', views.ApplicationView.as_view(),
-        name='internal-application-detail'),
-    url(r'^application_submit/submit_with_invoice/',
-        ApplicationSuccessView.as_view(),
-        name='external-application-success-invoice'),
-    url(r'^application/finish_licence_fee_payment/',
-        LicenceFeeSuccessView.as_view(),
-        name='external-licence-fee-success-invoice'),
+    url(r'^internal/application/(?P<application_pk>\d+)/$', views.ApplicationView.as_view(), name='internal-application-detail'),
+    url(r'^application_submit/submit_with_invoice/', ApplicationSuccessView.as_view(), name='external-application-success-invoice'),
+    url(r'^application/finish_licence_fee_payment/', LicenceFeeSuccessView.as_view(), name='external-licence-fee-success-invoice'),
 
-    # following url is defined so that to include url path when sending
+    # url(r'^infringement_penalty_submit/submit_with_invoice/', InfringementPenaltySuccessView.as_view(), name='external-application-success-invoice'),
+
+                  # following url is defined so that to include url path when sending
     # call_email emails to users
     url(r'^internal/call_email/(?P<call_email_id>\d+)/$', views.ApplicationView.as_view(),
         name='internal-call-email-detail'),
@@ -212,10 +209,11 @@ urlpatterns = [
         views.ManagementCommandsView.as_view(),
         name='mgt-commands'),
 
-    url(r'^success/infringement_penalty/$', payment_views.InfringementPenaltySuccessView.as_view(), name='infringement_success',),
-    url(r'^infringement_penalty/(?P<sanction_outcome_id>\d+)/$', payment_views.InfringementPenaltyView.as_view(), name='infringement_penalty',),
+    # payment related urls
+    url(r'^infringement_penalty/(?P<sanction_outcome_id>\d+)/$', payment_views.InfringementPenaltyView.as_view(), name='infringement_penalty'),
+    url(r'^success/fee/$', payment_views.InfringementPenaltySuccessView.as_view(), name='penalty_success'),
 
-] + ledger_patterns
+              ] + ledger_patterns
 
 if not are_migrations_running():
     CollectorManager()
