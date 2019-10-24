@@ -169,7 +169,7 @@ class OffenceSerializer(serializers.ModelSerializer):
     allocated_group = serializers.SerializerMethodField()
     user_in_group = serializers.SerializerMethodField()
     can_user_action = serializers.SerializerMethodField()
-    can_user_edit = serializers.SerializerMethodField()
+    # can_user_edit = serializers.SerializerMethodField()
     user_is_assignee = serializers.SerializerMethodField()
     related_items = serializers.SerializerMethodField()
     in_editable_status = serializers.SerializerMethodField()
@@ -190,7 +190,7 @@ class OffenceSerializer(serializers.ModelSerializer):
             'allocated_group_id',
             'user_in_group',
             'can_user_action',
-            'can_user_edit',
+            # 'can_user_edit',
             'user_is_assignee',
             'related_items',
             'district',
@@ -269,12 +269,12 @@ class OffenceSerializer(serializers.ModelSerializer):
                     return True
         return False
 
-    def get_can_user_edit(self, obj):
-        can_edit = False
-        if self.get_can_user_action(obj):
-            if obj.status in Offence.EDITABLE_STATUSES:
-                can_edit = True
-        return can_edit
+    # def get_can_user_edit(self, obj):
+    #     can_edit = False
+    #     if self.get_can_user_action(obj):
+    #         if obj.status in Offence.EDITABLE_STATUSES:
+    #             can_edit = True
+    #     return can_edit
 
     def get_can_user_action(self, obj):
         # User can have action buttons

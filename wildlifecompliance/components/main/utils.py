@@ -49,8 +49,7 @@ def checkout(
     checkout_params = {
         'system': settings.WC_PAYMENT_SYSTEM_ID,
         'fallback_url': request.build_absolute_uri('/'),
-        'return_url': request.build_absolute_uri(
-            reverse('external-application-success-invoice')),
+        'return_url': request.build_absolute_uri(reverse('external-application-success-invoice')),
         'return_preload_url': request.build_absolute_uri('/'),
         'force_redirect': True,
         'proxy': True if internal else False,
