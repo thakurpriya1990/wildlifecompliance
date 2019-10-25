@@ -2,7 +2,8 @@
     <div id="CreateInspection">
         <modal transition="modal fade" @ok="ok()" @cancel="cancel()" title="Shibaken" large force>
             <div>
-                <img class="modal-content" src="../../../assets/img/shibaken.jpg" />
+                <!--img class="modal-content" src="../../../assets/img/shibaken.jpg" /-->
+                <img class="modal-content" :src="image" />
             </div>
         </modal>
     </div>
@@ -10,12 +11,14 @@
 <script>
 import Vue from "vue";
 import modal from '@vue-utils/bootstrap-modal.vue';
+import shibaken from "../../../assets/img/shibaken.jpg"
 
 export default {
     name: "Magic",
     data: function() {
       return {
         isModalOpen: false,
+        image: shibaken
       }
     },
     components: {
