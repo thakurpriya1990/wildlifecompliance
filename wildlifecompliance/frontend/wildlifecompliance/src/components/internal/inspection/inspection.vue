@@ -482,7 +482,6 @@ export default {
       offenceInitialised: false,
       hashAttributeWhitelist: [
           "allocated_group_id",
-          "call_email_id",
           "details",
           "district_id",
           "individual_inspected_id",
