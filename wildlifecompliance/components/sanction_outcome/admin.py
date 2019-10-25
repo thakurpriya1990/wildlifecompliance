@@ -1,5 +1,6 @@
 from django.contrib import admin
 
+from wildlifecompliance.components.offence.models import PenaltyAmount
 from wildlifecompliance.components.sanction_outcome.models import SanctionOutcome
 
 

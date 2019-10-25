@@ -27,7 +27,7 @@ class SectionRegulation(RevisionedMixin):
         verbose_name_plural = 'CM_Sections/Regulations'
         ordering = ('act', 'name')
 
-    def retrieve_penalty_amount(self, date_of_issue):
+    def retrieve_penalty_amount_by_date(self, date_of_issue):
         return PenaltyAmount.objects.filter(
             Q(section_regulation=self) &
             Q(date_of_enforcement__lte=date_of_issue)).order_by('date_of_enforcement', 'time_of_enforcement').last().amount
@@ -216,8 +216,8 @@ class AllegedOffence(RevisionedMixin):
     def __str__(self):
         return self.section_regulation.__str__()
 
-    def retrieve_penalty_amount(self, date_of_issue):
-        return self.section_regulation.retrieve_penalty_amount(date_of_issue)
+    def retrieve_penalty_amount_by_date(self, date_of_issue):
+        return self.section_regulation.retrieve_penalty_amount_by_date(date_of_issue)
 
     class Meta:
         app_label = 'wildlifecompliance'

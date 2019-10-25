@@ -256,7 +256,7 @@ class SanctionOutcome(models.Model):
         if self.type == SanctionOutcome.TYPE_INFRINGEMENT_NOTICE:
             self.status = SanctionOutcome.STATUS_AWAITING_PAYMENT
             self.payment_status = SanctionOutcome.PAYMENT_STATUS_UNPAID
-            self.penalty_amount = self.retrieve_penalty_amount()
+            self.penalty_amount = self.retrieve_penalty_amount_by_date()
 
         elif self.type in (SanctionOutcome.TYPE_CAUTION_NOTICE, SanctionOutcome.TYPE_LETTER_OF_ADVICE):
             self.status = SanctionOutcome.STATUS_CLOSED
@@ -299,12 +299,12 @@ class SanctionOutcome(models.Model):
         self.log_user_action(SanctionOutcomeUserAction.ACTION_WITHDRAW.format(self.lodgement_number), request)
         self.save()
 
-    def retrieve_penalty_amount(self):
+    def retrieve_penalty_amount_by_date(self):
         qs_aco = AllegedCommittedOffence.objects.filter(Q(sanction_outcome=self) & Q(included=True))
         if qs_aco.count() != 1:  # Only infringement notice can have penalty. Infringement notice can have only one alleged offence.
             raise ValidationError('There are multiple alleged committed offences in this sanction outcome.')
         else:
-            return qs_aco.first().retrieve_penalty_amount(self.date_of_issue)
+            return qs_aco.first().retrieve_penalty_amount_by_date(self.date_of_issue)
 
     class Meta:
         app_label = 'wildlifecompliance'
@@ -336,8 +336,8 @@ class AllegedCommittedOffence(RevisionedMixin):
     # objects = models.Manager()
     # objects_active = AllegedCommittedOffenceActiveManager()
 
-    def retrieve_penalty_amount(self, date_of_issue):
-        return self.alleged_offence.retrieve_penalty_amount(date_of_issue)
+    def retrieve_penalty_amount_by_date(self, date_of_issue):
+        return self.alleged_offence.retrieve_penalty_amount_by_date(date_of_issue)
 
     class Meta:
         app_label = 'wildlifecompliance'

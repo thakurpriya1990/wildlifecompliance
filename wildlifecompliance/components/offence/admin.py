@@ -3,6 +3,11 @@ from django.contrib import admin
 from reversion.admin import VersionAdmin
 
 from wildlifecompliance.components.offence import models
+from wildlifecompliance.components.offence.models import PenaltyAmount
+
+
+class PenaltyAmountInline(admin.TabularInline):
+    model = PenaltyAmount
 
 
 @admin.register(models.Offence)
@@ -22,6 +27,7 @@ class SectionRegulationForm(forms.ModelForm):
 
 class SectionRegulationAdmin(VersionAdmin):
     form = SectionRegulationForm
+    inlines = [PenaltyAmountInline,]
 
 
 @admin.register(models.PenaltyAmount)
