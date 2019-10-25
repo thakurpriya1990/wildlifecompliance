@@ -330,9 +330,9 @@ class AllegedCommittedOffence(RevisionedMixin):
     included = models.BooleanField(default=True)  # True means sanction_outcome is included in the sanction_outcome
 
     # TODO: following three fields are not used probably
-    reason_for_removal = models.TextField(blank=True)
-    removed = models.BooleanField(default=False)  # Never make this field False once becomes True. Rather you have to create another record making this field False.
-    removed_by = models.ForeignKey(EmailUser, null=True, related_name='alleged_committed_offence_removed_by')
+    # reason_for_removal = models.TextField(blank=True)
+    # removed = models.BooleanField(default=False)  # Never make this field False once becomes True. Rather you have to create another record making this field False.
+    # removed_by = models.ForeignKey(EmailUser, null=True, related_name='alleged_committed_offence_removed_by')
     # objects = models.Manager()
     # objects_active = AllegedCommittedOffenceActiveManager()
 

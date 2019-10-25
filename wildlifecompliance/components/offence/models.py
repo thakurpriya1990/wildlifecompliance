@@ -47,6 +47,9 @@ class PenaltyAmount(RevisionedMixin):
         verbose_name_plural = 'CM_PenaltyAmounts'
         ordering = ('date_of_enforcement', 'time_of_enforcement')  # oldest record first, latest record last
 
+    def __str__(self):
+        return '${} ({}:{}:{})'.format(self.amount, self.date_of_enforcement, self.time_of_enforcement, self.section_regulation)
+
 
 class Offence(RevisionedMixin):
     WORKFLOW_CREATE = 'create'
