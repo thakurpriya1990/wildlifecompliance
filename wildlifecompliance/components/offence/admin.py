@@ -15,8 +15,6 @@ class OffenceAdmin(admin.ModelAdmin):
     filter_horizontal = ('alleged_offences',)
 
 
-
-
 class SectionRegulationForm(forms.ModelForm):
     offence_text = forms.CharField(widget=forms.Textarea)
 
