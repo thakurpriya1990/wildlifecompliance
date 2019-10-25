@@ -24,5 +24,10 @@ class SectionRegulationAdmin(VersionAdmin):
     form = SectionRegulationForm
 
 
+@admin.register(models.PenaltyAmount)
+class PenaltyAmountAdmin(admin.ModelAdmin):
+    pass
+
+
 admin.site.register(models.SectionRegulation, SectionRegulationAdmin)
 

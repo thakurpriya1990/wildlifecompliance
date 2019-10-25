@@ -300,10 +300,11 @@ class SanctionOutcome(models.Model):
         self.save()
 
     def retrieve_penalty_amount(self):
-        if self.alleged_committed_offences.all().count() != 1:
+        qs_aco = AllegedCommittedOffence.objects.filter(Q(sanction_outcome=self) & Q(included=True))
+        if qs_aco.count() != 1:  # Only infringement notice can have penalty. Infringement notice can have only one alleged offence.
             raise ValidationError('There are multiple alleged committed offences in this sanction outcome.')
         else:
-            return self.alleged_committed_offences.first().retrieve_penalty_amount(self.date_of_issue)
+            return qs_aco.first().retrieve_penalty_amount(self.date_of_issue)
 
     class Meta:
         app_label = 'wildlifecompliance'

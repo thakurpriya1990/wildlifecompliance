@@ -410,15 +410,15 @@ class OffenceViewSet(viewsets.ModelViewSet):
                 # 4. Create relations between this offence and offender(s)
                 for item in request_data['offenders']:
                     if item['person']:
-                        offender = Offender.objects.filter(person__id=item['person']['id'], offence__id=request_data['id'])
-                        # offender, created = Offender.objects.get_or_create(person_id=item['person']['id'], offence_id=request_data['id'])
-                        if offender.count():
-                            created = False
-                        else:
-                            created = True
-                            serializer_offender = SaveOffenderSerializer(data={'offence_id': instance.id, 'person_id': item['person']['id']})
-                            serializer_offender.is_valid(raise_exception=True)
-                            serializer_offender.save()
+                        # offender = Offender.objects.filter(person__id=item['person']['id'], offence__id=request_data['id'])
+                        offender, created = Offender.objects.get_or_create(person_id=item['person']['id'], offence_id=request_data['id'])
+                        # # if offender.count():
+                        # #     created = False
+                        # # else:
+                        # #     created = True
+                        # #     serializer_offender = SaveOffenderSerializer(data={'offence_id': instance.id, 'person_id': item['person']['id']})
+                        # #     serializer_offender.is_valid(raise_exception=True)
+                        #     serializer_offender.save()
 
 
                     elif item['organisation']:
