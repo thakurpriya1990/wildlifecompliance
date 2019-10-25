@@ -442,7 +442,8 @@ class SaveOffenderSerializer(serializers.ModelSerializer):
         field_errors = {}
         non_field_errors = []
 
-        if (data['person'] and data['organisation']) or (not data['person'] and not data['organisation']):
+        # if (data['person_id'] and data['organisation_id']) or (not data['person_id'] and not data['organisation_id']):
+        if ('person_id' in data and 'organisation_id' in data) or ('person_id' not in data and 'organisation_id' not in data):
             non_field_errors.append('An offender must be either a person or an organisation.')
 
         if field_errors:

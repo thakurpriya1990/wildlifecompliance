@@ -528,12 +528,17 @@ class SanctionOutcomeViewSet(viewsets.ModelViewSet):
                     temp_doc_collection.delete()
 
                 # Create relations between this sanction outcome and the alleged offence(s)
+                count_alleged_offences = 0
                 for id in request_data['alleged_offence_ids_included']:
                     try:
                         alleged_offence = AllegedOffence.objects.get(id=id)
                         alleged_commited_offence = AllegedCommittedOffence.objects.create(sanction_outcome=instance, alleged_offence=alleged_offence, included=True)
+                        count_alleged_offences += 1
                     except:
                         pass  # Should not reach here
+
+                if count_alleged_offences == 0:
+                    raise serializers.ValidationError(['No alleged offences selected.'])
 
                 for id in request_data['alleged_offence_ids_excluded']:
                     try:

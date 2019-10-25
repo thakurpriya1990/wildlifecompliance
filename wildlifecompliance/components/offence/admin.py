@@ -8,6 +8,8 @@ from wildlifecompliance.components.offence.models import PenaltyAmount
 
 class PenaltyAmountInline(admin.TabularInline):
     model = PenaltyAmount
+    extra = 0
+    can_delete = True
 
 
 @admin.register(models.Offence)
