@@ -43,8 +43,8 @@
             </div>
             <div id="mapLeaf"> </div>
             <div id="basemap-button">
-                <img id="basemap_sat" src="/static/wildlifecompliance_vue/img/satellite_icon.jpg" @click="setBaseLayer('sat')" />
-                <img id="basemap_osm" src="/static/wildlifecompliance_vue/img/map_icon.png" @click="setBaseLayer('osm')" />
+                <img id="basemap_sat" src="../../../assets/img/satellite_icon.jpg" @click="setBaseLayer('sat')" />
+                <img id="basemap_osm" src="../../../assets/img/map_icon.png" @click="setBaseLayer('osm')" />
             </div>
             <div id="cursor-location">
                 <div v-if="cursor_location">

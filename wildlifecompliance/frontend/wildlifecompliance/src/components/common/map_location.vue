@@ -6,10 +6,8 @@
             </div>
             <div :id="idMap" class="mapLeaf"></div>
             <div class="basemap-button">
-                <!--img :id="idBasemapSat" class="basemap-button-img" src="../../assets/img/satellite_icon.jpg" @click.stop="setBaseLayer('sat')" />
-                <img :id="idBasemapOsm" class="basemap-button-img" src="../../assets/img/map_icon.png" @click.stop="setBaseLayer('osm')" /-->
-                <img :id="idBasemapSat" class="basemap-button-img" src="/static/wildlifecompliance_vue/static/img/satellite_icon.jpg" @click.stop="setBaseLayer('sat')" />
-                <img :id="idBasemapOsm" class="basemap-button-img" src="/static/wildlifecompliance_vue/static/img/map_icon.png" @click.stop="setBaseLayer('osm')" />
+                <img :id="idBasemapSat" class="basemap-button-img" src="../../assets/img/satellite_icon.jpg" @click.stop="setBaseLayer('sat')" />
+                <img :id="idBasemapOsm" class="basemap-button-img" src="../../assets/img/map_icon.png" @click.stop="setBaseLayer('osm')" />
             </div>
             <div class="cursor-location">
                 <div v-if="cursor_location">

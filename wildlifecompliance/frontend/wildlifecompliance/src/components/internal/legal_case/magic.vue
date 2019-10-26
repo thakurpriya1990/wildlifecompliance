@@ -2,8 +2,7 @@
     <div id="CreateInspection">
         <modal transition="modal fade" @ok="ok()" @cancel="cancel()" title="Shibaken" large force>
             <div>
-                <!--img class="modal-content" src="../../../assets/img/shibaken.jpg" /-->
-                <img class="modal-content" src="/static/wildlifecompliance_vue/img/shibaken.jpg" />
+                <img class="modal-content" src="../../../assets/img/shibaken.jpg" />
             </div>
         </modal>
     </div>
