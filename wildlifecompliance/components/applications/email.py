@@ -32,6 +32,12 @@ class ActivityInvoiceNotificationEmail(TemplateEmailBase):
     txt_template = 'wildlifecompliance/emails/send_activity_invoice_notification.txt'
 
 
+class ActivityInvoiceIssueNotificationEmail(TemplateEmailBase):
+    subject = 'Unsuccessful payment for your licensed activity.'
+    html_template = 'wildlifecompliance/emails/send_activity_invoice_issue_notification.html'
+    txt_template = 'wildlifecompliance/emails/send_activity_invoice_issue_notification.txt'
+
+
 class ApplicationSubmitNotificationEmail(TemplateEmailBase):
     subject = 'A new application has been submitted'
     html_template = 'wildlifecompliance/emails/send_application_submit_notification.html'
@@ -198,6 +204,25 @@ def send_activity_invoice_email_notification(
     recipients = [application.submitter.email]
     msg = email.send(recipients, context=context, attachments=[
                      (filename, invoice_pdf, 'application/pdf')])
+    sender = request.user if request else settings.DEFAULT_FROM_EMAIL
+    _log_application_email(msg, application, sender=sender)
+    return True
+
+
+def send_activity_invoice_issue_notification(
+        application, activity, request):
+
+    email = ActivityInvoiceIssueNotificationEmail()
+    url = request.build_absolute_uri(
+        '/external/#{}'.format(application.id)
+    )
+
+    context = {
+        'application': application,
+        'url': url
+    }
+    recipients = [application.submitter.email]
+    msg = email.send(recipients, context=context)
     sender = request.user if request else settings.DEFAULT_FROM_EMAIL
     _log_application_email(msg, application, sender=sender)
     return True

@@ -1,0 +1,11 @@
+{%  extends 'wildlifecompliance/emails/base_email.txt' %}
+
+{%  block content %}
+        Payment for your licensed activity was unsuccessful. Please use the link to make payment.
+
+        Application: {{ application.id }}
+
+        Link: {{ url }}
+
+        Note: If you haven't logged into the Wildlife Licensing System recently you may need to login first before using the provided link.
+{%  endblock %}

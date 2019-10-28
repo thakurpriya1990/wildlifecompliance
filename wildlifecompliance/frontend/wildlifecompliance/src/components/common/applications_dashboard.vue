@@ -287,6 +287,9 @@ export default {
                         if (full.payment_status == 'unpaid'){
                             links +=  `<a href='#${full.id}' data-pay-application-fee='${full.id}'>Pay Application Fee</a><br/>`;
                         }
+                        if (full.customer_status.id == 'awaiting_payment' && full.payment_status == 'paid'){
+                            links +=  `<a href='#${full.id}' data-pay-application-licence-fee='${full.id}' pay-licence-fee-for='${full.activities[0].id}'>Pay Licence Fee</a><br/>`;
+                        }                        
                     }
                     return links;
                 },
@@ -572,7 +575,14 @@ export default {
                 e.preventDefault();
                 var id = $(this).attr('data-pay-application-fee');
                 vm.payApplicationFee(id);
-            });
+            });        
+            // External Pay Licence Fee listener
+            vm.visibleDatatable.vmDataTable.on('click', 'a[data-pay-application-licence-fee]', function(e) {
+                e.preventDefault();
+                const activity_id = $(this).attr('pay-licence-fee-for');
+                const application_id = $(this).attr('data-pay-application-licence-fee');
+                vm.payLicenceFee(application_id, activity_id);
+            });                       
             // Child row listener
             vm.visibleDatatable.vmDataTable.on('click', 'tr.appRecordRow', function(e) {
                 // If a link is clicked, ignore

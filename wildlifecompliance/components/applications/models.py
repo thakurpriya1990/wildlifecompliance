@@ -40,6 +40,7 @@ from wildlifecompliance.components.applications.email import (
     send_id_update_request_notification,
     send_application_return_to_officer_conditions_notification,
     send_activity_invoice_email_notification,
+    send_activity_invoice_issue_notification,
 )
 from wildlifecompliance.components.main.utils import get_choice_value
 from wildlifecompliance.ordered_model import OrderedModel
@@ -1851,6 +1852,10 @@ class Application(RevisionedMixin):
             for activity in failed_payment_activities:
                 activity.processing_status = ApplicationSelectedActivity.PROCESSING_STATUS_AWAITING_LICENCE_FEE_PAYMENT
                 activity.save()
+                # Notify customer of failed payment and set Application status for customer.
+                self.customer_status = Application.CUSTOMER_STATUS_AWAITING_PAYMENT
+                self.save()
+                send_activity_invoice_issue_notification(self, activity, request)
             raise Exception("Could not process licence fee payment for: {}".format(
                 ", ".join([activity.licence_activity.name for activity in failed_payment_activities])
             ))
@@ -2602,7 +2607,15 @@ class ApplicationSelectedActivity(models.Model):
             }
         )
         try:
+            '''
+            Requires check for KeyError when an Order has not been successfully created for an Activity Licence. When an Order
+            does not exist the session key 'checkout_invoice' will remain from the token's previous Application payment.
+            Another check is required to check valid invoice details.
+            '''
             invoice_ref = request.session['checkout_invoice']
+            created_invoice = Invoice.objects.filter(reference=invoice_ref).first()
+            if (created_invoice.text!=application_submission): # text on invoice does not match this payment submission.
+                raise KeyError
         except KeyError:
             logger.error("No invoice reference generated for Activity ID: %s" % self.licence_activity_id)
             return False
