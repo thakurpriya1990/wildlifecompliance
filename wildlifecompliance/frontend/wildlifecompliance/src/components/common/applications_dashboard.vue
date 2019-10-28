@@ -29,6 +29,15 @@
                                 </select>
                             </div>
                         </div>
+                        <div class="col-md-3">
+                            <div class="form-group">
+                                <label for="">Submitter</label>
+                                <select class="form-control" v-model="filterApplicationSubmitter">
+                                    <option value="All">All</option>
+                                    <option v-for="s in application_submitters" :value="s.email" v-bind:key="`submitter_${s.email}`">{{s.search_term}}</option>
+                                </select>
+                            </div>
+                        </div>                        
                         <div v-if="is_external" class="col-md-3">
                             <router-link  style="margin-top:25px;" class="btn btn-primary pull-right" :to="{ name: 'apply_application_organisation' }">New Application</router-link>
                         </div>
@@ -52,16 +61,8 @@
                                 </span>
                             </div>
                         </div>
-                        <div class="col-md-3">
-                            <div class="form-group">
-                                <label for="">Submitter</label>
-                                <select class="form-control" v-model="filterApplicationSubmitter" ref="submitter_select">
-                                    <option value="All">All</option>
-                                    <option v-for="s in application_submitters" :value="s.email" v-bind:key="`submitter_${s.email}`">{{s.search_term}}</option>
-                                </select>
-                            </div>
-                        </div>
                     </div>
+                    <div class="row"><br/></div> 
                     <div class="row">
                         <div class="col-lg-12">
                             <datatable v-if="level=='external'" ref="external_application_datatable" :id="datatable_id" :dtOptions="application_ex_options" :dtHeaders="application_ex_headers"/>
@@ -661,19 +662,6 @@ export default {
                     const application_id = $(this).attr('application-id');
                     vm.payLicenceFee(application_id, activity_id);
                 });
-            });
-            // Initialise select2 for submitter
-            $(vm.$refs.submitter_select).select2({
-                "theme": "bootstrap",
-                placeholder:"Select Submitter"
-            }).
-            on("select2:select",function (e) {
-                var selected = $(e.currentTarget);
-                vm.filterApplicationSubmitter = selected.val();
-            }).
-            on("select2:unselect",function (e) {
-                var selected = $(e.currentTarget);
-                vm.filterApplicationSubmitter = selected.val();
             });
         },
         initialiseSearch:function(){

@@ -29,6 +29,15 @@
                                 </select>
                             </div>
                         </div>
+                        <div class="col-md-3">
+                            <div class="form-group">
+                                <label for="">Submitter</label>
+                                <select class="form-control" v-model="filterApplicationSubmitter">
+                                    <option value="All">All</option>
+                                    <option v-for="s in application_submitters" :value="s.email" v-bind:key="`s_email_${s.email}`">{{s.search_term}}</option>
+                                </select>
+                            </div>
+                        </div>                        
                     </div>
                     <div class="row">
                         <div class="col-md-3">
@@ -48,17 +57,9 @@
                                     <span class="glyphicon glyphicon-calendar"></span>
                                 </span>
                             </div>
-                        </div>
-                        <div class="col-md-3">
-                            <div class="form-group">
-                                <label for="">Submitter</label>
-                                <select class="form-control" v-model="filterApplicationSubmitter" ref="submitter_select">
-                                    <option value="All">All</option>
-                                    <option v-for="s in application_submitters" :value="s.email">{{s.search_term}}</option>
-                                </select>
-                            </div>
-                        </div>
+                        </div>                   
                     </div>
+                    <div class="row"><br/></div>             
                     <div class="row">
                         <div class="col-lg-12">
                             <datatable ref="assessment_datatable" :id="datatable_id" :dtOptions="assessment_options" :dtHeaders="assessment_headers"/>
@@ -288,19 +289,6 @@ export default {
                     vm.filterApplicationLodgedFrom = "";
                     $(vm.$refs.applicationDateToPicker).data("DateTimePicker").minDate(false);
                 }
-            });
-            // Initialise select2 for submitter
-            $(vm.$refs.submitter_select).select2({
-                "theme": "bootstrap",
-                placeholder:"Select Submitter"
-            }).
-            on("select2:select",function (e) {
-                var selected = $(e.currentTarget);
-                vm.filterApplicationSubmitter = selected.val();
-            }).
-            on("select2:unselect",function (e) {
-                var selected = $(e.currentTarget);
-                vm.filterApplicationSubmitter = selected.val();
             });
         },
         initialiseSearch:function(){

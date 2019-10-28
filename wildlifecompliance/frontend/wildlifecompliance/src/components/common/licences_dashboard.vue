@@ -16,7 +16,16 @@
                                 <label for="">Licence Category</label>
                                 <select class="form-control" v-model="filterLicenceType">
                                     <option value="All">All</option>
-                                    <option v-for="l in licence_categories" :value="l">{{l}}</option>
+                                    <option v-for="l in licence_categories" :value="l" v-bind:key="`cat_${l}`">{{l}}</option>
+                                </select>
+                            </div>
+                        </div>
+                        <div class="col-md-3">
+                            <div class="form-group">
+                                <label for="">Licence Holder</label>
+                                <select class="form-control" v-model="filterLicenceHolder">
+                                    <option value="All">All</option>
+                                    <option v-for="holder in licence_holders" :value="holder.holder_name" v-bind:key="`licence_holder_${holder.holder_name}`">{{holder.holder_name}}</option>
                                 </select>
                             </div>
                         </div>
@@ -49,16 +58,8 @@
                                 </span>
                             </div>
                         </div>
-                        <div class="col-md-3">
-                            <div class="form-group">
-                                <label for="">Licence Holder</label>
-                                <select class="form-control" v-model="filterLicenceHolder" ref="licence_holder_select">
-                                    <option value="All">All</option>
-                                    <option v-for="holder in licence_holders" :value="holder.holder_name" v-bind:key="`licence_holder_${holder.holder_name}`">{{holder.holder_name}}</option>
-                                </select>
-                            </div>
-                        </div>
                     </div>
+                    <div class="row"><br/></div>                     
                     <div class="row">
                         <div class="col-lg-12">
                             <datatable ref="licence_datatable" :id="datatable_id" :dtOptions="licence_options" :dtHeaders="licence_headers"/>
@@ -315,19 +316,6 @@ export default {
                     vm.filterLicenceIssuedFrom = "";
                     $(vm.$refs.licenceDateToPicker).data("DateTimePicker").minDate(false);
                 }
-            });
-            // Initialise select2 for holder
-            $(vm.$refs.licence_holder_select).select2({
-                "theme": "bootstrap",
-                placeholder:"Select Holder"
-            }).
-            on("select2:select",function (e) {
-                var selected = $(e.currentTarget);
-                vm.filterLicenceHolder = selected.val();
-            }).
-            on("select2:unselect",function (e) {
-                var selected = $(e.currentTarget);
-                vm.filterLicenceHolder = selected.val();
             });
             // Add Activity/Purpose listener
             vm.$refs.licence_datatable.vmDataTable.on('click', 'a[add-activity-purpose]', function(e) {
