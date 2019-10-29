@@ -133,6 +133,10 @@ class InfringementPenaltySuccessView(TemplateView):
 
             order = Order.objects.get(basket=basket[0])
             invoice = Invoice.objects.get(order_number=order.number)
+            if invoice.payment_status == 'paid':
+                sanction_outcome.status = SanctionOutcome.STATUS_CLOSED
+                sanction_outcome.payment_status = SanctionOutcome.PAYMENT_STATUS_PAID
+                sanction_outcome.save()
             invoice_ref = invoice.reference
             fee_inv, created = InfringementPenaltyInvoice.objects.get_or_create(infringement_penalty=infringement_penalty, invoice_reference=invoice_ref)
 
