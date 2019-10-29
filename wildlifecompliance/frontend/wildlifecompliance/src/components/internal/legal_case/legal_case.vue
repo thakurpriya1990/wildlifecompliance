@@ -611,9 +611,6 @@ export default {
             payload
         );
         await this.setLegalCase(res.body);
-        this.$nextTick(() => {
-            this.constructInspectionTeamTable();
-        });
     },
   },
   created: async function() {
@@ -622,28 +619,6 @@ export default {
       }
       console.log(this)
 
-      //// inspection_types
-      //let returned_inspection_types = await cache_helper.getSetCacheList(
-      //    'InspectionTypes',
-      //    api_endpoints.inspection_types
-      //    );
-      //Object.assign(this.inspectionTypes, returned_inspection_types);
-      //// blank entry allows user to clear selection
-      //this.inspectionTypes.splice(0, 0,
-      //    {
-      //      id: "",
-      //      description: "",
-      //    });
-      //// load current Inspection renderer schema
-      //this.$nextTick(async () => {
-      //    if (this.inspection.inspection_type_id) {
-      //        await this.loadSchema();
-      //    }
-      //});
-      // calling modifyInspectionTeam with null parameters returns the current list
-      //this.modifyInspectionTeam({user_id: null, action: null});
-      // create object hash
-      //this.object_hash = hash(this.inspection);
       this.calculateHash();
   },
   destroyed: function() {
@@ -652,34 +627,8 @@ export default {
   },
 
   mounted: function() {
-      //let vm = this;
-
-      //// Time field controls
-      //$('#plannedForTimePicker').datetimepicker({
-      //        format: 'LT'
-      //    });
-      //$('#plannedForTimePicker').on('dp.change', function(e) {
-      //    vm.setPlannedForTime(e.date.format('LT'));
-      //});
-
-      //// Initialise select2 for officer list
-      //$(vm.$refs.inspectionteam).select2({
-      //    "theme": "bootstrap",
-      //    allowClear: true,
-      //    placeholder:"Select Team Member"
-      //            }).
-      //on("select2:select",function (e) {
-      //                    let selected = $(e.currentTarget);
-      //                    vm.teamMemberSelected = selected.val();
-      //                }).
-      //on("select2:unselect",function (e) {
-      //                    let selected = $(e.currentTarget);
-      //                    vm.teamMemberSelected = selected.val();
-      //                });
-      
       this.$nextTick(async () => {
           this.addEventListeners();
-          //this.constructInspectionTeamTable();
       });
   },
 };
