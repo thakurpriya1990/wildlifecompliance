@@ -90,9 +90,6 @@ class InfringementPenaltyView(TemplateView):
                     return_url_ns='penalty_success',
                     return_preload_url_ns='penalty_success',
                     invoice_text='Infringement Notice'
-                    # return_url_ns = 'fee_success',
-                    # return_preload_url_ns = 'fee_success',
-                    # invoice_text = 'Application Fee'
                 )
 
                 logger.info('{} built payment line item {} for Infringement and handing over to payment gateway'.format('User {} with id {}'.format(sanction_outcome.offender.person.get_full_name(), sanction_outcome.offender.person.id), sanction_outcome.id))
@@ -182,6 +179,7 @@ class InfringementPenaltySuccessView(TemplateView):
                         'offender': recipient,
                         'fee_invoice': invoice
                     }
+                    print(context)
                     return render(request, self.template_name, context)
 
         except Exception as e:

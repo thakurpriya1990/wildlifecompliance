@@ -58,7 +58,10 @@ def create_infringement_lines(sanction_outcome, invoice_text=None, vouchers=[], 
 
     now = datetime.now().strftime('%Y-%m-%d %H:%M')
     line_items = [
-        {   'ledger_description': 'Infringement Penalty - {} - {}'.format(now, 11111 ),
+        {   'ledger_description': 'Infringement Notice: {}, Issued: {} {}'.format(
+                sanction_outcome.lodgement_number,
+                sanction_outcome.date_of_issue.strftime("%d-%m-%Y"),
+                sanction_outcome.time_of_issue.strftime("%I:%M")),
             'oracle_code': 'ABC123 GST',
             'price_incl_tax':  sanction_outcome.penalty_amount,
             'price_excl_tax':  sanction_outcome.penalty_amount,
