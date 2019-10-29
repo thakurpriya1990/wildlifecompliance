@@ -1,8 +1,6 @@
 from django.contrib.auth.models import Permission
 from django.contrib.contenttypes.models import ContentType
-from django.core.exceptions import ValidationError
 from django.db import models
-from django.db.models import Q
 from django.db.models.signals import post_save
 
 from ledger.accounts.models import RevisionedMixin, EmailUser
@@ -11,44 +9,9 @@ from wildlifecompliance.components.legal_case.models import LegalCase
 from wildlifecompliance.components.inspection.models import Inspection
 from wildlifecompliance.components.main.models import Document, CommunicationsLogEntry
 from wildlifecompliance.components.main.related_item import can_close_record
+from wildlifecompliance.components.section_regulation.models import SectionRegulation
 from wildlifecompliance.components.users.models import RegionDistrict, CompliancePermissionGroup
 from wildlifecompliance.components.organisations.models import Organisation
-
-
-class SectionRegulation(RevisionedMixin):
-    act = models.CharField(max_length=100, blank=True)
-    name = models.CharField(max_length=50, blank=True, verbose_name='Regulation')
-    offence_text = models.CharField(max_length=200, blank=True)
-
-    class Meta:
-        app_label = 'wildlifecompliance'
-        verbose_name = 'CM_Section/Regulation'
-        verbose_name_plural = 'CM_Sections/Regulations'
-        ordering = ('act', 'name')
-
-    def retrieve_penalty_amount_by_date(self, date_of_issue):
-        return PenaltyAmount.objects.filter(
-            Q(section_regulation=self) &
-            Q(date_of_enforcement__lte=date_of_issue)).order_by('date_of_enforcement', 'time_of_enforcement').last().amount
-
-    def __str__(self):
-        return '{}:{}:{}'.format(self.act, self.name, self.offence_text)
-
-
-class PenaltyAmount(RevisionedMixin):
-    amount =  models.DecimalField(max_digits=8, decimal_places=2, default='0.00')
-    date_of_enforcement = models.DateField(blank=True, null=True)
-    time_of_enforcement = models.DateField(blank=True, null=True)
-    section_regulation = models.ForeignKey(SectionRegulation, related_name='penalty_amounts')
-
-    class Meta:
-        app_label = 'wildlifecompliance'
-        verbose_name = 'CM_PenaltyAmount'
-        verbose_name_plural = 'CM_PenaltyAmounts'
-        ordering = ('date_of_enforcement', 'time_of_enforcement')  # oldest record first, latest record last
-
-    def __str__(self):
-        return '${} ({}:{}:{})'.format(self.amount, self.date_of_enforcement, self.time_of_enforcement, self.section_regulation)
 
 
 class Offence(RevisionedMixin):
@@ -206,7 +169,7 @@ post_save.connect(perform_can_close_record, sender=Offence)
 
 class AllegedOffence(RevisionedMixin):
     offence = models.ForeignKey(Offence, null=False,)
-    section_regulation = models.ForeignKey(SectionRegulation, null=False,)
+    section_regulation = models.ForeignKey(SectionRegulation, null=False, )
     reason_for_removal = models.TextField(blank=True)
     removed = models.BooleanField(default=False)
     removed_by = models.ForeignKey(

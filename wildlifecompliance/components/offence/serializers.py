@@ -7,9 +7,10 @@ from wildlifecompliance.components.call_email.serializers import LocationSeriali
     LocationSerializerOptimized
 from wildlifecompliance.components.main.fields import CustomChoiceField
 from wildlifecompliance.components.main.related_item import get_related_items
-from wildlifecompliance.components.offence.models import Offence, SectionRegulation, Offender, AllegedOffence, \
+from wildlifecompliance.components.offence.models import Offence, Offender, AllegedOffence, \
     OffenceUserAction, OffenceCommsLogEntry
 from wildlifecompliance.components.sanction_outcome.models import SanctionOutcome, AllegedCommittedOffence
+from wildlifecompliance.components.section_regulation.serializers import SectionRegulationSerializer
 from wildlifecompliance.components.users.serializers import CompliancePermissionGroupMembersSerializer
 
 
@@ -22,19 +23,6 @@ class OrganisationSerializer(serializers.ModelSerializer):
             'organisation_id',
             'abn',
             'name',
-        )
-        read_only_fields = ()
-
-
-class SectionRegulationSerializer(serializers.ModelSerializer):
-
-    class Meta:
-        model = SectionRegulation
-        fields = (
-            'id',
-            'act',
-            'name',
-            'offence_text',
         )
         read_only_fields = ()
 
@@ -442,7 +430,8 @@ class SaveOffenderSerializer(serializers.ModelSerializer):
         field_errors = {}
         non_field_errors = []
 
-        if (data['person'] and data['organisation']) or (not data['person'] and not data['organisation']):
+        # if (data['person_id'] and data['organisation_id']) or (not data['person_id'] and not data['organisation_id']):
+        if ('person_id' in data and 'organisation_id' in data) or ('person_id' not in data and 'organisation_id' not in data):
             non_field_errors.append('An offender must be either a person or an organisation.')
 
         if field_errors:
