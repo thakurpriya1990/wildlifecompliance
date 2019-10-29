@@ -548,7 +548,8 @@ export default {
                     }
                 }
             }
-            await swal("Error", errorText, "error");
+            this.errorResponse = errorText;
+            //await swal("Error", errorText, "error");
         },
       ...mapActions({
         loadAllocatedGroup: 'loadAllocatedGroup',  // defined in store/modules/user.js

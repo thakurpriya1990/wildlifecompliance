@@ -769,7 +769,8 @@ export default {
                 }
             }
         }
-        await swal("Error", errorText, "error");
+        this.errorResponse = errorText;
+        //await swal("Error", errorText, "error");
     },
     cancel: function() {
         // for call_email offenceBindId
