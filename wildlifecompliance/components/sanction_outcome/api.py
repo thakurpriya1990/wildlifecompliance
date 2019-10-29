@@ -722,7 +722,7 @@ class SanctionOutcomeViewSet(viewsets.ModelViewSet):
                 elif workflow_type == SanctionOutcome.WORKFLOW_ENDORSE:
                     instance.endorse(request)
 
-                    email_data = prepare_mail(request, instance, workflow_entry, send_infringement_notice, instance.offencder.person.id)
+                    email_data = prepare_mail(request, instance, workflow_entry, send_infringement_notice, instance.offender.person.id)
                     # TODO: Email to infringement-notice-coordinator too
 
                 elif workflow_type == SanctionOutcome.WORKFLOW_RETURN_TO_OFFICER:
