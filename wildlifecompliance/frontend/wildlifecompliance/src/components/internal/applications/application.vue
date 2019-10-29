@@ -122,10 +122,15 @@
                                             <button class="btn btn-primary top-buffer-s col-xs-12" @click.prevent="togglesendtoAssessor()">Assessments &amp; Conditions</button><br/>
                                         </div>
                                     </div>
+                                    <div v-if="canReturnToConditions" class="row">
+                                        <div class="col-sm-12">
+                                            <button class="btn btn-primary top-buffer-s col-xs-12" @click.prevent="returnToOfficerConditions()">Return to Officer - Conditions</button>                                   
+                                        </div>
+                                    </div>                                    
                                     <div v-if="canIssueDecline" class="row">
                                         <div class="col-sm-12">
-                                            <button v-if="!userIsAssignedOfficer" class="btn btn-success top-buffer-s col-xs-12" @click.prevent="toggleIssue()">Issue/Decline</button>
-                                            <button v-else disabled class="btn btn-success top-buffer-s col-xs-12">Issue/Decline</button>
+                                            <button v-if="!userIsAssignedOfficer" class="btn btn-primary top-buffer-s col-xs-12" @click.prevent="toggleIssue()">Issue/Decline</button>
+                                            <button v-else disabled class="btn btn-primary top-buffer-s col-xs-12">Issue/Decline</button>
                                         </div>
                                     </div>
                                 </template>
@@ -142,8 +147,8 @@
                                     </div>
                                     <div v-if="canProposeIssueOrDecline && isSendingToAssessor || isOfficerConditions" class="row">
                                         <div class="col-sm-12">
-                                            <button class="btn btn-danger top-buffer-s col-xs-12" @click.prevent="proposedDecline()">Propose Decline</button>
-                                            <button class="btn btn-success top-buffer-s col-xs-12" @click.prevent="proposedLicence()">Propose Issue</button>
+                                            <button class="btn btn-primary top-buffer-s col-xs-12" @click.prevent="proposedDecline()">Propose Decline</button>
+                                            <button class="btn btn-primary top-buffer-s col-xs-12" @click.prevent="proposedLicence()">Propose Issue</button>
                                         </div>
                                     </div>                                    
                                     <button v-show="showCompleteButton" @click.prevent="completeAssessmentsToMe()" class="btn btn-primary top-buffer-s col-xs-12" >Complete Assessments</button><br/>                                   
@@ -528,7 +533,6 @@
                                             <div class="navbar-inner">
                                                 <div class="container">
                                                     <p class="pull-right" style="margin-top:5px;">
-                                                        <button v-if="canReturnToConditions" class="btn btn-primary" @click.prevent="returnToOfficerConditions()">Return to Officer - Conditions</button>
                                                         <button v-if="!applicationIsDraft && canSaveApplication" class="btn btn-primary" @click.prevent="save()">Save Changes</button>
                                                     </p>
                                                 </div>
