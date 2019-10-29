@@ -60,9 +60,9 @@ def create_infringement_lines(sanction_outcome, invoice_text=None, vouchers=[], 
     line_items = [
         {   'ledger_description': 'Infringement Penalty - {} - {}'.format(now, 11111 ),
             'oracle_code': 'ABC123 GST',
-            'price_incl_tax':  Decimal(100.00),
-            'price_excl_tax':  Decimal(100.00),
-            'quantity': 2,
+            'price_incl_tax':  sanction_outcome.penalty_amount,
+            'price_excl_tax':  sanction_outcome.penalty_amount,
+            'quantity': 1,
         },
     ]
     logger.info('{}'.format(line_items))
