@@ -51,21 +51,21 @@
                     </div>
                     <div class="panel-body panel-collapse">
                         <div class="row action-button">
-                            <div class="col-sm-12">
+                            <div v-if="canUserAction" class="col-sm-12">
                                   <a @click="openInspection()" class="btn btn-primary btn-block" >
                                     Inspection
                                   </a>
                             </div>
                         </div>
                         <div class="row action-button">
-                          <div class="col-sm-12">
+                          <div v-if="canUserAction" class="col-sm-12">
                                 <a @click="addWorkflow('endorse')" class="btn btn-primary btn-block">
                                   Witness Statement
                                 </a>
                           </div>
                         </div>
                         <div class="row action-button">
-                          <div v-if="offenceVisibility" class="col-sm-12">
+                          <div v-if="canUserAction && offenceVisibility" class="col-sm-12">
                                 <a @click="openOffence()" class="btn btn-primary btn-block">
                                   Offence
                                 </a>
@@ -73,14 +73,14 @@
                         </div>
                         
                         <div class="row action-button">
-                          <div class="col-sm-12">
+                          <div v-if="canUserAction" class="col-sm-12">
                                 <a @click="addWorkflow('request_amendment')" class="btn btn-primary btn-block">
                                   Interview
                                 </a>
                           </div>
                         </div>
                         <div class="row action-button">
-                          <div class="col-sm-12">
+                          <div v-if="canUserAction" class="col-sm-12">
                                 <input 
                                 :disabled="!sanctionOutcomeVisibility" 
                                 type="button" 
@@ -95,7 +95,7 @@
                         </div>
                         
                         <div  class="row action-button">
-                          <div class="col-sm-12">
+                          <div v-if="canUserAction" class="col-sm-12">
                                 <a @click="open_sanction_outcome()" class="btn btn-primary btn-block">
                                   Brief of Evidence
                                 </a>
@@ -103,7 +103,7 @@
                         </div>
 
                         <div id="close-button" class="row action-button">
-                          <div v-if="!readonlyForm" class="col-sm-12">
+                          <div v-if="canUserAction" class="col-sm-12">
                                 <a @click="addWorkflow('close')" class="btn btn-primary btn-block">
                                   Close
                                 </a>
@@ -143,12 +143,12 @@
                             <FormSection :formCollapse="false" label="Case Details">
                                 <div class="col-sm-12 form-group"><div class="row">
                                     <label class="col-sm-10">Title
-                                        <input type="text" class="form-control" v-model="legal_case.title" />
+                                        <input :readonly="readonlyForm" type="text" class="form-control" v-model="legal_case.title" />
                                     </label>
                                 </div></div>
                                 <div class="col-sm-12 form-group"><div class="row">
                                     <label class="col-sm-10">Details
-                                        <textarea class="form-control location_address_field" v-model="legal_case.details" />
+                                        <textarea :readonly="readonlyForm" class="form-control location_address_field" v-model="legal_case.details" />
                                     </label>
                                 </div></div>
                                 <div class="col-sm-12 form-group"><div class="row">
@@ -180,7 +180,7 @@
             </div>
           </div>
 
-        <div v-if="legal_case.can_user_action" class="navbar navbar-fixed-bottom" style="background-color: #f5f5f5 ">
+        <div v-if="canUserAction" class="navbar navbar-fixed-bottom" style="background-color: #f5f5f5 ">
             <div class="navbar-inner">
                 <div class="container">
                     <p class="pull-right" style="margin-top:5px;">
@@ -270,7 +270,16 @@ export default {
       sanctionOutcomeInitialised: false,
       offenceInitialised: false,
       inspectionInitialised: false,
-      hashAttributeWhitelist: [],
+      hashAttributeWhitelist: [
+        'allocated_group_id',
+        'case_created_date',
+        'case_created_time',
+        'details',
+        'title',
+        'legal_case_priority_id',
+        'region_id',
+        'district_id',
+      ],
       magicKeyPressed: false,
       magicKey2Pressed: false,
       magicValue: null,
@@ -305,18 +314,19 @@ export default {
         return this.legal_case.status ? this.legal_case.status.id : '';
     },
     readonlyForm: function() {
-        //let readonly = true
-        //if (this.inspection.status && this.inspection.status.id === 'await_endorsement') {
-        //} else if (this.inspection.id) {
-        //    readonly = !this.inspection.can_user_action;
-        //} else {
-        //}
-        //console.log(readonly)
-        //return readonly
-        return false
+        let readonly = true
+        if (this.legal_case && this.legal_case.id) {
+            readonly = !this.legal_case.can_user_action;
+        }
+        return readonly
+        //return false
     },
     canUserAction: function() {
-        return this.legal_case.can_user_action;
+        let return_val = false
+        if (this.legal_case && this.legal_case.id) {
+            return_val = this.legal_case.can_user_action;
+        }
+        return return_val
     },
     offenceExists: function() {
         for (let item of this.legal_case.related_items) {
@@ -602,9 +612,6 @@ export default {
             payload
         );
         await this.setLegalCase(res.body);
-        this.$nextTick(() => {
-            this.constructInspectionTeamTable();
-        });
     },
   },
   created: async function() {
@@ -613,28 +620,6 @@ export default {
       }
       console.log(this)
 
-      //// inspection_types
-      //let returned_inspection_types = await cache_helper.getSetCacheList(
-      //    'InspectionTypes',
-      //    api_endpoints.inspection_types
-      //    );
-      //Object.assign(this.inspectionTypes, returned_inspection_types);
-      //// blank entry allows user to clear selection
-      //this.inspectionTypes.splice(0, 0,
-      //    {
-      //      id: "",
-      //      description: "",
-      //    });
-      //// load current Inspection renderer schema
-      //this.$nextTick(async () => {
-      //    if (this.inspection.inspection_type_id) {
-      //        await this.loadSchema();
-      //    }
-      //});
-      // calling modifyInspectionTeam with null parameters returns the current list
-      //this.modifyInspectionTeam({user_id: null, action: null});
-      // create object hash
-      //this.object_hash = hash(this.inspection);
       this.calculateHash();
   },
   destroyed: function() {
@@ -643,34 +628,8 @@ export default {
   },
 
   mounted: function() {
-      //let vm = this;
-
-      //// Time field controls
-      //$('#plannedForTimePicker').datetimepicker({
-      //        format: 'LT'
-      //    });
-      //$('#plannedForTimePicker').on('dp.change', function(e) {
-      //    vm.setPlannedForTime(e.date.format('LT'));
-      //});
-
-      //// Initialise select2 for officer list
-      //$(vm.$refs.inspectionteam).select2({
-      //    "theme": "bootstrap",
-      //    allowClear: true,
-      //    placeholder:"Select Team Member"
-      //            }).
-      //on("select2:select",function (e) {
-      //                    let selected = $(e.currentTarget);
-      //                    vm.teamMemberSelected = selected.val();
-      //                }).
-      //on("select2:unselect",function (e) {
-      //                    let selected = $(e.currentTarget);
-      //                    vm.teamMemberSelected = selected.val();
-      //                });
-      
       this.$nextTick(async () => {
           this.addEventListeners();
-          //this.constructInspectionTeamTable();
       });
   },
 };
