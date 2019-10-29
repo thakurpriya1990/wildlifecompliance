@@ -3,12 +3,10 @@ import logging
 import traceback
 
 from datetime import datetime
-from decimal import Decimal
 
 from django.contrib.auth.models import Permission
 from django.contrib.contenttypes.models import ContentType
 from django.core.exceptions import ValidationError
-from django.core.urlresolvers import reverse
 from django.db import transaction
 from django.db.models import Q
 from django.http import HttpResponse
@@ -20,7 +18,6 @@ from rest_framework.response import Response
 from rest_framework_datatables.filters import DatatablesFilterBackend
 from rest_framework_datatables.pagination import DatatablesPageNumberPagination
 
-from ledger.checkout.utils import calculate_excl_gst
 from wildlifecompliance.components.main.process_document import (
         process_generic_document,
         save_default_document_obj
@@ -28,9 +25,8 @@ from wildlifecompliance.components.main.process_document import (
 from wildlifecompliance.components.call_email.models import CallEmail, CallEmailUserAction
 from wildlifecompliance.components.inspection.models import Inspection, InspectionUserAction
 from wildlifecompliance.components.main.email import prepare_mail
-from wildlifecompliance.components.main.utils import checkout
 from wildlifecompliance.components.offence.models import SectionRegulation, AllegedOffence
-from wildlifecompliance.components.sanction_outcome.email import send_mail
+from wildlifecompliance.components.sanction_outcome.email import send_mail, send_infringement_notice
 from wildlifecompliance.components.sanction_outcome.models import SanctionOutcome, RemediationAction, \
     SanctionOutcomeCommsLogEntry, AllegedCommittedOffence, SanctionOutcomeUserAction
 from wildlifecompliance.components.sanction_outcome.serializers import SanctionOutcomeSerializer, \
@@ -38,7 +34,6 @@ from wildlifecompliance.components.sanction_outcome.serializers import SanctionO
     UpdateAssignedToIdSerializer, SanctionOutcomeCommsLogEntrySerializer, SanctionOutcomeUserActionSerializer, \
     AllegedCommittedOffenceSerializer, AllegedCommittedOffenceCreateSerializer
 from wildlifecompliance.components.users.models import CompliancePermissionGroup, RegionDistrict
-from wildlifecompliance.components.wc_payments.utils import set_session_infringement_invoice
 from wildlifecompliance.helpers import is_internal
 from wildlifecompliance.components.main.models import TemporaryDocumentCollection
 
@@ -725,8 +720,10 @@ class SanctionOutcomeViewSet(viewsets.ModelViewSet):
                         pass
                 elif workflow_type == SanctionOutcome.WORKFLOW_ENDORSE:
                     instance.endorse(request)
-                    # Email to infringement-notice-coordinator
-                    email_data = prepare_mail(request, instance, workflow_entry, send_mail, )
+
+                    email_data = prepare_mail(request, instance, workflow_entry, send_infringement_notice, instance.offencder.person.id)
+                    # TODO: Email to infringement-notice-coordinator too
+
                 elif workflow_type == SanctionOutcome.WORKFLOW_RETURN_TO_OFFICER:
                     instance.return_to_officer(request)
                     # Email to the responsible officer
