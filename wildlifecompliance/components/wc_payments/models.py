@@ -122,6 +122,7 @@ class InfringementPenalty(Payment):
     class Meta:
         app_label = 'wildlifecompliance'
 
+
 class InfringementPenaltyInvoice(RevisionedMixin):
     #application_fee = models.ForeignKey(ApplicationFee, related_name='application_fee_invoices')
     infringement_penalty = models.ForeignKey(InfringementPenalty, related_name='infringement_penalty_invoices')
