@@ -10,7 +10,7 @@
         <div class="panel-body panel-collapse in" :id="pdBody">
             <div class="col-sm-16">
                 <div>
-                    <div v-for="(item,index) in returns.table">
+                    <div v-for="item in returns.table" v-bind:key="`headers_${item.headers}`">
                         <renderer-block v-for="(question,key) in item.headers"
                               :component="question"
                               v-bind:key="`q_${key}`"

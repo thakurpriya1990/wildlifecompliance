@@ -32,7 +32,7 @@
                         <div class="form-group">
                             <label for="" class="col-sm-3 control-label">Documents</label>
                             <div class="col-sm-6">
-                                <div class="row" v-for="d in returns.documents">
+                                <div class="row" v-for="d in returns.documents" v-bind:key="`docs_${d}`">
                                     <a :href="d[1]" target="_blank" class="control-label pull-left">{{d[0]}}</a>
                                 </div>
                             </div>

@@ -14,7 +14,7 @@
                     <div class="form-group">
                         <label for="">Species Available:</label>
                         <select class="form-control" >
-                            <option class="change-species" v-for="specie in returns.sheet_species_list" :value="returns.sheet_species" :species_id="specie" >{{species_list[specie]}}</option>
+                            <option class="change-species" v-for="specie in returns.sheet_species_list" :value="returns.sheet_species" :species_id="specie" v-bind:key="`specie_${specie}`" >{{species_list[specie]}}</option>
                         </select>
                     </div>
                 </div>
@@ -30,7 +30,7 @@
                         <label for="">Activity Type:</label>
                         <select class="form-control" v-model="filterActivityType">
                             <option value="All">All</option>
-                            <option v-for="sa in sheet_activity_type" :value="sa['label']">{{sa['label']}}</option>
+                            <option v-for="sa in sheet_activity_type" :value="sa['label']" v-bind:key="`sa_type_${sa}`">{{sa['label']}}</option>
                         </select>
                     </div>
                 </div>
