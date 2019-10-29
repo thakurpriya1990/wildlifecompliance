@@ -25,7 +25,8 @@ from wildlifecompliance.components.main.process_document import (
 from wildlifecompliance.components.call_email.models import CallEmail, CallEmailUserAction
 from wildlifecompliance.components.inspection.models import Inspection, InspectionUserAction
 from wildlifecompliance.components.main.email import prepare_mail
-from wildlifecompliance.components.offence.models import SectionRegulation, AllegedOffence
+from wildlifecompliance.components.offence.models import AllegedOffence
+from wildlifecompliance.components.section_regulation.models import SectionRegulation
 from wildlifecompliance.components.sanction_outcome.email import send_mail, send_infringement_notice
 from wildlifecompliance.components.sanction_outcome.models import SanctionOutcome, RemediationAction, \
     SanctionOutcomeCommsLogEntry, AllegedCommittedOffence, SanctionOutcomeUserAction

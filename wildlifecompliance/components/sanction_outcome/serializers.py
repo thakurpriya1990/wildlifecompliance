@@ -6,8 +6,9 @@ from wildlifecompliance.components.main.fields import CustomChoiceField
 from wildlifecompliance.components.main.related_item import get_related_items
 from wildlifecompliance.components.main.serializers import CommunicationLogEntrySerializer
 from wildlifecompliance.components.offence.models import AllegedOffence
-from wildlifecompliance.components.offence.serializers import SectionRegulationSerializer, OffenderSerializer, \
+from wildlifecompliance.components.offence.serializers import OffenderSerializer, \
     OffenceSerializer
+from wildlifecompliance.components.section_regulation.serializers import SectionRegulationSerializer
 from wildlifecompliance.components.sanction_outcome.models import SanctionOutcome, RemediationAction, \
     SanctionOutcomeCommsLogEntry, SanctionOutcomeUserAction, AllegedCommittedOffence
 from wildlifecompliance.components.users.serializers import CompliancePermissionGroupMembersSerializer

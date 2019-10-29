@@ -10,7 +10,8 @@ from django.db.models.signals import post_save
 from ledger.accounts.models import EmailUser, RevisionedMixin
 from wildlifecompliance.components.main.models import Document, UserAction, CommunicationsLogEntry
 from wildlifecompliance.components.main.related_item import can_close_record
-from wildlifecompliance.components.offence.models import Offence, Offender, SectionRegulation, AllegedOffence
+from wildlifecompliance.components.offence.models import Offence, Offender, AllegedOffence
+from wildlifecompliance.components.section_regulation.models import SectionRegulation
 from wildlifecompliance.components.users.models import RegionDistrict, CompliancePermissionGroup
 
 

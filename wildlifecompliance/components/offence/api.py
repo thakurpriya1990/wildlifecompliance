@@ -25,11 +25,11 @@ from wildlifecompliance.components.inspection.models import InspectionUserAction
 from wildlifecompliance.components.legal_case.models import LegalCase
 from wildlifecompliance.components.main.api import save_location
 
-from wildlifecompliance.components.offence.models import Offence, SectionRegulation, Offender, AllegedOffence, \
+from wildlifecompliance.components.offence.models import Offence, Offender, AllegedOffence, \
     OffenceUserAction, OffenceCommsLogEntry
+from wildlifecompliance.components.section_regulation.models import SectionRegulation
 from wildlifecompliance.components.offence.serializers import (
     OffenceSerializer,
-    SectionRegulationSerializer,
     SaveOffenceSerializer,
     SaveOffenderSerializer,
     OrganisationSerializer,
@@ -38,6 +38,7 @@ from wildlifecompliance.components.offence.serializers import (
     # UpdateAllegedOffenceAttributeSerializer, OffenceUserActionSerializer)
     UpdateAllegedOffenceAttributeSerializer, OffenceUserActionSerializer, OffenceCommsLogEntrySerializer,
     UpdateAllegedCommittedOffenceSerializer)
+from wildlifecompliance.components.section_regulation.serializers import SectionRegulationSerializer
 from wildlifecompliance.components.sanction_outcome.models import SanctionOutcome, AllegedCommittedOffence
 from wildlifecompliance.components.users.models import CompliancePermissionGroup
 from wildlifecompliance.helpers import is_internal
