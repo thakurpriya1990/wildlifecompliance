@@ -128,7 +128,7 @@
                             <div class="col-sm-12 form-group"><div class="row">
                                 <div>
                                     <!--div class="col-sm-6"-->
-                                        <label class="col-sm-10">Type !! to open Inspection or @@ to open Offence</label>
+                                        <label class="col-sm-10">Type !! to open Inspection or @@ to open SearchPerson</label>
                                         <input id="test1" type="text" class="form-control" v-model="magicValue" />
                                         <!--label class="col-sm-4">Test 2</label>
                                         <input id="test2" type="text" class="form-control" /-->
@@ -218,6 +218,11 @@
             />
         </div>
         <Magic ref="magic" />
+        <SearchPersonOrganisationModal 
+        ref="search_person_or_organisation_modal"
+        :readonlyForm="readonlyForm"
+        v-bind:key="searchPersonOrganisationBindId"
+        />
         <!--InspectionWorkflow ref="inspection_workflow" :workflow_type="workflow_type" v-bind:key="workflowBindId" /-->
     </div>
 </template>
@@ -241,6 +246,7 @@ require("select2/dist/css/select2.min.css");
 require("select2-bootstrap-theme/dist/select2-bootstrap.min.css");
 import hash from 'object-hash';
 import Magic from './magic';
+import SearchPersonOrganisationModal from '@/components/common/search_person_or_organisation_modal';
 
 
 export default {
@@ -268,6 +274,7 @@ export default {
         this.$route.params.legal_case_id + "/action_log"
       ),
       sanctionOutcomeInitialised: false,
+      searchPersonOrganisationInitialised: false,
       offenceInitialised: false,
       inspectionInitialised: false,
       hashAttributeWhitelist: [
@@ -295,7 +302,8 @@ export default {
     filefield,
     RelatedItems,
     Inspection,
-    Magic
+    Magic,
+    SearchPersonOrganisationModal,
   },
   computed: {
     ...mapGetters('legalCaseStore', {
@@ -368,6 +376,13 @@ export default {
         }
         return related_items_visibility;
     },
+    searchPersonOrganisationBindId: function() {
+        let search_person_organisation_id = ''
+        //let timeNow = Date.now()
+        //this.uuid += 1
+        search_person_organisation_id = 'search_person_organisation_' + parseInt(this.uuid);
+        return search_person_organisation_id;
+    },
     offenceBindId: function() {
         let offence_bind_id = ''
         //let timeNow = Date.now()
@@ -436,6 +451,13 @@ export default {
           this.$refs.offence.isModalOpen = true;
       });
     },
+    openSearchPersonOrganisation(){
+      this.uuid += 1;
+      this.searchPersonOrganisationInitialised = true;
+      this.$nextTick(() => {
+          this.$refs.search_person_or_organisation_modal.isModalOpen = true;
+      });
+    },
     updateWorkflowBindId: function() {
         //let workflowBindId = ''
         let timeNow = Date.now()
@@ -491,7 +513,7 @@ export default {
         } else if (e.which === 50 && this.magicKey2Pressed) {
             // TODO: replace with modal_open call
             console.log("open modal")
-            this.openOffence()
+            this.openSearchPersonOrganisation()
             this.magicKey2Pressed = false;
         } else if (e.which === 50) {
             this.magicKey2Pressed = true;
