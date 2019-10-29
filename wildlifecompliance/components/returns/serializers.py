@@ -7,7 +7,54 @@ from wildlifecompliance.components.returns.models import (
     ReturnUserAction,
     ReturnLogEntry,
 )
+from wildlifecompliance.components.applications.models import (
+    ApplicationCondition, 
+    ApplicationStandardCondition,
+)
+from wildlifecompliance.components.licences.models import LicenceActivity
 from rest_framework import serializers
+
+
+class ActivitySerializer(serializers.ModelSerializer):
+    class Meta:
+        model = LicenceActivity
+        fields = ('id', 'name', 'short_name')
+
+
+class StandardConditionSerializer(serializers.ModelSerializer):
+    require_return = serializers.SerializerMethodField()
+
+    class Meta:
+        model = ApplicationStandardCondition
+        fields = ('id', 'code', 'text', 'require_return')
+
+    def get_require_return(self, obj):
+        return True if obj.return_type else False
+
+
+class ReturnConditionSerializer(serializers.ModelSerializer):
+    standard_condition = StandardConditionSerializer(read_only=True)
+    licence_activity = ActivitySerializer(read_only=True)                 
+
+    class Meta:
+        model = ApplicationCondition
+        fields = (
+            'id',
+            'due_date',
+            'free_condition',
+            'standard_condition',
+            'standard',
+            'is_default',
+            'default_condition',
+            'order',
+            'application',
+            'recurrence',
+            'recurrence_schedule',
+            'recurrence_pattern',
+            'condition',
+            'licence_activity',
+            'return_type',)
+        readonly_fields = ('order', 'condition')
 
 
 class EmailUserSerializer(serializers.ModelSerializer):
@@ -32,6 +79,7 @@ class ReturnSerializer(serializers.ModelSerializer):
     sheet_species_list = serializers.SerializerMethodField()
     sheet_species = serializers.SerializerMethodField()
     licence = serializers.SerializerMethodField()
+    condition = ReturnConditionSerializer(read_only=True)    
 
     class Meta:
         model = Return

@@ -18,23 +18,21 @@
                 <div class="col-sm-12">
                     <form class="form-horizontal" name="return_form">
                         <div class="form-group">
+                            <label for="" class="col-sm-3 control-label">Licence Activity</label>
+                            <div class="col-sm-6">
+                                {{returns.condition.licence_activity.name}}
+                            </div>                         
+                        </div>
+                        <div class="form-group">
                             <label for="" class="col-sm-3 control-label">Condition</label>
                             <div class="col-sm-6">
-                                {{returns.condition}}
+                                <textarea disabled class="form-control" name="details" placeholder="" v-model="returns.condition.condition"></textarea>
                             </div>
                         </div>
                         <div class="form-group">
-                            <label for="" class="col-sm-3 control-label">Details</label>
+                            <label for="" class="col-sm-3 control-label">Due Date</label>
                             <div class="col-sm-6">
-                                <textarea disabled class="form-control" name="details" placeholder="" v-model="returns.text"></textarea>
-                            </div>
-                        </div>
-                        <div class="form-group">
-                            <label for="" class="col-sm-3 control-label">Documents</label>
-                            <div class="col-sm-6">
-                                <div class="row" v-for="d in returns.documents" v-bind:key="`docs_${d}`">
-                                    <a :href="d[1]" target="_blank" class="control-label pull-left">{{d[0]}}</a>
-                                </div>
+                                {{returns.condition.due_date}}
                             </div>
                         </div>
                     </form>
