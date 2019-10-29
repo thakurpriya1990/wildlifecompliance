@@ -16,6 +16,9 @@ export default {
     data: function() {
       return {
         isModalOpen: false,
+        //image: "/static/wildlifecompliance_vue/img/shibaken.jpg"
+        //image: "/static/wildlifecompliance_vue/img/shibaken.c4c9d81.jpg"
+        //image: "../../../assets/img/shibaken.jpg"
       }
     },
     components: {

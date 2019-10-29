@@ -158,12 +158,6 @@ export default {
             required,
         },
     },
-    // props:{
-    //       workflow_type: {
-    //           type: String,
-    //           default: '',
-    //       },
-    // },
     computed: {
       ...mapGetters('inspectionStore', {
         inspection: "inspection",
@@ -209,6 +203,9 @@ export default {
       ...mapActions('callemailStore', {
           loadCallEmail: 'loadCallEmail',
       }),
+      ...mapActions('legalCaseStore', {
+          loadLegalCase: 'loadLegalCase',
+      }),
       setTemporaryDocumentCollectionId: function(val) {
           this.temporary_document_collection_id = val;
       },
@@ -248,7 +245,6 @@ export default {
               });
               if (allocatedGroupResponse.ok) {
                   console.log(allocatedGroupResponse.body.allocated_group);
-                  //this.allocatedGroup = Object.assign({}, allocatedGroupResponse.body.allocated_group);
                   Vue.set(this, 'allocatedGroup', allocatedGroupResponse.body.allocated_group);
                   this.allocated_group_id = allocatedGroupResponse.body.group_id;
               } else {
@@ -279,11 +275,14 @@ export default {
                   // For related items table
                   let parent_update_function_payload = null;
                   if (this.parent_call_email) {
-                      parent_update_function_payload = { call_email_id: this.call_email.id }
+                      await this.loadCallEmail({
+                          call_email_id: this.call_email.id,
+                      });
                   } else if (this.parent_legal_case) {
-                      parent_update_function_payload = { legal_case_id: this.legal_case.id }
+                      await this.loadLegalCase({
+                          legal_case_id: this.legal_case.id,
+                      });
                   }
-                  await this.parent_update_function(parent_update_function_payload);
                   if (this.$parent.$refs.related_items_table) {
                       this.$parent.constructRelatedItemsTable();
                   }
