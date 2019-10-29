@@ -158,11 +158,6 @@ export default {
             required,
         },
     },
-    props:{
-          //parent_update_function: {
-          //    type: Function,
-          //},
-    },
     computed: {
       ...mapGetters('inspectionStore', {
         inspection: "inspection",
@@ -250,7 +245,6 @@ export default {
               });
               if (allocatedGroupResponse.ok) {
                   console.log(allocatedGroupResponse.body.allocated_group);
-                  //this.allocatedGroup = Object.assign({}, allocatedGroupResponse.body.allocated_group);
                   Vue.set(this, 'allocatedGroup', allocatedGroupResponse.body.allocated_group);
                   this.allocated_group_id = allocatedGroupResponse.body.group_id;
               } else {
@@ -285,7 +279,6 @@ export default {
                           call_email_id: this.call_email.id,
                       });
                   } else if (this.parent_legal_case) {
-                      console.log('wtf')
                       await this.loadLegalCase({
                           legal_case_id: this.legal_case.id,
                       });

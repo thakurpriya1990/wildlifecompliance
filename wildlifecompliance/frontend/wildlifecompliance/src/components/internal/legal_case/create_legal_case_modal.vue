@@ -157,11 +157,6 @@ export default {
             required,
         },
     },
-    props:{
-          parent_update_function: {
-              type: Function,
-          },
-    },
     computed: {
       ...mapGetters('legalCaseStore', {
         inspection: "legal_case",
@@ -268,7 +263,6 @@ export default {
                   }
                   // For CallEmail related items table
                   if (this.parent_call_email) {
-                      //await this.parent_update_function({
                       await this.loadCallEmail({
                           call_email_id: this.call_email.id,
                       });

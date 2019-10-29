@@ -407,9 +407,6 @@ export default {
     //CreateNewPerson
   },
     props:{
-        //parent_update_function: {
-        //    type: Function,
-        //},
         region_id: {
             required: false,
             default: null,

@@ -388,9 +388,6 @@ export default {
       };
     },
     props:{
-          //parent_update_function: {
-          //    type: Function,
-          //},
           workflow_type: {
               type: String,
               default: 'send_to_manager',
