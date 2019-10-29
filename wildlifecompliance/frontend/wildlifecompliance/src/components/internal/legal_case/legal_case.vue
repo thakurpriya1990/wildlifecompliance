@@ -611,9 +611,6 @@ export default {
             payload
         );
         await this.setLegalCase(res.body);
-        this.$nextTick(() => {
-            this.constructInspectionTeamTable();
-        });
     },
   },
   created: async function() {

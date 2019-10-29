@@ -157,12 +157,11 @@ export default {
             required,
         },
     },
-    // props:{
-    //       workflow_type: {
-    //           type: String,
-    //           default: '',
-    //       },
-    // },
+    props:{
+          parent_update_function: {
+              type: Function,
+          },
+    },
     computed: {
       ...mapGetters('legalCaseStore', {
         inspection: "legal_case",

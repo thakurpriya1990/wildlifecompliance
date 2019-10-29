@@ -47,7 +47,7 @@
                           </div>
                         </div>
 
-                        <div v-if="workflow_type === 'allocate_for_inspection'" class="form-group">
+                        <!--div v-if="workflow_type === 'allocate_for_inspection'" class="form-group">
                           <div class="row">
                             <div class="col-sm-3">
                               <label>Inspection Type</label>
@@ -75,7 +75,7 @@
                               </select>
                             </div>
                           </div>
-                        </div>
+                        </div-->
 
                         <div v-if="workflow_type === 'close'" class="form-group">
                           <div class="row">
@@ -188,8 +188,8 @@ export default {
             regions: [],
             regionDistricts: [],
             availableDistricts: [],
-            casePriorities: [],
-            inspectionTypes: [],
+            //casePriorities: [],
+            //inspectionTypes: [],
             externalOrganisations: [],
             referrers: [],
             referrersSelected: [],
@@ -504,30 +504,30 @@ export default {
 
         await this.updateAllocatedGroup();
 
-        // legal_case_prioritiess
-        let returned_legal_case_priorities = await cache_helper.getSetCacheList(
-            'LegalCasePriorities',
-            api_endpoints.legal_case_priorities
-            );
-        Object.assign(this.legalCasePriorities, returned_legal_case_priorities);
-        // blank entry allows user to clear selection
-        this.legalCasePriorities.splice(0, 0, 
-            {
-              id: "", 
-              description: "",
-            });
-        // inspection_types
-        let returned_inspection_types = await cache_helper.getSetCacheList(
-            'InspectionTypes', 
-            api_endpoints.inspection_types
-            );
-        Object.assign(this.inspectionTypes, returned_inspection_types);
-        // blank entry allows user to clear selection
-        this.inspectionTypes.splice(0, 0, 
-            {
-              id: "", 
-              description: "",
-            });
+        //// legal_case_prioritiess
+        //let returned_legal_case_priorities = await cache_helper.getSetCacheList(
+        //    'LegalCasePriorities',
+        //    api_endpoints.legal_case_priorities
+        //    );
+        //Object.assign(this.legalCasePriorities, returned_legal_case_priorities);
+        //// blank entry allows user to clear selection
+        //this.legalCasePriorities.splice(0, 0, 
+        //    {
+        //      id: "", 
+        //      description: "",
+        //    });
+        //// inspection_types
+        //let returned_inspection_types = await cache_helper.getSetCacheList(
+        //    'InspectionTypes', 
+        //    api_endpoints.inspection_types
+        //    );
+        //Object.assign(this.inspectionTypes, returned_inspection_types);
+        //// blank entry allows user to clear selection
+        //this.inspectionTypes.splice(0, 0, 
+        //    {
+        //      id: "", 
+        //      description: "",
+        //    });
 
         // referrers
         let returned_referrers = await cache_helper.getSetCacheList('CallEmail_Referrers', '/api/referrers.json');

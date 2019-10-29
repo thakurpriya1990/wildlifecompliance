@@ -356,7 +356,7 @@ export default {
         constructOptionsRegion: async function() {
             console.log('constructOptionsRegion()')
             let returned_regions = await cache_helper.getSetCacheList(
-                "CallEmail_Regions",
+                "Regions",
                 "/api/region_district/get_regions/"
             );
             Object.assign(this.sanction_outcome_regions, returned_regions);
@@ -371,7 +371,7 @@ export default {
         constructOptionsDistrict: async function() {
             console.log('constructOptionsDistrict()')
             let returned_region_districts = await cache_helper.getSetCacheList(
-                "CallEmail_RegionDistricts",
+                "RegionDistricts",
                 api_endpoints.region_district
             );
             Object.assign(this.sanction_outcome_regionDistricts, returned_region_districts);

@@ -374,19 +374,24 @@
         </div>
         <Offence 
         ref="offence" 
-        :parent_update_function="loadCallEmail" 
         :region_id="call_email.region_id" 
         :district_id="call_email.district_id" 
         :allocated_group_id="call_email.allocated_group_id" 
         v-bind:key="offenceBindId"/>
         <div v-if="sanctionOutcomeInitialised">
-            <SanctionOutcome ref="sanction_outcome" :parent_update_function="loadCallEmail"/>
+            <SanctionOutcome 
+            ref="sanction_outcome" 
+            />
         </div>
         <div v-if="inspectionInitialised">
-            <Inspection ref="inspection"/>
+            <Inspection 
+             ref="inspection"
+            />
         </div>
         <div v-if="legalCaseInitialised">
-            <CreateLegalCaseModal ref="legal_case"/>
+            <CreateLegalCaseModal 
+            ref="legal_case"
+            />
         </div>
     </div>
 </template>

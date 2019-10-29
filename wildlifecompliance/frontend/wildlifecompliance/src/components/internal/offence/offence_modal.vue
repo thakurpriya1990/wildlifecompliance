@@ -407,9 +407,9 @@ export default {
     //CreateNewPerson
   },
     props:{
-        parent_update_function: {
-            type: Function,
-        },
+        //parent_update_function: {
+        //    type: Function,
+        //},
         region_id: {
             required: false,
             default: null,
@@ -495,9 +495,18 @@ export default {
       createOffence: "createOffence",
       setOffenceEmpty: "setOffenceEmpty",
     }),
+    ...mapActions('inspectionStore', {
+      loadInspection: "loadInspection",
+    }),
+    ...mapActions('callemailStore', {
+      loadCallEmail: "loadCallEmail",
+    }),
+    ...mapActions('legalCaseStore', {
+      loadLegalCase: "loadLegalCase",
+    }),
     constructRegionsAndDistricts: async function() {
         let returned_regions = await cache_helper.getSetCacheList(
-            "Offence_Regions",
+            "Regions",
             "/api/region_district/get_regions/"
         );
         Object.assign(this.regions, returned_regions);
@@ -509,7 +518,7 @@ export default {
             region: null
         });
         let returned_region_districts = await cache_helper.getSetCacheList(
-            "Offence_RegionDistricts",
+            "RegionDistricts",
             api_endpoints.region_district
         );
         Object.assign(this.regionDistricts, returned_region_districts);
@@ -721,17 +730,19 @@ export default {
                 }
 
                 // For Related items table
-                let parent_update_function_payload = null;
                 if (this.parent_call_email) {
-                    parent_update_function_payload = { call_email_id: this.call_email.id }
+                    await this.loadCallEmail({
+                        call_email_id: this.call_email.id,
+                    });
+                } else if (this.parent_legal_case) {
+                    await this.loadLegalCase({
+                        legal_case_id: this.legal_case.id,
+                    });
+                } else if (this.parent_inspection) {
+                    await this.loadInspection({
+                        inspection_id: this.inspection.id,
+                    });
                 }
-                if (this.parent_inspection) {
-                    parent_update_function_payload = { inspection_id: this.inspection.id }
-                }
-                if (this.parent_legal_case) {
-                    parent_update_function_payload = { legal_case_id: this.legal_case.id }
-                }
-                await this.parent_update_function(parent_update_function_payload)
             }
 
             if (this.$parent.$refs.related_items_table) {
