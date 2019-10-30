@@ -25,8 +25,9 @@ from wildlifecompliance.components.main.process_document import (
 from wildlifecompliance.components.call_email.models import CallEmail, CallEmailUserAction
 from wildlifecompliance.components.inspection.models import Inspection, InspectionUserAction
 from wildlifecompliance.components.main.email import prepare_mail
-from wildlifecompliance.components.offence.models import SectionRegulation, AllegedOffence
-from wildlifecompliance.components.sanction_outcome.email import send_mail
+from wildlifecompliance.components.offence.models import AllegedOffence
+from wildlifecompliance.components.section_regulation.models import SectionRegulation
+from wildlifecompliance.components.sanction_outcome.email import send_mail, send_infringement_notice
 from wildlifecompliance.components.sanction_outcome.models import SanctionOutcome, RemediationAction, \
     SanctionOutcomeCommsLogEntry, AllegedCommittedOffence, SanctionOutcomeUserAction
 from wildlifecompliance.components.sanction_outcome.serializers import SanctionOutcomeSerializer, \
@@ -164,10 +165,53 @@ class SanctionOutcomeViewSet(viewsets.ModelViewSet):
     queryset = SanctionOutcome.objects.all()
     serializer_class = SanctionOutcomeSerializer
 
+    # @detail_route(methods=['post'])
+    # @renderer_classes((JSONRenderer,))
+    # def sanction_outcome_infringement_penalty_checkout(self, request, *args, **kwargs):
+    #     try:
+    #         instance = self.get_object()
+    #         product_lines = []
+    #         # application_submission = u'Application submitted by {} confirmation {}'.format(
+    #         #     u'{} {}'.format(instance.submitter.first_name, instance.submitter.last_name), instance.lodgement_number)
+    #         sanction_outcome_submission = u'Sanction outcome: {} submitted by {}'.format(request.user.get_full_name(), instance.lodgement_number)
+    #         set_session_infringement_invoice(request.session, instance)
+    #         now = datetime.now().strftime('%Y-%m-%d %H:%M')
+    #         product_lines.append({
+    #             # 'ledger_description': '{}'.format(instance.licence_type_name),
+    #             'ledger_description': 'Infringement Penalty - {} - {}'.format(now, 11111),
+    #             'quantity': 1,
+    #             'price_incl_tax': Decimal(100.00),
+    #             'price_excl_tax': Decimal(100.00),
+    #             # 'price_incl_tax': str(instance.application_fee),
+    #             # 'price_excl_tax': str(calculate_excl_gst(instance.application_fee)),
+    #             'oracle_code': ''
+    #         })
+    #         additional_dict = {
+    #             # This dictionalry actually updates following three urls in the checkout() function called below
+    #             'fallback_url': request.build_absolute_uri('/'),
+    #             'return_url': request.build_absolute_uri(reverse('external-infringement-penalty-success-invoice')),
+    #             'return_preload_url': request.build_absolute_uri('/'),
+    #         }
+    #         checkout_result = checkout(request, instance, lines=product_lines, invoice_text=sanction_outcome_submission, add_checkout_params=additional_dict)
+    #         return checkout_result
+    #     except serializers.ValidationError:
+    #         print(traceback.print_exc())
+    #         raise
+    #     except ValidationError as e:
+    #         if hasattr(e, 'error_dict'):
+    #             raise serializers.ValidationError(repr(e.error_dict))
+    #         else:
+    #             raise serializers.ValidationError(repr(e[0].encode('utf-8')))
+    #     except Exception as e:
+    #         print(traceback.print_exc())
+    #         raise serializers.ValidationError(str(e))
+
     def get_queryset(self):
         # user = self.request.user
         if is_internal(self.request):
             return SanctionOutcome.objects.all()
+        else:
+            return SanctionOutcome.objects_for_external.filter(offender__person=self.request.user)
         return SanctionOutcome.objects.none()
 
     @list_route(methods=['GET', ])
@@ -480,12 +524,17 @@ class SanctionOutcomeViewSet(viewsets.ModelViewSet):
                     temp_doc_collection.delete()
 
                 # Create relations between this sanction outcome and the alleged offence(s)
+                count_alleged_offences = 0
                 for id in request_data['alleged_offence_ids_included']:
                     try:
                         alleged_offence = AllegedOffence.objects.get(id=id)
                         alleged_commited_offence = AllegedCommittedOffence.objects.create(sanction_outcome=instance, alleged_offence=alleged_offence, included=True)
+                        count_alleged_offences += 1
                     except:
                         pass  # Should not reach here
+
+                if count_alleged_offences == 0:
+                    raise serializers.ValidationError(['No alleged offences selected.'])
 
                 for id in request_data['alleged_offence_ids_excluded']:
                     try:
@@ -672,8 +721,10 @@ class SanctionOutcomeViewSet(viewsets.ModelViewSet):
                         pass
                 elif workflow_type == SanctionOutcome.WORKFLOW_ENDORSE:
                     instance.endorse(request)
-                    # Email to infringement-notice-coordinator
-                    email_data = prepare_mail(request, instance, workflow_entry, send_mail, )
+
+                    email_data = prepare_mail(request, instance, workflow_entry, send_infringement_notice, instance.offender.person.id)
+                    # TODO: Email to infringement-notice-coordinator too
+
                 elif workflow_type == SanctionOutcome.WORKFLOW_RETURN_TO_OFFICER:
                     instance.return_to_officer(request)
                     # Email to the responsible officer

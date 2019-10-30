@@ -110,8 +110,7 @@ class LegalCase(RevisionedMixin):
         verbose_name_plural = 'CM_LegalCases'
 
     def __str__(self):
-        return 'ID: {0}, Title: {2}' \
-            .format(self.number, self.title)
+        return 'ID: {}, Title: {}'.format(self.number, self.title)
 
     # Prefix "CS" char to LegalCase number.
     def save(self, *args, **kwargs):

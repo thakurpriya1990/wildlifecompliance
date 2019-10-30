@@ -7,9 +7,10 @@ from wildlifecompliance.components.call_email.serializers import LocationSeriali
     LocationSerializerOptimized
 from wildlifecompliance.components.main.fields import CustomChoiceField
 from wildlifecompliance.components.main.related_item import get_related_items
-from wildlifecompliance.components.offence.models import Offence, SectionRegulation, Offender, AllegedOffence, \
+from wildlifecompliance.components.offence.models import Offence, Offender, AllegedOffence, \
     OffenceUserAction, OffenceCommsLogEntry
 from wildlifecompliance.components.sanction_outcome.models import SanctionOutcome, AllegedCommittedOffence
+from wildlifecompliance.components.section_regulation.serializers import SectionRegulationSerializer
 from wildlifecompliance.components.users.serializers import CompliancePermissionGroupMembersSerializer
 
 
@@ -22,19 +23,6 @@ class OrganisationSerializer(serializers.ModelSerializer):
             'organisation_id',
             'abn',
             'name',
-        )
-        read_only_fields = ()
-
-
-class SectionRegulationSerializer(serializers.ModelSerializer):
-
-    class Meta:
-        model = SectionRegulation
-        fields = (
-            'id',
-            'act',
-            'name',
-            'offence_text',
         )
         read_only_fields = ()
 
@@ -169,7 +157,7 @@ class OffenceSerializer(serializers.ModelSerializer):
     allocated_group = serializers.SerializerMethodField()
     user_in_group = serializers.SerializerMethodField()
     can_user_action = serializers.SerializerMethodField()
-    can_user_edit = serializers.SerializerMethodField()
+    # can_user_edit = serializers.SerializerMethodField()
     user_is_assignee = serializers.SerializerMethodField()
     related_items = serializers.SerializerMethodField()
     in_editable_status = serializers.SerializerMethodField()
@@ -190,7 +178,7 @@ class OffenceSerializer(serializers.ModelSerializer):
             'allocated_group_id',
             'user_in_group',
             'can_user_action',
-            'can_user_edit',
+            # 'can_user_edit',
             'user_is_assignee',
             'related_items',
             'district',
@@ -269,12 +257,12 @@ class OffenceSerializer(serializers.ModelSerializer):
                     return True
         return False
 
-    def get_can_user_edit(self, obj):
-        can_edit = False
-        if self.get_can_user_action(obj):
-            if obj.status in Offence.EDITABLE_STATUSES:
-                can_edit = True
-        return can_edit
+    # def get_can_user_edit(self, obj):
+    #     can_edit = False
+    #     if self.get_can_user_action(obj):
+    #         if obj.status in Offence.EDITABLE_STATUSES:
+    #             can_edit = True
+    #     return can_edit
 
     def get_can_user_action(self, obj):
         # User can have action buttons
@@ -442,7 +430,8 @@ class SaveOffenderSerializer(serializers.ModelSerializer):
         field_errors = {}
         non_field_errors = []
 
-        if (data['person'] and data['organisation']) or (not data['person'] and not data['organisation']):
+        # if (data['person_id'] and data['organisation_id']) or (not data['person_id'] and not data['organisation_id']):
+        if ('person_id' in data and 'organisation_id' in data) or ('person_id' not in data and 'organisation_id' not in data):
             non_field_errors.append('An offender must be either a person or an organisation.')
 
         if field_errors:

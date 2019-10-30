@@ -566,7 +566,13 @@ export default {
             return !this.canUserEdit;
         },
         canUserEdit: function() {
-            return this.offence.can_user_edit;
+            let visibility = false;
+            if (this.canUserAction){
+                if (this.offence.status.id === this.STATUS_DRAFT || this.offence.status.id === this.STATUS_OPEN){
+                    visibility = true;
+                }
+            }
+            return visibility;
         },
         updateSearchPersonOrganisationBindId: function() {
             this.uuid += 1

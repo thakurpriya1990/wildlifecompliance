@@ -388,9 +388,6 @@ export default {
       };
     },
     props:{
-          parent_update_function: {
-              type: Function,
-          },
           workflow_type: {
               type: String,
               default: 'send_to_manager',
@@ -501,8 +498,8 @@ export default {
       },
     },
     methods: {
-        ...mapActions("offenceStore", {
-
+        ...mapActions('offenceStore', {
+            loadOffence: 'loadOffence',
         }),
         setTemporaryDocumentCollectionId: function(val) {
             this.temporary_document_collection_id = val;
@@ -513,8 +510,10 @@ export default {
                 let response = await this.sendData();
 
                 if(response.ok){
-                    if (this.$parent.offence) {
-                        await this.parent_update_function();
+                    if (this.$parent.offence && this.offence.id) {
+                        await this.loadOffence({
+                            offence_id: this.offence.id,
+                        });
                     }
                 }
 
@@ -548,7 +547,8 @@ export default {
                     }
                 }
             }
-            await swal("Error", errorText, "error");
+            this.errorResponse = errorText;
+            //await swal("Error", errorText, "error");
         },
       ...mapActions({
         loadAllocatedGroup: 'loadAllocatedGroup',  // defined in store/modules/user.js
@@ -743,7 +743,7 @@ export default {
       },
       constructRegionsAndDistricts: async function() {
         let returned_regions = await cache_helper.getSetCacheList(
-          "CallEmail_Regions",
+          "Regions",
           "/api/region_district/get_regions/"
         );
         Object.assign(this.regions, returned_regions);
@@ -757,7 +757,7 @@ export default {
         });
         // regionDistricts
         let returned_region_districts = await cache_helper.getSetCacheList(
-          "CallEmail_RegionDistricts",
+          "RegionDistricts",
           api_endpoints.region_district
         );
         Object.assign(this.regionDistricts, returned_region_districts);
