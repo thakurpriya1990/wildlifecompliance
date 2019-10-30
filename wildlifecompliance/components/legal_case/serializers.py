@@ -10,6 +10,7 @@ from wildlifecompliance.components.legal_case.models import (
     LegalCaseUserAction,
     LegalCaseCommsLogEntry,
     LegalCasePriority,
+    LegalCaseRunningSheetEntry,
     )
 from wildlifecompliance.components.main.related_item import get_related_items
 from wildlifecompliance.components.main.serializers import CommunicationLogEntrySerializer
@@ -38,7 +39,9 @@ class LegalCasePrioritySerializer(serializers.ModelSerializer):
                 'id',
                 )
 
+
 class LegalCaseSerializer(serializers.ModelSerializer):
+    running_sheet_entries = serializers.SerializerMethodField()
     allocated_group = serializers.SerializerMethodField()
     #all_officers = serializers.SerializerMethodField()
     user_in_group = serializers.SerializerMethodField()
@@ -123,6 +126,12 @@ class LegalCaseSerializer(serializers.ModelSerializer):
             allocated_group.append(member)
 
         return allocated_group
+
+    def get_running_sheet_entries(self, obj):
+        #entries = 
+        pass
+
+
 
 
 class SaveLegalCaseSerializer(serializers.ModelSerializer):
