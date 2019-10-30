@@ -156,6 +156,7 @@ class Offence(RevisionedMixin):
             self.log_user_action(OffenceUserAction.ACTION_PENDING_CLOSURE.format(self.lodgement_number), request)
         self.save()
 
+
 def perform_can_close_record(sender, instance, **kwargs):
     # Trigger the close() function of each parent entity of this offence
     if instance.status in (Offence.FINAL_STATUSES):
