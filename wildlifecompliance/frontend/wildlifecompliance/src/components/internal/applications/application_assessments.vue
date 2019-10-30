@@ -91,14 +91,14 @@
                 <div v-if="selectedActivity" :id="`${selectedActivity.id}`">
                     <div>
                         <div class="panel panel-default">
-                            <div class="panel-heading">
+                            <div class="panel-heading" v-if="canSendToAssessor">
                                 <h3 class="panel-title">{{canSendToAssessor ? 'Send to Assessor' : 'Assessments'}}
                                     <a class="panelClicker" :href="`#${selectedActivity.id}`+assessorsBody" data-toggle="collapse"  data-parent="#userInfo" expanded="true" :aria-controls="assessorsBody">
                                         <span class="glyphicon glyphicon-chevron-down pull-right "></span>
                                     </a>
                                 </h3>
                             </div>
-                            <div class="panel-body panel-collapse collapse in" :id="`${selectedActivity.id}`+assessorsBody">
+                            <div class="panel-body panel-collapse collapse in" :id="`${selectedActivity.id}`+assessorsBody" v-if="canSendToAssessor">
                                 <div v-if="canSendToAssessor" class="row">
                                     <div class="col-sm-10" style="margin-bottom: 10px">
                                             <label class="control-label pull-left"  for="Name">Assessor Group</label>
@@ -215,15 +215,13 @@ export default {
             'isApplicationActivityVisible',
             'unfinishedActivities',
             'current_user',
+            'sendToAssessorActivities'
         ]),
         inspection_report_file_name: function() {
             return this.assessment.inspection_report != null ? this.assessment.inspection_report.name: '';
         },
         applicationActivities: function() {
             return this.licenceActivities();
-        },
-        sendToAssessorActivities: function() {
-            return this.licenceActivities(['with_officer', 'with_officer_conditions', 'with_assessor'], 'licensing_officer');
         },
         selectedActivity: function(){
             const activities_list = this.licence_type_data.activity;

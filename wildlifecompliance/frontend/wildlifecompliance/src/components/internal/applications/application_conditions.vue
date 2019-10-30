@@ -1,6 +1,6 @@
 <template id="application_conditions">
 
-                    <div class="col-md-12 conditions-table">
+                <div :class="canSendToAssessor ? 'col-md-12 conditions-table' : 'col-md-12'" > 
                     <div class="row">
                         <div class="panel panel-default">
                             <div class="panel-heading">
@@ -22,7 +22,7 @@
                     </div>
                     <ConditionDetail ref="condition_detail" :application_id="application.id" :conditions="conditions" :licence_activity_tab="selected_activity_tab_id"
                     :condition="viewedCondition"/>
-                </div>
+                </div>       
 
             
 </template>
@@ -153,6 +153,7 @@ export default {
             'application',
             'selected_activity_tab_id',
             'hasRole',
+            'sendToAssessorActivities',            
         ]),
         canEditConditons: function() {
             if(!this.selected_activity_tab_id || this.activity == null) {
@@ -169,7 +170,13 @@ export default {
                 break;
             }
             return required_role && this.hasRole(required_role, this.selected_activity_tab_id);
-        },
+        },     
+        canSendToAssessor: function() {
+            if(!this.selected_activity_tab_id || this.activity == null) {
+                return false;
+            }
+            return this.sendToAssessorActivities.length>0?true:false;
+        },        
     },
     methods:{
         addCondition(preloadedCondition){
