@@ -16,8 +16,8 @@ from wildlifecompliance.components.users.models import RegionDistrict, Complianc
 
 
 class SanctionOutcomeActiveManager(models.Manager):
-    def get_query_set(self):
-        return super(SanctionOutcomeActiveManager, self).get_query_set().exclude(
+    def get_queryset(self):
+        return super(SanctionOutcomeActiveManager, self).get_queryset().exclude(
             Q(status=SanctionOutcome.STATUS_CLOSED) |
             Q(status=SanctionOutcome.STATUS_WITHDRAWN) |
             Q(status=SanctionOutcome.STATUS_DECLINED)
@@ -25,8 +25,8 @@ class SanctionOutcomeActiveManager(models.Manager):
 
 
 class SanctionOutcomeExternalManager(models.Manager):
-    def get_query_set(self):
-        return super(SanctionOutcomeExternalManager, self).get_query_set().filter(
+    def get_queryset(self):
+        return super(SanctionOutcomeExternalManager, self).get_queryset().filter(
             Q(offender__removed=False) &
             Q(status__in=(SanctionOutcome.STATUS_AWAITING_PAYMENT,
                           SanctionOutcome.STATUS_AWAITING_REMEDIATION_ACTIONS,
