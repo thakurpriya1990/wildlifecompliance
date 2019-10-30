@@ -162,9 +162,6 @@
         <div class="col-md-1"></div>
         <div class="col-md-8">
             <div class="row">
-                <template v-if="isFinalised || isPartiallyFinalised">
-                    <LicenceScreen/>
-                </template>
                 <template v-if="canIssueDecline && isofficerfinalisation">
                     <IssueLicence :application="application" :licence_activity_tab="selected_activity_tab_id"/>
                 </template>
@@ -567,7 +564,6 @@ import ApplicationAssessments from './application_assessments.vue';
 import datatable from '@vue-utils/datatable.vue';
 import ProposedLicence from './proposed_issuance.vue';
 import IssueLicence from './application_issuance.vue';
-import LicenceScreen from './application_licence.vue';
 import CommsLogs from '@common-components/comms_logs.vue';
 import ResponsiveDatatablesHelper from "@/utils/responsive_datatable_helper.js";
 import {
@@ -653,7 +649,6 @@ export default {
         ApplicationAssessments,
         ProposedLicence,
         IssueLicence,
-        LicenceScreen,
         CommsLogs
     },
     filters: {
