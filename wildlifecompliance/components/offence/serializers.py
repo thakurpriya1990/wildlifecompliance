@@ -403,6 +403,9 @@ class SaveOffenceSerializer(serializers.ModelSerializer):
         if not data['region_id']:
             non_field_errors.append('Offence must have a region.')
 
+        if not data['identifier']:
+            non_field_errors.append('Offence must have an identifier.')
+
         if field_errors:
             raise serializers.ValidationError(field_errors)
         if non_field_errors:
