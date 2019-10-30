@@ -50,14 +50,6 @@ from wildlifecompliance.components.users.serializers import (
     ComplianceUserDetailsSerializer,
 )
 from wildlifecompliance.helpers import is_customer, is_internal
-#from wildlifecompliance.components.inspection.models import (
-#    Inspection,
-#    InspectionUserAction,
-#    InspectionType,
-#    InspectionCommsLogEntry,
-#    InspectionFormDataRecord,
-#    InspectionCommsLogDocument,
-#    )
 from wildlifecompliance.components.legal_case.models import (
         LegalCase,
         LegalCaseUserAction,
@@ -69,18 +61,6 @@ from wildlifecompliance.components.legal_case.models import (
 from wildlifecompliance.components.call_email.models import (
         CallEmailUserAction,
         )
-#from wildlifecompliance.components.inspection.serializers import (
-#    InspectionSerializer,
-#    InspectionUserActionSerializer,
-#    InspectionCommsLogEntrySerializer,
-#    SaveInspectionSerializer,
-#    InspectionDatatableSerializer,
-#    UpdateAssignedToIdSerializer,
-#    InspectionTypeSerializer,
-#    # InspectionTeamSerializer,
-#    EmailUserSerializer,
-#    InspectionTypeSchemaSerializer,
-#    InspectionOptimisedSerializer)
 from wildlifecompliance.components.legal_case.serializers import (
         LegalCaseSerializer,
         SaveLegalCaseSerializer,
@@ -105,6 +85,7 @@ from rest_framework_datatables.renderers import DatatablesRenderer
 
 from wildlifecompliance.components.legal_case.email import (
     send_mail)
+from reversion.models import Version
 
 
 class LegalCaseFilterBackend(DatatablesFilterBackend):

@@ -160,6 +160,32 @@ class LegalCase(RevisionedMixin):
                     parent.close(request)
 
 
+class LegalCasePerson(EmailUser):
+    legal_case = models.ForeignKey(LegalCase, related_name='legal_case_person')
+
+    class Meta:
+        app_label = 'wildlifecompliance'
+
+
+class LegalCaseRunningSheetEntry(RevisionedMixin):
+    legal_case = models.ForeignKey(LegalCase, related_name='running_sheet_entry')
+    person = models.ManyToManyField(LegalCasePerson, related_name='running_sheet_entry_person')
+    number = models.CharField(max_length=50, blank=True)
+    date_created = models.DateTimeField(auto_now_add=True)
+    user = models.ForeignKey(EmailUser, related_name='running_sheet_entry_user')
+    description = models.CharField(max_length=255, blank=True, null=True)
+
+    class Meta:
+        app_label = 'wildlifecompliance'
+
+    def save(self, *args, **kwargs):
+        super(LegalCaseRunningSheetEntry, self).save(*args,**kwargs)
+        if self.number is None:
+            # TODO: replace with max fn
+            new_number_id = self.legal_case.number + str(self.pk)
+            self.number = new_number_id
+            self.save()
+
 class LegalCaseCommsLogEntry(CommunicationsLogEntry):
     legal_case = models.ForeignKey(LegalCase, related_name='comms_logs')
 

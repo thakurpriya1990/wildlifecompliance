@@ -161,7 +161,7 @@
 
                                     <div class="col-sm-12 form-group"><div class="row">
                                         <div class="col-sm-12">
-                                            <datatable ref="alleged_offence_table" id="alleged-offence-table" :dtOptions="dtOptionsAllegedOffence" :dtHeaders="dtHeadersAllegedOffence" />
+                                            <datatable parentStyle=" " ref="alleged_offence_table" id="alleged-offence-table" :dtOptions="dtOptionsAllegedOffence" :dtHeaders="dtHeadersAllegedOffence" />
                                         </div>
                                     </div></div>
                                 </FormSection>
@@ -526,7 +526,7 @@ export default {
                         mRender: function(data, type, row) {
                             let ret_str = '';
 
-                            let num_chars = 20;
+                            let num_chars = 1000;
                             if (row.allegedOffence.removed){
                                 if(row.allegedOffence.reason_for_removal){
                                     let name = row.allegedOffence.reason_for_removal;
