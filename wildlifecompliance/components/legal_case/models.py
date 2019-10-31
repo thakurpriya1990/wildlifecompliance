@@ -169,22 +169,42 @@ class LegalCasePerson(EmailUser):
 
 class LegalCaseRunningSheetEntry(RevisionedMixin):
     legal_case = models.ForeignKey(LegalCase, related_name='running_sheet_entry')
+    # TODO: person fk req?  Url links in description instead
     person = models.ManyToManyField(LegalCasePerson, related_name='running_sheet_entry_person')
-    number = models.CharField(max_length=50, blank=True)
+    #number = models.CharField(max_length=50, blank=True)
     date_created = models.DateTimeField(auto_now_add=True)
     user = models.ForeignKey(EmailUser, related_name='running_sheet_entry_user')
     description = models.CharField(max_length=255, blank=True, null=True)
+    row_num = models.SmallIntegerField(default=1, blank=False, null=False)
+    deleted = models.BooleanField(default=False)
 
     class Meta:
         app_label = 'wildlifecompliance'
+        unique_together = ('legal_case', 'row_num')
 
     def save(self, *args, **kwargs):
         super(LegalCaseRunningSheetEntry, self).save(*args,**kwargs)
         if self.number is None:
             # TODO: replace with max fn
-            new_number_id = self.legal_case.number + str(self.pk)
-            self.number = new_number_id
+            #new_number_id = self.legal_case.number + str(self.pk)
+            max_row_num = LegalCaseRunningSheetEntry.objects.all().aggregate(Max('row_num'))
+            
+            self.row_num = max_row_num + 1
             self.save()
+
+    def __str__(self):
+        return "Number:{}, User:{}, Description:{}".format(
+                self.number(),
+                self.user,
+                self.description)
+
+    def legal_case_persons(self):
+        persons = self.legal_case.legal_case_person.all()
+        return persons
+
+    def number(self):
+        return self.legal_case.number + '-' + str(self.row_num)
+
 
 class LegalCaseCommsLogEntry(CommunicationsLogEntry):
     legal_case = models.ForeignKey(LegalCase, related_name='comms_logs')

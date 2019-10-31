@@ -11,6 +11,7 @@ from wildlifecompliance.components.legal_case.models import (
     LegalCaseCommsLogEntry,
     LegalCasePriority,
     LegalCaseRunningSheetEntry,
+    LegalCasePerson,
     )
 from wildlifecompliance.components.main.related_item import get_related_items
 from wildlifecompliance.components.main.serializers import CommunicationLogEntrySerializer
@@ -40,8 +41,73 @@ class LegalCasePrioritySerializer(serializers.ModelSerializer):
                 )
 
 
+class LegalCasePersonSerializer(serializers.ModelSerializer):
+    class Meta:
+        model = LegalCasePerson
+        fields = (
+                'id',
+                'full_name',
+                )
+        read_only_fields = (
+                'id',
+                )
+
+
+class LegalCaseRunningSheetEntrySerializer(serializers.ModelSerializer):
+    #person = LegalCasePersonSerializer(many=True)
+    #legal_case_persons = LegalCasePersonSerializer(many=True)
+    action = serializers.SerializerMethodField()
+    user_full_name = serializers.SerializerMethodField()
+
+    class Meta:
+        model = LegalCaseRunningSheetEntry
+        fields = (
+                'id',
+                #'person',
+                #'legal_case_persons',
+                #'legal_case_id',
+                'number',
+                'date_created',
+                'user_full_name',
+                'description',
+                #'deleted',
+                'action',
+                )
+        read_only_fields = (
+                'id',
+                )
+
+    def get_action(self, obj):
+        return 'action'
+
+    def get_user_full_name(self, obj):
+        user_full_name = ''
+        if obj.user:
+            user_full_name = obj.user.get_full_name()
+        return user_full_name
+
+
+class SaveLegalCaseRunningSheetEntry(serializers.ModelSerializer):
+
+    class Meta:
+        model = LegalCaseRunningSheetEntry
+        fields = (
+                'id',
+                'legal_case_persons',
+                'legal_case_id',
+                'number',
+                'date_created',
+                'user_id',
+                'description',
+                )
+        read_only_fields = (
+                'id',
+                )
+
+
 class LegalCaseSerializer(serializers.ModelSerializer):
-    running_sheet_entries = serializers.SerializerMethodField()
+    running_sheet_entry = LegalCaseRunningSheetEntrySerializer(many=True)
+    #running_sheet_entries = serializers.SerializerMethodField()
     allocated_group = serializers.SerializerMethodField()
     #all_officers = serializers.SerializerMethodField()
     user_in_group = serializers.SerializerMethodField()
@@ -76,6 +142,7 @@ class LegalCaseSerializer(serializers.ModelSerializer):
                 'district_id',
                 'legal_case_priority',
                 'legal_case_priority_id',
+                'running_sheet_entry',
                 )
         read_only_fields = (
                 'id',
@@ -127,11 +194,10 @@ class LegalCaseSerializer(serializers.ModelSerializer):
 
         return allocated_group
 
-    def get_running_sheet_entries(self, obj):
-        #entries = 
-        pass
-
-
+    #def get_running_sheet_entries(self, obj):
+    #    #entries = 
+    #    return 
+    #    pass
 
 
 class SaveLegalCaseSerializer(serializers.ModelSerializer):

@@ -134,7 +134,7 @@
                                         <input id="test2" type="text" class="form-control" /-->
                                     <!--/div-->
 
-                                    <!--datatable ref="legal_case_table" id="legal-case-table" :dtOptions="dtOptions" :dtHeaders="dtHeaders" /-->
+                                    <datatable ref="running_sheet_table" id="running-sheet-table" :dtOptions="dtOptionsRunningSheet" :dtHeaders="dtHeadersRunningSheet" />
                                 </div>
                             </div></div>
                           </FormSection>
@@ -250,48 +250,132 @@ import SearchPersonOrganisationModal from '@/components/common/search_person_or_
 
 
 export default {
-  name: "ViewLegalCase",
-  data: function() {
-    return {
-      uuid: 0,
-      objectHash: null,
-      runTab: 'runTab'+this._uid,
-      rTab: 'rTab'+this._uid,
-      cTab: 'cTab'+this._uid,
-      current_schema: [],
-      workflowBindId: '',
-      workflow_type: '',
-      comms_url: helpers.add_endpoint_json(
-        api_endpoints.legal_case,
-        this.$route.params.legal_case_id + "/comms_log"
-      ),
-      comms_add_url: helpers.add_endpoint_json(
-        api_endpoints.legal_case,
-        this.$route.params.legal_case_id + "/add_comms_log"
-      ),
-      logs_url: helpers.add_endpoint_json(
-        api_endpoints.legal_case,
-        this.$route.params.legal_case_id + "/action_log"
-      ),
-      sanctionOutcomeInitialised: false,
-      searchPersonOrganisationInitialised: false,
-      offenceInitialised: false,
-      inspectionInitialised: false,
-      hashAttributeWhitelist: [
-        'allocated_group_id',
-        'case_created_date',
-        'case_created_time',
-        'details',
-        'title',
-        'legal_case_priority_id',
-        'region_id',
-        'district_id',
-      ],
-      magicKeyPressed: false,
-      magicKey2Pressed: false,
-      magicValue: null,
-      magic: true,
-    };
+    name: "ViewLegalCase",
+    data: function() {
+        return {
+            uuid: 0,
+            objectHash: null,
+            runTab: 'runTab'+this._uid,
+            rTab: 'rTab'+this._uid,
+            cTab: 'cTab'+this._uid,
+            current_schema: [],
+            workflowBindId: '',
+            workflow_type: '',
+            comms_url: helpers.add_endpoint_json(
+              api_endpoints.legal_case,
+              this.$route.params.legal_case_id + "/comms_log"
+            ),
+            comms_add_url: helpers.add_endpoint_json(
+              api_endpoints.legal_case,
+              this.$route.params.legal_case_id + "/add_comms_log"
+            ),
+            logs_url: helpers.add_endpoint_json(
+              api_endpoints.legal_case,
+              this.$route.params.legal_case_id + "/action_log"
+            ),
+            sanctionOutcomeInitialised: false,
+            searchPersonOrganisationInitialised: false,
+            offenceInitialised: false,
+            inspectionInitialised: false,
+            hashAttributeWhitelist: [
+              'allocated_group_id',
+              'case_created_date',
+              'case_created_time',
+              'details',
+              'title',
+              'legal_case_priority_id',
+              'region_id',
+              'district_id',
+            ],
+            magicKeyPressed: false,
+            magicKey2Pressed: false,
+            magicValue: null,
+            magic: true,
+            dtHeadersRunningSheet: [
+                "id",
+                "Number",
+                "Date Created",
+                "User",
+                "Description",
+                "Action",
+            ],
+            dtOptionsRunningSheet: {
+                columns: [
+                    {
+                        visible: false,
+                        mRender: function(data, type, row) {
+                            console.log(row)
+                            return row.id;
+                        }
+                    },
+                    {
+                        mRender: function(data, type, row) {
+                            let ret_str = row.number;
+                            if (row.deleted) {
+                                ret_str = '<strike>' + ret_str + '</strike>';
+                            }
+                            return ret_str;
+                        }
+                    },
+                    {
+                        mRender: function(data, type, row) {
+                            let ret_str = row.date_created;
+                            if (row.deleted) {
+                                ret_str = '<strike>' + ret_str + '</strike>';
+                            }
+                            return ret_str;
+                        }
+                    },
+                    {
+                        mRender: function(data, type, row) {
+                            let ret_str = row.user_full_name;
+                            if (row.deleted) {
+                                ret_str = '<strike>' + ret_str + '</strike>';
+                            }
+                            return ret_str;
+                        }
+                    },
+                    {
+                        mRender: function(data, type, row) {
+                            let ret_str = '';
+
+                            //let num_chars = 1000;
+                            //if (row.allegedOffence.removed){
+                            //    if(row.allegedOffence.reason_for_removal){
+                            //        let name = row.allegedOffence.reason_for_removal;
+                            //        let shortText = (name.length > num_chars) ?
+                            //            '<span title="' + name + '">' + $.trim(name).substring(0, num_chars).split(" ").slice(0, -1).join(" ") + '...</span>' :
+                            //            name;
+                            //        ret_str = ret_str + shortText;
+
+                            //    } else {
+                            //        ret_str = ret_str + '<textarea class="reason_element" data-alleged-offence-uuid="' + row.allegedOffence.uuid + '">' + row.allegedOffence.reason_for_removal + '</textarea>';
+                            //    }
+                            //}
+                            return ret_str;
+
+                        }
+                    },
+                    {
+                        mRender: function(data, type, row) {
+                            let ret_str = '';
+                            //let ret_str = row.allegedOffence.number_linked_sanction_outcomes_active + '(' + row.allegedOffence.number_linked_sanction_outcomes_total + ')';
+                            //if (row.offence.in_editable_status && row.offence.can_user_action){
+                            //    if (row.allegedOffence.removed){
+                            //        ret_str = ret_str + '<a href="#" class="restore_button" data-alleged-offence-uuid="' + row.allegedOffence.uuid + '">Restore</a>';
+                            //    } else {
+                            //        if (!row.allegedOffence.number_linked_sanction_outcomes_active){
+                            //            ret_str = ret_str + '<a href="#" class="remove_button" data-alleged-offence-uuid="' + row.allegedOffence.uuid + '">Remove</a>';
+                            //        }
+                            //    }
+                            //}
+                            return ret_str;
+
+                        }
+                    },
+                ]
+            }
+      };
   },
   components: {
     CommsLogs,
@@ -309,9 +393,9 @@ export default {
     ...mapGetters('legalCaseStore', {
       legal_case: "legal_case",
     }),
-    //...mapGetters({
-    //    renderer_form_data: 'renderer_form_data'
-    //}),
+    ...mapGetters({
+        current_user: 'current_user'
+    }),
     csrf_token: function() {
       return helpers.getCookie("csrftoken");
     },
@@ -429,6 +513,30 @@ export default {
       setLegalCase: 'setLegalCase',
       setRelatedItems: 'setRelatedItems',
     }),
+    ...mapActions({
+        loadCurrentUser: 'loadCurrentUser',
+    }),
+    constructRunningSheetTable: function(){
+        this.$refs.running_sheet_table.vmDataTable.clear().draw();
+        if (this.legal_case.running_sheet_entries){
+            for(let i = 0;i < this.legal_case.running_sheet_entries.length; i++){
+                //this.addRunningSheetEntryToTable(this.offence.alleged_offences[i]);
+                this.$refs.running_sheet_table.vmDataTable.row.add({ 
+                    "id": this.legal_case.running_sheet_entry[i].id,
+                    "number": this.legal_case.running_sheet_entry[i].number,
+                    "date_created": this.legal_case.running_sheet_entry[i].date_created,
+                    "user_full_name": this.legal_case.running_sheet_entry[i].user_full_name,
+                    "description": this.legal_case.running_sheet_entry[i].description,
+                    "action": this.legal_case.running_sheet_entry[i].action,
+                }).draw();
+                //let actionColumn
+            }
+        }
+    },
+    //addRunningSheetEntryToTable: function(allegedOffence){
+    //    //allegedOffence.uuid = uuid();
+    //    this.$refs.running_sheet_table_table.vmDataTable.row.add({ legal_case: legal_case, offence: this.offence }).draw();
+    //},
     openInspection() {
       this.uuid += 1;
       this.inspectionInitialised = true;
@@ -640,6 +748,7 @@ export default {
       if (this.$route.params.legal_case_id) {
           await this.loadLegalCase({ legal_case_id: this.$route.params.legal_case_id });
       }
+      await this.loadCurrentUser({ url: `/api/my_compliance_user_details` });
       console.log(this)
 
       this.calculateHash();
@@ -652,6 +761,7 @@ export default {
   mounted: function() {
       this.$nextTick(async () => {
           this.addEventListeners();
+          this.constructRunningSheetTable();
       });
   },
 };
