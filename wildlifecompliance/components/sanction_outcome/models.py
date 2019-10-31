@@ -124,7 +124,7 @@ class SanctionOutcome(models.Model):
 
     # amount of the penalty is copied form the section_regulation
     # according to the infringement notice issue date
-    penalty_amount =  models.DecimalField(max_digits=8, decimal_places=2, default='0.00')
+    penalty_amount_1st =  models.DecimalField(max_digits=8, decimal_places=2, default='0.00')
 
     objects = models.Manager()
     objects_active = SanctionOutcomeActiveManager()
@@ -259,7 +259,7 @@ class SanctionOutcome(models.Model):
         if self.type == SanctionOutcome.TYPE_INFRINGEMENT_NOTICE:
             self.status = SanctionOutcome.STATUS_AWAITING_PAYMENT
             self.payment_status = SanctionOutcome.PAYMENT_STATUS_UNPAID
-            self.penalty_amount = self.retrieve_penalty_amount_by_date()
+            self.penalty_amount_1st = self.retrieve_penalty_amount_by_date()
 
         elif self.type in (SanctionOutcome.TYPE_CAUTION_NOTICE, SanctionOutcome.TYPE_LETTER_OF_ADVICE):
             self.status = SanctionOutcome.STATUS_CLOSED
