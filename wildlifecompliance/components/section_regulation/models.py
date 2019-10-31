@@ -9,6 +9,10 @@ class SectionRegulation(RevisionedMixin):
     name = models.CharField(max_length=50, blank=True, verbose_name='Regulation')
     offence_text = models.CharField(max_length=200, blank=True)
 
+    # Officer can issue an infringement notice within this period after the offence occurrence date
+    # If this is null, which means officer can issue the infringement notice anytime.
+    issue_due_date_window =  models.PositiveSmallIntegerField(blank=True, null=True, )  # unit: [days]
+
     class Meta:
         app_label = 'wildlifecompliance'
         verbose_name = 'CM_Section/Regulation'
