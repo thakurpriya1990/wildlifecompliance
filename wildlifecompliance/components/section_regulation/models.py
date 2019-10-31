@@ -19,10 +19,10 @@ class SectionRegulation(RevisionedMixin):
         verbose_name_plural = 'CM_Sections/Regulations'
         ordering = ('act', 'name')
 
-    def retrieve_penalty_amount_by_date(self, date_of_issue):
+    def retrieve_penalty_amounts_by_date(self, date_of_issue):
         return PenaltyAmount.objects.filter(
             Q(section_regulation=self) &
-            Q(date_of_enforcement__lte=date_of_issue)).order_by('date_of_enforcement', ).last().amount
+            Q(date_of_enforcement__lte=date_of_issue)).order_by('date_of_enforcement', ).last()
 
     def __str__(self):
         return '{}:{}:{}'.format(self.act, self.name, self.offence_text)
