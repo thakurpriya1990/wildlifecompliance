@@ -40,19 +40,6 @@
             </div>
         </div>
         </template>
-
-        <div class="row" style="margin-bottom:50px;">
-            <div class="navbar navbar-fixed-bottom" style="background-color: #f5f5f5 ">
-                <div class="navbar-inner">
-                    <div class="container">
-                        <p class="pull-right" style="margin-top:5px;">
-                            <button style="width:150px;" class="btn btn-primary btn-md" v-if="false" >Save</button>
-                        </p>
-                    </div>
-                </div>
-            </div>
-        </div>
-
         <ReturnSheet v-if="returns.format==='sheet'"></ReturnSheet>
         <ReturnQuestion v-if="returns.format==='question'"></ReturnQuestion>
         <ReturnData v-if="returns.format==='data'"></ReturnData>

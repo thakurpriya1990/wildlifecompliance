@@ -1,7 +1,7 @@
 <template lang="html">
     <div>
+        <h3>{{ displayable_number }}</h3>
         <div class="col-md-3">
-            <h3>{{ displayable_number }}</h3>
             <div v-if="!is_external">
                 <CommsLogs :comms_url="comms_url" :logs_url="logs_url" :comms_add_url="comms_add_url" :disable_add_entry="false"/>
                 <div class="row">
@@ -70,12 +70,14 @@
         <!-- Tabs Layout -->
         <div class="col-md-9" >
             <div id="tabs" v-show="displayable_tabs">
-                <ul class="nav nav-tabs" id="tabs-section" data-tabs="tabs" >
+                <ul class="nav nav-tabs" id="tab-section" data-tabs="tabs" >
                     <li class="active"><a id="0">1. Return</a></li>
                     <li v-if="returns.has_payment" ><a id="1">2. Confirmation</a></li>
                 </ul>
             </div>
-            {{ this.$slots.default }}
+            <div class="tab-content">
+              {{ this.$slots.default }}
+            </div>
         </div>
 
         <AmendmentRequest ref="amendment_request" ></AmendmentRequest>
