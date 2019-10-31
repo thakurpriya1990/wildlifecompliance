@@ -121,8 +121,10 @@ class SanctionOutcome(models.Model):
     # Only editable when issued on paper. Otherwise pre-filled with date/time when issuing electronically.
     date_of_issue = models.DateField(null=True, blank=True)
     time_of_issue = models.TimeField(null=True, blank=True)
-    penalty_amount =  models.DecimalField(max_digits=8, decimal_places=2, default='0.00')  # amount of the penalty is copied form the section_regulation
-                                                                                   # according to the infringement notice issue date
+
+    # amount of the penalty is copied form the section_regulation
+    # according to the infringement notice issue date
+    penalty_amount =  models.DecimalField(max_digits=8, decimal_places=2, default='0.00')
 
     objects = models.Manager()
     objects_active = SanctionOutcomeActiveManager()
@@ -427,3 +429,17 @@ class SanctionOutcomeUserAction(models.Model):
             what=str(action)
         )
 
+
+class SanctionOutcomeDueDateConfiguration(RevisionedMixin):
+    due_date_window_1st =  models.PositiveSmallIntegerField(blank=True, null=True, )  # unit: [days]
+    due_date_window_2nd =  models.PositiveSmallIntegerField(blank=True, null=True, )  # unit: [days]
+    date_of_enforcement = models.DateField(blank=True, null=True)
+
+    class Meta:
+        app_label = 'wildlifecompliance'
+        verbose_name = 'CM_SanctionOutcomeDueDateConfiguration'
+        verbose_name_plural = 'CM_SanctionOutcomeDueDateConfiguration'
+        ordering = ('date_of_enforcement', )  # oldest record first, latest record last
+
+    def __str__(self):
+        return '1st due date window: {} days, 2nd due date window: {} days, enforcement date: {})'.format(self.due_date_window_1st, self.due_date_window_2nd, self.date_of_enforcement)
