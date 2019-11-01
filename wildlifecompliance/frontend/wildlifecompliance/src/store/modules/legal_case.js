@@ -45,6 +45,9 @@ export const legalCaseStore = {
         updateRelatedItems(state, related_items) {
             Vue.set(state.legal_case, 'related_items', related_items);
         },
+        updateRunningSheetEntries(state, running_sheet_entries) {
+            Vue.set(state.legal_case, 'running_sheet_entries', running_sheet_entries);
+        },
     },
     actions: {
         async loadLegalCase({ dispatch, commit }, { legal_case_id }) {
@@ -119,6 +122,10 @@ export const legalCaseStore = {
         },
         setRelatedItems({ commit }, related_items ) {
             commit("updateRelatedItems", related_items);
+        },
+        setRunningSheetEntries({ commit }, running_sheet_entries ) {
+            console.log(running_sheet_entries)
+            commit("updateRunningSheetEntries", running_sheet_entries);
         },
     },
 };

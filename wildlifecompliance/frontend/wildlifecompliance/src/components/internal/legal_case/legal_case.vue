@@ -133,6 +133,13 @@
                                         <!--label class="col-sm-4">Test 2</label>
                                         <input id="test2" type="text" class="form-control" /-->
                                     <!--/div-->
+                                    <div class="row action-button">
+                                        <div v-if="canUserAction" class="col-sm-12">
+                                              <a @click="createNewRunningSheetEntry()" class="btn btn-primary btn-block" >
+                                                New Row
+                                              </a>
+                                        </div>
+                                    </div>
 
                                     <datatable ref="running_sheet_table" id="running-sheet-table" :dtOptions="dtOptionsRunningSheet" :dtHeaders="dtHeadersRunningSheet" />
                                 </div>
@@ -304,7 +311,6 @@ export default {
                     {
                         visible: false,
                         mRender: function(data, type, row) {
-                            console.log(row)
                             return row.id;
                         }
                     },
@@ -488,6 +494,14 @@ export default {
         inspection_bind_id = 'inspection' + parseInt(this.uuid);
         return inspection_bind_id;
     },
+    running_sheet: function() {
+        let ret_running_sheet = null;
+        if (this.legal_case && this.legal_case.running_sheet_entries) {
+            //Object.assign(ret_running_sheet, this.legal_case.running_sheet_entries);
+            ret_running_sheet = this.legal_case.running_sheet_entries;
+        }
+        return ret_running_sheet;
+    },
   },
   watch: {
       magicValue: {
@@ -499,6 +513,12 @@ export default {
                   this.magicMethod()
               }
           },
+      },
+      running_sheet: {
+          handler: function() {
+              this.constructRunningSheetTable();
+          },
+          deep: true
       },
   },
   filters: {
@@ -512,22 +532,25 @@ export default {
       saveLegalCase: 'saveLegalCase',
       setLegalCase: 'setLegalCase',
       setRelatedItems: 'setRelatedItems',
+      setRunningSheetEntries: 'setRunningSheetEntries',
     }),
     ...mapActions({
         loadCurrentUser: 'loadCurrentUser',
     }),
     constructRunningSheetTable: function(){
+        console.log("construct running sheet table");
+        console.log(this.running_sheet.length)
         this.$refs.running_sheet_table.vmDataTable.clear().draw();
-        if (this.legal_case.running_sheet_entries){
-            for(let i = 0;i < this.legal_case.running_sheet_entries.length; i++){
+        if (this.running_sheet){
+            for(let i = 0;i < this.running_sheet.length; i++){
                 //this.addRunningSheetEntryToTable(this.offence.alleged_offences[i]);
                 this.$refs.running_sheet_table.vmDataTable.row.add({ 
-                    "id": this.legal_case.running_sheet_entry[i].id,
-                    "number": this.legal_case.running_sheet_entry[i].number,
-                    "date_created": this.legal_case.running_sheet_entry[i].date_created,
-                    "user_full_name": this.legal_case.running_sheet_entry[i].user_full_name,
-                    "description": this.legal_case.running_sheet_entry[i].description,
-                    "action": this.legal_case.running_sheet_entry[i].action,
+                    "id": this.running_sheet[i].id,
+                    "number": this.running_sheet[i].number,
+                    "date_created": this.running_sheet[i].date_created,
+                    "user_full_name": this.running_sheet[i].user_full_name,
+                    "description": this.running_sheet[i].description,
+                    "action": this.running_sheet[i].action,
                 }).draw();
                 //let actionColumn
             }
@@ -537,6 +560,22 @@ export default {
     //    //allegedOffence.uuid = uuid();
     //    this.$refs.running_sheet_table_table.vmDataTable.row.add({ legal_case: legal_case, offence: this.offence }).draw();
     //},
+    createNewRunningSheetEntry: async function() {
+        let payload = {
+            "legal_case_id": this.legal_case.id,
+            "user_id": this.current_user.id,
+        }
+        let fetchUrl = helpers.add_endpoint_join(
+            api_endpoints.legal_case,
+            //state.inspection.id + "/inspection_save/"
+            this.legal_case.id + '/create_running_sheet_entry/'
+            )
+        let updatedRunningSheet = await Vue.http.post(fetchUrl, payload);
+        if (updatedRunningSheet.body && updatedRunningSheet.body.running_sheet_entries){
+            console.log(updatedRunningSheet.body)
+            await this.setRunningSheetEntries(updatedRunningSheet.body.running_sheet_entries);
+        }
+    },
     openInspection() {
       this.uuid += 1;
       this.inspectionInitialised = true;
@@ -752,6 +791,7 @@ export default {
       console.log(this)
 
       this.calculateHash();
+      this.constructRunningSheetTable();
   },
   destroyed: function() {
       window.removeEventListener('beforeunload', this.leaving);
@@ -761,7 +801,7 @@ export default {
   mounted: function() {
       this.$nextTick(async () => {
           this.addEventListeners();
-          this.constructRunningSheetTable();
+          //this.constructRunningSheetTable();
       });
   },
 };

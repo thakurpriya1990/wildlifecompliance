@@ -87,18 +87,64 @@ class LegalCaseRunningSheetEntrySerializer(serializers.ModelSerializer):
         return user_full_name
 
 
-class SaveLegalCaseRunningSheetEntry(serializers.ModelSerializer):
+class SaveLegalCaseRunningSheetEntrySerializer(serializers.ModelSerializer):
+    legal_case_id = serializers.IntegerField(
+        required=False, write_only=True, allow_null=True)
+    user_id = serializers.IntegerField(
+        required=False, write_only=True, allow_null=True)
 
     class Meta:
         model = LegalCaseRunningSheetEntry
         fields = (
                 'id',
+                'number',
                 'legal_case_persons',
                 'legal_case_id',
-                'number',
-                'date_created',
                 'user_id',
                 'description',
+                )
+        read_only_fields = (
+                'id',
+                'number',
+                )
+
+
+class CreateLegalCaseRunningSheetEntrySerializer(serializers.ModelSerializer):
+    legal_case_id = serializers.IntegerField(
+        required=False, write_only=True, allow_null=True)
+    user_id = serializers.IntegerField(
+        required=False, write_only=True, allow_null=True)
+
+    class Meta:
+        model = LegalCaseRunningSheetEntry
+        fields = (
+                #'id',
+                #'number',
+                #'legal_case_persons',
+                'legal_case_id',
+                'user_id',
+                )
+
+    def create(self, validated_data):
+        print("wtf")
+        print(validated_data)
+        legal_case_id = validated_data.get('legal_case_id')
+        user_id = validated_data.get('user_id')
+        new_entry = LegalCaseRunningSheetEntry.objects.create_running_sheet_entry(
+                legal_case_id=legal_case_id, 
+                user_id=user_id)
+        #new_entry.save()
+        return new_entry
+
+
+class LegalCaseRunningSheetSerializer(serializers.ModelSerializer):
+    running_sheet_entries = LegalCaseRunningSheetEntrySerializer(many=True)
+
+    class Meta:
+        model = LegalCase
+        fields = (
+                'id',
+                'running_sheet_entries',
                 )
         read_only_fields = (
                 'id',
@@ -106,7 +152,7 @@ class SaveLegalCaseRunningSheetEntry(serializers.ModelSerializer):
 
 
 class LegalCaseSerializer(serializers.ModelSerializer):
-    running_sheet_entry = LegalCaseRunningSheetEntrySerializer(many=True)
+    running_sheet_entries = LegalCaseRunningSheetEntrySerializer(many=True)
     #running_sheet_entries = serializers.SerializerMethodField()
     allocated_group = serializers.SerializerMethodField()
     #all_officers = serializers.SerializerMethodField()
@@ -142,7 +188,7 @@ class LegalCaseSerializer(serializers.ModelSerializer):
                 'district_id',
                 'legal_case_priority',
                 'legal_case_priority_id',
-                'running_sheet_entry',
+                'running_sheet_entries',
                 )
         read_only_fields = (
                 'id',

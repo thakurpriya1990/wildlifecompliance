@@ -69,6 +69,9 @@ from wildlifecompliance.components.legal_case.serializers import (
         LegalCaseDatatableSerializer,
         UpdateAssignedToIdSerializer,
         LegalCasePrioritySerializer,
+        CreateLegalCaseRunningSheetEntrySerializer,
+        SaveLegalCaseRunningSheetEntrySerializer,
+        LegalCaseRunningSheetSerializer,
         )
 from wildlifecompliance.components.users.models import (
     CompliancePermissionGroup,    
@@ -486,6 +489,8 @@ class LegalCaseViewSet(viewsets.ModelViewSet):
                         )
                 serializer.is_valid(raise_exception=True)
                 if serializer.is_valid():
+                    print("serializer.validated_data")
+                    print(serializer.validated_data)
                     instance = serializer.save()
                     instance.log_user_action(
                             LegalCaseUserAction.ACTION_CREATE_LEGAL_CASE.format(
@@ -627,6 +632,49 @@ class LegalCaseViewSet(viewsets.ModelViewSet):
                 return Response(returned_data)
             else:
                 return Response()
+
+        except serializers.ValidationError:
+            print(traceback.print_exc())
+            raise
+        except ValidationError as e:
+            if hasattr(e, 'error_dict'):
+                raise serializers.ValidationError(repr(e.error_dict))
+            else:
+                raise serializers.ValidationError(repr(e[0].encode('utf-8')))
+        except Exception as e:
+            print(traceback.print_exc())
+            raise serializers.ValidationError(str(e))
+
+
+    @detail_route(methods=['POST'])
+    @renderer_classes((JSONRenderer,))
+    def create_running_sheet_entry(self, request, *args, **kwargs):
+        try:
+            instance = self.get_object()
+
+            request_data = {
+                            "legal_case_id": instance.id,
+                            "user_id": request.user.id
+                            }
+            print("request_data")
+            print(request_data)
+            serializer = CreateLegalCaseRunningSheetEntrySerializer(data=request_data)
+            serializer.is_valid(raise_exception=True)
+            if serializer.is_valid():
+                print("serializer.validated_data")
+                print(serializer.validated_data)
+                serializer.save()
+                #instance.log_user_action(
+                #        LegalCaseUserAction.ACTION_SAVE_LEGAL_CASE.format(
+                #        instance.number), request)
+                headers = self.get_success_headers(serializer.data)
+                #return_serializer = LegalCaseRunningSheetSerializer(instance, context={'request': request})
+                return_serializer = LegalCaseRunningSheetSerializer(instance)
+                return Response(
+                        return_serializer.data,
+                        status=status.HTTP_201_CREATED,
+                        headers=headers
+                        )
 
         except serializers.ValidationError:
             print(traceback.print_exc())
