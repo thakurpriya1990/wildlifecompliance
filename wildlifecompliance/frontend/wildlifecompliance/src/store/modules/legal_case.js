@@ -116,7 +116,6 @@ export const legalCaseStore = {
             }
             return savedLegalCase;
         },
-        
         setLegalCase({ commit, }, legal_case) {
             commit("updateLegalCase", legal_case);
         },
@@ -124,7 +123,6 @@ export const legalCaseStore = {
             commit("updateRelatedItems", related_items);
         },
         setRunningSheetEntries({ commit }, running_sheet_entries ) {
-            console.log(running_sheet_entries)
             commit("updateRunningSheetEntries", running_sheet_entries);
         },
     },

@@ -538,8 +538,6 @@ export default {
         loadCurrentUser: 'loadCurrentUser',
     }),
     constructRunningSheetTable: function(){
-        console.log("construct running sheet table");
-        console.log(this.running_sheet.length)
         this.$refs.running_sheet_table.vmDataTable.clear().draw();
         if (this.running_sheet){
             for(let i = 0;i < this.running_sheet.length; i++){
@@ -572,7 +570,6 @@ export default {
             )
         let updatedRunningSheet = await Vue.http.post(fetchUrl, payload);
         if (updatedRunningSheet.body && updatedRunningSheet.body.running_sheet_entries){
-            console.log(updatedRunningSheet.body)
             await this.setRunningSheetEntries(updatedRunningSheet.body.running_sheet_entries);
         }
     },
