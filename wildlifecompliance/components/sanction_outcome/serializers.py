@@ -87,8 +87,8 @@ class AllegedCommittedOffenceSerializer(serializers.ModelSerializer):
     def get_can_user_restore(self, obj):
         can_user_restore = False
 
-        if self.get_in_editable_status(obj) and obj.removed:
-            existing = AllegedCommittedOffence.objects.filter(sanction_outcome=obj.sanction_outcome, alleged_offence=obj.alleged_offence, included=True, removed=False)
+        if self.get_in_editable_status(obj):
+            existing = AllegedCommittedOffence.objects.filter(sanction_outcome=obj.sanction_outcome, alleged_offence=obj.alleged_offence, included=True)
             if not existing:
                 # If there is not same alleged committed offence in the database, there should be restore button
                 can_user_restore = True

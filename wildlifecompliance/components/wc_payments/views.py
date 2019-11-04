@@ -3,6 +3,7 @@
 # # from django.contrib.auth.decorators import login_required
 # from django.shortcuts import render, get_object_or_404, redirect
 # from django.views.generic import ListView, DetailView, CreateView, UpdateView, DeleteView, FormView
+from django.http.response import HttpResponse
 from django.shortcuts import get_object_or_404, redirect, render
 from django.views.generic.base import View, TemplateView
 # from django.conf import settings
@@ -45,8 +46,10 @@ from django.db import transaction
 # )
 
 # from commercialoperator.components.proposals.serializers import ProposalSerializer
-
+# from commercialoperator.components.bookings.confirmation_pdf import create_confirmation_pdf_bytes
+from commercialoperator.components.bookings.confirmation_pdf import create_confirmation_pdf_bytes
 from ledger.checkout.utils import create_basket_session, create_checkout_session, place_order_submission, get_cookie_basket
+from ledger.payments.pdf import create_invoice_pdf_bytes
 from ledger.payments.utils import oracle_parser_on_invoice,update_payments
 import json
 from decimal import Decimal
@@ -104,7 +107,7 @@ class InfringementPenaltyView(TemplateView):
 
 # from commercialoperator.components.proposals.utils import proposal_submit
 class InfringementPenaltySuccessView(TemplateView):
-    template_name = 'wildlifecompliance/payments/success.html'
+    template_name = 'wildlifecompliance/wc_payments/success.html'
 
     def get(self, request, *args, **kwargs):
         print (" Infringement Peanlty SUCCESS ")
@@ -120,7 +123,7 @@ class InfringementPenaltySuccessView(TemplateView):
             sanction_outcome = infringement_penalty.sanction_outcome
 
             recipient = sanction_outcome.offender.person.email
-            submitter = sanction_outcome.assigned_to.email if sanction_outcome.assigned_to else None
+            submitter = sanction_outcome.offender.person
 
             if self.request.user.is_authenticated():
                 basket = Basket.objects.filter(status='Submitted', owner=request.user).order_by('-id')[:1]
@@ -180,7 +183,7 @@ class InfringementPenaltySuccessView(TemplateView):
                     context = {
                         'sanction_outcome': sanction_outcome,
                         'offender': recipient,
-                        'fee_invoice': invoice
+                        'fee_invoice': invoice,
                     }
                     print(context)
                     return render(request, self.template_name, context)
@@ -207,3 +210,27 @@ class InfringementPenaltySuccessView(TemplateView):
         return render(request, self.template_name, context)
 
 
+class InvoicePDFView(InvoiceOwnerMixin,View):
+    def get(self, request, *args, **kwargs):
+        invoice = get_object_or_404(Invoice, reference=self.kwargs['reference'])
+        response = HttpResponse(content_type='application/pdf')
+        response.write(create_invoice_pdf_bytes('invoice.pdf',invoice))
+        return response
+
+    def get_object(self):
+        invoice = get_object_or_404(Invoice, reference=self.kwargs['reference'])
+        return invoice
+
+
+# class ConfirmationPDFView(InvoiceOwnerMixin,View):
+#     def get(self, request, *args, **kwargs):
+#         invoice = get_object_or_404(Invoice, reference=self.kwargs['reference'])
+#         bi=InfringementPenaltyInvoice.objects.filter(invoice_reference=invoice.reference).last()
+#
+#         response = HttpResponse(content_type='application/pdf')
+#         response.write(create_confirmation_pdf_bytes('confirmation.pdf',invoice, bi.booking))
+#         return response
+#
+#     def get_object(self):
+#         invoice = get_object_or_404(Invoice, reference=self.kwargs['reference'])
+#         return invoice
