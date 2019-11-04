@@ -220,8 +220,8 @@ urlpatterns = [
     # payment related urls
     url(r'^infringement_penalty/(?P<sanction_outcome_id>\d+)/$', payment_views.InfringementPenaltyView.as_view(), name='infringement_penalty'),
     url(r'^success/fee/$', payment_views.InfringementPenaltySuccessView.as_view(), name='penalty_success'),
-
-              ] + ledger_patterns
+    url(r'wc/payments/invoice-pdf/(?P<reference>\d+)', payment_views.InvoicePDFView.as_view(), name='wc-invoice-pdf'),
+] + ledger_patterns
 
 if not are_migrations_running():
     CollectorManager()
