@@ -6,6 +6,7 @@ from django.conf.urls.static import static
 from rest_framework import routers
 
 from wildlifecompliance import views
+from wildlifecompliance.components.returns.views import ReturnSuccessView
 from wildlifecompliance.components.applications.views import (
     ApplicationSuccessView,
     LicenceFeeSuccessView,
@@ -132,6 +133,9 @@ urlpatterns = [
     url(r'^application/finish_licence_fee_payment/',
         LicenceFeeSuccessView.as_view(),
         name='external-licence-fee-success-invoice'),
+    url(r'^returns_submit/submit_with_invoice/',
+        ReturnSuccessView.as_view(),
+        name='external-returns-success-invoice'),
 
     # url(r'^export/xls/$', application_views.export_applications, name='export_applications'),
     url(r'^export/pdf/$', application_views.pdflatex, name='pdf_latex'),

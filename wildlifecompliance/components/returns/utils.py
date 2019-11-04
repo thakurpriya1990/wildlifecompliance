@@ -1,7 +1,175 @@
+import logging
 from datetime import datetime
-from wildlifecompliance.components.returns.models import Return, ReturnTable, ReturnRow
+from django.conf import settings
+from django.core.urlresolvers import reverse
+from django.http import HttpResponseRedirect
+from wildlifecompliance.components.returns.models import (
+    ReturnTable,
+    ReturnRow,
+)
 from wildlifecompliance.components.returns.utils_schema import Schema
 from wildlifecompliance.utils import excel
+from ledger.checkout.utils import (
+    create_basket_session,
+    create_checkout_session,
+)
+from ledger.payments.models import Invoice
+
+
+def checkout(
+        request,
+        returns,
+        lines=[],
+        invoice_text=None,
+        vouchers=[],
+        internal=False,
+        add_checkout_params={}):
+    basket_params = {
+        'products': lines,
+        'vouchers': vouchers,
+        'system': settings.WC_PAYMENT_SYSTEM_ID,
+        'custom_basket': True,
+    }
+    basket, basket_hash = create_basket_session(request, basket_params)
+    request.basket = basket
+
+    checkout_params = {
+        'system': settings.WC_PAYMENT_SYSTEM_ID,
+        'fallback_url': request.build_absolute_uri('/'),
+        'return_url': request.build_absolute_uri(
+            reverse('external-returns-success-invoice')),
+        'return_preload_url': request.build_absolute_uri('/'),
+        'force_redirect': True,
+        'proxy': True if internal else False,
+        'invoice_text': invoice_text}
+    checkout_params.update(add_checkout_params)
+    print(' -------- main utils > checkout > checkout_params ---------- ')
+    print(checkout_params)
+    create_checkout_session(request, checkout_params)
+
+    response = HttpResponseRedirect(reverse('checkout:index'))
+    # inject the current basket into the redirect response cookies
+    # or else, anonymous users will be directionless
+    response.set_cookie(
+        settings.OSCAR_BASKET_COOKIE_OPEN, basket_hash,
+        max_age=settings.OSCAR_BASKET_COOKIE_LIFETIME,
+        secure=settings.OSCAR_BASKET_COOKIE_SECURE, httponly=True
+    )
+
+    return response
+
+
+def set_session_return(session, returns):
+    print('setting session Return')
+    session['wc_return'] = returns.id
+    session.modified = True
+
+
+def get_session_return(session):
+    print('getting session Return')
+    from wildlifecompliance.components.returns.models import Return
+    if 'wc_return' in session:
+        return_id = session['wc_return']
+    else:
+        raise Exception('Return not in Session')
+
+    try:
+        return Return.objects.get(id=return_id)
+    except Return.DoesNotExist:
+        raise Exception(
+            'Return not found for return_id {}'.format(return_id))
+
+
+def delete_session_return(session):
+    if 'wc_return' in session:
+        del session['wc_return']
+        session.modified = True
+
+
+def flush_checkout_session(session):
+    keys = [
+        'checkout_data',
+        'checkout_invoice',
+        'checkout_order_id',
+        'checkout_return_url',
+        'checkout_data',
+    ]
+    for key in keys:
+        try:
+            del session[key]
+        except KeyError:
+            continue
+
+
+def bind_return_to_invoice(request, returns, invoice_ref):
+    from wildlifecompliance.components.returns.models import ReturnInvoice
+
+    logger = logging.getLogger('return_checkout')
+    try:
+        inv = Invoice.objects.get(reference=invoice_ref)
+    except Invoice.DoesNotExist:
+
+        logger.error(
+            u'{} tried making an return with an incorrect invoice'.format(
+                u'User {} with id {}'.format(
+                    returns.submitter.get_full_name(),
+                    returns.submitter.id)
+                if returns.submitter else u'An anonymous user'
+            )
+        )
+
+        raise Exception
+
+    if inv.system not in ['0999']:
+
+        logger.error(
+            u'{} tried making an return with an invoice from another system \
+                with reference number {}'.format(
+                u'User {} with id {}'.format(
+                    returns.submitter.get_full_name(),
+                    returns.submitter.id)
+                if returns.submitter else u'An anonymous user',
+                inv.reference))
+
+        raise Exception
+
+    try:
+        a = ReturnInvoice.objects.get(invoice_reference=invoice_ref)
+
+        logger.error(
+            u'{} tried making an return with an already used invoice with \
+                reference number {}'.format(
+                u'User {} with id {}'.format(
+                    returns.submitter.get_full_name(),
+                    returns.submitter.id)
+                if returns.submitter else u'An anonymous user',
+                a.invoice_reference))
+
+        raise Exception
+
+    except ReturnInvoice.DoesNotExist:
+
+        logger.info(
+            u'{} submitted return {}, creating new ReturnInvoice with \
+                reference {}'.format(
+                u'User {} with id {}'.format(
+                    returns.submitter.get_full_name(),
+                    returns.submitter.id) 
+                if returns.submitter else u'An anonymous user',
+                returns.id,
+                invoice_ref))
+
+        app_inv, created = ReturnInvoice.objects.get_or_create(
+            returns=returns, invoice_reference=invoice_ref)
+        returns.save()
+
+        request.session['wc_last_return'] = returns.id
+
+        # send out the invoice before the confirmation is sent
+        # send_application_invoice(application)
+        # for fully paid applications, fire off confirmation email
+        # if application.paid:
+        #    send_application_confirmation(application, request)
 
 
 # def _is_post_data_valid(ret, tables_info, post_data):

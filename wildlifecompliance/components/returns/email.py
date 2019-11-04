@@ -3,6 +3,9 @@ import logging
 from django.core.mail import EmailMultiAlternatives, EmailMessage
 from django.utils.encoding import smart_text
 from django.conf import settings
+from django.core.urlresolvers import reverse
+from ledger.payments.pdf import create_invoice_pdf_bytes
+from ledger.payments.models import Invoice
 
 from wildlifecompliance.components.emails.emails import TemplateEmailBase
 
@@ -33,6 +36,14 @@ class ReturnAmendmentNotificationEmail(TemplateEmailBase):
     subject = 'An amendment has been requested for your licence return'
     html_template = 'wildlifecompliance/emails/send_return_amendment_notification.html'
     txt_template = 'wildlifecompliance/emails/send_return_amendment_notification.txt'
+
+
+class ReturnInvoiceNotificationEmail(TemplateEmailBase):
+    subject = 'Your payment for your return has been received'
+    html_template = \
+        'wildlifecompliance/emails/send_return_invoice_notification.html'
+    txt_template = \
+        'wildlifecompliance/emails/send_return_invoice_notification.txt'
 
 
 def send_return_accept_email_notification(return_obj, request):
@@ -103,6 +114,38 @@ def send_return_amendment_email_notification(request, data, return_obj, licence)
     msg = email.send(return_obj.submitter.email, context=context)
     sender = request.user if request else settings.DEFAULT_FROM_EMAIL
     _log_return_email(msg, return_obj, sender=sender)
+
+def send_return_invoice_notification(returns, invoice_ref, request):
+    # An email with return invoice to submitter
+    email = ReturnInvoiceNotificationEmail()
+    url = request.build_absolute_uri(
+        reverse(
+            'external-return-detail',
+            kwargs={'return_pk': returns.id}))
+    invoice_url = request.build_absolute_uri(
+        reverse(
+            'payments:invoice-pdf',
+            kwargs={
+                'reference': invoice_ref}))
+    filename = 'invoice-{}-{}({}).pdf'.format(
+        returns.id,
+        returns.licence_type_short_name.replace(" ", "-"),
+        returns.lodgement_date.date())
+    references = [a.invoice_reference for a in returns.invoices.all()]
+    invoice = Invoice.objects.filter(
+        reference__in=references).order_by('-created')[0]
+    invoice_pdf = create_invoice_pdf_bytes(filename, invoice)
+
+    context = {
+        'return': returns,
+        'url': url,
+        'invoice_url': invoice_url
+    }
+    recipients = [returns.submitter.email]
+    msg = email.send(recipients, context=context, attachments=[
+                     (filename, invoice_pdf, 'returns/pdf')])
+    sender = request.user if request else settings.DEFAULT_FROM_EMAIL
+    _log_return_email(msg, returns, sender=sender)
 
 def _log_return_email(email_message, return_obj, sender=None):
     from wildlifecompliance.components.returns.models import ReturnLogEntry
