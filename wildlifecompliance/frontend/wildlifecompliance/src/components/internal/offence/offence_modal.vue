@@ -792,9 +792,9 @@ export default {
     close: function() {
         this.processingDetails = false;
         this.isModalOpen = false;
-        this.setOffenceEmpty();  // Make offence default
-        this.constructAllegedOffencesTable();
-        this.errorResponse = '';
+    //    this.setOffenceEmpty();  // Make offence default
+        //this.constructAllegedOffencesTable();
+        //this.errorResponse = '';
     },
     mapOffenceClicked: function() {
       this.$refs.mapOffenceComponent.mapTabClicked();

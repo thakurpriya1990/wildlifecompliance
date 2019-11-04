@@ -55,7 +55,7 @@
         </FormSection>
 
         <div v-if="offenceInitialised">
-            <OffenceModal ref="add_offence"  v-bind:key="createOffenceBindId"/>
+            <OffenceModal ref="add_offence"  v-bind:key="offenceBindId"/>
         </div>
     </div>
 </template>
@@ -74,6 +74,7 @@ export default {
     data() {
         let vm = this;
         return {
+            uuid: 0,
             offence_types: [],
             offence_statuses: [],
 
@@ -179,6 +180,11 @@ export default {
         }
     },
     computed: {
+        offenceBindId: function() {
+            let offence_bind_id = ''
+            offence_bind_id = 'offence' + parseInt(this.uuid);
+            return offence_bind_id;
+        },
         current_region_id: function() {
             return this.filterRegionId;
         },
@@ -230,19 +236,25 @@ export default {
             this.canUserCreateNewOffence = res.body;
         },
         createOffence: function() {
-            this.setCreateOffenceBindId()
+//            this.setCreateOffenceBindId()
+//            this.offenceInitialised = true;
+//            this.$nextTick(() => {
+//                this.$refs.add_offence.isModalOpen = true;
+//            });
+
+            this.uuid += 1;
             this.offenceInitialised = true;
             this.$nextTick(() => {
                 this.$refs.add_offence.isModalOpen = true;
             });
         },
-        setCreateOffenceBindId: function() {
-            let timeNow = Date.now()
-            this.createOffenceBindId = 'inspection' + timeNow.toString();
+      //  setCreateOffenceBindId: function() {
+      //      let timeNow = Date.now()
+      //      this.createOffenceBindId = 'inspection' + timeNow.toString();
 
-            console.log('setCreateOffenceBindId');
-            console.log(this.createOffenceBindId);
-        },
+      //      console.log('setCreateOffenceBindId');
+      //      console.log(this.createOffenceBindId);
+      //  },
         addEventListeners: function () {
             this.attachFromDatePicker();
             this.attachToDatePicker();
