@@ -11,7 +11,7 @@ class SectionRegulation(RevisionedMixin):
 
     # Officer can issue an infringement notice within this period after the offence occurrence date
     # If this is null, which means officer can issue the infringement notice anytime.
-    issue_due_date_window =  models.PositiveSmallIntegerField(blank=True, null=True, )  # unit: [days]
+    issue_due_date_window =  models.PositiveSmallIntegerField(blank=True, null=True, help_text='An infringement notice must be issued within Issue-due-date-window days from the date of the offence occurred.')
 
     class Meta:
         app_label = 'wildlifecompliance'

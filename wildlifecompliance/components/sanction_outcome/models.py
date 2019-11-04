@@ -126,8 +126,8 @@ class SanctionOutcome(models.Model):
     # Following atributes should be determined at the moment of issue
     penalty_amount_1st =  models.DecimalField(max_digits=8, decimal_places=2, default='0.00')
     penalty_amount_2nd =  models.DecimalField(max_digits=8, decimal_places=2, default='0.00')
-    due_date_auto_1st = models.DateField(null=True, blank=True)
-    due_date_auto_2nd = models.DateField(null=True, blank=True)
+    due_date_auto_1st = models.DateField(null=True, blank=True)  # Null means not extended
+    due_date_auto_2nd = models.DateField(null=True, blank=True)  # Null means not extended, but this is extended even when 1st due date is extended manually.
     due_date_extended_max = models.DateField(null=True, blank=True)
 
     # Only when the due dates are manually extended, these should have values
@@ -256,14 +256,32 @@ class SanctionOutcome(models.Model):
         self.log_user_action(SanctionOutcomeUserAction.ACTION_SEND_TO_MANAGER.format(self.lodgement_number), request)
         self.save()
 
+    def retrieve_issue_due_date_window(self):
+        # Expecting this function is called only for an infringement notice which can have only one alleged offence.
+        date_window = self.alleged_committed_offences.first().section_regulation.issue_due_date_window
+        return date_window
+
+    @property
+    def offence_occurrence_date(self):
+        if self.offence.occurrence_from_to:
+            return self.offence.occurrence_date_to
+        else:
+            return self.offence.occurrence_date_from
+
     def endorse(self, request):
+        current_datetime = datetime.datetime.now()
         if not self.issued_on_paper:
-            self.date_of_issue = datetime.datetime.now().date()
-            self.time_of_issue = datetime.datetime.now().time()
+            self.date_of_issue = current_datetime.date()
+            self.time_of_issue = current_datetime.time()
         elif not self.date_of_issue:
             raise ValidationError('Sanction outcome cannot be endorsed without setting date of issue.')
 
         if self.type == SanctionOutcome.TYPE_INFRINGEMENT_NOTICE:
+            date_window = self.retrieve_issue_due_date_window()
+            issue_due_date = self.offence_occurrence_date + relativedelta(days=date_window)
+            if self.date_of_issue > issue_due_date:
+                raise ValidationError('Infringement notice must be issued before {}' % issue_due_date)
+
             self.status = SanctionOutcome.STATUS_AWAITING_PAYMENT
             self.payment_status = SanctionOutcome.PAYMENT_STATUS_UNPAID
             amounts = self.retrieve_penalty_amounts_by_date()
@@ -321,6 +339,44 @@ class SanctionOutcome(models.Model):
             raise ValidationError('There are multiple alleged committed offences in this sanction outcome.')
         else:
             return qs_aco.first().retrieve_penalty_amounts_by_date(self.date_of_issue)
+
+    @property
+    def due_date_1st(self):
+        if self.due_date_manual_1st:
+            return self.due_date_manual_1st
+        return self.due_date_auto_1st
+
+    def extend_due_date(self, target_date):
+        now_datetime = datetime.now()
+        due_date_config = SanctionOutcomeDueDateConfiguration.get_config_by_date(self.date_of_issue)
+        if target_date <= self.due_date_extended_max:
+            if now_datetime <= self.due_date_1st:
+                self.due_date_manual_1st = target_date
+                self.due_date_manual_2nd = target_date + relativedelta(days=due_date_config.due_date_window_2nd)
+            elif now_datetime <= self.due_date_2nd:
+                self.due_date_manual_2nd = target_date
+        self.save()
+
+    @property
+    def due_date_2nd(self):
+        if self.due_date_manual_2nd:
+            return self.due_date_manual_2nd
+        return self.due_date_auto_2nd
+
+    def determine_penalty_amount_by_date(self, date_payment):
+        if self.offence_occurrence_date <= date_payment:
+            if date_payment <= self.due_date_1st:
+                return self.penalty_amount_1st
+            elif date_payment <= self.due_date_2nd:
+                return self.penalty_amount_2nd
+            else:
+                # Should not reach here
+                # Details of the sanction outcome is uploaded to the Fines Enforcement system after the 2nd due
+                # After that, the sanciton outcome should be closed (??? External user should still be able to see the sanction outcome???)
+                raise ValidationError('Overdue')
+        else:
+            # Should not reach here
+            raise ValidationError('Payment must be after the offence occurrence date.')
 
     class Meta:
         app_label = 'wildlifecompliance'

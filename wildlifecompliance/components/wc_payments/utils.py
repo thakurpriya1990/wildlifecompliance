@@ -56,15 +56,18 @@ def delete_session_infringement_invoice(session):
 def create_infringement_lines(sanction_outcome, invoice_text=None, vouchers=[], internal=False):
     """ Create the ledger lines - line item for infringement penalty sent to payment system """
 
-    now = datetime.now().strftime('%Y-%m-%d %H:%M')
+    now = datetime.now()
+    now_date = now.date()
+    penalty_amount = sanction_outcome.determine_penalty_amount_by_date(now_date)
+
     line_items = [
         {   'ledger_description': 'Infringement Notice: {}, Issued: {} {}'.format(
                 sanction_outcome.lodgement_number,
                 sanction_outcome.date_of_issue.strftime("%d-%m-%Y"),
                 sanction_outcome.time_of_issue.strftime("%I:%M")),
             'oracle_code': 'ABC123 GST',
-            'price_incl_tax':  sanction_outcome.penalty_amount_1st,
-            'price_excl_tax':  sanction_outcome.penalty_amount_1st,
+            'price_incl_tax':  penalty_amount,
+            'price_excl_tax':  penalty_amount,
             'quantity': 1,
         },
     ]
