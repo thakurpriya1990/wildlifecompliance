@@ -116,7 +116,7 @@ export const applicationStore = {
         },
         sendToAssessorActivities: (state, getters) => {
             // Application status which permits sending assessments for licensing Officer.
-            return getters.licenceActivities(['with_officer', 'with_officer_conditions', 'with_assessor'], 'licensing_officer');
+            return getters.licenceActivities(['with_officer', 'with_officer_conditions'], 'licensing_officer');
         },
     },
     mutations: {

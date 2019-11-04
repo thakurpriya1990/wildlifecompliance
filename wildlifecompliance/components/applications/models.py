@@ -1149,35 +1149,44 @@ class Application(RevisionedMixin):
                 ).first()
 
                 if not assessment:
-                    raise Exception("Assessment record ID %s (activity: %s) does not exist!" % (
-                        assessment_id, activity_id))
+                    raise Exception("Assessment record ID %s \
+                    does not exist!" % (assessment_id))
 
-                assessor_group = request.user.get_wildlifelicence_permission_group(
-                    permission_codename='assessor',
-                    activity_id=assessment.licence_activity_id,
-                    first=True
-                )
+                assessor_group = request.user \
+                    .get_wildlifelicence_permission_group(
+                        permission_codename='assessor',
+                        activity_id=assessment.licence_activity_id,
+                        first=True
+                    )
                 if not assessor_group:
-                    raise Exception("Missing assessor permissions for Activity ID: %s" % (
-                        assessment.licence_activity_id))
+                    raise Exception("Missing assessor permissions for Activity \
+                        ID: %s" % (assessment.licence_activity_id))
+
                 # Set the actioner to the assessor
-                assessor = EmailUser.objects.get(id=assessor_id) if assessor_id else assessor_id
+                assessor = EmailUser.objects \
+                    .get(id=assessor_id) if assessor_id else assessor_id
                 assessment.actioned_by = assessor
                 assessment.save()
                 # Log application action
                 if (assessor):
                     self.log_user_action(
-                        ApplicationUserAction.ACTION_ASSESSMENT_ASSIGNED.format(assessment.assessor_group, assessor.get_full_name()), request)
+                        ApplicationUserAction.ACTION_ASSESSMENT_ASSIGNED
+                        .format(assessment.assessor_group,
+                                assessor.get_full_name()),
+                        request)
                 else:
                     self.log_user_action(
-                        ApplicationUserAction.ACTION_ASSESSMENT_UNASSIGNED.format(assessment.assessor_group), request)                    
+                        ApplicationUserAction.ACTION_ASSESSMENT_UNASSIGNED
+                        .format(assessment.assessor_group), request)
 
             except BaseException:
                 raise
 
     def complete_application_assessments_by_user(self, request):
-        ''' Method to complete all assessments which are assigned to the current user or are unassigned within the
-            current users permissions group.'''
+        '''
+        Method to complete all assessments which are assigned to the current
+        user or are unassigned within the current users permissions group.
+        '''
         with transaction.atomic():
             try:
                 assessments = Assessment.objects.filter(
@@ -1189,36 +1198,47 @@ class Application(RevisionedMixin):
                 for assessment in assessments:
 
                     # check user has assessor permission
-                    assessor_group = request.user.get_wildlifelicence_permission_group(
-                        permission_codename='assessor',
-                        activity_id=assessment.licence_activity_id,
-                        first=True
-                    )
+                    assessor_group = \
+                        request.user.get_wildlifelicence_permission_group(
+                            permission_codename='assessor',
+                            activity_id=assessment.licence_activity_id,
+                            first=True
+                        )
                     if not assessor_group:
                         continue
 
                     # check assessment is not assigned to another.
-                    if assessment.assigned_assessor and not assessment.assigned_assessor==request.user:
+                    if assessment.assigned_assessor and \
+                            not assessment.assigned_assessor == request.user:
                         continue
 
                     assessment.status = Assessment.STATUS_COMPLETED
                     assessment.actioned_by = request.user
                     assessment.save()
+
                     # Log application action
                     self.log_user_action(
-                        ApplicationUserAction.ACTION_ASSESSMENT_COMPLETE.format(assessor_group), request)
+                        ApplicationUserAction.ACTION_ASSESSMENT_COMPLETE
+                        .format(assessor_group), request)
+
                     # Log entry for organisation
                     if self.org_applicant:
                         self.org_applicant.log_user_action(
-                            ApplicationUserAction.ACTION_ASSESSMENT_COMPLETE.format(assessor_group), request)
+                            ApplicationUserAction.ACTION_ASSESSMENT_COMPLETE
+                            .format(assessor_group), request)
+
                     elif self.proxy_applicant:
                         self.proxy_applicant.log_user_action(
-                            ApplicationUserAction.ACTION_ASSESSMENT_COMPLETE.format(assessor_group), request)
+                            ApplicationUserAction.ACTION_ASSESSMENT_COMPLETE
+                            .format(assessor_group), request)
+
                     else:
                         self.submitter.log_user_action(
-                            ApplicationUserAction.ACTION_ASSESSMENT_COMPLETE.format(assessor_group), request)
+                            ApplicationUserAction.ACTION_ASSESSMENT_COMPLETE
+                            .format(assessor_group), request)
 
-                    self.check_assessment_complete(assessment.licence_activity_id)
+                    self.check_assessment_complete(
+                        assessment.licence_activity_id)
             except BaseException:
                 raise
 

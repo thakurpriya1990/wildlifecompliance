@@ -172,10 +172,14 @@ export default {
             return required_role && this.hasRole(required_role, this.selected_activity_tab_id);
         },     
         canSendToAssessor: function() {
-            if(!this.selected_activity_tab_id || this.activity == null) {
-                return false;
-            }
-            return this.sendToAssessorActivities.length>0?true:false;
+            return this.sendToAssessorActivities.filter(visible_activity => {
+                if(visible_activity.id != this.selected_activity_tab_id) {
+                    return false;
+                }
+                if (this.activity.id == visible_activity.id) {
+                    return true
+                }
+            }).length>0?true:false;            
         },        
     },
     methods:{
