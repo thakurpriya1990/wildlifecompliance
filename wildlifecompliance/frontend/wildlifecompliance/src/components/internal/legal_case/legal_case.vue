@@ -140,8 +140,16 @@
                                               </a>
                                         </div>
                                     </div>
+                                    <!--div class="col-sm-3 inline-datatable" contenteditable="true">this <a contenteditable="false" href="www.google.com">google</a> this2</div>
+                                    <div v-model="runningSheetObj[`CS000018-1`].description" contenteditable="true">this <a contenteditable="false" href="www.google.com">google</a> this2</div-->
 
-                                    <datatable ref="running_sheet_table" id="running-sheet-table" :dtOptions="dtOptionsRunningSheet" :dtHeaders="dtHeadersRunningSheet" />
+                                    <datatable 
+                                    ref="running_sheet_table" 
+                                    id="running-sheet-table" 
+                                    :dtOptions="dtOptionsRunningSheet" 
+                                    :dtHeaders="dtHeadersRunningSheet"
+                                    parentStyle=" "
+                                    />
                                 </div>
                             </div></div>
                           </FormSection>
@@ -260,6 +268,7 @@ export default {
     name: "ViewLegalCase",
     data: function() {
         return {
+            //tempRunningSheet: [],
             uuid: 0,
             objectHash: null,
             runTab: 'runTab'+this._uid,
@@ -358,6 +367,13 @@ export default {
                             //        ret_str = ret_str + '<textarea class="reason_element" data-alleged-offence-uuid="' + row.allegedOffence.uuid + '">' + row.allegedOffence.reason_for_removal + '</textarea>';
                             //    }
                             //}
+                            //ret_str = '<div><input type="text" /><link href="www.google.com>google</link><input type="text" /></div>'
+                            //ret_str = '<div><input type="text">this</input><a href="www.google.com">google</a><input type="text">this2</input></div>'
+                            //ret_str = '<div contenteditable="true">this <a contenteditable="false" href="www.google.com">google</a> this2</div>'
+                            //ret_str = '<div v-model="legal_case.running_sheet_object[' + row.number + '] contenteditable="true">this <a contenteditable="false" href="www.google.com">google</a> this2</div>'
+                            //ret_str = '<div v-model="runningSheetObj[' + String.fromCharCode(34) + row.number + String.fromCharCode(34) + '].description" contenteditable="true">this <a contenteditable="false" href="www.google.com">google</a> this2</div>'
+                            ret_str = '<div id=' + row.number + ' contenteditable="true">this <a contenteditable="false" href="www.google.com">google</a> this2</div>'
+                            //ret_str = '<div contenteditable="true">this <a contenteditable="false" href="www.google.com">google</a> this2</div>'
                             return ret_str;
 
                         }
@@ -398,6 +414,8 @@ export default {
   computed: {
     ...mapGetters('legalCaseStore', {
       legal_case: "legal_case",
+      //running_sheet_list: "running_sheet_list",
+      //running_sheet_obj: "running_sheet_obj",
     }),
     ...mapGetters({
         current_user: 'current_user'
@@ -494,14 +512,31 @@ export default {
         inspection_bind_id = 'inspection' + parseInt(this.uuid);
         return inspection_bind_id;
     },
-    running_sheet: function() {
-        let ret_running_sheet = null;
+    runningSheet: function() {
+        let retRunningSheet = null;
         if (this.legal_case && this.legal_case.running_sheet_entries) {
             //Object.assign(ret_running_sheet, this.legal_case.running_sheet_entries);
-            ret_running_sheet = this.legal_case.running_sheet_entries;
+            retRunningSheet = this.legal_case.running_sheet_entries;
         }
-        return ret_running_sheet;
+        return retRunningSheet;
     },
+    runningSheetObj: function() {
+        let retRunningSheetObj = {}
+        if (this.legal_case && this.legal_case.running_sheet_entries) {
+            for (let r of this.legal_case.running_sheet_entries) {
+                retRunningSheetObj[r.number] = r;
+            }
+        }
+        return retRunningSheetObj;
+    },
+    //running_sheet: function() {
+    //    let ret_running_sheet = null;
+    //    if (this.legal_case && this.legal_case.running_sheet_object) {
+    //        //Object.assign(ret_running_sheet, this.legal_case.running_sheet_entries);
+    //        ret_running_sheet = this.legal_case.running_sheet_object;
+    //    }
+    //    return ret_running_sheet;
+    //},
   },
   watch: {
       magicValue: {
@@ -514,8 +549,9 @@ export default {
               }
           },
       },
-      running_sheet: {
+      runningSheet: {
           handler: function() {
+              //this.runningSheetEventListeners();
               this.constructRunningSheetTable();
           },
           deep: true
@@ -533,22 +569,23 @@ export default {
       setLegalCase: 'setLegalCase',
       setRelatedItems: 'setRelatedItems',
       setRunningSheetEntries: 'setRunningSheetEntries',
+      setRunningSheetEntryDescription: 'setRunningSheetEntryDescription',
     }),
     ...mapActions({
         loadCurrentUser: 'loadCurrentUser',
     }),
     constructRunningSheetTable: function(){
         this.$refs.running_sheet_table.vmDataTable.clear().draw();
-        if (this.running_sheet){
-            for(let i = 0;i < this.running_sheet.length; i++){
+        if (this.runningSheet){
+            for(let i = 0;i < this.runningSheet.length; i++){
                 //this.addRunningSheetEntryToTable(this.offence.alleged_offences[i]);
                 this.$refs.running_sheet_table.vmDataTable.row.add({ 
-                    "id": this.running_sheet[i].id,
-                    "number": this.running_sheet[i].number,
-                    "date_created": this.running_sheet[i].date_created,
-                    "user_full_name": this.running_sheet[i].user_full_name,
-                    "description": this.running_sheet[i].description,
-                    "action": this.running_sheet[i].action,
+                    "id": this.runningSheet[i].id,
+                    "number": this.runningSheet[i].number,
+                    "date_created": this.runningSheet[i].date_created,
+                    "user_full_name": this.runningSheet[i].user_full_name,
+                    "description": this.runningSheet[i].description,
+                    "action": this.runningSheet[i].action,
                 }).draw();
                 //let actionColumn
             }
@@ -571,6 +608,7 @@ export default {
         let updatedRunningSheet = await Vue.http.post(fetchUrl, payload);
         if (updatedRunningSheet.body && updatedRunningSheet.body.running_sheet_entries){
             await this.setRunningSheetEntries(updatedRunningSheet.body.running_sheet_entries);
+            //this.runningSheetEventListeners();
         }
     },
     openInspection() {
@@ -644,6 +682,13 @@ export default {
         this.magic = false;
     },
     test1: function(e) {
+        //console.log("test1")
+        //console.log(e.target.id)
+        //console.log(e.target)
+        //console.log(e.target.outerHTML)
+        let rowObj = {}
+        let rowId = e.target.id
+        let rowValue = e.target.outerHTML
 
         // keycode 49 = !
         if (e.which === 49 && this.magicKeyPressed) {
@@ -669,18 +714,48 @@ export default {
             this.magic) {
             //this.magic = true;
             this.magicMethod()
+        } else if (this.runningSheetObj && this.runningSheetObj[rowId]) {
+            console.log("push rowId")
+            //this.tempRunningSheet.push(rowId);
+            this.setRunningSheetEntryDescription({"rowId": rowId, "description": description})
+
         } else {
             this.magicKeyPressed = false;
             this.magicKey2Pressed = false;
         }
 
     },
+    //runningSheetEventListeners: function() {
+    //  console.log("runningSheetEventListeners")
+    //  let vm = this;
+    //  if (this.legal_case && this.legal_case.running_sheet_entries) {
+    //      for (let r of this.legal_case.running_sheet_entries) {
+    //          if (r && r.number) {
+    //              vm.rowIdStr = '#' + r.number;
+    //              vm.rowId = $(vm.rowIdStr);
+    //              vm.rowId.on(
+    //                  'keydown', 
+    //                  function(e) {
+    //                      vm.test1(e)
+    //                  });
+    //          }
+    //      }
+    //  }
+
+    //},
     addEventListeners: function() {
       let vm = this;
       let test1 = $('#test1');
       //let test2 = $('#test2');
       test1.on(
           'keydown', 
+          function(e) {
+              vm.test1(e)
+          });
+      let runningSheetTable = $('#running-sheet-table');
+      //let test2 = $('#test2');
+      runningSheetTable.on(
+          'keydown',
           function(e) {
               vm.test1(e)
           });
@@ -798,6 +873,7 @@ export default {
   mounted: function() {
       this.$nextTick(async () => {
           this.addEventListeners();
+          //this.runningSheetEventListeners();
           //this.constructRunningSheetTable();
       });
   },
@@ -821,5 +897,8 @@ export default {
 .nav-item {
   background-color: hsla(0, 0%, 78%, .8) !important;
   margin-bottom: 2px;
+}
+.inline-datatable {
+  overflow-wrap: break-word;
 }
 </style>
