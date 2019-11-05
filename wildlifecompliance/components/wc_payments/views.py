@@ -183,7 +183,7 @@ class InfringementPenaltySuccessView(TemplateView):
                     context = {
                         'sanction_outcome': sanction_outcome,
                         'offender': recipient,
-                        'fee_invoice': invoice,
+                        'fee_invoice': invoice.reference,
                     }
                     print(context)
                     return render(request, self.template_name, context)
@@ -205,7 +205,7 @@ class InfringementPenaltySuccessView(TemplateView):
         context = {
             'sanction_outcome': sanction_outcome,
             'offender': recipient,
-            'fee_invoice': invoice
+            'fee_invoice': invoice.invoice_reference
         }
         return render(request, self.template_name, context)
 
