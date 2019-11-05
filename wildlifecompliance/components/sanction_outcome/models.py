@@ -139,6 +139,20 @@ class SanctionOutcome(models.Model):
     objects_for_external = SanctionOutcomeExternalManager()
 
     @property
+    def infringement_penalty_invoice_reference(self):
+        try:
+            if self.payment_status == SanctionOutcome.PAYMENT_STATUS_PAID:
+                ip = self.infringement_penalties.all().last()
+                if ip:
+                    ipv = ip.infringement_penalty_invoices.all().last()
+                    if ipv:
+                        return ipv.invoice_reference
+            return None
+
+        except Exception as e:
+            return None
+
+    @property
     def prefix_lodgement_nubmer(self):
         prefix_lodgement = ''
         if self.type == self.TYPE_INFRINGEMENT_NOTICE:

@@ -223,6 +223,7 @@ class SanctionOutcomeDatatableSerializer(serializers.ModelSerializer):
     user_action = serializers.SerializerMethodField()
     offender = OffenderSerializer(read_only=True,)
     paper_notices = serializers.SerializerMethodField()
+    # invoice_reference = serializers.SerializerMethodField()
 
     class Meta:
         model = SanctionOutcome
@@ -245,20 +246,26 @@ class SanctionOutcomeDatatableSerializer(serializers.ModelSerializer):
             'time_of_issue',
             'user_action',
             'paper_notices',
+            # 'invoice_reference',
         )
         read_only_fields = ()
+
+    # def get_invoice_reference(self, obj):
+    #      return obj.infringement_penalty_invoice_reference
 
     def get_paper_notices(self, obj):
         return [[r.name, r._file.url] for r in obj.documents.all()]
 
     def get_user_action(self, obj):
+        inv_ref = obj.infringement_penalty_invoice_reference
         user_id = self.context.get('request', {}).user.id
+
         view_url = '<a href=/internal/sanction_outcome/' + str(obj.id) + '>View</a>'
         process_url = '<a href=/internal/sanction_outcome/' + str(obj.id) + '>Process</a>'
         returned_url = ''
 
         if obj.status == SanctionOutcome.STATUS_CLOSED:
-            # if object is closed, now one can process but view
+            # if object is closed, no one can process but view
             returned_url = view_url
         elif user_id == obj.assigned_to_id:
             # if user is assigned to the object, the user can process it
@@ -269,6 +276,10 @@ class SanctionOutcomeDatatableSerializer(serializers.ModelSerializer):
                 # and no one is assigned to the object,
                 # the user can process it
                 returned_url = process_url
+
+        if obj.payment_status == SanctionOutcome.PAYMENT_STATUS_PAID and inv_ref:
+            view_payment_url = '<a href="/ledger/payments/invoice/payment?invoice=' + inv_ref + '">View Payment</a>'
+            returned_url += '<br />' + view_payment_url
 
         if not returned_url:
             # In other case user can view
