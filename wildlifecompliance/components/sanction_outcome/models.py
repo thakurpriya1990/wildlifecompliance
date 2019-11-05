@@ -280,7 +280,7 @@ class SanctionOutcome(models.Model):
             date_window = self.retrieve_issue_due_date_window()
             issue_due_date = self.offence_occurrence_date + relativedelta(days=date_window)
             if self.date_of_issue > issue_due_date:
-                raise ValidationError('Infringement notice must be issued before {}' % issue_due_date)
+                raise ValidationError('Infringement notice must be issued before %s' % issue_due_date.strftime("%d-%m-%Y"))
 
             self.status = SanctionOutcome.STATUS_AWAITING_PAYMENT
             self.payment_status = SanctionOutcome.PAYMENT_STATUS_UNPAID
