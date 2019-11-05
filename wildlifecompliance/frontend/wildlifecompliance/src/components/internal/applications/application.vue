@@ -129,8 +129,9 @@
                                     </div>                                    
                                     <div v-if="canIssueDecline" class="row">
                                         <div class="col-sm-12">
-                                            <button v-if="!userIsAssignedOfficer" class="btn btn-primary top-buffer-s col-xs-12" @click.prevent="toggleIssue()">Issue/Decline</button>
-                                            <button v-else disabled class="btn btn-primary top-buffer-s col-xs-12">Issue/Decline</button>
+                                            <button class="btn btn-primary top-buffer-s col-xs-12" @click.prevent="toggleIssue()">Issue/Decline</button>
+                                            <!-- v-if="!userIsAssignedOfficer" was removed to enforce permission at group membership only. -->
+                                            <!-- button v-else disabled class="btn btn-primary top-buffer-s col-xs-12">Issue/Decline       -->
                                         </div>
                                     </div>
                                 </template>
