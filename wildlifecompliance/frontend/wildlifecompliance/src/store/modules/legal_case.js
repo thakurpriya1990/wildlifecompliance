@@ -81,8 +81,24 @@ export const legalCaseStore = {
         updateRunningSheetEntries(state, running_sheet_entries) {
             Vue.set(state.legal_case, 'running_sheet_entries', running_sheet_entries);
         },
-        updateRunningSheetEntryDescription(state, {rowId, description}) {
-            // update array or nested obj?
+        updateRunningSheetEntryDescription(state, { rowId, description }) {
+            //console.log("rowId")
+            //console.log(rowId)
+            //console.log("description")
+            //console.log(description)
+            //for (let i = 0; i < state.legal_case.running_sheet_entries.length; i++) {
+            //    if (i.number === rowId) {
+            //        state.legal_case.running_sheet_entries[i].description = description;
+            //    }
+            //}
+            let i = 0
+            for (let r of state.legal_case.running_sheet_entries) {
+                if (r.number === rowId) {
+                    //Vue.set(r, 'description', description);
+                    state.legal_case.running_sheet_entries[i].description =  description;
+                }
+                i += 1
+            }
         },
     },
     actions: {

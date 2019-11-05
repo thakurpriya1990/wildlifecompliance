@@ -129,10 +129,7 @@
                                 <div>
                                     <!--div class="col-sm-6"-->
                                         <label class="col-sm-10">Type !! to open Inspection or @@ to open SearchPerson</label>
-                                        <input id="test1" type="text" class="form-control" v-model="magicValue" />
-                                        <!--label class="col-sm-4">Test 2</label>
-                                        <input id="test2" type="text" class="form-control" /-->
-                                    <!--/div-->
+                                        <!--input id="test1" type="text" class="form-control" v-model="magicValue" /-->
                                     <div class="row action-button">
                                         <div v-if="canUserAction" class="col-sm-12">
                                               <a @click="createNewRunningSheetEntry()" class="btn btn-primary btn-block" >
@@ -552,7 +549,7 @@ export default {
       runningSheet: {
           handler: function() {
               //this.runningSheetEventListeners();
-              this.constructRunningSheetTable();
+              //this.constructRunningSheetTable();
           },
           deep: true
       },
@@ -681,14 +678,15 @@ export default {
         this.$refs.magic.isModalOpen = true;
         this.magic = false;
     },
-    test1: function(e) {
-        //console.log("test1")
-        //console.log(e.target.id)
-        //console.log(e.target)
+    runningSheetEvents: function(e) {
+        //console.log(e)
         //console.log(e.target.outerHTML)
         let rowObj = {}
         let rowId = e.target.id
-        let rowValue = e.target.outerHTML
+        //let rowValue = e.target.outerHTML
+        let rowValue = e.target.textContent
+        //console.log("rowValue")
+        //console.log(rowValue)
 
         // keycode 49 = !
         if (e.which === 49 && this.magicKeyPressed) {
@@ -715,9 +713,13 @@ export default {
             //this.magic = true;
             this.magicMethod()
         } else if (this.runningSheetObj && this.runningSheetObj[rowId]) {
-            console.log("push rowId")
+            //console.log("push rowId")
+            //console.log(this.runningSheetObj[rowId])
             //this.tempRunningSheet.push(rowId);
-            this.setRunningSheetEntryDescription({"rowId": rowId, "description": description})
+            this.setRunningSheetEntryDescription({"rowId": rowId, "description": rowValue})
+            //if (this.runningSheetObj[rowId].number !== rowId) {
+            //    this.setRunningSheetEntryDescription({"rowId": rowId, "description": rowValue})
+            //}
 
         } else {
             this.magicKeyPressed = false;
@@ -745,19 +747,19 @@ export default {
     //},
     addEventListeners: function() {
       let vm = this;
-      let test1 = $('#test1');
-      //let test2 = $('#test2');
-      test1.on(
-          'keydown', 
-          function(e) {
-              vm.test1(e)
-          });
+      //let test1 = $('#test1');
+      ////let test2 = $('#test2');
+      //test1.on(
+      //    'keydown', 
+      //    function(e) {
+      //        vm.test1(e)
+      //    });
       let runningSheetTable = $('#running-sheet-table');
       //let test2 = $('#test2');
       runningSheetTable.on(
           'keydown',
           function(e) {
-              vm.test1(e)
+              vm.runningSheetEvents(e)
           });
 
       //let el_fr_date = $(vm.$refs.plannedForDatePicker);
