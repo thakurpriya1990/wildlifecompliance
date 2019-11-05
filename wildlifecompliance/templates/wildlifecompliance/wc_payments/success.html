@@ -4,22 +4,18 @@
     <div class="container">
         <div class="well">
             <div class="row"><div class="col-sm-12">
-                <h2>Success!</h2>
-                <p>A confirmation email has been sent to {{ offender }}. </p>
+                <h2>Infringement Notice Payment</h2>
+                <p>Your infringement notice has been paid.  A confirmation email has been sent to {{ offender }}. </p>
+                {% if request.user.email == offender or request.user.is_staff %}
+                    {% if request.user.is_authenticated %}
+                        <p>Infringement Notice: {{ sanction_outcome.lodgement_number }}</p>
+                        <p>Date: {{ invoice_created_datetime|date:'d/m/Y' }}</p>
+                        <p>Time: {{ invoice_created_datetime|date:'H:i' }}</p>
+                    {% endif %}
+                {% else %}
+                    <p style="font-size: 1.5rem; font-weight: bold;">You do not have permission to access the confirmation or invoice for this payment.</p>
+                {% endif %}
             </div></div>
         </div>
-        <div class="row"><div class="col-sm-12" style="margin-top: 1em">
-            {% if request.user.email == offender or request.user.is_staff %}
-                {% if request.user.is_authenticated %}
-                    <p>Infringement notice: {{ sanction_outcome.lodgement_number }}</p>
-                    <p>Invoice Reference: <a href="{% url 'wc-invoice-pdf' fee_invoice %}">{{ fee_invoice }}</a></p>
-                {% endif %}
-            {% else %}
-                <p style="font-size: 1.5rem; font-weight: bold;">You do not have permission to access the confirmation or invoice for this payment.</p>
-            {% endif %}
-        </div></div>
-
-
-        
     </div>
 {% endblock %}

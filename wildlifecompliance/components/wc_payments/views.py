@@ -179,13 +179,17 @@ class InfringementPenaltySuccessView(TemplateView):
 					# TODO 1. offender, 2. internal officer
                     #send_application_fee_invoice_tclass_email_notification(request, proposal, invoice, recipients=[recipient])
                     #send_application_fee_confirmation_tclass_email_notification(request, application_fee, invoice, recipients=[recipient])
+                    try:
+                        invoice_created_datetime = invoice.created
+                    except Exception as e:
+                        inv = Invoice.objects.get(reference=invoice.invoice_reference)
+                        invoice_created_datetime = inv.created
 
                     context = {
                         'sanction_outcome': sanction_outcome,
                         'offender': recipient,
-                        'fee_invoice': invoice.reference,
+                        'invoice_created_datetime': invoice_created_datetime
                     }
-                    print(context)
                     return render(request, self.template_name, context)
 
         except Exception as e:
@@ -202,10 +206,16 @@ class InfringementPenaltySuccessView(TemplateView):
             else:
                 return redirect('external')
 
+        try:
+            invoice_created_datetime = invoice.created
+        except Exception as e:
+            inv = Invoice.objects.get(reference=invoice.invoice_reference)
+            invoice_created_datetime = inv.created
+
         context = {
             'sanction_outcome': sanction_outcome,
             'offender': recipient,
-            'fee_invoice': invoice.invoice_reference
+            'invoice_created_datetime': invoice_created_datetime
         }
         return render(request, self.template_name, context)
 
