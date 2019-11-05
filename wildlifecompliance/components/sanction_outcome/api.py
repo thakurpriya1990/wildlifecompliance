@@ -383,6 +383,7 @@ class SanctionOutcomeViewSet(viewsets.ModelViewSet):
 
                 # Offence should not be changed
                 # Offender
+                # TODO: Now working when officer edit after return-to-officer
                 request_data['offender_id'] = request_data.get('current_offender', {}).get('id', None)
 
                 # No workflow
