@@ -260,8 +260,6 @@ export default {
             });
         },
         payInfringementPenalty: function(sanction_outcome_id){
-            console.log('payInfringementPenalty');
-            //this.$http.post(helpers.add_endpoint_join(api_endpoints.sanction_outcome, sanction_outcome_id + '/sanction_outcome_infringement_penalty_checkout/'), sanction_outcome_id).then(res=>{
             this.$http.post('/infringement_penalty/' + sanction_outcome_id + '/').then(res=>{
                     window.location.href = "/ledger/checkout/checkout/payment-details/";
                 },err=>{
