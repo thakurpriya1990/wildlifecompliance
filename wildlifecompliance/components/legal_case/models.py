@@ -198,7 +198,7 @@ class LegalCaseRunningSheetEntry(RevisionedMixin):
     #number = models.CharField(max_length=50, blank=True)
     date_created = models.DateTimeField(auto_now_add=True)
     user = models.ForeignKey(EmailUser, related_name='running_sheet_entry_user')
-    description = models.CharField(max_length=255, blank=True, null=True)
+    description = models.CharField(max_length=255, blank=True)
     row_num = models.SmallIntegerField(blank=False, null=False)
     deleted = models.BooleanField(default=False)
     objects = LegalCaseRunningSheetEntryManager()
@@ -304,3 +304,8 @@ class LegalCaseDocument(Document):
     class Meta:
         app_label = 'wildlifecompliance'
 
+
+import reversion
+reversion.register(LegalCaseRunningSheetEntry, follow=['user'])
+reversion.register(LegalCase)
+reversion.register(EmailUser)

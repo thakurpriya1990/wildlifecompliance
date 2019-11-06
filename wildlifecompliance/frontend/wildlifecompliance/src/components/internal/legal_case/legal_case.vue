@@ -369,7 +369,8 @@ export default {
                             //ret_str = '<div contenteditable="true">this <a contenteditable="false" href="www.google.com">google</a> this2</div>'
                             //ret_str = '<div v-model="legal_case.running_sheet_object[' + row.number + '] contenteditable="true">this <a contenteditable="false" href="www.google.com">google</a> this2</div>'
                             //ret_str = '<div v-model="runningSheetObj[' + String.fromCharCode(34) + row.number + String.fromCharCode(34) + '].description" contenteditable="true">this <a contenteditable="false" href="www.google.com">google</a> this2</div>'
-                            ret_str = '<div id=' + row.number + ' contenteditable="true">this <a contenteditable="false" href="www.google.com">google</a> this2</div>'
+                            //ret_str = '<div id=' + row.number + ' contenteditable="true">this <a contenteditable="false" href="www.google.com">google</a> this2</div>'
+                            ret_str = '<div id=' + row.number + ' contenteditable="true">' + row.description + '</div>'
                             //ret_str = '<div contenteditable="true">this <a contenteditable="false" href="www.google.com">google</a> this2</div>'
                             return ret_str;
 
@@ -510,22 +511,64 @@ export default {
         return inspection_bind_id;
     },
     runningSheet: function() {
-        let retRunningSheet = null;
+        let retRunningSheet = [];
         if (this.legal_case && this.legal_case.running_sheet_entries) {
-            //Object.assign(ret_running_sheet, this.legal_case.running_sheet_entries);
-            retRunningSheet = this.legal_case.running_sheet_entries;
+            let i = 0
+            for (let r of this.legal_case.running_sheet_entries) {
+                retRunningSheet.push(Object.assign({}, this.legal_case.running_sheet_entries[i]))
+                //retRunningSheet[i].description += ' transform'
+                let re = /\{\{ \"person\_id\"\: \d+ \}\}/g;
+                let matchArray = re.exec(retRunningSheet[i].description)
+                //console.log(matchArray)
+                if (matchArray && matchArray.length > 0) {
+                    for (let match of matchArray) {
+                        //if (match.index) {
+                        //    console.log("match.index")
+                        //    console.log(match.index)
+                        //    //state.legal_case.running_sheet_transform[i].description =  description + ' transform';
+                        //    state.legal_case.running_sheet_transform[i].description.replace(match, 'blah transform');
+                        //}
+                        console.log("match")
+                        console.log(typeof(match))
+                        console.log(match)
+                        //state.legal_case.running_sheet_transform[i].description =  description;
+                        retRunningSheet[i].description = retRunningSheet[i].description.replace(
+                            match, //'blah transform'
+                            '<a contenteditable="false" target="_blank"  href="/internal/users/7822">Mark</a>'
+                        );
+                        this.constructRunningSheetTableEntry({"rowNum": i, "description": retRunningSheet[i].description});
+                    }
+                }
+                i += 1;
+            }
         }
         return retRunningSheet;
     },
-    runningSheetObj: function() {
-        let retRunningSheetObj = {}
-        if (this.legal_case && this.legal_case.running_sheet_entries) {
-            for (let r of this.legal_case.running_sheet_entries) {
-                retRunningSheetObj[r.number] = r;
-            }
-        }
-        return retRunningSheetObj;
-    },
+    //runningSheetEntries: function() {
+    //    let retRunningSheet = null;
+    //    if (this.legal_case && this.legal_case.running_sheet_entries) {
+    //        //Object.assign(ret_running_sheet, this.legal_case.running_sheet_entries);
+    //        retRunningSheet = this.legal_case.running_sheet_entries;
+    //    }
+    //    return retRunningSheet;
+    //},
+    //runningSheetTransform: function() {
+    //    let retRunningSheet = null;
+    //    if (this.legal_case && this.legal_case.running_sheet_transform) {
+    //        //Object.assign(ret_running_sheet, this.legal_case.running_sheet_entries);
+    //        retRunningSheet = this.legal_case.running_sheet_transform;
+    //    }
+    //    return retRunningSheet;
+    //},
+    //runningSheetObj: function() {
+    //    let retRunningSheetObj = {}
+    //    if (this.legal_case && this.legal_case.running_sheet_entries) {
+    //        for (let r of this.legal_case.running_sheet_entries) {
+    //            retRunningSheetObj[r.number] = r;
+    //        }
+    //    }
+    //    return retRunningSheetObj;
+    //},
     //running_sheet: function() {
     //    let ret_running_sheet = null;
     //    if (this.legal_case && this.legal_case.running_sheet_object) {
@@ -547,12 +590,21 @@ export default {
           },
       },
       runningSheet: {
-          handler: function() {
+          handler: function () {
+              //console.log(newVal)
+              //console.log(oldVal)
               //this.runningSheetEventListeners();
               //this.constructRunningSheetTable();
           },
           deep: true
       },
+      //runningSheetEntries: {
+      //    handler: function() {
+      //        //this.runningSheetEventListeners();
+      //        //this.constructRunningSheetTable();
+      //    },
+      //    deep: true
+      //},
   },
   filters: {
     formatDate: function(data) {
@@ -586,6 +638,22 @@ export default {
                 }).draw();
                 //let actionColumn
             }
+        }
+    },
+    constructRunningSheetTableEntry: function({rowNum, description}){
+        if (this.$refs.running_sheet_table && this.$refs.running_sheet_table.vmDataTable) {
+            console.log("constructRunningSheetTableEntry");
+            //let tableCell = this.$refs.running_sheet_table.vmDataTable.rows(rowNum).data()[0].description
+            let tableRow = this.$refs.running_sheet_table.vmDataTable.row(rowNum).data()
+            //let tableCell3 = this.$refs.running_sheet_table.vmDataTable.cell(rowNum).data()
+            //tableCell = description
+            tableRow.description = description
+            this.$refs.running_sheet_table.vmDataTable.row(rowNum).data(tableRow).draw()
+            //console.log(this.$refs.running_sheet_table.vmDataTable.rows(rowNum).columns("Description").data())
+            //let tableCell = this.$refs.running_sheet_table.vmDataTable.columns("Description")
+            //console.log("constructRunningSheetTableEntry");
+            //this.$refs.running_sheet_table.vmDataTable.cell(rowNum, 3).data(description).draw();
+            //console.log(this.$refs.running_sheet_table.vmDataTable.cell(rowNum, 3).data())
         }
     },
     //addRunningSheetEntryToTable: function(allegedOffence){
@@ -678,7 +746,7 @@ export default {
         this.$refs.magic.isModalOpen = true;
         this.magic = false;
     },
-    runningSheetEvents: function(e) {
+    runningSheetEvents: async function(e) {
         //console.log(e)
         //console.log(e.target.outerHTML)
         let rowObj = {}
@@ -712,19 +780,35 @@ export default {
             this.magic) {
             //this.magic = true;
             this.magicMethod()
-        } else if (this.runningSheetObj && this.runningSheetObj[rowId]) {
-            //console.log("push rowId")
-            //console.log(this.runningSheetObj[rowId])
-            //this.tempRunningSheet.push(rowId);
-            this.setRunningSheetEntryDescription({"rowId": rowId, "description": rowValue})
-            //if (this.runningSheetObj[rowId].number !== rowId) {
-            //    this.setRunningSheetEntryDescription({"rowId": rowId, "description": rowValue})
-            //}
-
         } else {
-            this.magicKeyPressed = false;
-            this.magicKey2Pressed = false;
+            let i = 0;
+            for (let r of this.runningSheet) {
+                if (r.number === rowId) {
+                    await this.setRunningSheetEntryDescription({"rowId": rowId, "description": rowValue})
+                    //this.constructRunningSheetTableEntry({
+                    //    "rowNum": i, 
+                    //    "description": this.legal_case.running_sheet_transform[i].description
+                    //});
+                    this.magicKeyPressed = false;
+                    this.magicKey2Pressed = false;
+                }
+                i += 1;
+            }
         }
+        
+        //else if (this.runningSheetObj && this.runningSheetObj[rowId]) {
+        //    //console.log("push rowId")
+        //    //console.log(this.runningSheetObj[rowId])
+        //    //this.tempRunningSheet.push(rowId);
+        //    this.setRunningSheetEntryDescription({"rowId": rowId, "description": rowValue})
+        //    //if (this.runningSheetObj[rowId].number !== rowId) {
+        //    //    this.setRunningSheetEntryDescription({"rowId": rowId, "description": rowValue})
+        //    //}
+
+        //} else {
+        //    this.magicKeyPressed = false;
+        //    this.magicKey2Pressed = false;
+        //}
 
     },
     //runningSheetEventListeners: function() {
@@ -761,6 +845,19 @@ export default {
           function(e) {
               vm.runningSheetEvents(e)
           });
+
+      //let runningSheetDataTable = $('running-sheet-table').DataTable();
+      //runningSheetTable.on( 'click', 'td', function() {
+      //        var rowIdx = runningSheetDataTable
+      //            .cell( vm )
+      //            .index().row;
+      //     
+      //        runningSheetDataTable
+      //            .rows( rowIdx )
+      //            .nodes()
+      //            .to$()
+      //            .addClass( 'clicked' );
+      //} );
 
       //let el_fr_date = $(vm.$refs.plannedForDatePicker);
       //let el_fr_time = $(vm.$refs.plannedForTimePicker);

@@ -64,16 +64,23 @@ export const legalCaseStore = {
                 state.legal_case.id + "/create_legal_case_process_comms_log_document/"
                 )
             Vue.set(state.legal_case, 'createLegalCaseProcessCommsLogsDocumentUrl', createLegalCaseProcessCommsLogsDocumentUrl); 
-            let runningSheetList = []
+            //let runningSheetList = []
+            //for (let r of state.legal_case.running_sheet_entries) {
+            //    runningSheetList.push(r.number)
+            //}
+            //Vue.set(state.legal_case, 'running_sheet_list', runningSheetList);
+            //let runningSheetObject = {}
+            //for (let o of state.legal_case.running_sheet_entries) {
+            //    runningSheetObject[o.number] = o
+            //}
+            //Vue.set(state.legal_case, 'running_sheet_object', runningSheetObject);
+            Vue.set(state.legal_case, 'running_sheet_transform', []);
+            let i = 0
             for (let r of state.legal_case.running_sheet_entries) {
-                runningSheetList.push(r.number)
+                state.legal_case.running_sheet_transform.push(Object.assign({}, state.legal_case.running_sheet_entries[i]))
+                state.legal_case.running_sheet_transform[i].description += ' transform'
+                i += 1;
             }
-            Vue.set(state.legal_case, 'running_sheet_list', runningSheetList);
-            let runningSheetObject = {}
-            for (let o of state.legal_case.running_sheet_entries) {
-                runningSheetObject[o.number] = o
-            }
-            Vue.set(state.legal_case, 'running_sheet_object', runningSheetObject);
         },
         updateRelatedItems(state, related_items) {
             Vue.set(state.legal_case, 'related_items', related_items);
@@ -96,6 +103,33 @@ export const legalCaseStore = {
                 if (r.number === rowId) {
                     //Vue.set(r, 'description', description);
                     state.legal_case.running_sheet_entries[i].description =  description;
+                    //Vue.set(state.legal_case, 'running_sheet_transform', []);
+                    //state.legal_case.running_sheet_transform = Object.assign({}, state.legal_case.running_sheet_entries)
+                    //state.legal_case.running_sheet_transform = []
+                    //let ii = 0
+                    for (let rr of state.legal_case.running_sheet_transform) {
+                        if (rr.number === rowId) {
+                            //state.legal_case.running_sheet_transform[i].description =  (description ? description : '') + ' transform';
+                            let re = /\{\{ \"person\_id\"\: \d+ \}\}/g;
+                            let matchArray = re.exec(state.legal_case.running_sheet_entries[i].description)
+                            //console.log(matchArray)
+                            if (matchArray && matchArray.length > 0) {
+                                for (let match of matchArray) {
+                                    //if (match.index) {
+                                    //    console.log("match.index")
+                                    //    console.log(match.index)
+                                    //    //state.legal_case.running_sheet_transform[i].description =  description + ' transform';
+                                    //    state.legal_case.running_sheet_transform[i].description.replace(match, 'blah transform');
+                                    //}
+                                    console.log("match")
+                                    console.log(typeof(match))
+                                    console.log(match)
+                                    //state.legal_case.running_sheet_transform[i].description =  description;
+                                    state.legal_case.running_sheet_transform[i].description = description.replace(match, 'blah transform');
+                                }
+                            }
+                        }
+                    }
                 }
                 i += 1
             }
