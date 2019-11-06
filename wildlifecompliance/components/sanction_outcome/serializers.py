@@ -255,7 +255,20 @@ class SanctionOutcomeDatatableSerializer(serializers.ModelSerializer):
     #      return obj.infringement_penalty_invoice_reference
 
     def get_paper_notices(self, obj):
-        return [[r.name, r._file.url] for r in obj.documents.all()]
+        url_list = []
+
+        if obj.documents.all().count():
+            for doc in obj.documents.all():
+                url = '<a href="{}">{}</a>'.format(doc._file.url, doc.name)
+                url_list.append(url)
+        else:
+            url_list.append('<a href="#">PDF</a>')
+
+        urls = '<br />'.join(url_list)
+        return urls
+
+
+        # return [[r.name, r._file.url] for r in obj.documents.all()]
 
     def get_user_action(self, obj):
         inv_ref = obj.infringement_penalty_invoice_reference

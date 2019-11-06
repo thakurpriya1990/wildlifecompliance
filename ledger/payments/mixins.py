@@ -11,7 +11,21 @@ class InvoiceOwnerMixin(object):
         return helpers.is_payment_admin(user)
 
     def check_owner(self, user):
-        return self.get_object().order.user == user or self.is_payment_admin(user)
+        ret_val = False
+        if self.is_payment_admin(user):
+            ret_val = True
+        else:
+            obj = self.get_object()
+            if hasattr(obj, 'order'):
+                if obj.order.user == user:
+                    ret_val = True
+            if hasattr(obj, 'offender'):
+                if obj.offender.person == user:
+                    ret_val = True
+
+        return ret_val
+
+        # return self.get_object().order.user == user or self.is_payment_admin(user)
 
     def dispatch(self, request, *args, **kwargs):
         if not self.check_owner(request.user):    
