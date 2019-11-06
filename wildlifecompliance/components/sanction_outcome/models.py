@@ -76,7 +76,7 @@ class SanctionOutcome(models.Model):
                                                                                 # Once all the remediation actions are closed, this status should become closed...
         (STATUS_DECLINED, 'Declined'),
         (STATUS_WITHDRAWN, 'Withdrawn'),
-        (STATUS_CLOSED, 'closed'),
+        (STATUS_CLOSED, 'Closed'),
     )
 
     TYPE_INFRINGEMENT_NOTICE = 'infringement_notice'
