@@ -262,7 +262,14 @@ class SanctionOutcomeDatatableSerializer(serializers.ModelSerializer):
                 url = '<a href="{}">{}</a>'.format(doc._file.url, doc.name)
                 url_list.append(url)
         else:
-            url_list.append('<a href="#">PDF</a>')
+            if obj.type == SanctionOutcome.TYPE_INFRINGEMENT_NOTICE:
+                url_list.append('<a href="/sanction_outcome/pdf/' + str(obj.id) + '/"><i style="color:red" class="fa fa-file-pdf-o"></i> Infringement Notice</a>')
+            elif obj.type == SanctionOutcome.TYPE_CAUTION_NOTICE:
+                url_list.append('<a href="#"><i style="color:red" class="fa fa-file-pdf-o"></i> Caution Notice</a>')
+            elif obj.type == SanctionOutcome.TYPE_LETTER_OF_ADVICE:
+                url_list.append('<a href="#"><i style="color:red" class="fa fa-file-pdf-o"></i> Letter of Advice</a>')
+            elif obj.type == SanctionOutcome.TYPE_REMEDIATION_NOTICE:
+                url_list.append('<a href="#"><i style="color:red" class="fa fa-file-pdf-o"></i> Remediation Notice</a>')
 
         urls = '<br />'.join(url_list)
         return urls
@@ -271,40 +278,47 @@ class SanctionOutcomeDatatableSerializer(serializers.ModelSerializer):
         # return [[r.name, r._file.url] for r in obj.documents.all()]
 
     def get_user_action(self, obj):
+        url_list = []
+
         inv_ref = obj.infringement_penalty_invoice_reference
-        user_id = self.context.get('request', {}).user.id
+        user = self.context.get('request', {}).user
 
         view_url = '<a href=/internal/sanction_outcome/' + str(obj.id) + '>View</a>'
         process_url = '<a href=/internal/sanction_outcome/' + str(obj.id) + '>Process</a>'
-        returned_url = ''
+        view_payment_url = '<a href="/ledger/payments/invoice/payment?invoice=' + inv_ref + '">View Payment</a>' if inv_ref else ''
+        payment_url = '<a href="#" data-pay-infringement-penalty="' + str(obj.id) + '">Pay</a>'
+        record_payment_url = '<a href="/ledger/payments/invoice/payment?invoice=">Record Payment</a>'
 
         if obj.status == SanctionOutcome.STATUS_CLOSED:
             # if object is closed, no one can process but view
-            returned_url = view_url
-        elif user_id == obj.assigned_to_id:
-            # if user is assigned to the object, the user can process it
-            returned_url = process_url
-        elif obj.allocated_group and not obj.assigned_to_id:
-            if user_id in [member.id for member in obj.allocated_group.members]:
+            url_list.append(view_url)
+        else:
+            if user.id == obj.assigned_to_id:
+                # if user is assigned to the object, the user can process it
+                url_list.append(process_url)
+            elif (obj.allocated_group and not obj.assigned_to_id) and user.id in [member.id for member in obj.allocated_group.members]:
                 # if user belongs to the same group of the object
                 # and no one is assigned to the object,
                 # the user can process it
-                returned_url = process_url
+                url_list.append(process_url)
+            else:
+                url_list.append(view_url)
 
-        user = self.context.get('request', {}).user
         if is_payment_admin(user):
             if obj.payment_status == SanctionOutcome.PAYMENT_STATUS_PAID and inv_ref:
-                view_payment_url = '<a href="/ledger/payments/invoice/payment?invoice=' + inv_ref + '">View Payment</a>'
-                returned_url += '<br />' + view_payment_url
+                # Payment admin can refund payment
+                url_list.append(view_payment_url)
             elif obj.payment_status == SanctionOutcome.PAYMENT_STATUS_UNPAID:
-                payment_url = '<a href="#" data-pay-infringement-penalty="' + str(obj.id) + '">Pay</a>'
-                returned_url += '<br />' + payment_url
+                # Payment admin can pay on behalf or record cash payment or view sanction outcome
+                url_list.append(payment_url)
+                url_list.append(record_payment_url)
 
-        if not returned_url:
+        if not url_list:
             # In other case user can view
-            returned_url = view_url
+            url_list.append(view_url)
 
-        return returned_url
+        urls = '<br />'.join(url_list)
+        return urls
 
 
 class SaveSanctionOutcomeSerializer(serializers.ModelSerializer):
