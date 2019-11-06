@@ -2,6 +2,7 @@ from django.db.models import Q
 from rest_framework import serializers
 from rest_framework.validators import UniqueTogetherValidator
 
+from ledger.payments.helpers import is_payment_admin
 from wildlifecompliance.components.main.fields import CustomChoiceField
 from wildlifecompliance.components.main.related_item import get_related_items
 from wildlifecompliance.components.main.serializers import CommunicationLogEntrySerializer
@@ -270,16 +271,21 @@ class SanctionOutcomeDatatableSerializer(serializers.ModelSerializer):
         elif user_id == obj.assigned_to_id:
             # if user is assigned to the object, the user can process it
             returned_url = process_url
-        elif (obj.allocated_group and not obj.assigned_to_id):
+        elif obj.allocated_group and not obj.assigned_to_id:
             if user_id in [member.id for member in obj.allocated_group.members]:
                 # if user belongs to the same group of the object
                 # and no one is assigned to the object,
                 # the user can process it
                 returned_url = process_url
 
-        if obj.payment_status == SanctionOutcome.PAYMENT_STATUS_PAID and inv_ref:
-            view_payment_url = '<a href="/ledger/payments/invoice/payment?invoice=' + inv_ref + '">View Payment</a>'
-            returned_url += '<br />' + view_payment_url
+        user = self.context.get('request', {}).user
+        if is_payment_admin(user):
+            if obj.payment_status == SanctionOutcome.PAYMENT_STATUS_PAID and inv_ref:
+                view_payment_url = '<a href="/ledger/payments/invoice/payment?invoice=' + inv_ref + '">View Payment</a>'
+                returned_url += '<br />' + view_payment_url
+            elif obj.payment_status == SanctionOutcome.PAYMENT_STATUS_UNPAID:
+                payment_url = '<a href="#" data-pay-infringement-penalty="' + str(obj.id) + '">Pay</a>'
+                returned_url += '<br />' + payment_url
 
         if not returned_url:
             # In other case user can view

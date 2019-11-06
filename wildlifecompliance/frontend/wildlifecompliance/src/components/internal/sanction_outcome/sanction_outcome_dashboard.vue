@@ -306,8 +306,30 @@ export default {
             this.filterDistrictId = 'all';
         },
         addEventListeners: function () {
+            let vm = this;
             this.attachFromDatePicker();
             this.attachToDatePicker();
+
+            console.log('addEventLinsterners');
+
+            vm.$refs.sanction_outcome_table.vmDataTable.on('click', 'a[data-pay-infringement-penalty]', function(e) {
+                e.preventDefault();
+                var id = $(e.target).attr('data-pay-infringement-penalty');
+                vm.payInfringementPenalty(id);
+            });
+        },
+        payInfringementPenalty: function(sanction_outcome_id){
+            console.log('payInfringementPenalty');
+
+            this.$http.post('/infringement_penalty/' + sanction_outcome_id + '/').then(res=>{
+                    window.location.href = "/ledger/checkout/checkout/payment-details/";
+                },err=>{
+                    swal(
+                        'Submit Error',
+                        helpers.apiVueResourceError(err),
+                        'error'
+                    )
+                });
         },
         attachFromDatePicker: function(){
             let vm = this;
