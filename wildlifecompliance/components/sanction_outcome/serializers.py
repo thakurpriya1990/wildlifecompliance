@@ -283,6 +283,9 @@ class SanctionOutcomeDatatableSerializer(serializers.ModelSerializer):
             if obj.payment_status == SanctionOutcome.PAYMENT_STATUS_PAID and inv_ref:
                 view_payment_url = '<a href="/ledger/payments/invoice/payment?invoice=' + inv_ref + '">View Payment</a>'
                 returned_url += '<br />' + view_payment_url
+            elif obj.payment_status == SanctionOutcome.PAYMENT_STATUS_UNPAID:
+                payment_url = '<a href="#" data-pay-infringement-penalty="' + str(obj.id) + '">Pay</a>'
+                returned_url += '<br />' + payment_url
 
         if not returned_url:
             # In other case user can view
