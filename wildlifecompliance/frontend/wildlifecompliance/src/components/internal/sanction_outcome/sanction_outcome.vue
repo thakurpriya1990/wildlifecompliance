@@ -52,15 +52,40 @@
                         </div>
                         <div class="panel-body panel-collapse">
 
+                            <div v-if="visibilityExtendDueDateButton" class="row action-button">
+                                <div class="col-sm-12">
+                                    <a @click="addWorkflow('extend_due_date')" class="btn btn-primary btn-block">
+                                        Extend Due Date
+                                    </a>
+                                </div>
+                            </div>
+
+                            <div v-if="visibilitySendToDotButton" class="row action-button">
+                                <div class="col-sm-12">
+                                    <a @click="addWorkflow('send_to_dot')" class="btn btn-primary btn-block">
+                                        Send to DoT
+                                    </a>
+                                </div>
+                            </div>
+
+                            <div v-if="visibilitySendToFinesEnforcementButton" class="row action-button">
+                                <div class="col-sm-12">
+                                    <a @click="addWorkflow('send_to_fines_enforcement')" class="btn btn-primary btn-block">
+                                        Send to Fines Enforcement
+                                    </a>
+                                </div>
+                            </div>
+
                             <div v-if="visibilityWithdrawButtonForInc" class="row action-button">
                                 <div class="col-sm-12">
                                     <a @click="addWorkflow('withdraw_by_inc')" class="btn btn-primary btn-block">
-                                        Withdraw
+                                        Escalate for Withdrawal
                                     </a>
                                 </div>
                             </div>
 
                             <div v-if="visibilityWithdrawButtonForManager" class="row action-button">
+
                                 <div class="col-sm-12">
                                     <a @click="addWorkflow('withdraw_by_manager')" class="btn btn-primary btn-block">
                                         Withdraw
@@ -550,6 +575,42 @@ export default {
                 if (this.sanction_outcome.type.id == 'infringement_notice'){
                     if (this.sanction_outcome.status.id === this.STATUS_AWAITING_ENDORSEMENT && this.sanction_outcome.issued_on_paper){
                         // Manager can withdraw paper issued infringement notice
+                        visibility = true;
+                    }
+                }
+            }
+            return visibility;
+        },
+        visibilityExtendDueDateButton: function() {
+            let visibility = false;
+            if (this.sanction_outcome.can_user_action){
+                if (this.sanction_outcome.type.id == 'infringement_notice'){
+                    if (this.sanction_outcome.status.id === this.STATUS_AWAITING_PAYMENT){
+                        // This is when Infringement Notice Coordinator extends the due date
+                        visibility = true;
+                    }
+                }
+            }
+            return visibility;
+        },
+        visibilitySendToDotButton: function() {
+            let visibility = false;
+            if (this.sanction_outcome.can_user_action){
+                if (this.sanction_outcome.type.id == 'infringement_notice'){
+                    if (this.sanction_outcome.status.id === this.STATUS_AWAITING_PAYMENT){
+                        // This is when Infringement Notice Coordinator sends this IN to Dot
+                        visibility = true;
+                    }
+                }
+            }
+            return visibility;
+        },
+        visibilitySendToFinesEnforcementButton: function() {
+            let visibility = false;
+            if (this.sanction_outcome.can_user_action){
+                if (this.sanction_outcome.type.id == 'infringement_notice'){
+                    if (this.sanction_outcome.status.id === this.STATUS_AWAITING_PAYMENT){
+                        // This is when Infringement Notice Coordinator sends this IN to fines enforcement
                         visibility = true;
                     }
                 }

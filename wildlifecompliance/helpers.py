@@ -101,6 +101,7 @@ def is_compliance_internal_user(request):
                                        'triage_call_email',
                                        'issuing_officer',
                                        'officer',
+                                       'infringement_notice_coordinator',
                                        'manager'])]
     return request.user.is_authenticated() and (belongs_to_list(
         request.user, compliance_groups) or request.user.is_superuser)

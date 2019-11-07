@@ -153,7 +153,7 @@ class SanctionOutcomePaginatedViewSet(viewsets.ModelViewSet):
         This function is called from the external dashboard page by external user
         """
         queryset = SanctionOutcome.objects_for_external.filter(Q(offender__person=request.user))
-        queryset = self.filter_queryset(queryset)
+        queryset = self.filter_queryset(queryset).order_by('-id')
         self.paginator.page_size = queryset.count()
         result_page = self.paginator.paginate_queryset(queryset, request)
         serializer = SanctionOutcomeDatatableSerializer(result_page, many=True, context={'request': request})
