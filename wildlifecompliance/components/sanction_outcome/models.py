@@ -298,13 +298,8 @@ class SanctionOutcome(models.Model):
 
             self.status = SanctionOutcome.STATUS_AWAITING_PAYMENT
             self.payment_status = SanctionOutcome.PAYMENT_STATUS_UNPAID
-            amounts = self.retrieve_penalty_amounts_by_date()
-            self.penalty_amount_1st = amounts.amount
-            self.penalty_amount_2nd = amounts.amount_after_due
-            due_date_config = SanctionOutcomeDueDateConfiguration.get_config_by_date(self.date_of_issue)
-            self.due_date_auto_1st = self.date_of_issue + relativedelta(days=due_date_config.due_date_window_1st)
-            self.due_date_auto_2nd = self.date_of_issue + relativedelta(days=due_date_config.due_date_window_1st + due_date_config.due_date_window_2nd)
-            self.due_date_extended_max =self.date_of_issue + relativedelta(years=1)
+            self.set_penalty_amounts()
+            self.set_due_dates()
 
         elif self.type in (SanctionOutcome.TYPE_CAUTION_NOTICE, SanctionOutcome.TYPE_LETTER_OF_ADVICE):
             self.status = SanctionOutcome.STATUS_CLOSED
@@ -318,6 +313,18 @@ class SanctionOutcome(models.Model):
         self.save()
 
         self.log_user_action(SanctionOutcomeUserAction.ACTION_ENDORSE.format(self.lodgement_number), request)
+
+    def set_due_dates(self):
+        due_date_config = SanctionOutcomeDueDateConfiguration.get_config_by_date(self.date_of_issue)
+        self.due_date_auto_1st = self.date_of_issue + relativedelta(days=due_date_config.due_date_window_1st)
+        self.due_date_auto_2nd = self.date_of_issue + relativedelta(
+            days=due_date_config.due_date_window_1st + due_date_config.due_date_window_2nd)
+        self.due_date_extended_max = self.date_of_issue + relativedelta(years=1)
+
+    def set_penalty_amounts(self):
+        amounts = self.retrieve_penalty_amounts_by_date()
+        self.penalty_amount_1st = amounts.amount
+        self.penalty_amount_2nd = amounts.amount_after_due
 
     def decline(self, request):
         self.status = self.STATUS_DECLINED
@@ -358,7 +365,14 @@ class SanctionOutcome(models.Model):
     def due_date_1st(self):
         if self.due_date_manual_1st:
             return self.due_date_manual_1st
-        return self.due_date_auto_1st
+        elif self.due_date_auto_1st:
+            return self.due_date_auto_1st
+        else:
+            # Should not reach here
+            self.set_due_dates()
+            self.set_penalty_amounts()
+            self.save()
+            return self.due_date_auto_1st
 
     def extend_due_date(self, target_date):
         now_datetime = datetime.now()
@@ -375,22 +389,32 @@ class SanctionOutcome(models.Model):
     def due_date_2nd(self):
         if self.due_date_manual_2nd:
             return self.due_date_manual_2nd
-        return self.due_date_auto_2nd
-
-    def determine_penalty_amount_by_date(self, date_payment):
-        if self.offence_occurrence_date <= date_payment:
-            if date_payment <= self.due_date_1st:
-                return self.penalty_amount_1st
-            elif date_payment <= self.due_date_2nd:
-                return self.penalty_amount_2nd
-            else:
-                # Should not reach here
-                # Details of the sanction outcome is uploaded to the Fines Enforcement system after the 2nd due
-                # After that, the sanciton outcome should be closed (??? External user should still be able to see the sanction outcome???)
-                raise ValidationError('Overdue')
+        elif self.due_date_auto_2nd:
+            return self.due_date_auto_2nd
         else:
             # Should not reach here
-            raise ValidationError('Payment must be after the offence occurrence date.')
+            self.set_due_dates()
+            self.set_penalty_amounts()
+            self.save()
+            return self.due_date_auto_2nd
+
+    def determine_penalty_amount_by_date(self, date_payment):
+        try:
+            if self.offence_occurrence_date <= date_payment:
+                if date_payment <= self.due_date_1st:
+                    return self.penalty_amount_1st
+                elif date_payment <= self.due_date_2nd:
+                    return self.penalty_amount_2nd
+                else:
+                    # Should not reach here
+                    # Details of the sanction outcome is uploaded to the Fines Enforcement system after the 2nd due
+                    # After that, the sanciton outcome should be closed (??? External user should still be able to see the sanction outcome???)
+                    raise ValidationError('Overdue')
+            else:
+                # Should not reach here
+                raise ValidationError('Payment must be after the offence occurrence date.')
+        except Exception as e:
+            raise ValidationError('Something wrong.')
 
     class Meta:
         app_label = 'wildlifecompliance'

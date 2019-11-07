@@ -198,6 +198,7 @@ export default {
                         searchable: true,
                         orderable: false,
                         mRender: function (data, type, row){
+                            let ret_str = ''
                             return data;
                         }
                     },
