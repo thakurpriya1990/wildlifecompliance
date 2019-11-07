@@ -51,7 +51,7 @@
                                     </div>
                                 </div>
                             </div>
-                             <div class="col-sm-12 top-buffer-s" v-if="!isSendingToAssessor && !isOfficerConditions" >
+                             <div class="col-sm-12 top-buffer-s" v-if="!isSendingToAssessor && !isOfficerConditions && !canAssignApproverFor(selected_activity_tab_id)" >
                                 <strong>Assigned Officer</strong><br/>
                                 <div class="form-group">
                                     <template>
@@ -62,7 +62,17 @@
                                     </template>
                                 </div>
                             </div>
-
+                            <div class="col-sm-12 top-buffer-s" v-if="canAssignApproverFor(selected_activity_tab_id)" >
+                                <strong>Assigned Approver</strong><br/>
+                                <div class="form-group">
+                                    <template>
+                                        <select ref="assigned_approver" class="form-control" v-model="selectedActivity.assigned_approver" >
+                                            <option v-for="member in application.licence_approvers" :value="member.id" v-bind:key="member.id">{{member.first_name}} {{member.last_name}}</option>
+                                        </select>
+                                        <a @click.prevent="makeMeApprover()" class="actionBtn pull-right">Assign to me</a>
+                                    </template>                                    
+                                </div>
+                            </div>
                             <div class="col-sm-12 top-buffer-s" v-if="isSendingToAssessor || isOfficerConditions">
                                 <strong>Assigned Assessors</strong><br/>
                             
@@ -676,6 +686,7 @@ export default {
             'isApplicationActivityVisible',
             'unfinishedActivities',
             'current_user',
+            'canAssignApproverFor',
         ]),
         applicationDetailsVisible: function() {
             return !this.isSendingToAssessor && !this.isofficerfinalisation && this.unfinishedActivities.length && !this.isOfficerConditions;
@@ -684,23 +695,26 @@ export default {
             return this.application.processing_status.id == 'draft';
         },
         selectedActivity: function(){
-            var activities_list = this.licence_type_data.activity
-            for(let activity of activities_list){
-                if(activity.id == this.selected_activity_tab_id){
-                    return activity;
-                }
+            // Function that returns an Application Selected Activity.
+            if (this.selected_activity_tab_id == null || this.selected_activity_tab_id<1) {
+
+                this.initFirstTab()     // Each Tab is a Licence Activity.
             }
-            return null;
+            return this.application.activities.find(activity => {
+
+                return activity.licence_activity === this.selected_activity_tab_id                
+            })
         },
         canIssueDecline: function(){
-            var activities_list = this.licence_type_data.activity;
-            for(let activity of activities_list){
-                if(['with_officer_finalisation', 'awaiting_licence_fee_payment'].includes(activity.processing_status.id) &&
-                    this.userHasRole('issuing_officer', activity.id)){
-                        return true;
-                }
-            }
-            return false;
+            // check user is authorised to issue/allocate for selected activity.
+            if (!this.canAssignApproverFor(this.selected_activity_tab_id)) {
+                return false;
+            };
+            // check activity is not assigned to another approver.
+            if (this.selectedActivity.assigned_approver != null && this.selectedActivity.assigned_approver !== this.current_user.id) {
+                return false;
+            };
+            return true;
         },
         canSaveApplication: function() {
             // Assessors can save the Assessor Comments field.
@@ -1101,6 +1115,11 @@ export default {
                 )
             });
         },
+        updateAssignedApproverSelect:function(){
+            let vm = this;
+            $(vm.$refs.assigned_approver).val(vm.selectedActivity.assigned_approver);
+            $(vm.$refs.assigned_approver).trigger('change');
+        },
         refreshFromResponse:function(response){
             this.setOriginalApplication(response.body);
             this.setApplication(response.body);
@@ -1147,6 +1166,71 @@ export default {
                 });
             }
         },
+        assignApprover: function(){
+            let vm = this;
+            let unassign = true;
+            unassign = vm.selectedActivity.assigned_approver == null ? true: false;
+
+            const data = {
+                "activity_id" : this.selectedActivity.licence_activity,
+                "approver_id" : this.selectedActivity.assigned_approver,
+            }
+
+            if (!unassign){
+                vm.$http.post(helpers.add_endpoint_json(api_endpoints.applications,(vm.application.id+'/assign_activity_approver')),JSON.stringify(data),{
+                    emulateJSON:true
+                }).then((response) => {
+                    this.refreshFromResponse(response);
+                    this.updateAssignedApproverSelect();
+                }, (error) => {
+                    this.revert();
+                    this.updateAssignedApproverSelect();
+                    swal(
+                        'Application Error',
+                        helpers.apiVueResourceError(error),
+                        'error'
+                    )
+                });
+            }
+            else{
+                vm.$http.post(helpers.add_endpoint_json(api_endpoints.applications,(vm.application.id+'/unassign_activity_approver')),JSON.stringify(data),{
+                    emulateJSON:true
+                }).then((response) => {
+                    this.refreshFromResponse(response);
+                    this.updateAssignedOfficerSelect();
+                }, (error) => {
+                    this.revert();
+                    this.updateAssignedOfficerSelect();
+                    swal(
+                        'Application Error',
+                        helpers.apiVueResourceError(error),
+                        'error'
+                    )
+                });
+            }
+        },
+        makeMeApprover: function(){
+            let vm = this;
+            const data = {
+                "activity_id" : this.selectedActivity.licence_activity,
+            }
+            vm.$http.post(helpers.add_endpoint_json(api_endpoints.applications,(vm.application.id+'/make_me_activity_approver')),JSON.stringify(data),{
+                emulateJSON:true
+
+            }).then((response) => {
+                this.refreshFromResponse(response);
+                this.updateAssignedApproverSelect();
+
+            }, (error) => {
+                this.revert();
+                this.updateAssignedApproverSelect();
+                swal(
+                    'Application Error',
+                    helpers.apiVueResourceError(error),
+                    'error'
+                )
+            });
+        },        
         onChangeAssessor: function(assessment){
             const data = {
                 "assessment_id" : assessment.id,
@@ -1228,12 +1312,39 @@ export default {
                 vm.assignOfficer();
             });
         },
+        initialiseAssignedApproverSelect: function(reinit=false){
+            let vm = this;
+            if (reinit){
+                $(vm.$refs.assigned_approver).data('select2') ? $(vm.$refs.assigned_approver).select2('destroy'): '';
+            }
+            // Assigned approver select
+            $(vm.$refs.assigned_approver).select2({
+                "theme": "bootstrap",
+                allowClear: true,
+                placeholder:"Select Approver"
+            }).
+            on("select2:select",function (e) {
+                var selected = $(e.currentTarget);
+                vm.selectedActivity.assigned_approver = selected.val();
+                vm.assignApprover();
+            }).on("select2:unselecting", function(e) {
+                var self = $(this);
+                setTimeout(() => {
+                    self.select2('close');
+                }, 0);
+            }).on("select2:unselect",function (e) {
+                var selected = $(e.currentTarget);
+                vm.selectedActivity.assigned_approver = null;
+                vm.assignApprover();
+            });
+        },
         initialiseSelects: function(){
             if (!this.initialisedSelects){
-                this.initialiseAssignedOfficerSelect();
                 this.initialisedSelects = true;
                 this.initMainTab();
             }
+            this.initialiseAssignedOfficerSelect();            
+            this.initialiseAssignedApproverSelect();          
         },
         initMainTab: function() {
             if(!this.$refs.applicantTab) {

@@ -494,6 +494,13 @@ class Application(RevisionedMixin):
         ).distinct()
 
     @property
+    def licence_approvers(self):
+        groups = self.get_permission_groups('issuing_officer')\
+            .values_list('id', flat=True)
+
+        return EmailUser.objects.filter(groups__id__in=groups).distinct()
+
+    @property
     def officers_and_assessors(self):
         groups = self.get_permission_groups(
             ['licensing_officer',
@@ -612,6 +619,23 @@ class Application(RevisionedMixin):
         selected_activity.activity_status = activity_status
         selected_activity.save()
         logger.info("Application: %s Activity ID: %s changed activity status to: %s" % (self.id, activity_id, activity_status))
+
+    def set_activity_approver(self, activity_id, licence_approver):
+        '''
+        Sets an allocated Approver for an Application Selected Activity.
+
+        :param activity_id is an unique identifier for ASA.
+        :param licence_approver is an EmailUser to be allocated to ASA.
+        '''
+        if not activity_id:
+            logger.error("Application: %s cannot update activity approver (%s) \
+                no activity_id provided." % (self.id, licence_approver))
+            return
+        selected_activity = self.get_selected_activity(activity_id)
+        selected_activity.assigned_approver = licence_approver
+        selected_activity.save()
+        logger.info("Application: %s Activity ID: %s changed activity approver \
+            to: %s" % (self.id, activity_id, licence_approver))
 
     def get_selected_activity(self, activity_id):
         '''
@@ -1805,6 +1829,7 @@ class Application(RevisionedMixin):
 
                         # Populate fields below even if the token payment has failed.
                         # They will be reused after a successful payment by the applicant.
+                        selected_activity.assigned_approver = None
                         selected_activity.original_issue_date = original_issue_date
                         selected_activity.issue_date = timezone.now()
                         selected_activity.decision_action = ApplicationSelectedActivity.DECISION_ACTION_ISSUED
@@ -1816,6 +1841,7 @@ class Application(RevisionedMixin):
                         selected_activity.save()
 
                     elif item['final_status'] == ApplicationSelectedActivity.DECISION_ACTION_DECLINED:
+                        selected_activity.assigned_approver = None
                         selected_activity.updated_by = request.user
                         selected_activity.processing_status = ApplicationSelectedActivity.PROCESSING_STATUS_DECLINED
                         selected_activity.decision_action = ApplicationSelectedActivity.DECISION_ACTION_ISSUED
@@ -2386,6 +2412,11 @@ class ApplicationSelectedActivity(models.Model):
     is_inspection_required = models.BooleanField(default=False)
     licence_fee = models.DecimalField(
         max_digits=8, decimal_places=2, default='0')
+    assigned_approver = models.ForeignKey(
+        EmailUser,
+        blank=True,
+        null=True,
+        related_name='wildlifecompliance_officer_finalisation')
 
     def __str__(self):
         return "Application {id} Selected Activity: {short_name} ({activity_id})".format(

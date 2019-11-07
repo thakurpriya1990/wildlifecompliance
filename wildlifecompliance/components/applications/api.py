@@ -858,6 +858,102 @@ class ApplicationViewSet(viewsets.ModelViewSet):
             raise serializers.ValidationError(str(e))
 
     @detail_route(methods=['POST', ])
+    def make_me_activity_approver(self, request, *args, **kwargs):
+        try:
+            activity_id = request.data.get('activity_id', None)
+            instance = self.get_object()
+            me = request.user
+
+            if me not in instance.licence_approvers:
+                raise serializers.ValidationError('You are not in any relevant \
+                    licence approver groups for this application.')
+
+            instance.set_activity_approver(activity_id, me)
+            serializer = InternalApplicationSerializer(
+                instance, context={'request': request})
+
+            return Response(serializer.data)
+
+        except serializers.ValidationError:
+            print(traceback.print_exc())
+            raise
+
+        except ValidationError as e:
+            print(traceback.print_exc())
+            raise serializers.ValidationError(repr(e.error_dict))
+
+        except Exception as e:
+            print(traceback.print_exc())
+            raise serializers.ValidationError(str(e))
+
+    @detail_route(methods=['POST', ])
+    def assign_activity_approver(self, request, *args, **kwargs):
+        try:
+            instance = self.get_object()
+            activity_id = request.data.get('activity_id', None)
+            approver_id = request.data.get('approver_id', None)
+            approver = None
+
+            if not approver_id:
+                raise serializers.ValidationError('Could not Assign Approver.')
+
+            try:
+                approver = EmailUser.objects.get(id=approver_id)
+
+            except EmailUser.DoesNotExist:
+                raise serializers.ValidationError('A user with the id passed in\
+                    does not exist.')
+
+            if not request.user.has_perm('wildlifecompliance.issuing_officer'):
+                raise serializers.ValidationError('You are not authorised to\
+                    assign approvers for application activity.')
+
+            if approver not in instance.licence_approvers:
+                raise serializers.ValidationError('User is not in any relevant\
+                    licence approver groups for application activity.')
+
+            instance.set_activity_approver(activity_id, approver)
+            serializer = InternalApplicationSerializer(
+                instance, context={'request': request})
+
+            return Response(serializer.data)
+
+        except serializers.ValidationError:
+            print(traceback.print_exc())
+            raise
+
+        except ValidationError as e:
+            print(traceback.print_exc())
+            raise serializers.ValidationError(repr(e.error_dict))
+
+        except Exception as e:
+            print(traceback.print_exc())
+            raise serializers.ValidationError(str(e))
+
+    @detail_route(methods=['POST', ])
+    def unassign_activity_approver(self, request, *args, **kwargs):
+        try:
+            instance = self.get_object()
+            activity_id = request.data.get('activity_id', None)
+            instance.set_activity_approver(activity_id, None)
+            serializer = InternalApplicationSerializer(
+                instance, context={'request': request})
+
+            return Response(serializer.data)
+
+        except serializers.ValidationError:
+            print(traceback.print_exc())
+            raise
+
+        except ValidationError as e:
+            print(traceback.print_exc())
+            raise serializers.ValidationError(repr(e.error_dict))
+
+        except Exception as e:
+            print(traceback.print_exc())
+            raise serializers.ValidationError(str(e))
+
+    @detail_route(methods=['POST', ])
     def return_to_officer(self, request, *args, **kwargs):
 
         try:

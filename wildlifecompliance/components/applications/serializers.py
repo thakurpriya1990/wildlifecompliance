@@ -749,7 +749,8 @@ class InternalApplicationSerializer(BaseApplicationSerializer):
     licence_officers = EmailUserAppViewSerializer(many=True)
     user_in_licence_officers = serializers.SerializerMethodField(read_only=True)
     user_roles = serializers.SerializerMethodField(read_only=True)
-    assessments = AssessmentSerializer(many=True)      
+    assessments = AssessmentSerializer(many=True)
+    licence_approvers = EmailUserAppViewSerializer(many=True)
 
     class Meta:
         model = Application
@@ -791,6 +792,7 @@ class InternalApplicationSerializer(BaseApplicationSerializer):
             'user_in_licence_officers',
             'user_roles',
             'assessments',
+            'licence_approvers',
         )
         read_only_fields = ('documents', 'conditions')
 

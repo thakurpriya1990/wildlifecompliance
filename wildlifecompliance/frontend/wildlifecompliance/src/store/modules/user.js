@@ -52,6 +52,15 @@ export const userStore = {
         canViewComments: (state, getters) => {
             return getters.hasRole('licensing_officer') || getters.hasRole('assessor');
         },
+        canAssignApproverFor: (state, getters, rootState, rootGetters) => (activity_id) => {
+            // This function also checks authorisation.
+            return rootGetters.application.activities.find(activity => {
+
+                return activity.licence_activity === activity_id && 
+                        ['with_officer_finalisation', 'awaiting_licence_fee_payment'].includes(activity.processing_status.id) &&
+                        getters.hasRole('issuing_officer', activity_id)
+            })                    
+        },
     },
     mutations: {
         [UPDATE_SELECTED_TAB_ID] (state, tab_id) {
