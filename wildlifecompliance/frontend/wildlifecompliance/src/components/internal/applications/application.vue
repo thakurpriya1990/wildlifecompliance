@@ -1319,9 +1319,9 @@ export default {
             }
             // Assigned approver select
             $(vm.$refs.assigned_approver).select2({
-                "theme": "bootstrap",
+                theme: "bootstrap",
                 allowClear: true,
-                placeholder:"Select Approver"
+                placeholder: "Select Approver"
             }).
             on("select2:select",function (e) {
                 var selected = $(e.currentTarget);
@@ -1405,5 +1405,10 @@ export default {
     margin-top: 15px;
     margin-bottom: 10px;
     width: 100%;
+}
+</style>
+<style lang="css">
+.select2-container {
+    display: block;
 }
 </style>
