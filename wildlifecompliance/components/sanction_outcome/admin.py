@@ -1,6 +1,7 @@
 from django.contrib import admin
 
-from wildlifecompliance.components.sanction_outcome.models import SanctionOutcome, SanctionOutcomeDueDateConfiguration
+from wildlifecompliance.components.sanction_outcome.models import SanctionOutcome
+from wildlifecompliance.components.sanction_outcome_due.models import SanctionOutcomeDueDateConfiguration
 
 
 @admin.register(SanctionOutcome)

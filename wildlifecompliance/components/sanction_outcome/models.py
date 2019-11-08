@@ -9,11 +9,13 @@ from django.db.models import Q
 from django.db.models.signals import post_save
 
 from ledger.accounts.models import EmailUser, RevisionedMixin
-from wildlifecompliance.components.main.models import Document, UserAction, CommunicationsLogEntry
+from wildlifecompliance.components.main.models import Document, CommunicationsLogEntry
 from wildlifecompliance.components.main.related_item import can_close_record
 from wildlifecompliance.components.offence.models import Offence, Offender, AllegedOffence
+from wildlifecompliance.components.sanction_outcome_due.models import SanctionOutcomeDueDateConfiguration
 from wildlifecompliance.components.section_regulation.models import SectionRegulation
 from wildlifecompliance.components.users.models import RegionDistrict, CompliancePermissionGroup
+from wildlifecompliance.components.sanction_outcome_due.serializers import SaveSanctionOutcomeDueDateSerializer
 
 
 class SanctionOutcomeActiveManager(models.Manager):
@@ -126,13 +128,7 @@ class SanctionOutcome(models.Model):
     # Following attributes should be determined at the moment of issue
     penalty_amount_1st =  models.DecimalField(max_digits=8, decimal_places=2, default='0.00')
     penalty_amount_2nd =  models.DecimalField(max_digits=8, decimal_places=2, default='0.00')
-    due_date_auto_1st = models.DateField(null=True, blank=True)  # Null means not extended
-    due_date_auto_2nd = models.DateField(null=True, blank=True)  # Null means not extended, but this is extended even when 1st due date is extended manually.
     due_date_extended_max = models.DateField(null=True, blank=True)
-
-    # Only when the due dates are manually extended, these should have values
-    due_date_manual_1st = models.DateField(null=True, blank=True)
-    due_date_manual_2nd = models.DateField(null=True, blank=True)
 
     objects = models.Manager()
     objects_active = SanctionOutcomeActiveManager()
@@ -314,12 +310,18 @@ class SanctionOutcome(models.Model):
 
         self.log_user_action(SanctionOutcomeUserAction.ACTION_ENDORSE.format(self.lodgement_number), request)
 
-    def set_due_dates(self):
+    def set_due_dates(self, reason_for_extension='original', extended_by_id=None):
         due_date_config = SanctionOutcomeDueDateConfiguration.get_config_by_date(self.date_of_issue)
-        self.due_date_auto_1st = self.date_of_issue + relativedelta(days=due_date_config.due_date_window_1st)
-        self.due_date_auto_2nd = self.date_of_issue + relativedelta(
-            days=due_date_config.due_date_window_1st + due_date_config.due_date_window_2nd)
         self.due_date_extended_max = self.date_of_issue + relativedelta(years=1)
+        data = {}
+        data['due_date_1st'] = self.date_of_issue + relativedelta(days=due_date_config.due_date_window_1st)
+        data['due_date_2nd'] = self.date_of_issue + relativedelta(days=due_date_config.due_date_window_1st + due_date_config.due_date_window_2nd)
+        data['reason_for_extension'] = reason_for_extension
+        data['extended_by_id'] = extended_by_id
+        data['sanction_outcome_id'] = self.id
+        serializer = SaveSanctionOutcomeDueDateSerializer(data=data)
+        serializer.is_valid(raise_exception=True)
+        serializer.save()
 
     def set_penalty_amounts(self):
         amounts = self.retrieve_penalty_amounts_by_date()
@@ -363,40 +365,47 @@ class SanctionOutcome(models.Model):
 
     @property
     def due_date_1st(self):
-        if self.due_date_manual_1st:
-            return self.due_date_manual_1st
-        elif self.due_date_auto_1st:
-            return self.due_date_auto_1st
-        else:
+        due_dates = self.due_dates.order_by('-created_at')
+
+        if not due_dates:
             # Should not reach here
             self.set_due_dates()
             self.set_penalty_amounts()
             self.save()
-            return self.due_date_auto_1st
+            due_dates = self.due_dates.order_by('-created_at')
 
-    def extend_due_date(self, target_date):
+        return due_dates.first().due_date_1st
+
+    def extend_due_date(self, target_date, reason_for_extension, extended_by_id):
         now_datetime = datetime.now()
         due_date_config = SanctionOutcomeDueDateConfiguration.get_config_by_date(self.date_of_issue)
         if target_date <= self.due_date_extended_max:
+            data = {}
             if now_datetime <= self.due_date_1st:
-                self.due_date_manual_1st = target_date
-                self.due_date_manual_2nd = target_date + relativedelta(days=due_date_config.due_date_window_2nd)
+                data['due_date_1st'] = target_date
+                data['due_date_2nd'] = target_date + relativedelta(days=due_date_config.due_date_window_2nd)
             elif now_datetime <= self.due_date_2nd:
-                self.due_date_manual_2nd = target_date
-        self.save()
+                data['due_date_2st'] = self.due_date_1st
+                data['due_date_2nd'] = target_date
+            data['reason_for_extension'] = reason_for_extension
+            data['extended_by_id'] = extended_by_id
+            data['sanction_outcome_id'] = self.id
+            serializer = SaveSanctionOutcomeDueDateSerializer(data=data)
+            serializer.is_valid(raise_exception=True)
+            serializer.save()
 
     @property
     def due_date_2nd(self):
-        if self.due_date_manual_2nd:
-            return self.due_date_manual_2nd
-        elif self.due_date_auto_2nd:
-            return self.due_date_auto_2nd
-        else:
+        due_dates = self.due_dates.order_by('-created_at')
+
+        if not due_dates:
             # Should not reach here
             self.set_due_dates()
             self.set_penalty_amounts()
             self.save()
-            return self.due_date_auto_2nd
+            due_dates = self.due_dates.order_by('-created_at')
+
+        return due_dates.first().due_date_2nd
 
     def determine_penalty_amount_by_date(self, date_payment):
         try:
@@ -421,19 +430,6 @@ class SanctionOutcome(models.Model):
         verbose_name = 'CM_SanctionOutcome'
         verbose_name_plural = 'CM_SanctionOutcomes'
         ordering = ['-id']
-
-
-class SanctionOutcomeDueDate(models.Model):
-    due_date_1st = models.DateField(null=True, blank=True)
-    due_date_2nd = models.DateField(null=True, blank=True)
-    reason_for_extension = models.TextField(blank=True)
-    extended_by = models.ForeignKey(EmailUser, null=True)
-    sanction_outcome = models.ForeignKey(SanctionOutcome, null=False)
-
-    class Meta:
-        app_label = 'wildlifecompliance'
-        verbose_name = 'CM_SanctionOutcomeDueDate'
-        verbose_name_plural = 'CM_SanctionOutcomeDueDates'
 
 
 def perform_can_close_record(sender, instance, **kwargs):
@@ -550,20 +546,3 @@ class SanctionOutcomeUserAction(models.Model):
         )
 
 
-class SanctionOutcomeDueDateConfiguration(RevisionedMixin):
-    due_date_window_1st =  models.PositiveSmallIntegerField(blank=True, null=True, )  # unit: [days]
-    due_date_window_2nd =  models.PositiveSmallIntegerField(blank=True, null=True, )  # unit: [days]
-    date_of_enforcement = models.DateField(blank=True, null=True)
-
-    class Meta:
-        app_label = 'wildlifecompliance'
-        verbose_name = 'CM_SanctionOutcomeDueDateConfiguration'
-        verbose_name_plural = 'CM_SanctionOutcomeDueDateConfiguration'
-        ordering = ('date_of_enforcement', )  # oldest record first, latest record last
-
-    @classmethod
-    def get_config_by_date(cls, date_of_issue):
-        return cls.objects.filter(Q(date_of_enforcement__lte=date_of_issue)).order_by('date_of_enforcement', ).last()
-
-    def __str__(self):
-        return '1st due date window: {} days, 2nd due date window: {} days, enforcement date: {})'.format(self.due_date_window_1st, self.due_date_window_2nd, self.date_of_enforcement)

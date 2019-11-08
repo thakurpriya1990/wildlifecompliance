@@ -138,6 +138,9 @@ class SanctionOutcomeSerializer(serializers.ModelSerializer):
             'can_user_action',
             'user_is_assignee',
             'related_items',
+            'penalty_amount_1st',
+            'penalty_amount_2nd',
+            'due_date_extended_max',
         )
         read_only_fields = ()
 

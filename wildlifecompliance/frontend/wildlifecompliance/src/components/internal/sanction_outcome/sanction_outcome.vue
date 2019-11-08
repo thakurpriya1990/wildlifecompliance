@@ -138,7 +138,7 @@
                         </ul>
                         <div class="tab-content">
                             <div :id="soTab" class="tab-pane fade in active">
-                                <FormSection :formCollapse="false" :label="typeDisplay">
+                                <FormSection :formCollapse="false" :label="typeDisplay" Index="1">
                                     <div class="form-group"><div class="row">
                                         <div class="col-sm-3">
                                             <label>Identifier</label>
@@ -238,7 +238,7 @@
                             </div>
 
                             <div :id="deTab" class="tab-pane fade in">
-                                <FormSection :formCollapse="false" label="Details">
+                                <FormSection :formCollapse="false" label="Details" Index="2">
                                     <div class="form-group"><div class="row">
                                         <div class="col-sm-3">
                                             <label>Description</label>
@@ -284,6 +284,17 @@
                                                     <span class="glyphicon glyphicon-calendar"></span>
                                                 </span>
                                             </div>
+                                        </div>
+                                    </div></div>
+                                </FormSection>
+
+                                <FormSection :formCollapse="false" label="Due Date" Index="3">
+                                    <div class="form-group"><div class="row">
+                                        <div class="col-sm-3">
+                                            <label>Payment due date:</label>
+                                        </div>
+                                        <div class="col-sm-6">
+
                                         </div>
                                     </div></div>
                                 </FormSection>
