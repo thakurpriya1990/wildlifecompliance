@@ -123,7 +123,7 @@ class SanctionOutcome(models.Model):
     date_of_issue = models.DateField(null=True, blank=True)
     time_of_issue = models.TimeField(null=True, blank=True)
 
-    # Following atributes should be determined at the moment of issue
+    # Following attributes should be determined at the moment of issue
     penalty_amount_1st =  models.DecimalField(max_digits=8, decimal_places=2, default='0.00')
     penalty_amount_2nd =  models.DecimalField(max_digits=8, decimal_places=2, default='0.00')
     due_date_auto_1st = models.DateField(null=True, blank=True)  # Null means not extended
@@ -421,6 +421,19 @@ class SanctionOutcome(models.Model):
         verbose_name = 'CM_SanctionOutcome'
         verbose_name_plural = 'CM_SanctionOutcomes'
         ordering = ['-id']
+
+
+class SanctionOutcomeDueDate(models.Model):
+    due_date_1st = models.DateField(null=True, blank=True)
+    due_date_2nd = models.DateField(null=True, blank=True)
+    reason_for_extension = models.TextField(blank=True)
+    extended_by = models.ForeignKey(EmailUser, null=True)
+    sanction_outcome = models.ForeignKey(SanctionOutcome, null=False)
+
+    class Meta:
+        app_label = 'wildlifecompliance'
+        verbose_name = 'CM_SanctionOutcomeDueDate'
+        verbose_name_plural = 'CM_SanctionOutcomeDueDates'
 
 
 def perform_can_close_record(sender, instance, **kwargs):
