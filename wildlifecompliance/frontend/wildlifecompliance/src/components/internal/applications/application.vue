@@ -746,7 +746,11 @@ export default {
         canProposeIssueOrDecline: function(){
             // Officer can propose without conditions.
             if (this.selectedActivity.processing_status.id == 'with_officer' ) {
-                this.selectedActivity.processing_status.id = 'with_officer_conditions'
+                let licenceActivity = this.licence_type_data.activity.find(activity => {
+
+                    return activity.id === this.selected_activity_tab_id                
+                })
+                licenceActivity.processing_status.id = 'with_officer_conditions'          
             }
             return this.hasActivityStatus('with_officer_conditions', 1, 'licensing_officer');
         },
