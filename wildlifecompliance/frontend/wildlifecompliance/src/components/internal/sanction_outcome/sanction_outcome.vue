@@ -288,20 +288,45 @@
                                     </div></div>
                                 </FormSection>
 
-                                <FormSection :formCollapse="false" label="Due Date" Index="3">
+                                <FormSection v-if="visibilityParkingInfringementSection" :formCollapse="false" label="Further Offender Details" Index="3">
                                     <div class="form-group"><div class="row">
                                         <div class="col-sm-3">
-                                            <label>Payment due date:</label>
+                                            <label>Registration Holder:</label>
+                                        </div>
+                                        <div class="col-sm-6">
+
+                                        </div>
+                                        <div class="col-sm-3">
+                                            <label>Driver:</label>
                                         </div>
                                         <div class="col-sm-6">
 
                                         </div>
                                     </div></div>
                                 </FormSection>
+
+                                <FormSection :formCollapse="false" label="Due Date" Index="4">
+                                    <div class="form-group"><div class="row">
+                                        <div v-for="item in sanction_outcome.due_dates">
+                                            <div class="col-sm-3">
+                                                <label>Payment due date:</label>
+                                            </div>
+                                            <div class="col-sm-3">
+                                                {{ item.due_date_1st }}, {{ item.due_date_2nd }}
+                                            </div>
+                                            <div class="col-sm-3">
+                                                <label>Reason:</label>
+                                            </div>
+                                            <div class="col-sm-3">
+                                                {{ item.reason_for_extension }}
+                                            </div>
+                                        </div>
+                                    </div></div>
+                                </FormSection>
                             </div>
 
                             <div :id="reTab" class="tab-pane fade in">
-                                <FormSection :formCollapse="false" label="Related Items" Index="4">
+                                <FormSection :formCollapse="false" label="Related Items" Index="5">
                                     <div class="col-sm-12 form-group"><div class="row">
                                         <div class="col-sm-12">
                                             <RelatedItems v-bind:key="relatedItemsBindId" :parent_update_related_items="setRelatedItems" :readonlyForm="readonlyForm" />
@@ -612,6 +637,15 @@ export default {
                         // This is when Infringement Notice Coordinator sends this IN to Dot
                         visibility = true;
                     }
+                }
+            }
+            return visibility;
+        },
+        visibilityParkingInfringementSection: function() {
+            let visibility = false;
+            if (this.sanction_outcome.can_user_action){
+                if (this.sanction_outcome.is_parking_offence){
+                    visibility = true;
                 }
             }
             return visibility;

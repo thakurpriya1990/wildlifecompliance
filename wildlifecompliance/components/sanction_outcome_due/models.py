@@ -35,3 +35,4 @@ class SanctionOutcomeDueDate(models.Model):
         app_label = 'wildlifecompliance'
         verbose_name = 'CM_SanctionOutcomeDueDate'
         verbose_name_plural = 'CM_SanctionOutcomeDueDates'
+        ordering = ('created_at',)

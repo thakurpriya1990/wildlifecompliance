@@ -1,9 +1,12 @@
 from rest_framework import serializers
 
+from wildlifecompliance.components.call_email.serializers import EmailUserSerializer
 from wildlifecompliance.components.sanction_outcome_due.models import SanctionOutcomeDueDate
 
 
 class SanctionOutcomeDueDateSerializer(serializers.ModelSerializer):
+    extended_by = EmailUserSerializer(read_only=True)
+
     class Meta:
         model = SanctionOutcomeDueDate
         exclude = ('sanction_outcome',)

@@ -295,7 +295,7 @@ class SanctionOutcome(models.Model):
             self.status = SanctionOutcome.STATUS_AWAITING_PAYMENT
             self.payment_status = SanctionOutcome.PAYMENT_STATUS_UNPAID
             self.set_penalty_amounts()
-            self.set_due_dates()
+            self.create_due_dates()
 
         elif self.type in (SanctionOutcome.TYPE_CAUTION_NOTICE, SanctionOutcome.TYPE_LETTER_OF_ADVICE):
             self.status = SanctionOutcome.STATUS_CLOSED
@@ -310,7 +310,7 @@ class SanctionOutcome(models.Model):
 
         self.log_user_action(SanctionOutcomeUserAction.ACTION_ENDORSE.format(self.lodgement_number), request)
 
-    def set_due_dates(self, reason_for_extension='original', extended_by_id=None):
+    def create_due_dates(self, reason_for_extension='original', extended_by_id=None):
         due_date_config = SanctionOutcomeDueDateConfiguration.get_config_by_date(self.date_of_issue)
         self.due_date_extended_max = self.date_of_issue + relativedelta(years=1)
         data = {}
@@ -369,7 +369,7 @@ class SanctionOutcome(models.Model):
 
         if not due_dates:
             # Should not reach here
-            self.set_due_dates()
+            self.create_due_dates()
             self.set_penalty_amounts()
             self.save()
             due_dates = self.due_dates.order_by('-created_at')
@@ -400,7 +400,7 @@ class SanctionOutcome(models.Model):
 
         if not due_dates:
             # Should not reach here
-            self.set_due_dates()
+            self.create_due_dates()
             self.set_penalty_amounts()
             self.save()
             due_dates = self.due_dates.order_by('-created_at')
