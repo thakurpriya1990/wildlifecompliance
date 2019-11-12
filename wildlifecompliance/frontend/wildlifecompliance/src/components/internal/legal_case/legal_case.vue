@@ -259,6 +259,7 @@ require("select2-bootstrap-theme/dist/select2-bootstrap.min.css");
 import hash from 'object-hash';
 import Magic from './magic';
 import SearchPersonOrganisationModal from '@/components/common/search_person_or_organisation_modal';
+import _ from 'lodash';
 
 
 export default {
@@ -267,6 +268,7 @@ export default {
         return {
             //tempRunningSheet: [],
             uuid: 0,
+            runningSheet: [],
             objectHash: null,
             runTab: 'runTab'+this._uid,
             rTab: 'rTab'+this._uid,
@@ -510,7 +512,15 @@ export default {
         inspection_bind_id = 'inspection' + parseInt(this.uuid);
         return inspection_bind_id;
     },
-    runningSheet: function() {
+    runningSheetVuex: function() {
+        let retRunningSheet = [];
+        if (this.legal_case && this.legal_case.running_sheet_entries) {
+            retRunningSheet = _.cloneDeep(this.legal_case.running_sheet_entries)
+        }
+        return retRunningSheet;
+    },
+
+    runningSheetDeprecated: function() {
         let retRunningSheet = [];
         if (this.legal_case && this.legal_case.running_sheet_entries) {
             let i = 0
@@ -589,15 +599,42 @@ export default {
               }
           },
       },
-      runningSheet: {
-          handler: function () {
-              //console.log(newVal)
-              //console.log(oldVal)
-              //this.runningSheetEventListeners();
-              //this.constructRunningSheetTable();
+      runningSheetVuex: {
+          immediate: true,
+          handler: function(newValue, oldValue) {
+              //console.log('vuex running sheet changed')
+              //console.log(newValue)
+              //console.log(oldValue)
+              let i = 0;
+              for (let r of newValue) {
+                  //console.log(r.description)
+                  //console.log(oldValue[i].description)
+                  //console.log(oldValue)
+                  if (oldValue && oldValue.length > 0 && r.description !== oldValue[i].description) {
+                  //if (runningSheetVuexoldValue && oldValue.length > 0 && r.description !== oldValue[i].description) {
+                      //console.log("anything?")
+                      this.updateRunningSheetEntry({
+                          "rowId": i, 
+                          "recordNumber": r.number, 
+                          "description": r.description
+                      });
+                  }
+                  i += 1;
+              }
           },
           deep: true
       },
+      //runningSheet: {
+      //    immediate: true,
+      //    handler: function () {
+      //        console.log('component running sheet changed')
+      //        //console.log(newVal)
+      //        //console.log(oldVal)
+      //        //this.runningSheetEventListeners();
+      //        //this.constructRunningSheetTable();
+      //    },
+      //    deep: true
+      //},
       //runningSheetEntries: {
       //    handler: function() {
       //        //this.runningSheetEventListeners();
@@ -623,6 +660,39 @@ export default {
     ...mapActions({
         loadCurrentUser: 'loadCurrentUser',
     }),
+    updateRunningSheetEntry: function({rowId, recordNumber, description}) {
+        //console.log(rowNum)
+        //console.log(recordNumber)
+        //console.log(description)
+        let i = 0;
+        for (let r of this.runningSheet) {
+            if (rowId === i && recordNumber === r.number) {
+                let re = /\{\{ \"person\_id\"\: \d+ \}\}/g;
+                let matchArray = re.exec(description)
+                console.log(matchArray)
+                if (matchArray && matchArray.length > 0) {
+                    for (let match of matchArray) {
+                        console.log("match")
+                        console.log(typeof(match))
+                        console.log(match)
+                        r.description = description.replace(
+                            match, //'blah transform'
+                            '<a contenteditable="false" target="_blank"  href="/internal/users/7822">Mark</a>'
+                        );
+                        //Object.assign(this.runningSheet[i].description, r.description);
+                        //this.runningSheet.$set(i, r);
+                        this.runningSheet.splice(i, 1, r);
+                        console.log(r.description)
+                        console.log("this.runningSheet[rowNum].description")
+                        console.log(this.runningSheet[i].description)
+                        this.constructRunningSheetTableEntry({"rowNum": i, "description": r.description});
+                    }
+                }
+            }
+        }
+
+    },
+
     constructRunningSheetTable: function(){
         this.$refs.running_sheet_table.vmDataTable.clear().draw();
         if (this.runningSheet){
@@ -750,9 +820,9 @@ export default {
         //console.log(e)
         //console.log(e.target.outerHTML)
         let rowObj = {}
-        let rowId = e.target.id
+        let recordNumber = e.target.id
         //let rowValue = e.target.outerHTML
-        let rowValue = e.target.textContent
+        let recordDescription = e.target.textContent
         //console.log("rowValue")
         //console.log(rowValue)
 
@@ -783,8 +853,8 @@ export default {
         } else {
             let i = 0;
             for (let r of this.runningSheet) {
-                if (r.number === rowId) {
-                    await this.setRunningSheetEntryDescription({"rowId": rowId, "description": rowValue})
+                if (r.number === recordNumber) {
+                    await this.setRunningSheetEntryDescription({"recordNumber": recordNumber, "description": recordDescription})
                     //this.constructRunningSheetTableEntry({
                     //    "rowNum": i, 
                     //    "description": this.legal_case.running_sheet_transform[i].description
@@ -962,6 +1032,7 @@ export default {
       console.log(this)
 
       this.calculateHash();
+      Object.assign(this.runningSheet, this.legal_case.running_sheet_entries);
       this.constructRunningSheetTable();
   },
   destroyed: function() {

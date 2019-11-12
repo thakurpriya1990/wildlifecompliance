@@ -88,50 +88,18 @@ export const legalCaseStore = {
         updateRunningSheetEntries(state, running_sheet_entries) {
             Vue.set(state.legal_case, 'running_sheet_entries', running_sheet_entries);
         },
-        updateRunningSheetEntryDescription(state, { rowId, description }) {
-            //console.log("rowId")
+        updateRunningSheetEntryDescription(state, { recordNumber, description }) {
+            //console.log("updateRunningSheetEntryDescription");
             //console.log(rowId)
-            //console.log("description")
             //console.log(description)
-            //for (let i = 0; i < state.legal_case.running_sheet_entries.length; i++) {
-            //    if (i.number === rowId) {
-            //        state.legal_case.running_sheet_entries[i].description = description;
-            //    }
-            //}
-            let i = 0
-            for (let r of state.legal_case.running_sheet_entries) {
-                if (r.number === rowId) {
-                    //Vue.set(r, 'description', description);
-                    state.legal_case.running_sheet_entries[i].description =  description;
-                    //Vue.set(state.legal_case, 'running_sheet_transform', []);
-                    //state.legal_case.running_sheet_transform = Object.assign({}, state.legal_case.running_sheet_entries)
-                    //state.legal_case.running_sheet_transform = []
-                    //let ii = 0
-                    for (let rr of state.legal_case.running_sheet_transform) {
-                        if (rr.number === rowId) {
-                            //state.legal_case.running_sheet_transform[i].description =  (description ? description : '') + ' transform';
-                            let re = /\{\{ \"person\_id\"\: \d+ \}\}/g;
-                            let matchArray = re.exec(state.legal_case.running_sheet_entries[i].description)
-                            //console.log(matchArray)
-                            if (matchArray && matchArray.length > 0) {
-                                for (let match of matchArray) {
-                                    //if (match.index) {
-                                    //    console.log("match.index")
-                                    //    console.log(match.index)
-                                    //    //state.legal_case.running_sheet_transform[i].description =  description + ' transform';
-                                    //    state.legal_case.running_sheet_transform[i].description.replace(match, 'blah transform');
-                                    //}
-                                    console.log("match")
-                                    console.log(typeof(match))
-                                    console.log(match)
-                                    //state.legal_case.running_sheet_transform[i].description =  description;
-                                    state.legal_case.running_sheet_transform[i].description = description.replace(match, 'blah transform');
-                                }
-                            }
-                        }
+            if (state.legal_case.running_sheet_entries && state.legal_case.running_sheet_entries.length > 0) {
+                let i = 0;
+                for (let r of state.legal_case.running_sheet_entries) {
+                    if (r.number === recordNumber) {
+                        state.legal_case.running_sheet_entries[i].description = description;
                     }
+                    i += 1
                 }
-                i += 1
             }
         },
     },
@@ -211,8 +179,8 @@ export const legalCaseStore = {
         setRunningSheetEntries({ commit }, running_sheet_entries ) {
             commit("updateRunningSheetEntries", running_sheet_entries);
         },
-        setRunningSheetEntryDescription({ commit }, {rowId, description}) {
-            commit("updateRunningSheetEntryDescription", {rowId, description})
+        setRunningSheetEntryDescription({ commit }, {recordNumber, description}) {
+            commit("updateRunningSheetEntryDescription", {recordNumber, description})
         },
     },
 };
