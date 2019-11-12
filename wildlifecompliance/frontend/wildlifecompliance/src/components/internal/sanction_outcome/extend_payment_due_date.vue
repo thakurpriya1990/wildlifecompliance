@@ -129,11 +129,40 @@ export default {
         ...mapActions({
             loadAllocatedGroup: 'loadAllocatedGroup',  // defined in store/modules/user.js
         }),
+        getComingDueDate: function() {
+            if (this.due_date_1st && this.due_date_2nd){
+                console.log('getComingDueDate');
+                let now = new Date();
+                let due_1st = new Date(this.due_date_1st);
+                let due_2nd = new Date(this.due_date_2nd);
+
+                if (now <= due_1st){
+                    return due_1st;
+                } else if (now <= due_2nd){
+                    return due_2nd;
+                } else {
+                    console.warn('This infringement notice is already overdue');
+                    return null;  // Already overdue
+                }
+            } else {
+                return null;
+            }
+        },
         addEventListeners: function () {
             let vm = this;
             let el_fr_date = $(vm.$refs.newDueDatePicker);
+            let options = { format: "DD/MM/YYYY" };
+            let coming_due_date = vm.getComingDueDate();
 
-            el_fr_date.datetimepicker({ format: "DD/MM/YYYY", maxDate: moment().millisecond(0).second(0).minute(0).hour(0), showClear: true });
+            if (vm.due_date_max){
+                options['maxDate'] = new Date(vm.due_date_max);
+            }
+            if (coming_due_date){
+                options['minDate'] = coming_due_date;
+            }
+
+            el_fr_date.datetimepicker(options);
+
             el_fr_date.on("dp.change", function(e) {
               if (el_fr_date.data("DateTimePicker").date()) {
                 vm.new_due_date = e.date.format("DD/MM/YYYY");

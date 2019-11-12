@@ -537,7 +537,6 @@ export default {
             let ret_value = null;
             if(this.sanction_outcome && this.sanction_outcome.due_dates){
                 ret_value = this.sanction_outcome.due_dates[this.sanction_outcome.due_dates.length - 1].due_date_1st;
-                console.log(ret_value);
             }
             return ret_value;
         },
