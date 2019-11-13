@@ -14,7 +14,8 @@
                                 </span>
                             </div>
                         </div>
-                            current due date: {{ due_date_1st }}
+                        current due date: {{ comingDueDateDisplay }} <br />
+                        (New due: {{ extendMinDateDisplay }} --- {{ extendMaxDateDisplay }})
                     </div></div>
 
                     <div class="form-group"><div class="row">
@@ -111,23 +112,38 @@ export default {
         modalTitle: function() {
             return 'Extend payment due date'
         },
-    },
-    mounted: function () {
-        this.$nextTick(() => {
-            this.addEventListeners();
-        });
-    },
-    methods: {
-        ...mapActions({
-            loadAllocatedGroup: 'loadAllocatedGroup',  // defined in store/modules/user.js
-        }),
-        getComingDueDate: function() {
+        extendMinDateDisplay: function() {
+            if (this.comingDueDate){
+                return (this.comingDueDate.getDate() + 1) + '/' + (this.comingDueDate.getMonth() + 1) + '/' + this.comingDueDate.getFullYear()
+            } else {
+                return '';
+            }
+        },
+        extendMaxDateDisplay: function() {
+            if (this.extendMaxDate){
+                return this.extendMaxDate.getDate() + '/' + (this.extendMaxDate.getMonth() + 1) + '/' + this.extendMaxDate.getFullYear()
+            } else {
+                return '';
+            }
+        },
+        extendMaxDate: function() {
+            return new Date(this.due_date_max);
+        },
+        comingDueDateDisplay: function() {
+            if(this.comingDueDate){
+                return this.comingDueDate.getDate() + '/' + (this.comingDueDate.getMonth() + 1) + '/' + this.comingDueDate.getFullYear()
+            } else {
+                return '';
+            }
+        },
+        comingDueDate: function() {
             if (this.due_date_1st && this.due_date_2nd){
                 let now = new Date();
                 let due_1st = new Date(this.due_date_1st);
                 let due_2nd = new Date(this.due_date_2nd);
 
                 if (now <= due_1st){
+                    console.log(due_1st);
                     return due_1st;
                 } else if (now <= due_2nd){
                     return due_2nd;
@@ -139,18 +155,31 @@ export default {
                 return null;
             }
         },
+    },
+    mounted: function () {
+        this.$nextTick(() => {
+            this.addEventListeners();
+        });
+    },
+    methods: {
+        ...mapActions({
+            loadAllocatedGroup: 'loadAllocatedGroup',  // defined in store/modules/user.js
+        }),
         addEventListeners: function () {
             let vm = this;
             let el_fr_date = $(vm.$refs.newDueDatePicker);
             let options = { format: "DD/MM/YYYY" };
-            let coming_due_date = vm.getComingDueDate();
 
             if (vm.due_date_max){
-                options['maxDate'] = new Date(vm.due_date_max);
+                options['maxDate'] = vm.extendMaxDate;
             }
-            if (coming_due_date){
+            if (vm.comingDueDate){
+                // Copy comingDuDate object
+                let coming_due_date = new Date(vm.comingDueDate.getTime());
+                // Calculate next day and set it to the datepicker as a minDate
                 coming_due_date.setDate(coming_due_date.getDate() + 1);
                 options['minDate'] = coming_due_date;
+                // Enter a default value to the input box
                 vm.new_due_date = coming_due_date.getDate() + '/' + (coming_due_date.getMonth() + 1) + '/' + coming_due_date.getFullYear();
             }
 
@@ -158,7 +187,6 @@ export default {
 
             el_fr_date.on("dp.change", function(e) {
                 if (el_fr_date.data("DateTimePicker").date()) {
-                    console.log('date change');
                     vm.new_due_date = e.date.format("DD/MM/YYYY");
                 } else if (el_fr_date.data("date") === "") {
                     vm.new_due_date = null;
@@ -193,7 +221,7 @@ export default {
                 // When field errors raised
                 for (let field_name in err.body){
                     if (err.body.hasOwnProperty(field_name)){
-                        errorText += field_name + ':<br />';
+                        errorText += field_name + ': ';
                         for (let j=0; j<err.body[field_name].length; j++){
                             errorText += err.body[field_name][j] + '<br />';
                         }

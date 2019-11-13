@@ -393,6 +393,8 @@ class SanctionOutcome(models.Model):
             serializer = SaveSanctionOutcomeDueDateSerializer(data=data)
             serializer.is_valid(raise_exception=True)
             serializer.save()
+            return True
+        return False
 
     @property
     def due_date_2nd(self):
@@ -527,6 +529,7 @@ class SanctionOutcomeUserAction(models.Model):
     ACTION_REMOVE_ALLEGED_COMMITTED_OFFENCE = "Remove alleged committed offence: {}"
     ACTION_RESTORE_ALLEGED_COMMITTED_OFFENCE = "Restore alleged committed offence: {}"
     ACTION_INCLUDE_ALLEGED_COMMITTED_OFFENCE = "Include alleged committed offence: {}"
+    ACTION_EXTEND_DUE_DATE = "Extend due date of Sanction Outcome {}"
 
     who = models.ForeignKey(EmailUser, null=True, blank=True)
     when = models.DateTimeField(null=False, blank=False, auto_now_add=True)

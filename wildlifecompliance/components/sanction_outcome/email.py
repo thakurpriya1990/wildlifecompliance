@@ -33,16 +33,38 @@ class InfringementNoticeEmail(TemplateEmailBase):
     txt_template = 'wildlifecompliance/emails/infringement_notice.txt'
 
 
+class InfringementNoticeDueDateExtendedEmail(TemplateEmailBase):
+    subject = 'Infringement notice due date extended'
+    html_template = 'wildlifecompliance/emails/due_date_extended_email.html'
+    txt_template = 'wildlifecompliance/emails/due_date_extended_email.txt'
+
+
+def send_due_date_extended_mail(select_group, sanction_outcome, workflow_entry, request=None):
+    email = InfringementNoticeDueDateExtendedEmail()
+    if request.data.get('email_subject'):
+        email.subject = request.data.get('email_subject')
+    url = request.build_absolute_uri(reverse('internal-sanction-outcome-detail', kwargs={ 'sanction_outcome_id': sanction_outcome.id }))
+    context = {
+        'url': url,
+        'sanction_outcome': sanction_outcome,
+        'workflow_entry_details': request.data.get('details'),
+    }
+    email_group = [item.email for item in select_group]
+    msg = email.send(email_group,
+                     context=context,
+                     attachments=
+                     prepare_attachments(workflow_entry.documents)
+                     )
+    sender = request.user if request else settings.DEFAULT_FROM_EMAIL
+    email_data = _extract_email_headers(msg, sender=sender)
+    return email_data
+
+
 def send_mail(select_group, sanction_outcome, workflow_entry, request=None):
     email = SanctionOutcomeIssueNotificationEmail()
     if request.data.get('email_subject'):
         email.subject = request.data.get('email_subject')
-    url = request.build_absolute_uri(
-        reverse(
-            'internal-sanction-outcome-detail',
-            kwargs={
-                'sanction_outcome_id': sanction_outcome.id
-                }))
+    url = request.build_absolute_uri(reverse('internal-sanction-outcome-detail', kwargs={ 'sanction_outcome_id': sanction_outcome.id }))
     context = {
         'url': url,
         'sanction_outcome': sanction_outcome,

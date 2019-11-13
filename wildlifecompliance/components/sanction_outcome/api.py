@@ -27,7 +27,8 @@ from wildlifecompliance.components.inspection.models import Inspection, Inspecti
 from wildlifecompliance.components.main.email import prepare_mail
 from wildlifecompliance.components.offence.models import AllegedOffence
 from wildlifecompliance.components.section_regulation.models import SectionRegulation
-from wildlifecompliance.components.sanction_outcome.email import send_mail, send_infringement_notice
+from wildlifecompliance.components.sanction_outcome.email import send_mail, send_infringement_notice, \
+    send_due_date_extended_mail
 from wildlifecompliance.components.sanction_outcome.models import SanctionOutcome, RemediationAction, \
     SanctionOutcomeCommsLogEntry, AllegedCommittedOffence, SanctionOutcomeUserAction
 from wildlifecompliance.components.sanction_outcome.serializers import SanctionOutcomeSerializer, \
@@ -703,6 +704,8 @@ class SanctionOutcomeViewSet(viewsets.ModelViewSet):
                     workflow_entry = instance.comms_logs.get(id=comms_log_id)
                 else:
                     workflow_entry = self.add_comms_log(request, instance, workflow=True)
+                workflow_entry.text = 'test katsu'
+                workflow_entry.save()
 
                 new_due_date = request.data.get('new_due_date', None)
                 if not new_due_date:
@@ -711,8 +714,20 @@ class SanctionOutcomeViewSet(viewsets.ModelViewSet):
                 new_due_date = datetime.strptime(new_due_date, '%d/%m/%Y').date()
                 reason = request.data.get('reason', '')
 
-                instance.extend_due_date(new_due_date, reason, request.user.id)
+                if instance.extend_due_date(new_due_date, reason, request.user.id):
+                    # Action log
+                    instance.log_user_action(SanctionOutcomeUserAction.ACTION_EXTEND_DUE_DATE.format(instance.lodgement_number), request)
 
+                # TODO: email to the offender too?
+                email_data = prepare_mail(request, instance, workflow_entry, send_due_date_extended_mail, instance.responsible_officer.id)
+
+                # Log the above email as a communication log entry
+                if email_data:
+                    serializer = SanctionOutcomeCommsLogEntrySerializer(instance=workflow_entry, data=email_data, partial=True)
+                    serializer.is_valid(raise_exception=True)
+                    serializer.save()
+
+                # Return
                 return_serializer = SanctionOutcomeSerializer(instance=instance, context={'request': request})
                 headers = self.get_success_headers(return_serializer.data)
                 return Response(
