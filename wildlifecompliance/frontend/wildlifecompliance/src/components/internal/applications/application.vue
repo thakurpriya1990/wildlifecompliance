@@ -1417,6 +1417,6 @@ export default {
 </style>
 <style lang="css">
 .select2-container {
-    width: 100% !important;
+    width: inherent !important;
 }
 </style>
