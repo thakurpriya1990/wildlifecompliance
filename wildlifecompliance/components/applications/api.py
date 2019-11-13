@@ -839,7 +839,7 @@ class ApplicationViewSet(viewsets.ModelViewSet):
             print(traceback.print_exc())
             raise serializers.ValidationError(str(e))
 
-    @detail_route(methods=['GET', ])
+    @detail_route(methods=['POST', ])
     def unassign_officer(self, request, *args, **kwargs):
         try:
             instance = self.get_object()

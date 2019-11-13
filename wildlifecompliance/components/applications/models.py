@@ -285,11 +285,6 @@ class Application(RevisionedMixin):
         blank=True,
         null=True,
         related_name='wildlifecompliance_applications')
-    assigned_officer = models.ForeignKey(
-        EmailUser,
-        blank=True,
-        null=True,
-        related_name='wildlifecompliance_applications_assigned')
     id_check_status = models.CharField(
         'Identification Check Status',
         max_length=30,
@@ -414,7 +409,15 @@ class Application(RevisionedMixin):
 
     @property
     def is_assigned(self):
-        return self.assigned_officer is not None
+        """
+        A check for any licence activities on this application has been
+        allocated to an internal officer.
+        """
+        assigned = ApplicationSelectedActivity.objects.filter(
+            application_id=self.id
+        ).exclude(assigned_officer__isnull=True).first()
+
+        return True if assigned else False
 
     @property
     def can_user_edit(self):
@@ -1112,23 +1115,40 @@ class Application(RevisionedMixin):
                     self.id), request)
 
     def assign_officer(self, request, officer):
+        """
+        Method to allocate an officer to an application licence activity.
+        :param request contains activity_id
+        :param officer is EmailUser details.
+        """
+        activity_id = request.data.get('activity_id', None)
+        selected_activity = self.get_selected_activity(activity_id)
         with transaction.atomic():
             try:
-                if officer != self.assigned_officer:
-                    self.assigned_officer = officer
-                    self.save()
+                if officer != selected_activity.assigned_officer:
+                    selected_activity.assigned_officer = officer
+                    selected_activity.save()
                     # Create a log entry for the application
-                    self.log_user_action(ApplicationUserAction.ACTION_ASSIGN_TO_OFFICER.format(
-                        self.id, '{}({})'.format(officer.get_full_name(), officer.email)), request)
+                    self.log_user_action(
+                        ApplicationUserAction.ACTION_ASSIGN_TO_OFFICER.format(
+                            self.id, '{}({})'.format(
+                                officer.get_full_name(),
+                                officer.email)
+                        ), request)
             except BaseException:
                 raise
 
     def unassign_officer(self, request):
+        """
+        Method to remove an officer from an application licence activity.
+        :param request contains activity_id.
+        """
+        activity_id = request.data.get('activity_id', None)
+        selected_activity = self.get_selected_activity(activity_id)
         with transaction.atomic():
             try:
-                if self.assigned_officer:
-                    self.assigned_officer = None
-                    self.save()
+                if selected_activity.assigned_officer:
+                    selected_activity.assigned_officer = None
+                    selected_activity.save()
                     # Create a log entry for the application
                     self.log_user_action(
                         ApplicationUserAction.ACTION_UNASSIGN_OFFICER.format(
@@ -1137,9 +1157,10 @@ class Application(RevisionedMixin):
                 raise
 
     def return_to_officer_conditions(self, request, activity_id):
+        selected_activity = self.get_selected_activity(activity_id)
         text = request.data.get('text', '')
-        if self.assigned_officer:
-            email_list = [self.assigned_officer.email]
+        if selected_activity.assigned_officer:
+            email_list = [selected_activity.assigned_officer.email]
         else:
             officer_groups = ActivityPermissionGroup.objects.filter(
                 permissions__codename='licensing_officer',
@@ -2417,6 +2438,11 @@ class ApplicationSelectedActivity(models.Model):
         blank=True,
         null=True,
         related_name='wildlifecompliance_officer_finalisation')
+    assigned_officer = models.ForeignKey(
+        EmailUser,
+        blank=True,
+        null=True,
+        related_name='wildlifecompliance_officer')
 
     def __str__(self):
         return "Application {id} Selected Activity: {short_name} ({activity_id})".format(

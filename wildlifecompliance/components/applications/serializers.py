@@ -28,6 +28,17 @@ from wildlifecompliance import helpers
 from rest_framework import serializers
 
 
+class EmailUserSerializer(serializers.ModelSerializer):
+    class Meta:
+        model = EmailUser
+        fields = (
+            'id',
+            'email',
+            'first_name',
+            'last_name',
+            'title',
+            'organisation')
+
 class ApplicationSelectedActivityCanActionSerializer(serializers.Serializer):
     """
     Custom serializer for ApplicationSelectedActivity.can_action DICT object for each action
@@ -85,6 +96,7 @@ class ApplicationSelectedActivitySerializer(serializers.ModelSerializer):
         max_digits=8, decimal_places=2, coerce_to_string=False, read_only=True),
     payment_status = serializers.CharField(read_only=True)
     can_pay_licence_fee = serializers.SerializerMethodField()
+    officer_name = serializers.SerializerMethodField(read_only=True)
 
     class Meta:
         model = ApplicationSelectedActivity
@@ -115,6 +127,8 @@ class ApplicationSelectedActivitySerializer(serializers.ModelSerializer):
     def get_can_pay_licence_fee(self, obj):
         return not obj.licence_fee_paid and obj.processing_status == ApplicationSelectedActivity.PROCESSING_STATUS_AWAITING_LICENCE_FEE_PAYMENT
 
+    def get_officer_name(self, obj):
+        return '{0} {1}'.format(obj.assigned_officer.first_name, obj.assigned_officer.last_name) if obj.assigned_officer else ''
 
 class ExternalApplicationSelectedActivitySerializer(serializers.ModelSerializer):
     activity_name_str = serializers.SerializerMethodField(read_only=True)
@@ -204,18 +218,6 @@ class ExternalApplicationSelectedActivityMergedSerializer(serializers.Serializer
 
     def get_expiry_date(self, obj):
         return obj.get('expiry_date').strftime('%d/%m/%Y') if obj.get('expiry_date') else ''
-
-
-class EmailUserSerializer(serializers.ModelSerializer):
-    class Meta:
-        model = EmailUser
-        fields = (
-            'id',
-            'email',
-            'first_name',
-            'last_name',
-            'title',
-            'organisation')
 
 
 class EmailUserAppViewSerializer(serializers.ModelSerializer):
@@ -431,7 +433,6 @@ class BaseApplicationSerializer(serializers.ModelSerializer):
             'purpose_string',
             'can_current_user_edit',
             'payment_status',
-            'assigned_officer',
             'can_be_processed',
             'activities',
             'processed',
@@ -524,11 +525,10 @@ class DTInternalApplicationSerializer(BaseApplicationSerializer):
     customer_status = CustomChoiceField(read_only=True)
     can_current_user_edit = serializers.SerializerMethodField(read_only=True)
     payment_status = serializers.SerializerMethodField(read_only=True)
-    assigned_officer = serializers.CharField(
-        source='assigned_officer.get_full_name')
     can_be_processed = serializers.SerializerMethodField(read_only=True)
     user_in_officers = serializers.SerializerMethodField(read_only=True)
     application_type = CustomChoiceField(read_only=True)
+    activities = ApplicationSelectedActivitySerializer(many=True, read_only=True)
 
     class Meta:
         model = Application
@@ -550,7 +550,6 @@ class DTInternalApplicationSerializer(BaseApplicationSerializer):
             'can_user_view',
             'can_current_user_edit',
             'payment_status',
-            'assigned_officer',
             'can_be_processed',
             'user_in_officers',
             'application_type',
@@ -681,12 +680,6 @@ class CreateExternalApplicationSerializer(serializers.ModelSerializer):
 
 class SaveApplicationSerializer(BaseApplicationSerializer):
 
-    assigned_officer = serializers.CharField(
-        source='assigned_officer.get_full_name',
-        required=False,
-        read_only=True
-    )
-
     class Meta:
         model = Application
         fields = (
@@ -710,7 +703,6 @@ class SaveApplicationSerializer(BaseApplicationSerializer):
             'licence_type_name',
             'licence_category',
             'application_fee',
-            'assigned_officer',
         )
         read_only_fields = ('documents', 'conditions')
 
@@ -783,7 +775,6 @@ class InternalApplicationSerializer(BaseApplicationSerializer):
             'licences',
             'permit',
             'payment_status',
-            'assigned_officer',
             'can_be_processed',
             'licence_category',
             'activities',

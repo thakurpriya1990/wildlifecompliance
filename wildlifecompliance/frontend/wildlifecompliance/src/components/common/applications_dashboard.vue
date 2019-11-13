@@ -101,7 +101,7 @@ export default {
     },
     data() {
         let vm = this;
-        let internal_application_headers = ["Number","Category","Activity","Type","Submitter","Applicant","Status","Payment Status","Lodged on","Assigned Officer","Action"];
+        let internal_application_headers = ["Number","Category","Activity","Type","Submitter","Applicant","Status","Payment Status","Lodged on","Action"];
         let internal_columns = [
             {
                 data: "lodgement_number",
@@ -173,11 +173,6 @@ export default {
                     return data != '' && data != null ? moment(data).format(vm.dateFormat): '';
                 },
                 searchable: false // handled by filter_queryset override method - class ApplicationFilterBackend
-            },
-            {
-                data: "assigned_officer",
-                visible: false,
-                name: "assigned_officer__first_name, assigned_officer__last_name, assigned_officer__email"
             },
             {
                 // Actions
@@ -610,6 +605,7 @@ export default {
                                 <td>${activity['activity_name_str']}</td>
                                 <td>${activity['activity_purpose_names'].
                                     replace(/(?:\r\n|\r|\n|,)/g, '<br>')}</td>
+                                ${vm.is_external ? '' : activity['assigned_officer'] == null ?  `<td>&nbsp;</td>`: `<td>${activity['officer_name']}</td>`}    
                                 ${vm.is_external ? '' : `<td>${activity['processing_status']['name']}</td>`}
                                 <td>
                                     ${activity['can_pay_licence_fee'] ?
@@ -630,11 +626,6 @@ export default {
                             <tr>
                                 <td><strong>Payment Status:&nbsp;</strong></td>
                                 <td>${row.data()['payment_status']}</td>
-                            </tr>
-                            <tr>
-                                <td><strong>Assigned Officer:&nbsp;</strong></td>
-                                <td>${row.data()['assigned_officer'] === null
-                                    ? '' : row.data()['assigned_officer']}</td>
                             </tr>`;
                     }
                     child_row += `</table>`
@@ -643,7 +634,8 @@ export default {
                             <tr>
                                 <th>Activity</th>
                                 <th class="width_55pc">Purposes</th>
-                                ${vm.is_external ? '' : '<th class="width_20pc">Status</th>'}
+                                ${vm.is_external ? '' : '<th class="width_20pc">Assigned Officer</th>'}                            
+                                ${vm.is_external ? '' : '<th class="width_10pc">Status</th>'}
                                 <th class="width_10pc">Action</th>
                             </tr>
                             ${activity_rows}

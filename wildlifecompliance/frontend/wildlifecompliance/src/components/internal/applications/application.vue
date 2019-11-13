@@ -55,7 +55,7 @@
                                 <strong>Assigned Officer</strong><br/>
                                 <div class="form-group">
                                     <template>
-                                        <select ref="assigned_officer" :disabled="!canAssignToOfficer" class="form-control" v-model="application.assigned_officer">
+                                        <select ref="assigned_officer" :disabled="!canAssignToOfficer" class="form-control" v-model="selectedActivity.assigned_officer">
                                             <option v-for="member in application.licence_officers" :value="member.id" v-bind:key="member.id">{{member.first_name}} {{member.last_name}}</option>
                                         </select>
                                         <a v-if="canAssignToOfficer" @click.prevent="assignToMe()" class="actionBtn pull-right">Assign to me</a>
@@ -791,7 +791,7 @@ export default {
             return this.application && this.application.processing_status.id == 'under_review' && !this.isFinalised && !this.application.can_user_edit && this.application.user_in_licence_officers ? true : false;
         },
         userIsAssignedOfficer: function(){
-            return this.current_user.id == this.application.assigned_officer;
+            return this.current_user.id == this.selectedActivity.assigned_officer;
         },
         form_data_comments_url: function() {
             return (this.application) ? `/api/application/${this.application.id}/officer_comments.json` : '';
@@ -1100,7 +1100,7 @@ export default {
         },
         updateAssignedOfficerSelect:function(){
             let vm = this;
-            $(vm.$refs.assigned_officer).val(vm.application.assigned_officer);
+            $(vm.$refs.assigned_officer).val(vm.selectedActivity.assigned_officer);
             $(vm.$refs.assigned_officer).trigger('change');
         },
         assignToMe: function(){
@@ -1136,8 +1136,11 @@ export default {
             let vm = this;
             let unassign = true;
             let data = {};
-            unassign = vm.application.assigned_officer != null && vm.application.assigned_officer != 'undefined' ? false: true;
-            data = {'officer_id': vm.application.assigned_officer};
+            unassign = vm.selectedActivity.assigned_officer != null && vm.selectedActivity.assigned_officer != 'undefined' ? false: true;
+            data = {
+                'officer_id': vm.selectedActivity.assigned_officer,
+                "activity_id" : this.selectedActivity.licence_activity,
+            };
             if (!unassign){
                 vm.$http.post(helpers.add_endpoint_json(api_endpoints.applications,(vm.application.id+'/assign_officer')),JSON.stringify(data),{
                     emulateJSON:true
@@ -1155,8 +1158,9 @@ export default {
                 });
             }
             else{
-                vm.$http.get(helpers.add_endpoint_json(api_endpoints.applications,(vm.application.id+'/unassign_officer')))
-                .then((response) => {
+                vm.$http.post(helpers.add_endpoint_json(api_endpoints.applications,(vm.application.id+'/unassign_officer')),JSON.stringify(data),{
+                    emulateJSON:true
+                }).then((response) => {
                     this.refreshFromResponse(response);
                     this.updateAssignedOfficerSelect();
                 }, (error) => {
@@ -1303,7 +1307,7 @@ export default {
             }).
             on("select2:select",function (e) {
                 var selected = $(e.currentTarget);
-                vm.application.assigned_officer = selected.val();
+                vm.selectedActivity.assigned_officer = selected.val();
                 vm.assignOfficer();
             }).on("select2:unselecting", function(e) {
                 var self = $(this);
@@ -1312,7 +1316,7 @@ export default {
                 }, 0);
             }).on("select2:unselect",function (e) {
                 var selected = $(e.currentTarget);
-                vm.application.assigned_officer = null;
+                vm.selectedActivity.assigned_officer = null;
                 vm.assignOfficer();
             });
         },
