@@ -13,9 +13,9 @@ from wildlifecompliance.components.main.models import Document, CommunicationsLo
 from wildlifecompliance.components.main.related_item import can_close_record
 from wildlifecompliance.components.offence.models import Offence, Offender, AllegedOffence
 from wildlifecompliance.components.sanction_outcome_due.models import SanctionOutcomeDueDateConfiguration
+from wildlifecompliance.components.sanction_outcome_due.serializers import SaveSanctionOutcomeDueDateSerializer
 from wildlifecompliance.components.section_regulation.models import SectionRegulation
 from wildlifecompliance.components.users.models import RegionDistrict, CompliancePermissionGroup
-from wildlifecompliance.components.sanction_outcome_due.serializers import SaveSanctionOutcomeDueDateSerializer
 
 
 class SanctionOutcomeActiveManager(models.Manager):
@@ -377,14 +377,14 @@ class SanctionOutcome(models.Model):
         return due_dates.first().due_date_1st
 
     def extend_due_date(self, target_date, reason_for_extension, extended_by_id):
-        now_datetime = datetime.now()
+        now_date = datetime.datetime.now().date()
         due_date_config = SanctionOutcomeDueDateConfiguration.get_config_by_date(self.date_of_issue)
         if target_date <= self.due_date_extended_max:
             data = {}
-            if now_datetime <= self.due_date_1st:
+            if now_date <= self.due_date_1st:
                 data['due_date_1st'] = target_date
                 data['due_date_2nd'] = target_date + relativedelta(days=due_date_config.due_date_window_2nd)
-            elif now_datetime <= self.due_date_2nd:
+            elif now_date <= self.due_date_2nd:
                 data['due_date_2st'] = self.due_date_1st
                 data['due_date_2nd'] = target_date
             data['reason_for_extension'] = reason_for_extension

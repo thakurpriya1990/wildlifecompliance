@@ -306,8 +306,8 @@
                                 </FormSection>
 
                                 <FormSection :formCollapse="false" label="Due Date" Index="4">
-                                    <div class="form-group"><div class="row">
-                                        <div v-for="item in sanction_outcome.due_dates">
+                                    <div v-for="item in sanction_outcome.due_dates">
+                                        <div class="form-group"><div class="row">
                                             <div class="col-sm-3">
                                                 <label>Payment due date:</label>
                                             </div>
@@ -320,8 +320,8 @@
                                             <div class="col-sm-3">
                                                 {{ item.reason_for_extension }}
                                             </div>
-                                        </div>
-                                    </div></div>
+                                        </div></div>
+                                    </div>
                                 </FormSection>
                             </div>
 

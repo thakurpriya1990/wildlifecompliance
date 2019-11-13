@@ -40,6 +40,11 @@ def is_compliance_internal_user(context):
     return wildlifecompliance_helpers.is_compliance_internal_user(request)
 
 @register.simple_tag(takes_context=True)
+def is_infringement_notice_coordinator(context):
+    request = context['request']
+    return wildlifecompliance_helpers.is_infringement_notice_coordinator(request)
+
+@register.simple_tag(takes_context=True)
 def prefer_compliance_management(context):
     request = context['request']
     return wildlifecompliance_helpers.prefer_compliance_management(request)

@@ -95,6 +95,12 @@ def prefer_compliance_management(request):
     else:
         return False
 
+def is_infringement_notice_coordinator(request):
+    compliance_groups = [group.name for group in CompliancePermissionGroup.objects.filter(
+        permissions__codename__in=['infringement_notice_coordinator',])]
+    return request.user.is_authenticated() and (belongs_to_list(
+        request.user, compliance_groups) or request.user.is_superuser)
+
 def is_compliance_internal_user(request):
     compliance_groups = [group.name for group in CompliancePermissionGroup.objects.filter(
             permissions__codename__in=['volunteer',

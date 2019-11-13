@@ -17,7 +17,18 @@ class SaveSanctionOutcomeDueDateSerializer(serializers.ModelSerializer):
     extended_by_id = serializers.IntegerField(required=False, write_only=True, allow_null=True)
 
     def validate(self, data):
-        # validation here
+        field_errors = {}
+        non_field_errors = []
+
+        if not data['reason_for_extension']:
+            field_errors['Reason'] = ['To extend a due date, you must enter a reason.',]
+
+        if field_errors:
+            raise serializers.ValidationError(field_errors)
+
+        if non_field_errors:
+            raise serializers.ValidationError(non_field_errors)
+
         return data
 
     class Meta:

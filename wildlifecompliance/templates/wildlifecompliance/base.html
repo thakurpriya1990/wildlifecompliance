@@ -10,6 +10,7 @@
 {% is_wildlifecompliance_admin as is_wildlifecompliance_admin_login %}
 {% is_compliance_internal_user as is_compliance_internal_login %}
 {% prefer_compliance_management as prefer_compliance_management %}
+{% is_infringement_notice_coordinator as is_infringement_notice_coordinator %}
 
 <!DOCTYPE html>
 <html lang="en">
@@ -63,22 +64,35 @@
                             <div id="navbar" class="navbar-collapse collapse">
                                 <ul class="nav navbar-nav">
                                     {% block left_menu_items %}
-                                        {% if is_internal_login and not prefer_compliance_management %}
-                                            <a class="navbar-brand" href="{% url 'wc_home' %}"><div style="inline"><img src="{% static 'ledger/images/dpaw_small.png' %}">Home</div></a>
-                                            <li><a href="/internal/licences">Licences</a></li>
-                                            <li><a href="/internal/returns">Returns</a></li>
-                                            <li><a href="/internal/tag_purchases">Tag Purchases</a></li>
-                                            <li><a href="/internal/advices">Advices to CEO</a></li>
-                                        {% elif is_compliance_internal_login and prefer_compliance_management %}
-                                            <a class="navbar-brand" href="/internal/call_email"><div style="inline"><img src="{% static 'ledger/images/dpaw_small.png' %}">Home</div></a>
-                                            <li><a href="/internal/inspection">Inspections</a></li>
-                                            <li><a href="/internal/offence">Offences</a></li>
+                                        {% if is_infringement_notice_coordinator %}
+                                            <a class="navbar-brand" href="/internal/sanction_outcome"><div style="inline"><img src="{% static 'ledger/images/dpaw_small.png' %}">Home</div></a>
                                             <li><a href="/internal/sanction_outcome">Sanction Outcomes</a></li>
-                                            <li><a href="/internal/legal_case">Cases</a></li>
+                                        {% elif is_internal_login %}
+                                            {% if not prefer_compliance_management %}
+                                                <a class="navbar-brand" href="{% url 'wc_home' %}"><div style="inline"><img src="{% static 'ledger/images/dpaw_small.png' %}">Home</div></a>
+                                                <li><a href="/internal/licences">Licences</a></li>
+                                                <li><a href="/internal/returns">Returns</a></li>
+                                                <li><a href="/internal/tag_purchases">Tag Purchases</a></li>
+                                                <li><a href="/internal/advices">Advices to CEO</a></li>
+                                            {% else %}
+                                                <!-- No one sits here? -->
+                                            {% endif %}
+                                        {% elif is_compliance_internal_login %}
+                                            {% if prefer_compliance_management %}
+                                                <a class="navbar-brand" href="/internal/call_email"><div style="inline"><img src="{% static 'ledger/images/dpaw_small.png' %}">Home</div></a>
+                                                <li><a href="/internal/inspection">Inspections</a></li>
+                                                <li><a href="/internal/offence">Offences</a></li>
+                                                <li><a href="/internal/sanction_outcome">Sanction Outcomes</a></li>
+                                                <li><a href="/internal/legal_case">Cases</a></li>
+                                            {% else %}
+                                                <!-- No one sits here? -->
+                                            {% endif %}
                                         {% else %}
+                                            <!-- External user -->
                                             <a class="navbar-brand" href="/external/"><div style="inline"><img src="{% static 'ledger/images/dpaw_small.png' %}">Home</div></a>
                                             <li><a href="/external/sanction_outcome">Sanction Outcome</a></li>
                                         {% endif %}
+
                                         {% if is_officer_login %}
                                             <li><a href="/internal/organisations/access">Organisation Access Requests</a></li>
                                             <li><a href="/internal/search">Search</a></li>

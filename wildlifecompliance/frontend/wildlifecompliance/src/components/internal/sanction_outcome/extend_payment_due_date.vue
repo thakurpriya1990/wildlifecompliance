@@ -14,6 +14,7 @@
                                 </span>
                             </div>
                         </div>
+                            current due date: {{ due_date_1st }}
                     </div></div>
 
                     <div class="form-group"><div class="row">
@@ -21,7 +22,7 @@
                             <label class="control-label pull-left">Reason</label>
                         </div>
                         <div class="col-sm-7">
-                            <textarea class="form-control" placeholder="add reason" id="reason" v-model="workflowDetails"/>
+                            <textarea class="form-control" placeholder="add reason" id="reason" v-model="reasonForExtension"/>
                         </div>
                     </div></div>
 
@@ -76,7 +77,7 @@ export default {
                         'name': ''
                     }
             ],
-            workflowDetails: '',
+            reasonForExtension: '',
             errorResponse: '',
 
             allocatedGroup: [],
@@ -108,17 +109,8 @@ export default {
             sanction_outcome: "sanction_outcome",
         }),
         modalTitle: function() {
-                return 'Extend payment due date'
-            }
+            return 'Extend payment due date'
         },
-        regionDistrictId: function() {
-            // if (this.district_id || this.region_id) {
-            //     return this.district_id ? this.district_id : this.region_id;
-            if (this.sanction_outcome.district || this.sanction_outcome.region) {
-                return this.sanction_outcome.district ? this.sanction_outcome.district : this.sanction_outcome.region;
-            } else {
-                return null;
-            }
     },
     mounted: function () {
         this.$nextTick(() => {
@@ -131,7 +123,6 @@ export default {
         }),
         getComingDueDate: function() {
             if (this.due_date_1st && this.due_date_2nd){
-                console.log('getComingDueDate');
                 let now = new Date();
                 let due_1st = new Date(this.due_date_1st);
                 let due_2nd = new Date(this.due_date_2nd);
@@ -158,17 +149,20 @@ export default {
                 options['maxDate'] = new Date(vm.due_date_max);
             }
             if (coming_due_date){
+                coming_due_date.setDate(coming_due_date.getDate() + 1);
                 options['minDate'] = coming_due_date;
+                vm.new_due_date = coming_due_date.getDate() + '/' + (coming_due_date.getMonth() + 1) + '/' + coming_due_date.getFullYear();
             }
 
             el_fr_date.datetimepicker(options);
 
             el_fr_date.on("dp.change", function(e) {
-              if (el_fr_date.data("DateTimePicker").date()) {
-                vm.new_due_date = e.date.format("DD/MM/YYYY");
-              } else if (el_fr_date.data("date") === "") {
-                vm.new_due_date = null;
-              }
+                if (el_fr_date.data("DateTimePicker").date()) {
+                    console.log('date change');
+                    vm.new_due_date = e.date.format("DD/MM/YYYY");
+                } else if (el_fr_date.data("date") === "") {
+                    vm.new_due_date = null;
+                }
             });
         },
         ok: async function () {
@@ -226,11 +220,11 @@ export default {
             this.attachAnother();
         },
         sendData: async function () {
-            let post_url = '/api/sanction_outcome/' + this.sanction_outcome.id + '/workflow_action/'
+            let post_url = '/api/sanction_outcome/' + this.sanction_outcome.id + '/extend_due_date/'
             let payload = new FormData();
-            payload.append('details', this.workflowDetails);
+            payload.append('reason', this.reasonForExtension);
             this.$refs.comms_log_file.commsLogId ? payload.append('comms_log_id', this.$refs.comms_log_file.commsLogId) : null;
-            this.workflow_type ? payload.append('workflow_type', this.workflow_type) : null;
+            this.new_due_date ? payload.append('new_due_date', this.new_due_date) : null;
 
             let res = await Vue.http.post(post_url, payload);
             return res
