@@ -519,74 +519,6 @@ export default {
         }
         return retRunningSheet;
     },
-
-    runningSheetDeprecated: function() {
-        let retRunningSheet = [];
-        if (this.legal_case && this.legal_case.running_sheet_entries) {
-            let i = 0
-            for (let r of this.legal_case.running_sheet_entries) {
-                retRunningSheet.push(Object.assign({}, this.legal_case.running_sheet_entries[i]))
-                //retRunningSheet[i].description += ' transform'
-                let re = /\{\{ \"person\_id\"\: \d+ \}\}/g;
-                let matchArray = re.exec(retRunningSheet[i].description)
-                //console.log(matchArray)
-                if (matchArray && matchArray.length > 0) {
-                    for (let match of matchArray) {
-                        //if (match.index) {
-                        //    console.log("match.index")
-                        //    console.log(match.index)
-                        //    //state.legal_case.running_sheet_transform[i].description =  description + ' transform';
-                        //    state.legal_case.running_sheet_transform[i].description.replace(match, 'blah transform');
-                        //}
-                        console.log("match")
-                        console.log(typeof(match))
-                        console.log(match)
-                        //state.legal_case.running_sheet_transform[i].description =  description;
-                        retRunningSheet[i].description = retRunningSheet[i].description.replace(
-                            match, //'blah transform'
-                            '<a contenteditable="false" target="_blank"  href="/internal/users/7822">Mark</a>'
-                        );
-                        this.constructRunningSheetTableEntry({"rowNum": i, "description": retRunningSheet[i].description});
-                    }
-                }
-                i += 1;
-            }
-        }
-        return retRunningSheet;
-    },
-    //runningSheetEntries: function() {
-    //    let retRunningSheet = null;
-    //    if (this.legal_case && this.legal_case.running_sheet_entries) {
-    //        //Object.assign(ret_running_sheet, this.legal_case.running_sheet_entries);
-    //        retRunningSheet = this.legal_case.running_sheet_entries;
-    //    }
-    //    return retRunningSheet;
-    //},
-    //runningSheetTransform: function() {
-    //    let retRunningSheet = null;
-    //    if (this.legal_case && this.legal_case.running_sheet_transform) {
-    //        //Object.assign(ret_running_sheet, this.legal_case.running_sheet_entries);
-    //        retRunningSheet = this.legal_case.running_sheet_transform;
-    //    }
-    //    return retRunningSheet;
-    //},
-    //runningSheetObj: function() {
-    //    let retRunningSheetObj = {}
-    //    if (this.legal_case && this.legal_case.running_sheet_entries) {
-    //        for (let r of this.legal_case.running_sheet_entries) {
-    //            retRunningSheetObj[r.number] = r;
-    //        }
-    //    }
-    //    return retRunningSheetObj;
-    //},
-    //running_sheet: function() {
-    //    let ret_running_sheet = null;
-    //    if (this.legal_case && this.legal_case.running_sheet_object) {
-    //        //Object.assign(ret_running_sheet, this.legal_case.running_sheet_entries);
-    //        ret_running_sheet = this.legal_case.running_sheet_object;
-    //    }
-    //    return ret_running_sheet;
-    //},
   },
   watch: {
       magicValue: {
@@ -612,7 +544,8 @@ export default {
                   //console.log(oldValue)
                   if (oldValue && oldValue.length > 0 && r.description !== oldValue[i].description) {
                   //if (runningSheetVuexoldValue && oldValue.length > 0 && r.description !== oldValue[i].description) {
-                      //console.log("anything?")
+                      const diff = this.findStringDiff(newValue[i].description, oldValue[i].description)
+                      console.log(diff)
                       this.updateRunningSheetEntry({
                           "rowId": i, 
                           "recordNumber": r.number, 
@@ -624,24 +557,6 @@ export default {
           },
           deep: true
       },
-      //runningSheet: {
-      //    immediate: true,
-      //    handler: function () {
-      //        console.log('component running sheet changed')
-      //        //console.log(newVal)
-      //        //console.log(oldVal)
-      //        //this.runningSheetEventListeners();
-      //        //this.constructRunningSheetTable();
-      //    },
-      //    deep: true
-      //},
-      //runningSheetEntries: {
-      //    handler: function() {
-      //        //this.runningSheetEventListeners();
-      //        //this.constructRunningSheetTable();
-      //    },
-      //    deep: true
-      //},
   },
   filters: {
     formatDate: function(data) {
@@ -660,6 +575,14 @@ export default {
     ...mapActions({
         loadCurrentUser: 'loadCurrentUser',
     }),
+    findStringDiff(str1, str2) { 
+          let diff= "";
+          str2.split('').forEach(function(val, i){
+                  if (val != str1.charAt(i))
+                        diff += val ;
+                });
+          return diff;
+    },
     updateRunningSheetEntry: function({rowId, recordNumber, description}) {
         //console.log(rowNum)
         //console.log(recordNumber)
@@ -669,23 +592,27 @@ export default {
             if (rowId === i && recordNumber === r.number) {
                 let re = /\{\{ \"person\_id\"\: \d+ \}\}/g;
                 let matchArray = re.exec(description)
-                console.log(matchArray)
+                //console.log(matchArray)
                 if (matchArray && matchArray.length > 0) {
                     for (let match of matchArray) {
-                        console.log("match")
-                        console.log(typeof(match))
-                        console.log(match)
+                        //console.log("match")
+                        //console.log(typeof(match))
+                        //console.log(match)
                         r.description = description.replace(
                             match, //'blah transform'
-                            '<a contenteditable="false" target="_blank"  href="/internal/users/7822">Mark</a>'
+                            '<a contenteditable="false" target="_blank"  href="/internal/users/7822">Mark bloke</a>'
                         );
                         //Object.assign(this.runningSheet[i].description, r.description);
                         //this.runningSheet.$set(i, r);
                         this.runningSheet.splice(i, 1, r);
-                        console.log(r.description)
-                        console.log("this.runningSheet[rowNum].description")
-                        console.log(this.runningSheet[i].description)
+                        //console.log(r.description)
+                        //console.log("this.runningSheet[rowNum].description")
+                        //console.log(this.runningSheet[i].description)
                         this.constructRunningSheetTableEntry({"rowNum": i, "description": r.description});
+                        /*this.$nextTick(() => {
+                        this.constructRunningSheetTableEntry({"rowNum": i, "description": r.description});
+                        });
+                        */
                     }
                 }
             }
@@ -711,25 +638,14 @@ export default {
         }
     },
     constructRunningSheetTableEntry: function({rowNum, description}){
+        console.log(description)
         if (this.$refs.running_sheet_table && this.$refs.running_sheet_table.vmDataTable) {
             console.log("constructRunningSheetTableEntry");
-            //let tableCell = this.$refs.running_sheet_table.vmDataTable.rows(rowNum).data()[0].description
             let tableRow = this.$refs.running_sheet_table.vmDataTable.row(rowNum).data()
-            //let tableCell3 = this.$refs.running_sheet_table.vmDataTable.cell(rowNum).data()
-            //tableCell = description
             tableRow.description = description
             this.$refs.running_sheet_table.vmDataTable.row(rowNum).data(tableRow).draw()
-            //console.log(this.$refs.running_sheet_table.vmDataTable.rows(rowNum).columns("Description").data())
-            //let tableCell = this.$refs.running_sheet_table.vmDataTable.columns("Description")
-            //console.log("constructRunningSheetTableEntry");
-            //this.$refs.running_sheet_table.vmDataTable.cell(rowNum, 3).data(description).draw();
-            //console.log(this.$refs.running_sheet_table.vmDataTable.cell(rowNum, 3).data())
         }
     },
-    //addRunningSheetEntryToTable: function(allegedOffence){
-    //    //allegedOffence.uuid = uuid();
-    //    this.$refs.running_sheet_table_table.vmDataTable.row.add({ legal_case: legal_case, offence: this.offence }).draw();
-    //},
     createNewRunningSheetEntry: async function() {
         let payload = {
             "legal_case_id": this.legal_case.id,
@@ -822,7 +738,9 @@ export default {
         let rowObj = {}
         let recordNumber = e.target.id
         //let rowValue = e.target.outerHTML
-        let recordDescription = e.target.textContent
+        let recordDescriptionText = e.target.textContent
+        let recordDescriptionHtml = e.target.innerHTML
+        
         //console.log("rowValue")
         //console.log(rowValue)
 
@@ -843,7 +761,7 @@ export default {
         } else if (e.which === 50) {
             this.magicKey2Pressed = true;
             // keycode 16 = Shift (must be pressed to access !)
-        } else if (e.which === 16) {
+        } else if (e.which === 16 || e.which === 32) {
             // pass
         } else if (this.magicValue && 
             this.magicValue.toLowerCase().includes('shibaken') &&
@@ -851,10 +769,20 @@ export default {
             //this.magic = true;
             this.magicMethod()
         } else {
+            //let recordDescription = this.parseStringInput(recordDescriptionHtml, recordDescriptionText);
             let i = 0;
             for (let r of this.runningSheet) {
                 if (r.number === recordNumber) {
-                    await this.setRunningSheetEntryDescription({"recordNumber": recordNumber, "description": recordDescription})
+                    let recordDescription = this.parseStringInput({
+                        "recordDescriptionHtml": recordDescriptionHtml, 
+                        "recordDescriptionText": recordDescriptionText,
+                        "rowId": i});
+                    console.log(recordDescription)
+                    await this.setRunningSheetEntryDescription(
+                        {
+                            "recordNumber": recordNumber, 
+                            "description": recordDescription
+                        })
                     //this.constructRunningSheetTableEntry({
                     //    "rowNum": i, 
                     //    "description": this.legal_case.running_sheet_transform[i].description
@@ -865,51 +793,49 @@ export default {
                 i += 1;
             }
         }
-        
-        //else if (this.runningSheetObj && this.runningSheetObj[rowId]) {
-        //    //console.log("push rowId")
-        //    //console.log(this.runningSheetObj[rowId])
-        //    //this.tempRunningSheet.push(rowId);
-        //    this.setRunningSheetEntryDescription({"rowId": rowId, "description": rowValue})
-        //    //if (this.runningSheetObj[rowId].number !== rowId) {
-        //    //    this.setRunningSheetEntryDescription({"rowId": rowId, "description": rowValue})
-        //    //}
-
-        //} else {
-        //    this.magicKeyPressed = false;
-        //    this.magicKey2Pressed = false;
-        //}
-
     },
-    //runningSheetEventListeners: function() {
-    //  console.log("runningSheetEventListeners")
-    //  let vm = this;
-    //  if (this.legal_case && this.legal_case.running_sheet_entries) {
-    //      for (let r of this.legal_case.running_sheet_entries) {
-    //          if (r && r.number) {
-    //              vm.rowIdStr = '#' + r.number;
-    //              vm.rowId = $(vm.rowIdStr);
-    //              vm.rowId.on(
-    //                  'keydown', 
-    //                  function(e) {
-    //                      vm.test1(e)
-    //                  });
-    //          }
-    //      }
-    //  }
+      parseStringInput: function({recordDescriptionHtml, recordDescriptionText, rowId}) {
+        console.log(recordDescriptionText)
+        //let parsedText = this.legal_case.running_sheet_entries[rowId].description;
+        let parsedText = recordDescriptionText;
+        //Object.assign(parsedText, str);
 
-    //},
+        const personUrlRegex = /<a contenteditable\=\"false\" target\=\"\_blank\" href\=\"\/internal\/users\/\d+\"\>\w+\s\w+\<\/a\>/g
+        const personTokenRegex = /\/internal\/users\/\d+/g
+          const personNameRegex = /\/internal\/users\/\d+\"\>\w+\s\w+/g
+        //console.log(personUrlRegex)
+        //console.log(str)
+        //let re = /\{\{ \"person\_id\"\: \d+ \}\}/g;
+        let matchArray = personUrlRegex.exec(recordDescriptionHtml)
+        console.log("matchArray")
+        console.log(matchArray)
+        if (matchArray && matchArray.length > 0) {
+            for (let match of matchArray) {
+                /*console.log("match")
+                console.log(typeof(match))
+                console.log(match)
+                */
+                let urlArray = personTokenRegex.exec(match)
+                console.log(urlArray)
+                let url = urlArray[0]
+                let id = url.substring(16)
+                let replacementVal = '{{ ' + '"person_id": ' + id + ' }}'
+                console.log(replacementVal)
+                let personArray = personNameRegex.exec(match)
+                console.log(personArray)
+                let personFound = personArray[0]
+                let person = personFound.replace(/\/internal\/users\/\d+\"\>/g, '')
+                console.log(person)
+                parsedText = parsedText.replace(person, replacementVal);
+                //parsedText = parsedText.replace(/\&nbsp/g, ' ');
+                //Object.assign(this.runningSheet[i].description, r.description);
+            }
+        }
+        return parsedText;
+    },
     addEventListeners: function() {
       let vm = this;
-      //let test1 = $('#test1');
-      ////let test2 = $('#test2');
-      //test1.on(
-      //    'keydown', 
-      //    function(e) {
-      //        vm.test1(e)
-      //    });
       let runningSheetTable = $('#running-sheet-table');
-      //let test2 = $('#test2');
       runningSheetTable.on(
           'keydown',
           function(e) {
@@ -1032,7 +958,8 @@ export default {
       console.log(this)
 
       this.calculateHash();
-      Object.assign(this.runningSheet, this.legal_case.running_sheet_entries);
+      //Object.assign(this.runningSheet, this.legal_case.running_sheet_entries);
+      this.runningSheet = _.cloneDeep(this.legal_case.running_sheet_entries);
       this.constructRunningSheetTable();
   },
   destroyed: function() {

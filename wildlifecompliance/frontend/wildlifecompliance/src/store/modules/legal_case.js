@@ -74,13 +74,13 @@ export const legalCaseStore = {
             //    runningSheetObject[o.number] = o
             //}
             //Vue.set(state.legal_case, 'running_sheet_object', runningSheetObject);
-            Vue.set(state.legal_case, 'running_sheet_transform', []);
-            let i = 0
-            for (let r of state.legal_case.running_sheet_entries) {
-                state.legal_case.running_sheet_transform.push(Object.assign({}, state.legal_case.running_sheet_entries[i]))
-                state.legal_case.running_sheet_transform[i].description += ' transform'
-                i += 1;
-            }
+            //Vue.set(state.legal_case, 'running_sheet_transform', []);
+            //let i = 0
+            //for (let r of state.legal_case.running_sheet_entries) {
+            //    state.legal_case.running_sheet_transform.push(Object.assign({}, state.legal_case.running_sheet_entries[i]))
+            //    state.legal_case.running_sheet_transform[i].description += ' transform'
+            //    i += 1;
+            //}
         },
         updateRelatedItems(state, related_items) {
             Vue.set(state.legal_case, 'related_items', related_items);
