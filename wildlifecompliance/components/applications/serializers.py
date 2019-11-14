@@ -1,3 +1,4 @@
+from django.urls import reverse
 from ledger.accounts.models import EmailUser
 # from wildlifecompliance.components.applications.utils import amendment_requests
 from wildlifecompliance.components.applications.models import (
@@ -393,6 +394,7 @@ class BaseApplicationSerializer(serializers.ModelSerializer):
     processing_status = CustomChoiceField(read_only=True, choices=Application.PROCESSING_STATUS_CHOICES)
     data = ApplicationFormDataRecordSerializer(many=True)
     application_type = CustomChoiceField(read_only=True)
+    invoice_url = serializers.SerializerMethodField(read_only=True)
 
     class Meta:
         model = Application
@@ -436,7 +438,8 @@ class BaseApplicationSerializer(serializers.ModelSerializer):
             'can_be_processed',
             'activities',
             'processed',
-            'application_type'
+            'application_type',
+            'invoice_url',
         )
         read_only_fields = ('documents',)
 
@@ -515,6 +518,14 @@ class BaseApplicationSerializer(serializers.ModelSerializer):
                 result = True
         return result
 
+    def get_invoice_url(self, obj):
+        url = None
+        if obj.latest_invoice:
+            url = reverse(
+                'payments:invoice-pdf',
+                kwargs={'reference': obj.latest_invoice.reference})
+
+        return url
 
 class DTInternalApplicationSerializer(BaseApplicationSerializer):
     submitter = EmailUserSerializer()
@@ -553,7 +564,8 @@ class DTInternalApplicationSerializer(BaseApplicationSerializer):
             'can_be_processed',
             'user_in_officers',
             'application_type',
-            'activities'
+            'activities',
+            'invoice_url',
         )
         # the serverSide functionality of datatables is such that only columns that have field 'data'
         # defined are requested from the serializer. Use datatables_always_serialize to force render
@@ -579,6 +591,7 @@ class DTExternalApplicationSerializer(BaseApplicationSerializer):
     payment_status = serializers.SerializerMethodField(read_only=True)
     application_type = CustomChoiceField(read_only=True)
     activities = ExternalApplicationSelectedActivitySerializer(many=True, read_only=True)
+    invoice_url = serializers.SerializerMethodField(read_only=True)
 
     class Meta:
         model = Application
@@ -602,6 +615,7 @@ class DTExternalApplicationSerializer(BaseApplicationSerializer):
             'payment_status',
             'application_type',
             'activities',
+            'invoice_url',
         )
         # the serverSide functionality of datatables is such that only columns that have field 'data'
         # defined are requested from the serializer. Use datatables_always_serialize to force render

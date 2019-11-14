@@ -595,6 +595,7 @@ export default {
                     tr.removeClass('shown');
                 }
                 else {
+                    console.log(row.data())
                     // Open this row (the format() function would return the data to be shown)
                     var child_row = ''
                     // Generate rows for each activity if internal
@@ -618,16 +619,21 @@ export default {
                         <table class="table table-striped table-bordered child-row-table">
                             <tr>
                                 <td class="width_20pc"><strong>Submitter:&nbsp;</strong></td>
-                                <td>${row.data()['submitter']['first_name']}
+                                <td>&nbsp;&nbsp;${row.data()['submitter']['first_name']}
                                     ${row.data()['submitter']['last_name']}</td>
                             </tr>`;
-                    if (!vm.is_external){
-                        child_row += `
+
+                    child_row += `
                             <tr>
                                 <td><strong>Payment Status:&nbsp;</strong></td>
-                                <td>${row.data()['payment_status']}</td>
-                            </tr>`;
-                    }
+                                <td>&nbsp;&nbsp;${row.data()['payment_status']}</td>
+                            </tr>
+                            ${row.data()['invoice_url'] ?
+                            `<tr>
+                                <td><strong>Invoice:&nbsp;</strong></td>
+                                <td><a href="${row.data()['invoice_url']}'" target="_blank">Download</a></td>
+                            </tr>` : ' ' } `;
+
                     child_row += `</table>`
                     child_row += `
                         <table class="table table-striped table-bordered child-row-table">

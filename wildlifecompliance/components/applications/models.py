@@ -482,6 +482,21 @@ class Application(RevisionedMixin):
                 return latest_invoice.payment_status
 
     @property
+    def latest_invoice(self):
+        """
+        Property defining the latest invoice for the Application.
+        """
+        latest_invoice = None
+        if self.invoices.count() > 0:
+            try:
+                latest_invoice = Invoice.objects.get(
+                    reference=self.invoices.latest('id').invoice_reference)
+            except Invoice.DoesNotExist:
+                return None
+
+        return latest_invoice
+
+    @property
     def regions_list(self):
         return self.region.split(',') if self.region else []
 
