@@ -631,7 +631,7 @@ export default {
                             ${row.data()['invoice_url'] ?
                             `<tr>
                                 <td><strong>Invoice:&nbsp;</strong></td>
-                                <td><a href="${row.data()['invoice_url']}'" target="_blank">Download</a></td>
+                                <td><a href="${row.data()['invoice_url']}'" target="_blank"><i style="color:red" class="fa fa-file-pdf-o"></i></a></td>
                             </tr>` : ' ' } `;
 
                     child_row += `</table>`
