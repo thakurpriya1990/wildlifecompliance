@@ -851,16 +851,17 @@ export default {
                 console.log(typeof(match[0]))
                 console.log(match[0])
                 
-                let idArray = personIdRegex.exec(match[0])
-                //let idArray = [...match[0].matchAll(personTokenRegex)];
+                //let idArray = personIdRegex.exec(match[0])
+                let idArray = [...match[0].matchAll(personIdRegex)];
                 console.log(idArray)
-                let idStr = idArray[0]
+                let idStr = idArray[0][0]
                 let id = idStr.substring(16)
                 let replacementVal = '{{ ' + '"person_id": ' + id + ' }}'
                 console.log(replacementVal)
-                let personArray = personNameRegex.exec(match[0])
+                //let personArray = personNameRegex.exec(match[0])
+                let personArray = [...match[0].matchAll(personNameRegex)];
                 console.log(personArray)
-                let personFound = personArray[0]
+                let personFound = personArray[0][0]
                 let person = personFound.replace(/\/internal\/users\/\d+\"\>/g, '')
                 console.log(person)
                 parsedText = parsedText.replace(person, replacementVal);
