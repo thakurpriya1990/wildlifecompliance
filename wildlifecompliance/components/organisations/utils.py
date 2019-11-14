@@ -96,16 +96,13 @@ def get_officer_email_list(organisation):
     # requesting ID update from an Organisation applicant.
     emails = set()
     applications = Application.objects.filter(
-            org_applicant=organisation.id,
-            id_check_status=Application.ID_CHECK_STATUS_AWAITING_UPDATE
+        org_applicant=organisation.id,
+        id_check_status=Application.ID_CHECK_STATUS_AWAITING_UPDATE
     ).exclude(customer_status__in=(
         Application.CUSTOMER_STATUS_ACCEPTED,
         Application.CUSTOMER_STATUS_DECLINED)
     )
     for application in applications:
-        # Officer assigned to the application
-        if application.is_assigned:
-            emails.add(application.assigned_officer.email)
         # Officer belonging to a group assigned to the application
         for officer in application.licence_officers:
             emails.add(officer.email)
