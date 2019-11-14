@@ -65,10 +65,11 @@ class LegalCaseRunningSheetEntrySerializer(serializers.ModelSerializer):
                 'id',
                 #'person',
                 #'legal_case_persons',
-                #'legal_case_id',
+                'legal_case_id',
                 'number',
                 'date_created',
                 'user_full_name',
+                'user_id',
                 'description',
                 #'deleted',
                 'action',
@@ -88,8 +89,6 @@ class LegalCaseRunningSheetEntrySerializer(serializers.ModelSerializer):
 
 
 class SaveLegalCaseRunningSheetEntrySerializer(serializers.ModelSerializer):
-    legal_case_id = serializers.IntegerField(
-        required=False, write_only=True, allow_null=True)
     user_id = serializers.IntegerField(
         required=False, write_only=True, allow_null=True)
 
@@ -98,7 +97,7 @@ class SaveLegalCaseRunningSheetEntrySerializer(serializers.ModelSerializer):
         fields = (
                 'id',
                 'number',
-                'legal_case_persons',
+                #'legal_case_persons',
                 'legal_case_id',
                 'user_id',
                 'description',
@@ -106,6 +105,7 @@ class SaveLegalCaseRunningSheetEntrySerializer(serializers.ModelSerializer):
         read_only_fields = (
                 'id',
                 'number',
+                'legal_case_id',
                 )
 
 
@@ -247,6 +247,7 @@ class LegalCaseSerializer(serializers.ModelSerializer):
 
 
 class SaveLegalCaseSerializer(serializers.ModelSerializer):
+    #running_sheet_entries = SaveLegalCaseRunningSheetEntrySerializer(many=True)
     assigned_to_id = serializers.IntegerField(
         required=False, write_only=True, allow_null=True)
     allocated_group_id = serializers.IntegerField(
@@ -268,6 +269,7 @@ class SaveLegalCaseSerializer(serializers.ModelSerializer):
                 'allocated_group_id',
                 'call_email_id',
                 'legal_case_priority_id',
+                #'running_sheet_entries',
                 )
         read_only_fields = (
                 'id',

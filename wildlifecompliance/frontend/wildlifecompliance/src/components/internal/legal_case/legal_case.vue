@@ -584,23 +584,39 @@ export default {
           return diff;
     },
     updateRunningSheetEntry: function({rowId, recordNumber, description}) {
-        //console.log(rowNum)
-        //console.log(recordNumber)
-        //console.log(description)
+        /*
+        console.log(rowId)
+        console.log(recordNumber)
+        console.log(description)
+        */
         let i = 0;
         for (let r of this.runningSheet) {
             if (rowId === i && recordNumber === r.number) {
-                let re = /\{\{ \"person\_id\"\: \d+ \}\}/g;
-                let matchArray = re.exec(description)
-                //console.log(matchArray)
-                if (matchArray && matchArray.length > 0) {
-                    for (let match of matchArray) {
-                        //console.log("match")
-                        //console.log(typeof(match))
-                        //console.log(match)
+                const personTokenRegex = /\{\{ \"person\_id\"\: \d+ \}\}/g;
+                //let personTokenArray = []
+                //Object.assign(personTokenArray,  personTokenRegex.exec(description))
+                let personTokenArray = [...description.matchAll(personTokenRegex)];
+                const personUrlRegex = /<a contenteditable\=\"false\" target\=\"\_blank\" href\=\"\/internal\/users\/\d+\"\>\w+\s\w+\<\/a\>/g
+                //let personUrlArray = []
+                //Object.assign(personUrlArray, personUrlRegex.exec(r.description))
+                let personUrlArray = [...r.description.matchAll(personUrlRegex)];
+                /*
+                console.log(personTokenArray)
+                console.log(personTokenArray.length)
+                console.log(r.description)
+                console.log(personUrlArray)
+                console.log(personUrlArray.length)
+                */
+                if (personTokenArray.length > personUrlArray.length) {
+                    for (let personToken of personTokenArray) {
+                        /*
+                        console.log("match")
+                        console.log(typeof(personToken))
+                        console.log(personToken)
+                        */
                         r.description = description.replace(
-                            match, //'blah transform'
-                            '<a contenteditable="false" target="_blank"  href="/internal/users/7822">Mark bloke</a>'
+                            personTokenRegex, //'blah transform'
+                            '<a contenteditable="false" target="_blank" href="/internal/users/7822">Mark bloke</a>'
                         );
                         //Object.assign(this.runningSheet[i].description, r.description);
                         //this.runningSheet.$set(i, r);
@@ -616,6 +632,7 @@ export default {
                     }
                 }
             }
+            i += 1;
         }
 
     },
@@ -707,15 +724,17 @@ export default {
         this.$refs.legal_case_workflow.isModalOpen = true;
       });
     },
-    save: async function(returnToDash) {
+    save: function(returnToDash) {
       console.log(returnToDash)
       let savedLegalCase = null;
       //let savedPerson = null;
-      if (this.legal_case.id) {
-          savedLegalCase = await this.saveLegalCase({ create: false, internal: false });
-      } else {
-          savedLegalCase = await this.saveLegalCase({ create: true, internal: false });
-      }
+      this.$nextTick(async () => {
+          if (this.legal_case.id) {
+              savedLegalCase = await this.saveLegalCase({ create: false, internal: false });
+          } else {
+              savedLegalCase = await this.saveLegalCase({ create: true, internal: false });
+          }
+      })
       this.calculateHash();
       //console.log(savedInspection);
       if (savedLegalCase && savedLegalCase.ok && returnToDash === 'exit') {
@@ -732,17 +751,50 @@ export default {
         this.$refs.magic.isModalOpen = true;
         this.magic = false;
     },
-    runningSheetEvents: async function(e) {
+    runningSheetKeyup: async function(e) {
         //console.log(e)
-        //console.log(e.target.outerHTML)
+        //console.log(e.target.textContent)
         let rowObj = {}
         let recordNumber = e.target.id
         //let rowValue = e.target.outerHTML
         let recordDescriptionText = e.target.textContent
         let recordDescriptionHtml = e.target.innerHTML
-        
-        //console.log("rowValue")
-        //console.log(rowValue)
+        const ignoreArray = [49, 50, 16]
+        if (ignoreArray.includes(e.which)) {
+            //pass
+        } else {
+            //let recordDescription = this.parseStringInput(recordDescriptionHtml, recordDescriptionText);
+            //console.log(e.which)
+            //console.log(e.target.textContent)
+            //console.log(recordDescriptionText)
+            let i = 0;
+            for (let r of this.runningSheet) {
+                if (r.number === recordNumber) {
+                    let recordDescription = this.parseStringInput({
+                        "recordDescriptionHtml": recordDescriptionHtml, 
+                        "recordDescriptionText": recordDescriptionText,
+                        "rowId": i});
+                    //console.log(recordDescription)
+                    await this.setRunningSheetEntryDescription(
+                        {
+                            "recordNumber": recordNumber, 
+                            "description": recordDescription,
+                            "userId": this.current_user.id,
+                        })
+                    //this.constructRunningSheetTableEntry({
+                    //    "rowNum": i, 
+                    //    "description": this.legal_case.running_sheet_transform[i].description
+                    //});
+                    this.magicKeyPressed = false;
+                    this.magicKey2Pressed = false;
+                }
+                i += 1;
+            }
+        }
+        //console.log(e)
+        //console.log(e.target.textContent)
+    },
+    runningSheetKeydown: async function(e) {
 
         // keycode 49 = !
         if (e.which === 49 && this.magicKeyPressed) {
@@ -761,37 +813,18 @@ export default {
         } else if (e.which === 50) {
             this.magicKey2Pressed = true;
             // keycode 16 = Shift (must be pressed to access !)
-        } else if (e.which === 16 || e.which === 32) {
+        //} else if (e.which === 16 || e.which === 32) {
+        } else if (e.which === 16) {
             // pass
-        } else if (this.magicValue && 
+        /*} else if (this.magicValue && 
             this.magicValue.toLowerCase().includes('shibaken') &&
             this.magic) {
             //this.magic = true;
             this.magicMethod()
+        */
         } else {
-            //let recordDescription = this.parseStringInput(recordDescriptionHtml, recordDescriptionText);
-            let i = 0;
-            for (let r of this.runningSheet) {
-                if (r.number === recordNumber) {
-                    let recordDescription = this.parseStringInput({
-                        "recordDescriptionHtml": recordDescriptionHtml, 
-                        "recordDescriptionText": recordDescriptionText,
-                        "rowId": i});
-                    console.log(recordDescription)
-                    await this.setRunningSheetEntryDescription(
-                        {
-                            "recordNumber": recordNumber, 
-                            "description": recordDescription
-                        })
-                    //this.constructRunningSheetTableEntry({
-                    //    "rowNum": i, 
-                    //    "description": this.legal_case.running_sheet_transform[i].description
-                    //});
-                    this.magicKeyPressed = false;
-                    this.magicKey2Pressed = false;
-                }
-                i += 1;
-            }
+            this.magicKeyPressed = false;
+            this.magicKey2Pressed = false;
         }
     },
       parseStringInput: function({recordDescriptionHtml, recordDescriptionText, rowId}) {
@@ -801,27 +834,31 @@ export default {
         //Object.assign(parsedText, str);
 
         const personUrlRegex = /<a contenteditable\=\"false\" target\=\"\_blank\" href\=\"\/internal\/users\/\d+\"\>\w+\s\w+\<\/a\>/g
-        const personTokenRegex = /\/internal\/users\/\d+/g
-          const personNameRegex = /\/internal\/users\/\d+\"\>\w+\s\w+/g
+        const personIdRegex = /\/internal\/users\/\d+/g
+        const personNameRegex = /\/internal\/users\/\d+\"\>\w+\s\w+/g
         //console.log(personUrlRegex)
         //console.log(str)
         //let re = /\{\{ \"person\_id\"\: \d+ \}\}/g;
-        let matchArray = personUrlRegex.exec(recordDescriptionHtml)
-        console.log("matchArray")
+        //let matchArray = personUrlRegex.exec(recordDescriptionHtml)
+        let matchArray = [...recordDescriptionHtml.matchAll(personUrlRegex)];
+        console.log(typeof(matchArray))
         console.log(matchArray)
         if (matchArray && matchArray.length > 0) {
             for (let match of matchArray) {
-                /*console.log("match")
+                console.log("match")
                 console.log(typeof(match))
                 console.log(match)
-                */
-                let urlArray = personTokenRegex.exec(match)
-                console.log(urlArray)
-                let url = urlArray[0]
-                let id = url.substring(16)
+                console.log(typeof(match[0]))
+                console.log(match[0])
+                
+                let idArray = personIdRegex.exec(match[0])
+                //let idArray = [...match[0].matchAll(personTokenRegex)];
+                console.log(idArray)
+                let idStr = idArray[0]
+                let id = idStr.substring(16)
                 let replacementVal = '{{ ' + '"person_id": ' + id + ' }}'
                 console.log(replacementVal)
-                let personArray = personNameRegex.exec(match)
+                let personArray = personNameRegex.exec(match[0])
                 console.log(personArray)
                 let personFound = personArray[0]
                 let person = personFound.replace(/\/internal\/users\/\d+\"\>/g, '')
@@ -834,13 +871,23 @@ export default {
         return parsedText;
     },
     addEventListeners: function() {
-      let vm = this;
+      //let vm = this;
       let runningSheetTable = $('#running-sheet-table');
       runningSheetTable.on(
           'keydown',
-          function(e) {
-              vm.runningSheetEvents(e)
+          (e) => {
+              //console.log(runningSheetTable.text())
+              this.runningSheetKeydown(e)
           });
+      runningSheetTable.on(
+          'keyup',
+          (e) => {
+              //console.log(runningSheetTable.text())
+              this.runningSheetKeyup(e)
+          });
+      //console.log(runningSheetTable);
+      //runningSheetTable.addEventListener("keydown", this.runningSheetEvents);
+      
 
       //let runningSheetDataTable = $('running-sheet-table').DataTable();
       //runningSheetTable.on( 'click', 'td', function() {

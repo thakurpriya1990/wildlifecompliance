@@ -56,6 +56,7 @@ from wildlifecompliance.components.legal_case.models import (
         LegalCaseCommsLogEntry,
         LegalCaseCommsLogDocument,
         LegalCasePriority,
+        LegalCaseRunningSheetEntry,
 )
 
 from wildlifecompliance.components.call_email.models import (
@@ -354,12 +355,27 @@ class LegalCaseViewSet(viewsets.ModelViewSet):
     @renderer_classes((JSONRenderer,))
     #def inspection_save(self, request, workflow=False, *args, **kwargs):
     def update(self, request, workflow=False, *args, **kwargs):
+        print(request.data)
         try:
             with transaction.atomic():
+                running_sheet_entries = request.data.get('running_sheet_entries')
+                running_sheet_saved = None
+                if running_sheet_entries and len(running_sheet_entries) > 0:
+                    for entry in running_sheet_entries:
+                        entry_obj = LegalCaseRunningSheetEntry.objects.get(id = entry.get('id'))
+                        running_sheet_entry_serializer = SaveLegalCaseRunningSheetEntrySerializer(
+                                instance=entry_obj, 
+                                data=entry)
+                        running_sheet_entry_serializer.is_valid(raise_exception=True)
+                        if running_sheet_entry_serializer.is_valid():
+                            running_sheet_entry_serializer.save()
+                    running_sheet_saved = True
+
                 instance = self.get_object()
                 serializer = SaveLegalCaseSerializer(instance, data=request.data)
                 serializer.is_valid(raise_exception=True)
-                if serializer.is_valid():
+                if serializer.is_valid() and \
+                    (not running_sheet_entries or (running_sheet_entries and running_sheet_saved)):
                     serializer.save()
                     instance.log_user_action(
                             LegalCaseUserAction.ACTION_SAVE_LEGAL_CASE.format(
