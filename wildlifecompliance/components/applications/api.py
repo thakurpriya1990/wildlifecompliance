@@ -784,7 +784,7 @@ class ApplicationViewSet(viewsets.ModelViewSet):
             last_activity, context={'request': request})
         return Response({'activity': serializer.data})
 
-    @detail_route(methods=['GET', ])
+    @detail_route(methods=['POST', ])
     def assign_to_me(self, request, *args, **kwargs):
         try:
             instance = self.get_object()

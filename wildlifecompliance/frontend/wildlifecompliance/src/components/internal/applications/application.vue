@@ -1105,8 +1105,13 @@ export default {
         },
         assignToMe: function(){
             let vm = this;
-            vm.$http.get(helpers.add_endpoint_json(api_endpoints.applications,(vm.application.id+'/assign_to_me')))
-            .then((response) => {
+            const data = {
+                "activity_id" : this.selectedActivity.licence_activity,
+            }
+            vm.$http.post(helpers.add_endpoint_json(api_endpoints.applications,(vm.application.id+'/assign_to_me')),JSON.stringify(data),{
+                emulateJSON:true
+
+            }).then((response) => {
                 this.refreshFromResponse(response);
                 vm.updateAssignedOfficerSelect();
             }, (error) => {
