@@ -262,7 +262,7 @@ class SanctionOutcomeDatatableSerializer(serializers.ModelSerializer):
     user_action = serializers.SerializerMethodField()
     offender = OffenderSerializer(read_only=True,)
     paper_notices = serializers.SerializerMethodField()
-    # invoice_reference = serializers.SerializerMethodField()
+    coming_due_date = serializers.ReadOnlyField()
 
     class Meta:
         model = SanctionOutcome
@@ -285,7 +285,7 @@ class SanctionOutcomeDatatableSerializer(serializers.ModelSerializer):
             'time_of_issue',
             'user_action',
             'paper_notices',
-            # 'invoice_reference',
+            'coming_due_date',
         )
         read_only_fields = ()
 

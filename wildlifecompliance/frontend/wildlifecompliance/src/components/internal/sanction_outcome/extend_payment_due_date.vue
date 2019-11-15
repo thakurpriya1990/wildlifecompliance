@@ -143,7 +143,6 @@ export default {
                 let due_2nd = new Date(this.due_date_2nd);
 
                 if (now <= due_1st){
-                    console.log(due_1st);
                     return due_1st;
                 } else if (now <= due_2nd){
                     return due_2nd;

@@ -165,6 +165,11 @@ export default {
                         }
                     },
                     {
+                        data: 'coming_due_date',
+                        searchable: false,
+                        orderable: false,
+                    },
+                    {
                         data: 'offender',
                         searchable: true,
                         orderable: true,
@@ -220,7 +225,8 @@ export default {
                 'Number',
                 'Type',
                 'Identifier',
-                'Date',
+                'Issue Date',
+                'Due Date',
                 'Offender',
                 'Status',
                 'Payment Status',

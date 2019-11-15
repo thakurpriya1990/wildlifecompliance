@@ -356,7 +356,7 @@
         <div v-if="workflow_type">
             <SanctionOutcomeWorkflow ref="add_workflow" :workflow_type="workflow_type" v-bind:key="workflowBindId" />
         </div>
-        <ExtendPaymentDueDate ref="extend_payment_due_date" :due_date_1st="active_due_date_1st" :due_date_2nd="active_due_date_2nd" :due_date_max="sanction_outcome.due_date_extended_max" v-bind:key="extendPaymentBindId" />
+        <ExtendPaymentDueDate ref="extend_payment_due_date" :due_date_1st="last_due_date_1st" :due_date_2nd="last_due_date_2nd" :due_date_max="sanction_outcome.due_date_extended_max" v-bind:key="extendPaymentBindId" />
     </div>
 </template>
 
@@ -533,14 +533,14 @@ export default {
         ...mapGetters('sanctionOutcomeStore', {
             sanction_outcome: "sanction_outcome",
         }),
-        active_due_date_1st: function() {
+        last_due_date_1st: function() {
             let ret_value = null;
             if(this.sanction_outcome && this.sanction_outcome.due_dates){
                 ret_value = this.sanction_outcome.due_dates[this.sanction_outcome.due_dates.length - 1].due_date_1st;
             }
             return ret_value;
         },
-        active_due_date_2nd: function() {
+        last_due_date_2nd: function() {
             let ret_value = null;
             if(this.sanction_outcome && this.sanction_outcome.due_dates){
                 ret_value = this.sanction_outcome.due_dates[this.sanction_outcome.due_dates.length - 1].due_date_2nd;

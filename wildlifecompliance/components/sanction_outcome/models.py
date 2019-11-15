@@ -364,28 +364,62 @@ class SanctionOutcome(models.Model):
             return qs_aco.first().retrieve_penalty_amounts_by_date(self.date_of_issue)
 
     @property
-    def due_date_1st(self):
-        due_dates = self.due_dates.order_by('-created_at')
+    def coming_due_date(self):
+        try:
+            if self.type == SanctionOutcome.TYPE_INFRINGEMENT_NOTICE:
+                today = datetime.date.today()
+                if today <= self.last_due_date_1st:
+                    return self.last_due_date_1st
+                if today <= self.last_due_date_2nd:
+                    return self.last_due_date_2nd
+                else:
+                    # Overdue
+                    return self.last_due_date_2nd
+            else:
+                return None
+        except Exception as e:
+            return None
 
-        if not due_dates:
-            # Should not reach here
-            self.create_due_dates()
-            self.set_penalty_amounts()
-            self.save()
+    @property
+    def last_due_date_1st(self):
+        if self.type == SanctionOutcome.TYPE_INFRINGEMENT_NOTICE:
             due_dates = self.due_dates.order_by('-created_at')
+            if self.date_of_issue and not due_dates:
+                # Should not reach here
+                self.create_due_dates()
+                self.set_penalty_amounts()
+                self.save()
+                due_dates = self.due_dates.order_by('-created_at')
 
-        return due_dates.first().due_date_1st
+            return due_dates.first().due_date_1st
+        else:
+            return None
+
+    @property
+    def last_due_date_2nd(self):
+        if self.type == SanctionOutcome.TYPE_INFRINGEMENT_NOTICE:
+            due_dates = self.due_dates.order_by('-created_at')
+            if self.date_of_issue and not due_dates:
+                # Should not reach here
+                self.create_due_dates()
+                self.set_penalty_amounts()
+                self.save()
+                due_dates = self.due_dates.order_by('-created_at')
+
+            return due_dates.first().due_date_2nd
+        else:
+            return None
 
     def extend_due_date(self, target_date, reason_for_extension, extended_by_id):
         now_date = datetime.datetime.now().date()
         due_date_config = SanctionOutcomeDueDateConfiguration.get_config_by_date(self.date_of_issue)
         if target_date <= self.due_date_extended_max:
             data = {}
-            if now_date <= self.due_date_1st:
+            if now_date <= self.last_due_date_1st:
                 data['due_date_1st'] = target_date
                 data['due_date_2nd'] = target_date + relativedelta(days=due_date_config.due_date_window_2nd)
-            elif now_date <= self.due_date_2nd:
-                data['due_date_2st'] = self.due_date_1st
+            elif now_date <= self.last_due_date_2nd:
+                data['due_date_1st'] = self.last_due_date_1st
                 data['due_date_2nd'] = target_date
             data['reason_for_extension'] = reason_for_extension
             data['extended_by_id'] = extended_by_id
@@ -396,25 +430,12 @@ class SanctionOutcome(models.Model):
             return True
         return False
 
-    @property
-    def due_date_2nd(self):
-        due_dates = self.due_dates.order_by('-created_at')
-
-        if not due_dates:
-            # Should not reach here
-            self.create_due_dates()
-            self.set_penalty_amounts()
-            self.save()
-            due_dates = self.due_dates.order_by('-created_at')
-
-        return due_dates.first().due_date_2nd
-
     def determine_penalty_amount_by_date(self, date_payment):
         try:
             if self.offence_occurrence_date <= date_payment:
-                if date_payment <= self.due_date_1st:
+                if date_payment <= self.last_due_date_1st:
                     return self.penalty_amount_1st
-                elif date_payment <= self.due_date_2nd:
+                elif date_payment <= self.last_due_date_2nd:
                     return self.penalty_amount_2nd
                 else:
                     # Should not reach here
