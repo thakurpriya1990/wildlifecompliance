@@ -90,6 +90,7 @@ from rest_framework_datatables.renderers import DatatablesRenderer
 from wildlifecompliance.components.legal_case.email import (
     send_mail)
 from reversion.models import Version
+#import unicodedata
 
 
 class LegalCaseFilterBackend(DatatablesFilterBackend):
@@ -355,17 +356,30 @@ class LegalCaseViewSet(viewsets.ModelViewSet):
     @renderer_classes((JSONRenderer,))
     #def inspection_save(self, request, workflow=False, *args, **kwargs):
     def update(self, request, workflow=False, *args, **kwargs):
-        print(request.data)
+        #print(request.data)
         try:
             with transaction.atomic():
                 running_sheet_entries = request.data.get('running_sheet_entries')
                 running_sheet_saved = None
                 if running_sheet_entries and len(running_sheet_entries) > 0:
                     for entry in running_sheet_entries:
-                        entry_obj = LegalCaseRunningSheetEntry.objects.get(id = entry.get('id'))
+                        #entry_copy = entry.copy()
+                        entry_copy = dict(entry)
+                        description = entry_copy.get('description', '')
+                        clean_description = description.replace(u'\xa0', u' ')
+                        #clean_description = unicodedata.normalize('NFC', description)
+                        #del entry_copy['description']
+                        #print('entry_copy is entry')
+                        #print(entry_copy is entry)
+                        #clean_description = entry_copy.get('description', '').replace(r'\xa0', u' ')
+                        #print(clean_description)
+                        entry_copy.update({'description': clean_description})
+                        #entry_copy['description'] = clean_description
+                        #print(entry_copy)
+                        entry_id = LegalCaseRunningSheetEntry.objects.get(id = entry_copy.get('id'))
                         running_sheet_entry_serializer = SaveLegalCaseRunningSheetEntrySerializer(
-                                instance=entry_obj, 
-                                data=entry)
+                                instance=entry_id, 
+                                data=entry_copy)
                         running_sheet_entry_serializer.is_valid(raise_exception=True)
                         if running_sheet_entry_serializer.is_valid():
                             running_sheet_entry_serializer.save()

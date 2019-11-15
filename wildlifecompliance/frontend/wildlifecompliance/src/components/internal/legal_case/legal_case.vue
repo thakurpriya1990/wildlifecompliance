@@ -544,12 +544,13 @@ export default {
                   //console.log(oldValue)
                   if (oldValue && oldValue.length > 0 && r.description !== oldValue[i].description) {
                   //if (runningSheetVuexoldValue && oldValue.length > 0 && r.description !== oldValue[i].description) {
-                      const diff = this.findStringDiff(newValue[i].description, oldValue[i].description)
-                      console.log(diff)
+                      //const diff = this.findStringDiff(newValue[i].description, oldValue[i].description)
+                      //console.log(diff)
                       this.updateRunningSheetEntry({
                           "rowId": i, 
                           "recordNumber": r.number, 
-                          "description": r.description
+                          "description": r.description,
+                          'redraw': true,
                       });
                   }
                   i += 1;
@@ -583,12 +584,13 @@ export default {
                 });
           return diff;
     },
-    updateRunningSheetEntry: function({rowId, recordNumber, description}) {
+    updateRunningSheetEntry: function({rowId, recordNumber, description, redraw}) {
         /*
         console.log(rowId)
         console.log(recordNumber)
         console.log(description)
         */
+        //console.log(description)
         let i = 0;
         for (let r of this.runningSheet) {
             if (rowId === i && recordNumber === r.number) {
@@ -616,15 +618,17 @@ export default {
                         */
                         r.description = description.replace(
                             personTokenRegex, //'blah transform'
-                            '<a contenteditable="false" target="_blank" href="/internal/users/7822">Mark bloke</a>'
+                            String('<a contenteditable="false" target="_blank" href="/internal/users/7822">Mark bloke</a>')
                         );
                         //Object.assign(this.runningSheet[i].description, r.description);
                         //this.runningSheet.$set(i, r);
                         this.runningSheet.splice(i, 1, r);
-                        //console.log(r.description)
+                        console.log(r.description)
                         //console.log("this.runningSheet[rowNum].description")
                         //console.log(this.runningSheet[i].description)
-                        this.constructRunningSheetTableEntry({"rowNum": i, "description": r.description});
+                        if (redraw) {
+                            this.constructRunningSheetTableEntry({"rowNum": i, "description": r.description});
+                        }
                         /*this.$nextTick(() => {
                         this.constructRunningSheetTableEntry({"rowNum": i, "description": r.description});
                         });
@@ -639,8 +643,13 @@ export default {
 
     constructRunningSheetTable: function(){
         this.$refs.running_sheet_table.vmDataTable.clear().draw();
-        if (this.runningSheet){
+        if (this.runningSheet && this.runningSheetVuex){
             for(let i = 0;i < this.runningSheet.length; i++){
+                this.updateRunningSheetEntry({
+                    "rowId": i,
+                    "recordNumber": this.runningSheetVuex[i].number,
+                    "description":  this.runningSheetVuex[i].description
+                });
                 //this.addRunningSheetEntryToTable(this.offence.alleged_offences[i]);
                 this.$refs.running_sheet_table.vmDataTable.row.add({ 
                     "id": this.runningSheet[i].id,
@@ -754,11 +763,12 @@ export default {
     runningSheetKeyup: async function(e) {
         //console.log(e)
         //console.log(e.target.textContent)
+        //console.log(e.target.innerHTML)
         let rowObj = {}
         let recordNumber = e.target.id
         //let rowValue = e.target.outerHTML
         let recordDescriptionText = e.target.textContent
-        let recordDescriptionHtml = e.target.innerHTML
+        let recordDescriptionHtml = e.target.innerHTML.replace(/\&nbsp\;/g, ' ');
         const ignoreArray = [49, 50, 16]
         if (ignoreArray.includes(e.which)) {
             //pass
@@ -770,10 +780,13 @@ export default {
             let i = 0;
             for (let r of this.runningSheet) {
                 if (r.number === recordNumber) {
+                    
                     let recordDescription = this.parseStringInput({
-                        "recordDescriptionHtml": recordDescriptionHtml, 
+                        "recordDescriptionHtml": recordDescriptionHtml,
                         "recordDescriptionText": recordDescriptionText,
                         "rowId": i});
+                    
+                    //let recordDescription = recordDescriptionText;
                     //console.log(recordDescription)
                     await this.setRunningSheetEntryDescription(
                         {
@@ -828,9 +841,10 @@ export default {
         }
     },
       parseStringInput: function({recordDescriptionHtml, recordDescriptionText, rowId}) {
-        console.log(recordDescriptionText)
+        //console.log(recordDescriptionText)
+        //console.log(recordDescriptionHtml)
         //let parsedText = this.legal_case.running_sheet_entries[rowId].description;
-        let parsedText = recordDescriptionText;
+        let parsedText = String(recordDescriptionText);
         //Object.assign(parsedText, str);
 
         const personUrlRegex = /<a contenteditable\=\"false\" target\=\"\_blank\" href\=\"\/internal\/users\/\d+\"\>\w+\s\w+\<\/a\>/g
@@ -856,19 +870,20 @@ export default {
                 console.log(idArray)
                 let idStr = idArray[0][0]
                 let id = idStr.substring(16)
-                let replacementVal = '{{ ' + '"person_id": ' + id + ' }}'
+                let replacementVal = String('{{ ' + '"person_id": ' + id + ' }}')
                 console.log(replacementVal)
                 //let personArray = personNameRegex.exec(match[0])
                 let personArray = [...match[0].matchAll(personNameRegex)];
                 console.log(personArray)
                 let personFound = personArray[0][0]
-                let person = personFound.replace(/\/internal\/users\/\d+\"\>/g, '')
+                    let person = personFound.replace(/\/internal\/users\/\d+\"\>/g, String(''));
                 console.log(person)
-                parsedText = parsedText.replace(person, replacementVal);
-                //parsedText = parsedText.replace(/\&nbsp/g, ' ');
+                parsedText = parsedText.replace(person, String(replacementVal)).replace(/\&nbsp\;/g, ' ');
                 //Object.assign(this.runningSheet[i].description, r.description);
             }
         }
+        console.log(parsedText)
+        console.log(typeof(parsedText))
         return parsedText;
     },
     addEventListeners: function() {
@@ -1008,7 +1023,9 @@ export default {
       this.calculateHash();
       //Object.assign(this.runningSheet, this.legal_case.running_sheet_entries);
       this.runningSheet = _.cloneDeep(this.legal_case.running_sheet_entries);
-      this.constructRunningSheetTable();
+      this.$nextTick(() => {
+          this.constructRunningSheetTable();
+      });
   },
   destroyed: function() {
       window.removeEventListener('beforeunload', this.leaving);
