@@ -183,7 +183,7 @@ export default {
                         const finalised = ['approved', 'declined'].includes(full.processing_status.id);
                         links += (full.can_be_processed && full.user_in_officers) ?
                             `<a href='/internal/application/${full.id}'>Process</a><br/>` :
-                            `<div class="table.dataTable.dtr-inline.collapsed>tbody>tr.parent>th:first-child:before">%</div><a href='/${finalised ? 'internal' : 'external'}/application/${full.id}'>ViewA</a><br/>`;
+                            `<a href='/${finalised ? 'internal' : 'external'}/application/${full.id}'>View</a><br/>`;
                     }
                     if (vm.is_external){
                         if (full.can_current_user_edit) {
