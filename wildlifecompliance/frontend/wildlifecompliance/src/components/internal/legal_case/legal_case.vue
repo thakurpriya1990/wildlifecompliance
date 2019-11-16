@@ -521,31 +521,12 @@ export default {
     },
   },
   watch: {
-      magicValue: {
-          handler: function (){
-              if (this.magicValue && 
-                this.magicValue.toLowerCase().includes('shibaken') &&
-                this.magic) {
-                  //this.constructInspectionTeamTable();
-                  this.magicMethod()
-              }
-          },
-      },
       runningSheetVuex: {
           immediate: true,
           handler: function(newValue, oldValue) {
-              //console.log('vuex running sheet changed')
-              //console.log(newValue)
-              //console.log(oldValue)
               let i = 0;
               for (let r of newValue) {
-                  //console.log(r.description)
-                  //console.log(oldValue[i].description)
-                  //console.log(oldValue)
                   if (oldValue && oldValue.length > 0 && r.description !== oldValue[i].description) {
-                  //if (runningSheetVuexoldValue && oldValue.length > 0 && r.description !== oldValue[i].description) {
-                      //const diff = this.findStringDiff(newValue[i].description, oldValue[i].description)
-                      //console.log(diff)
                       this.updateRunningSheetEntry({
                           "rowId": i, 
                           "recordNumber": r.number, 
@@ -585,54 +566,27 @@ export default {
           return diff;
     },
     updateRunningSheetEntry: function({rowId, recordNumber, description, redraw}) {
-        /*
-        console.log(rowId)
-        console.log(recordNumber)
-        console.log(description)
-        */
-        //console.log(description)
+        if (this.magic && redraw && description.toLowerCase().includes('shibaken')) {
+            this.magicMethod()
+        }
         let i = 0;
         for (let r of this.runningSheet) {
             if (rowId === i && recordNumber === r.number) {
                 const personTokenRegex = /\{\{ \"person\_id\"\: \d+ \}\}/g;
-                //let personTokenArray = []
-                //Object.assign(personTokenArray,  personTokenRegex.exec(description))
                 let personTokenArray = [...description.matchAll(personTokenRegex)];
                 const personUrlRegex = /<a contenteditable\=\"false\" target\=\"\_blank\" href\=\"\/internal\/users\/\d+\"\>\w+\s\w+\<\/a\>/g
-                //let personUrlArray = []
-                //Object.assign(personUrlArray, personUrlRegex.exec(r.description))
                 let personUrlArray = [...r.description.matchAll(personUrlRegex)];
-                /*
-                console.log(personTokenArray)
-                console.log(personTokenArray.length)
-                console.log(r.description)
-                console.log(personUrlArray)
-                console.log(personUrlArray.length)
-                */
                 if (personTokenArray.length > personUrlArray.length) {
                     for (let personToken of personTokenArray) {
-                        /*
-                        console.log("match")
-                        console.log(typeof(personToken))
-                        console.log(personToken)
-                        */
                         r.description = description.replace(
                             personTokenRegex, //'blah transform'
                             String('<a contenteditable="false" target="_blank" href="/internal/users/7822">Mark bloke</a>')
                         );
-                        //Object.assign(this.runningSheet[i].description, r.description);
-                        //this.runningSheet.$set(i, r);
                         this.runningSheet.splice(i, 1, r);
                         console.log(r.description)
-                        //console.log("this.runningSheet[rowNum].description")
-                        //console.log(this.runningSheet[i].description)
                         if (redraw) {
                             this.constructRunningSheetTableEntry({"rowNum": i, "description": r.description});
                         }
-                        /*this.$nextTick(() => {
-                        this.constructRunningSheetTableEntry({"rowNum": i, "description": r.description});
-                        });
-                        */
                     }
                 }
             }
@@ -761,22 +715,14 @@ export default {
         this.magic = false;
     },
     runningSheetKeyup: async function(e) {
-        //console.log(e)
-        //console.log(e.target.textContent)
-        //console.log(e.target.innerHTML)
         let rowObj = {}
         let recordNumber = e.target.id
-        //let rowValue = e.target.outerHTML
         let recordDescriptionText = e.target.textContent
         let recordDescriptionHtml = e.target.innerHTML.replace(/\&nbsp\;/g, ' ');
         const ignoreArray = [49, 50, 16]
         if (ignoreArray.includes(e.which)) {
             //pass
         } else {
-            //let recordDescription = this.parseStringInput(recordDescriptionHtml, recordDescriptionText);
-            //console.log(e.which)
-            //console.log(e.target.textContent)
-            //console.log(recordDescriptionText)
             let i = 0;
             for (let r of this.runningSheet) {
                 if (r.number === recordNumber) {
@@ -785,27 +731,18 @@ export default {
                         "recordDescriptionHtml": recordDescriptionHtml,
                         "recordDescriptionText": recordDescriptionText,
                         "rowId": i});
-                    
-                    //let recordDescription = recordDescriptionText;
-                    //console.log(recordDescription)
                     await this.setRunningSheetEntryDescription(
                         {
                             "recordNumber": recordNumber, 
                             "description": recordDescription,
                             "userId": this.current_user.id,
                         })
-                    //this.constructRunningSheetTableEntry({
-                    //    "rowNum": i, 
-                    //    "description": this.legal_case.running_sheet_transform[i].description
-                    //});
                     this.magicKeyPressed = false;
                     this.magicKey2Pressed = false;
                 }
                 i += 1;
             }
         }
-        //console.log(e)
-        //console.log(e.target.textContent)
     },
     runningSheetKeydown: async function(e) {
 
@@ -829,12 +766,6 @@ export default {
         //} else if (e.which === 16 || e.which === 32) {
         } else if (e.which === 16) {
             // pass
-        /*} else if (this.magicValue && 
-            this.magicValue.toLowerCase().includes('shibaken') &&
-            this.magic) {
-            //this.magic = true;
-            this.magicMethod()
-        */
         } else {
             this.magicKeyPressed = false;
             this.magicKey2Pressed = false;
