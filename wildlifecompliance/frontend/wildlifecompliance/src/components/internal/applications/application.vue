@@ -51,7 +51,7 @@
                                     </div>
                                 </div>
                             </div>
-                             <div class="col-sm-12 top-buffer-s" v-if="!isSendingToAssessor && !isOfficerConditions && !canAssignApproverFor(selected_activity_tab_id)" >
+                             <div class="col-sm-12 top-buffer-s" v-if="!canAssignApproverFor(selected_activity_tab_id)" >
                                 <strong>Assigned Officer</strong><br/>
                                 <div class="form-group">
                                     <template>
@@ -73,7 +73,7 @@
                                     </template>                                    
                                 </div>
                             </div>
-                            <div class="col-sm-12 top-buffer-s" v-if="isSendingToAssessor || isOfficerConditions">
+                            <div class="col-sm-12 top-buffer-s" v-if="isWithAssessor && !showingApplication">
                                 <strong>Assigned Assessors</strong><br/>
                             
                                 <div v-for="activity_assessment in this.application.assessments">
@@ -162,7 +162,7 @@
                                             <button class="btn btn-primary top-buffer-s col-xs-12" @click.prevent="proposedLicence()">Propose Issue</button>
                                         </div>
                                     </div>                                    
-                                    <button v-show="showCompleteButton" @click.prevent="completeAssessmentsToMe()" class="btn btn-primary top-buffer-s col-xs-12" >Complete Assessments</button><br/>                                   
+                                    <button v-show="showCompleteButton && isWithAssessor" @click.prevent="completeAssessmentsToMe()" class="btn btn-primary top-buffer-s col-xs-12" >Complete Assessments</button><br/>                                   
                                 </template>
                             </div>
                         </div>
@@ -825,6 +825,9 @@ export default {
             }
             return false;
         },
+        isWithAssessor: function() {
+            return this.selectedActivity.processing_status.id === 'with_assessor' ? true : false;
+        }
     },
     methods: {
         ...mapActions({
