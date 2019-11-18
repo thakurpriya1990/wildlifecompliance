@@ -10,7 +10,8 @@
                 @entity-selected="entitySelected"
                 showCreateUpdate
                 ref="search_person_organisation"
-                v-bind:key="updateSearchPersonOrganisationBindId"/>
+                v-bind:key="updateSearchPersonOrganisationBindId"
+                />
             </div>
         </modal>
     </div>
@@ -36,6 +37,14 @@ export default {
             required: false,
             default: true
         },
+        rowNumberSelected: {
+            required: true,
+        },
+        //caseRunningSheet: {
+        //    type: Boolean,
+        //    required: false,
+        //    default: false,
+        //},
     },
     components: {
       modal,
@@ -56,14 +65,22 @@ export default {
             this.isModalOpen = false;
         },
         ok: function() {
+            if (this.entity.id) {
+                this.$emit('person-selected', { 
+                    id: this.entity.id, 
+                    data_type: this.entity.data_type,
+                    row_number_selected: this.rowNumberSelected,
+                    full_name: this.entity.full_name,
+                });
+            }
             this.isModalOpen = false;
         },
         close: function () {
             this.isModalOpen = false;
         },
-        entitySelected: async function(para) {
-            console.log(para);
-            // now send back to parent
+        entitySelected: async function(entity) {
+            console.log(entity);
+            Object.assign(this.entity, entity)
         },
     },
     created: async function() {

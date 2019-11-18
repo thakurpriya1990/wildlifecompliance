@@ -90,8 +90,8 @@ export const legalCaseStore = {
         },
         updateRunningSheetEntryDescription(state, { recordNumber, description, userId }) {
             //console.log("updateRunningSheetEntryDescription");
-            //console.log(rowId)
-            //console.log(description)
+            console.log(recordNumber)
+            console.log(description)
             if (state.legal_case.running_sheet_entries && state.legal_case.running_sheet_entries.length > 0) {
                 let i = 0;
                 for (let r of state.legal_case.running_sheet_entries) {

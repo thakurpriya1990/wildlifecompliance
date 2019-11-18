@@ -234,6 +234,8 @@
         ref="search_person_or_organisation_modal"
         :readonlyForm="readonlyForm"
         v-bind:key="searchPersonOrganisationBindId"
+        @person-selected="insertPersonModalToken"
+        :rowNumberSelected="rowNumberSelected"
         />
         <!--InspectionWorkflow ref="inspection_workflow" :workflow_type="workflow_type" v-bind:key="workflowBindId" /-->
     </div>
@@ -268,6 +270,7 @@ export default {
         return {
             //tempRunningSheet: [],
             uuid: 0,
+            rowNumberSelected: '',
             runningSheet: [],
             objectHash: null,
             runTab: 'runTab'+this._uid,
@@ -524,6 +527,8 @@ export default {
       runningSheetVuex: {
           immediate: true,
           handler: function(newValue, oldValue) {
+              //console.log(newValue)
+              //console.log(oldValue)
               let i = 0;
               for (let r of newValue) {
                   if (oldValue && oldValue.length > 0 && r.description !== oldValue[i].description) {
@@ -557,6 +562,30 @@ export default {
     ...mapActions({
         loadCurrentUser: 'loadCurrentUser',
     }),
+      insertPersonModalToken: function(entity) {
+        console.log(entity)
+        let recordNumber = entity.row_number_selected;
+        let recordNumberElement = $('#' + recordNumber)
+        let recordDescription = recordNumberElement[0].textContent;
+        //let replacementVal = String('{{ ' + '"person_id": ' + entity.id + ' }}')
+        let replacementVal = ''
+        if (entity.full_name) {
+            replacementVal = `{{ "person_id": ${entity.id}, "full_name": ${entity.full_name} }}`
+        }
+        //let replacementIdx = recordDescription.indexOf('@@')
+        let recordDescriptionText = recordDescription.replace('@@', replacementVal);
+        let recordDescriptionHtml = recordNumberElement[0].innerHTML.replace(/\&nbsp\;/g, ' ');
+        console.log(recordDescriptionText)
+        console.log(recordDescriptionHtml)
+
+        this.updateRunningSheetVuexWrapper({
+            recordNumber,
+            recordDescriptionText,
+            recordDescriptionHtml,
+        })
+
+
+    },
     findStringDiff(str1, str2) { 
           let diff= "";
           str2.split('').forEach(function(val, i){
@@ -572,15 +601,16 @@ export default {
         let i = 0;
         for (let r of this.runningSheet) {
             if (rowId === i && recordNumber === r.number) {
-                const personTokenRegex = /\{\{ \"person\_id\"\: \d+ \}\}/g;
+                //const personTokenRegex = /\{\{ \"person\_id\"\: \d+ \}\}/g;
+                const personTokenRegex = /\{\{ \"person\_id\"\: \d+\, \"full\_name\"\: \"\w+ \w+\" \}\}/g;
                 let personTokenArray = [...description.matchAll(personTokenRegex)];
                 const personUrlRegex = /<a contenteditable\=\"false\" target\=\"\_blank\" href\=\"\/internal\/users\/\d+\"\>\w+\s\w+\<\/a\>/g
                 let personUrlArray = [...r.description.matchAll(personUrlRegex)];
                 if (personTokenArray.length > personUrlArray.length) {
                     for (let personToken of personTokenArray) {
                         r.description = description.replace(
-                            personTokenRegex, //'blah transform'
-                            String('<a contenteditable="false" target="_blank" href="/internal/users/7822">Mark bloke</a>')
+                            personTokenRegex,
+                            `<a contenteditable="false" target="_blank" href="/internal/users/${7822}">Mark bloke</a>`
                         );
                         this.runningSheet.splice(i, 1, r);
                         console.log(r.description)
@@ -664,8 +694,9 @@ export default {
           this.$refs.offence.isModalOpen = true;
       });
     },
-    openSearchPersonOrganisation(){
+    openSearchPersonOrganisation(rowNumber){
       this.uuid += 1;
+      this.rowNumberSelected = rowNumber;
       this.searchPersonOrganisationInitialised = true;
       this.$nextTick(() => {
           this.$refs.search_person_or_organisation_modal.isModalOpen = true;
@@ -714,6 +745,27 @@ export default {
         this.$refs.magic.isModalOpen = true;
         this.magic = false;
     },
+    updateRunningSheetVuexWrapper: async function({
+          recordNumber,
+          recordDescriptionText,
+          recordDescriptionHtml
+    }) {
+        console.log("wrapper")
+        console.log(recordNumber)
+        console.log(recordDescriptionText)
+        console.log(recordDescriptionHtml)
+        let recordDescription = this.parseStringInput({
+            "recordDescriptionHtml": recordDescriptionHtml,
+            "recordDescriptionText": recordDescriptionText,
+        });
+        console.log(recordDescription)
+        await this.setRunningSheetEntryDescription(
+            {
+                "recordNumber": recordNumber, 
+                "description": recordDescription,
+                "userId": this.current_user.id,
+            })
+    },
     runningSheetKeyup: async function(e) {
         let rowObj = {}
         let recordNumber = e.target.id
@@ -726,17 +778,22 @@ export default {
             let i = 0;
             for (let r of this.runningSheet) {
                 if (r.number === recordNumber) {
-                    
-                    let recordDescription = this.parseStringInput({
-                        "recordDescriptionHtml": recordDescriptionHtml,
-                        "recordDescriptionText": recordDescriptionText,
-                        "rowId": i});
-                    await this.setRunningSheetEntryDescription(
-                        {
-                            "recordNumber": recordNumber, 
-                            "description": recordDescription,
-                            "userId": this.current_user.id,
-                        })
+                    this.updateRunningSheetVuexWrapper({
+                        recordNumber,
+                        recordDescriptionHtml, 
+                        recordDescriptionText
+                    })
+                    //let recordDescription = this.parseStringInput({
+                    //    "recordDescriptionHtml": recordDescriptionHtml,
+                    //    "recordDescriptionText": recordDescriptionText,
+                    //    "rowId": i
+                    //});
+                    //await this.setRunningSheetEntryDescription(
+                    //    {
+                    //        "recordNumber": recordNumber, 
+                    //        "description": recordDescription,
+                    //        "userId": this.current_user.id,
+                    //    })
                     this.searchPersonKeyPressed = false;
                     this.searchObjectKeyPressed = false;
                 }
@@ -753,15 +810,18 @@ export default {
             this.openInspection()
             this.searchObjectKeyPressed = false;
         } else if (e.which === 49) {
-            console.log(e);
+            //console.log(e);
 
             this.searchObjectKeyPressed = true;
         } else if (e.which === 50 && this.searchPersonKeyPressed) {
             // TODO: replace with modal_open call
             console.log("open modal")
-            this.openSearchPersonOrganisation()
+            console.log(e.target.id)
+            let rowElement = $('#' + e.target.id);
+            this.openSearchPersonOrganisation(e.target.id)
             this.searchPersonKeyPressed = false;
         } else if (e.which === 50) {
+            console.log(e);
             this.searchPersonKeyPressed = true;
         // keycode 16 = Shift (must be pressed to access !)
         //} else if (e.which === 16 || e.which === 32) {
@@ -772,12 +832,20 @@ export default {
             this.searchObjectKeyPressed = false;
         }
     },
-      parseStringInput: function({recordDescriptionHtml, recordDescriptionText, rowId}) {
+      parseStringInput: function({recordDescriptionHtml, recordDescriptionText}) {
         //console.log(recordDescriptionText)
         //console.log(recordDescriptionHtml)
         //let parsedText = this.legal_case.running_sheet_entries[rowId].description;
         let parsedText = String(recordDescriptionText);
         //Object.assign(parsedText, str);
+        //let selectedRowId = null;
+        //let i = 0;
+        //for (r of this.runningSheet) {
+        //    if (r.number === rowNumber) {
+        //        selectedRowId = i
+        //    }
+        //}
+
 
         const personUrlRegex = /<a contenteditable\=\"false\" target\=\"\_blank\" href\=\"\/internal\/users\/\d+\"\>\w+\s\w+\<\/a\>/g
         const personIdRegex = /\/internal\/users\/\d+/g
@@ -802,13 +870,14 @@ export default {
                 console.log(idArray)
                 let idStr = idArray[0][0]
                 let id = idStr.substring(16)
-                let replacementVal = String('{{ ' + '"person_id": ' + id + ' }}')
+                //let replacementVal = String('{{ ' + '"person_id": ' + id + ', "full_name":  }}')
                 console.log(replacementVal)
                 //let personArray = personNameRegex.exec(match[0])
                 let personArray = [...match[0].matchAll(personNameRegex)];
                 console.log(personArray)
                 let personFound = personArray[0][0]
-                    let person = personFound.replace(/\/internal\/users\/\d+\"\>/g, String(''));
+                let person = personFound.replace(/\/internal\/users\/\d+\"\>/g, String(''));
+                let replacementVal = `{{ "person_id": ${id}, "full_name": ${person} }}`
                 console.log(person)
                 parsedText = parsedText.replace(person, String(replacementVal)).replace(/\&nbsp\;/g, ' ');
                 //Object.assign(this.runningSheet[i].description, r.description);
@@ -821,11 +890,15 @@ export default {
     addEventListeners: function() {
       //let vm = this;
       let runningSheetTable = $('#running-sheet-table');
+      
       runningSheetTable.on(
           'keydown',
           (e) => {
-              //console.log(runningSheetTable.text())
-              this.runningSheetKeydown(e)
+              console.log(runningSheetTable)
+              this.runningSheetKeydown(
+                  e, 
+                  runningSheetTable[0].selectionStart, 
+                  runningSheetTable[0].selectionEnd)
           });
       runningSheetTable.on(
           'keyup',
