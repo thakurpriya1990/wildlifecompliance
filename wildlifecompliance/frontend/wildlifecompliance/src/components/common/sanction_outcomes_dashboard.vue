@@ -192,15 +192,7 @@ export default {
                         searchable: true,
                         orderable: false,
                         mRender: function (data, type, row){
-                            let ret_str = ''
-
-                            if (data.length > 0){
-                                for (let i=0; i<data.length; i++){
-                                    ret_str += '<a href="' + data[i][1] + '">' + data[i][0] + '</a><br />';
-                                }
-                            }
-
-                            return ret_str;
+                            return data;
                         }
                     },
                     {
@@ -260,8 +252,6 @@ export default {
             });
         },
         payInfringementPenalty: function(sanction_outcome_id){
-            console.log('payInfringementPenalty');
-            //this.$http.post(helpers.add_endpoint_join(api_endpoints.sanction_outcome, sanction_outcome_id + '/sanction_outcome_infringement_penalty_checkout/'), sanction_outcome_id).then(res=>{
             this.$http.post('/infringement_penalty/' + sanction_outcome_id + '/').then(res=>{
                     window.location.href = "/ledger/checkout/checkout/payment-details/";
                 },err=>{

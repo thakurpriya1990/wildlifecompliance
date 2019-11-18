@@ -72,8 +72,15 @@ def prepare_mail(request, instance, workflow_entry, send_mail, recipient_id=None
     try:
         email_group = []
         if recipient_id:
-            user = EmailUser.objects.get(id=recipient_id)
-            email_group.append(user)
+            try:
+                for person_id in recipient_id:
+                    # recipient_id is a list of ids
+                    user = EmailUser.objects.get(id=person_id)
+                    email_group.append(user)
+            except Exception as e:
+                # recipient_id is not iterable.  Which means it is an id.
+                user = EmailUser.objects.get(id=recipient_id)
+                email_group.append(user)
         elif request.data.get('assigned_to_id'):
             user = EmailUser.objects.get(id=request.data.get('assigned_to_id'))
             email_group.append(user)

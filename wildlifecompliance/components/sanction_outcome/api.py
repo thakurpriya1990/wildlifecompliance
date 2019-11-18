@@ -27,7 +27,8 @@ from wildlifecompliance.components.inspection.models import Inspection, Inspecti
 from wildlifecompliance.components.main.email import prepare_mail
 from wildlifecompliance.components.offence.models import AllegedOffence
 from wildlifecompliance.components.section_regulation.models import SectionRegulation
-from wildlifecompliance.components.sanction_outcome.email import send_mail, send_infringement_notice
+from wildlifecompliance.components.sanction_outcome.email import send_mail, send_infringement_notice, \
+    send_due_date_extended_mail
 from wildlifecompliance.components.sanction_outcome.models import SanctionOutcome, RemediationAction, \
     SanctionOutcomeCommsLogEntry, AllegedCommittedOffence, SanctionOutcomeUserAction
 from wildlifecompliance.components.sanction_outcome.serializers import SanctionOutcomeSerializer, \
@@ -153,7 +154,7 @@ class SanctionOutcomePaginatedViewSet(viewsets.ModelViewSet):
         This function is called from the external dashboard page by external user
         """
         queryset = SanctionOutcome.objects_for_external.filter(Q(offender__person=request.user))
-        queryset = self.filter_queryset(queryset)
+        queryset = self.filter_queryset(queryset).order_by('-id')
         self.paginator.page_size = queryset.count()
         result_page = self.paginator.paginate_queryset(queryset, request)
         serializer = SanctionOutcomeDatatableSerializer(result_page, many=True, context={'request': request})
@@ -689,6 +690,65 @@ class SanctionOutcomeViewSet(viewsets.ModelViewSet):
         except Exception as e:
             print(traceback.print_exc())
             raise serializers.ValidationError(str(e))
+
+    @detail_route(methods=['POST'])
+    @renderer_classes((JSONRenderer,))
+    def extend_due_date(self, request, instance=None, *args, **kwargs):
+        try:
+            with transaction.atomic():
+                if not instance:
+                    instance = self.get_object()
+
+                comms_log_id = request.data.get('comms_log_id')
+                if comms_log_id and comms_log_id is not 'null':
+                    workflow_entry = instance.comms_logs.get(id=comms_log_id)
+                else:
+                    workflow_entry = self.add_comms_log(request, instance, workflow=True)
+                workflow_entry.text = 'test katsu'
+                workflow_entry.save()
+
+                new_due_date = request.data.get('new_due_date', None)
+                if not new_due_date:
+                    raise serializers.ValidationError({'New due date' : ['You must enter a new due date.', ]})
+
+                new_due_date = datetime.strptime(new_due_date, '%d/%m/%Y').date()
+                reason = request.data.get('reason', '')
+
+                if instance.extend_due_date(new_due_date, reason, request.user.id):
+                    # Action log
+                    instance.log_user_action(SanctionOutcomeUserAction.ACTION_EXTEND_DUE_DATE.format(instance.lodgement_number), request)
+
+                # TODO: email to the offender too?
+                email_data = prepare_mail(request, instance, workflow_entry, send_due_date_extended_mail, instance.responsible_officer.id)
+
+                # Log the above email as a communication log entry
+                if email_data:
+                    serializer = SanctionOutcomeCommsLogEntrySerializer(instance=workflow_entry, data=email_data, partial=True)
+                    serializer.is_valid(raise_exception=True)
+                    serializer.save()
+
+                # Return
+                return_serializer = SanctionOutcomeSerializer(instance=instance, context={'request': request})
+                headers = self.get_success_headers(return_serializer.data)
+                return Response(
+                    return_serializer.data,
+                    status=status.HTTP_201_CREATED,
+                    headers=headers
+                )
+
+        except serializers.ValidationError:
+            print(traceback.print_exc())
+            raise
+        except ValidationError as e:
+            print(traceback.print_exc())
+            if hasattr(e, 'error_dict'):
+                raise serializers.ValidationError(repr(e.error_dict))
+            else:
+                raise serializers.ValidationError(repr(e[0].encode('utf-8')))
+        except Exception as e:
+            print(traceback.print_exc())
+            raise serializers.ValidationError(str(e))
+
 
     @detail_route(methods=['POST'])
     @renderer_classes((JSONRenderer,))
