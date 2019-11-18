@@ -13,7 +13,7 @@
                             <div class="panel-body panel-collapse collapse in" :id="panelBody">
                                 <form class="form-horizontal" action="index.html" method="post">
                                     <div class="col-sm-12">
-                                        <button v-if="canEditConditons" @click.prevent="addCondition()" style="margin-bottom:10px;" class="btn btn-primary pull-right">Add Condition</button>
+                                        <button v-if="canEditConditions" @click.prevent="addCondition()" style="margin-bottom:10px;" class="btn btn-primary pull-right">Add Condition</button>
                                     </div>
                                     <datatable ref="conditions_datatable" :id="'conditions-datatable-'+_uid" :dtOptions="condition_options" :dtHeaders="condition_headers"/>
                                 </form>
@@ -105,7 +105,7 @@ export default {
                     {
                         mRender:function (data,type,full) {
                             let links = '';
-                            if(vm.canEditConditons) {
+                            if(vm.canEditConditions) {
                                 links = `
                                     <a href='#' class="editCondition" data-id="${full.id}">Edit</a><br/>
                                     <a href='#' class="deleteCondition" data-id="${full.id}">Delete</a><br/>
@@ -153,9 +153,10 @@ export default {
             'application',
             'selected_activity_tab_id',
             'hasRole',
-            'sendToAssessorActivities',            
+            'sendToAssessorActivities',
+            'canEditAssessmentFor',
         ]),
-        canEditConditons: function() {
+        canEditConditions: function() {
             if(!this.selected_activity_tab_id || this.activity == null) {
                 return false;
             }
@@ -163,7 +164,7 @@ export default {
             let required_role = false;
             switch(this.activity.processing_status.id) {
                 case 'with_assessor':
-                    required_role = 'assessor';
+                    required_role = this.canEditAssessmentFor(this.selected_activity_tab_id) != null ? 'assessor' : false;
                 break;
                 case 'with_officer_conditions':
                     required_role = 'licensing_officer';

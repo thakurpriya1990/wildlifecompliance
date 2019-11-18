@@ -162,7 +162,7 @@
                                             <button class="btn btn-primary top-buffer-s col-xs-12" @click.prevent="proposedLicence()">Propose Issue</button>
                                         </div>
                                     </div>                                    
-                                    <button v-show="showCompleteButton && isWithAssessor" @click.prevent="completeAssessmentsToMe()" class="btn btn-primary top-buffer-s col-xs-12" >Complete Assessments</button><br/>                                   
+                                    <button v-show="showCompleteAssessmentsButton && isWithAssessor" @click.prevent="completeAssessmentsToMe()" class="btn btn-primary top-buffer-s col-xs-12" >Complete Assessments</button><br/>                                   
                                 </template>
                             </div>
                         </div>
@@ -687,6 +687,7 @@ export default {
             'unfinishedActivities',
             'current_user',
             'canAssignApproverFor',
+            'canEditAssessmentFor',
         ]),
         applicationDetailsVisible: function() {
             return !this.isSendingToAssessor && !this.isofficerfinalisation && this.unfinishedActivities.length && !this.isOfficerConditions;
@@ -812,18 +813,9 @@ export default {
         showNavBarBottom: function() {
             return this.canReturnToConditions || (!this.applicationIsDraft && this.canSaveApplication)
         },
-        showCompleteButton: function() {
-            for (const assessment of this.application.assessments) {
-                // for assessment that is not assigned.    
-                if (this.userHasRole('assessor', assessment.licence_activity) && (!assessment.assigned_assessor)) {
-                    return true;
-                }
-                // for assessment assigned to current user.
-                if (assessment.assigned_assessor.id===this.current_user.id) {
-                    return true;
-                }
-            }
-            return false;
+        showCompleteAssessmentsButton: function() {
+            // Show button when authorised for assessment.
+            return this.canEditAssessmentFor(this.selected_activity_tab_id);
         },
         isWithAssessor: function() {
             return this.selectedActivity.processing_status.id === 'with_assessor' ? true : false;

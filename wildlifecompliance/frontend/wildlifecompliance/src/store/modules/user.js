@@ -61,6 +61,16 @@ export const userStore = {
                         getters.hasRole('issuing_officer', activity_id)
             })                    
         },
+        canEditAssessmentFor: (state, getters, rootState, rootGetters) => (activity_id) => {
+            return rootGetters.application.assessments.find(assessment => {
+
+                return (assessment.licence_activity===activity_id)
+                    // verify user is authorised for activity.
+                    && (getters.hasRole('assessor', assessment.licence_activity))
+                    // verify user is assigned or assessment is not allocated.
+                    && (assessment.assigned_assessor.id===getters.current_user.id || !assessment.assigned_assessor)
+            });          
+        },
     },
     mutations: {
         [UPDATE_SELECTED_TAB_ID] (state, tab_id) {
