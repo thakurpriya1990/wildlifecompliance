@@ -302,9 +302,9 @@ export default {
               'region_id',
               'district_id',
             ],
-            magicKeyPressed: false,
-            magicKey2Pressed: false,
-            magicValue: null,
+            searchPersonKeyPressed: false,
+            searchObjectKeyPressed: false,
+            //magicValue: null,
             magic: true,
             dtHeadersRunningSheet: [
                 "id",
@@ -737,8 +737,8 @@ export default {
                             "description": recordDescription,
                             "userId": this.current_user.id,
                         })
-                    this.magicKeyPressed = false;
-                    this.magicKey2Pressed = false;
+                    this.searchPersonKeyPressed = false;
+                    this.searchObjectKeyPressed = false;
                 }
                 i += 1;
             }
@@ -747,28 +747,29 @@ export default {
     runningSheetKeydown: async function(e) {
 
         // keycode 49 = !
-        if (e.which === 49 && this.magicKeyPressed) {
+        if (e.which === 49 && this.searchObjectKeyPressed) {
             // TODO: replace with modal_open call
             console.log("open modal")
             this.openInspection()
-            this.magicKeyPressed = false;
+            this.searchObjectKeyPressed = false;
         } else if (e.which === 49) {
-            this.magicKeyPressed = true;
-            // keycode 16 = Shift (must be pressed to access !)
-        } else if (e.which === 50 && this.magicKey2Pressed) {
+            console.log(e);
+
+            this.searchObjectKeyPressed = true;
+        } else if (e.which === 50 && this.searchPersonKeyPressed) {
             // TODO: replace with modal_open call
             console.log("open modal")
             this.openSearchPersonOrganisation()
-            this.magicKey2Pressed = false;
+            this.searchPersonKeyPressed = false;
         } else if (e.which === 50) {
-            this.magicKey2Pressed = true;
-            // keycode 16 = Shift (must be pressed to access !)
+            this.searchPersonKeyPressed = true;
+        // keycode 16 = Shift (must be pressed to access !)
         //} else if (e.which === 16 || e.which === 32) {
         } else if (e.which === 16) {
             // pass
         } else {
-            this.magicKeyPressed = false;
-            this.magicKey2Pressed = false;
+            this.searchPersonKeyPressed = false;
+            this.searchObjectKeyPressed = false;
         }
     },
       parseStringInput: function({recordDescriptionHtml, recordDescriptionText, rowId}) {
