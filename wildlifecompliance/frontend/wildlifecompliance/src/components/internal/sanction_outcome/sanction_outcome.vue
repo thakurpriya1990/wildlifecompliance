@@ -52,15 +52,40 @@
                         </div>
                         <div class="panel-body panel-collapse">
 
+                            <div v-if="visibilityExtendDueDateButton" class="row action-button">
+                                <div class="col-sm-12">
+                                    <a @click="extendDueDate('')" class="btn btn-primary btn-block">
+                                        Extend Due Date
+                                    </a>
+                                </div>
+                            </div>
+
+                            <div v-if="visibilitySendToDotButton" class="row action-button">
+                                <div class="col-sm-12">
+                                    <a @click="addWorkflow('send_to_dot')" class="btn btn-primary btn-block">
+                                        Send to DoT
+                                    </a>
+                                </div>
+                            </div>
+
+                            <div v-if="visibilitySendToFinesEnforcementButton" class="row action-button">
+                                <div class="col-sm-12">
+                                    <a @click="addWorkflow('send_to_fines_enforcement')" class="btn btn-primary btn-block">
+                                        Send to Fines Enforcement
+                                    </a>
+                                </div>
+                            </div>
+
                             <div v-if="visibilityWithdrawButtonForInc" class="row action-button">
                                 <div class="col-sm-12">
                                     <a @click="addWorkflow('withdraw_by_inc')" class="btn btn-primary btn-block">
-                                        Withdraw
+                                        Escalate for Withdrawal
                                     </a>
                                 </div>
                             </div>
 
                             <div v-if="visibilityWithdrawButtonForManager" class="row action-button">
+
                                 <div class="col-sm-12">
                                     <a @click="addWorkflow('withdraw_by_manager')" class="btn btn-primary btn-block">
                                         Withdraw
@@ -113,7 +138,7 @@
                         </ul>
                         <div class="tab-content">
                             <div :id="soTab" class="tab-pane fade in active">
-                                <FormSection :formCollapse="false" :label="typeDisplay">
+                                <FormSection :formCollapse="false" :label="typeDisplay" Index="1">
                                     <div class="form-group"><div class="row">
                                         <div class="col-sm-3">
                                             <label>Identifier</label>
@@ -213,7 +238,7 @@
                             </div>
 
                             <div :id="deTab" class="tab-pane fade in">
-                                <FormSection :formCollapse="false" label="Details">
+                                <FormSection :formCollapse="false" label="Details" Index="2">
                                     <div class="form-group"><div class="row">
                                         <div class="col-sm-3">
                                             <label>Description</label>
@@ -262,10 +287,46 @@
                                         </div>
                                     </div></div>
                                 </FormSection>
+
+                                <FormSection v-if="visibilityParkingInfringementSection" :formCollapse="false" label="Further Offender Details" Index="3">
+                                    <div class="form-group"><div class="row">
+                                        <div class="col-sm-3">
+                                            <label>Registration Holder:</label>
+                                        </div>
+                                        <div class="col-sm-6">
+
+                                        </div>
+                                        <div class="col-sm-3">
+                                            <label>Driver:</label>
+                                        </div>
+                                        <div class="col-sm-6">
+
+                                        </div>
+                                    </div></div>
+                                </FormSection>
+
+                                <FormSection :formCollapse="false" label="Due Date" Index="4">
+                                    <div v-for="item in sanction_outcome.due_dates">
+                                        <div class="form-group"><div class="row">
+                                            <div class="col-sm-3">
+                                                <label>Payment due date:</label>
+                                            </div>
+                                            <div class="col-sm-3">
+                                                {{ item.due_date_1st }}, {{ item.due_date_2nd }}
+                                            </div>
+                                            <div class="col-sm-3">
+                                                <label>Reason:</label>
+                                            </div>
+                                            <div class="col-sm-3">
+                                                {{ item.reason_for_extension }}
+                                            </div>
+                                        </div></div>
+                                    </div>
+                                </FormSection>
                             </div>
 
                             <div :id="reTab" class="tab-pane fade in">
-                                <FormSection :formCollapse="false" label="Related Items" Index="4">
+                                <FormSection :formCollapse="false" label="Related Items" Index="5">
                                     <div class="col-sm-12 form-group"><div class="row">
                                         <div class="col-sm-12">
                                             <RelatedItems v-bind:key="relatedItemsBindId" :parent_update_related_items="setRelatedItems" :readonlyForm="readonlyForm" />
@@ -295,6 +356,7 @@
         <div v-if="workflow_type">
             <SanctionOutcomeWorkflow ref="add_workflow" :workflow_type="workflow_type" v-bind:key="workflowBindId" />
         </div>
+        <ExtendPaymentDueDate ref="extend_payment_due_date" :due_date_1st="last_due_date_1st" :due_date_2nd="last_due_date_2nd" :due_date_max="sanction_outcome.due_date_extended_max" v-bind:key="extendPaymentBindId" />
     </div>
 </template>
 
@@ -308,6 +370,7 @@ import { mapState, mapGetters, mapActions, mapMutations } from "vuex";
 import CommsLogs from "@common-components/comms_logs.vue";
 import filefield from '@/components/common/compliance_file.vue';
 import SanctionOutcomeWorkflow from './sanction_outcome_workflow';
+import ExtendPaymentDueDate from './extend_payment_due_date.vue';
 import 'bootstrap/dist/css/bootstrap.css';
 import hash from 'object-hash';
 import RelatedItems from "@common-components/related_items.vue";
@@ -324,6 +387,7 @@ export default {
         vm.STATUS_DECLINED = 'declined';
 
         return {
+            bindId: 0,
             temporary_document_collection_id: null,
             workflow_type :'',
             workflowBindId :'',
@@ -450,6 +514,7 @@ export default {
         datatable,
         filefield,
         RelatedItems,
+        ExtendPaymentDueDate,
     },
     created: async function() {
         if (this.$route.params.sanction_outcome_id) {
@@ -468,6 +533,25 @@ export default {
         ...mapGetters('sanctionOutcomeStore', {
             sanction_outcome: "sanction_outcome",
         }),
+        last_due_date_1st: function() {
+            let ret_value = null;
+            if(this.sanction_outcome && this.sanction_outcome.due_dates){
+                ret_value = this.sanction_outcome.due_dates[this.sanction_outcome.due_dates.length - 1].due_date_1st;
+            }
+            return ret_value;
+        },
+        last_due_date_2nd: function() {
+            let ret_value = null;
+            if(this.sanction_outcome && this.sanction_outcome.due_dates){
+                ret_value = this.sanction_outcome.due_dates[this.sanction_outcome.due_dates.length - 1].due_date_2nd;
+            }
+            return ret_value;
+        },
+        extendPaymentBindId: function() {
+            let bind_id = ''
+            bind_id = 'extend_due_date_' + parseInt(this.bindId);
+            return bind_id;
+        },
         relatedItemsBindId: function() {
             let timeNow = Date.now()
             if (this.sanction_outcome && this.sanction_outcome.id) {
@@ -550,6 +634,51 @@ export default {
                 if (this.sanction_outcome.type.id == 'infringement_notice'){
                     if (this.sanction_outcome.status.id === this.STATUS_AWAITING_ENDORSEMENT && this.sanction_outcome.issued_on_paper){
                         // Manager can withdraw paper issued infringement notice
+                        visibility = true;
+                    }
+                }
+            }
+            return visibility;
+        },
+        visibilityExtendDueDateButton: function() {
+            let visibility = false;
+            if (this.sanction_outcome.can_user_action){
+                if (this.sanction_outcome.type.id == 'infringement_notice'){
+                    if (this.sanction_outcome.status.id === this.STATUS_AWAITING_PAYMENT){
+                        // This is when Infringement Notice Coordinator extends the due date
+                        visibility = true;
+                    }
+                }
+            }
+            return visibility;
+        },
+        visibilitySendToDotButton: function() {
+            let visibility = false;
+            if (this.sanction_outcome.can_user_action){
+                if (this.sanction_outcome.type.id == 'infringement_notice'){
+                    if (this.sanction_outcome.status.id === this.STATUS_AWAITING_PAYMENT){
+                        // This is when Infringement Notice Coordinator sends this IN to Dot
+                        visibility = true;
+                    }
+                }
+            }
+            return visibility;
+        },
+        visibilityParkingInfringementSection: function() {
+            let visibility = false;
+            if (this.sanction_outcome.can_user_action){
+                if (this.sanction_outcome.is_parking_offence){
+                    visibility = true;
+                }
+            }
+            return visibility;
+        },
+        visibilitySendToFinesEnforcementButton: function() {
+            let visibility = false;
+            if (this.sanction_outcome.can_user_action){
+                if (this.sanction_outcome.type.id == 'infringement_notice'){
+                    if (this.sanction_outcome.status.id === this.STATUS_AWAITING_PAYMENT){
+                        // This is when Infringement Notice Coordinator sends this IN to fines enforcement
                         visibility = true;
                     }
                 }
@@ -811,6 +940,13 @@ export default {
             this.updateWorkflowBindId();
             this.$nextTick(() => {
                 this.$refs.add_workflow.isModalOpen = true;
+            });
+        },
+        extendDueDate() {
+            console.log('extendDueDate');
+            this.bindId += 1;
+            this.$nextTick(() => {
+                this.$refs.extend_payment_due_date.isModalOpen = true;
             });
         },
         updateWorkflowBindId: function() {

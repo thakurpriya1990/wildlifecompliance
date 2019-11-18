@@ -9,6 +9,8 @@ from wildlifecompliance.components.main.serializers import CommunicationLogEntry
 from wildlifecompliance.components.offence.models import AllegedOffence
 from wildlifecompliance.components.offence.serializers import OffenderSerializer, \
     OffenceSerializer
+from wildlifecompliance.components.sanction_outcome_due.models import SanctionOutcomeDueDate
+from wildlifecompliance.components.sanction_outcome_due.serializers import SanctionOutcomeDueDateSerializer
 from wildlifecompliance.components.section_regulation.serializers import SectionRegulationSerializer
 from wildlifecompliance.components.sanction_outcome.models import SanctionOutcome, RemediationAction, \
     SanctionOutcomeCommsLogEntry, SanctionOutcomeUserAction, AllegedCommittedOffence
@@ -110,6 +112,8 @@ class SanctionOutcomeSerializer(serializers.ModelSerializer):
     user_is_assignee = serializers.SerializerMethodField()
     related_items = serializers.SerializerMethodField()
     paper_notices = serializers.SerializerMethodField()
+    due_dates = serializers.SerializerMethodField()
+    is_parking_offence = serializers.SerializerMethodField()
 
     class Meta:
         model = SanctionOutcome
@@ -138,8 +142,28 @@ class SanctionOutcomeSerializer(serializers.ModelSerializer):
             'can_user_action',
             'user_is_assignee',
             'related_items',
+            'penalty_amount_1st',
+            'penalty_amount_2nd',
+            'due_date_extended_max',
+            'due_dates',
+            'is_parking_offence',
         )
         read_only_fields = ()
+
+    def get_due_dates(self, obj):
+        due_dates = SanctionOutcomeDueDate.objects.filter(sanction_outcome=obj)
+        ret = []
+
+        if not due_dates:
+            # Should not reach here.
+            # They should be created when endorsed
+            obj.create_due_dates()
+            due_dates = SanctionOutcomeDueDate.objects.filter(sanction_outcome=obj)
+
+        for date in due_dates:
+            ret.append(SanctionOutcomeDueDateSerializer(date).data)
+
+        return ret
 
     def get_paper_notices(self, obj):
         return [[r.name, r._file.url] for r in obj.documents.all()]
@@ -191,20 +215,34 @@ class SanctionOutcomeSerializer(serializers.ModelSerializer):
     def get_related_items(self, obj):
         return get_related_items(obj)
 
-    def get_alleged_committed_offences(self, so_obj):
-        ao_ids_already_included = AllegedCommittedOffence.objects.filter(sanction_outcome=so_obj).values_list('alleged_offence__id', flat=True)
+    def retrieve_alleged_committed_offences(self, instance):
+        ao_ids_already_included = AllegedCommittedOffence.objects.filter(sanction_outcome=instance).values_list('alleged_offence__id', flat=True)
 
         # Check if there is newly aded alleged offence to be added to this sanction outcome
-        if so_obj.status == SanctionOutcome.STATUS_DRAFT:
+        if instance.status == SanctionOutcome.STATUS_DRAFT:
             # Only when sanction outcome is in draft status, newly added alleged offence should be added
             # Query newly added alleged offence which is not included yet
             # However whenever new alleged offence is added to the offence, it should be added to the sanction outcomes under the offence at the moment.
-            qs_allegedOffences = AllegedOffence.objects.filter(Q(offence=so_obj.offence) & Q(removed=False)).exclude(Q(id__in=ao_ids_already_included))
+            qs_allegedOffences = AllegedOffence.objects.filter(Q(offence=instance.offence) & Q(removed=False)).exclude(Q(id__in=ao_ids_already_included))
             for ao in qs_allegedOffences:
-                aco = AllegedCommittedOffence.objects.create(included=False, alleged_offence=ao, sanction_outcome=so_obj)
+                aco = AllegedCommittedOffence.objects.create(included=False, alleged_offence=ao, sanction_outcome=instance)
 
-        qs_allegedCommittedOffences = AllegedCommittedOffence.objects.filter(sanction_outcome=so_obj)
+        return AllegedCommittedOffence.objects.filter(sanction_outcome=instance)
+
+    def get_alleged_committed_offences(self, so_obj):
+        qs_allegedCommittedOffences = self.retrieve_alleged_committed_offences(so_obj)
         return [AllegedCommittedOffenceSerializer(item, context={'request': self.context.get('request', {})}).data for item in qs_allegedCommittedOffences]
+
+    def get_is_parking_offence(self, so_obj):
+        is_parking_offence = False
+
+        if so_obj.type == SanctionOutcome.TYPE_INFRINGEMENT_NOTICE:
+            qs_allegedCommittedOffences = self.retrieve_alleged_committed_offences(so_obj)
+            for aco in qs_allegedCommittedOffences:
+                if aco.included and aco.alleged_offence.section_regulation.is_parking_offence:
+                    is_parking_offence = True
+
+        return is_parking_offence
 
 
 class UpdateAssignedToIdSerializer(serializers.ModelSerializer):
@@ -224,7 +262,7 @@ class SanctionOutcomeDatatableSerializer(serializers.ModelSerializer):
     user_action = serializers.SerializerMethodField()
     offender = OffenderSerializer(read_only=True,)
     paper_notices = serializers.SerializerMethodField()
-    # invoice_reference = serializers.SerializerMethodField()
+    coming_due_date = serializers.ReadOnlyField()
 
     class Meta:
         model = SanctionOutcome
@@ -247,7 +285,7 @@ class SanctionOutcomeDatatableSerializer(serializers.ModelSerializer):
             'time_of_issue',
             'user_action',
             'paper_notices',
-            # 'invoice_reference',
+            'coming_due_date',
         )
         read_only_fields = ()
 
@@ -255,43 +293,70 @@ class SanctionOutcomeDatatableSerializer(serializers.ModelSerializer):
     #      return obj.infringement_penalty_invoice_reference
 
     def get_paper_notices(self, obj):
-        return [[r.name, r._file.url] for r in obj.documents.all()]
+        url_list = []
+
+        if obj.documents.all().count():
+            for doc in obj.documents.all():
+                url = '<a href="{}">{}</a>'.format(doc._file.url, doc.name)
+                url_list.append(url)
+        else:
+            if obj.type == SanctionOutcome.TYPE_INFRINGEMENT_NOTICE:
+                url_list.append('<a href="/sanction_outcome/pdf/' + str(obj.id) + '/"><i style="color:red" class="fa fa-file-pdf-o"></i> Infringement Notice</a>')
+            elif obj.type == SanctionOutcome.TYPE_CAUTION_NOTICE:
+                url_list.append('<a href="#"><i style="color:red" class="fa fa-file-pdf-o"></i> Caution Notice</a>')
+            elif obj.type == SanctionOutcome.TYPE_LETTER_OF_ADVICE:
+                url_list.append('<a href="#"><i style="color:red" class="fa fa-file-pdf-o"></i> Letter of Advice</a>')
+            elif obj.type == SanctionOutcome.TYPE_REMEDIATION_NOTICE:
+                url_list.append('<a href="#"><i style="color:red" class="fa fa-file-pdf-o"></i> Remediation Notice</a>')
+
+        urls = '<br />'.join(url_list)
+        return urls
+
+
+        # return [[r.name, r._file.url] for r in obj.documents.all()]
 
     def get_user_action(self, obj):
+        url_list = []
+
         inv_ref = obj.infringement_penalty_invoice_reference
-        user_id = self.context.get('request', {}).user.id
+        user = self.context.get('request', {}).user
 
         view_url = '<a href=/internal/sanction_outcome/' + str(obj.id) + '>View</a>'
         process_url = '<a href=/internal/sanction_outcome/' + str(obj.id) + '>Process</a>'
-        returned_url = ''
+        view_payment_url = '<a href="/ledger/payments/invoice/payment?invoice=' + inv_ref + '">View Payment</a>' if inv_ref else ''
+        payment_url = '<a href="#" data-pay-infringement-penalty="' + str(obj.id) + '">Pay</a>'
+        record_payment_url = '<a href="/ledger/payments/invoice/payment?invoice=">Record Payment</a>'
 
         if obj.status == SanctionOutcome.STATUS_CLOSED:
             # if object is closed, no one can process but view
-            returned_url = view_url
-        elif user_id == obj.assigned_to_id:
-            # if user is assigned to the object, the user can process it
-            returned_url = process_url
-        elif obj.allocated_group and not obj.assigned_to_id:
-            if user_id in [member.id for member in obj.allocated_group.members]:
+            url_list.append(view_url)
+        else:
+            if user.id == obj.assigned_to_id:
+                # if user is assigned to the object, the user can process it
+                url_list.append(process_url)
+            elif (obj.allocated_group and not obj.assigned_to_id) and user.id in [member.id for member in obj.allocated_group.members]:
                 # if user belongs to the same group of the object
                 # and no one is assigned to the object,
                 # the user can process it
-                returned_url = process_url
+                url_list.append(process_url)
+            else:
+                url_list.append(view_url)
 
-        user = self.context.get('request', {}).user
         if is_payment_admin(user):
             if obj.payment_status == SanctionOutcome.PAYMENT_STATUS_PAID and inv_ref:
-                view_payment_url = '<a href="/ledger/payments/invoice/payment?invoice=' + inv_ref + '">View Payment</a>'
-                returned_url += '<br />' + view_payment_url
+                # Payment admin can refund payment
+                url_list.append(view_payment_url)
             elif obj.payment_status == SanctionOutcome.PAYMENT_STATUS_UNPAID:
-                payment_url = '<a href="#" data-pay-infringement-penalty="' + str(obj.id) + '">Pay</a>'
-                returned_url += '<br />' + payment_url
+                # Payment admin can pay on behalf or record cash payment or view sanction outcome
+                url_list.append(payment_url)
+                url_list.append(record_payment_url)
 
-        if not returned_url:
+        if not url_list:
             # In other case user can view
-            returned_url = view_url
+            url_list.append(view_url)
 
-        return returned_url
+        urls = '<br />'.join(url_list)
+        return urls
 
 
 class SaveSanctionOutcomeSerializer(serializers.ModelSerializer):

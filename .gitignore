@@ -64,6 +64,7 @@ staticfiles*
 # vim
 *.swp
 *.swo
+*.swn
 
 # Sphinx documentation
 docs/_build/
@@ -105,8 +106,13 @@ wildlifecompliance/static/wildlifecompliance_vue/static/*
 # npm locks
 *-lock.json
 
-commercialoperator/static/commercialoperator_vue/static/css/app.css
-commercialoperator/static/commercialoperator_vue/static/js/app.js
-commercialoperator/static/commercialoperator_vue/static/js/manifest.js
-commercialoperator/static/commercialoperator_vue/static/js/vendor.js
-commercialoperator/static/commercialoperator_vue/static/js/babel-polyfill.js
+#commercialoperator/static/commercialoperator_vue/static/css/app.css
+#commercialoperator/static/commercialoperator_vue/static/js/app.js
+#commercialoperator/static/commercialoperator_vue/static/js/manifest.js
+#commercialoperator/static/commercialoperator_vue/static/js/vendor.js
+#commercialoperator/static/commercialoperator_vue/static/js/babel-polyfill.js
+wildlifecompliance/static/wildlifecompliance_vue/css/app.css
+wildlifecompliance/static/wildlifecompliance_vue/js/app.js
+wildlifecompliance/static/wildlifecompliance_vue/js/manifest.js
+wildlifecompliance/static/wildlifecompliance_vue/js/vendor.js
+wildlifecompliance/static/wildlifecompliance_vue/static/js/babel-polyfill.js
