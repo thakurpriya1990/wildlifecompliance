@@ -55,6 +55,9 @@ export const sanctionOutcomeStore = {
                         api_endpoints.sanction_outcome, 
                         sanction_outcome_id)
                     );
+                console.log('loadSanctionOutcome');
+                console.log(returnedSanctionOutcome.body);
+
                 await dispatch("setSanctionOutcome", returnedSanctionOutcome.body);
             } catch (err) {
                 console.log(err);

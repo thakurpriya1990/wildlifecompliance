@@ -8,6 +8,7 @@ class SectionRegulation(RevisionedMixin):
     act = models.CharField(max_length=100, blank=True)
     name = models.CharField(max_length=50, blank=True, verbose_name='Regulation')
     offence_text = models.CharField(max_length=200, blank=True)
+    is_parking_offence = models.BooleanField(default=False)
 
     # Officer can issue an infringement notice within this period after the offence occurrence date
     # If this is null, which means officer can issue the infringement notice anytime.

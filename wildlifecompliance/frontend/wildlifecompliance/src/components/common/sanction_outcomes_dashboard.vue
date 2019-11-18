@@ -192,15 +192,7 @@ export default {
                         searchable: true,
                         orderable: false,
                         mRender: function (data, type, row){
-                            let ret_str = ''
-
-                            if (data.length > 0){
-                                for (let i=0; i<data.length; i++){
-                                    ret_str += '<a href="' + data[i][1] + '">' + data[i][0] + '</a><br />';
-                                }
-                            }
-
-                            return ret_str;
+                            return data;
                         }
                     },
                     {

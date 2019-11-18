@@ -29,6 +29,7 @@ export default {
             return "section_"+this.Index
         },
         panel_collapse_class: function() {
+            console.log('panel_collapse_class');
             if (this.formCollapse) {
                 this.panel_chevron_class = "glyphicon glyphicon-chevron-down pull-right ";
                 return "panel-body collapse";

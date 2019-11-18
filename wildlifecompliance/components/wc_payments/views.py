@@ -62,6 +62,7 @@ from oscar.apps.order.models import Order
 
 import logging
 
+from wildlifecompliance.components.sanction_outcome.pdf import create_infringement_notice_pdf_bytes
 from wildlifecompliance.components.wc_payments.context_processors import template_context
 from wildlifecompliance.components.wc_payments.models import InfringementPenalty, InfringementPenaltyInvoice
 from wildlifecompliance.components.wc_payments.utils import set_session_infringement_invoice, create_infringement_lines, \
@@ -220,7 +221,10 @@ class InfringementPenaltySuccessView(TemplateView):
         return render(request, self.template_name, context)
 
 
-class InvoicePDFView(InvoiceOwnerMixin,View):
+class InvoicePDFView(InvoiceOwnerMixin, View):
+    """
+    This is not used, because an infringement notice can be an invoice.
+    """
     def get(self, request, *args, **kwargs):
         invoice = get_object_or_404(Invoice, reference=self.kwargs['reference'])
         response = HttpResponse(content_type='application/pdf')
@@ -232,15 +236,16 @@ class InvoicePDFView(InvoiceOwnerMixin,View):
         return invoice
 
 
-# class ConfirmationPDFView(InvoiceOwnerMixin,View):
-#     def get(self, request, *args, **kwargs):
-#         invoice = get_object_or_404(Invoice, reference=self.kwargs['reference'])
-#         bi=InfringementPenaltyInvoice.objects.filter(invoice_reference=invoice.reference).last()
-#
-#         response = HttpResponse(content_type='application/pdf')
-#         response.write(create_confirmation_pdf_bytes('confirmation.pdf',invoice, bi.booking))
-#         return response
-#
-#     def get_object(self):
-#         invoice = get_object_or_404(Invoice, reference=self.kwargs['reference'])
-#         return invoice
+class SanctionOutcomePDFView(InvoiceOwnerMixin, View):
+    """
+    Generate infringement notice pdf file dynamically
+    """
+    def get(self, request, *args, **kwargs):
+        so = get_object_or_404(SanctionOutcome, id=self.kwargs['sanction_outcome_id'])
+        response = HttpResponse(content_type='application/pdf')
+        response.write(create_infringement_notice_pdf_bytes('infringement_notice.pdf', so))
+        return response
+
+    def get_object(self):
+        so = get_object_or_404(SanctionOutcome, id=self.kwargs['sanction_outcome_id'])
+        return so
