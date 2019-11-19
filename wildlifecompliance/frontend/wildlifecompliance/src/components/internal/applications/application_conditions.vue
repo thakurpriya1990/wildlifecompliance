@@ -245,6 +245,9 @@ export default {
         },
         eventListeners(){
             let vm = this;
+            if (vm.$refs.conditions_datatable==null){
+                return
+            }
             vm.$refs.conditions_datatable.vmDataTable.on('click', '.deleteCondition', function(e) {
                 e.preventDefault();
                 var id = $(this).attr('data-id');

@@ -1435,8 +1435,7 @@ class Application(RevisionedMixin):
 
     @property
     def assessments(self):
-        qs = Assessment.objects.filter(
-            application=self, status=Assessment.STATUS_AWAITING_ASSESSMENT)
+        qs = Assessment.objects.filter(application=self)
         return qs
 
     @property

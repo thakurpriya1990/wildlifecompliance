@@ -422,8 +422,18 @@ export default {
                 return;
             }
             const tab = $('#tabs-section li:first-child a')[0];
+            const FIRST_TAB = 1;
             if(tab) {
                 tab.click();
+            }
+            else { // force first tab selection attributes.
+
+                this.licenceActivities().filter(activity => {
+                    if (activity.id==FIRST_TAB) {
+
+                        this.setActivityTab({ id: activity.id, name: activity.name });
+                    }
+                })
             }
         },
         assessorInGroup: function(assessor_id) {
@@ -439,9 +449,17 @@ export default {
             if(!assessor.licence_activities) {
                 return false;
             }
-            return assessor.licence_activities.filter(
-                activity => activity.id == activity_id
-            ).length > 0;
+            var isForActivity = assessor.licence_activities.find(activity => {
+
+                return activity.id === activity_id; 
+            });
+            var hasAssessment = this.application.assessments.find(assessment => {
+        
+                return assessment.assessor_group.id === assessor.id
+                    && assessment.licence_activity === activity_id;
+            });
+
+            return isForActivity && !hasAssessment
         },
         sendtoAssessor: function(item1){
             let vm=this;

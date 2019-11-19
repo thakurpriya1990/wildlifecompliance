@@ -1655,10 +1655,7 @@ class AssessorGroupViewSet(viewsets.ModelViewSet):
     def user_list(self, request, *args, **kwargs):
         app_id = request.data.get('application_id')
         application = Application.objects.get(id=app_id)
-        id_list = set()
-        for assessment in application.assessments:
-            id_list.add(assessment.assessor_group.id)
-        queryset = self.get_queryset(application).exclude(id__in=id_list)
+        queryset = self.get_queryset(application)
         serializer = self.get_serializer(queryset, many=True)
 
         return Response(serializer.data)
