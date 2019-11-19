@@ -113,7 +113,7 @@
                                             </select>
                                     </div>
                                     <div class="col-sm-2">
-                                        <a class="btn btn-primary" style="cursor:pointer;text-decoration:none;" @click.prevent="sendtoAssessor(selectedActivity.id)">Send</a>
+                                        <a class="btn btn-primary" v-show="showSendToAssessorButton" style="cursor:pointer;text-decoration:none;" @click.prevent="sendtoAssessor(selectedActivity.id)">Send</a>
                                     </div>
                                 </div>
                                 <div class="row" v-if="optionsLoadedForActivity(selectedActivity)" v-bind:key="`assessor_datatable_${selectedActivity.id}`">
@@ -176,6 +176,7 @@ export default {
             DATE_TIME_FORMAT: 'DD/MM/YYYY HH:mm:ss',
             viewingAssessmentId: null,
             savingAssessment: false,
+            showSendToAssessorButton: true,
         }
     },
     components: {
@@ -256,6 +257,11 @@ export default {
                                     // Pre-select default Assessor Group drop-down option for the current tab
                                     if(this.selectedAssessor.id == null || !this.assessorInGroup(this.selectedAssessor.id)) {
                                         this.selectedAssessor = assessor;
+                                        this.showSendToAssessorButton=true;
+                                        if (this.isAssessorAssigned(assessor, activity.id)) {
+                                            // cannot send when default is assigned
+                                            this.showSendToAssessorButton=false;
+                                        }
                                     }
                                     return true;
                                 }
@@ -453,13 +459,15 @@ export default {
 
                 return activity.id === activity_id; 
             });
-            var hasAssessment = this.application.assessments.find(assessment => {
-        
-                return assessment.assessor_group.id === assessor.id
-                    && assessment.licence_activity === activity_id;
-            });
 
-            return isForActivity && !hasAssessment
+            return isForActivity && !this.isAssessorAssigned(assessor, activity_id)
+        },
+        isAssessorAssigned(assessor, activity_id) {
+            return this.application.assessments.find(assessment => {
+ 
+                return assessment.assessor_group.id === assessor.id
+                    && assessment.licence_activity === activity_id;               
+            });
         },
         sendtoAssessor: function(item1){
             let vm=this;
