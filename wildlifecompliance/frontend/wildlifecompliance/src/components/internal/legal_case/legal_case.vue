@@ -375,7 +375,8 @@ export default {
                             //ret_str = '<div v-model="legal_case.running_sheet_object[' + row.number + '] contenteditable="true">this <a contenteditable="false" href="www.google.com">google</a> this2</div>'
                             //ret_str = '<div v-model="runningSheetObj[' + String.fromCharCode(34) + row.number + String.fromCharCode(34) + '].description" contenteditable="true">this <a contenteditable="false" href="www.google.com">google</a> this2</div>'
                             //ret_str = '<div id=' + row.number + ' contenteditable="true">this <a contenteditable="false" href="www.google.com">google</a> this2</div>'
-                            ret_str = '<div id=' + row.number + ' contenteditable="true">' + row.description + '</div>'
+                            //ret_str = `<div onblur="refreshRunningSheetRow('${row.number}')" id=${row.number} contenteditable="true">${row.description}</div>`
+                            ret_str = `<div id=${row.number} contenteditable="true">${row.description}</div>`
                             //ret_str = '<div contenteditable="true">this <a contenteditable="false" href="www.google.com">google</a> this2</div>'
                             return ret_str;
 
@@ -527,13 +528,13 @@ export default {
       runningSheetVuex: {
           immediate: true,
           handler: function(newValue, oldValue) {
-              //console.log(newValue)
-              //console.log(oldValue)
+              console.log(newValue)
+              console.log(oldValue)
               let i = 0;
               for (let r of newValue) {
                   if (oldValue && oldValue.length > 0 && r.description !== oldValue[i].description) {
                       this.updateRunningSheetEntry({
-                          //"rowId": i, 
+                          "rowId": i, 
                           "recordNumber": r.number, 
                           "description": r.description,
                           'redraw': true,
@@ -578,67 +579,133 @@ export default {
         console.log(recordDescriptionText)
         console.log(recordDescriptionHtml)
 
-        let runningSheetRecordDescription = await this.updateRunningSheetVuexWrapper({
+        //let runningSheetRecordDescription = 
+        await this.updateRunningSheetVuexWrapper({
             recordNumber,
             recordDescriptionText,
             recordDescriptionHtml,
         })
         //this.$refs.runningSheetTable.vmDataTable.ajax.reload()
-        console.log(this)
+        /*console.log(this)
         this.updateRunningSheetEntry({
             "recordNumber": recordNumber, 
             "description": runningSheetRecordDescription,
             'redraw': true,
         })
+        */
     },
     findStringDiff(str1, str2) { 
           let diff= "";
+          let charIdx = null;
           str2.split('').forEach(function(val, i){
+          //str2.forEach(function(val, i){
                   if (val != str1.charAt(i))
-                        diff += val ;
+                        diff += val;
+                  if (!charIdx) {
+                      charIdx = i;
+                  }
                 });
-          return diff;
+          let endIdx = charIdx + diff.length - 1
+          console.log(str1.slice(endIdx))
+          console.log(str2.slice(endIdx))
+        return {
+            "diff": diff, 
+            "startIdx": charIdx,
+            "endIdx": endIdx,
+            };
     },
-    updateRunningSheetEntry: function({recordNumber, description, redraw}) {
+    updateRunningSheetEntry: function({rowId, recordNumber, description, redraw}) {
+        console.log("updateRunningSheetEntry")
         if (this.magic && redraw && description.toLowerCase().includes('shibaken')) {
             this.magicMethod()
         }
         let i = 0;
         for (let r of this.runningSheet) {
-            if (recordNumber === r.number) {
+            if (i === rowId && recordNumber === r.number) {
+                console.log(r)
                 //const personTokenRegex = /\{\{ \"person\_id\"\: \d+ \}\}/g;
                 const personTokenRegex = /\{\{ \"person\_id\"\: \d+\, \"full\_name\"\: \"\w+ \w+\" \}\}/g;
+                const personIdRegex = /\{\{ \"person\_id\"\: \d+/g;
+                //const personNameRegex = /\{\{ \"person\_id\"\: \d+\, \"full\_name\"\: \"\w+ \w+\"/g;
+                const personNameRegex = /\{\{ \"person\_id\"\: \d+\, \"full\_name\"\: \"\w+ \w+/g;
                 let personTokenArray = [...description.matchAll(personTokenRegex)];
                 const personUrlRegex = /<a contenteditable\=\"false\" target\=\"\_blank\" href\=\"\/internal\/users\/\d+\"\>\w+\s\w+\<\/a\>/g
                 let personUrlArray = [...r.description.matchAll(personUrlRegex)];
                 if (personTokenArray.length > personUrlArray.length) {
                     for (let personToken of personTokenArray) {
+                        console.log(personToken)
+                        let idArray = [...personToken[0].matchAll(personIdRegex)];
+                        console.log(idArray)
+                        let idStr = idArray[0][0]
+                        let id = idStr.substring(16)
+                        console.log(id)
+                        let nameArray = [...personToken[0].matchAll(personNameRegex)];
+                        console.log(nameArray)
+                        let nameStr = nameArray[0][0]
+                        let fullName = nameStr.substring(35)
+                        console.log(id)
                         r.description = description.replace(
                             personTokenRegex,
-                            `<a contenteditable="false" target="_blank" href="/internal/users/${7822}">Mark bloke</a>`
+                            `<a contenteditable="false" target="_blank" href="/internal/users/${id}">${fullName}</a>`
                         );
                         this.runningSheet.splice(i, 1, r);
                         console.log(r.description)
                         if (redraw) {
-                            this.constructRunningSheetTableEntry({"rowNum": i, "description": r.description});
+                            //this.constructRunningSheetTableEntry({"rowNum": i, "description": r.description});
+                            this.constructRunningSheetTableEntry({
+                                "rowNum": i,
+                                "description": this.runningSheet[i].description,
+                            });
                         }
                     }
+                } else {
+                    // string diff only
+                    console.log("attempt string diff")
+                    let diffObj = this.findStringDiff(r.description, description);
+                    console.log(diffObj);
+                    //r.description = r.description.insert(diffObj.charIdx, diffObj.diff);
+                    //r.description = r.description.slice(0, diffObj.startIdx) + diffObj.diff + r.description.slice(diffObj.endIdx);
+                    console.log(r.description.slice(0, diffObj.startIdx))
+                    console.log(diffObj.diff)
+                    console.log(r.description.slice(diffObj.endIdx))
+                    r.description = r.description.slice(0, diffObj.startIdx) + diffObj.diff + r.description.slice(diffObj.endIdx);
+                    this.runningSheet.splice(i, 1, r);
+                    //if (redraw) {
+                    //    //this.constructRunningSheetTableEntry({"rowNum": i, "description": r.description});
+                    //    this.constructRunningSheetTableEntry({
+                    //        "rowNum": i, 
+                    //        "description": this.runningSheet[i].description,
+                    //    });
+                    //}
                 }
             }
             i += 1;
         }
 
     },
-
-    constructRunningSheetTable: function(){
+    refreshRunningSheetRow: function(e) {
+        console.log(e)
+        let i = 0;
+        for (let r of this.runningSheet) {
+            if (e.target.id === r.number) {
+                this.constructRunningSheetTableEntry({
+                    "rowId": i,
+                    "description": this.runningSheet[i].description,
+                });
+            }
+        }
+        
+    },
+    constructRunningSheetTable: function(firstTime){
+        console.log("constructRunningSheetTable")
         this.$refs.running_sheet_table.vmDataTable.clear().draw();
         if (this.runningSheet && this.runningSheetVuex){
             for(let i = 0;i < this.runningSheet.length; i++){
-                this.updateRunningSheetEntry({
-                    "rowId": i,
-                    "recordNumber": this.runningSheetVuex[i].number,
-                    "description":  this.runningSheetVuex[i].description
-                });
+                //this.updateRunningSheetEntry({
+                //    "rowId": i,
+                //    "recordNumber": this.runningSheetVuex[i].number,
+                //    "description":  this.runningSheetVuex[i].description
+                //});
                 //this.addRunningSheetEntryToTable(this.offence.alleged_offences[i]);
                 this.$refs.running_sheet_table.vmDataTable.row.add({ 
                     "id": this.runningSheet[i].id,
@@ -651,14 +718,63 @@ export default {
                 //let actionColumn
             }
         }
+        if (firstTime) {
+            let runningSheetTable = $('#running-sheet-table');
+            console.log(runningSheetTable)
+            
+            runningSheetTable.on(
+                'keydown',
+                (e) => {
+                    this.runningSheetKeydown(e)
+                });
+            runningSheetTable.on(
+                'keyup',
+                (e) => {
+                    //console.log(runningSheetTable.text())
+                    this.runningSheetKeyup(e)
+                });
+            //let rowJqueryInstance = $('#CS000020-1')
+            //rowJqueryInstance.on('blur', (e) => {
+            //    this.refreshRunningSheetRow(e)
+            //});
+
+            
+            for (let r of this.runningSheet) {
+              let rowJqueryInstance = $('#' + r.number)
+              let blur = false
+              rowJqueryInstance.on(
+                  'blur',
+                  (e) => {
+                      alert('fire')
+                      this.refreshRunningSheetRow(e)
+                  });
+                  /*
+                  (e) => {
+                      alert('fire')
+                      if (!blur) {
+                          blur = true;
+                          console.log(e)
+                          this.refreshRunningSheetRow(e)
+                          blur = false;
+                      } else {
+                          this.refreshRunningSheetRow(e)
+                      }
+
+                  });
+                  */
+            }
+            
+        }
+
+        console.log("constructRunningSheetTable - end")
     },
-    constructRunningSheetTableEntry: function({rowNum, description}){
+    constructRunningSheetTableEntry: function({rowId, description}){
         console.log(description)
         if (this.$refs.running_sheet_table && this.$refs.running_sheet_table.vmDataTable) {
             console.log("constructRunningSheetTableEntry");
-            let tableRow = this.$refs.running_sheet_table.vmDataTable.row(rowNum).data()
+            let tableRow = this.$refs.running_sheet_table.vmDataTable.row(rowId).data()
             tableRow.description = description
-            this.$refs.running_sheet_table.vmDataTable.row(rowNum).data(tableRow).draw()
+            this.$refs.running_sheet_table.vmDataTable.row(rowId).data(tableRow).draw()
         }
     },
     createNewRunningSheetEntry: async function() {
@@ -674,7 +790,11 @@ export default {
         let updatedRunningSheet = await Vue.http.post(fetchUrl, payload);
         if (updatedRunningSheet.body && updatedRunningSheet.body.running_sheet_entries){
             await this.setRunningSheetEntries(updatedRunningSheet.body.running_sheet_entries);
+            this.runningSheet = _.cloneDeep(this.legal_case.running_sheet_entries);
             //this.runningSheetEventListeners();
+            this.$nextTick(() => {
+                this.constructRunningSheetTable();
+            });
         }
     },
     openInspection() {
@@ -770,7 +890,7 @@ export default {
                 "description": recordDescription,
                 "userId": this.current_user.id,
             })
-        return recordDescription;
+        //return recordDescription;
     },
     runningSheetKeyup: async function(e) {
         let rowObj = {}
@@ -784,7 +904,7 @@ export default {
             let i = 0;
             for (let r of this.runningSheet) {
                 if (r.number === recordNumber) {
-                    this.updateRunningSheetVuexWrapper({
+                    await this.updateRunningSheetVuexWrapper({
                         recordNumber,
                         recordDescriptionHtml, 
                         recordDescriptionText
@@ -895,16 +1015,14 @@ export default {
     },
     addEventListeners: function() {
       //let vm = this;
+      /*
       let runningSheetTable = $('#running-sheet-table');
+      console.log(runningSheetTable)
       
       runningSheetTable.on(
           'keydown',
           (e) => {
-              console.log(runningSheetTable)
-              this.runningSheetKeydown(
-                  e, 
-                  runningSheetTable[0].selectionStart, 
-                  runningSheetTable[0].selectionEnd)
+              this.runningSheetKeydown(e)
           });
       runningSheetTable.on(
           'keyup',
@@ -912,6 +1030,27 @@ export default {
               //console.log(runningSheetTable.text())
               this.runningSheetKeyup(e)
           });
+      
+      let testJqueryInstance = $('#CS000020-1')
+      console.log(testJqueryInstance)
+      testJqueryInstance.on(
+          'blur', (e) => {
+            console.log(e)
+            this.refreshRunningSheetRow(e)
+          })
+      for (let r of this.runningSheet) {
+        let rowJqueryInstance = $('#' + r.number)
+        rowJqueryInstance.on(
+            'blur',
+            (e) => {
+                console.log(e)
+                this.refreshRunningSheetRow(e)
+            });
+      }
+      */
+
+
+      
       //console.log(runningSheetTable);
       //runningSheetTable.addEventListener("keydown", this.runningSheetEvents);
       
@@ -1034,9 +1173,11 @@ export default {
       this.calculateHash();
       //Object.assign(this.runningSheet, this.legal_case.running_sheet_entries);
       this.runningSheet = _.cloneDeep(this.legal_case.running_sheet_entries);
-      this.$nextTick(() => {
-          this.constructRunningSheetTable();
-      });
+      console.log(this.runningSheet)
+      this.constructRunningSheetTable(true);
+      //this.$nextTick(() => {
+      //    this.constructRunningSheetTable();
+      //});
   },
   destroyed: function() {
       window.removeEventListener('beforeunload', this.leaving);
@@ -1044,7 +1185,7 @@ export default {
   },
 
   mounted: function() {
-      this.$nextTick(async () => {
+      this.$nextTick(() => {
           this.addEventListeners();
           //this.runningSheetEventListeners();
           //this.constructRunningSheetTable();
