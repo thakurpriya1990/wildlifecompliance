@@ -533,7 +533,7 @@ export default {
               for (let r of newValue) {
                   if (oldValue && oldValue.length > 0 && r.description !== oldValue[i].description) {
                       this.updateRunningSheetEntry({
-                          "rowId": i, 
+                          //"rowId": i, 
                           "recordNumber": r.number, 
                           "description": r.description,
                           'redraw': true,
@@ -562,7 +562,7 @@ export default {
     ...mapActions({
         loadCurrentUser: 'loadCurrentUser',
     }),
-      insertPersonModalToken: function(entity) {
+    insertPersonModalToken: async function(entity) {
         console.log(entity)
         let recordNumber = entity.row_number_selected;
         let recordNumberElement = $('#' + recordNumber)
@@ -578,13 +578,18 @@ export default {
         console.log(recordDescriptionText)
         console.log(recordDescriptionHtml)
 
-        this.updateRunningSheetVuexWrapper({
+        let runningSheetRecordDescription = await this.updateRunningSheetVuexWrapper({
             recordNumber,
             recordDescriptionText,
             recordDescriptionHtml,
         })
-
-
+        //this.$refs.runningSheetTable.vmDataTable.ajax.reload()
+        console.log(this)
+        this.updateRunningSheetEntry({
+            "recordNumber": recordNumber, 
+            "description": runningSheetRecordDescription,
+            'redraw': true,
+        })
     },
     findStringDiff(str1, str2) { 
           let diff= "";
@@ -594,13 +599,13 @@ export default {
                 });
           return diff;
     },
-    updateRunningSheetEntry: function({rowId, recordNumber, description, redraw}) {
+    updateRunningSheetEntry: function({recordNumber, description, redraw}) {
         if (this.magic && redraw && description.toLowerCase().includes('shibaken')) {
             this.magicMethod()
         }
         let i = 0;
         for (let r of this.runningSheet) {
-            if (rowId === i && recordNumber === r.number) {
+            if (recordNumber === r.number) {
                 //const personTokenRegex = /\{\{ \"person\_id\"\: \d+ \}\}/g;
                 const personTokenRegex = /\{\{ \"person\_id\"\: \d+\, \"full\_name\"\: \"\w+ \w+\" \}\}/g;
                 let personTokenArray = [...description.matchAll(personTokenRegex)];
@@ -765,6 +770,7 @@ export default {
                 "description": recordDescription,
                 "userId": this.current_user.id,
             })
+        return recordDescription;
     },
     runningSheetKeyup: async function(e) {
         let rowObj = {}

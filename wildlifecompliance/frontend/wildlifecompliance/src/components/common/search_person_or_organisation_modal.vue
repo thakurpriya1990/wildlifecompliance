@@ -11,6 +11,7 @@
                 showCreateUpdate
                 ref="search_person_organisation"
                 v-bind:key="updateSearchPersonOrganisationBindId"
+                addFullName
                 />
             </div>
         </modal>
@@ -27,6 +28,7 @@ export default {
       return {
         isModalOpen: false,
         uuid: 0,
+        entity: {},
         //image: "/static/wildlifecompliance_vue/img/shibaken.jpg"
         //image: "/static/wildlifecompliance_vue/img/shibaken.c4c9d81.jpg"
         //image: "../../../assets/img/shibaken.jpg"
