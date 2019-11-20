@@ -599,13 +599,13 @@ export default {
           let charIdx = null;
           str2.split('').forEach(function(val, i){
           //str2.forEach(function(val, i){
-                  if (val != str1.charAt(i))
+                  if (val !== str1.charAt(i))
                         diff += val;
                   if (!charIdx) {
                       charIdx = i;
                   }
                 });
-          let endIdx = charIdx + diff.length - 1
+          let endIdx = charIdx + diff.length - 1;
           console.log(str1.slice(endIdx))
           console.log(str2.slice(endIdx))
         return {
@@ -652,10 +652,12 @@ export default {
                         console.log(r.description)
                         if (redraw) {
                             //this.constructRunningSheetTableEntry({"rowNum": i, "description": r.description});
+                            
                             this.constructRunningSheetTableEntry({
                                 "rowNum": i,
                                 "description": this.runningSheet[i].description,
                             });
+                            
                         }
                     }
                 } else {
@@ -693,10 +695,11 @@ export default {
                     "description": this.runningSheet[i].description,
                 });
             }
+            i += 1;
         }
         
     },
-    constructRunningSheetTable: function(firstTime){
+    constructRunningSheetTable: function(){
         console.log("constructRunningSheetTable")
         this.$refs.running_sheet_table.vmDataTable.clear().draw();
         if (this.runningSheet && this.runningSheetVuex){
@@ -718,54 +721,6 @@ export default {
                 //let actionColumn
             }
         }
-        if (firstTime) {
-            let runningSheetTable = $('#running-sheet-table');
-            console.log(runningSheetTable)
-            
-            runningSheetTable.on(
-                'keydown',
-                (e) => {
-                    this.runningSheetKeydown(e)
-                });
-            runningSheetTable.on(
-                'keyup',
-                (e) => {
-                    //console.log(runningSheetTable.text())
-                    this.runningSheetKeyup(e)
-                });
-            //let rowJqueryInstance = $('#CS000020-1')
-            //rowJqueryInstance.on('blur', (e) => {
-            //    this.refreshRunningSheetRow(e)
-            //});
-
-            
-            for (let r of this.runningSheet) {
-              let rowJqueryInstance = $('#' + r.number)
-              let blur = false
-              rowJqueryInstance.on(
-                  'blur',
-                  (e) => {
-                      alert('fire')
-                      this.refreshRunningSheetRow(e)
-                  });
-                  /*
-                  (e) => {
-                      alert('fire')
-                      if (!blur) {
-                          blur = true;
-                          console.log(e)
-                          this.refreshRunningSheetRow(e)
-                          blur = false;
-                      } else {
-                          this.refreshRunningSheetRow(e)
-                      }
-
-                  });
-                  */
-            }
-            
-        }
-
         console.log("constructRunningSheetTable - end")
     },
     constructRunningSheetTableEntry: function({rowId, description}){
@@ -773,8 +728,10 @@ export default {
         if (this.$refs.running_sheet_table && this.$refs.running_sheet_table.vmDataTable) {
             console.log("constructRunningSheetTableEntry");
             let tableRow = this.$refs.running_sheet_table.vmDataTable.row(rowId).data()
+            //console.log(tableRow)
             tableRow.description = description
-            this.$refs.running_sheet_table.vmDataTable.row(rowId).data(tableRow).draw()
+            //this.$refs.running_sheet_table.vmDataTable.row(rowId).data(tableRow).draw()
+            this.$refs.running_sheet_table.vmDataTable.row(rowId).invalidate().draw()
         }
     },
     createNewRunningSheetEntry: async function() {
@@ -1014,8 +971,8 @@ export default {
         return parsedText;
     },
     addEventListeners: function() {
-      //let vm = this;
-      /*
+      let vm = this;
+      
       let runningSheetTable = $('#running-sheet-table');
       console.log(runningSheetTable)
       
@@ -1031,23 +988,25 @@ export default {
               this.runningSheetKeyup(e)
           });
       
-      let testJqueryInstance = $('#CS000020-1')
-      console.log(testJqueryInstance)
-      testJqueryInstance.on(
-          'blur', (e) => {
-            console.log(e)
-            this.refreshRunningSheetRow(e)
-          })
-      for (let r of this.runningSheet) {
-        let rowJqueryInstance = $('#' + r.number)
-        rowJqueryInstance.on(
-            'blur',
-            (e) => {
-                console.log(e)
-                this.refreshRunningSheetRow(e)
-            });
-      }
-      */
+      //let testJqueryInstance = $('#CS000020-1')
+      //console.log(testJqueryInstance)
+      //let blur = false;
+      runningSheetTable.on(
+          'blur', "div[id^='CS']", 
+          function(e) {
+              console.log(e)
+              vm.refreshRunningSheetRow(e)
+              /*
+              console.log(this)
+              if (!blur) {
+                  blur = true;
+                  console.log(e)
+                  vm.refreshRunningSheetRow(e)
+                  blur = false;
+              }
+              */
+          });
+      
 
 
       
@@ -1174,10 +1133,10 @@ export default {
       //Object.assign(this.runningSheet, this.legal_case.running_sheet_entries);
       this.runningSheet = _.cloneDeep(this.legal_case.running_sheet_entries);
       console.log(this.runningSheet)
-      this.constructRunningSheetTable(true);
-      //this.$nextTick(() => {
-      //    this.constructRunningSheetTable();
-      //});
+      //this.constructRunningSheetTable(true);
+      this.$nextTick(() => {
+          this.constructRunningSheetTable();
+      });
   },
   destroyed: function() {
       window.removeEventListener('beforeunload', this.leaving);
