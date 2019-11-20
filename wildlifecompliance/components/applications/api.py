@@ -496,7 +496,8 @@ class ApplicationViewSet(viewsets.ModelViewSet):
         try:
             instance = self.get_object()
             instance.assign_application_assessment(request)
-            serializer = self.get_serializer(instance)
+            serializer = InternalApplicationSerializer(
+                instance, context={'request': request})
             return Response(serializer.data)
         except serializers.ValidationError:
             print(traceback.print_exc())

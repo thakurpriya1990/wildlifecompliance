@@ -66,7 +66,7 @@
                                 <strong>Assigned Approver</strong><br/>
                                 <div class="form-group">
                                     <template>
-                                        <select ref="assigned_approver" class="form-control" v-model="selectedActivity.assigned_approver" >
+                                        <select ref="assigned_approver" :disabled="!canAssignToOfficer" class="form-control" v-model="selectedActivity.assigned_approver" >
                                             <option v-for="member in application.licence_approvers" :value="member.id" v-bind:key="member.id">{{member.first_name}} {{member.last_name}}</option>
                                         </select>
                                         <a @click.prevent="makeMeApprover()" class="actionBtn pull-right">Assign to me</a>
@@ -76,18 +76,18 @@
                             <div class="col-sm-12 top-buffer-s" v-if="isWithAssessor && !showingApplication">
                                 <strong>Assigned Assessors</strong><br/>
                             
-                                <div v-for="activity_assessment in this.application.assessments">
+                                <div v-for="activity_assessment in activeAssessments">
                                     <div v-if="activity_assessment.assessor_group.name">
                                         <div>Assessment for {{activity_assessment.assessor_group.name.split('Wildlife Compliance - Assessors:')[1]}}</div>
 
                                         <template>
                                             <!-- display selects when Assessor has been allocated -->
-                                            <select v-if="activity_assessment.assigned_assessor!=null" ref="assigned_assessor" class="form-control" v-on:change="onChangeAssessor(activity_assessment)" v-model="activity_assessment.assigned_assessor.id">
+                                            <select v-if="activity_assessment.assigned_assessor!=null" ref="assigned_assessor" :disabled="!canAssignToAssessor" class="form-control" v-on:change="onChangeAssessor(activity_assessment)" v-model="activity_assessment.assigned_assessor.id">
                                                 <option :value="null"></option>                                                
                                                 <option v-for="member in activity_assessment.assessors" :value="member.id" v-bind:key="member.id">{{member.first_name}} {{member.last_name}}</option>
                                             </select>
                                             <!-- display select when no Assessor exist -->
-                                            <select v-if="activity_assessment.assigned_assessor==null" ref="assigned_assessor" class="form-control" v-on:change="onChangeAssessor(activity_assessment)" v-model="activity_assessment.assigned_assessor_id" >
+                                            <select v-if="activity_assessment.assigned_assessor==null" ref="assigned_assessor" :disabled="!canAssignToAssessor" class="form-control" v-on:change="onChangeAssessor(activity_assessment)" v-model="activity_assessment.assigned_assessor_id" >
                                                 <option :value="null"></option>
                                                 <option v-for="member in activity_assessment.assessors" :value="member.id" v-bind:key="member.id">{{member.first_name}} {{member.last_name}}</option>
                                             </select>                                           
@@ -122,21 +122,16 @@
                                             <strong>Action</strong><br/>
                                         </div>
                                     </div>
-                                    <div v-if="!applicationIsDraft && canRequestAmendment" class="row">
-                                        <div class="col-sm-12">
-                                            <button class="btn btn-primary top-buffer-s col-xs-12" @click.prevent="amendmentRequest()">Request Amendment</button><br/>
-                                        </div>
-                                    </div>
-                                    <div v-if="!applicationIsDraft" class="row">
-                                        <div class="col-sm-12">
-                                            <button class="btn btn-primary top-buffer-s col-xs-12" @click.prevent="togglesendtoAssessor()">Assessments &amp; Conditions</button><br/>
-                                        </div>
-                                    </div>
                                     <div v-if="canReturnToConditions" class="row">
                                         <div class="col-sm-12">
                                             <button class="btn btn-primary top-buffer-s col-xs-12" @click.prevent="returnToOfficerConditions()">Return to Officer - Conditions</button>                                   
                                         </div>
-                                    </div>                                    
+                                    </div>   
+                                    <div v-if="!applicationIsDraft && canRequestAmendment" class="row">
+                                        <div class="col-sm-12">
+                                            <button class="btn btn-primary top-buffer-s col-xs-12" @click.prevent="amendmentRequest()">Request Amendment</button><br/>
+                                        </div>
+                                    </div>                            
                                     <div v-if="canIssueDecline" class="row">
                                         <div class="col-sm-12">
                                             <button class="btn btn-primary top-buffer-s col-xs-12" @click.prevent="toggleIssue()">Issue/Decline</button>
@@ -144,6 +139,11 @@
                                             <!-- button v-else disabled class="btn btn-primary top-buffer-s col-xs-12">Issue/Decline       -->
                                         </div>
                                     </div>
+                                    <div v-if="!applicationIsDraft" class="row">
+                                        <div class="col-sm-12">
+                                            <button class="btn btn-primary top-buffer-s col-xs-12" @click.prevent="togglesendtoAssessor()">Assessments &amp; Conditions</button><br/>
+                                        </div>
+                                    </div>   
                                 </template>
                                 <template v-else>
                                     <div class="row">
@@ -688,6 +688,7 @@ export default {
             'current_user',
             'canAssignApproverFor',
             'canEditAssessmentFor',
+            'canRequestAmendmentFor'
         ]),
         applicationDetailsVisible: function() {
             return !this.isSendingToAssessor && !this.isofficerfinalisation && this.unfinishedActivities.length && !this.isOfficerConditions;
@@ -729,14 +730,8 @@ export default {
             return this.canRequestAmendment;
         },
         canRequestAmendment: function(){
-            var activities_list = this.licence_type_data.activity
-            for(let activity of activities_list){
-                if(activity.processing_status.id == 'with_officer' &&
-                    this.userHasRole('licensing_officer', activity.id)){
-                        return true;
-                }
-            }
-            return false;
+            // check authorisation
+            return this.canRequestAmendmentFor(this.selected_activity_tab_id);
         },
         canReturnToConditions: function(){
             if(!this.userHasRole('issuing_officer', this.selected_activity_tab_id)) {
@@ -791,6 +786,12 @@ export default {
             }
             return this.application && this.application.processing_status.id == 'under_review' && !this.isFinalised && !this.application.can_user_edit && this.application.user_in_licence_officers ? true : false;
         },
+        canAssignToAssessor: function(){
+            if(!this.userHasRole('assessor')) {
+                return false;
+            }
+            return this.application && this.application.processing_status.id == 'under_review' && !this.isFinalised ? true : false;
+        },
         userIsAssignedOfficer: function(){
             return this.current_user.id == this.selectedActivity.assigned_officer;
         },
@@ -815,10 +816,16 @@ export default {
         },
         showCompleteAssessmentsButton: function() {
             // Show button when authorised for assessment.
-            return this.canEditAssessmentFor(this.selected_activity_tab_id);
+            return this.canEditAssessmentFor(this.selected_activity_tab_id)
         },
         isWithAssessor: function() {
             return this.selectedActivity.processing_status.id === 'with_assessor' ? true : false;
+        },
+        activeAssessments: function() {
+            return this.application.assessments.filter(assessment => {
+
+                return assessment.status.id !== 'completed';
+            });
         }
     },
     methods: {
@@ -1244,12 +1251,13 @@ export default {
                 "assessment_id" : assessment.id,
                 "assessor_id": assessment.assigned_assessor==null ? assessment.assigned_assessor_id : assessment.assigned_assessor.id
             }
+            this.setOriginalApplication(this.application);
             this.$http.post(helpers.add_endpoint_json(
                     api_endpoints.applications, (this.application.id+'/assign_application_assessment')
                 ), JSON.stringify(data)).then((response) => {
-                    //this.refreshFromResponse(response);
+                    this.setApplication(response.body);
                 }, (error) => {
-                    this.revert();
+                    this.revertApplication();
                        swal(
                         'Application Error',
                         helpers.apiVueResourceError(error),
@@ -1259,15 +1267,17 @@ export default {
         },
         completeAssessmentsToMe: function(){
             let vm = this;
+            this.setOriginalApplication(this.application);            
             vm.$http.post(helpers.add_endpoint_json(api_endpoints.applications,(vm.application.id+'/complete_application_assessments')))
                 .then((response) => {
-                this.refreshFromResponse(response);
+                    this.setApplication(response.body);
                 swal(
                     'Complete Assessments',
                     'Assessments have been marked for completion.',
                     'success'
                     );               
             }, (error) => {
+                this.revertApplication();
                 swal(
                     'Application Error',
                     helpers.apiVueResourceError(error),

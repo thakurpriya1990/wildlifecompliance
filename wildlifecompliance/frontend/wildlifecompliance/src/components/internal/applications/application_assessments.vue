@@ -91,14 +91,14 @@
                 <div v-if="selectedActivity" :id="`${selectedActivity.id}`">
                     <div>
                         <div class="panel panel-default">
-                            <div class="panel-heading" v-if="canSendToAssessor">
+                            <div class="panel-heading" v-if="isLicensingOfficer">
                                 <h3 class="panel-title">{{canSendToAssessor ? 'Send to Assessor' : 'Assessments'}}
                                     <a class="panelClicker" :href="`#${selectedActivity.id}`+assessorsBody" data-toggle="collapse"  data-parent="#userInfo" expanded="true" :aria-controls="assessorsBody">
                                         <span class="glyphicon glyphicon-chevron-down pull-right "></span>
                                     </a>
                                 </h3>
                             </div>
-                            <div class="panel-body panel-collapse collapse in" :id="`${selectedActivity.id}`+assessorsBody" v-if="canSendToAssessor">
+                            <div class="panel-body panel-collapse collapse in" :id="`${selectedActivity.id}`+assessorsBody" v-if="isLicensingOfficer">
                                 <div v-if="canSendToAssessor" class="row">
                                     <div class="col-sm-10" style="margin-bottom: 10px">
                                             <label class="control-label pull-left"  for="Name">Assessor Group</label>

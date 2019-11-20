@@ -1,6 +1,6 @@
 <template id="application_conditions">
 
-                <div :class="canSendToAssessor ? 'col-md-12 conditions-table' : 'col-md-12'" > 
+                <div :class="isLicensingOfficer ? 'col-md-12 conditions-table' : 'col-md-12'" > 
                     <div class="row">
                         <div class="panel panel-default">
                             <div class="panel-heading">
@@ -172,16 +172,9 @@ export default {
             }
             return required_role && this.hasRole(required_role, this.selected_activity_tab_id);
         },     
-        canSendToAssessor: function() {
-            return this.sendToAssessorActivities.filter(visible_activity => {
-                if(visible_activity.id != this.selected_activity_tab_id) {
-                    return false;
-                }
-                if (this.activity.id == visible_activity.id) {
-                    return true
-                }
-            }).length>0?true:false;            
-        },        
+        isLicensingOfficer: function() {
+            return this.hasRole('licensing_officer', this.selected_activity_tab_id);
+        },
     },
     methods:{
         addCondition(preloadedCondition){

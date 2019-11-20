@@ -68,9 +68,19 @@ export const userStore = {
                     // verify user is authorised for activity.
                     && (getters.hasRole('assessor', assessment.licence_activity))
                     // verify user is assigned or assessment is not allocated.
-                    && (assessment.assigned_assessor.id===getters.current_user.id || !assessment.assigned_assessor)
+                    && (!assessment.assigned_assessor || assessment.assigned_assessor.id===getters.current_user.id)
             });          
         },
+        canRequestAmendmentFor: (state, getters, rootState, rootGetters) => (activity_id) => {
+            return rootGetters.application.activities.find(activity => {
+
+                return activity.licence_activity === activity_id
+                    // verify user is authorised for activity.
+                    && getters.hasRole('licensing_officer', activity_id)
+                    // verify activity status
+                    && ['with_officer', 'with_officer_conditions'].includes(activity.processing_status.id)
+            });          
+        },        
     },
     mutations: {
         [UPDATE_SELECTED_TAB_ID] (state, tab_id) {
