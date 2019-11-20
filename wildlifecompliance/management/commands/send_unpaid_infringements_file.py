@@ -12,11 +12,10 @@ import csv
 import logging
 
 from wildlifecompliance import settings
-from wildlifecompliance.components.sanction_outcome.models import SanctionOutcome
+from wildlifecompliance.components.sanction_outcome.models import SanctionOutcome, SanctionOutcomeUserAction
 from wildlifecompliance.components.users.models import CompliancePermissionGroup
 
 logger = logging.getLogger(__name__)
-
 
 class Command(BaseCommand):
     help = 'Send unpaid infringements file emails for infringements which have past payment due dates'
@@ -30,7 +29,6 @@ class Command(BaseCommand):
                                                                   Q(due_date_extended_max__lt=today) &
                                                                   Q(status=SanctionOutcome.STATUS_AWAITING_PAYMENT) &
                                                                   Q(payment_status=SanctionOutcome.PAYMENT_STATUS_UNPAID))
-            unpaid_infringements = SanctionOutcome.objects.filter(id=273)
 
             strIO = StringIO()
             fieldnames = ['Infringement Number', 'Offence Date/Time', ]
@@ -56,20 +54,20 @@ class Command(BaseCommand):
             # recipients = OutstandingBookingRecipient.objects.all()
             email = EmailMessage(
                 'Unpaid Infringements File at {}'.format(dt),
-                'Unpaid Bookings File',
+                'Unpaid Infringements File',
                 settings.EMAIL_FROM,
-                # to=[r.email for r in recipients]if recipients else [settings.NOTIFICATION_EMAIL]
-                to=['katsufumi.shibata@dbca.wa.gov.au']
+                to=[member.email for member in members] if members else [settings.NOTIFICATION_EMAIL]
             )
             email.attach('UnpaidInfringementsFile_{}.csv'.format(dt), _file.getvalue(), 'text/csv')
             email.send()
 
-        # for c in Compliance.objects.filter(processing_status = 'due'):
-        #     try:
-        #         c.send_reminder(user)
-        #         c.save()
-        #     except Exception as e:
-        #         logger.info('Error sending Reminder Compliance {}\n{}'.format(c.lodgement_number, e))
+
+            # TODO: Update status? of each infringement notice
+
+            # Record action log per infringement notice
+            for infringement in unpaid_infringements.all():
+                infringement.log_user_action(SanctionOutcomeUserAction.ACTION_SEND_DETAILS_TO_INFRINGEMENT_NOTICE_COORDINATOR.format(infringement))
+                # serializer = SanctionOutcomeCommsLogEntrySerializer(data={"sanction_outcome_id": infringement.id, })
 
             logger.info('Command {} completed'.format(__name__))
 

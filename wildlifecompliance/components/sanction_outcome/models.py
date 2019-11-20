@@ -57,13 +57,13 @@ class SanctionOutcome(models.Model):
     STATUS_AWAITING_REVIEW = 'awaiting_review'
     STATUS_AWAITING_REMEDIATION_ACTIONS = 'awaiting_remediation_actions'
     STATUS_DECLINED = 'declined'
+    STATUS_OVERDUE = 'overdue'
     STATUS_WITHDRAWN = 'withdrawn'
     STATUS_CLOSED = 'closed'
     STATUS_CHOICES_FOR_EXTERNAL = (
         (STATUS_AWAITING_PAYMENT, 'Awaiting Payment'),
         (STATUS_AWAITING_REMEDIATION_ACTIONS, 'Awaiting Remediation Actions'),
-        # (STATUS_DECLINED, 'Declined'),
-        # (STATUS_WITHDRAWN, 'Withdrawn'),
+        (STATUS_OVERDUE, 'Overdue'),
         (STATUS_CLOSED, 'closed'),
     )
     FINAL_STATUSES = (STATUS_DECLINED, STATUS_CLOSED, STATUS_WITHDRAWN,)
@@ -77,6 +77,7 @@ class SanctionOutcome(models.Model):
                                                                                 # This is pending closure status
                                                                                 # Once all the remediation actions are closed, this status should become closed...
         (STATUS_DECLINED, 'Declined'),
+        (STATUS_OVERDUE, 'Overdue'),
         (STATUS_WITHDRAWN, 'Withdrawn'),
         (STATUS_CLOSED, 'Closed'),
     )
@@ -130,6 +131,8 @@ class SanctionOutcome(models.Model):
     penalty_amount_2nd =  models.DecimalField(max_digits=8, decimal_places=2, default='0.00')
     due_date_extended_max = models.DateField(null=True, blank=True)
 
+    #
+
     objects = models.Manager()
     objects_active = SanctionOutcomeActiveManager()
     objects_for_external = SanctionOutcomeExternalManager()
@@ -168,8 +171,11 @@ class SanctionOutcome(models.Model):
 
         super(SanctionOutcome, self).delete()
 
-    def log_user_action(self, action, request):
-        return SanctionOutcomeUserAction.log_action(self, action, request.user)
+    def log_user_action(self, action, request=None):
+        if request:
+            return SanctionOutcomeUserAction.log_action(self, action, request.user)
+        else:
+            return SanctionOutcomeUserAction.log_action(self, action)
 
     def save(self, *args, **kwargs):
         super(SanctionOutcome, self).save(*args, **kwargs)
@@ -552,6 +558,7 @@ class SanctionOutcomeUserAction(models.Model):
     ACTION_RESTORE_ALLEGED_COMMITTED_OFFENCE = "Restore alleged committed offence: {}"
     ACTION_INCLUDE_ALLEGED_COMMITTED_OFFENCE = "Include alleged committed offence: {}"
     ACTION_EXTEND_DUE_DATE = "Extend due date of Sanction Outcome {}"
+    ACTION_SEND_DETAILS_TO_INFRINGEMENT_NOTICE_COORDINATOR = "Send details of the Unpaid Infringement Notice {} to Infringement Notice Coordinator"
 
     who = models.ForeignKey(EmailUser, null=True, blank=True)
     when = models.DateTimeField(null=False, blank=False, auto_now_add=True)
@@ -563,7 +570,7 @@ class SanctionOutcomeUserAction(models.Model):
         ordering = ('-when',)
 
     @classmethod
-    def log_action(cls, obj, action, user):
+    def log_action(cls, obj, action, user=None):
         return cls.objects.create(
             sanction_outcome=obj,
             who=user,
