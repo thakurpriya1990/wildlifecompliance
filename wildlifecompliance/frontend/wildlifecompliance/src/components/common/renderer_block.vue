@@ -323,9 +323,10 @@ const RendererBlock = {
         'application_id',
         'renderer_form_data',
         'isComponentVisible',
+        'isComponentEditableForOfficer',
     ]),
     is_readonly: function() {
-        return this.component.readonly ? this.component.readonly : this.application.readonly;
+        return this.component.readonly ? this.component.readonly : !this.isComponentEditableForOfficer;
     },
     comment_data: function() {
         return this.application.comment_data;

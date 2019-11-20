@@ -63,7 +63,16 @@ export const rendererStore = {
         },
         getFormValue: (state) => (component_name) => {
             return state.form_data[component_name] ? state.form_data[component_name].value : null;
-        }
+        },
+        isComponentEditableForOfficer: (state, getters, rootState, rootGetters) => {
+             // function to enforce editable rendered components for license activity.
+            return rootGetters.application.activities.find(activity => {
+
+                return activity.licence_activity === rootGetters.selected_activity_tab_id 
+                    && ['with_officer_conditions', 'with_officer'].includes(activity.processing_status.id) 
+                    && rootGetters.hasRole('licensing_officer', rootGetters.selected_activity_tab_id)
+            })        
+        },        
     },
     mutations: {
         [UPDATE_RENDERER_TABS] (state, tabs) {
