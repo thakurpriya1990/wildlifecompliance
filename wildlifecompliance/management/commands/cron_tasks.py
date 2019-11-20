@@ -14,5 +14,6 @@ class Command(BaseCommand):
 
     def handle(self, *args, **options):
         logger.info('Running command {}'.format(__name__))
-        subprocess.call('python manage_wc.py update_workbooks', shell=True)
+        # subprocess.call('python manage_wc.py update_workbooks', shell=True)
+        subprocess.call('python manage_wc.py send_unpaid_infringements_file', shell=True)
         logger.info('Command {} completed'.format(__name__))

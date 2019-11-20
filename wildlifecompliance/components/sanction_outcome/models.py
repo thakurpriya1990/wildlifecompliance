@@ -273,10 +273,11 @@ class SanctionOutcome(models.Model):
 
     @property
     def offence_occurrence_date(self):
-        if self.offence.occurrence_from_to:
-            return self.offence.occurrence_date_to
-        else:
-            return self.offence.occurrence_date_from
+        return self.offence.offence_occurrence_datetime.date()
+
+    @property
+    def offence_occurrence_datetime(self):
+        return self.offence.offence_occurrence_datetime
 
     def endorse(self, request):
         current_datetime = datetime.datetime.now()
