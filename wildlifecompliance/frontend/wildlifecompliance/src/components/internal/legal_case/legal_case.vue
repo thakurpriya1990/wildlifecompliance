@@ -234,7 +234,7 @@
         ref="search_person_or_organisation_modal"
         :readonlyForm="readonlyForm"
         v-bind:key="searchPersonOrganisationBindId"
-        @person-selected="insertPersonModalToken"
+        @person-selected="insertPersonModalUrl"
         :rowNumberSelected="rowNumberSelected"
         />
         <!--InspectionWorkflow ref="inspection_workflow" :workflow_type="workflow_type" v-bind:key="workflowBindId" /-->
@@ -271,7 +271,8 @@ export default {
             //tempRunningSheet: [],
             uuid: 0,
             rowNumberSelected: '',
-            runningSheet: [],
+            runningSheetUrl: [],
+            runningSheetToken: [],
             objectHash: null,
             runTab: 'runTab'+this._uid,
             rTab: 'rTab'+this._uid,
@@ -516,6 +517,7 @@ export default {
         inspection_bind_id = 'inspection' + parseInt(this.uuid);
         return inspection_bind_id;
     },
+    /*
     runningSheetVuex: function() {
         let retRunningSheet = [];
         if (this.legal_case && this.legal_case.running_sheet_entries) {
@@ -523,7 +525,9 @@ export default {
         }
         return retRunningSheet;
     },
+    */
   },
+/*
   watch: {
       runningSheetVuex: {
           immediate: true,
@@ -546,6 +550,7 @@ export default {
           deep: true
       },
   },
+  */
   filters: {
     formatDate: function(data) {
       return data ? moment(data).format("DD/MM/YYYY HH:mm:ss") : "";
@@ -563,27 +568,29 @@ export default {
     ...mapActions({
         loadCurrentUser: 'loadCurrentUser',
     }),
-    insertPersonModalToken: async function(entity) {
+    insertPersonModalUrl: function(entity) {
         console.log(entity)
         let recordNumber = entity.row_number_selected;
         let recordNumberElement = $('#' + recordNumber)
-        let recordDescription = recordNumberElement[0].textContent;
+        console.log(recordNumberElement)
+        //let recordDescription = recordNumberElement[0].textContent;
         //let replacementVal = String('{{ ' + '"person_id": ' + entity.id + ' }}')
         let replacementVal = ''
         if (entity.full_name) {
-            replacementVal = `{{ "person_id": ${entity.id}, "full_name": ${entity.full_name} }}`
+            //replacementVal = `{{ "person_id": ${entity.id}, "full_name": ${entity.full_name} }}`
+            replacementVal = `<a contenteditable="false" target="_blank" href="/internal/users/${entity.id}">${entity.full_name}</a> `
         }
         //let replacementIdx = recordDescription.indexOf('@@')
-        let recordDescriptionText = recordDescription.replace('@@', replacementVal);
-        let recordDescriptionHtml = recordNumberElement[0].innerHTML.replace(/\&nbsp\;/g, ' ');
-        console.log(recordDescriptionText)
+        //let recordDescriptionText = recordDescription.replace('@@', replacementVal);
+        let recordDescriptionHtml = recordNumberElement[0].innerHTML.replace('@@', replacementVal).replace(/\&nbsp\;/g, ' ');
+        //console.log(recordDescriptionText)
         console.log(recordDescriptionHtml)
 
         //let runningSheetRecordDescription = 
-        await this.updateRunningSheetVuexWrapper({
-            recordNumber,
-            recordDescriptionText,
-            recordDescriptionHtml,
+        this.updateRunningSheetUrlEntry({
+            "recordNumber": recordNumber,
+            "recordDescription": recordDescriptionHtml,
+            "redraw": true,
         })
         //this.$refs.runningSheetTable.vmDataTable.ajax.reload()
         /*console.log(this)
@@ -688,11 +695,11 @@ export default {
     refreshRunningSheetRow: function(e) {
         console.log(e)
         let i = 0;
-        for (let r of this.runningSheet) {
+        for (let r of this.runningSheetUrl) {
             if (e.target.id === r.number) {
                 this.constructRunningSheetTableEntry({
                     "rowId": i,
-                    "description": this.runningSheet[i].description,
+                    "description": this.runningSheetUrl[i].description,
                 });
             }
             i += 1;
@@ -702,8 +709,8 @@ export default {
     constructRunningSheetTable: function(){
         console.log("constructRunningSheetTable")
         this.$refs.running_sheet_table.vmDataTable.clear().draw();
-        if (this.runningSheet && this.runningSheetVuex){
-            for(let i = 0;i < this.runningSheet.length; i++){
+        if (this.runningSheetUrl){
+            for(let i = 0;i < this.runningSheetUrl.length; i++){
                 //this.updateRunningSheetEntry({
                 //    "rowId": i,
                 //    "recordNumber": this.runningSheetVuex[i].number,
@@ -711,12 +718,12 @@ export default {
                 //});
                 //this.addRunningSheetEntryToTable(this.offence.alleged_offences[i]);
                 this.$refs.running_sheet_table.vmDataTable.row.add({ 
-                    "id": this.runningSheet[i].id,
-                    "number": this.runningSheet[i].number,
-                    "date_created": this.runningSheet[i].date_created,
-                    "user_full_name": this.runningSheet[i].user_full_name,
-                    "description": this.runningSheet[i].description,
-                    "action": this.runningSheet[i].action,
+                    "id": this.runningSheetUrl[i].id,
+                    "number": this.runningSheetUrl[i].number,
+                    "date_created": this.runningSheetUrl[i].date_created,
+                    "user_full_name": this.runningSheetUrl[i].user_full_name,
+                    "description": this.runningSheetUrl[i].description,
+                    "action": this.runningSheetUrl[i].action,
                 }).draw();
                 //let actionColumn
             }
@@ -827,29 +834,29 @@ export default {
         this.$refs.magic.isModalOpen = true;
         this.magic = false;
     },
-    updateRunningSheetVuexWrapper: async function({
+    updateRunningSheetUrlEntry: function({
           recordNumber,
-          recordDescriptionText,
-          recordDescriptionHtml
+          recordDescription,
+          redraw
     }) {
-        console.log("wrapper")
+        console.log("updateRunningSheetUrl")
         console.log(recordNumber)
-        console.log(recordDescriptionText)
-        console.log(recordDescriptionHtml)
-        let recordDescription = this.parseStringInput({
-            "recordDescriptionHtml": recordDescriptionHtml,
-            "recordDescriptionText": recordDescriptionText,
-        });
         console.log(recordDescription)
-        await this.setRunningSheetEntryDescription(
-            {
-                "recordNumber": recordNumber, 
-                "description": recordDescription,
-                "userId": this.current_user.id,
-            })
-        //return recordDescription;
+        let i = 0;
+        for (let r of this.runningSheetUrl) {
+            if (r.number === recordNumber) {
+                r.description = recordDescription
+                if (redraw) {
+                    this.constructRunningSheetTableEntry({
+                        "rowId": i,
+                        "description": r.description,
+                    });
+                }
+            }
+            i += 1;
+        }
     },
-    runningSheetKeyup: async function(e) {
+    runningSheetKeyup: function(e) {
         let rowObj = {}
         let recordNumber = e.target.id
         let recordDescriptionText = e.target.textContent
@@ -859,12 +866,12 @@ export default {
             //pass
         } else {
             let i = 0;
-            for (let r of this.runningSheet) {
+            for (let r of this.runningSheetUrl) {
                 if (r.number === recordNumber) {
-                    await this.updateRunningSheetVuexWrapper({
-                        recordNumber,
-                        recordDescriptionHtml, 
-                        recordDescriptionText
+                    this.updateRunningSheetUrlEntry({
+                        "recordNumber": recordNumber,
+                        "recordDescription": recordDescriptionHtml, 
+                        "redraw": false
                     })
                     //let recordDescription = this.parseStringInput({
                     //    "recordDescriptionHtml": recordDescriptionHtml,
@@ -987,25 +994,23 @@ export default {
               //console.log(runningSheetTable.text())
               this.runningSheetKeyup(e)
           });
-      
-      //let testJqueryInstance = $('#CS000020-1')
-      //console.log(testJqueryInstance)
-      //let blur = false;
+      /*
       runningSheetTable.on(
           'blur', "div[id^='CS']", 
           function(e) {
               console.log(e)
               vm.refreshRunningSheetRow(e)
-              /*
-              console.log(this)
-              if (!blur) {
-                  blur = true;
-                  console.log(e)
-                  vm.refreshRunningSheetRow(e)
-                  blur = false;
-              }
-              */
+              
+              //console.log(this)
+              //if (!blur) {
+              //    blur = true;
+              //    console.log(e)
+              //    vm.refreshRunningSheetRow(e)
+              //    blur = false;
+              //}
+              
           });
+        */
       
 
 
@@ -1131,8 +1136,10 @@ export default {
 
       this.calculateHash();
       //Object.assign(this.runningSheet, this.legal_case.running_sheet_entries);
-      this.runningSheet = _.cloneDeep(this.legal_case.running_sheet_entries);
+      
+      this.runningSheetUrl = _.cloneDeep(this.legal_case.running_sheet_entries);
       console.log(this.runningSheet)
+      
       //this.constructRunningSheetTable(true);
       this.$nextTick(() => {
           this.constructRunningSheetTable();
