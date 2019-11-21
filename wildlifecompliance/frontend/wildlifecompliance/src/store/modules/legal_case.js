@@ -88,6 +88,9 @@ export const legalCaseStore = {
         updateRunningSheetEntries(state, running_sheet_entries) {
             Vue.set(state.legal_case, 'running_sheet_entries', running_sheet_entries);
         },
+        updateRunningSheetTransform(state, running_sheet_transform) {
+            Vue.set(state.legal_case, 'running_sheet_transform', running_sheet_transform);
+        },
         updateRunningSheetEntryDescription(state, { recordNumber, description, userId }) {
             //console.log("updateRunningSheetEntryDescription");
             console.log(recordNumber)
@@ -179,6 +182,9 @@ export const legalCaseStore = {
         },
         setRunningSheetEntries({ commit }, running_sheet_entries ) {
             commit("updateRunningSheetEntries", running_sheet_entries);
+        },
+        setRunningSheetTransform({ commit }, running_sheet_transform ) {
+            commit("updateRunningSheetTransform", running_sheet_transform);
         },
         setRunningSheetEntryDescription({ commit }, {recordNumber, description, userId}) {
             commit("updateRunningSheetEntryDescription", {recordNumber, description, userId})

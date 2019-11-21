@@ -356,26 +356,17 @@ class LegalCaseViewSet(viewsets.ModelViewSet):
     @renderer_classes((JSONRenderer,))
     #def inspection_save(self, request, workflow=False, *args, **kwargs):
     def update(self, request, workflow=False, *args, **kwargs):
-        #print(request.data)
+        print(request.data)
         try:
             with transaction.atomic():
-                running_sheet_entries = request.data.get('running_sheet_entries')
+                running_sheet_entries = request.data.get('running_sheet_transform')
                 running_sheet_saved = None
                 if running_sheet_entries and len(running_sheet_entries) > 0:
                     for entry in running_sheet_entries:
-                        #entry_copy = entry.copy()
                         entry_copy = dict(entry)
                         description = entry_copy.get('description', '')
                         clean_description = description.replace(u'\xa0', u' ')
-                        #clean_description = unicodedata.normalize('NFC', description)
-                        #del entry_copy['description']
-                        #print('entry_copy is entry')
-                        #print(entry_copy is entry)
-                        #clean_description = entry_copy.get('description', '').replace(r'\xa0', u' ')
-                        #print(clean_description)
                         entry_copy.update({'description': clean_description})
-                        #entry_copy['description'] = clean_description
-                        #print(entry_copy)
                         entry_id = LegalCaseRunningSheetEntry.objects.get(id = entry_copy.get('id'))
                         running_sheet_entry_serializer = SaveLegalCaseRunningSheetEntrySerializer(
                                 instance=entry_id, 
