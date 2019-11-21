@@ -160,6 +160,80 @@ class LegalCase(RevisionedMixin):
                     parent.close(request)
 
 
+class LegalCasePerson(EmailUser):
+    legal_case = models.ForeignKey(LegalCase, related_name='legal_case_person')
+
+    class Meta:
+        app_label = 'wildlifecompliance'
+
+
+class LegalCaseRunningSheetEntryManager(models.Manager):
+    #def create_running_sheet_entry(self, legal_case_id, user_id, description=None):
+    def create_running_sheet_entry(self, legal_case_id, user_id):
+        #legal_case_id = validated_data.get('legal_case_id')
+        #user_id = validated_data.get('user_id')
+        print("legal_case_id")
+        print(legal_case_id)
+        print("user_id")
+        print(user_id)
+        
+        max_row_num_dict = LegalCaseRunningSheetEntry.objects.filter(legal_case_id=legal_case_id).aggregate(Max('row_num'))
+        print("max_row_num_dict")
+        print(max_row_num_dict)
+        # initial value for new LegalCase
+        row_num = 1
+        # increment initial value if other entries exist for LegalCase
+        if max_row_num_dict.get('row_num__max'):
+            max_row_num = int(max_row_num_dict.get('row_num__max'))
+            row_num = max_row_num + 1
+        running_sheet_entry = self.create(row_num=row_num, legal_case_id=legal_case_id, user_id=user_id)
+
+        return running_sheet_entry
+
+
+class LegalCaseRunningSheetEntry(RevisionedMixin):
+    legal_case = models.ForeignKey(LegalCase, related_name='running_sheet_entries')
+    # TODO: person fk req?  Url links in description instead
+    person = models.ManyToManyField(LegalCasePerson, related_name='running_sheet_entry_person')
+    #number = models.CharField(max_length=50, blank=True)
+    date_created = models.DateTimeField(auto_now_add=True)
+    user = models.ForeignKey(EmailUser, related_name='running_sheet_entry_user')
+    #description = models.CharField(max_length=255, blank=True)
+    description = models.TextField(blank=True)
+    row_num = models.SmallIntegerField(blank=False, null=False)
+    deleted = models.BooleanField(default=False)
+    objects = LegalCaseRunningSheetEntryManager()
+
+    class Meta:
+        app_label = 'wildlifecompliance'
+        unique_together = ('legal_case', 'row_num')
+
+    #def save(self, *args, **kwargs):
+    #    super(LegalCaseRunningSheetEntry, self).save(*args,**kwargs)
+    #    if self.row_num is None:
+    #        # TODO: replace with max fn
+    #        #new_number_id = self.legal_case.number + str(self.pk)
+    #        #max_row_num = LegalCaseRunningSheetEntry.objects.all().aggregate(Max('row_num'))
+    #        max_row_num_dict = LegalCaseRunningSheetEntry.objects.filter(legal_case=self.legal_case).aggregate(Max('row_num'))
+    #        max_row_num = int(max_row_num_dict['row_num__max'])
+    #        
+    #        self.row_num = max_row_num + 1
+    #        self.save()
+
+    def __str__(self):
+        return "Number:{}, User:{}, Description:{}".format(
+                self.number(),
+                self.user,
+                self.description)
+
+    def legal_case_persons(self):
+        persons = self.legal_case.legal_case_person.all()
+        return persons
+
+    def number(self):
+        return self.legal_case.number + '-' + str(self.row_num)
+
+
 class LegalCaseCommsLogEntry(CommunicationsLogEntry):
     legal_case = models.ForeignKey(LegalCase, related_name='comms_logs')
 
@@ -231,3 +305,8 @@ class LegalCaseDocument(Document):
     class Meta:
         app_label = 'wildlifecompliance'
 
+
+import reversion
+reversion.register(LegalCaseRunningSheetEntry, follow=['user'])
+reversion.register(LegalCase)
+reversion.register(EmailUser)

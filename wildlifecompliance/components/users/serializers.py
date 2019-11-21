@@ -393,6 +393,7 @@ class ComplianceUserDetailsSerializer(serializers.ModelSerializer):
     personal_details = serializers.SerializerMethodField()
     address_details = serializers.SerializerMethodField()
     contact_details = serializers.SerializerMethodField()
+    full_name = serializers.SerializerMethodField()
     # compliance_permissions = serializers.SerializerMethodField()
 
     class Meta:
@@ -402,6 +403,7 @@ class ComplianceUserDetailsSerializer(serializers.ModelSerializer):
             'id',
             'last_name',
             'first_name',
+            'full_name',
             'dob',
             'email',
             'residential_address',
@@ -413,6 +415,10 @@ class ComplianceUserDetailsSerializer(serializers.ModelSerializer):
             'address_details',
             'contact_details'
         )
+
+    def get_full_name(self, obj):
+        #return True if obj.last_name and obj.first_name and obj.dob else False
+        return obj.get_full_name()
 
     def get_personal_details(self, obj):
         return True if obj.last_name and obj.first_name and obj.dob else False

@@ -89,7 +89,7 @@ export default {
     WeakLinks,
   },
   watch: {
-      displayedEntity: {
+      displayedEntityRelatedItems: {
           handler: function (){
               this.constructRelatedItemsTable();
           },
@@ -136,11 +136,18 @@ export default {
         return displayed_entity;
     },
     displayedEntityId: function() {
+        let retVal = null;
         if (this.displayedEntity) {
-            return this.displayedEntity.id;
-        } else {
-            return null;
+            retVal = this.displayedEntity.id;
         }
+        return retVal
+    },
+    displayedEntityRelatedItems: function() {
+        let retVal = null;
+        if (this.displayedEntity && this.displayedEntity.related_items) {
+            retVal = this.displayedEntity.related_items;
+        }
+        return retVal
     },
 
   },
