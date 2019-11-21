@@ -102,6 +102,11 @@ COMPLIANCE_PERMISSION_GROUPS = [
         'per_district': False,
         'permissions': ['infringement_notice_coordinator']
     },
+    {
+        'name': 'Branch Manager',
+        'per_district': False,
+        'permissions': ['branch_manager']
+    },
 ]
 
 COMPLIANCE_GROUP_PERMISSIONS = {
@@ -127,6 +132,11 @@ COMPLIANCE_GROUP_PERMISSIONS = {
     },
     'infringement_notice_coordinator': {
         'name': 'Infringement Notice Coordinator',
+        'app_label': 'wildlifecompliance',
+        'model': 'compliancepermissiongroup',
+    },
+    'branch_manager': {
+        'name': 'Branch Manager',
         'app_label': 'wildlifecompliance',
         'model': 'compliancepermissiongroup',
     },

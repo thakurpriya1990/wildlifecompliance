@@ -764,8 +764,12 @@ class SanctionOutcomeViewSet(viewsets.ModelViewSet):
                 else:
                     workflow_entry = self.add_comms_log(request, instance, workflow=True)
 
+                raise serializers.ValidationError({'Reason': ['Reason cannot be blank.',]})
                 # Set status
                 workflow_type = request.data.get('workflow_type')
+                reason = request.data.get('details')
+                if not reason:
+                    raise serializers.ValidationError({'Reason': ['You must enter the reason.',]})
                 email_data = None
 
                 if workflow_type == SanctionOutcome.WORKFLOW_SEND_TO_MANAGER:
@@ -790,9 +794,9 @@ class SanctionOutcomeViewSet(viewsets.ModelViewSet):
                     instance.return_to_officer(request)
                     # Email to the responsible officer
                     email_data = prepare_mail(request, instance, workflow_entry, send_mail, instance.responsible_officer.id)
-                elif workflow_type == SanctionOutcome.WORKFLOW_WITHDRAW_BY_INC:
+                elif workflow_type == SanctionOutcome.WORKFLOW_ESCALATE_FOR_WITHDRAWAL:
                     #  withdraw by Infringement notice coordinator
-                    instance.withdraw_by_inc(request)
+                    instance.escalate_for_withdrawal(request)
                 elif workflow_type == SanctionOutcome.WORKFLOW_WITHDRAW_BY_MANAGER:
                     #  withdraw by manager
                     instance.withdraw_by_manager(request)
