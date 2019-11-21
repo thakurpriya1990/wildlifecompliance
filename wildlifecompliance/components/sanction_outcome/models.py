@@ -41,7 +41,7 @@ class SanctionOutcome(models.Model):
     WORKFLOW_ENDORSE = 'endorse'
     WORKFLOW_DECLINE = 'decline'
     WORKFLOW_WITHDRAW_BY_MANAGER = 'withdraw_by_manager'
-    WORKFLOW_WITHDRAW_BY_INC = 'withdraw_by_inc'  # INC: infringement notice coordinator
+    WORKFLOW_ESCALATE_FOR_WITHDRAWAL = 'escalate_for_withdrawal'  # INC: infringement notice coordinator
     WORKFLOW_RETURN_TO_OFFICER = 'return_to_officer'
     WORKFLOW_CLOSE = 'close'
 
@@ -56,14 +56,15 @@ class SanctionOutcome(models.Model):
     STATUS_AWAITING_PAYMENT = 'awaiting_payment'
     STATUS_AWAITING_REVIEW = 'awaiting_review'
     STATUS_AWAITING_REMEDIATION_ACTIONS = 'awaiting_remediation_actions'
+    STATUS_ESCALATED_FOR_WITHDRAWAL = 'escalated_for_withdrawal'
     STATUS_DECLINED = 'declined'
+    STATUS_OVERDUE = 'overdue'
     STATUS_WITHDRAWN = 'withdrawn'
     STATUS_CLOSED = 'closed'
     STATUS_CHOICES_FOR_EXTERNAL = (
         (STATUS_AWAITING_PAYMENT, 'Awaiting Payment'),
         (STATUS_AWAITING_REMEDIATION_ACTIONS, 'Awaiting Remediation Actions'),
-        # (STATUS_DECLINED, 'Declined'),
-        # (STATUS_WITHDRAWN, 'Withdrawn'),
+        (STATUS_OVERDUE, 'Overdue'),
         (STATUS_CLOSED, 'closed'),
     )
     FINAL_STATUSES = (STATUS_DECLINED, STATUS_CLOSED, STATUS_WITHDRAWN,)
@@ -77,6 +78,7 @@ class SanctionOutcome(models.Model):
                                                                                 # This is pending closure status
                                                                                 # Once all the remediation actions are closed, this status should become closed...
         (STATUS_DECLINED, 'Declined'),
+        (STATUS_OVERDUE, 'Overdue'),
         (STATUS_WITHDRAWN, 'Withdrawn'),
         (STATUS_CLOSED, 'Closed'),
     )
@@ -130,6 +132,8 @@ class SanctionOutcome(models.Model):
     penalty_amount_2nd =  models.DecimalField(max_digits=8, decimal_places=2, default='0.00')
     due_date_extended_max = models.DateField(null=True, blank=True)
 
+    #
+
     objects = models.Manager()
     objects_active = SanctionOutcomeActiveManager()
     objects_for_external = SanctionOutcomeExternalManager()
@@ -168,8 +172,11 @@ class SanctionOutcome(models.Model):
 
         super(SanctionOutcome, self).delete()
 
-    def log_user_action(self, action, request):
-        return SanctionOutcomeUserAction.log_action(self, action, request.user)
+    def log_user_action(self, action, request=None):
+        if request:
+            return SanctionOutcomeUserAction.log_action(self, action, request.user)
+        else:
+            return SanctionOutcomeUserAction.log_action(self, action)
 
     def save(self, *args, **kwargs):
         super(SanctionOutcome, self).save(*args, **kwargs)
@@ -230,8 +237,8 @@ class SanctionOutcome(models.Model):
         elif workflow_type == SanctionOutcome.WORKFLOW_RETURN_TO_OFFICER:
             codename = 'officer'
             per_district = True
-        elif workflow_type == SanctionOutcome.WORKFLOW_WITHDRAW_BY_INC:
-            codename = 'infringement_notice_coordinator'
+        elif workflow_type == SanctionOutcome.WORKFLOW_ESCALATE_FOR_WITHDRAWAL:
+            codename = 'branch_manager'
             per_district = False
         elif workflow_type == SanctionOutcome.WORKFLOW_WITHDRAW_BY_MANAGER:
             codename = 'manager'
@@ -273,10 +280,11 @@ class SanctionOutcome(models.Model):
 
     @property
     def offence_occurrence_date(self):
-        if self.offence.occurrence_from_to:
-            return self.offence.occurrence_date_to
-        else:
-            return self.offence.occurrence_date_from
+        return self.offence.offence_occurrence_datetime.date()
+
+    @property
+    def offence_occurrence_datetime(self):
+        return self.offence.offence_occurrence_datetime
 
     def endorse(self, request):
         current_datetime = datetime.datetime.now()
@@ -342,9 +350,9 @@ class SanctionOutcome(models.Model):
         self.log_user_action(SanctionOutcomeUserAction.ACTION_RETURN_TO_OFFICER.format(self.lodgement_number), request)
         self.save()
 
-    def withdraw_by_inc(self, request):
-        self.status = self.STATUS_WITHDRAWN
-        new_group = SanctionOutcome.get_compliance_permission_group(self.regionDistrictId, SanctionOutcome.WORKFLOW_WITHDRAW_BY_INC)
+    def escalate_for_withdrawal(self, request):
+        self.status = self.STATUS_ESCALATED_FOR_WITHDRAWAL
+        new_group = SanctionOutcome.get_compliance_permission_group(self.regionDistrictId, SanctionOutcome.WORKFLOW_ESCALATE_FOR_WITHDRAWAL)
         self.allocated_group = new_group
         self.log_user_action(SanctionOutcomeUserAction.ACTION_WITHDRAW.format(self.lodgement_number), request)
         self.save()
@@ -551,6 +559,7 @@ class SanctionOutcomeUserAction(models.Model):
     ACTION_RESTORE_ALLEGED_COMMITTED_OFFENCE = "Restore alleged committed offence: {}"
     ACTION_INCLUDE_ALLEGED_COMMITTED_OFFENCE = "Include alleged committed offence: {}"
     ACTION_EXTEND_DUE_DATE = "Extend due date of Sanction Outcome {}"
+    ACTION_SEND_DETAILS_TO_INFRINGEMENT_NOTICE_COORDINATOR = "Send details of the Unpaid Infringement Notice {} to Infringement Notice Coordinator"
 
     who = models.ForeignKey(EmailUser, null=True, blank=True)
     when = models.DateTimeField(null=False, blank=False, auto_now_add=True)
@@ -562,7 +571,7 @@ class SanctionOutcomeUserAction(models.Model):
         ordering = ('-when',)
 
     @classmethod
-    def log_action(cls, obj, action, user):
+    def log_action(cls, obj, action, user=None):
         return cls.objects.create(
             sanction_outcome=obj,
             who=user,

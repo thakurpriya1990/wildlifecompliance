@@ -67,7 +67,7 @@
                                     </a>
                                 </div>
                             </div>
-
+<!--
                             <div v-if="visibilitySendToFinesEnforcementButton" class="row action-button">
                                 <div class="col-sm-12">
                                     <a @click="addWorkflow('send_to_fines_enforcement')" class="btn btn-primary btn-block">
@@ -75,10 +75,11 @@
                                     </a>
                                 </div>
                             </div>
+-->
 
-                            <div v-if="visibilityWithdrawButtonForInc" class="row action-button">
+                            <div v-if="visibilityEscalateForWithdrawalButton" class="row action-button">
                                 <div class="col-sm-12">
-                                    <a @click="addWorkflow('withdraw_by_inc')" class="btn btn-primary btn-block">
+                                    <a @click="addWorkflow('escalate_for_withdrawal')" class="btn btn-primary btn-block">
                                         Escalate for Withdrawal
                                     </a>
                                 </div>
@@ -673,19 +674,19 @@ export default {
             }
             return visibility;
         },
-        visibilitySendToFinesEnforcementButton: function() {
-            let visibility = false;
-            if (this.sanction_outcome.can_user_action){
-                if (this.sanction_outcome.type.id == 'infringement_notice'){
-                    if (this.sanction_outcome.status.id === this.STATUS_AWAITING_PAYMENT){
-                        // This is when Infringement Notice Coordinator sends this IN to fines enforcement
-                        visibility = true;
-                    }
-                }
-            }
-            return visibility;
-        },
-        visibilityWithdrawButtonForInc: function() {
+       // visibilitySendToFinesEnforcementButton: function() {
+       //     let visibility = false;
+       //     if (this.sanction_outcome.can_user_action){
+       //         if (this.sanction_outcome.type.id == 'infringement_notice'){
+       //             if (this.sanction_outcome.status.id === this.STATUS_AWAITING_PAYMENT){
+       //                 // This is when Infringement Notice Coordinator sends this IN to fines enforcement
+       //                 visibility = true;
+       //             }
+       //         }
+       //     }
+       //     return visibility;
+       // },
+        visibilityEscalateForWithdrawalButton: function() {
             let visibility = false;
             if (this.sanction_outcome.can_user_action){
                 if (this.sanction_outcome.type.id == 'infringement_notice'){

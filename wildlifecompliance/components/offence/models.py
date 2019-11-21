@@ -1,3 +1,5 @@
+import datetime
+
 from django.contrib.auth.models import Permission
 from django.contrib.contenttypes.models import ContentType
 from django.db import models
@@ -155,6 +157,13 @@ class Offence(RevisionedMixin):
             self.status =  self.STATUS_PENDING_CLOSURE
             self.log_user_action(OffenceUserAction.ACTION_PENDING_CLOSURE.format(self.lodgement_number), request)
         self.save()
+
+    @property
+    def offence_occurrence_datetime(self):
+        if self.occurrence_from_to:
+            return datetime.datetime.combine(self.occurrence_date_to, self.occurrence_time_to)
+        else:
+            return datetime.datetime.combine(self.occurrence_date_from, self.occurrence_time_from)
 
 
 def perform_can_close_record(sender, instance, **kwargs):
