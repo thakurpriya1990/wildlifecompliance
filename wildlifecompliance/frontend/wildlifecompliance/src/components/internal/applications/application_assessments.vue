@@ -80,9 +80,9 @@
             </modal>
 
             <div>
-                <ul id="tabs-assessor" class="nav nav-tabs">
-                    <li v-for="(item1,index) in applicationActivities" :class="setAssessorTab(index)" @click.prevent="clearSendToAssessorForm()">
-                        <a v-if="isActivityVisible(item1.id)" data-toggle="tab" :data-target="`#${item1.id}`">{{item1.name}}</a>
+                <ul id="tabs-assessor" class="nav nav-pills mb-3">
+                    <li class="nav-item" v-for="(item1,index) in applicationActivities" :class="setAssessorTab(index)" @click.prevent="clearSendToAssessorForm()">
+                        <a class="nav-link" v-if="isActivityVisible(item1.id)" data-toggle="pill" :data-target="`#${item1.id}`">{{item1.name}}</a>
                     </li>
                 </ul>
             </div>

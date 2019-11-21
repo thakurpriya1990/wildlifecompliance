@@ -1,9 +1,9 @@
 <template id="application_issuance">
                 <div class="col-md-12">
 
-                    <ul class="nav nav-tabs" id="tabs-section" data-tabs="tabs">
-                        <li v-for="(activity, index) in visibleLicenceActivities" v-bind:key="`issue_activity_tab_${index}`">
-                            <a data-toggle="tab" v-on:click="selectTab(activity)">{{activity.name}}</a>
+                    <ul class="nav nav-pills mb-3" id="tabs-section" data-tabs="tabs">
+                        <li class="nav-item" v-for="(activity, index) in visibleLicenceActivities" v-bind:key="`issue_activity_tab_${index}`">
+                            <a class="nav-link" data-toggle="pill" v-on:click="selectTab(activity)">{{activity.name}}</a>
                         </li>
                     </ul>
                     <div class="tab-content">

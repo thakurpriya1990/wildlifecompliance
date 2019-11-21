@@ -44,10 +44,10 @@
             </affix>
         </div>
         <div :class="`${form_width ? form_width : 'col-md-9'}`" id="tabs">
-            <ul class="nav nav-tabs" id="tabs-section" data-tabs="tabs">
-                <li v-for="(activity, index) in listVisibleActivities">
+            <ul class="nav nav-pills mb-3" id="tabs-section" data-tabs="tabs">
+                <li class="nav-item" v-for="(activity, index) in listVisibleActivities">
                     <a :class="{'nav-link amendment-highlight': application.has_amendment}"
-                        data-toggle="tab" v-on:click="selectTab(activity)">{{activity.label}}</a>
+                        data-toggle="pill" v-on:click="selectTab(activity)">{{activity.label}}</a>
                 </li>
             </ul>
             <div class="tab-content">

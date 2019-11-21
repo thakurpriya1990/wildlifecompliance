@@ -70,9 +70,9 @@
         <!-- Tabs Layout -->
         <div class="col-md-9" >
             <div id="tabs" v-show="displayable_tabs">
-                <ul class="nav nav-tabs" id="tab-section" data-tabs="tabs" >
-                    <li class="active"><a id="0">1. Return</a></li>
-                    <li v-if="returns.has_payment" ><a id="1">2. Confirmation</a></li>
+                <ul class="nav nav-pills mb-3" id="tab-section" data-tabs="tabs" >
+                    <li class="nav-item active"><a id="0" class="nav-link" data-toggle="pill">1. Return</a></li>
+                    <li class="nav-item" v-if="returns.has_payment" ><a id="1" class="nav-link" data-toggle="pill">2. Confirmation</a></li>
                 </ul>
             </div>
             <div class="tab-content">
