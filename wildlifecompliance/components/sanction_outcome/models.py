@@ -41,7 +41,7 @@ class SanctionOutcome(models.Model):
     WORKFLOW_ENDORSE = 'endorse'
     WORKFLOW_DECLINE = 'decline'
     WORKFLOW_WITHDRAW_BY_MANAGER = 'withdraw_by_manager'
-    WORKFLOW_WITHDRAW_BY_INC = 'withdraw_by_inc'  # INC: infringement notice coordinator
+    WORKFLOW_ESCALATE_FOR_WITHDRAWAL = 'escalate_for_withdrawal'  # INC: infringement notice coordinator
     WORKFLOW_RETURN_TO_OFFICER = 'return_to_officer'
     WORKFLOW_CLOSE = 'close'
 
@@ -56,6 +56,7 @@ class SanctionOutcome(models.Model):
     STATUS_AWAITING_PAYMENT = 'awaiting_payment'
     STATUS_AWAITING_REVIEW = 'awaiting_review'
     STATUS_AWAITING_REMEDIATION_ACTIONS = 'awaiting_remediation_actions'
+    STATUS_ESCALATED_FOR_WITHDRAWAL = 'escalated_for_withdrawal'
     STATUS_DECLINED = 'declined'
     STATUS_OVERDUE = 'overdue'
     STATUS_WITHDRAWN = 'withdrawn'
@@ -236,8 +237,8 @@ class SanctionOutcome(models.Model):
         elif workflow_type == SanctionOutcome.WORKFLOW_RETURN_TO_OFFICER:
             codename = 'officer'
             per_district = True
-        elif workflow_type == SanctionOutcome.WORKFLOW_WITHDRAW_BY_INC:
-            codename = 'infringement_notice_coordinator'
+        elif workflow_type == SanctionOutcome.WORKFLOW_ESCALATE_FOR_WITHDRAWAL:
+            codename = 'branch_manager'
             per_district = False
         elif workflow_type == SanctionOutcome.WORKFLOW_WITHDRAW_BY_MANAGER:
             codename = 'manager'
@@ -349,9 +350,9 @@ class SanctionOutcome(models.Model):
         self.log_user_action(SanctionOutcomeUserAction.ACTION_RETURN_TO_OFFICER.format(self.lodgement_number), request)
         self.save()
 
-    def withdraw_by_inc(self, request):
-        self.status = self.STATUS_WITHDRAWN
-        new_group = SanctionOutcome.get_compliance_permission_group(self.regionDistrictId, SanctionOutcome.WORKFLOW_WITHDRAW_BY_INC)
+    def escalate_for_withdrawal(self, request):
+        self.status = self.STATUS_ESCALATED_FOR_WITHDRAWAL
+        new_group = SanctionOutcome.get_compliance_permission_group(self.regionDistrictId, SanctionOutcome.WORKFLOW_ESCALATE_FOR_WITHDRAWAL)
         self.allocated_group = new_group
         self.log_user_action(SanctionOutcomeUserAction.ACTION_WITHDRAW.format(self.lodgement_number), request)
         self.save()
