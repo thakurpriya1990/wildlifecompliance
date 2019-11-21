@@ -60,7 +60,8 @@ export default {
         return {
             entity: {
                 id: null,
-                data_type: null
+                data_type: null,
+                full_name: null,
             },
             displayUpdateCreatePerson: false,
             displayUpdateCreateOrganisation: false,
@@ -81,9 +82,19 @@ export default {
         entity: {
             handler: function (){
                 if (this.entity.id) {
-                    this.$emit('entity-selected', { 
-                        id: this.entity.id, 
-                        data_type: this.entity.data_type });
+                    if (this.addFullName) {
+                        console.log('here')
+                        this.$emit('entity-selected', {
+                            id: this.entity.id,
+                            data_type: this.entity.data_type,
+                            full_name: this.entity.full_name
+                        });
+                    } else {
+                        console.log('there')
+                        this.$emit('entity-selected', {
+                            id: this.entity.id, 
+                            data_type: this.entity.data_type });
+                    }
                 }
                 if (this.entity.id && this.entity.data_type === 'individual') {
                     this.displayUpdateCreateOrganisation = false;
@@ -187,6 +198,11 @@ export default {
             required: false,
             default: false,
         },
+        addFullName: {
+            type: Boolean,
+            required: false,
+            default: false,
+        },
     },
     methods: {
         parentSave: async function() {
@@ -273,6 +289,8 @@ export default {
                         let l_name = item.last_name ? item.last_name : "";
             
                         let full_name = [f_name, l_name].filter(Boolean).join(" ");
+                        //console.log(full_name)
+                        //let individual_full_name = f_name + ' ' + l_name;
                         let email = item.email ? "E:" + item.email : "";
                         let p_number = item.phone_number ? "P:" + item.phone_number : "";
                         let m_number = item.mobile_number ? "M:" + item.mobile_number : "";
@@ -291,7 +309,7 @@ export default {
                             m_number_marked,
                             dob_marked
                         ].filter(Boolean).join("<br />");
-                        myLabel = "<div data-item-id=" + item.id + ' data-type="individual">' + myLabel + "</div>";
+                        myLabel = "<div data-item-id=" + item.id + ' data-full-name="' + full_name + '" data-type="individual">' + myLabel + "</div>";
             
                         return {
                             label: myLabel, // Displayed in the list below the search box
@@ -331,6 +349,7 @@ export default {
             })
             .on("awesomplete-select", function(ev) {
                 let origin = $(ev.originalEvent.origin);
+                console.log(origin)
                 let originTagName = origin[0].tagName;
                 if (originTagName != "DIV") {
                     // Assuming origin is a child element of <li>
@@ -338,6 +357,7 @@ export default {
                 }
                 let data_item_id = origin[0].getAttribute("data-item-id");
                 let data_type = origin[0].getAttribute("data-type");
+                let data_full_name = origin[0].getAttribute("data-full-name");
 
                 // Emit an event so that the parent vue component can subscribe to the event: 'person-selected' 
                 // and receive the data user selected.
@@ -346,7 +366,11 @@ export default {
                 // an Organisation.id when data_type is 'organisation'
                 vm.$nextTick(() => {
                     let data_item_id_int = parseInt(data_item_id);
-                    vm.entity = {'id': data_item_id_int, 'data_type': data_type};
+                    vm.entity = {
+                        'id': data_item_id_int, 
+                        'data_type': data_type,
+                        'full_name': data_full_name
+                    };
                 });
             });
         },

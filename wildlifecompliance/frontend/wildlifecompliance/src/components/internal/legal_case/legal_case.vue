@@ -128,13 +128,25 @@
                             <div class="col-sm-12 form-group"><div class="row">
                                 <div>
                                     <!--div class="col-sm-6"-->
-                                        <label class="col-sm-10">Type !! to open Inspection or @@ to open Offence</label>
-                                        <input id="test1" type="text" class="form-control" v-model="magicValue" />
-                                        <!--label class="col-sm-4">Test 2</label>
-                                        <input id="test2" type="text" class="form-control" /-->
-                                    <!--/div-->
+                                        <label class="col-sm-10">Type !! to open Inspection or @@ to open SearchPerson</label>
+                                        <!--input id="test1" type="text" class="form-control" v-model="magicValue" /-->
+                                    <div class="row action-button">
+                                        <div v-if="canUserAction" class="col-sm-12">
+                                              <a @click="createNewRunningSheetEntry()" class="btn btn-primary btn-block" >
+                                                New Row
+                                              </a>
+                                        </div>
+                                    </div>
+                                    <!--div class="col-sm-3 inline-datatable" contenteditable="true">this <a contenteditable="false" href="www.google.com">google</a> this2</div>
+                                    <div v-model="runningSheetObj[`CS000018-1`].description" contenteditable="true">this <a contenteditable="false" href="www.google.com">google</a> this2</div-->
 
-                                    <!--datatable ref="legal_case_table" id="legal-case-table" :dtOptions="dtOptions" :dtHeaders="dtHeaders" /-->
+                                    <datatable 
+                                    ref="running_sheet_table" 
+                                    id="running-sheet-table" 
+                                    :dtOptions="dtOptionsRunningSheet" 
+                                    :dtHeaders="dtHeadersRunningSheet"
+                                    parentStyle=" "
+                                    />
                                 </div>
                             </div></div>
                           </FormSection>
@@ -218,6 +230,13 @@
             />
         </div>
         <Magic ref="magic" />
+        <SearchPersonOrganisationModal 
+        ref="search_person_or_organisation_modal"
+        :readonlyForm="readonlyForm"
+        v-bind:key="searchPersonOrganisationBindId"
+        @person-selected="insertPersonModalUrl"
+        :rowNumberSelected="rowNumberSelected"
+        />
         <!--InspectionWorkflow ref="inspection_workflow" :workflow_type="workflow_type" v-bind:key="workflowBindId" /-->
     </div>
 </template>
@@ -241,50 +260,127 @@ require("select2/dist/css/select2.min.css");
 require("select2-bootstrap-theme/dist/select2-bootstrap.min.css");
 import hash from 'object-hash';
 import Magic from './magic';
+import SearchPersonOrganisationModal from '@/components/common/search_person_or_organisation_modal';
+import _ from 'lodash';
 
 
 export default {
-  name: "ViewLegalCase",
-  data: function() {
-    return {
-      uuid: 0,
-      objectHash: null,
-      runTab: 'runTab'+this._uid,
-      rTab: 'rTab'+this._uid,
-      cTab: 'cTab'+this._uid,
-      current_schema: [],
-      workflowBindId: '',
-      workflow_type: '',
-      comms_url: helpers.add_endpoint_json(
-        api_endpoints.legal_case,
-        this.$route.params.legal_case_id + "/comms_log"
-      ),
-      comms_add_url: helpers.add_endpoint_json(
-        api_endpoints.legal_case,
-        this.$route.params.legal_case_id + "/add_comms_log"
-      ),
-      logs_url: helpers.add_endpoint_json(
-        api_endpoints.legal_case,
-        this.$route.params.legal_case_id + "/action_log"
-      ),
-      sanctionOutcomeInitialised: false,
-      offenceInitialised: false,
-      inspectionInitialised: false,
-      hashAttributeWhitelist: [
-        'allocated_group_id',
-        'case_created_date',
-        'case_created_time',
-        'details',
-        'title',
-        'legal_case_priority_id',
-        'region_id',
-        'district_id',
-      ],
-      magicKeyPressed: false,
-      magicKey2Pressed: false,
-      magicValue: null,
-      magic: true,
-    };
+    name: "ViewLegalCase",
+    data: function() {
+        return {
+            //tempRunningSheet: [],
+            uuid: 0,
+            rowNumberSelected: '',
+            runningSheetUrl: [],
+            //runningSheetToken: [],
+            objectHash: null,
+            runTab: 'runTab'+this._uid,
+            rTab: 'rTab'+this._uid,
+            cTab: 'cTab'+this._uid,
+            current_schema: [],
+            workflowBindId: '',
+            workflow_type: '',
+            comms_url: helpers.add_endpoint_json(
+              api_endpoints.legal_case,
+              this.$route.params.legal_case_id + "/comms_log"
+            ),
+            comms_add_url: helpers.add_endpoint_json(
+              api_endpoints.legal_case,
+              this.$route.params.legal_case_id + "/add_comms_log"
+            ),
+            logs_url: helpers.add_endpoint_json(
+              api_endpoints.legal_case,
+              this.$route.params.legal_case_id + "/action_log"
+            ),
+            sanctionOutcomeInitialised: false,
+            searchPersonOrganisationInitialised: false,
+            offenceInitialised: false,
+            inspectionInitialised: false,
+            hashAttributeWhitelist: [
+              'allocated_group_id',
+              'case_created_date',
+              'case_created_time',
+              'details',
+              'title',
+              'legal_case_priority_id',
+              'region_id',
+              'district_id',
+            ],
+            searchPersonKeyPressed: false,
+            searchObjectKeyPressed: false,
+            //magicValue: null,
+            magic: true,
+            dtHeadersRunningSheet: [
+                "id",
+                "Number",
+                "Date Created",
+                "User",
+                "Description",
+                "Action",
+            ],
+            dtOptionsRunningSheet: {
+                columns: [
+                    {
+                        visible: false,
+                        mRender: function(data, type, row) {
+                            return row.id;
+                        }
+                    },
+                    {
+                        mRender: function(data, type, row) {
+                            let ret_str = row.number;
+                            if (row.deleted) {
+                                ret_str = '<strike>' + ret_str + '</strike>';
+                            }
+                            return ret_str;
+                        }
+                    },
+                    {
+                        mRender: function(data, type, row) {
+                            let ret_str = row.date_created;
+                            if (row.deleted) {
+                                ret_str = '<strike>' + ret_str + '</strike>';
+                            }
+                            return ret_str;
+                        }
+                    },
+                    {
+                        mRender: function(data, type, row) {
+                            let ret_str = row.user_full_name;
+                            if (row.deleted) {
+                                ret_str = '<strike>' + ret_str + '</strike>';
+                            }
+                            return ret_str;
+                        }
+                    },
+                    {
+                        mRender: function(data, type, row) {
+                            let ret_str = '';
+                            ret_str = `<div id=${row.number} contenteditable="true">${row.description}</div>`
+                            return ret_str;
+
+                        }
+                    },
+                    {
+                        mRender: function(data, type, row) {
+                            let ret_str = '';
+                            //let ret_str = row.allegedOffence.number_linked_sanction_outcomes_active + '(' + row.allegedOffence.number_linked_sanction_outcomes_total + ')';
+                            //if (row.offence.in_editable_status && row.offence.can_user_action){
+                            //    if (row.allegedOffence.removed){
+                            //        ret_str = ret_str + '<a href="#" class="restore_button" data-alleged-offence-uuid="' + row.allegedOffence.uuid + '">Restore</a>';
+                            //    } else {
+                            //        if (!row.allegedOffence.number_linked_sanction_outcomes_active){
+                            //            ret_str = ret_str + '<a href="#" class="remove_button" data-alleged-offence-uuid="' + row.allegedOffence.uuid + '">Remove</a>';
+                            //        }
+                            //    }
+                            //}
+                            return ret_str;
+
+                        }
+                    },
+                ]
+            }
+      };
   },
   components: {
     CommsLogs,
@@ -295,15 +391,18 @@ export default {
     filefield,
     RelatedItems,
     Inspection,
-    Magic
+    Magic,
+    SearchPersonOrganisationModal,
   },
   computed: {
     ...mapGetters('legalCaseStore', {
       legal_case: "legal_case",
+      //running_sheet_list: "running_sheet_list",
+      //running_sheet_obj: "running_sheet_obj",
     }),
-    //...mapGetters({
-    //    renderer_form_data: 'renderer_form_data'
-    //}),
+    ...mapGetters({
+        current_user: 'current_user'
+    }),
     csrf_token: function() {
       return helpers.getCookie("csrftoken");
     },
@@ -368,6 +467,13 @@ export default {
         }
         return related_items_visibility;
     },
+    searchPersonOrganisationBindId: function() {
+        let search_person_organisation_id = ''
+        //let timeNow = Date.now()
+        //this.uuid += 1
+        search_person_organisation_id = 'search_person_organisation_' + parseInt(this.uuid);
+        return search_person_organisation_id;
+    },
     offenceBindId: function() {
         let offence_bind_id = ''
         //let timeNow = Date.now()
@@ -390,18 +496,6 @@ export default {
         return inspection_bind_id;
     },
   },
-  watch: {
-      magicValue: {
-          handler: function (){
-              if (this.magicValue && 
-                this.magicValue.toLowerCase().includes('shibaken') &&
-                this.magic) {
-                  //this.constructInspectionTeamTable();
-                  this.magicMethod()
-              }
-          },
-      },
-  },
   filters: {
     formatDate: function(data) {
       return data ? moment(data).format("DD/MM/YYYY HH:mm:ss") : "";
@@ -413,7 +507,88 @@ export default {
       saveLegalCase: 'saveLegalCase',
       setLegalCase: 'setLegalCase',
       setRelatedItems: 'setRelatedItems',
+      setRunningSheetEntries: 'setRunningSheetEntries',
+      setRunningSheetEntryDescription: 'setRunningSheetEntryDescription',
+      setRunningSheetTransform: 'setRunningSheetTransform',
     }),
+    ...mapActions({
+        loadCurrentUser: 'loadCurrentUser',
+    }),
+    runningSheetTransformWrapper: async function() {
+        let runningSheet = []
+        let i = 0;
+        for (let r of this.runningSheetUrl) {
+            r.description = this.urlToToken(r.description)
+            runningSheet.push(r)
+            i += 1;
+        }
+        await this.setRunningSheetTransform(runningSheet)
+    },
+    insertPersonModalUrl: function(entity) {
+        let recordNumber = entity.row_number_selected;
+        let recordNumberElement = $('#' + recordNumber)
+        let replacementVal = ''
+        if (entity.full_name) {
+            replacementVal = `<a contenteditable="false" target="_blank" href="/internal/users/${entity.id}">${entity.full_name}</a>`
+        }
+        let recordDescriptionHtml = recordNumberElement[0].innerHTML.replace('@@', replacementVal).replace(/&nbsp\;/g, ' ');
+        this.updateRunningSheetUrlEntry({
+            "recordNumber": recordNumber,
+            "recordDescription": recordDescriptionHtml,
+            "redraw": true,
+        })
+    },
+    constructRunningSheetTable: function(){
+        console.log("constructRunningSheetTable")
+        this.$refs.running_sheet_table.vmDataTable.clear().draw();
+        if (this.runningSheetUrl){
+            for(let i = 0;i < this.runningSheetUrl.length; i++){
+                this.$refs.running_sheet_table.vmDataTable.row.add({ 
+                    "id": this.runningSheetUrl[i].id,
+                    "number": this.runningSheetUrl[i].number,
+                    "date_created": this.runningSheetUrl[i].date_created,
+                    "user_full_name": this.runningSheetUrl[i].user_full_name,
+                    "description": this.runningSheetUrl[i].description,
+                    "action": this.runningSheetUrl[i].action,
+                }).draw();
+            }
+        }
+        console.log("constructRunningSheetTable - end")
+    },
+    constructRunningSheetTableEntry: function({rowId, description}){
+        console.log(description)
+        if (this.$refs.running_sheet_table && this.$refs.running_sheet_table.vmDataTable) {
+            console.log("constructRunningSheetTableEntry");
+            let tableRow = this.$refs.running_sheet_table.vmDataTable.row(rowId).data()
+            tableRow.description = description
+            this.$refs.running_sheet_table.vmDataTable.row(rowId).invalidate().draw()
+        }
+    },
+    createNewRunningSheetEntry: async function() {
+        let payload = {
+            "legal_case_id": this.legal_case.id,
+            "user_id": this.current_user.id,
+        }
+        let fetchUrl = helpers.add_endpoint_join(
+            api_endpoints.legal_case,
+            this.legal_case.id + '/create_running_sheet_entry/'
+            )
+        let updatedRunningSheet = await Vue.http.post(fetchUrl, payload);
+        if (updatedRunningSheet.body && updatedRunningSheet.body.running_sheet_entries){
+            await this.setRunningSheetEntries(updatedRunningSheet.body.running_sheet_entries);
+            this.runningSheetUrl = _.cloneDeep(this.legal_case.running_sheet_entries);
+            // TODO: refactor this & created section into common method
+            let i = 0;
+            for (let r of this.legal_case.running_sheet_entries) {
+                let description = this.tokenToUrl(r.description)
+                this.runningSheetUrl[i].description = description;
+                i += 1;
+            }
+            this.$nextTick(() => {
+                this.constructRunningSheetTable();
+            });
+        }
+    },
     openInspection() {
       this.uuid += 1;
       this.inspectionInitialised = true;
@@ -436,8 +611,15 @@ export default {
           this.$refs.offence.isModalOpen = true;
       });
     },
+    openSearchPersonOrganisation(rowNumber){
+      this.uuid += 1;
+      this.rowNumberSelected = rowNumber;
+      this.searchPersonOrganisationInitialised = true;
+      this.$nextTick(() => {
+          this.$refs.search_person_or_organisation_modal.isModalOpen = true;
+      });
+    },
     updateWorkflowBindId: function() {
-        //let workflowBindId = ''
         let timeNow = Date.now()
         if (this.workflow_type) {
             this.workflowBindId = this.workflow_type + '_' + timeNow.toString();
@@ -455,14 +637,15 @@ export default {
     save: async function(returnToDash) {
       console.log(returnToDash)
       let savedLegalCase = null;
-      //let savedPerson = null;
-      if (this.legal_case.id) {
-          savedLegalCase = await this.saveLegalCase({ create: false, internal: false });
-      } else {
-          savedLegalCase = await this.saveLegalCase({ create: true, internal: false });
-      }
+      await this.runningSheetTransformWrapper();
+      this.$nextTick(async () => {
+          if (this.legal_case.id) {
+              savedLegalCase = await this.saveLegalCase({ create: false, internal: false });
+          } else {
+              savedLegalCase = await this.saveLegalCase({ create: true, internal: false });
+          }
+      })
       this.calculateHash();
-      //console.log(savedInspection);
       if (savedLegalCase && savedLegalCase.ok && returnToDash === 'exit') {
         // remove redundant eventListeners
         window.removeEventListener('beforeunload', this.leaving);
@@ -477,81 +660,153 @@ export default {
         this.$refs.magic.isModalOpen = true;
         this.magic = false;
     },
-    test1: function(e) {
+    updateRunningSheetUrlEntry: function({
+          recordNumber,
+          recordDescription,
+          redraw
+    }) {
+        console.log("updateRunningSheetUrl")
+        if (this.magic && recordDescription.toLowerCase().includes('shibaken')) {
+            this.magicMethod()
+        }
+        console.log(recordNumber)
+        console.log(recordDescription)
+        let i = 0;
+        for (let r of this.runningSheetUrl) {
+            if (r.number === recordNumber) {
+                r.description = recordDescription
+                if (redraw) {
+                    this.constructRunningSheetTableEntry({
+                        "rowId": i,
+                        "description": r.description,
+                    });
+                }
+            }
+            i += 1;
+        }
+    },
+    runningSheetKeyup: function(e) {
+        let rowObj = {}
+        let recordNumber = e.target.id
+        let recordDescriptionText = e.target.textContent
+        let recordDescriptionHtml = e.target.innerHTML.replace(/\&nbsp\;/g, ' ');
+        //let recordDescriptionHtml = e.target.innerHTML;
+        const ignoreArray = [49, 50, 16]
+        if (ignoreArray.includes(e.which)) {
+            //pass
+        } else {
+            let i = 0;
+            for (let r of this.runningSheetUrl) {
+                if (r.number === recordNumber) {
+                    this.updateRunningSheetUrlEntry({
+                        "recordNumber": recordNumber,
+                        "recordDescription": recordDescriptionHtml, 
+                        "redraw": false
+                    })
+                    this.searchPersonKeyPressed = false;
+                    this.searchObjectKeyPressed = false;
+                }
+                i += 1;
+            }
+        }
+    },
+    runningSheetKeydown: async function(e) {
 
         // keycode 49 = !
-        if (e.which === 49 && this.magicKeyPressed) {
+        if (e.which === 49 && this.searchObjectKeyPressed) {
             // TODO: replace with modal_open call
             console.log("open modal")
             this.openInspection()
-            this.magicKeyPressed = false;
+            this.searchObjectKeyPressed = false;
         } else if (e.which === 49) {
-            this.magicKeyPressed = true;
-            // keycode 16 = Shift (must be pressed to access !)
-        } else if (e.which === 50 && this.magicKey2Pressed) {
+            this.searchObjectKeyPressed = true;
+        } else if (e.which === 50 && this.searchPersonKeyPressed) {
             // TODO: replace with modal_open call
             console.log("open modal")
-            this.openOffence()
-            this.magicKey2Pressed = false;
+            console.log(e.target.id)
+            let rowElement = $('#' + e.target.id);
+            this.openSearchPersonOrganisation(e.target.id)
+            this.searchPersonKeyPressed = false;
         } else if (e.which === 50) {
-            this.magicKey2Pressed = true;
-            // keycode 16 = Shift (must be pressed to access !)
+            console.log(e);
+            this.searchPersonKeyPressed = true;
+        // keycode 16 = Shift (must be pressed to access !)
+        //} else if (e.which === 16 || e.which === 32) {
         } else if (e.which === 16) {
             // pass
-        } else if (this.magicValue && 
-            this.magicValue.toLowerCase().includes('shibaken') &&
-            this.magic) {
-            //this.magic = true;
-            this.magicMethod()
         } else {
-            this.magicKeyPressed = false;
-            this.magicKey2Pressed = false;
+            this.searchPersonKeyPressed = false;
+            this.searchObjectKeyPressed = false;
         }
-
+    },
+    urlToToken: function(description) {
+        let parsedText = description;
+        //const personUrlRegex = /<a contenteditable\=\"false\" target\=\"\_blank\" href\=\"\/internal\/users\/\d+\"\>\w+\s\w+\<\/a\>/g
+        const personUrlRegex = /<a contenteditable\=\"false\" target\=\"\_blank\" href\=\"\/internal\/users\/\d+\"\>\w+(\s\w+)*\<\/a\>/g
+        const personIdRegex = /\/internal\/users\/\d+/g
+        const personNameRegex = /\/internal\/users\/\d+\"\>\w+(\s\w+)*/g
+        let matchArray = [...description.matchAll(personUrlRegex)];
+        if (matchArray && matchArray.length > 0) {
+            for (let match of matchArray) {
+                let idArray = [...match[0].matchAll(personIdRegex)];
+                console.log(idArray)
+                let idStr = idArray[0][0]
+                let id = idStr.substring(16)
+                let personArray = [...match[0].matchAll(personNameRegex)];
+                console.log(personArray)
+                let personFound = personArray[0][0]
+                let person = personFound.replace(/\/internal\/users\/\d+\"\>/g, String(''));
+                let replacementVal = `{{ "person_id": "${id}", "full_name": "${person}" }}`
+                parsedText = parsedText.replace(match[0], replacementVal).replace(/\&nbsp\;/g, ' ');
+                console.log(parsedText);
+            }
+        }
+        return parsedText;
+    },
+    tokenToUrl: function(description) {
+        console.log("tokenToUrl")
+        let parsedText = description;
+        const personTokenRegex = /\{\{ \"person\_id\"\: \"\d+\"\, \"full\_name\"\: \"\w+(\s\w+)*\" \}\}/g;
+        const personIdRegex = /\{\{ \"person\_id\"\: \"\d+/g;
+        //const personNameRegex = /\{\{ \"person\_id\"\: \"\d+\"\, \"full\_name\"\: \"\w+ \w+/g;
+        const personNameRegex = /\"full\_name\"\: \"\w+ \w+/g;
+        let personTokenArray = [...description.matchAll(personTokenRegex)];
+        for (let personToken of personTokenArray) {
+            console.log(personToken)
+            let idArray = [...personToken[0].matchAll(personIdRegex)];
+            console.log(idArray)
+            let idStr = idArray[0][0]
+            let id = idStr.substring(17)
+            console.log(id)
+            let nameArray = [...personToken[0].matchAll(personNameRegex)];
+            console.log(nameArray)
+            let nameStr = nameArray[0][0]
+            let fullName = nameStr.substring(14)
+            console.log(id)
+            parsedText = parsedText.replace(
+                personToken[0],
+                `<a contenteditable="false" target="_blank" href="/internal/users/${id}">${fullName}</a>`
+            );
+            console.log(parsedText)
+        }
+        return parsedText
     },
     addEventListeners: function() {
       let vm = this;
-      let test1 = $('#test1');
-      //let test2 = $('#test2');
-      test1.on(
-          'keydown', 
-          function(e) {
-              vm.test1(e)
+      
+      let runningSheetTable = $('#running-sheet-table');
+      console.log(runningSheetTable)
+      
+      runningSheetTable.on(
+          'keydown',
+          (e) => {
+              this.runningSheetKeydown(e)
           });
-
-      //let el_fr_date = $(vm.$refs.plannedForDatePicker);
-      //let el_fr_time = $(vm.$refs.plannedForTimePicker);
-      //// "From" field
-      //el_fr_date.datetimepicker({
-      //  format: "DD/MM/YYYY",
-      //  minDate: "now",
-      //  showClear: true
-      //});
-      //el_fr_date.on("dp.change", function(e) {
-      //  if (el_fr_date.data("DateTimePicker").date()) {
-      //    vm.inspection.planned_for_date = e.date.format("DD/MM/YYYY");
-      //  } else if (el_fr_date.data("date") === "") {
-      //    vm.inspection.planned_for_date = "";
-      //  }
-      //});
-      //el_fr_time.datetimepicker({ format: "LT", showClear: true });
-      //el_fr_time.on("dp.change", function(e) {
-      //  if (el_fr_time.data("DateTimePicker").date()) {
-      //    vm.inspection.planned_for_time = e.date.format("LT");
-      //  } else if (el_fr_time.data("date") === "") {
-      //    vm.inspection.planned_for_time = "";
-      //  }
-      //});
-      //$('#inspection-team-table').on(
-      //    'click',
-      //    '.remove_button',
-      //    vm.removeTeamMember,
-      //    );
-      //$('#inspection-team-table').on(
-      //    'click',
-      //    '.make_team_lead',
-      //    vm.makeTeamLead,
-      //    );
+      runningSheetTable.on(
+          'keyup',
+          (e) => {
+              this.runningSheetKeyup(e)
+          });
       window.addEventListener('beforeunload', this.leaving);
       window.addEventListener('onblur', this.leaving);
     },
@@ -618,9 +873,24 @@ export default {
       if (this.$route.params.legal_case_id) {
           await this.loadLegalCase({ legal_case_id: this.$route.params.legal_case_id });
       }
+      await this.loadCurrentUser({ url: `/api/my_compliance_user_details` });
       console.log(this)
 
       this.calculateHash();
+      
+      this.runningSheetUrl = _.cloneDeep(this.legal_case.running_sheet_entries);
+      let i = 0;
+      for (let r of this.legal_case.running_sheet_entries) {
+          let description = this.tokenToUrl(r.description)
+          this.runningSheetUrl[i].description = description;
+          i += 1;
+      }
+
+      console.log(this.runningSheetUrl)
+      
+      this.$nextTick(() => {
+          this.constructRunningSheetTable();
+      });
   },
   destroyed: function() {
       window.removeEventListener('beforeunload', this.leaving);
@@ -628,7 +898,7 @@ export default {
   },
 
   mounted: function() {
-      this.$nextTick(async () => {
+      this.$nextTick(() => {
           this.addEventListeners();
       });
   },
@@ -652,5 +922,8 @@ export default {
 .nav-item {
   background-color: hsla(0, 0%, 78%, .8) !important;
   margin-bottom: 2px;
+}
+.inline-datatable {
+  overflow-wrap: break-word;
 }
 </style>

@@ -15,7 +15,30 @@ export const legalCaseStore = {
         
     },
     getters: {
-        legal_case: state => state.legal_case,
+        legal_case: (state) => state.legal_case,
+        //running_sheet_list: (state) => {
+        //    let retList = []
+        //    for (let r of state.legal_case.running_sheet_entries) {
+        //        retList.push(r.number)
+        //    }
+        //    return retList
+        //},
+
+        running_sheet_set: (state) => state.legal_case.running_sheet_list.map(number => state.legal_case.running_sheet_entries[number])
+        
+        //running_sheet_set: (state) => {
+        //    let rSet = new Set([]);
+        //    for (let r of state.legal_case.running_sheet_entries) {
+        //        let rKey = r["number"]
+        //        console.log(rKey)
+        //        rSet.add({rKey: r});
+
+        //        //let rObj = {rKey: r}
+        //        //rSet.add(rObj)
+        //        //rSet.add({r["number"]: r});
+        //    }
+        //    return rSet;
+        //}
     },
     mutations: {
         updateLegalCase(state, legal_case) {
@@ -41,9 +64,47 @@ export const legalCaseStore = {
                 state.legal_case.id + "/create_legal_case_process_comms_log_document/"
                 )
             Vue.set(state.legal_case, 'createLegalCaseProcessCommsLogsDocumentUrl', createLegalCaseProcessCommsLogsDocumentUrl); 
+            //let runningSheetList = []
+            //for (let r of state.legal_case.running_sheet_entries) {
+            //    runningSheetList.push(r.number)
+            //}
+            //Vue.set(state.legal_case, 'running_sheet_list', runningSheetList);
+            //let runningSheetObject = {}
+            //for (let o of state.legal_case.running_sheet_entries) {
+            //    runningSheetObject[o.number] = o
+            //}
+            //Vue.set(state.legal_case, 'running_sheet_object', runningSheetObject);
+            //Vue.set(state.legal_case, 'running_sheet_transform', []);
+            //let i = 0
+            //for (let r of state.legal_case.running_sheet_entries) {
+            //    state.legal_case.running_sheet_transform.push(Object.assign({}, state.legal_case.running_sheet_entries[i]))
+            //    state.legal_case.running_sheet_transform[i].description += ' transform'
+            //    i += 1;
+            //}
         },
         updateRelatedItems(state, related_items) {
             Vue.set(state.legal_case, 'related_items', related_items);
+        },
+        updateRunningSheetEntries(state, running_sheet_entries) {
+            Vue.set(state.legal_case, 'running_sheet_entries', running_sheet_entries);
+        },
+        updateRunningSheetTransform(state, running_sheet_transform) {
+            Vue.set(state.legal_case, 'running_sheet_transform', running_sheet_transform);
+        },
+        updateRunningSheetEntryDescription(state, { recordNumber, description, userId }) {
+            //console.log("updateRunningSheetEntryDescription");
+            console.log(recordNumber)
+            console.log(description)
+            if (state.legal_case.running_sheet_entries && state.legal_case.running_sheet_entries.length > 0) {
+                let i = 0;
+                for (let r of state.legal_case.running_sheet_entries) {
+                    if (r.number === recordNumber) {
+                        state.legal_case.running_sheet_entries[i].description = description;
+                        state.legal_case.running_sheet_entries[i].user_id = userId;
+                    }
+                    i += 1
+                }
+            }
         },
     },
     actions: {
@@ -113,12 +174,20 @@ export const legalCaseStore = {
             }
             return savedLegalCase;
         },
-        
         setLegalCase({ commit, }, legal_case) {
             commit("updateLegalCase", legal_case);
         },
         setRelatedItems({ commit }, related_items ) {
             commit("updateRelatedItems", related_items);
+        },
+        setRunningSheetEntries({ commit }, running_sheet_entries ) {
+            commit("updateRunningSheetEntries", running_sheet_entries);
+        },
+        setRunningSheetTransform({ commit }, running_sheet_transform ) {
+            commit("updateRunningSheetTransform", running_sheet_transform);
+        },
+        setRunningSheetEntryDescription({ commit }, {recordNumber, description, userId}) {
+            commit("updateRunningSheetEntryDescription", {recordNumber, description, userId})
         },
     },
 };
