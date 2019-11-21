@@ -113,7 +113,7 @@ class SanctionOutcomeSerializer(serializers.ModelSerializer):
     related_items = serializers.SerializerMethodField()
     paper_notices = serializers.SerializerMethodField()
     due_dates = serializers.SerializerMethodField()
-    is_parking_offence = serializers.SerializerMethodField()
+    is_parking_offence = serializers.ReadOnlyField()
 
     class Meta:
         model = SanctionOutcome
@@ -148,7 +148,6 @@ class SanctionOutcomeSerializer(serializers.ModelSerializer):
             'due_dates',
             'is_parking_offence',
         )
-        read_only_fields = ()
 
     def get_due_dates(self, obj):
         due_dates = SanctionOutcomeDueDate.objects.filter(sanction_outcome=obj)
@@ -215,34 +214,9 @@ class SanctionOutcomeSerializer(serializers.ModelSerializer):
     def get_related_items(self, obj):
         return get_related_items(obj)
 
-    def retrieve_alleged_committed_offences(self, instance):
-        ao_ids_already_included = AllegedCommittedOffence.objects.filter(sanction_outcome=instance).values_list('alleged_offence__id', flat=True)
-
-        # Check if there is newly aded alleged offence to be added to this sanction outcome
-        if instance.status == SanctionOutcome.STATUS_DRAFT:
-            # Only when sanction outcome is in draft status, newly added alleged offence should be added
-            # Query newly added alleged offence which is not included yet
-            # However whenever new alleged offence is added to the offence, it should be added to the sanction outcomes under the offence at the moment.
-            qs_allegedOffences = AllegedOffence.objects.filter(Q(offence=instance.offence) & Q(removed=False)).exclude(Q(id__in=ao_ids_already_included))
-            for ao in qs_allegedOffences:
-                aco = AllegedCommittedOffence.objects.create(included=False, alleged_offence=ao, sanction_outcome=instance)
-
-        return AllegedCommittedOffence.objects.filter(sanction_outcome=instance)
-
     def get_alleged_committed_offences(self, so_obj):
-        qs_allegedCommittedOffences = self.retrieve_alleged_committed_offences(so_obj)
+        qs_allegedCommittedOffences = so_obj.retrieve_alleged_committed_offences()
         return [AllegedCommittedOffenceSerializer(item, context={'request': self.context.get('request', {})}).data for item in qs_allegedCommittedOffences]
-
-    def get_is_parking_offence(self, so_obj):
-        is_parking_offence = False
-
-        if so_obj.type == SanctionOutcome.TYPE_INFRINGEMENT_NOTICE:
-            qs_allegedCommittedOffences = self.retrieve_alleged_committed_offences(so_obj)
-            for aco in qs_allegedCommittedOffences:
-                if aco.included and aco.alleged_offence.section_regulation.is_parking_offence:
-                    is_parking_offence = True
-
-        return is_parking_offence
 
 
 class UpdateAssignedToIdSerializer(serializers.ModelSerializer):
