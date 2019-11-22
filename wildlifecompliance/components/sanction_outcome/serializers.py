@@ -1,3 +1,5 @@
+import re
+
 from django.db.models import Q
 from rest_framework import serializers
 from rest_framework.validators import UniqueTogetherValidator
@@ -153,11 +155,11 @@ class SanctionOutcomeSerializer(serializers.ModelSerializer):
         due_dates = SanctionOutcomeDueDate.objects.filter(sanction_outcome=obj)
         ret = []
 
-        if not due_dates:
-            # Should not reach here.
-            # They should be created when endorsed
-            obj.create_due_dates()
-            due_dates = SanctionOutcomeDueDate.objects.filter(sanction_outcome=obj)
+        # if not due_dates:
+        #     # Should not reach here.
+        #     # They should be created when endorsed
+        #     obj.create_due_dates()
+        #     due_dates = SanctionOutcomeDueDate.objects.filter(sanction_outcome=obj)
 
         for date in due_dates:
             ret.append(SanctionOutcomeDueDateSerializer(date).data)
@@ -331,6 +333,25 @@ class SanctionOutcomeDatatableSerializer(serializers.ModelSerializer):
 
         urls = '<br />'.join(url_list)
         return urls
+
+class RecordFerCaseNumberSerializer(serializers.ModelSerializer):
+
+    class Meta:
+        model = SanctionOutcome
+        fields = (
+            'fer_case_number',
+        )
+
+    def validate(self, data):
+        field_errors = {}
+
+        z = re.match("^\d{2}\/[0-9 ]{8}$", data['fer_case_number'])
+        if not z:
+            field_errors['FER Case Number'] = ['This must be fomatted like 12/34567890',]
+        if field_errors:
+            raise serializers.ValidationError(field_errors)
+
+        return data
 
 
 class SaveSanctionOutcomeSerializer(serializers.ModelSerializer):

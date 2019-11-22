@@ -34,7 +34,7 @@ from wildlifecompliance.components.sanction_outcome.models import SanctionOutcom
 from wildlifecompliance.components.sanction_outcome.serializers import SanctionOutcomeSerializer, \
     SaveSanctionOutcomeSerializer, SaveRemediationActionSerializer, SanctionOutcomeDatatableSerializer, \
     UpdateAssignedToIdSerializer, SanctionOutcomeCommsLogEntrySerializer, SanctionOutcomeUserActionSerializer, \
-    AllegedCommittedOffenceSerializer, AllegedCommittedOffenceCreateSerializer
+    AllegedCommittedOffenceSerializer, AllegedCommittedOffenceCreateSerializer, RecordFerCaseNumberSerializer
 from wildlifecompliance.components.users.models import CompliancePermissionGroup, RegionDistrict
 from wildlifecompliance.helpers import is_internal
 from wildlifecompliance.components.main.models import TemporaryDocumentCollection
@@ -693,6 +693,41 @@ class SanctionOutcomeViewSet(viewsets.ModelViewSet):
 
     @detail_route(methods=['POST'])
     @renderer_classes((JSONRenderer,))
+    def record_fer_case_number(self, request, instance=None, *args, **kwargs):
+        try:
+            with transaction.atomic():
+                instance = self.get_object() if not instance else instance
+                data_requested = request.data.get('fer_case_number_1st', '') + '/' + request.data.get('fer_case_number_2nd', '')
+                serializer = RecordFerCaseNumberSerializer(instance=instance, data={'fer_case_number': data_requested},)
+                serializer.is_valid(raise_exception=True)
+                serializer.save()
+
+                instance.status = SanctionOutcome.STATUS_CLOSED
+                instance.save()
+
+                return_serializer = SanctionOutcomeSerializer(instance=instance, context={'request': request})
+                headers = self.get_success_headers(return_serializer.data)
+                return Response(
+                    return_serializer.data,
+                    status=status.HTTP_200_OK,
+                    headers=headers
+                )
+
+        except serializers.ValidationError:
+            print(traceback.print_exc())
+            raise
+        except ValidationError as e:
+            print(traceback.print_exc())
+            if hasattr(e, 'error_dict'):
+                raise serializers.ValidationError(repr(e.error_dict))
+            else:
+                raise serializers.ValidationError(repr(e[0].encode('utf-8')))
+        except Exception as e:
+            print(traceback.print_exc())
+            raise serializers.ValidationError(str(e))
+
+    @detail_route(methods=['POST'])
+    @renderer_classes((JSONRenderer,))
     def extend_due_date(self, request, instance=None, *args, **kwargs):
         try:
             with transaction.atomic():
@@ -764,7 +799,6 @@ class SanctionOutcomeViewSet(viewsets.ModelViewSet):
                 else:
                     workflow_entry = self.add_comms_log(request, instance, workflow=True)
 
-                raise serializers.ValidationError({'Reason': ['Reason cannot be blank.',]})
                 # Set status
                 workflow_type = request.data.get('workflow_type')
                 reason = request.data.get('details')

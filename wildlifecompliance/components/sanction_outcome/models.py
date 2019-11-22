@@ -33,6 +33,7 @@ class SanctionOutcomeExternalManager(models.Manager):
             Q(offender__removed=False) &
             Q(status__in=(SanctionOutcome.STATUS_AWAITING_PAYMENT,
                           SanctionOutcome.STATUS_AWAITING_REMEDIATION_ACTIONS,
+                          SanctionOutcome.STATUS_OVERDUE,
                           SanctionOutcome.STATUS_CLOSED)))
 
 
@@ -132,7 +133,8 @@ class SanctionOutcome(models.Model):
     penalty_amount_2nd =  models.DecimalField(max_digits=8, decimal_places=2, default='0.00')
     due_date_extended_max = models.DateField(null=True, blank=True)
 
-    #
+    # This field is used once infringement notice gets overdue
+    fer_case_number = models.CharField(max_length=11, blank=True)
 
     objects = models.Manager()
     objects_active = SanctionOutcomeActiveManager()
