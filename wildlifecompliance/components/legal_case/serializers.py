@@ -30,6 +30,7 @@ from wildlifecompliance.components.users.serializers import (
 )
 #from wildlifecompliance.components.offence.serializers import OrganisationSerializer
 #from django.contrib.auth.models import Permission, ContentType
+from reversion.models import Version
 
 
 class LegalCasePrioritySerializer(serializers.ModelSerializer):
@@ -58,6 +59,7 @@ class LegalCaseRunningSheetEntrySerializer(serializers.ModelSerializer):
     #legal_case_persons = LegalCasePersonSerializer(many=True)
     action = serializers.SerializerMethodField()
     user_full_name = serializers.SerializerMethodField()
+    versions = serializers.SerializerMethodField()
 
     class Meta:
         model = LegalCaseRunningSheetEntry
@@ -73,6 +75,7 @@ class LegalCaseRunningSheetEntrySerializer(serializers.ModelSerializer):
                 'description',
                 #'deleted',
                 'action',
+                'versions',
                 )
         read_only_fields = (
                 'id',
@@ -80,6 +83,10 @@ class LegalCaseRunningSheetEntrySerializer(serializers.ModelSerializer):
 
     def get_action(self, obj):
         return 'action'
+
+    def get_versions(self, obj):
+        #return Version.objects.get_for_object(obj)
+        pass
 
     def get_user_full_name(self, obj):
         user_full_name = ''
