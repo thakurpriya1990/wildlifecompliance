@@ -33,6 +33,7 @@ class SanctionOutcomeExternalManager(models.Manager):
             Q(offender__removed=False) &
             Q(status__in=(SanctionOutcome.STATUS_AWAITING_PAYMENT,
                           SanctionOutcome.STATUS_AWAITING_REMEDIATION_ACTIONS,
+                          SanctionOutcome.STATUS_OVERDUE,
                           SanctionOutcome.STATUS_CLOSED)))
 
 
@@ -132,11 +133,38 @@ class SanctionOutcome(models.Model):
     penalty_amount_2nd =  models.DecimalField(max_digits=8, decimal_places=2, default='0.00')
     due_date_extended_max = models.DateField(null=True, blank=True)
 
-    #
+    # This field is used once infringement notice gets overdue
+    fer_case_number = models.CharField(max_length=11, blank=True)
 
     objects = models.Manager()
     objects_active = SanctionOutcomeActiveManager()
     objects_for_external = SanctionOutcomeExternalManager()
+
+    @property
+    def is_parking_offence(self):
+        is_parking_offence = False
+
+        if self.type == SanctionOutcome.TYPE_INFRINGEMENT_NOTICE:
+            qs_allegedCommittedOffences = self.retrieve_alleged_committed_offences()
+            for aco in qs_allegedCommittedOffences:
+                if aco.included and aco.alleged_offence.section_regulation.is_parking_offence:
+                    is_parking_offence = True
+
+        return is_parking_offence
+
+    def retrieve_alleged_committed_offences(self):
+        # Check if there is newly aded alleged offence to be added to this sanction outcome
+        if self.status == SanctionOutcome.STATUS_DRAFT:
+            ao_ids_already_included = AllegedCommittedOffence.objects.filter(sanction_outcome=self).values_list(
+                'alleged_offence__id', flat=True)
+            # Only when sanction outcome is in draft status, newly added alleged offence should be added
+            # Query newly added alleged offence which is not included yet
+            # However whenever new alleged offence is added to the offence, it should be added to the sanction outcomes under the offence at the moment.
+            qs_allegedOffences = AllegedOffence.objects.filter(Q(offence=self.offence) & Q(removed=False)).exclude(Q(id__in=ao_ids_already_included))
+            for ao in qs_allegedOffences:
+                aco = AllegedCommittedOffence.objects.create(included=False, alleged_offence=ao, sanction_outcome=self)
+
+        return AllegedCommittedOffence.objects.filter(sanction_outcome=self)
 
     @property
     def infringement_penalty_invoice_reference(self):
