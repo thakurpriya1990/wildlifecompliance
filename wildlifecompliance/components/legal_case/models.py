@@ -196,7 +196,8 @@ class LegalCaseRunningSheetEntry(RevisionedMixin):
     # TODO: person fk req?  Url links in description instead
     person = models.ManyToManyField(LegalCasePerson, related_name='running_sheet_entry_person')
     #number = models.CharField(max_length=50, blank=True)
-    date_created = models.DateTimeField(auto_now_add=True)
+    #date_created = models.DateTimeField(auto_now_add=True)
+    date_modified = models.DateTimeField(auto_now=True)
     user = models.ForeignKey(EmailUser, related_name='running_sheet_entry_user')
     #description = models.CharField(max_length=255, blank=True)
     description = models.TextField(blank=True)

@@ -10,7 +10,11 @@ export const legalCaseStore = {
     namespaced: true,
     state: {
         legal_case: {
-            
+            running_sheet_entries: [
+                {
+                    versions: [],
+                },
+            ],
         },
         
     },
@@ -63,7 +67,25 @@ export const legalCaseStore = {
                 api_endpoints.legal_case,
                 state.legal_case.id + "/create_legal_case_process_comms_log_document/"
                 )
-            Vue.set(state.legal_case, 'createLegalCaseProcessCommsLogsDocumentUrl', createLegalCaseProcessCommsLogsDocumentUrl); 
+            Vue.set(state.legal_case, 'createLegalCaseProcessCommsLogsDocumentUrl', createLegalCaseProcessCommsLogsDocumentUrl);
+            let i = 0
+            for (let r of state.legal_case.running_sheet_entries) {
+                let entry_date_mod = moment(r.date_modified).format('DD/MM/YYYY')
+                let entry_time_mod = moment(r.date_modified).format('h:mm:ss a')
+                Vue.set(state.legal_case.running_sheet_entries[i], "date_mod", entry_date_mod)
+                Vue.set(state.legal_case.running_sheet_entries[i], "time_mod", entry_time_mod)
+                let ii = 0;
+                for (let v of r.versions) {
+                    let date_mod = moment(v.field_dict.date_modified).format('DD/MM/YYYY')
+                    let time_mod = moment(v.field_dict.date_modified).format('h:mm:ss a')
+                    Vue.set(state.legal_case.running_sheet_entries[i].versions[ii].field_dict, "date_mod", date_mod)
+                    Vue.set(state.legal_case.running_sheet_entries[i].versions[ii].field_dict, "time_mod", time_mod)
+                    
+                    ii += 1;
+                }
+                i += 1;
+            }
+
             //let runningSheetList = []
             //for (let r of state.legal_case.running_sheet_entries) {
             //    runningSheetList.push(r.number)

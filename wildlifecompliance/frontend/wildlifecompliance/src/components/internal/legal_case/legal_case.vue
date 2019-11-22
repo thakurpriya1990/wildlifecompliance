@@ -313,7 +313,8 @@ export default {
             dtHeadersRunningSheet: [
                 "id",
                 "Number",
-                "Date Created",
+                "Last Modified",
+                "",
                 "User",
                 "Description",
                 "Action",
@@ -323,6 +324,7 @@ export default {
                     {
                         visible: false,
                         mRender: function(data, type, row) {
+                            console.log(row)
                             return row.id;
                         }
                     },
@@ -337,7 +339,16 @@ export default {
                     },
                     {
                         mRender: function(data, type, row) {
-                            let ret_str = row.date_created;
+                            let ret_str = row.date_mod;
+                            if (row.deleted) {
+                                ret_str = '<strike>' + ret_str + '</strike>';
+                            }
+                            return ret_str;
+                        }
+                    },
+                    {
+                        mRender: function(data, type, row) {
+                            let ret_str = row.time_mod;
                             if (row.deleted) {
                                 ret_str = '<strike>' + ret_str + '</strike>';
                             }
@@ -356,7 +367,8 @@ export default {
                     {
                         mRender: function(data, type, row) {
                             let ret_str = '';
-                            ret_str = `<div id=${row.number} contenteditable="true">${row.description}</div>`
+                            ret_str = `<div id=${row.number} style="min-height:20px" contenteditable="true">${row.description}</div>`
+                            //ret_str = `<span id=${row.number} contenteditable="true">${row.description}</span>`
                             return ret_str;
 
                         }
@@ -546,7 +558,8 @@ export default {
                 this.$refs.running_sheet_table.vmDataTable.row.add({ 
                     "id": this.runningSheetUrl[i].id,
                     "number": this.runningSheetUrl[i].number,
-                    "date_created": this.runningSheetUrl[i].date_created,
+                    "date_mod": this.runningSheetUrl[i].date_mod,
+                    "time_mod": this.runningSheetUrl[i].time_mod,
                     "user_full_name": this.runningSheetUrl[i].user_full_name,
                     "description": this.runningSheetUrl[i].description,
                     "action": this.runningSheetUrl[i].action,
