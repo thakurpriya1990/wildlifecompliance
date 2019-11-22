@@ -194,7 +194,7 @@ export const legalCaseStore = {
             else if (!create) {
                 await swal("Saved", "The record has been saved", "success");
             }
-            return savedLegalCase;
+            //return savedLegalCase;
         },
         setLegalCase({ commit, }, legal_case) {
             commit("updateLegalCase", legal_case);

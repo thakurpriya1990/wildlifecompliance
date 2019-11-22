@@ -324,58 +324,67 @@ export default {
                     {
                         visible: false,
                         mRender: function(data, type, row) {
-                            console.log(row)
                             return row.id;
                         }
                     },
                     {
                         mRender: function(data, type, row) {
-                            let ret_str = row.number;
+                            let retStr = row.number;
                             if (row.deleted) {
-                                ret_str = '<strike>' + ret_str + '</strike>';
+                                retStr = '<strike>' + retStr + '</strike>';
                             }
-                            return ret_str;
+                            return retStr;
                         }
                     },
                     {
                         mRender: function(data, type, row) {
-                            let ret_str = row.date_mod;
+                            let retStr = row.date_mod;
                             if (row.deleted) {
-                                ret_str = '<strike>' + ret_str + '</strike>';
+                                retStr = '<strike>' + retStr + '</strike>';
                             }
-                            return ret_str;
+                            return retStr;
                         }
                     },
                     {
                         mRender: function(data, type, row) {
-                            let ret_str = row.time_mod;
+                            let retStr = row.time_mod;
                             if (row.deleted) {
-                                ret_str = '<strike>' + ret_str + '</strike>';
+                                retStr = '<strike>' + retStr + '</strike>';
                             }
-                            return ret_str;
+                            return retStr;
                         }
                     },
                     {
                         mRender: function(data, type, row) {
-                            let ret_str = row.user_full_name;
+                            let retStr = row.user_full_name;
                             if (row.deleted) {
-                                ret_str = '<strike>' + ret_str + '</strike>';
+                                retStr = '<strike>' + retStr + '</strike>';
                             }
-                            return ret_str;
+                            return retStr;
                         }
                     },
                     {
                         mRender: function(data, type, row) {
-                            let ret_str = '';
-                            ret_str = `<div id=${row.number} style="min-height:20px" contenteditable="true">${row.description}</div>`
+                            let retStr = '';
+                            retStr = `<div id=${row.number} style="min-height:20px" contenteditable="true">${row.description}</div>`
                             //ret_str = `<span id=${row.number} contenteditable="true">${row.description}</span>`
-                            return ret_str;
+                            return retStr;
 
                         }
                     },
                     {
                         mRender: function(data, type, row) {
-                            let ret_str = '';
+                            console.log(row)
+                            let retStr = '';
+                            if (row.action) {
+                                /*
+                                retStr += '<a href="#" class="row_history">History</a><br/><br/>'
+                                retStr += '<a href="#" class="row_delete">Delete</a><br/>'
+                                */
+                                retStr += '<a href="#">History</a><br/><br/>'
+                                retStr += '<a href="#">Delete</a><br/>'
+                            }
+
                             //let ret_str = row.allegedOffence.number_linked_sanction_outcomes_active + '(' + row.allegedOffence.number_linked_sanction_outcomes_total + ')';
                             //if (row.offence.in_editable_status && row.offence.can_user_action){
                             //    if (row.allegedOffence.removed){
@@ -386,7 +395,7 @@ export default {
                             //        }
                             //    }
                             //}
-                            return ret_str;
+                            return retStr;
 
                         }
                     },
@@ -531,6 +540,7 @@ export default {
         let i = 0;
         for (let r of this.runningSheetUrl) {
             r.description = this.urlToToken(r.description)
+            r.user_id = this.current_user.id
             runningSheet.push(r)
             i += 1;
         }
@@ -553,6 +563,7 @@ export default {
     constructRunningSheetTable: function(){
         console.log("constructRunningSheetTable")
         this.$refs.running_sheet_table.vmDataTable.clear().draw();
+        let actionColumn = !this.readonlyForm;
         if (this.runningSheetUrl){
             for(let i = 0;i < this.runningSheetUrl.length; i++){
                 this.$refs.running_sheet_table.vmDataTable.row.add({ 
@@ -562,7 +573,8 @@ export default {
                     "time_mod": this.runningSheetUrl[i].time_mod,
                     "user_full_name": this.runningSheetUrl[i].user_full_name,
                     "description": this.runningSheetUrl[i].description,
-                    "action": this.runningSheetUrl[i].action,
+                    //"action": this.runningSheetUrl[i].action,
+                    "action": actionColumn,
                 }).draw();
             }
         }
@@ -649,24 +661,33 @@ export default {
     },
     save: async function(returnToDash) {
       console.log(returnToDash)
-      let savedLegalCase = null;
       await this.runningSheetTransformWrapper();
-      this.$nextTick(async () => {
-          if (this.legal_case.id) {
-              savedLegalCase = await this.saveLegalCase({ create: false, internal: false });
-          } else {
-              savedLegalCase = await this.saveLegalCase({ create: true, internal: false });
-          }
-      })
+      if (this.legal_case.id) {
+          await this.saveLegalCase({ create: false, internal: false });
+      } else {
+          await this.saveLegalCase({ create: true, internal: false });
+      }
+      // TODO: add hash list etc
       this.calculateHash();
-      if (savedLegalCase && savedLegalCase.ok && returnToDash === 'exit') {
+      if (returnToDash === 'exit') {
         // remove redundant eventListeners
         window.removeEventListener('beforeunload', this.leaving);
         window.removeEventListener('onblur', this.leaving);
         // return to dash
         this.$router.push({ name: 'internal-legal-case-dash' });
+      } else {
+          // TODO: refactor to common fn
+          this.runningSheetUrl = _.cloneDeep(this.legal_case.running_sheet_entries);
+          let i = 0;
+          for (let r of this.legal_case.running_sheet_entries) {
+              let description = this.tokenToUrl(r.description)
+              this.runningSheetUrl[i].description = description;
+              i += 1;
+          }
+          this.$nextTick(() => {
+              this.constructRunningSheetTable();
+          });
       }
-
     },
     magicMethod: function() {
         console.log("magic method");
@@ -806,10 +827,8 @@ export default {
     },
     addEventListeners: function() {
       let vm = this;
-      
       let runningSheetTable = $('#running-sheet-table');
       console.log(runningSheetTable)
-      
       runningSheetTable.on(
           'keydown',
           (e) => {
@@ -820,8 +839,39 @@ export default {
           (e) => {
               this.runningSheetKeyup(e)
           });
+      runningSheetTable.on(
+          'click',
+          //'.row_delete',
+          (e) => {
+              this.runningSheetRowDelete(e)
+          });
+      /*
+      runningSheetTable.on(
+          'click',
+          //'.row_history',
+          (e) => {
+              this.runningSheetRowHistory(e)
+          });
+      */
       window.addEventListener('beforeunload', this.leaving);
       window.addEventListener('onblur', this.leaving);
+    },
+    /*
+    addTeamMember: async function() {
+        await this.modifyInspectionTeam({
+            user_id: this.teamMemberSelected, 
+            action: 'add'
+        });
+    },
+    */
+    runningSheetRowDelete: function(e) {
+        console.log(e)
+        console.log("runningSheetRowDelete")
+        //await this.deleteRunningSheetEntry
+    },
+    runningSheetRowHistory: function(e) {
+        console.log(e)
+        console.log("runningSheetRowHistory")
     },
     leaving: function(e) {
         let vm = this;
