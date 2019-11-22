@@ -216,7 +216,8 @@ export default {
             'isApplicationActivityVisible',
             'unfinishedActivities',
             'current_user',
-            'sendToAssessorActivities'
+            'sendToAssessorActivities',
+            'canSendAssessmentFor',
         ]),
         inspection_report_file_name: function() {
             return this.assessment.inspection_report != null ? this.assessment.inspection_report.name: '';
@@ -246,29 +247,31 @@ export default {
             return this.selected_activity_tab_id && this.selectedActivity.processing_status.id == 'with_assessor' ? true : false;
         },
         canSendToAssessor: function() {
+            this.showSendToAssessorButton = false;
             return this.sendToAssessorActivities.filter(visible_activity => {
                 if(visible_activity.id != this.selected_activity_tab_id) {
                     return false;
                 }
                 for(const assessor of this.assessorGroup) {
-                    if(assessor.licence_activities && assessor.licence_activities.filter(
-                            activity => {
-                                if(activity.id == visible_activity.id) {
-                                    // Pre-select default Assessor Group drop-down option for the current tab
-                                    if(this.selectedAssessor.id == null || !this.assessorInGroup(this.selectedAssessor.id)) {
-                                        this.selectedAssessor = assessor;
-                                        this.showSendToAssessorButton=true;
-                                        if (this.isAssessorAssigned(assessor, activity.id)) {
-                                            // cannot send when default is assigned
-                                            this.showSendToAssessorButton=false;
-                                        }
-                                    }
-                                    return true;
+                   if(assessor.licence_activities && assessor.licence_activities.filter(
+                           activity => {
+                                if(activity.id === visible_activity.id) {
+
+                                    return true; // this assessor is for activity.
                                 }
                                 return false;
                             }
-                    ).length) {
-                        return true;
+                    ).length) { // can send to this assessor
+                        if (!this.isAssessorAssigned(assessor, visible_activity.id)) {
+
+                            if(this.selectedAssessor.id == null || !this.assessorInGroup(this.selectedAssessor.id)) {
+                                // Pre-select default Assessor Group drop-down option for the current tab
+                                this.selectedAssessor = assessor;
+                            }
+                            this.showSendToAssessorButton = true;
+                            return true;
+                        };
+                        return false; // this assessor is already allocated.
                     }
                 }
             }).length;
