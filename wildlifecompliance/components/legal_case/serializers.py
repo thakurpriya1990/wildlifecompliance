@@ -30,6 +30,7 @@ from wildlifecompliance.components.users.serializers import (
 )
 #from wildlifecompliance.components.offence.serializers import OrganisationSerializer
 #from django.contrib.auth.models import Permission, ContentType
+from reversion.models import Version
 
 
 class LegalCasePrioritySerializer(serializers.ModelSerializer):
@@ -53,11 +54,31 @@ class LegalCasePersonSerializer(serializers.ModelSerializer):
                 )
 
 
+class RunningSheetEntryVersionSerializer(serializers.ModelSerializer):
+    #serializable_value = serializers.JSONField()
+    class Meta:
+        model = Version
+        #fields = '__all__'
+        fields = (
+                'id',
+                'revision',
+                'serialized_data',
+                'field_dict',
+                )
+        read_only_fields = (
+                'id',
+                'revision',
+                'serialized_data',
+                'field_dict',
+                )
+
+
 class LegalCaseRunningSheetEntrySerializer(serializers.ModelSerializer):
     #person = LegalCasePersonSerializer(many=True)
     #legal_case_persons = LegalCasePersonSerializer(many=True)
-    action = serializers.SerializerMethodField()
+    #action = serializers.SerializerMethodField()
     user_full_name = serializers.SerializerMethodField()
+    versions = serializers.SerializerMethodField()
 
     class Meta:
         model = LegalCaseRunningSheetEntry
@@ -67,19 +88,32 @@ class LegalCaseRunningSheetEntrySerializer(serializers.ModelSerializer):
                 #'legal_case_persons',
                 'legal_case_id',
                 'number',
-                'date_created',
+                'date_modified',
                 'user_full_name',
                 'user_id',
                 'description',
-                #'deleted',
-                'action',
+                'deleted',
+                #'action',
+                'versions',
                 )
         read_only_fields = (
                 'id',
                 )
 
-    def get_action(self, obj):
-        return 'action'
+    #def get_action(self, obj):
+     #   return ['Delete', 'History']
+
+    def get_versions(self, obj):
+        #pass
+        #versions = []
+        #entry_version_objs = Version.objects.get_for_object(obj)
+        entry_versions = RunningSheetEntryVersionSerializer(
+                Version.objects.get_for_object(obj),
+                many=True)
+        #print(entry_versions.data)
+        #if entry_versions:
+         #   versions = entry_versions
+        return entry_versions.data
 
     def get_user_full_name(self, obj):
         user_full_name = ''
@@ -101,6 +135,7 @@ class SaveLegalCaseRunningSheetEntrySerializer(serializers.ModelSerializer):
                 'legal_case_id',
                 'user_id',
                 'description',
+                #'date_modified',
                 )
         read_only_fields = (
                 'id',
