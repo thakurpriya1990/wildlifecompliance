@@ -317,6 +317,7 @@ export default {
                 "",
                 "User",
                 "Description",
+                "deleted",
                 "Action",
             ],
             dtOptionsRunningSheet: {
@@ -368,21 +369,34 @@ export default {
                             let retStr = '';
                             retStr = `<div id=${row.number} style="min-height:20px" contenteditable="true">${row.description}</div>`
                             //ret_str = `<span id=${row.number} contenteditable="true">${row.description}</span>`
+                            if (row.deleted) {
+                                retStr = '<strike>' + retStr + '</strike>';
+                            }
                             return retStr;
 
+                        }
+                    },
+                    {
+                        visible: false,
+                        mRender: function(data, type, row) {
+                            return row.deleted;
                         }
                     },
                     {
                         mRender: function(data, type, row) {
                             console.log(row)
                             let retStr = '';
+                            let rowIdDel = row.number.replace('-', 'D')
+                            let rowIdHist = row.number.replace('-', 'H')
                             if (row.action) {
                                 /*
                                 retStr += '<a href="#" class="row_history">History</a><br/><br/>'
                                 retStr += '<a href="#" class="row_delete">Delete</a><br/>'
                                 */
-                                retStr += '<a href="#">History</a><br/><br/>'
-                                retStr += '<a href="#">Delete</a><br/>'
+                                retStr += `<a id=${rowIdHist} class="row_history" href="#">History</a><br/><br/>`
+                                if (!row.deleted) {
+                                    retStr += `<a id=${rowIdDel} class="row_delete" href="#">Delete</a><br/>`
+                                }
                             }
 
                             //let ret_str = row.allegedOffence.number_linked_sanction_outcomes_active + '(' + row.allegedOffence.number_linked_sanction_outcomes_total + ')';
@@ -531,6 +545,7 @@ export default {
       setRunningSheetEntries: 'setRunningSheetEntries',
       setRunningSheetEntryDescription: 'setRunningSheetEntryDescription',
       setRunningSheetTransform: 'setRunningSheetTransform',
+      setDeleteRunningSheetEntry: 'setDeleteRunningSheetEntry',
     }),
     ...mapActions({
         loadCurrentUser: 'loadCurrentUser',
@@ -573,7 +588,7 @@ export default {
                     "time_mod": this.runningSheetUrl[i].time_mod,
                     "user_full_name": this.runningSheetUrl[i].user_full_name,
                     "description": this.runningSheetUrl[i].description,
-                    //"action": this.runningSheetUrl[i].action,
+                    "deleted": this.runningSheetUrl[i].deleted,
                     "action": actionColumn,
                 }).draw();
             }
@@ -841,18 +856,18 @@ export default {
           });
       runningSheetTable.on(
           'click',
-          //'.row_delete',
+          '.row_delete',
           (e) => {
               this.runningSheetRowDelete(e)
           });
-      /*
+      
       runningSheetTable.on(
           'click',
-          //'.row_history',
+          '.row_history',
           (e) => {
               this.runningSheetRowHistory(e)
           });
-      */
+      
       window.addEventListener('beforeunload', this.leaving);
       window.addEventListener('onblur', this.leaving);
     },
@@ -863,14 +878,44 @@ export default {
             action: 'add'
         });
     },
-    */
-    runningSheetRowDelete: function(e) {
+    
+    runningSheetClickWrapper: function(e) {
         console.log(e)
+        let rawId = e.target.id
+        let delRegex = /CS\d+\_\d+/g
+        let histRegex = /CS\d+\^\d+/g
+        let delArray = rawId.match(delRegex);
+        let histArray = rawId.match(histRegex);
+        if (delArray && delArray.length > 0) {
+            console.log(delArray);
+            let rowNumber = delArray[0].replace('_', '-');
+            this.runningSheetRowDelete(rowNumber);
+        } else if (histArray && histArray.length > 0) {
+            console.log(histArray);
+            let rowNumber = histArray[0].replace('^', '-');
+            this.runningSheetRowHistory(rowNumber);
+        }
+    },
+    */
+    runningSheetRowDelete: async function(e) {
+        console.log(e)
+        let rowNumber = e.target.id.replace('D', '-');
+        console.log(rowNumber)
         console.log("runningSheetRowDelete")
-        //await this.deleteRunningSheetEntry
+        let running_sheet_id = null;
+        for (let r of this.legal_case.running_sheet_entries) {
+            if (r.number === rowNumber) {
+                running_sheet_id = r.id
+            }
+        }
+        await this.setDeleteRunningSheetEntry({
+            "running_sheet_id": running_sheet_id
+        });
     },
     runningSheetRowHistory: function(e) {
         console.log(e)
+        let rowNumber = e.target.id.replace('H', '-');
+        console.log(rowNumber)
         console.log("runningSheetRowHistory")
     },
     leaving: function(e) {

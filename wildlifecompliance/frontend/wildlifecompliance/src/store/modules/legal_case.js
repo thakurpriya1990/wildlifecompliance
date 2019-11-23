@@ -211,5 +211,15 @@ export const legalCaseStore = {
         setRunningSheetEntryDescription({ commit }, {recordNumber, description, userId}) {
             commit("updateRunningSheetEntryDescription", {recordNumber, description, userId})
         },
+        async setDeleteRunningSheetEntry({state, dispatch}, running_sheet_id) {
+            let returnedLegalCase = await Vue.http.post(
+                helpers.add_endpoint_join(
+                    api_endpoints.legal_case,
+                    state.legal_case.id + '/delete_running_sheet_entry/',
+                ),
+                running_sheet_id
+                );
+            await dispatch("setLegalCase", returnedLegalCase.body);
+        }
     },
 };

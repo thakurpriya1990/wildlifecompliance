@@ -234,6 +234,13 @@ class LegalCaseRunningSheetEntry(RevisionedMixin):
     def number(self):
         return self.legal_case.number + '-' + str(self.row_num)
 
+    def delete_entry(self):
+        is_deleted = False
+        if not self.deleted:
+            self.deleted = True
+            is_deleted = True
+        return is_deleted
+
 
 class LegalCaseCommsLogEntry(CommunicationsLogEntry):
     legal_case = models.ForeignKey(LegalCase, related_name='comms_logs')

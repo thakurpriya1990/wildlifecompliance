@@ -92,7 +92,7 @@ class LegalCaseRunningSheetEntrySerializer(serializers.ModelSerializer):
                 'user_full_name',
                 'user_id',
                 'description',
-                #'deleted',
+                'deleted',
                 #'action',
                 'versions',
                 )
