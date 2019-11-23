@@ -379,12 +379,14 @@ export default {
                     {
                         visible: false,
                         mRender: function(data, type, row) {
+                            console.log(row.number);
+                            console.log(row.deleted);
                             return row.deleted;
                         }
                     },
                     {
                         mRender: function(data, type, row) {
-                            console.log(row)
+                            //console.log(row)
                             let retStr = '';
                             let rowIdDel = row.number.replace('-', 'D')
                             let rowIdHist = row.number.replace('-', 'H')
@@ -595,12 +597,17 @@ export default {
         }
         console.log("constructRunningSheetTable - end")
     },
-    constructRunningSheetTableEntry: function({rowId, description}){
+    constructRunningSheetTableEntry: function({ rowId, description, deleted }){
         console.log(description)
         if (this.$refs.running_sheet_table && this.$refs.running_sheet_table.vmDataTable) {
             console.log("constructRunningSheetTableEntry");
             let tableRow = this.$refs.running_sheet_table.vmDataTable.row(rowId).data()
-            tableRow.description = description
+            if (description) {
+                tableRow.description = description
+            }
+            if (deleted) {
+                tableRow.deleted = deleted;
+            }
             this.$refs.running_sheet_table.vmDataTable.row(rowId).invalidate().draw()
         }
     },
@@ -614,7 +621,9 @@ export default {
             this.legal_case.id + '/create_running_sheet_entry/'
             )
         let updatedRunningSheet = await Vue.http.post(fetchUrl, payload);
+        console.log(updatedRunningSheet)
         if (updatedRunningSheet.body && updatedRunningSheet.body.running_sheet_entries){
+        //if (updatedRunningSheet.body){
             await this.setRunningSheetEntries(updatedRunningSheet.body.running_sheet_entries);
             this.runningSheetUrl = _.cloneDeep(this.legal_case.running_sheet_entries);
             // TODO: refactor this & created section into common method
@@ -715,19 +724,23 @@ export default {
           redraw
     }) {
         console.log("updateRunningSheetUrl")
-        if (this.magic && recordDescription.toLowerCase().includes('shibaken')) {
+        if (this.magic && recordDescription && recordDescription.toLowerCase().includes('shibaken')) {
             this.magicMethod()
         }
         console.log(recordNumber)
         console.log(recordDescription)
+        console.log(redraw)
         let i = 0;
         for (let r of this.runningSheetUrl) {
             if (r.number === recordNumber) {
-                r.description = recordDescription
+                if (recordDescription) {
+                    r.description = recordDescription
+                }
                 if (redraw) {
                     this.constructRunningSheetTableEntry({
                         "rowId": i,
                         "description": r.description,
+                        "deleted": r.deleted,
                     });
                 }
             }
@@ -911,6 +924,34 @@ export default {
         await this.setDeleteRunningSheetEntry({
             "running_sheet_id": running_sheet_id
         });
+        // read deleted value from Vuex
+        let i = 0;
+        for (let r of this.legal_case.running_sheet_entries) {
+            if (r.number === rowNumber) {
+                //let description = this.tokenToUrl(r.description)
+                console.log(rowNumber)
+                console.log(r.number)
+                console.log(r.deleted)
+                if (r.deleted) {
+                    // write updated deleted value to runningSheetUrl
+                    let ii = 0;
+                    for (let rr of this.runningSheetUrl) {
+                        if (rr.number === rowNumber) {
+                            this.runningSheetUrl[ii].deleted = true;
+                        }
+                        ii += 1;
+                    }
+                }
+            }
+            i += 1;
+        }
+        this.$nextTick(() => {
+            this.updateRunningSheetUrlEntry({
+                  "recordNumber": rowNumber,
+                  "recordDescription": null,
+                  "redraw": true
+            });
+        });
     },
     runningSheetRowHistory: function(e) {
         console.log(e)
@@ -994,7 +1035,7 @@ export default {
           i += 1;
       }
 
-      console.log(this.runningSheetUrl)
+      //console.log(this.runningSheetUrl)
       
       this.$nextTick(() => {
           this.constructRunningSheetTable();
