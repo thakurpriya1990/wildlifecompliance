@@ -85,14 +85,22 @@
                                 </div>
                             </div>
 
-                            <div v-if="visibilityWithdrawButtonForManager" class="row action-button">
+                            <div v-if="visibilityRecordFerCaseNumberButton" class="row action-button">
+                                <div class="col-sm-12">
+                                    <a @click="recordFerCaseNumber('')" class="btn btn-primary btn-block">
+                                        Record FER Case Number
+                                    </a>
+                                </div>
+                            </div>
 
+                            <div v-if="visibilityWithdrawButtonForManager" class="row action-button">
                                 <div class="col-sm-12">
                                     <a @click="addWorkflow('withdraw_by_manager')" class="btn btn-primary btn-block">
                                         Withdraw
                                     </a>
                                 </div>
                             </div>
+
 
                             <div v-if="visibilitySendToManagerButton" class="row action-button">
                                 <div class="col-sm-12">
@@ -313,7 +321,10 @@
                                                 <label>Payment due date:</label>
                                             </div>
                                             <div class="col-sm-3">
-                                                {{ item.due_date_1st }}, {{ item.due_date_2nd }}
+                                                <!--
+                                                {{ item.due_date_1st }},
+                                                -->
+                                                {{ item.due_date_2nd }}
                                             </div>
                                             <div class="col-sm-3">
                                                 <label>Reason:</label>
@@ -358,6 +369,7 @@
             <SanctionOutcomeWorkflow ref="add_workflow" :workflow_type="workflow_type" v-bind:key="workflowBindId" />
         </div>
         <ExtendPaymentDueDate ref="extend_payment_due_date" :due_date_1st="last_due_date_1st" :due_date_2nd="last_due_date_2nd" :due_date_max="sanction_outcome.due_date_extended_max" v-bind:key="extendPaymentBindId" />
+        <RecordFerCaseNumber ref="record_fer_case_number" v-bind:key="recordFerCaseNumberBindId" />
     </div>
 </template>
 
@@ -372,6 +384,7 @@ import CommsLogs from "@common-components/comms_logs.vue";
 import filefield from '@/components/common/compliance_file.vue';
 import SanctionOutcomeWorkflow from './sanction_outcome_workflow';
 import ExtendPaymentDueDate from './extend_payment_due_date.vue';
+import RecordFerCaseNumber from './record_fer_case_number.vue';
 import 'bootstrap/dist/css/bootstrap.css';
 import hash from 'object-hash';
 import RelatedItems from "@common-components/related_items.vue";
@@ -386,6 +399,7 @@ export default {
         vm.STATUS_AWAITING_AMENDMENT = 'awaiting_amendment';
         vm.STATUS_AWAITING_PAYMENT = 'awaiting_payment';
         vm.STATUS_DECLINED = 'declined';
+        vm.STATUS_OVERDUE = 'overdue';
 
         return {
             bindId: 0,
@@ -516,6 +530,7 @@ export default {
         filefield,
         RelatedItems,
         ExtendPaymentDueDate,
+        RecordFerCaseNumber,
     },
     created: async function() {
         if (this.$route.params.sanction_outcome_id) {
@@ -536,17 +551,22 @@ export default {
         }),
         last_due_date_1st: function() {
             let ret_value = null;
-            if(this.sanction_outcome && this.sanction_outcome.due_dates){
+            if(this.sanction_outcome && this.sanction_outcome.due_dates && this.sanction_outcome.due_dates.length){
                 ret_value = this.sanction_outcome.due_dates[this.sanction_outcome.due_dates.length - 1].due_date_1st;
             }
             return ret_value;
         },
         last_due_date_2nd: function() {
             let ret_value = null;
-            if(this.sanction_outcome && this.sanction_outcome.due_dates){
+            if(this.sanction_outcome && this.sanction_outcome.due_dates && this.sanction_outcome.due_dates.length){
                 ret_value = this.sanction_outcome.due_dates[this.sanction_outcome.due_dates.length - 1].due_date_2nd;
             }
             return ret_value;
+        },
+        recordFerCaseNumberBindId: function() {
+            let bind_id = ''
+            bind_id = 'record_fer_case_number_' + parseInt(this.bindId);
+            return bind_id;
         },
         extendPaymentBindId: function() {
             let bind_id = ''
@@ -619,6 +639,15 @@ export default {
                 ret = this.sanction_outcome.lodgement_number;
             }
             return ret;
+        },
+        visibilityRecordFerCaseNumberButton: function() {
+            let visibility = false;
+            if (this.sanction_outcome.can_user_action){
+                if (this.sanction_outcome.status.id === this.STATUS_OVERDUE){
+                    visibility = true;
+                }
+            }
+            return visibility;
         },
         visibilitySaveButton: function() {
             let visibility = false;
@@ -943,8 +972,13 @@ export default {
                 this.$refs.add_workflow.isModalOpen = true;
             });
         },
+        recordFerCaseNumber() {
+            this.bindId += 1;
+            this.$nextTick(() => {
+                this.$refs.record_fer_case_number.isModalOpen = true;
+            });
+        },
         extendDueDate() {
-            console.log('extendDueDate');
             this.bindId += 1;
             this.$nextTick(() => {
                 this.$refs.extend_payment_due_date.isModalOpen = true;
