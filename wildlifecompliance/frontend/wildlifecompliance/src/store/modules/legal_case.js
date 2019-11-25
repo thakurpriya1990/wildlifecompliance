@@ -69,6 +69,7 @@ export const legalCaseStore = {
                 )
             Vue.set(state.legal_case, 'createLegalCaseProcessCommsLogsDocumentUrl', createLegalCaseProcessCommsLogsDocumentUrl);
         },
+        /*
         updateRunningSheetEntriesDateFields(state) {
             console.log("updateRunningSheetEntriesDateFields")
             let i = 0
@@ -90,6 +91,7 @@ export const legalCaseStore = {
             }
             //console.log(state.legal_case.running_sheet_entries)
         },
+        */
         updateRelatedItems(state, related_items) {
             Vue.set(state.legal_case, 'related_items', related_items);
         },
@@ -130,7 +132,7 @@ export const legalCaseStore = {
                 console.log(returnedLegalCase)
                 //await dispatch("setLegalCase", returnedLegalCase.body);
                 commit("updateLegalCase", returnedLegalCase.body);
-                commit("updateRunningSheetEntriesDateFields")
+                //commit("updateRunningSheetEntriesDateFields")
 
             } catch (err) {
                 console.log(err);
@@ -188,14 +190,14 @@ export const legalCaseStore = {
         },
         setLegalCase({ commit, }, legal_case) {
             commit("updateLegalCase", legal_case);
-            commit("updateRunningSheetEntriesDateFields")
+            //commit("updateRunningSheetEntriesDateFields")
         },
         setRelatedItems({ commit }, related_items ) {
             commit("updateRelatedItems", related_items);
         },
         setRunningSheetEntries({ commit }, running_sheet_entries ) {
             commit("updateRunningSheetEntries", running_sheet_entries);
-            commit("updateRunningSheetEntriesDateFields")
+            //commit("updateRunningSheetEntriesDateFields")
         },
         setRunningSheetTransform({ commit }, running_sheet_transform ) {
             commit("updateRunningSheetTransform", running_sheet_transform);
