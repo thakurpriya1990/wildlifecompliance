@@ -31,6 +31,7 @@ from wildlifecompliance.components.users.serializers import (
 #from wildlifecompliance.components.offence.serializers import OrganisationSerializer
 #from django.contrib.auth.models import Permission, ContentType
 from reversion.models import Version
+#from datetime import datetime, timedelta, date
 
 
 class LegalCasePrioritySerializer(serializers.ModelSerializer):
@@ -80,6 +81,13 @@ class RunningSheetEntryVersionSerializer(serializers.ModelSerializer):
             user_obj = EmailUser.objects.get(id=obj.field_dict.get('user_id'))
             user_full_name = user_obj.get_full_name()
         modified_fields['user_full_name'] = user_full_name
+        if modified_fields.get('date_modified'):
+            date_modified = modified_fields.get('date_modified')
+            modified_fields['date_mod'] = date_modified.strftime('%d/%m/%Y')
+            modified_fields['time_mod'] = date_modified.strftime('%I:%M:%S')
+        else:
+            modified_fields['date_mod'] = ''
+            modified_fields['time_mod'] = ''
         return modified_fields
 
 
@@ -89,6 +97,8 @@ class LegalCaseRunningSheetEntrySerializer(serializers.ModelSerializer):
     #action = serializers.SerializerMethodField()
     user_full_name = serializers.SerializerMethodField()
     versions = serializers.SerializerMethodField()
+    date_mod = serializers.SerializerMethodField()
+    time_mod = serializers.SerializerMethodField()
 
     class Meta:
         model = LegalCaseRunningSheetEntry
@@ -99,6 +109,8 @@ class LegalCaseRunningSheetEntrySerializer(serializers.ModelSerializer):
                 'legal_case_id',
                 'number',
                 'date_modified',
+                'date_mod',
+                'time_mod',
                 'user_full_name',
                 'user_id',
                 'description',
@@ -112,6 +124,12 @@ class LegalCaseRunningSheetEntrySerializer(serializers.ModelSerializer):
 
     #def get_action(self, obj):
      #   return ['Delete', 'History']
+
+    def get_date_mod(self, obj):
+        return obj.date_modified.strftime('%d/%m/%Y')
+
+    def get_time_mod(self, obj):
+        return obj.date_modified.strftime('%I:%M:%S')
 
     def get_versions(self, obj):
         #pass
