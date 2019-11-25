@@ -356,6 +356,7 @@ class LegalCaseViewSet(viewsets.ModelViewSet):
     @renderer_classes((JSONRenderer,))
     #def inspection_save(self, request, workflow=False, *args, **kwargs):
     def update(self, request, workflow=False, *args, **kwargs):
+        print(request.content_type)
         print(request.data)
         try:
             with transaction.atomic():
