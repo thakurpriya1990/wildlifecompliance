@@ -326,7 +326,7 @@ const RendererBlock = {
         'isComponentEditableForOfficer',
     ]),
     is_readonly: function() {
-        return this.component.readonly ? this.component.readonly : !this.isComponentEditableForOfficer;
+        return this.component.readonly ? this.component.readonly : this.application.readonly ? !this.isComponentEditableForOfficer : this.application.readonly;
     },
     comment_data: function() {
         return this.application.comment_data;
