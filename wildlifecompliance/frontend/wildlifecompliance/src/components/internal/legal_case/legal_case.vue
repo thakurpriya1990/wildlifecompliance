@@ -57,13 +57,13 @@
                                   </a>
                             </div>
                         </div>
-                        <div class="row action-button">
+                        <!--div class="row action-button">
                           <div v-if="canUserAction" class="col-sm-12">
                                 <a @click="addWorkflow('endorse')" class="btn btn-primary btn-block">
                                   Witness Statement
                                 </a>
                           </div>
-                        </div>
+                        </div-->
                         <div class="row action-button">
                           <div v-if="canUserAction && offenceVisibility" class="col-sm-12">
                                 <a @click="openOffence()" class="btn btn-primary btn-block">
@@ -72,13 +72,13 @@
                           </div>
                         </div>
                         
-                        <div class="row action-button">
+                        <!--div class="row action-button">
                           <div v-if="canUserAction" class="col-sm-12">
                                 <a @click="addWorkflow('request_amendment')" class="btn btn-primary btn-block">
                                   Interview
                                 </a>
                           </div>
-                        </div>
+                        </div-->
                         <div class="row action-button">
                           <div v-if="canUserAction" class="col-sm-12">
                                 <input 
@@ -127,9 +127,6 @@
                           <FormSection :formCollapse="false" label="Running Sheet" Index="0">
                             <div class="col-sm-12 form-group"><div class="row">
                                 <div>
-                                    <!--div class="col-sm-6"-->
-                                        <label class="col-sm-10">Type !! to open Inspection or @@ to open SearchPerson</label>
-                                        <!--input id="test1" type="text" class="form-control" v-model="magicValue" /-->
                                     <div class="row action-button">
                                         <div v-if="canUserAction" class="col-sm-12">
                                               <a @click="createNewRunningSheetEntry()" class="btn btn-primary btn-block" >
@@ -137,9 +134,6 @@
                                               </a>
                                         </div>
                                     </div>
-                                    <!--div class="col-sm-3 inline-datatable" contenteditable="true">this <a contenteditable="false" href="www.google.com">google</a> this2</div>
-                                    <div v-model="runningSheetObj[`CS000018-1`].description" contenteditable="true">this <a contenteditable="false" href="www.google.com">google</a> this2</div-->
-
                                     <datatable 
                                     ref="running_sheet_table" 
                                     id="running-sheet-table" 
