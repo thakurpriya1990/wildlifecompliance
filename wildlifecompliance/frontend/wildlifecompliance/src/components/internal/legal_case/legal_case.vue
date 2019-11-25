@@ -237,7 +237,13 @@
         @person-selected="insertPersonModalUrl"
         :rowNumberSelected="rowNumberSelected"
         />
-        <!--InspectionWorkflow ref="inspection_workflow" :workflow_type="workflow_type" v-bind:key="workflowBindId" /-->
+        <div v-if="runningSheetHistoryEntryBindId">
+            <RunningSheetHistory 
+            ref="running_sheet_history"
+            :runningSheetHistoryEntryInstance="runningSheetHistoryEntryInstance"
+            v-bind:key="runningSheetHistoryEntryBindId"
+            />
+        </div>
     </div>
 </template>
 <script>
@@ -262,6 +268,7 @@ import hash from 'object-hash';
 import Magic from './magic';
 import SearchPersonOrganisationModal from '@/components/common/search_person_or_organisation_modal';
 import _ from 'lodash';
+import RunningSheetHistory from './running_sheet_history'
 
 
 export default {
@@ -272,6 +279,8 @@ export default {
             uuid: 0,
             rowNumberSelected: '',
             runningSheetUrl: [],
+            runningSheetHistoryEntryBindId: '',
+            runningSheetHistoryEntryInstance: '',
             //runningSheetToken: [],
             objectHash: null,
             runTab: 'runTab'+this._uid,
@@ -313,8 +322,8 @@ export default {
             dtHeadersRunningSheet: [
                 "id",
                 "Number",
-                "Last Modified",
-                "",
+                "Date",
+                "Time",
                 "User",
                 "Description",
                 "deleted",
@@ -370,7 +379,9 @@ export default {
                             retStr = `<div id=${row.number} style="min-height:20px" contenteditable="true">${row.description}</div>`
                             //ret_str = `<span id=${row.number} contenteditable="true">${row.description}</span>`
                             if (row.deleted) {
-                                retStr = '<strike>' + retStr + '</strike>';
+                                retStr = '<strike>' + 
+                                    `<div id=${row.number} style="min-height:20px" contenteditable="false">${row.description}</div>`
+                                    '</strike>';
                             }
                             return retStr;
 
@@ -379,8 +390,8 @@ export default {
                     {
                         visible: false,
                         mRender: function(data, type, row) {
-                            console.log(row.number);
-                            console.log(row.deleted);
+                            //console.log(row.number);
+                            //console.log(row.deleted);
                             return row.deleted;
                         }
                     },
@@ -390,6 +401,7 @@ export default {
                             let retStr = '';
                             let rowIdDel = row.number.replace('-', 'D')
                             let rowIdHist = row.number.replace('-', 'H')
+                            let rowIdReinstate = row.number.replace('-', 'R')
                             if (row.action) {
                                 /*
                                 retStr += '<a href="#" class="row_history">History</a><br/><br/>'
@@ -398,7 +410,10 @@ export default {
                                 retStr += `<a id=${rowIdHist} class="row_history" href="#">History</a><br/><br/>`
                                 if (!row.deleted) {
                                     retStr += `<a id=${rowIdDel} class="row_delete" href="#">Delete</a><br/>`
+                                } else {
+                                    retStr += `<a id=${rowIdReinstate} class="row_reinstate" href="#">Reinstate</a><br/>`
                                 }
+
                             }
 
                             //let ret_str = row.allegedOffence.number_linked_sanction_outcomes_active + '(' + row.allegedOffence.number_linked_sanction_outcomes_total + ')';
@@ -430,6 +445,7 @@ export default {
     Inspection,
     Magic,
     SearchPersonOrganisationModal,
+    RunningSheetHistory,
   },
   computed: {
     ...mapGetters('legalCaseStore', {
@@ -548,10 +564,17 @@ export default {
       setRunningSheetEntryDescription: 'setRunningSheetEntryDescription',
       setRunningSheetTransform: 'setRunningSheetTransform',
       setDeleteRunningSheetEntry: 'setDeleteRunningSheetEntry',
+      setReinstateRunningSheetEntry: 'setReinstateRunningSheetEntry',
     }),
     ...mapActions({
         loadCurrentUser: 'loadCurrentUser',
     }),
+    setRunningSheetHistoryEntryBindId: function() {
+        if (this.runningSheetHistoryEntryInstance) {
+            this.uuid += 1;
+            this.runningSheetHistoryEntryBindId = this.runningSheetHistoryEntryInstance + '_' + this.uuid;
+        }
+    },
     runningSheetTransformWrapper: async function() {
         let runningSheet = []
         let i = 0;
@@ -599,15 +622,19 @@ export default {
     },
     constructRunningSheetTableEntry: function({ rowId, description, deleted }){
         console.log(description)
+        console.log(deleted)
         if (this.$refs.running_sheet_table && this.$refs.running_sheet_table.vmDataTable) {
             console.log("constructRunningSheetTableEntry");
             let tableRow = this.$refs.running_sheet_table.vmDataTable.row(rowId).data()
             if (description) {
                 tableRow.description = description
             }
+            /*
             if (deleted) {
                 tableRow.deleted = deleted;
             }
+            */
+            tableRow.deleted = deleted;
             this.$refs.running_sheet_table.vmDataTable.row(rowId).invalidate().draw()
         }
     },
@@ -732,6 +759,7 @@ export default {
         console.log(redraw)
         let i = 0;
         for (let r of this.runningSheetUrl) {
+            console.log(r.deleted)
             if (r.number === recordNumber) {
                 if (recordDescription) {
                     r.description = recordDescription
@@ -880,6 +908,12 @@ export default {
           (e) => {
               this.runningSheetRowHistory(e)
           });
+      runningSheetTable.on(
+          'click',
+          '.row_reinstate',
+          (e) => {
+              this.runningSheetRowReinstate(e)
+          });
       
       window.addEventListener('beforeunload', this.leaving);
       window.addEventListener('onblur', this.leaving);
@@ -953,11 +987,59 @@ export default {
             });
         });
     },
+    runningSheetRowReinstate: async function(e) {
+        console.log(e)
+        let rowNumber = e.target.id.replace('R', '-');
+        console.log(rowNumber)
+        console.log("runningSheetRowReinstate")
+        let running_sheet_id = null;
+        for (let r of this.legal_case.running_sheet_entries) {
+            if (r.number === rowNumber) {
+                running_sheet_id = r.id
+            }
+        }
+        await this.setReinstateRunningSheetEntry({
+            "running_sheet_id": running_sheet_id
+        });
+        // read deleted value from Vuex
+        let i = 0;
+        for (let r of this.legal_case.running_sheet_entries) {
+            if (r.number === rowNumber) {
+                //let description = this.tokenToUrl(r.description)
+                console.log(rowNumber)
+                console.log(r.number)
+                console.log(r.deleted)
+                if (!r.deleted) {
+                    // write updated deleted value to runningSheetUrl
+                    let ii = 0;
+                    for (let rr of this.runningSheetUrl) {
+                        if (rr.number === rowNumber) {
+                            this.runningSheetUrl[ii].deleted = false;
+                        }
+                        ii += 1;
+                    }
+                }
+            }
+            i += 1;
+        }
+        this.$nextTick(() => {
+            this.updateRunningSheetUrlEntry({
+                  "recordNumber": rowNumber,
+                  "recordDescription": null,
+                  "redraw": true
+            });
+        });
+    },
     runningSheetRowHistory: function(e) {
         console.log(e)
         let rowNumber = e.target.id.replace('H', '-');
         console.log(rowNumber)
         console.log("runningSheetRowHistory")
+        this.runningSheetHistoryEntryInstance = rowNumber;
+        this.setRunningSheetHistoryEntryBindId()
+        this.$nextTick(() => {
+            this.$refs.running_sheet_history.isModalOpen = true;
+        });
     },
     leaving: function(e) {
         let vm = this;
