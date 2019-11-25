@@ -56,6 +56,7 @@ class LegalCasePersonSerializer(serializers.ModelSerializer):
 
 class RunningSheetEntryVersionSerializer(serializers.ModelSerializer):
     #serializable_value = serializers.JSONField()
+    entry_fields = serializers.SerializerMethodField()
     class Meta:
         model = Version
         #fields = '__all__'
@@ -63,14 +64,23 @@ class RunningSheetEntryVersionSerializer(serializers.ModelSerializer):
                 'id',
                 'revision',
                 'serialized_data',
-                'field_dict',
+                'entry_fields',
                 )
         read_only_fields = (
                 'id',
                 'revision',
                 'serialized_data',
-                'field_dict',
+                'entry_fields',
                 )
+
+    def get_entry_fields(self, obj):
+        modified_fields = obj.field_dict
+        user_full_name = ''
+        if modified_fields and obj.field_dict.get('user_id'):
+            user_obj = EmailUser.objects.get(id=obj.field_dict.get('user_id'))
+            user_full_name = user_obj.get_full_name()
+        modified_fields['user_full_name'] = user_full_name
+        return modified_fields
 
 
 class LegalCaseRunningSheetEntrySerializer(serializers.ModelSerializer):

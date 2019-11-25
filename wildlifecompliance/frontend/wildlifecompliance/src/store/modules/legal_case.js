@@ -79,10 +79,10 @@ export const legalCaseStore = {
                 Vue.set(state.legal_case.running_sheet_entries[i], "time_mod", entry_time_mod)
                 let ii = 0;
                 for (let v of r.versions) {
-                    let date_mod = moment(v.field_dict.date_modified).format('DD/MM/YYYY')
-                    let time_mod = moment(v.field_dict.date_modified).format('h:mm:ss a')
-                    Vue.set(state.legal_case.running_sheet_entries[i].versions[ii].field_dict, "date_mod", date_mod)
-                    Vue.set(state.legal_case.running_sheet_entries[i].versions[ii].field_dict, "time_mod", time_mod)
+                    let date_mod = moment(v.entry_fields.date_modified).format('DD/MM/YYYY')
+                    let time_mod = moment(v.entry_fields.date_modified).format('h:mm:ss a')
+                    Vue.set(state.legal_case.running_sheet_entries[i].versions[ii].entry_fields, "date_mod", date_mod)
+                    Vue.set(state.legal_case.running_sheet_entries[i].versions[ii].entry_fields, "time_mod", time_mod)
                     
                     ii += 1;
                 }
@@ -212,15 +212,18 @@ export const legalCaseStore = {
                 running_sheet_id
                 );
             console.log(returnedLegalCase)
-            //commit("updateRunningSheetEntries", returnedLegalCase.body.running_sheet_entries);
             await dispatch("setRunningSheetEntries", returnedLegalCase.body.running_sheet_entries);
-            //ait dispatch("setRunningSheetEntriesDateFields");
-            //commit("updateRunningSheetEntriesDateFields")
         },
-        /*
-        setRunningSheetEntriesDateFields({state, commit}) {
-            commit("updateRunningSheetEntriesDateFields")
+        async setReinstateRunningSheetEntry({state, dispatch, commit}, running_sheet_id) {
+            let returnedLegalCase = await Vue.http.post(
+                helpers.add_endpoint_join(
+                    api_endpoints.legal_case,
+                    state.legal_case.id + '/reinstate_running_sheet_entry/',
+                ),
+                running_sheet_id
+                );
+            console.log(returnedLegalCase)
+            await dispatch("setRunningSheetEntries", returnedLegalCase.body.running_sheet_entries);
         },
-        */
     },
 };

@@ -159,7 +159,7 @@ export default {
     },
     computed: {
       ...mapGetters('legalCaseStore', {
-        inspection: "legal_case",
+        legal_case: "legal_case",
       }),
       ...mapGetters('callemailStore', {
         call_email: "call_email",

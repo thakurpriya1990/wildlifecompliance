@@ -356,6 +356,7 @@ class LegalCaseViewSet(viewsets.ModelViewSet):
     @renderer_classes((JSONRenderer,))
     #def inspection_save(self, request, workflow=False, *args, **kwargs):
     def update(self, request, workflow=False, *args, **kwargs):
+        print(request.content_type)
         print(request.data)
         try:
             with transaction.atomic():
@@ -678,6 +679,39 @@ class LegalCaseViewSet(viewsets.ModelViewSet):
                 running_sheet_instance = LegalCaseRunningSheetEntry.objects.get(id=running_sheet_id)
                 is_deleted = running_sheet_instance.delete_entry()
                 if is_deleted:
+                    running_sheet_instance.save()
+
+            return_serializer = LegalCaseRunningSheetSerializer(instance)
+            return Response(
+                    return_serializer.data,
+                    #status=status.HTTP_201_CREATED,
+                    #headers=headers
+                    )
+
+        except serializers.ValidationError:
+            print(traceback.print_exc())
+            raise
+        except ValidationError as e:
+            if hasattr(e, 'error_dict'):
+                raise serializers.ValidationError(repr(e.error_dict))
+            else:
+                raise serializers.ValidationError(repr(e[0].encode('utf-8')))
+        except Exception as e:
+            print(traceback.print_exc())
+            raise serializers.ValidationError(str(e))
+
+
+    @detail_route(methods=['POST'])
+    @renderer_classes((JSONRenderer,))
+    def reinstate_running_sheet_entry(self, request, *args, **kwargs):
+        try:
+            instance = self.get_object()
+            print(request.data)
+            running_sheet_id = request.data.get("running_sheet_id")
+            if running_sheet_id:
+                running_sheet_instance = LegalCaseRunningSheetEntry.objects.get(id=running_sheet_id)
+                is_reinstated = running_sheet_instance.reinstate_entry()
+                if is_reinstated:
                     running_sheet_instance.save()
 
             return_serializer = LegalCaseRunningSheetSerializer(instance)

@@ -241,6 +241,13 @@ class LegalCaseRunningSheetEntry(RevisionedMixin):
             is_deleted = True
         return is_deleted
 
+    def reinstate_entry(self):
+        is_reinstated = False
+        if self.deleted:
+            self.deleted = False
+            is_reinstated = True
+        return is_reinstated
+
 
 class LegalCaseCommsLogEntry(CommunicationsLogEntry):
     legal_case = models.ForeignKey(LegalCase, related_name='comms_logs')
