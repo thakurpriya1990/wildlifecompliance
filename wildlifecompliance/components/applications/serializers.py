@@ -98,6 +98,8 @@ class ApplicationSelectedActivitySerializer(serializers.ModelSerializer):
     payment_status = serializers.CharField(read_only=True)
     can_pay_licence_fee = serializers.SerializerMethodField()
     officer_name = serializers.SerializerMethodField(read_only=True)
+    licensing_officers = EmailUserSerializer(many=True)
+    issuing_officers = EmailUserSerializer(many=True)
 
     class Meta:
         model = ApplicationSelectedActivity

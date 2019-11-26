@@ -56,7 +56,7 @@
                                 <div class="form-group">
                                     <template>
                                         <select ref="assigned_officer" :disabled="!canAssignToOfficer" class="form-control" v-model="selectedActivity.assigned_officer">
-                                            <option v-for="member in application.licence_officers" :value="member.id" v-bind:key="member.id">{{member.first_name}} {{member.last_name}}</option>
+                                            <option v-for="member in selectedActivity.licensing_officers" :value="member.id" v-bind:key="member.id">{{member.first_name}} {{member.last_name}}</option>
                                         </select>
                                         <a v-if="canAssignToOfficer" @click.prevent="assignToMe()" class="actionBtn pull-right">Assign to me</a>
                                     </template>
@@ -67,7 +67,7 @@
                                 <div class="form-group">
                                     <template>
                                         <select ref="assigned_approver" :disabled="!canAssignToOfficer" class="form-control" v-model="selectedActivity.assigned_approver" >
-                                            <option v-for="member in application.licence_approvers" :value="member.id" v-bind:key="member.id">{{member.first_name}} {{member.last_name}}</option>
+                                            <option v-for="member in selectedActivity.issuing_officers" :value="member.id" v-bind:key="member.id">{{member.first_name}} {{member.last_name}}</option>
                                         </select>
                                         <a @click.prevent="makeMeApprover()" class="actionBtn pull-right">Assign to me</a>
                                     </template>                                    

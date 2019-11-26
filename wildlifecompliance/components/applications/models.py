@@ -506,6 +506,9 @@ class Application(RevisionedMixin):
 
     @property
     def licence_officers(self):
+        """
+        Authorised licensing officers for this Application.
+        """
         groups = self.get_permission_groups('licensing_officer').values_list('id', flat=True)
         return EmailUser.objects.filter(
             groups__id__in=groups
@@ -2634,6 +2637,26 @@ class ApplicationSelectedActivity(models.Model):
                 except Invoice.DoesNotExist:
                     return Invoice.PAYMENT_STATUS_UNPAID
                 return latest_invoice.payment_status
+
+    @property
+    def licensing_officers(self):
+        """
+        Authorised licence officers for this Selected Activity.
+        """
+        groups = ActivityPermissionGroup.get_groups_for_activities(
+            self.licence_activity, 'licensing_officer')
+
+        return EmailUser.objects.filter(groups__id__in=groups).distinct()
+
+    @property
+    def issuing_officers(self):
+        """
+        Authorised issuing officers for this Selected Activity.
+        """
+        groups = ActivityPermissionGroup.get_groups_for_activities(
+            self.licence_activity, 'issuing_officer')
+
+        return EmailUser.objects.filter(groups__id__in=groups).distinct()
 
     @staticmethod
     def get_current_activities_for_application_type(application_type, **kwargs):
