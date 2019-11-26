@@ -99,6 +99,12 @@ export const legalCaseStore = {
             Vue.set(state.legal_case, 'running_sheet_entries', running_sheet_entries);
             //commit("updateRunningSheetEntriesDateFields")
         },
+        updateAddRunningSheetEntry(state, running_sheet_entry) {
+            state.legal_case.running_sheet_entries.push(running_sheet_entry)
+
+            //Vue.set(state.legal_case, 'running_sheet_entry', running_sheet_entry);
+            //commit("updateRunningSheetEntriesDateFields")
+        },
         updateRunningSheetTransform(state, running_sheet_transform) {
             Vue.set(state.legal_case, 'running_sheet_transform', running_sheet_transform);
         },
@@ -197,6 +203,10 @@ export const legalCaseStore = {
         },
         setRunningSheetEntries({ commit }, running_sheet_entries ) {
             commit("updateRunningSheetEntries", running_sheet_entries);
+            //commit("updateRunningSheetEntriesDateFields")
+        },
+        setAddRunningSheetEntry({ commit }, running_sheet_entry ) {
+            commit("updateAddRunningSheetEntry", running_sheet_entry);
             //commit("updateRunningSheetEntriesDateFields")
         },
         setRunningSheetTransform({ commit }, running_sheet_transform ) {

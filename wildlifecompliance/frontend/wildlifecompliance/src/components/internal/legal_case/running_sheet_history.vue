@@ -51,6 +51,7 @@ export default {
             errorResponse: "",
             runningSheetHist: [],
             dtHeadersRunningSheetHistory: [
+                "date_modified",
                 "Date",
                 "Time",
                 "User",
@@ -58,7 +59,19 @@ export default {
                 "deleted",
             ],
             dtOptionsRunningSheetHistory: {
+                order: [
+                    [1, 'desc']
+                ],
+
                 columns: [
+                    {
+                        visible: false,
+                        mRender: function(data, type, row) {
+                            //console.log(row.number);
+                            //console.log(row.deleted);
+                            return row.date_modified;
+                        }
+                    },
                     {
                         mRender: function(data, type, row) {
                             let retStr = row.date_mod;
@@ -171,6 +184,7 @@ export default {
                     this.$refs.running_sheet_hist_instance.vmDataTable.row.add({ 
                         "id": this.runningSheetHist[i].id,
                         "number": this.runningSheetHist[i].number,
+                        "date_modified": this.runningSheetHist[i].date_modified,
                         "date_mod": this.runningSheetHist[i].date_mod,
                         "time_mod": this.runningSheetHist[i].time_mod,
                         "user_full_name": this.runningSheetHist[i].user_full_name,

@@ -73,6 +73,7 @@ from wildlifecompliance.components.legal_case.serializers import (
         CreateLegalCaseRunningSheetEntrySerializer,
         SaveLegalCaseRunningSheetEntrySerializer,
         LegalCaseRunningSheetSerializer,
+        LegalCaseRunningSheetEntrySerializer,
         )
 from wildlifecompliance.components.users.models import (
     CompliancePermissionGroup,    
@@ -751,17 +752,18 @@ class LegalCaseViewSet(viewsets.ModelViewSet):
             if serializer.is_valid():
                 print("serializer.validated_data")
                 print(serializer.validated_data)
-                serializer.save()
+                running_sheet_entry = serializer.save()
                 #instance.log_user_action(
                 #        LegalCaseUserAction.ACTION_SAVE_LEGAL_CASE.format(
                 #        instance.number), request)
-                headers = self.get_success_headers(serializer.data)
+                #headers = self.get_success_headers(serializer.data)
                 #return_serializer = LegalCaseRunningSheetSerializer(instance, context={'request': request})
-                return_serializer = LegalCaseRunningSheetSerializer(instance)
+                #return_serializer = LegalCaseRunningSheetSerializer(instance)
+                return_serializer = LegalCaseRunningSheetEntrySerializer(running_sheet_entry)
                 return Response(
                         return_serializer.data,
                         status=status.HTTP_201_CREATED,
-                        headers=headers
+                        #headers=headers
                         )
 
         except serializers.ValidationError:

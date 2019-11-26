@@ -559,6 +559,7 @@ export default {
       setRunningSheetTransform: 'setRunningSheetTransform',
       setDeleteRunningSheetEntry: 'setDeleteRunningSheetEntry',
       setReinstateRunningSheetEntry: 'setReinstateRunningSheetEntry',
+      setAddRunningSheetEntry: 'setAddRunningSheetEntry',
     }),
     ...mapActions({
         loadCurrentUser: 'loadCurrentUser',
@@ -594,22 +595,26 @@ export default {
             "redraw": true,
         })
     },
-    constructRunningSheetTable: function(){
+    constructRunningSheetTable: function(pk){
         console.log("constructRunningSheetTable")
-        this.$refs.running_sheet_table.vmDataTable.clear().draw();
+        if (!pk) {
+            this.$refs.running_sheet_table.vmDataTable.clear().draw();
+        }
         let actionColumn = !this.readonlyForm;
         if (this.runningSheetUrl){
             for(let i = 0;i < this.runningSheetUrl.length; i++){
-                this.$refs.running_sheet_table.vmDataTable.row.add({ 
-                    "id": this.runningSheetUrl[i].id,
-                    "number": this.runningSheetUrl[i].number,
-                    "date_mod": this.runningSheetUrl[i].date_mod,
-                    "time_mod": this.runningSheetUrl[i].time_mod,
-                    "user_full_name": this.runningSheetUrl[i].user_full_name,
-                    "description": this.runningSheetUrl[i].description,
-                    "deleted": this.runningSheetUrl[i].deleted,
-                    "action": actionColumn,
-                }).draw();
+                if (!pk || this.runningSheetUrl[i].id === pk) {
+                    this.$refs.running_sheet_table.vmDataTable.row.add({ 
+                        "id": this.runningSheetUrl[i].id,
+                        "number": this.runningSheetUrl[i].number,
+                        "date_mod": this.runningSheetUrl[i].date_mod,
+                        "time_mod": this.runningSheetUrl[i].time_mod,
+                        "user_full_name": this.runningSheetUrl[i].user_full_name,
+                        "description": this.runningSheetUrl[i].description,
+                        "deleted": this.runningSheetUrl[i].deleted,
+                        "action": actionColumn,
+                    }).draw();
+                }
             }
         }
         console.log("constructRunningSheetTable - end")
@@ -643,6 +648,14 @@ export default {
             )
         let updatedRunningSheet = await Vue.http.post(fetchUrl, payload);
         console.log(updatedRunningSheet)
+        if (updatedRunningSheet.ok) {
+            await this.setAddRunningSheetEntry(updatedRunningSheet.body);
+            let returnPayload = _.cloneDeep(updatedRunningSheet.body);
+            returnPayload.description = this.tokenToUrl(returnPayload.description);
+            this.runningSheetUrl.push(returnPayload);
+            this.constructRunningSheetTable(returnPayload.id);
+        }
+        /*
         if (updatedRunningSheet.body && updatedRunningSheet.body.running_sheet_entries){
         //if (updatedRunningSheet.body){
             await this.setRunningSheetEntries(updatedRunningSheet.body.running_sheet_entries);
@@ -658,6 +671,7 @@ export default {
                 this.constructRunningSheetTable();
             });
         }
+        */
     },
     openInspection() {
       this.uuid += 1;
