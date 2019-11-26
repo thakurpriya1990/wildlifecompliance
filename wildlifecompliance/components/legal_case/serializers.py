@@ -190,6 +190,23 @@ class SaveLegalCaseRunningSheetEntrySerializer(serializers.ModelSerializer):
                 )
 
 
+class DeleteReinstateLegalCaseRunningSheetEntrySerializer(serializers.ModelSerializer):
+
+    class Meta:
+        model = LegalCaseRunningSheetEntry
+        fields = (
+                'id',
+                'number',
+                'legal_case_id',
+                'deleted',
+                )
+        read_only_fields = (
+                'id',
+                'number',
+                'legal_case_id',
+                )
+
+
 class CreateLegalCaseRunningSheetEntrySerializer(serializers.ModelSerializer):
     legal_case_id = serializers.IntegerField(
         required=False, write_only=True, allow_null=True)
@@ -207,7 +224,6 @@ class CreateLegalCaseRunningSheetEntrySerializer(serializers.ModelSerializer):
                 )
 
     def create(self, validated_data):
-        print("wtf")
         print(validated_data)
         legal_case_id = validated_data.get('legal_case_id')
         user_id = validated_data.get('user_id')

@@ -974,6 +974,32 @@ export default {
                 running_sheet_id = r.id
             }
         }
+        let returnedEntry = await Vue.http.post(
+            helpers.add_endpoint_join(
+                api_endpoints.legal_case,
+                this.legal_case.id + '/delete_running_sheet_entry/',
+            ),
+            {
+                "running_sheet_id": running_sheet_id,
+                "deleted": true,
+            }
+            );
+        if (returnedEntry.ok) {
+            console.log(returnedEntry)
+            //await this.setAddRunningSheetEntry(updatedRunningSheet.body);
+            //let returnPayload = _.cloneDeep(updatedRunningSheet.body);
+            //returnPayload.description = this.tokenToUrl(returnPayload.description);
+            //this.runningSheetUrl.push(returnPayload);
+            //is.constructRunningSheetTable(returnedEntry.body.id);
+            let i = 0;
+            for (let r of this.runningSheetUrl) {
+                if (r.number === rowNumber) {
+                    this.runningSheetUrl = _.cloneDeep(returnedEntry.body)
+                }
+                i += 1
+            }
+        }
+        /*
         await this.setDeleteRunningSheetEntry({
             "running_sheet_id": running_sheet_id
         });
@@ -1005,6 +1031,7 @@ export default {
                   "redraw": true
             });
         });
+        */
     },
     runningSheetRowReinstate: async function(e) {
         console.log(e)
@@ -1017,9 +1044,28 @@ export default {
                 running_sheet_id = r.id
             }
         }
+        let returnedEntry = await Vue.http.post(
+            helpers.add_endpoint_join(
+                api_endpoints.legal_case,
+                this.legal_case.id + '/reinstate_running_sheet_entry/',
+            ),
+            {
+                "running_sheet_id": running_sheet_id,
+                "deleted": false,
+            }
+            );
+        if (returnedEntry.ok) {
+            //await this.setAddRunningSheetEntry(updatedRunningSheet.body);
+            //let returnPayload = _.cloneDeep(updatedRunningSheet.body);
+            //returnPayload.description = this.tokenToUrl(returnPayload.description);
+            //this.runningSheetUrl.push(returnPayload);
+            this.constructRunningSheetTable(returnedEntry.body.id);
+        }
+        /*
         await this.setReinstateRunningSheetEntry({
             "running_sheet_id": running_sheet_id
         });
+        
         // read deleted value from Vuex
         let i = 0;
         for (let r of this.legal_case.running_sheet_entries) {
@@ -1048,6 +1094,7 @@ export default {
                   "redraw": true
             });
         });
+        */
     },
     runningSheetRowHistory: function(e) {
         console.log(e)
@@ -1079,6 +1126,9 @@ export default {
             });
         this.addHashAttributes(copiedLegalCase);
         if(this.objectHash !== hash(copiedLegalCase)){
+            changed = true;
+        }
+        if (this.runningSheetEntriesUpdated.length > 0) {
             changed = true;
         }
         return changed;

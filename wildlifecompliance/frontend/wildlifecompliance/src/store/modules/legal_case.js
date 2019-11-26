@@ -216,6 +216,7 @@ export const legalCaseStore = {
         setRunningSheetEntryDescription({ commit }, {recordNumber, description, userId}) {
             commit("updateRunningSheetEntryDescription", {recordNumber, description, userId})
         },
+        /*
         async setDeleteRunningSheetEntry({state, dispatch, commit}, running_sheet_id) {
             let returnedLegalCase = await Vue.http.post(
                 helpers.add_endpoint_join(
@@ -238,5 +239,6 @@ export const legalCaseStore = {
             console.log(returnedLegalCase)
             await dispatch("setRunningSheetEntries", returnedLegalCase.body.running_sheet_entries);
         },
+        */
     },
 };
