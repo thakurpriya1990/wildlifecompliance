@@ -97,7 +97,7 @@ class RunningSheetEntryVersionSerializer(serializers.ModelSerializer):
             date_modified_utc = modified_fields.get('date_modified')
             date_modified = timezone.localtime(date_modified_utc)
             modified_fields['date_mod'] = date_modified.strftime('%d/%m/%Y')
-            modified_fields['time_mod'] = date_modified.strftime('%I:%M:%S')
+            modified_fields['time_mod'] = date_modified.strftime('%I:%M:%S %p')
         else:
             modified_fields['date_mod'] = ''
             modified_fields['time_mod'] = ''
@@ -144,7 +144,7 @@ class LegalCaseRunningSheetEntrySerializer(serializers.ModelSerializer):
 
     def get_time_mod(self, obj):
         date_modified_loc = timezone.localtime(obj.date_modified)
-        return date_modified_loc.strftime('%I:%M:%S')
+        return date_modified_loc.strftime('%I:%M:%S %p')
 
     #def get_time_mod(self, obj):
      #   return obj.date_modified.strftime('%I:%M:%S')
