@@ -128,8 +128,11 @@
                             <div class="col-sm-12 form-group"><div class="row">
                                 <div>
                                     <div class="row action-button">
-                                        <div v-if="canUserAction" class="col-sm-12">
-                                              <a @click="createNewRunningSheetEntry()" class="btn btn-primary btn-block" >
+                                        <!--div v-if="canUserAction" class="col-sm-12"-->
+                                        <!--div class="col-sm-1 pull-right" /-->
+                                        <div v-if="canUserAction">
+                                              <!--a @click="createNewRunningSheetEntry()" class="btn btn-primary btn-block" -->
+                                              <a @click="createNewRunningSheetEntry()" class="btn btn-primary pull-right new-row-button" >
                                                 New Row
                                               </a>
                                         </div>
@@ -273,6 +276,7 @@ export default {
             uuid: 0,
             rowNumberSelected: '',
             runningSheetUrl: [],
+            runningSheetEntriesUpdated: [],
             runningSheetHistoryEntryBindId: '',
             runningSheetHistoryEntryInstance: '',
             //runningSheetToken: [],
@@ -334,36 +338,44 @@ export default {
                     {
                         mRender: function(data, type, row) {
                             let retStr = row.number;
+                            /*
                             if (row.deleted) {
                                 retStr = '<strike>' + retStr + '</strike>';
                             }
+                            */
                             return retStr;
                         }
                     },
                     {
                         mRender: function(data, type, row) {
                             let retStr = row.date_mod;
+                            /*
                             if (row.deleted) {
                                 retStr = '<strike>' + retStr + '</strike>';
                             }
+                            */
                             return retStr;
                         }
                     },
                     {
                         mRender: function(data, type, row) {
                             let retStr = row.time_mod;
+                            /*
                             if (row.deleted) {
                                 retStr = '<strike>' + retStr + '</strike>';
                             }
+                            */
                             return retStr;
                         }
                     },
                     {
                         mRender: function(data, type, row) {
                             let retStr = row.user_full_name;
+                            /*
                             if (row.deleted) {
                                 retStr = '<strike>' + retStr + '</strike>';
                             }
+                            */
                             return retStr;
                         }
                     },
@@ -574,9 +586,11 @@ export default {
         let runningSheet = []
         let i = 0;
         for (let r of this.runningSheetUrl) {
-            r.description = this.urlToToken(r.description)
-            r.user_id = this.current_user.id
-            runningSheet.push(r)
+            if (this.runningSheetEntriesUpdated.includes(r.number)) {
+                r.description = this.urlToToken(r.description)
+                r.user_id = this.current_user.id;
+                runningSheet.push(r);
+            }
             i += 1;
         }
         await this.setRunningSheetTransform(runningSheet)
@@ -735,17 +749,8 @@ export default {
         // return to dash
         this.$router.push({ name: 'internal-legal-case-dash' });
       } else {
-          // TODO: refactor to common fn
-          this.runningSheetUrl = _.cloneDeep(this.legal_case.running_sheet_entries);
-          let i = 0;
-          for (let r of this.legal_case.running_sheet_entries) {
-              let description = this.tokenToUrl(r.description)
-              this.runningSheetUrl[i].description = description;
-              i += 1;
-          }
-          this.$nextTick(() => {
-              this.constructRunningSheetTable();
-          });
+          this.runningSheetEntriesUpdated = [];
+          this.constructRunningSheetTableWrapper();
       }
     },
     magicMethod: function() {
@@ -788,6 +793,12 @@ export default {
         let recordNumber = e.target.id
         let recordDescriptionText = e.target.textContent
         let recordDescriptionHtml = e.target.innerHTML.replace(/\&nbsp\;/g, ' ');
+        // add recordNumber to runningSheetEntriesUpdated
+        for (let r of this.runningSheetUrl) {
+            if (!(recordNumber === r.number)) {
+                this.runningSheetEntriesUpdated.push(recordNumber);
+            }
+        }
         //let recordDescriptionHtml = e.target.innerHTML;
         const ignoreArray = [49, 50, 16]
         if (ignoreArray.includes(e.which)) {
@@ -1106,6 +1117,19 @@ export default {
             payload
         );
         await this.setLegalCase(res.body);
+        this.constructRunningSheetTableWrapper();
+    },
+    constructRunningSheetTableWrapper: function() {
+        this.runningSheetUrl = _.cloneDeep(this.legal_case.running_sheet_entries);
+        let i = 0;
+        for (let r of this.legal_case.running_sheet_entries) {
+            let description = this.tokenToUrl(r.description)
+            this.runningSheetUrl[i].description = description;
+            i += 1;
+        }
+        this.$nextTick(() => {
+            this.constructRunningSheetTable();
+        });
     },
   },
   created: async function() {
@@ -1116,20 +1140,7 @@ export default {
       console.log(this)
 
       this.calculateHash();
-      
-      this.runningSheetUrl = _.cloneDeep(this.legal_case.running_sheet_entries);
-      let i = 0;
-      for (let r of this.legal_case.running_sheet_entries) {
-          let description = this.tokenToUrl(r.description)
-          this.runningSheetUrl[i].description = description;
-          i += 1;
-      }
-
-      //console.log(this.runningSheetUrl)
-      
-      this.$nextTick(() => {
-          this.constructRunningSheetTable();
-      });
+      this.constructRunningSheetTableWrapper();
   },
   destroyed: function() {
       window.removeEventListener('beforeunload', this.leaving);
@@ -1147,6 +1158,10 @@ export default {
 <style lang="css">
 .action-button {
     margin-top: 5px;
+}
+.new-row-button {
+    margin-bottom: 5px;
+    margin-right: 13px;
 }
 #close-button {
   margin-bottom: 50px;

@@ -150,6 +150,7 @@ export const legalCaseStore = {
             try {
                 let payload = new Object();
                 Object.assign(payload, state.legal_case);
+                delete payload.running_sheet_entries
                 console.log(payload);
                 if (payload.case_created_date) {
                     payload.case_created_date = moment(payload.planned_for_date, 'DD/MM/YYYY').format('YYYY-MM-DD');

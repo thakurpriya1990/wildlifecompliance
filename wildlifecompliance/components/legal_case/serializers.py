@@ -139,10 +139,15 @@ class LegalCaseRunningSheetEntrySerializer(serializers.ModelSerializer):
      #   return ['Delete', 'History']
 
     def get_date_mod(self, obj):
-        return obj.date_modified.strftime('%d/%m/%Y')
+        date_modified_loc = timezone.localtime(obj.date_modified)
+        return date_modified_loc.strftime('%d/%m/%Y')
 
     def get_time_mod(self, obj):
-        return obj.date_modified.strftime('%I:%M:%S')
+        date_modified_loc = timezone.localtime(obj.date_modified)
+        return date_modified_loc.strftime('%I:%M:%S')
+
+    #def get_time_mod(self, obj):
+     #   return obj.date_modified.strftime('%I:%M:%S')
 
     def get_versions(self, obj):
         #pass
