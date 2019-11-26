@@ -52,6 +52,7 @@
                         </div>
                         <div class="panel-body panel-collapse">
 
+                            <!-- Infringement Notice Coordinator -->
                             <div v-if="visibilityExtendDueDateButton" class="row action-button">
                                 <div class="col-sm-12">
                                     <a @click="extendDueDate('')" class="btn btn-primary btn-block">
@@ -59,7 +60,6 @@
                                     </a>
                                 </div>
                             </div>
-
                             <div v-if="visibilitySendToDotButton" class="row action-button">
                                 <div class="col-sm-12">
                                     <a @click="addWorkflow('send_to_dot')" class="btn btn-primary btn-block">
@@ -67,16 +67,6 @@
                                     </a>
                                 </div>
                             </div>
-<!--
-                            <div v-if="visibilitySendToFinesEnforcementButton" class="row action-button">
-                                <div class="col-sm-12">
-                                    <a @click="addWorkflow('send_to_fines_enforcement')" class="btn btn-primary btn-block">
-                                        Send to Fines Enforcement
-                                    </a>
-                                </div>
-                            </div>
--->
-
                             <div v-if="visibilityEscalateForWithdrawalButton" class="row action-button">
                                 <div class="col-sm-12">
                                     <a @click="addWorkflow('escalate_for_withdrawal')" class="btn btn-primary btn-block">
@@ -84,7 +74,6 @@
                                     </a>
                                 </div>
                             </div>
-
                             <div v-if="visibilityRecordFerCaseNumberButton" class="row action-button">
                                 <div class="col-sm-12">
                                     <a @click="recordFerCaseNumber('')" class="btn btn-primary btn-block">
@@ -93,6 +82,24 @@
                                 </div>
                             </div>
 
+                            <!-- Branch Manager -->
+                            <div v-if="visibilityReturnToInfringementNoticeCoordinatorButton" class="row action-button">
+                                <div class="col-sm-12">
+                                    <a @click="addWorkflow('return_to_infringement_notice_coordinator')" class="btn btn-primary btn-block">
+                                        Return to<br />Infringement Notice Coordinator
+                                    </a>
+                                </div>
+                            </div>
+                            <div v-if="visibilityWithdrawByBranchManagerButton" class="row action-button">
+                                <div class="col-sm-12">
+                                    <a @click="addWorkflow('withdraw_by_branch_manager')" class="btn btn-primary btn-block">
+                                        Withdraw
+                                    </a>
+                                </div>
+                            </div>
+
+
+                            <!-- Manager -->
                             <div v-if="visibilityWithdrawButtonForManager" class="row action-button">
                                 <div class="col-sm-12">
                                     <a @click="addWorkflow('withdraw_by_manager')" class="btn btn-primary btn-block">
@@ -100,8 +107,29 @@
                                     </a>
                                 </div>
                             </div>
+                            <div v-if="visibilityEndorseButton" class="row action-button">
+                                <div class="col-sm-12">
+                                    <a @click="addWorkflow('endorse')" class="btn btn-primary btn-block">
+                                        Endorse
+                                    </a>
+                                </div>
+                            </div>
+                            <div v-if="visibilityDeclineButton" class="row action-button">
+                                <div class="col-sm-12">
+                                    <a @click="addWorkflow('decline')" class="btn btn-primary btn-block">
+                                        Decline
+                                    </a>
+                                </div>
+                            </div>
+                            <div v-if="visibilityReturnToOfficerButton" class="row action-button">
+                                <div class="col-sm-12">
+                                    <a @click="addWorkflow('return_to_officer')" class="btn btn-primary btn-block">
+                                        Return to Officer
+                                    </a>
+                                </div>
+                            </div>
 
-
+                            <!-- Officer -->
                             <div v-if="visibilitySendToManagerButton" class="row action-button">
                                 <div class="col-sm-12">
                                     <a @click="addWorkflow('send_to_manager')" class="btn btn-primary btn-block">
@@ -110,29 +138,6 @@
                                 </div>
                             </div>
 
-                            <div v-if="visibilityEndorseButton" class="row action-button">
-                                <div class="col-sm-12">
-                                    <a @click="addWorkflow('endorse')" class="btn btn-primary btn-block">
-                                        Endorse
-                                    </a>
-                                </div>
-                            </div>
-
-                            <div v-if="visibilityDeclineButton" class="row action-button">
-                                <div class="col-sm-12">
-                                    <a @click="addWorkflow('decline')" class="btn btn-primary btn-block">
-                                        Decline
-                                    </a>
-                                </div>
-                            </div>
-
-                            <div v-if="visibilityReturnToOfficerButton" class="row action-button">
-                                <div class="col-sm-12">
-                                    <a @click="addWorkflow('return_to_officer')" class="btn btn-primary btn-block">
-                                        Return to Officer
-                                    </a>
-                                </div>
-                            </div>
                         </div>
                     </div>
                 </div>
@@ -400,6 +405,9 @@ export default {
         vm.STATUS_AWAITING_PAYMENT = 'awaiting_payment';
         vm.STATUS_DECLINED = 'declined';
         vm.STATUS_OVERDUE = 'overdue';
+        vm.STATUS_ESCALATED_FOR_WITHDRAWAL = 'escalated_for_withdrawal';
+        vm.STATUS_AWAITING_REMEDIATION_ACTIONS = 'awaiting_remediation_actions';
+        vm.STATUS_WITHDRAWN = 'withdrawn'
 
         return {
             bindId: 0,
@@ -639,6 +647,24 @@ export default {
                 ret = this.sanction_outcome.lodgement_number;
             }
             return ret;
+        },
+        visibilityReturnToInfringementNoticeCoordinatorButton: function() {
+            let visibility = false;
+            if (this.sanction_outcome.can_user_action){
+                if (this.sanction_outcome.status.id === this.STATUS_ESCALATED_FOR_WITHDRAWAL){
+                    visibility = true;
+                }
+            }
+            return visibility;
+        },
+        visibilityWithdrawByBranchManagerButton: function() {
+            let visibility = false;
+            if (this.sanction_outcome.can_user_action){
+                if (this.sanction_outcome.status.id === this.STATUS_ESCALATED_FOR_WITHDRAWAL){
+                    visibility = true;
+                }
+            }
+            return visibility;
         },
         visibilityRecordFerCaseNumberButton: function() {
             let visibility = false;
