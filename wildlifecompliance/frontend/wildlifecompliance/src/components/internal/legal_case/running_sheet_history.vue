@@ -75,27 +75,33 @@ export default {
                     {
                         mRender: function(data, type, row) {
                             let retStr = row.date_mod;
+                            /*
                             if (row.deleted) {
                                 retStr = '<strike>' + retStr + '</strike>';
                             }
+                            */
                             return retStr;
                         }
                     },
                     {
                         mRender: function(data, type, row) {
                             let retStr = row.time_mod;
+                            /*
                             if (row.deleted) {
                                 retStr = '<strike>' + retStr + '</strike>';
                             }
+                            */
                             return retStr;
                         }
                     },
                     {
                         mRender: function(data, type, row) {
                             let retStr = row.user_full_name;
+                            /*
                             if (row.deleted) {
                                 retStr = '<strike>' + retStr + '</strike>';
                             }
+                            */
                             return retStr;
                         }
                     },
