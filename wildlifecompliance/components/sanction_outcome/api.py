@@ -24,11 +24,11 @@ from wildlifecompliance.components.main.process_document import (
         )
 from wildlifecompliance.components.call_email.models import CallEmail, CallEmailUserAction
 from wildlifecompliance.components.inspection.models import Inspection, InspectionUserAction
-from wildlifecompliance.components.main.email import prepare_mail
 from wildlifecompliance.components.offence.models import AllegedOffence
-from wildlifecompliance.components.section_regulation.models import SectionRegulation
-from wildlifecompliance.components.sanction_outcome.email import send_mail, send_infringement_notice, \
-    send_due_date_extended_mail
+from wildlifecompliance.components.sanction_outcome.email import send_infringement_notice, \
+    send_due_date_extended_mail, send_return_to_officer_email, send_to_manager_email, send_withdraw_by_manager_email, \
+    send_withdraw_by_branch_manager_email, send_return_to_infringement_notice_coordinator_email, send_decline_email, \
+    send_escalate_for_withdrawal_email
 from wildlifecompliance.components.sanction_outcome.models import SanctionOutcome, RemediationAction, \
     SanctionOutcomeCommsLogEntry, AllegedCommittedOffence, SanctionOutcomeUserAction
 from wildlifecompliance.components.sanction_outcome.serializers import SanctionOutcomeSerializer, \
@@ -165,47 +165,6 @@ class SanctionOutcomePaginatedViewSet(viewsets.ModelViewSet):
 class SanctionOutcomeViewSet(viewsets.ModelViewSet):
     queryset = SanctionOutcome.objects.all()
     serializer_class = SanctionOutcomeSerializer
-
-    # @detail_route(methods=['post'])
-    # @renderer_classes((JSONRenderer,))
-    # def sanction_outcome_infringement_penalty_checkout(self, request, *args, **kwargs):
-    #     try:
-    #         instance = self.get_object()
-    #         product_lines = []
-    #         # application_submission = u'Application submitted by {} confirmation {}'.format(
-    #         #     u'{} {}'.format(instance.submitter.first_name, instance.submitter.last_name), instance.lodgement_number)
-    #         sanction_outcome_submission = u'Sanction outcome: {} submitted by {}'.format(request.user.get_full_name(), instance.lodgement_number)
-    #         set_session_infringement_invoice(request.session, instance)
-    #         now = datetime.now().strftime('%Y-%m-%d %H:%M')
-    #         product_lines.append({
-    #             # 'ledger_description': '{}'.format(instance.licence_type_name),
-    #             'ledger_description': 'Infringement Penalty - {} - {}'.format(now, 11111),
-    #             'quantity': 1,
-    #             'price_incl_tax': Decimal(100.00),
-    #             'price_excl_tax': Decimal(100.00),
-    #             # 'price_incl_tax': str(instance.application_fee),
-    #             # 'price_excl_tax': str(calculate_excl_gst(instance.application_fee)),
-    #             'oracle_code': ''
-    #         })
-    #         additional_dict = {
-    #             # This dictionalry actually updates following three urls in the checkout() function called below
-    #             'fallback_url': request.build_absolute_uri('/'),
-    #             'return_url': request.build_absolute_uri(reverse('external-infringement-penalty-success-invoice')),
-    #             'return_preload_url': request.build_absolute_uri('/'),
-    #         }
-    #         checkout_result = checkout(request, instance, lines=product_lines, invoice_text=sanction_outcome_submission, add_checkout_params=additional_dict)
-    #         return checkout_result
-    #     except serializers.ValidationError:
-    #         print(traceback.print_exc())
-    #         raise
-    #     except ValidationError as e:
-    #         if hasattr(e, 'error_dict'):
-    #             raise serializers.ValidationError(repr(e.error_dict))
-    #         else:
-    #             raise serializers.ValidationError(repr(e[0].encode('utf-8')))
-    #     except Exception as e:
-    #         print(traceback.print_exc())
-    #         raise serializers.ValidationError(str(e))
 
     def get_queryset(self):
         # user = self.request.user
@@ -581,13 +540,18 @@ class SanctionOutcomeViewSet(viewsets.ModelViewSet):
                 else:
                     workflow_entry = self.add_comms_log(request, instance, workflow=True)
 
-                # Update the entry above with email_data
-                # Send email
-                email_data = prepare_mail(request, instance, workflow_entry, send_mail)
-                # Log communication
-                serializer = SanctionOutcomeCommsLogEntrySerializer(instance=workflow_entry, data=email_data, partial=True)
-                serializer.is_valid(raise_exception=True)
-                serializer.save()
+                if workflow_type == SanctionOutcome.WORKFLOW_SEND_TO_MANAGER:
+                    # email_data = prepare_mail(request, instance, workflow_entry, send_mail)
+                    compliance_group = CompliancePermissionGroup.objects.get(id=request.data.get('allocated_group_id'))
+                    to_address = [user.email for user in compliance_group.members.all()]
+                    cc = [request.user.email,]
+                    bcc = None
+                    email_data = send_to_manager_email(to_address, instance, workflow_entry, request, cc, bcc)
+
+                    # Log email communication
+                    serializer = SanctionOutcomeCommsLogEntrySerializer(instance=workflow_entry, data=email_data, partial=True)
+                    serializer.is_valid(raise_exception=True)
+                    serializer.save()
 
                 # Return
                 return HttpResponse(res_json, content_type='application/json')
@@ -753,8 +717,10 @@ class SanctionOutcomeViewSet(viewsets.ModelViewSet):
                     # Action log
                     instance.log_user_action(SanctionOutcomeUserAction.ACTION_EXTEND_DUE_DATE.format(instance.lodgement_number), request)
 
-                # TODO: email to the offender too?
-                email_data = prepare_mail(request, instance, workflow_entry, send_due_date_extended_mail, instance.responsible_officer.id)
+                to_address = [instance.offender.person.email,]
+                cc = [instance.responsible_officer.email, request.user.email] if instance.responsible_officer else None
+                bcc = None
+                email_data = send_due_date_extended_mail(to_address, instance, workflow_entry, request, cc, bcc)
 
                 # Log the above email as a communication log entry
                 if email_data:
@@ -802,38 +768,95 @@ class SanctionOutcomeViewSet(viewsets.ModelViewSet):
                 # Set status
                 workflow_type = request.data.get('workflow_type')
                 reason = request.data.get('details')
-                if not reason:
-                    raise serializers.ValidationError({'Reason': ['You must enter the reason.',]})
                 email_data = None
 
                 if workflow_type == SanctionOutcome.WORKFLOW_SEND_TO_MANAGER:
                     instance.send_to_manager(request)
+
                     # Email to manager
-                    email_data = prepare_mail(request, instance, workflow_entry, send_mail)
+                    to_address = [member.email for member in instance.allocated_group.members]
+                    cc = [instance.responsible_officer.email,] if instance.responsible_officer else None
+                    bcc = None
+                    email_data = send_to_manager_email(to_address, instance, workflow_entry, request, cc, bcc)
+
                 elif workflow_type == SanctionOutcome.WORKFLOW_DECLINE:
+                    if not reason:
+                        raise serializers.ValidationError({'Reason': ['You must enter the reason.', ]})
                     instance.decline(request)
                     if instance.issued_on_paper:
                         #  Email to officer in the case issued_on_paper=True so that the responsible officer can manually withdraw paper-issued sanction outcome
-                        email_data = prepare_mail(request, instance, workflow_entry, send_mail, instance.responsible_officer.id)
+                        to_address = [instance.responsible_officer.email,]
+                        cc = [request.user.email, ]
+                        bcc = None
+                        email_data = send_decline_email(to_address, instance, workflow_entry, request, cc, bcc)
                     else:
                         # No need to email
                         pass
+
                 elif workflow_type == SanctionOutcome.WORKFLOW_ENDORSE:
                     instance.endorse(request)
 
-                    email_data = prepare_mail(request, instance, workflow_entry, send_infringement_notice, instance.offender.person.id)
-                    # TODO: Email to infringement-notice-coordinator too
+                    # Email to the offender, and bcc to the respoinsible officer
+                    to_address = [instance.offender.person.email,]
+                    cc = None
+                    bcc = [instance.responsible_officer.email, request.user.email,]
+                    email_data = send_infringement_notice(to_address, instance, workflow_entry, request, cc, bcc)
 
                 elif workflow_type == SanctionOutcome.WORKFLOW_RETURN_TO_OFFICER:
+                    if not reason:
+                        raise serializers.ValidationError({'Reason': ['You must enter the reason.', ]})
                     instance.return_to_officer(request)
+
                     # Email to the responsible officer
-                    email_data = prepare_mail(request, instance, workflow_entry, send_mail, instance.responsible_officer.id)
+                    to_address = [instance.responsible_officer.email,]
+                    cc = [request.user.email,] if request.user else None
+                    bcc = None
+                    email_data = send_return_to_officer_email(to_address, instance, workflow_entry, request, cc, bcc)
+
                 elif workflow_type == SanctionOutcome.WORKFLOW_ESCALATE_FOR_WITHDRAWAL:
-                    #  withdraw by Infringement notice coordinator
+                    if not reason:
+                        raise serializers.ValidationError({'Reason': ['You must enter the reason.', ]})
                     instance.escalate_for_withdrawal(request)
+
+                    # Email to branch manager,
+                    to_address = [member.email for member in instance.allocated_group.members]
+                    cc = [request.user.email,] if request.user else None
+                    bcc = None
+                    email_data = send_escalate_for_withdrawal_email(to_address, instance, workflow_entry, request, cc, bcc)
+
                 elif workflow_type == SanctionOutcome.WORKFLOW_WITHDRAW_BY_MANAGER:
-                    #  withdraw by manager
+                    if not reason:
+                        raise serializers.ValidationError({'Reason': ['You must enter the reason.', ]})
                     instance.withdraw_by_manager(request)
+
+                    # Email to offender
+                    to_address = [instance.offender.person.email, ]
+                    cc = [request.user.email, instance.responsible_officer.email, ] if request else None
+                    bcc = None
+                    email_data = send_withdraw_by_manager_email(to_address, instance, workflow_entry, request, cc, bcc)
+
+                elif workflow_type == SanctionOutcome.WORKFLOW_WITHDRAW_BY_BRANCH_MANAGER:
+                    if not reason:
+                        raise serializers.ValidationError({'Reason': ['You must enter the reason.', ]})
+                    instance.withdraw_by_branch_manager(request)
+
+                    # Email to offender
+                    to_address = [instance.offender.person.email, ]
+                    cc = [request.user.email, instance.responsible_officer.email, ] if request else None
+                    bcc = None
+                    email_data = send_withdraw_by_branch_manager_email(to_address, instance, workflow_entry, request, cc, bcc)
+
+                elif workflow_type == SanctionOutcome.WORKFLOW_RETURN_TO_INFRINGEMENT_NOTICE_COORDINATOR:
+                    if not reason:
+                        raise serializers.ValidationError({'Reason': ['You must enter the reason.', ]})
+                    instance.return_to_infringement_notice_coordinator(request)
+
+                    # Email to Infringement Notice Coordinator
+                    to_address = [member.email for member in instance.allocated_group.members]
+                    cc = [instance.responsible_officer.email, request.user.email]
+                    bcc = None
+                    email_data = send_return_to_infringement_notice_coordinator_email(to_address, instance, workflow_entry, request, cc, bcc)
+
                 else:
                     # Should not reach here
                     # instance.save()

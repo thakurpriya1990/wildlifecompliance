@@ -105,6 +105,12 @@ export default {
                 case 'return_to_officer':
                     return "Return to Officer";
                     break;
+                case 'return_to_infringement_notice_coordinator':
+                    return "Return to Infringement Notice Coordinator";
+                    break;
+                case 'withdraw_by_branch_manager':
+                    return "Withdraw";
+                    break;
                 default:
                     return "---";
             }
