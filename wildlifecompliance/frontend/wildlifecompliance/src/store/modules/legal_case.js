@@ -10,7 +10,11 @@ export const legalCaseStore = {
     namespaced: true,
     state: {
         legal_case: {
-            
+            running_sheet_entries: [
+                {
+                    versions: [],
+                },
+            ],
         },
         
     },
@@ -63,30 +67,43 @@ export const legalCaseStore = {
                 api_endpoints.legal_case,
                 state.legal_case.id + "/create_legal_case_process_comms_log_document/"
                 )
-            Vue.set(state.legal_case, 'createLegalCaseProcessCommsLogsDocumentUrl', createLegalCaseProcessCommsLogsDocumentUrl); 
-            //let runningSheetList = []
-            //for (let r of state.legal_case.running_sheet_entries) {
-            //    runningSheetList.push(r.number)
-            //}
-            //Vue.set(state.legal_case, 'running_sheet_list', runningSheetList);
-            //let runningSheetObject = {}
-            //for (let o of state.legal_case.running_sheet_entries) {
-            //    runningSheetObject[o.number] = o
-            //}
-            //Vue.set(state.legal_case, 'running_sheet_object', runningSheetObject);
-            //Vue.set(state.legal_case, 'running_sheet_transform', []);
-            //let i = 0
-            //for (let r of state.legal_case.running_sheet_entries) {
-            //    state.legal_case.running_sheet_transform.push(Object.assign({}, state.legal_case.running_sheet_entries[i]))
-            //    state.legal_case.running_sheet_transform[i].description += ' transform'
-            //    i += 1;
-            //}
+            Vue.set(state.legal_case, 'createLegalCaseProcessCommsLogsDocumentUrl', createLegalCaseProcessCommsLogsDocumentUrl);
         },
+        /*
+        updateRunningSheetEntriesDateFields(state) {
+            console.log("updateRunningSheetEntriesDateFields")
+            let i = 0
+            for (let r of state.legal_case.running_sheet_entries) {
+                let entry_date_mod = moment(r.date_modified).format('DD/MM/YYYY')
+                let entry_time_mod = moment(r.date_modified).format('h:mm:ss a')
+                Vue.set(state.legal_case.running_sheet_entries[i], "date_mod", entry_date_mod)
+                Vue.set(state.legal_case.running_sheet_entries[i], "time_mod", entry_time_mod)
+                let ii = 0;
+                for (let v of r.versions) {
+                    let date_mod = moment(v.entry_fields.date_modified).format('DD/MM/YYYY')
+                    let time_mod = moment(v.entry_fields.date_modified).format('h:mm:ss a')
+                    Vue.set(state.legal_case.running_sheet_entries[i].versions[ii].entry_fields, "date_mod", date_mod)
+                    Vue.set(state.legal_case.running_sheet_entries[i].versions[ii].entry_fields, "time_mod", time_mod)
+                    
+                    ii += 1;
+                }
+                i += 1;
+            }
+            //console.log(state.legal_case.running_sheet_entries)
+        },
+        */
         updateRelatedItems(state, related_items) {
             Vue.set(state.legal_case, 'related_items', related_items);
         },
         updateRunningSheetEntries(state, running_sheet_entries) {
             Vue.set(state.legal_case, 'running_sheet_entries', running_sheet_entries);
+            //commit("updateRunningSheetEntriesDateFields")
+        },
+        updateAddRunningSheetEntry(state, running_sheet_entry) {
+            state.legal_case.running_sheet_entries.push(running_sheet_entry)
+
+            //Vue.set(state.legal_case, 'running_sheet_entry', running_sheet_entry);
+            //commit("updateRunningSheetEntriesDateFields")
         },
         updateRunningSheetTransform(state, running_sheet_transform) {
             Vue.set(state.legal_case, 'running_sheet_transform', running_sheet_transform);
@@ -118,7 +135,10 @@ export const legalCaseStore = {
 
                 /* Set Inspection object */
                 //await dispatch("setInspection", returnedInspection.body);
-                await dispatch("setLegalCase", returnedLegalCase.body);
+                console.log(returnedLegalCase)
+                //await dispatch("setLegalCase", returnedLegalCase.body);
+                commit("updateLegalCase", returnedLegalCase.body);
+                //commit("updateRunningSheetEntriesDateFields")
 
             } catch (err) {
                 console.log(err);
@@ -130,6 +150,7 @@ export const legalCaseStore = {
             try {
                 let payload = new Object();
                 Object.assign(payload, state.legal_case);
+                delete payload.running_sheet_entries
                 console.log(payload);
                 if (payload.case_created_date) {
                     payload.case_created_date = moment(payload.planned_for_date, 'DD/MM/YYYY').format('YYYY-MM-DD');
@@ -172,22 +193,50 @@ export const legalCaseStore = {
             else if (!create) {
                 await swal("Saved", "The record has been saved", "success");
             }
-            return savedLegalCase;
+            //return savedLegalCase;
         },
         setLegalCase({ commit, }, legal_case) {
             commit("updateLegalCase", legal_case);
+            //commit("updateRunningSheetEntriesDateFields")
         },
         setRelatedItems({ commit }, related_items ) {
             commit("updateRelatedItems", related_items);
         },
         setRunningSheetEntries({ commit }, running_sheet_entries ) {
             commit("updateRunningSheetEntries", running_sheet_entries);
+            //commit("updateRunningSheetEntriesDateFields")
+        },
+        setAddRunningSheetEntry({ commit }, running_sheet_entry ) {
+            commit("updateAddRunningSheetEntry", running_sheet_entry);
+            //commit("updateRunningSheetEntriesDateFields")
         },
         setRunningSheetTransform({ commit }, running_sheet_transform ) {
             commit("updateRunningSheetTransform", running_sheet_transform);
         },
         setRunningSheetEntryDescription({ commit }, {recordNumber, description, userId}) {
             commit("updateRunningSheetEntryDescription", {recordNumber, description, userId})
+        },
+        async setDeleteRunningSheetEntry({state, dispatch, commit}, running_sheet_id) {
+            let returnedLegalCase = await Vue.http.post(
+                helpers.add_endpoint_join(
+                    api_endpoints.legal_case,
+                    state.legal_case.id + '/delete_running_sheet_entry/',
+                ),
+                running_sheet_id
+                );
+            console.log(returnedLegalCase)
+            await dispatch("setRunningSheetEntries", returnedLegalCase.body.running_sheet_entries);
+        },
+        async setReinstateRunningSheetEntry({state, dispatch, commit}, running_sheet_id) {
+            let returnedLegalCase = await Vue.http.post(
+                helpers.add_endpoint_join(
+                    api_endpoints.legal_case,
+                    state.legal_case.id + '/reinstate_running_sheet_entry/',
+                ),
+                running_sheet_id
+                );
+            console.log(returnedLegalCase)
+            await dispatch("setRunningSheetEntries", returnedLegalCase.body.running_sheet_entries);
         },
     },
 };
