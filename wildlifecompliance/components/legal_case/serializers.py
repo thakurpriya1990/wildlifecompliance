@@ -32,6 +32,7 @@ from wildlifecompliance.components.users.serializers import (
 #from django.contrib.auth.models import Permission, ContentType
 from reversion.models import Version
 #from datetime import datetime, timedelta, date
+from django.utils import timezone
 
 
 class LegalCasePrioritySerializer(serializers.ModelSerializer):
@@ -58,6 +59,7 @@ class LegalCasePersonSerializer(serializers.ModelSerializer):
 class RunningSheetEntryVersionSerializer(serializers.ModelSerializer):
     #serializable_value = serializers.JSONField()
     entry_fields = serializers.SerializerMethodField()
+    date_modified = serializers.SerializerMethodField()
     class Meta:
         model = Version
         #fields = '__all__'
@@ -66,13 +68,23 @@ class RunningSheetEntryVersionSerializer(serializers.ModelSerializer):
                 'revision',
                 'serialized_data',
                 'entry_fields',
+                'date_modified',
                 )
         read_only_fields = (
                 'id',
                 'revision',
                 'serialized_data',
                 'entry_fields',
+                'date_modified',
                 )
+
+    def get_date_modified(self, obj):
+        date_modified = None
+        modified_fields = obj.field_dict
+        if modified_fields.get('date_modified'):
+            date_modified_utc = modified_fields.get('date_modified')
+            date_modified = timezone.localtime(date_modified_utc)
+        return date_modified
 
     def get_entry_fields(self, obj):
         modified_fields = obj.field_dict
@@ -82,7 +94,8 @@ class RunningSheetEntryVersionSerializer(serializers.ModelSerializer):
             user_full_name = user_obj.get_full_name()
         modified_fields['user_full_name'] = user_full_name
         if modified_fields.get('date_modified'):
-            date_modified = modified_fields.get('date_modified')
+            date_modified_utc = modified_fields.get('date_modified')
+            date_modified = timezone.localtime(date_modified_utc)
             modified_fields['date_mod'] = date_modified.strftime('%d/%m/%Y')
             modified_fields['time_mod'] = date_modified.strftime('%I:%M:%S')
         else:
@@ -126,10 +139,15 @@ class LegalCaseRunningSheetEntrySerializer(serializers.ModelSerializer):
      #   return ['Delete', 'History']
 
     def get_date_mod(self, obj):
-        return obj.date_modified.strftime('%d/%m/%Y')
+        date_modified_loc = timezone.localtime(obj.date_modified)
+        return date_modified_loc.strftime('%d/%m/%Y')
 
     def get_time_mod(self, obj):
-        return obj.date_modified.strftime('%I:%M:%S')
+        date_modified_loc = timezone.localtime(obj.date_modified)
+        return date_modified_loc.strftime('%I:%M:%S')
+
+    #def get_time_mod(self, obj):
+     #   return obj.date_modified.strftime('%I:%M:%S')
 
     def get_versions(self, obj):
         #pass
