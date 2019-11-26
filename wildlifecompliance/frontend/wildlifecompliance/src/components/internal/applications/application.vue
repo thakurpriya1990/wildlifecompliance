@@ -688,7 +688,9 @@ export default {
             'current_user',
             'canAssignApproverFor',
             'canEditAssessmentFor',
-            'canRequestAmendmentFor'
+            'canRequestAmendmentFor',
+            'canAssignOfficerFor',
+            'canAssignAssessorFor',
         ]),
         applicationDetailsVisible: function() {
             return !this.isSendingToAssessor && !this.isofficerfinalisation && this.unfinishedActivities.length && !this.isOfficerConditions;
@@ -741,14 +743,15 @@ export default {
         },
         canProposeIssueOrDecline: function(){
             // Officer can propose without conditions.
-            if (this.selectedActivity.processing_status.id == 'with_officer' ) {
+            if (this.selectedActivity.processing_status.id === 'with_officer' && this.canAssignOfficerFor(this.selected_activity_tab_id)) {
                 let licenceActivity = this.licence_type_data.activity.find(activity => {
 
-                    return activity.id === this.selected_activity_tab_id                
-                })
-                licenceActivity.processing_status.id = 'with_officer_conditions'          
+                    return activity.id === this.selected_activity_tab_id
+                });
+                licenceActivity.processing_status.id = 'with_officer_conditions';
+                return true;
             }
-            return this.hasActivityStatus('with_officer_conditions', 1, 'licensing_officer');
+            return false;
         },
         contactsURL: function(){
             return this.application!= null ? helpers.add_endpoint_json(api_endpoints.organisations,this.application.org_applicant.id+'/contacts') : '';
@@ -781,16 +784,10 @@ export default {
             return this.application.character_check_status.id == 'accepted';
         },
         canAssignToOfficer: function(){
-            if(!this.userHasRole('licensing_officer')) {
-                return false;
-            }
-            return this.application && this.application.processing_status.id == 'under_review' && !this.isFinalised && !this.application.can_user_edit && this.application.user_in_licence_officers ? true : false;
+            return this.application && this.canAssignOfficerFor(this.selectedActivity.licence_activity)
         },
         canAssignToAssessor: function(){
-            if(!this.userHasRole('assessor')) {
-                return false;
-            }
-            return this.application && this.application.processing_status.id == 'under_review' && !this.isFinalised ? true : false;
+            return this.application && this.canAssignAssessorFor(this.selectedActivity.licence_activity)
         },
         userIsAssignedOfficer: function(){
             return this.current_user.id == this.selectedActivity.assigned_officer;

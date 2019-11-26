@@ -80,7 +80,27 @@ export const userStore = {
                     // verify activity status
                     && ['with_officer', 'with_officer_conditions'].includes(activity.processing_status.id)
             });          
-        },        
+        },
+        canAssignOfficerFor: (state, getters, rootState, rootGetters) => (activity_id) => {
+            return rootGetters.application.activities.find(activity => {
+
+                return activity.licence_activity === activity_id
+                    // verify user is authorised for activity.
+                    && getters.hasRole('licensing_officer', activity_id)
+                    // verify activity status
+                    && ['with_officer', 'with_officer_conditions'].includes(activity.processing_status.id)
+            });                    
+        },
+        canAssignAssessorFor: (state, getters, rootState, rootGetters) => (activity_id) => {
+            return rootGetters.application.activities.find(activity => {
+
+                return activity.licence_activity === activity_id
+                    // verify user is authorised for activity.
+                    && getters.hasRole('assessor', activity_id)
+                    // verify activity status
+                    && ['with_assessor'].includes(activity.processing_status.id)
+            });                    
+        },
     },
     mutations: {
         [UPDATE_SELECTED_TAB_ID] (state, tab_id) {
