@@ -569,9 +569,10 @@ export default {
       setRunningSheetEntries: 'setRunningSheetEntries',
       setRunningSheetEntryDescription: 'setRunningSheetEntryDescription',
       setRunningSheetTransform: 'setRunningSheetTransform',
-      setDeleteRunningSheetEntry: 'setDeleteRunningSheetEntry',
-      setReinstateRunningSheetEntry: 'setReinstateRunningSheetEntry',
+      //setDeleteRunningSheetEntry: 'setDeleteRunningSheetEntry',
+      //setReinstateRunningSheetEntry: 'setReinstateRunningSheetEntry',
       setAddRunningSheetEntry: 'setAddRunningSheetEntry',
+      setRunningSheetEntry: 'setRunningSheetEntry',
     }),
     ...mapActions({
         loadCurrentUser: 'loadCurrentUser',
@@ -633,6 +634,33 @@ export default {
         }
         console.log("constructRunningSheetTable - end")
     },
+    constructRunningSheetTableEntry: function( rowNumber ){
+        let actionColumn = !this.readonlyForm;
+        if (this.$refs.running_sheet_table && this.$refs.running_sheet_table.vmDataTable) {
+            console.log("constructRunningSheetTableEntry");
+            this.$refs.running_sheet_table.vmDataTable.rows().every((rowIdx, tableLoop, rowLoop) => {
+                let rowData = this.$refs.running_sheet_table.vmDataTable.row(rowIdx).data()
+                console.log(rowIdx)
+                console.log(rowData)
+                if (rowData.number === rowNumber) {
+                    let i = 0;
+                    for (let r of this.runningSheetUrl) {
+                        if (r.number === rowNumber) {
+                            rowData.date_mod = this.runningSheetUrl[rowIdx].date_mod;
+                            rowData.time_mod = this.runningSheetUrl[rowIdx].time_mod;
+                            rowData.user_full_name = this.runningSheetUrl[rowIdx].user_full_name;
+                            rowData.description = this.runningSheetUrl[rowIdx].description;
+                            rowData.deleted = this.runningSheetUrl[rowIdx].deleted;
+                            rowData.action = actionColumn;
+                            this.$refs.running_sheet_table.vmDataTable.row(rowIdx).invalidate().draw();
+                        }
+                        i += 1;
+                    }
+                }
+            });
+        }
+    },
+    /*
     constructRunningSheetTableEntry: function({ rowId, description, deleted }){
         console.log(description)
         console.log(deleted)
@@ -642,15 +670,11 @@ export default {
             if (description) {
                 tableRow.description = description
             }
-            /*
-            if (deleted) {
-                tableRow.deleted = deleted;
-            }
-            */
             tableRow.deleted = deleted;
             this.$refs.running_sheet_table.vmDataTable.row(rowId).invalidate().draw()
         }
     },
+    */
     createNewRunningSheetEntry: async function() {
         let payload = {
             "legal_case_id": this.legal_case.id,
@@ -778,11 +802,14 @@ export default {
                     r.description = recordDescription
                 }
                 if (redraw) {
+                    /*
                     this.constructRunningSheetTableEntry({
                         "rowId": i,
                         "description": r.description,
                         "deleted": r.deleted,
                     });
+                    */
+                    this.constructRunningSheetTableEntry( recordNumber );
                 }
             }
             i += 1;
@@ -991,13 +1018,17 @@ export default {
             //returnPayload.description = this.tokenToUrl(returnPayload.description);
             //this.runningSheetUrl.push(returnPayload);
             //is.constructRunningSheetTable(returnedEntry.body.id);
+            await this.setRunningSheetEntry(returnedEntry.body);
             let i = 0;
             for (let r of this.runningSheetUrl) {
                 if (r.number === rowNumber) {
-                    this.runningSheetUrl = _.cloneDeep(returnedEntry.body)
+                    this.runningSheetUrl.splice(i, 1, returnedEntry.body);
+                    this.runningSheetUrl[i].description = this.tokenToUrl(this.runningSheetUrl[i].description);
                 }
                 i += 1
             }
+            this.constructRunningSheetTableEntry(rowNumber);
+            
         }
         /*
         await this.setDeleteRunningSheetEntry({
@@ -1059,7 +1090,16 @@ export default {
             //let returnPayload = _.cloneDeep(updatedRunningSheet.body);
             //returnPayload.description = this.tokenToUrl(returnPayload.description);
             //this.runningSheetUrl.push(returnPayload);
-            this.constructRunningSheetTable(returnedEntry.body.id);
+            await this.setRunningSheetEntry(returnedEntry.body);
+            let i = 0;
+            for (let r of this.runningSheetUrl) {
+                if (r.number === rowNumber) {
+                    this.runningSheetUrl.splice(i, 1, returnedEntry.body);
+                    this.runningSheetUrl[i].description = this.tokenToUrl(this.runningSheetUrl[i].description);
+                }
+                i += 1
+            }
+            this.constructRunningSheetTableEntry(rowNumber);
         }
         /*
         await this.setReinstateRunningSheetEntry({

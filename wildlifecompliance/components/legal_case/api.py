@@ -685,12 +685,13 @@ class LegalCaseViewSet(viewsets.ModelViewSet):
                         data=request.data)
                 serializer.is_valid(raise_exception=True)
                 if serializer.is_valid():
-                    serializer.save()
-                    headers = self.get_success_headers(serializer.data)
+                    saved_instance = serializer.save()
+                    #headers = self.get_success_headers(serializer.data)
+                    return_serializer = LegalCaseRunningSheetEntrySerializer(saved_instance)
                     return Response(
-                            serializer.data,
+                            return_serializer.data,
                             #status=status.HTTP_201_CREATED,
-                            headers=headers
+                            #headers=headers
                             )
 
         except serializers.ValidationError:
@@ -721,12 +722,13 @@ class LegalCaseViewSet(viewsets.ModelViewSet):
                         data=request.data)
                 serializer.is_valid(raise_exception=True)
                 if serializer.is_valid():
-                    serializer.save()
-                    headers = self.get_success_headers(serializer.data)
+                    saved_instance = serializer.save()
+                    #headers = self.get_success_headers(serializer.data)
+                    return_serializer = LegalCaseRunningSheetEntrySerializer(saved_instance)
                     return Response(
-                            serializer.data,
+                            return_serializer.data,
                             #status=status.HTTP_201_CREATED,
-                            headers=headers
+                            #headers=headers
                             )
 
         except serializers.ValidationError:
