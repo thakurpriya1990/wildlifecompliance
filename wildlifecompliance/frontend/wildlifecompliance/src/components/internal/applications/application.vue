@@ -846,7 +846,6 @@ export default {
             'loadCurrentUser',
             'toggleFinalisedTabs',
             'saveFormData',
-            'revertApplication',
         ]),
         eventListeners: function(){
             let vm = this;
@@ -1264,7 +1263,7 @@ export default {
                 ), JSON.stringify(data)).then((response) => {
                     this.setApplication(response.body);
                 }, (error) => {
-                    this.revertApplication();
+                    this.revert();
                        swal(
                         'Application Error',
                         helpers.apiVueResourceError(error),
@@ -1287,7 +1286,7 @@ export default {
                     'success'
                     );               
             }, (error) => {
-                this.revertApplication();
+                this.revert();
                 swal(
                     'Application Error',
                     helpers.apiVueResourceError(error),

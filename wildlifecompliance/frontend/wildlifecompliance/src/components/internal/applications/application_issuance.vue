@@ -284,6 +284,10 @@ export default {
         },
     },
     methods:{
+        ...mapActions({
+            load: 'loadApplication',
+            revert: 'revertApplication',
+        }),
         ...mapActions([
             'setActivityTab'
         ]),
@@ -335,6 +339,7 @@ export default {
                                     helpers.apiVueResourceError(error),
                                     'error'
                                 )
+                                this.load({ url: `/api/application/${this.application.id}/internal_application.json` });
                             });
                 }
             },(error) => {
