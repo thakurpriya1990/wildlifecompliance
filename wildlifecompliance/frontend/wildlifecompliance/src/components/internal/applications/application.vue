@@ -1284,7 +1284,9 @@ export default {
                     'Complete Assessments',
                     'Assessments have been marked for completion.',
                     'success'
-                    );               
+                    );
+
+                this.$router.push({name:"internal-dash"});               
             }, (error) => {
                 this.revert();
                 swal(

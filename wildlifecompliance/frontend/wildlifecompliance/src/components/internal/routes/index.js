@@ -23,7 +23,8 @@ export default
     children: [
         {
             path: '/',
-            component: InternalDashboard
+            component: InternalDashboard,
+            name: 'internal-dash'
         },
         {
             path: 'licences',
