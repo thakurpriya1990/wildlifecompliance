@@ -607,10 +607,9 @@ export default {
                                     replace(/(?:\r\n|\r|\n|,)/g, '<br>')}</td>
                                 ${vm.is_external ? '' : activity['assigned_officer'] == null ?  `<td>&nbsp;</td>`: `<td>${activity['officer_name']}</td>`}    
                                 ${vm.is_external ? '' : `<td>${activity['processing_status']['name']}</td>`}
-                                <td>
-                                    ${activity['can_pay_licence_fee'] ?
+                                ${vm.is_external ? '' : `<td>${activity['can_pay_licence_fee'] ?
                                     `<a pay-licence-fee-for='${activity['id']}' application-id='${row.data()['id']}'>Pay licence fee</a>` : ''}
-                                </td>
+                                </td>`}
                             </tr>`;
                     });
                     // Generate html for child row
@@ -641,7 +640,7 @@ export default {
                                 <th class="width_55pc">Purposes</th>
                                 ${vm.is_external ? '' : '<th class="width_20pc">Assigned Officer</th>'}                            
                                 ${vm.is_external ? '' : '<th class="width_10pc">Status</th>'}
-                                <th class="width_10pc">Action</th>
+                                ${vm.is_external ? '' : '<th class="width_10pc">Action</th>'}
                             </tr>
                             ${activity_rows}
                         </table>`;
