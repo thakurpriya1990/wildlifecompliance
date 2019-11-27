@@ -308,7 +308,13 @@
                                             <label>Registration Holder:</label>
                                         </div>
                                         <div class="col-sm-9">
-                                            <RegistrationHolder :excludeStaff="true" :personOnly="true" :displayTitle="false" classNames="form-control" 
+                                            <RegistrationHolder 
+                                                :excludeStaff="true" 
+                                                :personOnly="true" 
+                                                :displayTitle="false" 
+                                                :isEditable="!readonlyForm" 
+                                                :parentEntity="registrationHolder"
+                                                classNames="form-control" 
                                                 @entity-selected="registrationHolderSelected" 
                                                 showCreateUpdate
                                                 ref="search_registration_holder"
@@ -319,7 +325,13 @@
                                             <label>Driver:</label>
                                         </div>
                                         <div class="col-sm-9">
-                                            <Driver :excludeStaff="true" :personOnly="true" :displayTitle="false" classNames="form-control" 
+                                            <Driver 
+                                                :excludeStaff="true" 
+                                                :personOnly="true" 
+                                                :displayTitle="false" 
+                                                :isEditable="!readonlyForm" 
+                                                :parentEntity="driver"
+                                                classNames="form-control" 
                                                 @entity-selected="driverSelected" 
                                                 showCreateUpdate
                                                 ref="search_driver"
@@ -573,6 +585,22 @@ export default {
         ...mapGetters('sanctionOutcomeStore', {
             sanction_outcome: "sanction_outcome",
         }),
+        registrationHolder: function() {
+            let entity = {}
+            if (this.sanction_outcome.registration_holder) {
+                entity.id = this.sanction_outcome.registration_holder.id;
+                entity.data_type = 'individual';
+            }
+            return entity;
+        },
+        driver: function() {
+            let entity = {}
+            if (this.sanction_outcome.driver) {
+                entity.id = this.sanction_outcome.driver.id;
+                entity.data_type = 'individual';
+            }
+            return entity;
+        },
         updateRegistrationHolderBindId: function() {
             this.registrationHolderId += 1
             return 'resigtrationHolderBindId' + this.registrationHolderBindId
@@ -811,9 +839,11 @@ export default {
             setCanUserAction: 'setCanUserAction',
             setRelatedItems: 'setRelatedItems',
         }),
-        driverSelected: function() {
+        driverSelected: function(data) {
+            console.log(data);
         },
-        registrationHolderSelected: function() {
+        registrationHolderSelected: function(data) {
+            console.log(data);
         },
         updateObjectHash: function() {
             this.objectHash = this.calculateHash();
