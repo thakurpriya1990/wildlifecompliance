@@ -162,7 +162,7 @@
                                             <button class="btn btn-primary top-buffer-s col-xs-12" @click.prevent="proposedDecline()">Propose Decline</button>
                                         </div>
                                     </div>                                    
-                                    <button v-show="showCompleteAssessmentsButton && isWithAssessor" @click.prevent="completeAssessmentsToMe()" class="btn btn-primary top-buffer-s col-xs-12" >Complete Assessments</button><br/>                                   
+                                    <button v-show="showCompleteAssessmentsButton" @click.prevent="completeAssessmentsToMe()" class="btn btn-primary top-buffer-s col-xs-12" >Complete Assessments</button><br/>                                   
                                 </template>
                             </div>
                         </div>
@@ -812,8 +812,11 @@ export default {
             return this.canReturnToConditions || (!this.applicationIsDraft && this.canSaveApplication)
         },
         showCompleteAssessmentsButton: function() {
-            // Show button when authorised for assessment.
-            return this.canEditAssessmentFor(this.selected_activity_tab_id)
+            return this.isWithAssessor && this.activeAssessments.find(assessment => {
+                // Only active assessments assigned to user.
+                return assessment.assigned_assessor
+                    && assessment.assigned_assessor.id === this.current_user.id;               
+            });
         },
         isWithAssessor: function() {
             return this.selectedActivity.processing_status.id === 'with_assessor' ? true : false;
@@ -821,7 +824,10 @@ export default {
         activeAssessments: function() {
             return this.application.assessments.filter(assessment => {
 
-                return assessment.status.id !== 'completed';
+                return assessment.status.id !== 'completed'
+                    && assessment.licence_activity === this.selected_activity_tab_id
+                    // Only assessor groups associated with user.
+                    && assessment.assessors.find(assessor => assessor.id === this.current_user.id);
             });
         }
     },
@@ -837,6 +843,7 @@ export default {
             'loadCurrentUser',
             'toggleFinalisedTabs',
             'saveFormData',
+            'revertApplication',
         ]),
         eventListeners: function(){
             let vm = this;
@@ -1264,9 +1271,12 @@ export default {
         },
         completeAssessmentsToMe: function(){
             let vm = this;
+            const data = {
+                "activity_id" : this.selectedActivity.licence_activity,
+            }
             this.setOriginalApplication(this.application);            
-            vm.$http.post(helpers.add_endpoint_json(api_endpoints.applications,(vm.application.id+'/complete_application_assessments')))
-                .then((response) => {
+            vm.$http.post(helpers.add_endpoint_json(api_endpoints.applications,(vm.application.id+'/complete_application_assessments')
+                ), JSON.stringify(data)).then((response) => {
                     this.setApplication(response.body);
                 swal(
                     'Complete Assessments',

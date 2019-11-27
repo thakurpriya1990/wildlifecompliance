@@ -1248,13 +1248,16 @@ class Application(RevisionedMixin):
     def complete_application_assessments_by_user(self, request):
         '''
         Method to complete all assessments which are assigned to the current
-        user or are unassigned within the current users permissions group.
+        user within the current users permissions group.
         '''
         with transaction.atomic():
             try:
+                activity_id = request.data.get('activity_id', None)
                 assessments = Assessment.objects.filter(
                     status=Assessment.STATUS_AWAITING_ASSESSMENT,
-                    application=self
+                    application=self,
+                    licence_activity=activity_id,
+                    actioned_by=request.user
                 )
 
                 # select each assessment on application.
@@ -1268,11 +1271,6 @@ class Application(RevisionedMixin):
                             first=True
                         )
                     if not assessor_group:
-                        continue
-
-                    # check assessment is not assigned to another.
-                    if assessment.assigned_assessor and \
-                            not assessment.assigned_assessor == request.user:
                         continue
 
                     assessment.status = Assessment.STATUS_COMPLETED

@@ -97,8 +97,8 @@ export const userStore = {
                 return activity.licence_activity === activity_id
                     // verify user is authorised for activity.
                     && getters.hasRole('assessor', activity_id)
-                    // verify activity status
-                    && ['with_assessor'].includes(activity.processing_status.id)
+                    // verify activity status.
+                    && ['with_assessor'].includes(activity.processing_status.id);
             });                    
         },
     },
