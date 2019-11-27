@@ -303,7 +303,7 @@ class SanctionOutcomeDatatableSerializer(serializers.ModelSerializer):
         payment_url = '<a href="#" data-pay-infringement-penalty="' + str(obj.id) + '">Pay</a>'
         record_payment_url = '<a href="/ledger/payments/invoice/payment?invoice=">Record Payment</a>'
 
-        if obj.status == SanctionOutcome.STATUS_CLOSED:
+        if obj.status in SanctionOutcome.FINAL_STATUSES:
             # if object is closed, no one can process but view
             url_list.append(view_url)
         else:
