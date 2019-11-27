@@ -307,14 +307,24 @@
                                         <div class="col-sm-3">
                                             <label>Registration Holder:</label>
                                         </div>
-                                        <div class="col-sm-6">
-
+                                        <div class="col-sm-9">
+                                            <RegistrationHolder :excludeStaff="true" :personOnly="true" :displayTitle="false" classNames="form-control" 
+                                                @entity-selected="registrationHolderSelected" 
+                                                showCreateUpdate
+                                                ref="search_registration_holder"
+                                                domIdHelper="registration_holder"
+                                                :key="updateRegistrationHolderBindId" />
                                         </div>
                                         <div class="col-sm-3">
                                             <label>Driver:</label>
                                         </div>
-                                        <div class="col-sm-6">
-
+                                        <div class="col-sm-9">
+                                            <Driver :excludeStaff="true" :personOnly="true" :displayTitle="false" classNames="form-control" 
+                                                @entity-selected="driverSelected" 
+                                                showCreateUpdate
+                                                ref="search_driver"
+                                                domIdHelper="driver"
+                                                :key="updateDriverBindId" />
                                         </div>
                                     </div></div>
                                 </FormSection>
@@ -393,6 +403,8 @@ import RecordFerCaseNumber from './record_fer_case_number.vue';
 import 'bootstrap/dist/css/bootstrap.css';
 import hash from 'object-hash';
 import RelatedItems from "@common-components/related_items.vue";
+import RegistrationHolder from "@common-components/search_person_or_organisation.vue";
+import Driver from "@common-components/search_person_or_organisation.vue";
 
 export default {
     name: 'ViewSanctionOutcome',
@@ -410,6 +422,8 @@ export default {
         vm.STATUS_WITHDRAWN = 'withdrawn'
 
         return {
+            registrationHolderId: 0,
+            driverId: 0,
             bindId: 0,
             temporary_document_collection_id: null,
             workflow_type :'',
@@ -539,6 +553,8 @@ export default {
         RelatedItems,
         ExtendPaymentDueDate,
         RecordFerCaseNumber,
+        RegistrationHolder,
+        Driver,
     },
     created: async function() {
         if (this.$route.params.sanction_outcome_id) {
@@ -557,6 +573,14 @@ export default {
         ...mapGetters('sanctionOutcomeStore', {
             sanction_outcome: "sanction_outcome",
         }),
+        updateRegistrationHolderBindId: function() {
+            this.registrationHolderId += 1
+            return 'resigtrationHolderBindId' + this.registrationHolderBindId
+        },
+        updateDriverBindId: function() {
+            this.driverId += 1
+            return 'driverBindId' + this.driverId
+        },
         last_due_date_1st: function() {
             let ret_value = null;
             if(this.sanction_outcome && this.sanction_outcome.due_dates && this.sanction_outcome.due_dates.length){
@@ -722,25 +746,11 @@ export default {
         },
         visibilityParkingInfringementSection: function() {
             let visibility = false;
-            if (this.sanction_outcome.can_user_action){
-                if (this.sanction_outcome.is_parking_offence){
-                    visibility = true;
-                }
+            if (this.sanction_outcome.is_parking_offence){
+                visibility = true;
             }
             return visibility;
         },
-       // visibilitySendToFinesEnforcementButton: function() {
-       //     let visibility = false;
-       //     if (this.sanction_outcome.can_user_action){
-       //         if (this.sanction_outcome.type.id == 'infringement_notice'){
-       //             if (this.sanction_outcome.status.id === this.STATUS_AWAITING_PAYMENT){
-       //                 // This is when Infringement Notice Coordinator sends this IN to fines enforcement
-       //                 visibility = true;
-       //             }
-       //         }
-       //     }
-       //     return visibility;
-       // },
         visibilityEscalateForWithdrawalButton: function() {
             let visibility = false;
             if (this.sanction_outcome.can_user_action){
@@ -801,6 +811,10 @@ export default {
             setCanUserAction: 'setCanUserAction',
             setRelatedItems: 'setRelatedItems',
         }),
+        driverSelected: function() {
+        },
+        registrationHolderSelected: function() {
+        },
         updateObjectHash: function() {
             this.objectHash = this.calculateHash();
         },

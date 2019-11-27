@@ -1,7 +1,7 @@
 <template lang="html">
     <div class="">
         <div class="col-sm-12 form-group"><div class="row">
-                <label class="col-sm-4">{{ labelTitle }}</label>
+                <label v-if="displayTitle" class="col-sm-4">{{ labelTitle }}</label>
                 <div v-if="!personOnly">
                     <input :disabled="!isEditable" class="col-sm-1" id="individual" type="radio" v-model="searchType" v-bind:value="`individual`">
                     <label class="col-sm-1" for="individual">Person</label>
@@ -202,6 +202,11 @@ export default {
             type: Boolean,
             required: false,
             default: false,
+        },
+        displayTitle: {
+            type: Boolean,
+            required: false,
+            default: true,
         },
     },
     methods: {
