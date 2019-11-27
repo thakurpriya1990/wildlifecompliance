@@ -38,12 +38,15 @@ class SanctionOutcomeExternalManager(models.Manager):
 
 
 class SanctionOutcome(models.Model):
+    # Workflow
     WORKFLOW_SEND_TO_MANAGER = 'send_to_manager'
     WORKFLOW_ENDORSE = 'endorse'
     WORKFLOW_DECLINE = 'decline'
     WORKFLOW_WITHDRAW_BY_MANAGER = 'withdraw_by_manager'
+    WORKFLOW_WITHDRAW_BY_BRANCH_MANAGER = 'withdraw_by_branch_manager'
     WORKFLOW_ESCALATE_FOR_WITHDRAWAL = 'escalate_for_withdrawal'  # INC: infringement notice coordinator
     WORKFLOW_RETURN_TO_OFFICER = 'return_to_officer'
+    WORKFLOW_RETURN_TO_INFRINGEMENT_NOTICE_COORDINATOR = 'return_to_infringement_notice_coordinator'
     WORKFLOW_CLOSE = 'close'
 
     PAYMENT_STATUS_UNPAID = 'unpaid'
@@ -52,6 +55,8 @@ class SanctionOutcome(models.Model):
         (PAYMENT_STATUS_PAID, 'Paid'),
         (PAYMENT_STATUS_UNPAID, 'Unpaid')
     )
+
+    # Status
     STATUS_DRAFT = 'draft'
     STATUS_AWAITING_ENDORSEMENT = 'awaiting_endorsement'
     STATUS_AWAITING_PAYMENT = 'awaiting_payment'
@@ -68,7 +73,9 @@ class SanctionOutcome(models.Model):
         (STATUS_OVERDUE, 'Overdue'),
         (STATUS_CLOSED, 'closed'),
     )
-    FINAL_STATUSES = (STATUS_DECLINED, STATUS_CLOSED, STATUS_WITHDRAWN,)
+    FINAL_STATUSES = (STATUS_DECLINED,
+                      STATUS_CLOSED,
+                      STATUS_WITHDRAWN,)
     STATUS_CHOICES = (
         (STATUS_DRAFT, 'Draft'),
         (STATUS_AWAITING_ENDORSEMENT, 'Awaiting Endorsement'),
@@ -78,6 +85,7 @@ class SanctionOutcome(models.Model):
         (STATUS_AWAITING_REMEDIATION_ACTIONS, 'Awaiting Remediation Actions'),  # TODO: implement pending closuer of SanctionOutcome with type RemediationActions
                                                                                 # This is pending closure status
                                                                                 # Once all the remediation actions are closed, this status should become closed...
+        (STATUS_ESCALATED_FOR_WITHDRAWAL, 'Escalated for Withdrawal'),
         (STATUS_DECLINED, 'Declined'),
         (STATUS_OVERDUE, 'Overdue'),
         (STATUS_WITHDRAWN, 'Withdrawn'),
@@ -266,13 +274,23 @@ class SanctionOutcome(models.Model):
             codename = 'officer'
             per_district = True
         elif workflow_type == SanctionOutcome.WORKFLOW_ESCALATE_FOR_WITHDRAWAL:
-            codename = 'branch_manager'
-            per_district = False
+            codename = 'manager'
+            # Manager group in Kensington is the branch manager group
+            region_district = RegionDistrict.objects.filter(district=RegionDistrict.DISTRICT_KENSINGTON)
+            per_district = True
         elif workflow_type == SanctionOutcome.WORKFLOW_WITHDRAW_BY_MANAGER:
             codename = 'manager'
             per_district = True
         elif workflow_type == SanctionOutcome.WORKFLOW_CLOSE:
             codename = '---'
+            per_district = False
+        elif workflow_type == SanctionOutcome.WORKFLOW_WITHDRAW_BY_BRANCH_MANAGER:
+            codename = 'manager'
+            # Manager group in Kensington is the branch manager group
+            region_district = RegionDistrict.objects.filter(district=RegionDistrict.DISTRICT_KENSINGTON)
+            per_district = True
+        elif workflow_type == SanctionOutcome.WORKFLOW_RETURN_TO_INFRINGEMENT_NOTICE_COORDINATOR:
+            codename = 'infringement_notice_coordinator'
             per_district = False
         else:
             # Should not reach here
@@ -382,7 +400,7 @@ class SanctionOutcome(models.Model):
         self.status = self.STATUS_ESCALATED_FOR_WITHDRAWAL
         new_group = SanctionOutcome.get_compliance_permission_group(self.regionDistrictId, SanctionOutcome.WORKFLOW_ESCALATE_FOR_WITHDRAWAL)
         self.allocated_group = new_group
-        self.log_user_action(SanctionOutcomeUserAction.ACTION_WITHDRAW.format(self.lodgement_number), request)
+        self.log_user_action(SanctionOutcomeUserAction.ACTION_ESCALATE_FOR_WITHDRAWAL.format(self.lodgement_number), request)
         self.save()
 
     def withdraw_by_namager(self, request):
@@ -390,6 +408,20 @@ class SanctionOutcome(models.Model):
         new_group = SanctionOutcome.get_compliance_permission_group(self.regionDistrictId, SanctionOutcome.WORKFLOW_WITHDRAW_BY_MANAGER)
         self.allocated_group = new_group
         self.log_user_action(SanctionOutcomeUserAction.ACTION_WITHDRAW.format(self.lodgement_number), request)
+        self.save()
+
+    def withdraw_by_branch_manager(self, request):
+        self.status = self.STATUS_WITHDRAWN
+        new_group = SanctionOutcome.get_compliance_permission_group(self.regionDistrictId, SanctionOutcome.WORKFLOW_WITHDRAW_BY_BRANCH_MANAGER)
+        self.allocated_group = new_group
+        self.log_user_action(SanctionOutcomeUserAction.ACTION_WITHDRAW.format(self.lodgement_number), request)
+        self.save()
+
+    def return_to_infringement_notice_coordinator(self, request):
+        self.status = self.STATUS_AWAITING_PAYMENT
+        new_group = SanctionOutcome.get_compliance_permission_group(self.regionDistrictId, SanctionOutcome.WORKFLOW_RETURN_TO_INFRINGEMENT_NOTICE_COORDINATOR)
+        self.allocated_group = new_group
+        self.log_user_action(SanctionOutcomeUserAction.ACTION_RETURN_TO_INFRINGEMENT_NOTICE_COORDINATOR.format(self.lodgement_number), request)
         self.save()
 
     def retrieve_penalty_amounts_by_date(self):
@@ -579,6 +611,7 @@ class SanctionOutcomeUserAction(models.Model):
     ACTION_ENDORSE = "Endorse Sanction Outcome {}"
     ACTION_DECLINE = "Decline Sanction Outcome {}"
     ACTION_RETURN_TO_OFFICER = "Request amendment for Sanction Outcome {}"
+    ACTION_RETURN_TO_INFRINGEMENT_NOTICE_COORDINATOR = "Return Sanction Outcome {} to Infringement Notice Coordinator"
     ACTION_WITHDRAW = "Withdraw Sanction Outcome {}"
     ACTION_CLOSE = "Close Sanction Outcome {}"
     ACTION_ADD_WEAK_LINK = "Create manual link between Sanction Outcome: {} and {}: {}"
@@ -588,6 +621,7 @@ class SanctionOutcomeUserAction(models.Model):
     ACTION_INCLUDE_ALLEGED_COMMITTED_OFFENCE = "Include alleged committed offence: {}"
     ACTION_EXTEND_DUE_DATE = "Extend due date of Sanction Outcome {}"
     ACTION_SEND_DETAILS_TO_INFRINGEMENT_NOTICE_COORDINATOR = "Send details of the Unpaid Infringement Notice {} to Infringement Notice Coordinator"
+    ACTION_ESCALATE_FOR_WITHDRAWAL = "Escalate Infringement Notice {} for withdrawal"
 
     who = models.ForeignKey(EmailUser, null=True, blank=True)
     when = models.DateTimeField(null=False, blank=False, auto_now_add=True)
