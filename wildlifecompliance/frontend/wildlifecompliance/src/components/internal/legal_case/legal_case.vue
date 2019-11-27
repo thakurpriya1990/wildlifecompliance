@@ -193,8 +193,12 @@
             <div class="navbar-inner">
                 <div class="container">
                     <p class="pull-right" style="margin-top:5px;">
-                        <input type="button" @click.prevent="save('exit')" class="btn btn-primary" value="Save and Exit"/>
-                        <input type="button" @click.prevent="save('noexit')" class="btn btn-primary" value="Save and Continue"/>
+                        <button v-if="showSpinner && showExit" type="button" @click.prevent="save('exit')" class="btn btn-primary">
+                            <i class="fa fa-spinner fa-spin"/> Saving</button>
+                        <button v-else type="button" @click.prevent="save('exit')" class="btn btn-primary" >Save and Exit</button>
+                        <button v-if="showSpinner && !showExit" type="button" @click.prevent="save('noexit')" class="btn btn-primary" >
+                            <i class="fa fa-spinner fa-spin"/> Saving</button>
+                        <button v-else type="button" @click.prevent="save('noexit')" class="btn btn-primary">Save and Continue</button>
                     </p>
                 </div>
             </div>
@@ -274,6 +278,8 @@ export default {
         return {
             //tempRunningSheet: [],
             uuid: 0,
+            showSpinner: false,
+            showExit: false,
             rowNumberSelected: '',
             runningSheetUrl: [],
             runningSheetEntriesUpdated: [],
@@ -757,6 +763,10 @@ export default {
       });
     },
     save: async function(returnToDash) {
+      this.showSpinner = true;
+      if (returnToDash === 'exit') {
+          this.showExit = true;
+      }      
       console.log(returnToDash)
       await this.runningSheetTransformWrapper();
       if (this.legal_case.id) {
@@ -776,6 +786,8 @@ export default {
           this.runningSheetEntriesUpdated = [];
           this.constructRunningSheetTableWrapper();
       }
+      this.showSpinner = false;
+      this.showExit = false;
     },
     magicMethod: function() {
         console.log("magic method");
@@ -991,6 +1003,7 @@ export default {
     },
     */
     runningSheetRowDelete: async function(e) {
+        this.showSpinner = true;
         console.log(e)
         let rowNumber = e.target.id.replace('D', '-');
         console.log(rowNumber)
@@ -1030,6 +1043,7 @@ export default {
             this.constructRunningSheetTableEntry(rowNumber);
             
         }
+        this.showSpinner = false;
         /*
         await this.setDeleteRunningSheetEntry({
             "running_sheet_id": running_sheet_id
@@ -1065,6 +1079,7 @@ export default {
         */
     },
     runningSheetRowReinstate: async function(e) {
+        this.showSpinner = true;
         console.log(e)
         let rowNumber = e.target.id.replace('R', '-');
         console.log(rowNumber)
@@ -1101,6 +1116,7 @@ export default {
             }
             this.constructRunningSheetTableEntry(rowNumber);
         }
+        this.showSpinner = false;
         /*
         await this.setReinstateRunningSheetEntry({
             "running_sheet_id": running_sheet_id
