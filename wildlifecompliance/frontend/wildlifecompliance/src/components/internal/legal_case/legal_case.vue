@@ -193,10 +193,10 @@
             <div class="navbar-inner">
                 <div class="container">
                     <p class="pull-right" style="margin-top:5px;">
-                        <button v-if="showSpinner && showExit" type="button" @click.prevent="save('exit')" class="btn btn-primary">
+                        <button v-if="showSpinner && showExit" disabled type="button" @click.prevent="save('exit')" class="btn btn-primary">
                             <i class="fa fa-spinner fa-spin"/> Saving</button>
                         <button v-else type="button" @click.prevent="save('exit')" class="btn btn-primary" >Save and Exit</button>
-                        <button v-if="showSpinner && !showExit" type="button" @click.prevent="save('noexit')" class="btn btn-primary" >
+                        <button v-if="showSpinner && !showExit" disabled type="button" @click.prevent="save('noexit')" class="btn btn-primary" >
                             <i class="fa fa-spinner fa-spin"/> Saving</button>
                         <button v-else type="button" @click.prevent="save('noexit')" class="btn btn-primary">Save and Continue</button>
                     </p>
