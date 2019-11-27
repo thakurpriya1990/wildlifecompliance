@@ -51,7 +51,7 @@
                                     </div>
                                 </div>
                             </div>
-                             <div class="col-sm-12 top-buffer-s" v-if="!canAssignApproverFor(selected_activity_tab_id)" >
+                             <div class="col-sm-12 top-buffer-s" v-if="!canAssignToApprover" >
                                 <strong>Assigned Officer</strong><br/>
                                 <div class="form-group">
                                     <template>
@@ -62,11 +62,11 @@
                                     </template>
                                 </div>
                             </div>
-                            <div class="col-sm-12 top-buffer-s" v-if="canAssignApproverFor(selected_activity_tab_id)" >
+                            <div class="col-sm-12 top-buffer-s" v-if="canAssignToApprover" >
                                 <strong>Assigned Approver</strong><br/>
                                 <div class="form-group">
                                     <template>
-                                        <select ref="assigned_approver" :disabled="!canAssignToOfficer" class="form-control" v-model="selectedActivity.assigned_approver" >
+                                        <select ref="assigned_approver" :disabled="!canAssignToApprover" class="form-control" v-model="selectedActivity.assigned_approver" >
                                             <option v-for="member in selectedActivity.issuing_officers" :value="member.id" v-bind:key="member.id">{{member.first_name}} {{member.last_name}}</option>
                                         </select>
                                         <a @click.prevent="makeMeApprover()" class="actionBtn pull-right">Assign to me</a>
@@ -788,6 +788,9 @@ export default {
         },
         canAssignToAssessor: function(){
             return this.application && this.canAssignAssessorFor(this.selectedActivity.licence_activity)
+        },
+        canAssignToApprover: function(){
+            return this.application && this.canAssignApproverFor(this.selectedActivity.licence_activity)
         },
         userIsAssignedOfficer: function(){
             return this.current_user.id == this.selectedActivity.assigned_officer;
