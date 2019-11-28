@@ -57,13 +57,6 @@
                                   </a>
                             </div>
                         </div>
-                        <!--div class="row action-button">
-                          <div v-if="canUserAction" class="col-sm-12">
-                                <a @click="addWorkflow('endorse')" class="btn btn-primary btn-block">
-                                  Witness Statement
-                                </a>
-                          </div>
-                        </div-->
                         <div class="row action-button">
                           <div v-if="canUserAction && offenceVisibility" class="col-sm-12">
                                 <a @click="openOffence()" class="btn btn-primary btn-block">
@@ -71,14 +64,6 @@
                                 </a>
                           </div>
                         </div>
-                        
-                        <!--div class="row action-button">
-                          <div v-if="canUserAction" class="col-sm-12">
-                                <a @click="addWorkflow('request_amendment')" class="btn btn-primary btn-block">
-                                  Interview
-                                </a>
-                          </div>
-                        </div-->
                         <div class="row action-button">
                           <div v-if="canUserAction" class="col-sm-12">
                                 <input 
@@ -88,9 +73,6 @@
                                 value="Sanction Outcome" 
                                 @click.prevent="openSanctionOutcome()" 
                                 />
-                                <!--a @click="openSanctionOutcome()" class="btn btn-primary btn-block">
-                                  Sanction Outcome
-                                </a-->
                           </div>
                         </div>
                         
@@ -203,9 +185,6 @@
                 </div>
             </div>
         </div>
-        <!--div v-if="workflow_type">
-          <InspectionWorkflow ref="add_workflow" :workflow_type="workflow_type" v-bind:key="workflowBindId" />
-        </div-->
         <div v-if="offenceInitialised">
             <Offence 
             ref="offence" 
@@ -276,7 +255,6 @@ export default {
     name: "ViewLegalCase",
     data: function() {
         return {
-            //tempRunningSheet: [],
             uuid: 0,
             showSpinner: false,
             showExit: false,
@@ -285,7 +263,6 @@ export default {
             runningSheetEntriesUpdated: [],
             runningSheetHistoryEntryBindId: '',
             runningSheetHistoryEntryInstance: '',
-            //runningSheetToken: [],
             objectHash: null,
             runTab: 'runTab'+this._uid,
             rTab: 'rTab'+this._uid,
@@ -344,44 +321,24 @@ export default {
                     {
                         mRender: function(data, type, row) {
                             let retStr = row.number;
-                            /*
-                            if (row.deleted) {
-                                retStr = '<strike>' + retStr + '</strike>';
-                            }
-                            */
                             return retStr;
                         }
                     },
                     {
                         mRender: function(data, type, row) {
                             let retStr = row.date_mod;
-                            /*
-                            if (row.deleted) {
-                                retStr = '<strike>' + retStr + '</strike>';
-                            }
-                            */
                             return retStr;
                         }
                     },
                     {
                         mRender: function(data, type, row) {
                             let retStr = row.time_mod;
-                            /*
-                            if (row.deleted) {
-                                retStr = '<strike>' + retStr + '</strike>';
-                            }
-                            */
                             return retStr;
                         }
                     },
                     {
                         mRender: function(data, type, row) {
                             let retStr = row.user_full_name;
-                            /*
-                            if (row.deleted) {
-                                retStr = '<strike>' + retStr + '</strike>';
-                            }
-                            */
                             return retStr;
                         }
                     },
@@ -389,7 +346,6 @@ export default {
                         mRender: function(data, type, row) {
                             let retStr = '';
                             retStr = `<div id=${row.number} style="min-height:20px" contenteditable="true">${row.description}</div>`
-                            //ret_str = `<span id=${row.number} contenteditable="true">${row.description}</span>`
                             if (row.deleted) {
                                 retStr = '<strike>' + 
                                     `<div id=${row.number} style="min-height:20px" contenteditable="false">${row.description}</div>`
@@ -402,23 +358,16 @@ export default {
                     {
                         visible: false,
                         mRender: function(data, type, row) {
-                            //console.log(row.number);
-                            //console.log(row.deleted);
                             return row.deleted;
                         }
                     },
                     {
                         mRender: function(data, type, row) {
-                            //console.log(row)
                             let retStr = '';
                             let rowIdDel = row.number.replace('-', 'D')
                             let rowIdHist = row.number.replace('-', 'H')
                             let rowIdReinstate = row.number.replace('-', 'R')
                             if (row.action) {
-                                /*
-                                retStr += '<a href="#" class="row_history">History</a><br/><br/>'
-                                retStr += '<a href="#" class="row_delete">Delete</a><br/>'
-                                */
                                 retStr += `<a id=${rowIdHist} class="row_history" href="#">History</a><br/><br/>`
                                 if (!row.deleted) {
                                     retStr += `<a id=${rowIdDel} class="row_delete" href="#">Delete</a><br/>`
@@ -427,17 +376,6 @@ export default {
                                 }
 
                             }
-
-                            //let ret_str = row.allegedOffence.number_linked_sanction_outcomes_active + '(' + row.allegedOffence.number_linked_sanction_outcomes_total + ')';
-                            //if (row.offence.in_editable_status && row.offence.can_user_action){
-                            //    if (row.allegedOffence.removed){
-                            //        ret_str = ret_str + '<a href="#" class="restore_button" data-alleged-offence-uuid="' + row.allegedOffence.uuid + '">Restore</a>';
-                            //    } else {
-                            //        if (!row.allegedOffence.number_linked_sanction_outcomes_active){
-                            //            ret_str = ret_str + '<a href="#" class="remove_button" data-alleged-offence-uuid="' + row.allegedOffence.uuid + '">Remove</a>';
-                            //        }
-                            //    }
-                            //}
                             return retStr;
 
                         }
@@ -462,8 +400,6 @@ export default {
   computed: {
     ...mapGetters('legalCaseStore', {
       legal_case: "legal_case",
-      //running_sheet_list: "running_sheet_list",
-      //running_sheet_obj: "running_sheet_obj",
     }),
     ...mapGetters({
         current_user: 'current_user'
@@ -483,7 +419,6 @@ export default {
             readonly = !this.legal_case.can_user_action;
         }
         return readonly
-        //return false
     },
     canUserAction: function() {
         let return_val = false
@@ -534,29 +469,21 @@ export default {
     },
     searchPersonOrganisationBindId: function() {
         let search_person_organisation_id = ''
-        //let timeNow = Date.now()
-        //this.uuid += 1
         search_person_organisation_id = 'search_person_organisation_' + parseInt(this.uuid);
         return search_person_organisation_id;
     },
     offenceBindId: function() {
         let offence_bind_id = ''
-        //let timeNow = Date.now()
-        //this.uuid += 1
         offence_bind_id = 'offence' + parseInt(this.uuid);
         return offence_bind_id;
     },
     sanctionOutcomeBindId: function() {
         let sanction_outcome_bind_id = ''
-        //let timeNow = Date.now()
-        //this.uuid += 1
         sanction_outcome_bind_id = 'sanction_outcome' + parseInt(this.uuid);
         return sanction_outcome_bind_id;
     },
     inspectionBindId: function() {
         let inspection_bind_id = ''
-        //let timeNow = Date.now()
-        //this.uuid += 1
         inspection_bind_id = 'inspection' + parseInt(this.uuid);
         return inspection_bind_id;
     },
@@ -575,8 +502,6 @@ export default {
       setRunningSheetEntries: 'setRunningSheetEntries',
       setRunningSheetEntryDescription: 'setRunningSheetEntryDescription',
       setRunningSheetTransform: 'setRunningSheetTransform',
-      //setDeleteRunningSheetEntry: 'setDeleteRunningSheetEntry',
-      //setReinstateRunningSheetEntry: 'setReinstateRunningSheetEntry',
       setAddRunningSheetEntry: 'setAddRunningSheetEntry',
       setRunningSheetEntry: 'setRunningSheetEntry',
     }),
@@ -666,21 +591,6 @@ export default {
             });
         }
     },
-    /*
-    constructRunningSheetTableEntry: function({ rowId, description, deleted }){
-        console.log(description)
-        console.log(deleted)
-        if (this.$refs.running_sheet_table && this.$refs.running_sheet_table.vmDataTable) {
-            console.log("constructRunningSheetTableEntry");
-            let tableRow = this.$refs.running_sheet_table.vmDataTable.row(rowId).data()
-            if (description) {
-                tableRow.description = description
-            }
-            tableRow.deleted = deleted;
-            this.$refs.running_sheet_table.vmDataTable.row(rowId).invalidate().draw()
-        }
-    },
-    */
     createNewRunningSheetEntry: async function() {
         let payload = {
             "legal_case_id": this.legal_case.id,
@@ -699,23 +609,6 @@ export default {
             this.runningSheetUrl.push(returnPayload);
             this.constructRunningSheetTable(returnPayload.id);
         }
-        /*
-        if (updatedRunningSheet.body && updatedRunningSheet.body.running_sheet_entries){
-        //if (updatedRunningSheet.body){
-            await this.setRunningSheetEntries(updatedRunningSheet.body.running_sheet_entries);
-            this.runningSheetUrl = _.cloneDeep(this.legal_case.running_sheet_entries);
-            // TODO: refactor this & created section into common method
-            let i = 0;
-            for (let r of this.legal_case.running_sheet_entries) {
-                let description = this.tokenToUrl(r.description)
-                this.runningSheetUrl[i].description = description;
-                i += 1;
-            }
-            this.$nextTick(() => {
-                this.constructRunningSheetTable();
-            });
-        }
-        */
     },
     openInspection() {
       this.uuid += 1;
@@ -814,13 +707,6 @@ export default {
                     r.description = recordDescription
                 }
                 if (redraw) {
-                    /*
-                    this.constructRunningSheetTableEntry({
-                        "rowId": i,
-                        "description": r.description,
-                        "deleted": r.deleted,
-                    });
-                    */
                     this.constructRunningSheetTableEntry( recordNumber );
                 }
             }
@@ -838,7 +724,6 @@ export default {
                 this.runningSheetEntriesUpdated.push(recordNumber);
             }
         }
-        //let recordDescriptionHtml = e.target.innerHTML;
         const ignoreArray = [49, 50, 16]
         if (ignoreArray.includes(e.which)) {
             //pass
@@ -889,7 +774,6 @@ export default {
     },
     urlToToken: function(description) {
         let parsedText = description;
-        //const personUrlRegex = /<a contenteditable\=\"false\" target\=\"\_blank\" href\=\"\/internal\/users\/\d+\"\>\w+\s\w+\<\/a\>/g
         const personUrlRegex = /<a contenteditable\=\"false\" target\=\"\_blank\" href\=\"\/internal\/users\/\d+\"\>\w+(\s\w+)*\<\/a\>/g
         const personIdRegex = /\/internal\/users\/\d+/g
         const personNameRegex = /\/internal\/users\/\d+\"\>\w+(\s\w+)*/g
@@ -916,7 +800,6 @@ export default {
         let parsedText = description;
         const personTokenRegex = /\{\{ \"person\_id\"\: \"\d+\"\, \"full\_name\"\: \"\w+(\s\w+)*\" \}\}/g;
         const personIdRegex = /\{\{ \"person\_id\"\: \"\d+/g;
-        //const personNameRegex = /\{\{ \"person\_id\"\: \"\d+\"\, \"full\_name\"\: \"\w+ \w+/g;
         const personNameRegex = /\"full\_name\"\: \"\w+ \w+/g;
         let personTokenArray = [...description.matchAll(personTokenRegex)];
         for (let personToken of personTokenArray) {
@@ -976,32 +859,6 @@ export default {
       window.addEventListener('beforeunload', this.leaving);
       window.addEventListener('onblur', this.leaving);
     },
-    /*
-    addTeamMember: async function() {
-        await this.modifyInspectionTeam({
-            user_id: this.teamMemberSelected, 
-            action: 'add'
-        });
-    },
-    
-    runningSheetClickWrapper: function(e) {
-        console.log(e)
-        let rawId = e.target.id
-        let delRegex = /CS\d+\_\d+/g
-        let histRegex = /CS\d+\^\d+/g
-        let delArray = rawId.match(delRegex);
-        let histArray = rawId.match(histRegex);
-        if (delArray && delArray.length > 0) {
-            console.log(delArray);
-            let rowNumber = delArray[0].replace('_', '-');
-            this.runningSheetRowDelete(rowNumber);
-        } else if (histArray && histArray.length > 0) {
-            console.log(histArray);
-            let rowNumber = histArray[0].replace('^', '-');
-            this.runningSheetRowHistory(rowNumber);
-        }
-    },
-    */
     runningSheetRowDelete: async function(e) {
         this.showSpinner = true;
         console.log(e)
@@ -1025,12 +882,7 @@ export default {
             }
             );
         if (returnedEntry.ok) {
-            console.log(returnedEntry)
-            //await this.setAddRunningSheetEntry(updatedRunningSheet.body);
-            //let returnPayload = _.cloneDeep(updatedRunningSheet.body);
-            //returnPayload.description = this.tokenToUrl(returnPayload.description);
-            //this.runningSheetUrl.push(returnPayload);
-            //is.constructRunningSheetTable(returnedEntry.body.id);
+            // required for running_sheet_history
             await this.setRunningSheetEntry(returnedEntry.body);
             let i = 0;
             for (let r of this.runningSheetUrl) {
@@ -1044,39 +896,6 @@ export default {
             
         }
         this.showSpinner = false;
-        /*
-        await this.setDeleteRunningSheetEntry({
-            "running_sheet_id": running_sheet_id
-        });
-        // read deleted value from Vuex
-        let i = 0;
-        for (let r of this.legal_case.running_sheet_entries) {
-            if (r.number === rowNumber) {
-                //let description = this.tokenToUrl(r.description)
-                console.log(rowNumber)
-                console.log(r.number)
-                console.log(r.deleted)
-                if (r.deleted) {
-                    // write updated deleted value to runningSheetUrl
-                    let ii = 0;
-                    for (let rr of this.runningSheetUrl) {
-                        if (rr.number === rowNumber) {
-                            this.runningSheetUrl[ii].deleted = true;
-                        }
-                        ii += 1;
-                    }
-                }
-            }
-            i += 1;
-        }
-        this.$nextTick(() => {
-            this.updateRunningSheetUrlEntry({
-                  "recordNumber": rowNumber,
-                  "recordDescription": null,
-                  "redraw": true
-            });
-        });
-        */
     },
     runningSheetRowReinstate: async function(e) {
         this.showSpinner = true;
@@ -1101,10 +920,7 @@ export default {
             }
             );
         if (returnedEntry.ok) {
-            //await this.setAddRunningSheetEntry(updatedRunningSheet.body);
-            //let returnPayload = _.cloneDeep(updatedRunningSheet.body);
-            //returnPayload.description = this.tokenToUrl(returnPayload.description);
-            //this.runningSheetUrl.push(returnPayload);
+            // required for running_sheet_history
             await this.setRunningSheetEntry(returnedEntry.body);
             let i = 0;
             for (let r of this.runningSheetUrl) {
@@ -1117,40 +933,6 @@ export default {
             this.constructRunningSheetTableEntry(rowNumber);
         }
         this.showSpinner = false;
-        /*
-        await this.setReinstateRunningSheetEntry({
-            "running_sheet_id": running_sheet_id
-        });
-        
-        // read deleted value from Vuex
-        let i = 0;
-        for (let r of this.legal_case.running_sheet_entries) {
-            if (r.number === rowNumber) {
-                //let description = this.tokenToUrl(r.description)
-                console.log(rowNumber)
-                console.log(r.number)
-                console.log(r.deleted)
-                if (!r.deleted) {
-                    // write updated deleted value to runningSheetUrl
-                    let ii = 0;
-                    for (let rr of this.runningSheetUrl) {
-                        if (rr.number === rowNumber) {
-                            this.runningSheetUrl[ii].deleted = false;
-                        }
-                        ii += 1;
-                    }
-                }
-            }
-            i += 1;
-        }
-        this.$nextTick(() => {
-            this.updateRunningSheetUrlEntry({
-                  "recordNumber": rowNumber,
-                  "recordDescription": null,
-                  "redraw": true
-            });
-        });
-        */
     },
     runningSheetRowHistory: function(e) {
         console.log(e)
