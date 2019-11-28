@@ -796,11 +796,15 @@ class SanctionOutcomeViewSet(viewsets.ModelViewSet):
                 elif workflow_type == SanctionOutcome.WORKFLOW_ENDORSE:
                     instance.endorse(request)
 
-                    # Email to the offender, and bcc to the respoinsible officer
-                    to_address = [instance.offender.person.email,]
-                    cc = None
-                    bcc = [instance.responsible_officer.email, request.user.email,]
-                    email_data = send_infringement_notice(to_address, instance, workflow_entry, request, cc, bcc)
+                    if instance.is_parking_offence:
+                        pass
+                        # TODO: Send email to Dot with attachment
+                    else:
+                        # Email to the offender, and bcc to the respoinsible officer
+                        to_address = [instance.offender.person.email, ]
+                        cc = None
+                        bcc = [instance.responsible_officer.email, request.user.email,]
+                        email_data = send_infringement_notice(to_address, instance, workflow_entry, request, cc, bcc)
 
                 elif workflow_type == SanctionOutcome.WORKFLOW_RETURN_TO_OFFICER:
                     if not reason:

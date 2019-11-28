@@ -46,7 +46,7 @@ class Command(BaseCommand):
                 logger.info('{} unpaid infringement notice(s) found.'.format(str(count)))
 
                 if count:
-                    # Generate CSV file
+                    # START: Generate CSV file
                     strIO = StringIO()
                     fieldnames = ['Infringement Number', 'Offence Date/Time', ]
                     writer = csv.writer(strIO)
@@ -58,6 +58,7 @@ class Command(BaseCommand):
                     strIO.flush()
                     strIO.seek(0)
                     _file = strIO
+                    # END: Generate CSV file
 
                     dt = datetime.datetime.now().strftime('%Y/%m/%d %H:%M:%S')
 
