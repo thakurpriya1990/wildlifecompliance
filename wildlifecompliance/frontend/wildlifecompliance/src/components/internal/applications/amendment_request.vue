@@ -85,6 +85,7 @@ export default {
             'application_id',
             'licenceActivities',
             'hasRole',
+            'canRequestAmendmentFor',
         ]),
         showError: function() {
             var vm = this;
@@ -96,7 +97,8 @@ export default {
                 'with_assessor',
                 'with_officer_conditions'
             ]).filter(
-                activity => this.hasRole('licensing_officer', activity.id)
+                // filter on activity user is authorised for.
+                activity => { return this.canRequestAmendmentFor(activity.id) }
             );
         }
     },

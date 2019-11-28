@@ -81,6 +81,8 @@ export const userStore = {
                     && getters.hasRole('licensing_officer', activity_id)
                     // verify activity status
                     && ['with_officer', 'with_officer_conditions'].includes(activity.processing_status.id)
+                    // verify current user is associated.
+                    && activity.licensing_officers.find(officer => officer.id === getters.current_user.id);
             });          
         },
         canAssignOfficerFor: (state, getters, rootState, rootGetters) => (activity_id) => {
