@@ -592,6 +592,9 @@ export default {
         }
     },
     createNewRunningSheetEntry: async function() {
+        // save changes to running sheet
+        await this.save('internal')
+        // add new entry and add to datatable
         let payload = {
             "legal_case_id": this.legal_case.id,
             "user_id": this.current_user.id,
@@ -655,21 +658,26 @@ export default {
         this.$refs.legal_case_workflow.isModalOpen = true;
       });
     },
-    save: async function(returnToDash) {
+    save: async function(para) {
       this.showSpinner = true;
-      if (returnToDash === 'exit') {
+      if (para === 'exit') {
           this.showExit = true;
       }      
-      console.log(returnToDash)
+      console.log(para)
       await this.runningSheetTransformWrapper();
-      if (this.legal_case.id) {
+      //if (this.legal_case.id) {
+      if (para === 'internal') {
+          await this.saveLegalCase({ create: false, internal: true });
+      } else {
           await this.saveLegalCase({ create: false, internal: false });
+      }
+      /*
       } else {
           await this.saveLegalCase({ create: true, internal: false });
       }
-      // TODO: add hash list etc
+      */
       this.calculateHash();
-      if (returnToDash === 'exit') {
+      if (para === 'exit') {
         // remove redundant eventListeners
         window.removeEventListener('beforeunload', this.leaving);
         window.removeEventListener('onblur', this.leaving);

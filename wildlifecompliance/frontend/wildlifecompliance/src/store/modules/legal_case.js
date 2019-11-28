@@ -139,7 +139,7 @@ export const legalCaseStore = {
             }
             // internal arg used when file upload triggers record creation
             if (internal) {
-                console.log("modal file create")
+                // pass
             }
             // update legal_case
             else if (!create) {
