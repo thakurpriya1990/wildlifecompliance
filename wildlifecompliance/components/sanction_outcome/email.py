@@ -1,6 +1,8 @@
 import logging
 import traceback
+from io import BytesIO
 
+from django.core.files import File
 from django.core.mail import EmailMultiAlternatives, EmailMessage
 from django.utils.encoding import smart_text
 from django.core.urlresolvers import reverse
@@ -14,6 +16,7 @@ from wildlifecompliance.components.emails.emails import TemplateEmailBase
 from wildlifecompliance.components.main.email import prepare_attachments, _extract_email_headers
 import os
 
+from wildlifecompliance.components.sanction_outcome.models import SanctionOutcomeCommsLogDocument
 from wildlifecompliance.components.sanction_outcome.pdf import create_infringement_notice_pdf_bytes
 from wildlifecompliance.components.users.models import CompliancePermissionGroup
 
@@ -107,7 +110,6 @@ def send_infringement_notice(to_address, sanction_outcome, workflow_entry, reque
         'workflow_entry_details': request.data.get('details'),
     }
 
-    # TODO: attach infringement notice
     pdf = create_infringement_notice_pdf_bytes('infringement_notice.pdf', sanction_outcome)
     msg = email.send(to_address,
                      context=context,
@@ -118,6 +120,11 @@ def send_infringement_notice(to_address, sanction_outcome, workflow_entry, reque
                      )
     sender = request.user if request else settings.DEFAULT_FROM_EMAIL
     email_data = _extract_email_headers(msg, sender=sender)
+
+    file_obj = File(BytesIO(pdf))
+    temp = SanctionOutcomeCommsLogDocument(log_entry=workflow_entry, _file=file_obj, name='infringement_notice_{}.pdf'.format(sanction_outcome.lodgement_number))
+    temp.save()
+
     return email_data
 
 

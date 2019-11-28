@@ -463,5 +463,12 @@ class SanctionOutcomeCommsLogEntrySerializer(CommunicationLogEntrySerializer):
         )
 
     def get_documents(self, obj):
-        return [[d.name, d._file.url] for d in obj.documents.all()]
+        docs = []
+        for d in obj.documents.all():
+            if d._file:
+                docs.append([d.name, d._file.url])
+            else:
+                docs.append([d.name, '/sanction_outcome/pdf/' + str(obj.sanction_outcome.id)])
+        return docs
+        # return [[d.name, d._file.url] for d in obj.documents.all()]
 

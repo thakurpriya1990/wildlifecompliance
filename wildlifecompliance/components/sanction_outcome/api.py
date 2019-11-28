@@ -30,7 +30,7 @@ from wildlifecompliance.components.sanction_outcome.email import send_infringeme
     send_withdraw_by_branch_manager_email, send_return_to_infringement_notice_coordinator_email, send_decline_email, \
     send_escalate_for_withdrawal_email
 from wildlifecompliance.components.sanction_outcome.models import SanctionOutcome, RemediationAction, \
-    SanctionOutcomeCommsLogEntry, AllegedCommittedOffence, SanctionOutcomeUserAction
+    SanctionOutcomeCommsLogEntry, AllegedCommittedOffence, SanctionOutcomeUserAction, SanctionOutcomeCommsLogDocument
 from wildlifecompliance.components.sanction_outcome.serializers import SanctionOutcomeSerializer, \
     SaveSanctionOutcomeSerializer, SaveRemediationActionSerializer, SanctionOutcomeDatatableSerializer, \
     UpdateAssignedToIdSerializer, SanctionOutcomeCommsLogEntrySerializer, SanctionOutcomeUserActionSerializer, \
@@ -805,6 +805,7 @@ class SanctionOutcomeViewSet(viewsets.ModelViewSet):
                         cc = None
                         bcc = [instance.responsible_officer.email, request.user.email,]
                         email_data = send_infringement_notice(to_address, instance, workflow_entry, request, cc, bcc)
+
 
                 elif workflow_type == SanctionOutcome.WORKFLOW_RETURN_TO_OFFICER:
                     if not reason:
