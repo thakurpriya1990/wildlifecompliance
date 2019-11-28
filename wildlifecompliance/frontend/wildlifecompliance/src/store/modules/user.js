@@ -56,9 +56,11 @@ export const userStore = {
             // This function also checks authorisation.
             return rootGetters.application.activities.find(activity => {
 
-                return activity.licence_activity === activity_id && 
-                        ['with_officer_finalisation', 'awaiting_licence_fee_payment'].includes(activity.processing_status.id) &&
-                        getters.hasRole('issuing_officer', activity_id)
+                return activity.licence_activity === activity_id 
+                    && ['with_officer_finalisation', 'awaiting_licence_fee_payment'].includes(activity.processing_status.id) 
+                    && getters.hasRole('issuing_officer', activity_id)
+                    // verify current user is associated.
+                    && activity.issuing_officers.find(officer => officer.id === getters.current_user.id);
             })                    
         },
         canEditAssessmentFor: (state, getters, rootState, rootGetters) => (activity_id) => {
@@ -85,10 +87,12 @@ export const userStore = {
             return rootGetters.application.activities.find(activity => {
 
                 return activity.licence_activity === activity_id
-                    // verify user is authorised for activity.
+                    // verify role exist for activity.
                     && getters.hasRole('licensing_officer', activity_id)
-                    // verify activity status
+                    // verify activity status.
                     && ['with_officer', 'with_officer_conditions'].includes(activity.processing_status.id)
+                    // verify current user is associated.
+                    && activity.licensing_officers.find(officer => officer.id === getters.current_user.id);
             });                    
         },
         canAssignAssessorFor: (state, getters, rootState, rootGetters) => (activity_id) => {
