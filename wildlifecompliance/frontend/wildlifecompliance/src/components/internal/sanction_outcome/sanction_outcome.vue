@@ -312,7 +312,7 @@
                                                 :excludeStaff="true" 
                                                 :personOnly="true" 
                                                 :displayTitle="false" 
-                                                :isEditable="!readonlyForm" 
+                                                :isEditable="canUserEditParkingDetails" 
                                                 :parentEntity="registrationHolder"
                                                 classNames="form-control" 
                                                 @entity-selected="registrationHolderSelected" 
@@ -329,7 +329,7 @@
                                                 :excludeStaff="true" 
                                                 :personOnly="true" 
                                                 :displayTitle="false" 
-                                                :isEditable="!readonlyForm" 
+                                                :isEditable="canUserEditParkingDetails" 
                                                 :parentEntity="driver"
                                                 classNames="form-control" 
                                                 @entity-selected="driverSelected" 
@@ -653,6 +653,15 @@ export default {
             }
             return canUserEdit;
         },
+        canUserEditParkingDetails: function() {
+            let canUserEdit = false;
+            if (this.sanction_outcome.can_user_action){
+                if (this.sanction_outcome.status.id === this.STATUS_AWAITING_PAYMENT){
+                    canUserEdit = true;
+                }
+            }
+            return canUserEdit;
+        },
         statusDisplay: function() {
             let ret = '';
             if (this.sanction_outcome){
@@ -731,6 +740,9 @@ export default {
             let visibility = false;
             if (this.sanction_outcome.can_user_action){
                 if (this.sanction_outcome.status.id === this.STATUS_DRAFT || this.sanction_outcome.status.id === this.STATUS_AWAITING_AMENDMENT){
+                    visibility = true;
+                }
+                if (this.canUserEditParkingDetails){
                     visibility = true;
                 }
             }
@@ -838,12 +850,18 @@ export default {
             setAssignedToId: 'setAssignedToId',
             setCanUserAction: 'setCanUserAction',
             setRelatedItems: 'setRelatedItems',
+            setRegistrationHolder: 'setRegistrationHolder',
+            setDriver: 'setDriver',
         }),
         driverSelected: function(data) {
+            console.log('driverSelected');
             console.log(data);
+            this.setDriver(data);
         },
         registrationHolderSelected: function(data) {
+            console.log('registrationHolderSelected');
             console.log(data);
+            this.setRegistrationHolder(data);
         },
         updateObjectHash: function() {
             this.objectHash = this.calculateHash();

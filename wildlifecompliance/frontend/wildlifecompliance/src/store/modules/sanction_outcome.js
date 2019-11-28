@@ -45,6 +45,16 @@ export const sanctionOutcomeStore = {
         updateRelatedItems(state, related_items) {
             Vue.set(state.sanction_outcome, 'related_items', related_items);
         },
+        updateRegistrationHolder(state, data) {
+            if (data.data_type === 'individual') {
+                Vue.set(state.sanction_outcome, 'registration_holder_id', data.id);
+            }
+        },
+        updateDriver(state, data) {
+            if (data.data_type === 'individual') {
+                Vue.set(state.sanction_outcome, 'driver_id', data.id);
+            }
+        },
     },
     actions: {
         async loadSanctionOutcome({ dispatch, }, { sanction_outcome_id }) {
@@ -63,6 +73,12 @@ export const sanctionOutcomeStore = {
                 console.log(err);
             }
         },
+        setRegistrationHolder({ commit, }, data) {
+            commit("updateRegistrationHolder", data);
+        },
+        setDriver({ commit, }, data) {
+            commit("updateDriver", data);
+        },
         async saveSanctionOutcome({ dispatch, state }) {
             console.log('saveSanctionOutcome');
             // Construct url endpoint
@@ -79,6 +95,8 @@ export const sanctionOutcomeStore = {
             // format 'type'
             payload.type = payload.type.id;
 
+            console.log('payload');
+            console.log(payload);
             let savedSanctionOutcome = await Vue.http.put(putUrl, payload);
 
             // Update sanction outcome in the vuex store

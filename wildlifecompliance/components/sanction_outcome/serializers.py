@@ -5,6 +5,7 @@ from rest_framework import serializers
 from rest_framework.validators import UniqueTogetherValidator
 
 from ledger.payments.helpers import is_payment_admin
+from wildlifecompliance.components.inspection.serializers import IndividualSerializer
 from wildlifecompliance.components.main.fields import CustomChoiceField
 from wildlifecompliance.components.main.related_item import get_related_items
 from wildlifecompliance.components.main.serializers import CommunicationLogEntrySerializer
@@ -116,6 +117,8 @@ class SanctionOutcomeSerializer(serializers.ModelSerializer):
     paper_notices = serializers.SerializerMethodField()
     due_dates = serializers.SerializerMethodField()
     is_parking_offence = serializers.ReadOnlyField()
+    registration_holder = IndividualSerializer()
+    driver= IndividualSerializer()
 
     class Meta:
         model = SanctionOutcome
@@ -149,6 +152,10 @@ class SanctionOutcomeSerializer(serializers.ModelSerializer):
             'due_date_extended_max',
             'due_dates',
             'is_parking_offence',
+            'registration_holder',
+            'driver',
+            'registration_holder_id',
+            'driver_id',
         )
 
     def get_due_dates(self, obj):
@@ -360,6 +367,8 @@ class SaveSanctionOutcomeSerializer(serializers.ModelSerializer):
     region_id = serializers.IntegerField(required=False, write_only=True, allow_null=True)
     district_id = serializers.IntegerField(required=False, write_only=True, allow_null=True)
     allocated_group_id = serializers.IntegerField(required=False, write_only=True, allow_null=True)
+    registration_holder_id = serializers.IntegerField(required=False, write_only=True, allow_null=True)
+    driver_id = serializers.IntegerField(required=False, write_only=True, allow_null=True)
 
     class Meta:
         model = SanctionOutcome
@@ -377,6 +386,8 @@ class SaveSanctionOutcomeSerializer(serializers.ModelSerializer):
             'description',
             'date_of_issue',
             'time_of_issue',
+            'registration_holder_id',
+            'driver_id',
         )
 
     def validate(self, data):
