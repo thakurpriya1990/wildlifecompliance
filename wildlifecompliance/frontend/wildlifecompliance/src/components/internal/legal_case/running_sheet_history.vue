@@ -38,7 +38,6 @@ import Vue from "vue";
 import modal from '@vue-utils/bootstrap-modal.vue';
 import { mapState, mapGetters, mapActions, mapMutations } from "vuex";
 import { api_endpoints, helpers, cache_helper } from "@/utils/hooks";
-//import filefield from '@/components/common/compliance_file.vue';
 import { required, minLength, between } from 'vuelidate/lib/validators'
 import datatable from '@vue-utils/datatable.vue'
 
@@ -67,41 +66,24 @@ export default {
                     {
                         visible: false,
                         mRender: function(data, type, row) {
-                            //console.log(row.number);
-                            //console.log(row.deleted);
                             return row.date_modified;
                         }
                     },
                     {
                         mRender: function(data, type, row) {
                             let retStr = row.date_mod;
-                            /*
-                            if (row.deleted) {
-                                retStr = '<strike>' + retStr + '</strike>';
-                            }
-                            */
                             return retStr;
                         }
                     },
                     {
                         mRender: function(data, type, row) {
                             let retStr = row.time_mod;
-                            /*
-                            if (row.deleted) {
-                                retStr = '<strike>' + retStr + '</strike>';
-                            }
-                            */
                             return retStr;
                         }
                     },
                     {
                         mRender: function(data, type, row) {
                             let retStr = row.user_full_name;
-                            /*
-                            if (row.deleted) {
-                                retStr = '<strike>' + retStr + '</strike>';
-                            }
-                            */
                             return retStr;
                         }
                     },
@@ -109,7 +91,6 @@ export default {
                         mRender: function(data, type, row) {
                             let retStr = '';
                             retStr = `<div id=${row.number} style="min-height:20px" contenteditable="false">${row.description}</div>`
-                            //ret_str = `<span id=${row.number} contenteditable="true">${row.description}</span>`
                             if (row.deleted) {
                                 retStr = '<strike>' + retStr + '</strike>';
                             }
@@ -120,8 +101,6 @@ export default {
                     {
                         visible: false,
                         mRender: function(data, type, row) {
-                            //console.log(row.number);
-                            //console.log(row.deleted);
                             return row.deleted;
                         }
                     },
@@ -158,7 +137,6 @@ export default {
             let parsedText = description;
             const personTokenRegex = /\{\{ \"person\_id\"\: \"\d+\"\, \"full\_name\"\: \"\w+(\s\w+)*\" \}\}/g;
             const personIdRegex = /\{\{ \"person\_id\"\: \"\d+/g;
-            //const personNameRegex = /\{\{ \"person\_id\"\: \"\d+\"\, \"full\_name\"\: \"\w+ \w+/g;
             const personNameRegex = /\"full\_name\"\: \"\w+ \w+/g;
             let personTokenArray = [...description.matchAll(personTokenRegex)];
             for (let personToken of personTokenArray) {
@@ -214,8 +192,6 @@ export default {
         },
     },
     created: async function() {
-      //this.runningSheetHist = _.cloneDeep(this.legal_case.running_sheet_entries);
-      //let i = 0;
         for (let r of this.legal_case.running_sheet_entries) {
           if (r.number === this.runningSheetHistoryEntryInstance && r.versions && r.versions.length > 0) {
               for (let rr of r.versions) {

@@ -74,6 +74,7 @@ from wildlifecompliance.components.legal_case.serializers import (
         SaveLegalCaseRunningSheetEntrySerializer,
         LegalCaseRunningSheetSerializer,
         LegalCaseRunningSheetEntrySerializer,
+        DeleteReinstateLegalCaseRunningSheetEntrySerializer,
         )
 from wildlifecompliance.components.users.models import (
     CompliancePermissionGroup,    
@@ -676,18 +677,22 @@ class LegalCaseViewSet(viewsets.ModelViewSet):
             instance = self.get_object()
             print(request.data)
             running_sheet_id = request.data.get("running_sheet_id")
+            deleted = request.data.get("deleted")
             if running_sheet_id:
                 running_sheet_instance = LegalCaseRunningSheetEntry.objects.get(id=running_sheet_id)
-                is_deleted = running_sheet_instance.delete_entry()
-                if is_deleted:
-                    running_sheet_instance.save()
-
-            return_serializer = LegalCaseRunningSheetSerializer(instance)
-            return Response(
-                    return_serializer.data,
-                    #status=status.HTTP_201_CREATED,
-                    #headers=headers
-                    )
+                serializer = DeleteReinstateLegalCaseRunningSheetEntrySerializer(
+                        instance=running_sheet_instance, 
+                        data=request.data)
+                serializer.is_valid(raise_exception=True)
+                if serializer.is_valid():
+                    saved_instance = serializer.save()
+                    #headers = self.get_success_headers(serializer.data)
+                    return_serializer = LegalCaseRunningSheetEntrySerializer(saved_instance)
+                    return Response(
+                            return_serializer.data,
+                            #status=status.HTTP_201_CREATED,
+                            #headers=headers
+                            )
 
         except serializers.ValidationError:
             print(traceback.print_exc())
@@ -709,18 +714,22 @@ class LegalCaseViewSet(viewsets.ModelViewSet):
             instance = self.get_object()
             print(request.data)
             running_sheet_id = request.data.get("running_sheet_id")
+            deleted = request.data.get("deleted")
             if running_sheet_id:
                 running_sheet_instance = LegalCaseRunningSheetEntry.objects.get(id=running_sheet_id)
-                is_reinstated = running_sheet_instance.reinstate_entry()
-                if is_reinstated:
-                    running_sheet_instance.save()
-
-            return_serializer = LegalCaseRunningSheetSerializer(instance)
-            return Response(
-                    return_serializer.data,
-                    #status=status.HTTP_201_CREATED,
-                    #headers=headers
-                    )
+                serializer = DeleteReinstateLegalCaseRunningSheetEntrySerializer(
+                        instance=running_sheet_instance, 
+                        data=request.data)
+                serializer.is_valid(raise_exception=True)
+                if serializer.is_valid():
+                    saved_instance = serializer.save()
+                    #headers = self.get_success_headers(serializer.data)
+                    return_serializer = LegalCaseRunningSheetEntrySerializer(saved_instance)
+                    return Response(
+                            return_serializer.data,
+                            #status=status.HTTP_201_CREATED,
+                            #headers=headers
+                            )
 
         except serializers.ValidationError:
             print(traceback.print_exc())
