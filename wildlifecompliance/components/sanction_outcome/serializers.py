@@ -468,7 +468,9 @@ class SanctionOutcomeCommsLogEntrySerializer(CommunicationLogEntrySerializer):
             if d._file:
                 docs.append([d.name, d._file.url])
             else:
-                docs.append([d.name, '/sanction_outcome/pdf/' + str(obj.sanction_outcome.id)])
+                if d.name:
+                    # If there is d.name but no d._file, we expect that which is infringement notice pdf file
+                    docs.append([d.name, '/sanction_outcome/pdf/' + str(obj.sanction_outcome.id)])
         return docs
         # return [[d.name, d._file.url] for d in obj.documents.all()]
 

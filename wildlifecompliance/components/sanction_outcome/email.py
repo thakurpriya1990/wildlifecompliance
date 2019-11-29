@@ -109,8 +109,9 @@ def send_infringement_notice(to_address, sanction_outcome, workflow_entry, reque
         'sanction_outcome': sanction_outcome,
         'workflow_entry_details': request.data.get('details'),
     }
+    pdf_file_name = 'infringement_notice_{}.pdf'.format(sanction_outcome.lodgement_number)
 
-    pdf = create_infringement_notice_pdf_bytes('infringement_notice.pdf', sanction_outcome)
+    pdf = create_infringement_notice_pdf_bytes(pdf_file_name, sanction_outcome)
     msg = email.send(to_address,
                      context=context,
                      # attachments=prepare_attachments(workflow_entry.documents),
@@ -121,8 +122,8 @@ def send_infringement_notice(to_address, sanction_outcome, workflow_entry, reque
     sender = request.user if request else settings.DEFAULT_FROM_EMAIL
     email_data = _extract_email_headers(msg, sender=sender)
 
-    file_obj = File(BytesIO(pdf))
-    temp = SanctionOutcomeCommsLogDocument(log_entry=workflow_entry, _file=file_obj, name='infringement_notice_{}.pdf'.format(sanction_outcome.lodgement_number))
+    # Create SanctionOutcomeCommsLogDocument object so that the link to the infringement notice file can be created in the comms log
+    temp = SanctionOutcomeCommsLogDocument(log_entry=workflow_entry, _file=File(BytesIO()), name=pdf_file_name)
     temp.save()
 
     return email_data
