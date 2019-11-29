@@ -1,6 +1,8 @@
 import logging
 import traceback
+from io import BytesIO
 
+from django.core.files import File
 from django.core.mail import EmailMultiAlternatives, EmailMessage
 from django.utils.encoding import smart_text
 from django.core.urlresolvers import reverse
@@ -14,6 +16,8 @@ from wildlifecompliance.components.emails.emails import TemplateEmailBase
 from wildlifecompliance.components.main.email import prepare_attachments, _extract_email_headers
 import os
 
+from wildlifecompliance.components.sanction_outcome.models import SanctionOutcomeCommsLogDocument
+from wildlifecompliance.components.sanction_outcome.pdf import create_infringement_notice_pdf_bytes
 from wildlifecompliance.components.users.models import CompliancePermissionGroup
 
 logger = logging.getLogger(__name__)
@@ -105,14 +109,23 @@ def send_infringement_notice(to_address, sanction_outcome, workflow_entry, reque
         'sanction_outcome': sanction_outcome,
         'workflow_entry_details': request.data.get('details'),
     }
+    pdf_file_name = 'infringement_notice_{}.pdf'.format(sanction_outcome.lodgement_number)
+
+    pdf = create_infringement_notice_pdf_bytes(pdf_file_name, sanction_outcome)
     msg = email.send(to_address,
                      context=context,
-                     attachments=prepare_attachments(workflow_entry.documents),
+                     # attachments=prepare_attachments(workflow_entry.documents),
+                     attachments=[('infringement_notice.pdf', pdf, 'application/pdf')],
                      cc=cc,
                      bcc=bcc,
                      )
     sender = request.user if request else settings.DEFAULT_FROM_EMAIL
     email_data = _extract_email_headers(msg, sender=sender)
+
+    # Create SanctionOutcomeCommsLogDocument object so that the link to the infringement notice file can be created in the comms log
+    temp = SanctionOutcomeCommsLogDocument(log_entry=workflow_entry, _file=File(BytesIO()), name=pdf_file_name)
+    temp.save()
+
     return email_data
 
 

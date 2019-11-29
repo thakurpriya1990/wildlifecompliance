@@ -132,6 +132,9 @@ class SanctionOutcome(models.Model):
     # Updated whenever the sanction outcome is sent to the manager
     responsible_officer = models.ForeignKey(EmailUser, related_name='sanction_outcome_responsible_officer', null=True)
 
+    registration_holder = models.ForeignKey(EmailUser, related_name='sanction_outcome_registration_holder', blank=True, null=True)
+    driver = models.ForeignKey(EmailUser, related_name='sanction_outcome_driver', blank=True, null=True)
+
     # Only editable when issued on paper. Otherwise pre-filled with date/time when issuing electronically.
     date_of_issue = models.DateField(null=True, blank=True)
     time_of_issue = models.TimeField(null=True, blank=True)

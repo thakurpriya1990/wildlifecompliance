@@ -107,6 +107,15 @@ def is_compliance_internal_user(request):
     return request.user.is_authenticated() and (belongs_to_list(
         request.user, compliance_groups) or request.user.is_superuser)
 
+def is_able_to_view_sanction_outcome_pdf(user):
+    compliance_groups = [group.name for group in CompliancePermissionGroup.objects.filter(
+        permissions__codename__in=['officer',
+                                   'infringement_notice_coordinator',
+                                   'manager'])]
+    return user.is_authenticated() and (belongs_to_list(
+        user, compliance_groups) or user.is_superuser)
+
+
 def get_all_officers():
     licence_officer_groups = ActivityPermissionGroup.objects.filter(
             permissions__codename__in=['organisation_access_request',

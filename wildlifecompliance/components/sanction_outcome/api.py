@@ -30,7 +30,7 @@ from wildlifecompliance.components.sanction_outcome.email import send_infringeme
     send_withdraw_by_branch_manager_email, send_return_to_infringement_notice_coordinator_email, send_decline_email, \
     send_escalate_for_withdrawal_email
 from wildlifecompliance.components.sanction_outcome.models import SanctionOutcome, RemediationAction, \
-    SanctionOutcomeCommsLogEntry, AllegedCommittedOffence, SanctionOutcomeUserAction
+    SanctionOutcomeCommsLogEntry, AllegedCommittedOffence, SanctionOutcomeUserAction, SanctionOutcomeCommsLogDocument
 from wildlifecompliance.components.sanction_outcome.serializers import SanctionOutcomeSerializer, \
     SaveSanctionOutcomeSerializer, SaveRemediationActionSerializer, SanctionOutcomeDatatableSerializer, \
     UpdateAssignedToIdSerializer, SanctionOutcomeCommsLogEntrySerializer, SanctionOutcomeUserActionSerializer, \
@@ -371,53 +371,10 @@ class SanctionOutcomeViewSet(viewsets.ModelViewSet):
                             else:
                                 instance.log_user_action(SanctionOutcomeUserAction.ACTION_REMOVE_ALLEGED_COMMITTED_OFFENCE.format(existing_aco.alleged_offence), request)
 
-                # for existing_aco in AllegedCommittedOffence.objects.filter(sanction_outcome=instance):
-                #     for new_aco in request_data.get('alleged_committed_offences', {}):
-                #         if existing_aco.id == new_aco.get('id'):
-
-                            # existing alleged committed offence (existing_aco) is being modified
-                            # to the new alleged committed offence (new_aco)
-                            # if existing_aco.included:
-                            #     if not existing_aco.removed and new_aco.get('removed'):
-                            #         # when existing alleged committed offence is going to be removed
-                            #         serializer = AllegedCommittedOffenceSerializer(existing_aco, data={'removed': True, 'removed_by_id': request.user.id})
-                            #         serializer.is_valid(raise_exception=True)
-                            #         serializer.save()
-                            #         instance.log_user_action(SanctionOutcomeUserAction.ACTION_REMOVE_ALLEGED_COMMITTED_OFFENCE.format(existing_aco.alleged_offence), request)
-                            #
-                            #     elif existing_aco.removed and not new_aco.get('removed'):
-                            #         # When restore removed alleged committed offence again
-                            #         existing = AllegedCommittedOffence.objects.filter(sanction_outcome=instance,
-                            #                                                           alleged_offence=existing_aco.alleged_offence,
-                            #                                                           included=True,
-                            #                                                           removed=False)
-                            #         if not existing:
-                            #             # There are no active same alleged offences
-                            #             serializer = AllegedCommittedOffenceCreateSerializer(data={'sanction_outcome_id': instance.id, 'alleged_offence_id': existing_aco.alleged_offence.id,})
-                            #             serializer.is_valid(raise_exception=True)
-                            #             serializer.save()
-                            #             instance.log_user_action(SanctionOutcomeUserAction.ACTION_RESTORE_ALLEGED_COMMITTED_OFFENCE.format(existing_aco.alleged_offence), request)
-                            #
-                            # elif not existing_aco.included and new_aco.get('included'):
-                            #     # when new alleged committed offence is going to be included
-                            #     serializer = AllegedCommittedOffenceSerializer(existing_aco, data={'included': True})
-                            #     serializer.is_valid(raise_exception=True)
-                            #     serializer.save()
-                            #     instance.log_user_action(SanctionOutcomeUserAction.ACTION_INCLUDE_ALLEGED_COMMITTED_OFFENCE.format(existing_aco.alleged_offence), request)
-
                 instance.log_user_action(SanctionOutcomeUserAction.ACTION_SAVE.format(instance), request)
-
-                # Save remediation action, and link to the sanction outcome
 
                 # Return
                 return self.retrieve(request)
-                # headers = self.get_success_headers(serializer.data)
-                # return_serializer = SanctionOutcomeSerializer(instance, context={'request': request})
-                # return Response(
-                #     return_serializer.data,
-                #     status=status.HTTP_200_OK,
-                #     headers=headers
-                # )
 
         except serializers.ValidationError:
             print(traceback.print_exc())
@@ -494,8 +451,13 @@ class SanctionOutcomeViewSet(viewsets.ModelViewSet):
                     except:
                         pass  # Should not reach here
 
+                # Validate if alleged offences are selected
                 if count_alleged_offences == 0:
                     raise serializers.ValidationError(['No alleged offences selected.'])
+
+                # Validate if an offender is selected
+                if not instance.offender and not instance.is_parking_offence:
+                    raise serializers.ValidationError(['An offender must be selected.'])
 
                 for id in request_data['alleged_offence_ids_excluded']:
                     try:
@@ -794,13 +756,17 @@ class SanctionOutcomeViewSet(viewsets.ModelViewSet):
                         pass
 
                 elif workflow_type == SanctionOutcome.WORKFLOW_ENDORSE:
-                    instance.endorse(request)
+                    if instance.is_parking_offence:
+                        pass
+                        # TODO: Send email to Dot with attachment
+                    else:
+                        instance.endorse(request)
+                        # Email to the offender, and bcc to the respoinsible officer
+                        to_address = [instance.offender.person.email, ]
+                        cc = None
+                        bcc = [instance.responsible_officer.email, request.user.email,]
+                        email_data = send_infringement_notice(to_address, instance, workflow_entry, request, cc, bcc)
 
-                    # Email to the offender, and bcc to the respoinsible officer
-                    to_address = [instance.offender.person.email,]
-                    cc = None
-                    bcc = [instance.responsible_officer.email, request.user.email,]
-                    email_data = send_infringement_notice(to_address, instance, workflow_entry, request, cc, bcc)
 
                 elif workflow_type == SanctionOutcome.WORKFLOW_RETURN_TO_OFFICER:
                     if not reason:
