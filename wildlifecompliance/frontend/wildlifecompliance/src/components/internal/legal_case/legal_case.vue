@@ -727,16 +727,14 @@ export default {
         let recordDescriptionText = e.target.textContent
         let recordDescriptionHtml = e.target.innerHTML.replace(/\&nbsp\;/g, ' ');
         // add recordNumber to runningSheetEntriesUpdated
-        for (let r of this.runningSheetUrl) {
-            if (!(recordNumber === r.number)) {
-                this.runningSheetEntriesUpdated.push(recordNumber);
-            }
+        if (!this.runningSheetEntriesUpdated.includes(recordNumber)) {
+            this.runningSheetEntriesUpdated.push(recordNumber);
         }
+
         const ignoreArray = [49, 50, 16]
         if (ignoreArray.includes(e.which)) {
             //pass
         } else {
-            let i = 0;
             for (let r of this.runningSheetUrl) {
                 if (r.number === recordNumber) {
                     this.updateRunningSheetUrlEntry({
@@ -747,7 +745,6 @@ export default {
                     this.searchPersonKeyPressed = false;
                     this.searchObjectKeyPressed = false;
                 }
-                i += 1;
             }
         }
     },

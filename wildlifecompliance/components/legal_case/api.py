@@ -354,16 +354,13 @@ class LegalCaseViewSet(viewsets.ModelViewSet):
     #    return Response(serializer.data)
 
 
-    #@detail_route(methods=['PUT', ])
     @renderer_classes((JSONRenderer,))
-    #def inspection_save(self, request, workflow=False, *args, **kwargs):
     def update(self, request, workflow=False, *args, **kwargs):
-        print(request.content_type)
-        print(request.data)
         try:
             with transaction.atomic():
+                instance = self.get_object()
                 running_sheet_entries = request.data.get('running_sheet_transform')
-                running_sheet_saved = None
+                #running_sheet_saved = None
                 if running_sheet_entries and len(running_sheet_entries) > 0:
                     for entry in running_sheet_entries:
                         entry_copy = dict(entry)
@@ -377,13 +374,12 @@ class LegalCaseViewSet(viewsets.ModelViewSet):
                         running_sheet_entry_serializer.is_valid(raise_exception=True)
                         if running_sheet_entry_serializer.is_valid():
                             running_sheet_entry_serializer.save()
-                    running_sheet_saved = True
+                    #running_sheet_saved = True
 
                 create_new_running_sheet_entry = request.data.get('create_new_running_sheet_entry')
                 if create_new_running_sheet_entry:
-                    self.create_running_sheet_entry(request)
+                    self.create_running_sheet_entry(request, instance)
 
-                instance = self.get_object()
                 serializer = SaveLegalCaseSerializer(instance, data=request.data)
                 serializer.is_valid(raise_exception=True)
                 if serializer.is_valid():
@@ -748,13 +744,8 @@ class LegalCaseViewSet(viewsets.ModelViewSet):
             print(traceback.print_exc())
             raise serializers.ValidationError(str(e))
 
-
-    #@detail_route(methods=['POST'])
-    #@renderer_classes((JSONRenderer,))
-    def create_running_sheet_entry(self, request, *args, **kwargs):
+    def create_running_sheet_entry(self, request, instance, *args, **kwargs):
         try:
-            instance = self.get_object()
-
             request_data = {
                             "legal_case_id": instance.id,
                             "user_id": request.user.id
@@ -768,11 +759,6 @@ class LegalCaseViewSet(viewsets.ModelViewSet):
                 print(serializer.validated_data)
                 running_sheet_entry = serializer.save()
                 return running_sheet_entry
-                #return_serializer = LegalCaseRunningSheetEntrySerializer(running_sheet_entry)
-                #return Response(
-                #        return_serializer.data,
-                #        status=status.HTTP_201_CREATED,
-                #        )
 
         except serializers.ValidationError:
             print(traceback.print_exc())
