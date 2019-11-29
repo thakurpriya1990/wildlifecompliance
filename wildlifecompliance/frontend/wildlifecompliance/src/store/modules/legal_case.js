@@ -101,9 +101,6 @@ export const legalCaseStore = {
             }
         },
         async saveLegalCase({ dispatch, state, rootGetters }, { create, internal, createNewRow }) {
-            console.log(create)
-            console.log(internal)
-            console.log(createNewRow)
             let legalCaseId = null;
             let savedLegalCase = null;
             try {
