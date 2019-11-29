@@ -177,10 +177,10 @@
                     <p class="pull-right" style="margin-top:5px;">
                         <button v-if="showSpinner && showExit" disabled type="button" @click.prevent="save('exit')" class="btn btn-primary">
                             <i class="fa fa-spinner fa-spin"/> Saving</button>
-                        <button v-else type="button" @click.prevent="save('exit')" class="btn btn-primary" >Save and Exit</button>
+                        <button v-else type="button" @click.prevent="saveExit()" class="btn btn-primary" >Save and Exit</button>
                         <button v-if="showSpinner && !showExit" disabled type="button" @click.prevent="save('noexit')" class="btn btn-primary" >
                             <i class="fa fa-spinner fa-spin"/> Saving</button>
-                        <button v-else type="button" @click.prevent="save('noexit')" class="btn btn-primary">Save and Continue</button>
+                        <button v-else type="button" @click.prevent="save()" class="btn btn-primary">Save and Continue</button>
                     </p>
                 </div>
             </div>
@@ -593,7 +593,8 @@ export default {
     },
     createNewRunningSheetEntry: async function() {
         // save changes to running sheet
-        await this.save('internal')
+        await this.save({ "createNewRow": true})
+        /*
         // add new entry and add to datatable
         let payload = {
             "legal_case_id": this.legal_case.id,
@@ -612,6 +613,7 @@ export default {
             this.runningSheetUrl.push(returnPayload);
             this.constructRunningSheetTable(returnPayload.id);
         }
+        */
     },
     openInspection() {
       this.uuid += 1;
@@ -658,26 +660,24 @@ export default {
         this.$refs.legal_case_workflow.isModalOpen = true;
       });
     },
-    save: async function(para) {
+    saveExit: async function() {
+        await this.save({ "returnToDash": true })
+    },
+    save: async function({ returnToDash=false, createNewRow=false } = {}) {
       this.showSpinner = true;
-      if (para === 'exit') {
+      if (returnToDash) {
           this.showExit = true;
       }      
-      console.log(para)
       await this.runningSheetTransformWrapper();
       //if (this.legal_case.id) {
-      if (para === 'internal') {
-          await this.saveLegalCase({ create: false, internal: true });
+      if (createNewRow) {
+          //await this.saveLegalCase({ create: false, internal: true, createNewRow: true });
+          await this.saveLegalCase({ internal: true, createNewRow: true });
       } else {
-          await this.saveLegalCase({ create: false, internal: false });
+          await this.saveLegalCase({ internal: false });
       }
-      /*
-      } else {
-          await this.saveLegalCase({ create: true, internal: false });
-      }
-      */
       this.calculateHash();
-      if (para === 'exit') {
+      if (returnToDash) {
         // remove redundant eventListeners
         window.removeEventListener('beforeunload', this.leaving);
         window.removeEventListener('onblur', this.leaving);
