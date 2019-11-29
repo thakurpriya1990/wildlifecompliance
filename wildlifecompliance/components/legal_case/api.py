@@ -379,11 +379,16 @@ class LegalCaseViewSet(viewsets.ModelViewSet):
                             running_sheet_entry_serializer.save()
                     running_sheet_saved = True
 
+                create_new_running_sheet_entry = request.data.get('create_new_running_sheet_entry')
+                if create_new_running_sheet_entry:
+                    self.create_running_sheet_entry(request)
+
                 instance = self.get_object()
                 serializer = SaveLegalCaseSerializer(instance, data=request.data)
                 serializer.is_valid(raise_exception=True)
-                if serializer.is_valid() and \
-                    (not running_sheet_entries or (running_sheet_entries and running_sheet_saved)):
+                if serializer.is_valid():
+                    # TODO: review this logic
+                    # and (not running_sheet_entries or (running_sheet_entries and running_sheet_saved)):
                     serializer.save()
                     instance.log_user_action(
                             LegalCaseUserAction.ACTION_SAVE_LEGAL_CASE.format(
@@ -744,8 +749,8 @@ class LegalCaseViewSet(viewsets.ModelViewSet):
             raise serializers.ValidationError(str(e))
 
 
-    @detail_route(methods=['POST'])
-    @renderer_classes((JSONRenderer,))
+    #@detail_route(methods=['POST'])
+    #@renderer_classes((JSONRenderer,))
     def create_running_sheet_entry(self, request, *args, **kwargs):
         try:
             instance = self.get_object()
@@ -762,18 +767,12 @@ class LegalCaseViewSet(viewsets.ModelViewSet):
                 print("serializer.validated_data")
                 print(serializer.validated_data)
                 running_sheet_entry = serializer.save()
-                #instance.log_user_action(
-                #        LegalCaseUserAction.ACTION_SAVE_LEGAL_CASE.format(
-                #        instance.number), request)
-                #headers = self.get_success_headers(serializer.data)
-                #return_serializer = LegalCaseRunningSheetSerializer(instance, context={'request': request})
-                #return_serializer = LegalCaseRunningSheetSerializer(instance)
-                return_serializer = LegalCaseRunningSheetEntrySerializer(running_sheet_entry)
-                return Response(
-                        return_serializer.data,
-                        status=status.HTTP_201_CREATED,
-                        #headers=headers
-                        )
+                return running_sheet_entry
+                #return_serializer = LegalCaseRunningSheetEntrySerializer(running_sheet_entry)
+                #return Response(
+                #        return_serializer.data,
+                #        status=status.HTTP_201_CREATED,
+                #        )
 
         except serializers.ValidationError:
             print(traceback.print_exc())
