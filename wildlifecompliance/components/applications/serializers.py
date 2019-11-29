@@ -100,6 +100,7 @@ class ApplicationSelectedActivitySerializer(serializers.ModelSerializer):
     officer_name = serializers.SerializerMethodField(read_only=True)
     licensing_officers = EmailUserSerializer(many=True)
     issuing_officers = EmailUserSerializer(many=True)
+    is_with_officer = serializers.SerializerMethodField(read_only=True)
 
     class Meta:
         model = ApplicationSelectedActivity
@@ -132,6 +133,10 @@ class ApplicationSelectedActivitySerializer(serializers.ModelSerializer):
 
     def get_officer_name(self, obj):
         return '{0} {1}'.format(obj.assigned_officer.first_name, obj.assigned_officer.last_name) if obj.assigned_officer else ''
+
+    def get_is_with_officer(self, obj):
+        return True if obj.processing_status in [
+            'with_officer', 'with_officer_conditions'] else False
 
 class ExternalApplicationSelectedActivitySerializer(serializers.ModelSerializer):
     activity_name_str = serializers.SerializerMethodField(read_only=True)

@@ -742,16 +742,14 @@ export default {
             return this.selected_activity_tab_id && this.selectedActivity.processing_status.id == 'with_officer_finalisation' ? true : false;
         },
         canProposeIssueOrDecline: function(){
-            // Officer can propose without conditions.
-            if (this.selectedActivity.processing_status.id === 'with_officer' && this.canAssignOfficerFor(this.selected_activity_tab_id)) {
-                let licenceActivity = this.licence_type_data.activity.find(activity => {
+            let auth_activity = this.canAssignOfficerFor(this.selected_activity_tab_id);
+
+            let proposal = auth_activity && auth_activity.is_with_officer && this.licence_type_data.activity.find(activity => {
 
                     return activity.id === this.selected_activity_tab_id
                 });
-                licenceActivity.processing_status.id = 'with_officer_conditions';
-                return true;
-            }
-            return false;
+            // officer can Issue or Decline without conditions so set temporary status.
+            return proposal ? proposal.processing_status.id = 'with_officer_conditions' : false;
         },
         contactsURL: function(){
             return this.application!= null ? helpers.add_endpoint_json(api_endpoints.organisations,this.application.org_applicant.id+'/contacts') : '';
@@ -1077,7 +1075,7 @@ export default {
                     }
                     const text = result.value;
                     const data = {
-                        "activity_id" : this.selectedActivity.id,
+                        "activity_id" : this.selectedActivity.id, // FIXME: this.selectedActivity.licence_activity
                         "text": text
                     }
                     this.$http.post(helpers.add_endpoint_json(

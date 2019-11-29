@@ -130,6 +130,7 @@ export default {
             'licence_type_data',
             'hasRole',
             'licenceActivities',
+            'canAssignOfficerFor',
         ]),
         canEditLicenceDates: function() {
             return this.application.application_type && this.application.application_type.id !== 'amend_activity';
@@ -143,7 +144,10 @@ export default {
             return this.application.processing_status.id == 'with_approver' ? 'Issue Licence' : 'Propose to issue licence';
         },
         visibleLicenceActivities: function() {
-            return this.licenceActivities('with_officer_conditions', 'licensing_officer');
+            return this.licenceActivities(['with_officer_conditions', 'licensing_officer']).filter(
+                // filter on activity user has perms for.
+                activity => { return this.canAssignOfficerFor(activity.id) }                
+            );       
         },
     },
     methods:{

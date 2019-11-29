@@ -86,6 +86,7 @@ export default {
             'licence_type_data',
             'hasRole',
             'licenceActivities',
+            'canAssignOfficerFor',
         ]),
         showError: function() {
             var vm = this;
@@ -95,7 +96,9 @@ export default {
             return 'Proposed Decline';
         },
         visibleLicenceActivities: function() {
-            return this.licenceActivities('with_officer_conditions', 'licensing_officer');
+            return this.licenceActivities(['with_officer_conditions', 'licensing_officer']).filter(
+                activity => { return this.canAssignOfficerFor(activity.id); }
+            );
         },
     },
     methods:{
