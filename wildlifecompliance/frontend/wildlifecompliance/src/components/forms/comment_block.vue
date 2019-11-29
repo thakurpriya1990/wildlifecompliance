@@ -1,19 +1,31 @@
 <template lang="html">
     <div>
         <div v-if="canViewComments" class="inline-block">
-            <div v-if="!showingComment(COMMENT_TYPE_OFFICER)">
-                <a v-if="field_data.officer_comment" href="" @click.prevent="toggleComment(COMMENT_TYPE_OFFICER)" title="Officer Comments"><i style="color:red" class="fa fa-comment-o">&nbsp;</i></a>
-                <a v-else href="" @click.prevent="toggleComment(COMMENT_TYPE_OFFICER)" title="Officer Comments"><i class="fa fa-comment-o">&nbsp;</i></a>
+            <div v-if="canEditOfficerComments">
+                <div v-if="!showingComment(COMMENT_TYPE_OFFICER)">
+                    <a v-if="field_data.officer_comment" href="" @click.prevent="toggleComment(COMMENT_TYPE_OFFICER)" title="Officer Comments"><i style="color:red" class="fa fa-comment-o">&nbsp;</i></a>
+                    <a v-else href="" @click.prevent="toggleComment(COMMENT_TYPE_OFFICER)" title="Officer Comments"><i class="fa fa-comment-o">&nbsp;</i></a>
+                </div>
+                <a href="" v-else @click.prevent="toggleComment(COMMENT_TYPE_OFFICER)"><i class="fa fa-ban">&nbsp;</i></a>
             </div>
-            <a href="" v-else @click.prevent="toggleComment(COMMENT_TYPE_OFFICER)"><i class="fa fa-ban">&nbsp;</i></a>
+            <div v-if="!canEditOfficerComments && field_data.officer_comment" style="color:red">
+                <i class="fa fa-exclamation-triangle">&nbsp;</i>
+                <span>{{field_data.officer_comment}}</span>
+            </div>                
         </div>
 
         <div v-if="canViewComments" class="inline-block">
-            <div v-if="!showingComment(COMMENT_TYPE_ASSESSOR)">
-                <a v-if="field_data.assessor_comment" href="" @click.prevent="toggleComment(COMMENT_TYPE_ASSESSOR)"><i style="color:red" class="fa fa-clipboard" title="Assessor Comments">&nbsp;</i></a>
-                <a v-else href="" @click.prevent="toggleComment(COMMENT_TYPE_ASSESSOR)" title="Assessor Comments"><i class="fa fa-clipboard">&nbsp;</i></a>
+            <div v-if="canEditAssessorComments">
+                <div v-if="!showingComment(COMMENT_TYPE_ASSESSOR)">
+                    <a v-if="field_data.assessor_comment" href="" @click.prevent="toggleComment(COMMENT_TYPE_ASSESSOR)"><i style="color:red" class="fa fa-clipboard" title="Assessor Comments">&nbsp;</i></a>
+                    <a v-else href="" @click.prevent="toggleComment(COMMENT_TYPE_ASSESSOR)" title="Assessor Comments"><i class="fa fa-clipboard">&nbsp;</i></a>
+                </div>
+                <a href="" v-else @click.prevent="toggleComment(COMMENT_TYPE_ASSESSOR)"><i class="fa fa-ban">&nbsp;</i></a>
             </div>
-            <a href="" v-else @click.prevent="toggleComment(COMMENT_TYPE_ASSESSOR)"><i class="fa fa-ban">&nbsp;</i></a>
+            <div v-else-if="field_data.assessor_comment" style="color:red">
+                <i class="fa fa-exclamation-triangle">&nbsp;</i>
+                <span>{{field_data.assessor_comment}}</span>
+            </div>    
         </div>
 
         <div v-if="canViewDeficiencies" class="inline-block">
@@ -87,18 +99,27 @@ const CommentBlock = {
                 this.field_data.deficiency_value = '';
             }
             this.toggleComment(COMMENT_TYPE_DEFICIENCY);
-        },
+        }
     },
     computed:{
         ...mapGetters([
             'canViewComments',
             'canViewDeficiencies',
             'canEditDeficiencies',
+            'selected_activity_tab_id',
+            'canAssignOfficerFor',
+            'canAssignAssessorFor',
         ]),
         toggleComment: function(){
             return (comment_type) => {
                 this.showingCommentTypes[comment_type] = !this.showingCommentTypes[comment_type];
             }
+        },
+        canEditOfficerComments: function() {
+            return this.canAssignOfficerFor(this.selected_activity_tab_id);
+        },
+        canEditAssessorComments: function() {
+            return this.canAssignAssessorFor(this.selected_activity_tab_id);
         },
     }
 }
