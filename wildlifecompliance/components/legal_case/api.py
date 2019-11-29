@@ -362,7 +362,9 @@ class LegalCaseViewSet(viewsets.ModelViewSet):
         print(request.data)
         try:
             with transaction.atomic():
+                instance = self.get_object()
                 running_sheet_entries = request.data.get('running_sheet_transform')
+                create_new_running_sheet_entry = request.data.get('create_new_running_sheet_entry')
                 running_sheet_saved = None
                 if running_sheet_entries and len(running_sheet_entries) > 0:
                     for entry in running_sheet_entries:
@@ -379,11 +381,9 @@ class LegalCaseViewSet(viewsets.ModelViewSet):
                             running_sheet_entry_serializer.save()
                     running_sheet_saved = True
 
-                create_new_running_sheet_entry = request.data.get('create_new_running_sheet_entry')
                 if create_new_running_sheet_entry:
-                    self.create_running_sheet_entry(request)
+                    self.create_running_sheet_entry(request, instance)
 
-                instance = self.get_object()
                 serializer = SaveLegalCaseSerializer(instance, data=request.data)
                 serializer.is_valid(raise_exception=True)
                 if serializer.is_valid():
@@ -751,9 +751,11 @@ class LegalCaseViewSet(viewsets.ModelViewSet):
 
     #@detail_route(methods=['POST'])
     #@renderer_classes((JSONRenderer,))
-    def create_running_sheet_entry(self, request, *args, **kwargs):
+    def create_running_sheet_entry(self, request, instance, *args, **kwargs):
+        print("create_entry")
+        print(instance.id)
         try:
-            instance = self.get_object()
+            #instance = self.get_object()
 
             request_data = {
                             "legal_case_id": instance.id,
