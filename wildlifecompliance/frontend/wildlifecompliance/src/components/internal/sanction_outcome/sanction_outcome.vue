@@ -348,10 +348,10 @@
                                                 <label>Payment due date:</label>
                                             </div>
                                             <div class="col-sm-3">
+                                                {{ item.due_date_1st }}
                                                 <!--
-                                                {{ item.due_date_1st }},
-                                                -->
                                                 {{ item.due_date_2nd }}
+                                                -->
                                             </div>
                                             <div class="col-sm-3">
                                                 <label>Reason:</label>
@@ -776,7 +776,7 @@ export default {
             let visibility = false;
             if (this.sanction_outcome.can_user_action){
                 if (this.sanction_outcome.type.id == 'infringement_notice'){
-                    if (this.sanction_outcome.status.id === this.STATUS_AWAITING_PAYMENT){
+                    if (this.sanction_outcome.status.id === this.STATUS_AWAITING_PAYMENT && this.sanction_outcome.is_parking_offence){
                         // This is when Infringement Notice Coordinator sends this IN to Dot
                         visibility = true;
                     }
