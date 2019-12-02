@@ -168,6 +168,10 @@ export default {
                         data: 'coming_due_date',
                         searchable: false,
                         orderable: false,
+                        mRender: function (data, type, full){
+                            let new_date = new Date(data);
+                            return new_date.getDate() + '/' + (new_date.getMonth() + 1) + '/' + new_date.getFullYear();
+                        }
                     },
                     {
                         data: 'offender',
