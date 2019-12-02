@@ -1024,10 +1024,8 @@ class Application(RevisionedMixin):
                         self.submitter.log_user_action(
                             ApplicationUserAction.ACTION_LODGE_APPLICATION.format(
                                 self.id), request)
-                    # Send email to submitter, then to linked Officer Groups
-                    send_application_submitter_email_notification(
-                        self, request)
 
+                    # notify linked officer groups of submission.
                     send_application_submit_email_notification(
                         group_users, self, request)
 
