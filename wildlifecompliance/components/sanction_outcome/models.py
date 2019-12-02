@@ -239,7 +239,6 @@ class SanctionOutcome(models.Model):
 
         self.__original_status = self.status
 
-
     def __str__(self):
         return 'Type : {}, Identifier: {}'.format(self.type, self.identifier)
     
