@@ -1,4 +1,4 @@
-import localforage from "localforage";
+import localforage from 'localforage';
 import Vue from 'vue';
 
 /*
@@ -67,6 +67,7 @@ module.exports = {
             }
         } catch(err) {
             // on cache failure, request data from backend directly
+            console.error(err)
             const returnedFromUrl = await Vue.http.get(url);
             return returnedFromUrl.body;
         }
@@ -131,6 +132,7 @@ module.exports = {
 
         } catch(err) {
             // on cache failure, request data from backend directly
+            console.error(err)
             const returnedFromDb = await Vue.http.get(url);
             if (returnedFromDb.body.results) {
                 return returnedFromDb.body.results;
