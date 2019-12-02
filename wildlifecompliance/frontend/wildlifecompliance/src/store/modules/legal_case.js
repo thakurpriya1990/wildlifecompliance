@@ -100,7 +100,7 @@ export const legalCaseStore = {
                 console.log(err);
             }
         },
-        async saveLegalCase({ dispatch, state, rootGetters }, { create, internal }) {
+        async saveLegalCase({ dispatch, state, rootGetters }, { create, internal, createNewRow }) {
             let legalCaseId = null;
             let savedLegalCase = null;
             try {
@@ -119,6 +119,9 @@ export const legalCaseStore = {
                     fetchUrl = api_endpoints.legal_case;
                     savedLegalCase = await Vue.http.post(fetchUrl, payload);
                 } else {
+                    if (createNewRow) {
+                        payload.create_new_running_sheet_entry = true;
+                    }
                     fetchUrl = helpers.add_endpoint_join(
                         api_endpoints.legal_case,
                         state.legal_case.id + '/'
