@@ -116,7 +116,7 @@ class SanctionOutcome(models.Model):
     identifier = models.CharField(max_length=50, blank=True,)
     lodgement_number = models.CharField(max_length=50, blank=True,)
     offence = models.ForeignKey(Offence, related_name='offence_sanction_outcomes', null=True, on_delete=models.SET_NULL,)
-    offender = models.ForeignKey(Offender, related_name='sanction_outcome_offender', null=True, on_delete=models.SET_NULL,)
+    offender = models.ForeignKey(Offender, related_name='sanction_outcome_offender', null=True, on_delete=models.SET_NULL,)  # This could be registration_holder...?
 
     # TODO: this field is not probably used anymore.
     alleged_offences = models.ManyToManyField(SectionRegulation, blank=True, related_name='sanction_outcome_alleged_offences')
@@ -131,6 +131,9 @@ class SanctionOutcome(models.Model):
     # This field is used as recipient when manager returns a sanction outcome for amendment
     # Updated whenever the sanction outcome is sent to the manager
     responsible_officer = models.ForeignKey(EmailUser, related_name='sanction_outcome_responsible_officer', null=True)
+
+    registration_holder = models.ForeignKey(EmailUser, related_name='sanction_outcome_registration_holder', blank=True, null=True)
+    driver = models.ForeignKey(EmailUser, related_name='sanction_outcome_driver', blank=True, null=True)
 
     # Only editable when issued on paper. Otherwise pre-filled with date/time when issuing electronically.
     date_of_issue = models.DateField(null=True, blank=True)
@@ -235,7 +238,6 @@ class SanctionOutcome(models.Model):
             self.save()  # Be carefull, this might lead to the infinite loop
 
         self.__original_status = self.status
-
 
     def __str__(self):
         return 'Type : {}, Identifier: {}'.format(self.type, self.identifier)
@@ -459,7 +461,7 @@ class SanctionOutcome(models.Model):
                 self.save()
                 due_dates = self.due_dates.order_by('-created_at')
 
-            return due_dates.first().due_date_1st
+            return due_dates.first().due_date_1st  # Get last record
         else:
             return None
 

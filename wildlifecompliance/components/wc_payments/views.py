@@ -57,7 +57,7 @@ from decimal import Decimal
 # from commercialoperator.components.bookings.models import Booking, ParkBooking, BookingInvoice, ApplicationFee, ApplicationFeeInvoice
 from ledger.payments.models import Invoice
 from ledger.basket.models import Basket
-from ledger.payments.mixins import InvoiceOwnerMixin
+from ledger.payments.mixins import InvoiceOwnerMixin, SanctionOutcomePdfMixin
 from oscar.apps.order.models import Order
 
 import logging
@@ -236,7 +236,7 @@ class InvoicePDFView(InvoiceOwnerMixin, View):
         return invoice
 
 
-class SanctionOutcomePDFView(InvoiceOwnerMixin, View):
+class SanctionOutcomePDFView(SanctionOutcomePdfMixin, View):
     """
     Generate infringement notice pdf file dynamically
     """
