@@ -1485,7 +1485,7 @@ class AssessmentPaginatedViewSet(viewsets.ModelViewSet):
 
     def get_queryset(self):
         if is_internal(self.request):
-            return Assessment.objects.all()
+            return Assessment.objects.filter(actioned_by=self.request.user)
         elif is_customer(self.request):
             return Assessment.objects.none()
         return Assessment.objects.none()
