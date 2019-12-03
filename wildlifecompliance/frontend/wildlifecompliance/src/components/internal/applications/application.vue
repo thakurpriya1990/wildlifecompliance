@@ -73,7 +73,7 @@
                                     </template>                                    
                                 </div>
                             </div>
-                            <div class="col-sm-12 top-buffer-s" v-if="isWithAssessor && !showingApplication">
+                            <div class="col-sm-12 top-buffer-s" v-if="isWithAssessor">
                                 <strong>Assigned Assessors</strong><br/>
                             
                                 <div v-for="activity_assessment in activeAssessments">
@@ -139,7 +139,7 @@
                                             <!-- button v-else disabled class="btn btn-primary top-buffer-s col-xs-12">Issue/Decline       -->
                                         </div>
                                     </div>
-                                    <div v-if="!applicationIsDraft && canAssignToOfficer" class="row">
+                                    <div v-if="!applicationIsDraft && (canAssignToOfficer || canAssignToAssessor)" class="row">
                                         <div class="col-sm-12">
                                             <button class="btn btn-primary top-buffer-s col-xs-12" @click.prevent="togglesendtoAssessor()">Assessments &amp; Conditions</button><br/>
                                         </div>

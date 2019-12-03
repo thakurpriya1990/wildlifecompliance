@@ -1485,7 +1485,7 @@ class AssessmentPaginatedViewSet(viewsets.ModelViewSet):
 
     def get_queryset(self):
         if is_internal(self.request):
-            return Assessment.objects.filter(actioned_by=self.request.user)
+            return Assessment.objects.all()
         elif is_customer(self.request):
             return Assessment.objects.none()
         return Assessment.objects.none()
@@ -1493,11 +1493,23 @@ class AssessmentPaginatedViewSet(viewsets.ModelViewSet):
     @list_route(methods=['GET', ])
     def datatable_list(self, request, *args, **kwargs):
         self.serializer_class = DTAssessmentSerializer
-        queryset = self.get_queryset()
+
+        # Get the assessor groups the current user is member of
+        assessor_groups = request.user.get_wildlifelicence_permission_group(
+            'assessor', first=False)
+
+        # For each assessor groups get the assessments
+        queryset = self.get_queryset().none()
+        for group in assessor_groups:
+            queryset = queryset | Assessment.objects.filter(
+                assessor_group=group) | Assessment.objects.filter(
+                actioned_by=self.request.user)
+
         queryset = self.filter_queryset(queryset)
         self.paginator.page_size = queryset.count()
         result_page = self.paginator.paginate_queryset(queryset, request)
-        serializer = DTAssessmentSerializer(result_page, context={'request': request}, many=True)
+        serializer = DTAssessmentSerializer(
+            result_page, context={'request': request}, many=True)
         return self.paginator.get_paginated_response(serializer.data)
 
 
