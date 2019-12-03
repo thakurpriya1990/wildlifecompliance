@@ -169,8 +169,7 @@ export default {
                         searchable: false,
                         orderable: false,
                         mRender: function (data, type, full){
-                            let new_date = new Date(data);
-                            return new_date.getDate() + '/' + (new_date.getMonth() + 1) + '/' + new_date.getFullYear();
+                            return data != '' && data != null ? moment(data).format('DD/MM/YYYY') : '';
                         }
                     },
                     {
