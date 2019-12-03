@@ -155,6 +155,8 @@ export default {
             'hasRole',
             'sendToAssessorActivities',
             'canEditAssessmentFor',
+            'current_user',
+            'canAssignOfficerFor',
         ]),
         canEditConditions: function() {
             if(!this.selected_activity_tab_id || this.activity == null) {
@@ -164,10 +166,11 @@ export default {
             let required_role = false;
             switch(this.activity.processing_status.id) {
                 case 'with_assessor':
-                    required_role = this.canEditAssessmentFor(this.selected_activity_tab_id) != null ? 'assessor' : false;
+                    let assessment = this.canEditAssessmentFor(this.selected_activity_tab_id)
+                    required_role = assessment.assessors.find(assessor => assessor.id === this.current_user.id) ? 'assessor' : false;
                 break;
                 case 'with_officer_conditions':
-                    required_role = 'licensing_officer';
+                    required_role =  this.canAssignOfficerFor(this.selected_activity_tab_id) ? 'licensing_officer' : false;
                 break;
             }
             return required_role && this.hasRole(required_role, this.selected_activity_tab_id);

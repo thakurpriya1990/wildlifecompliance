@@ -424,6 +424,10 @@ export default {
                 })
             });
         },
+        canEditAssessment: function(assessment) {
+            // Check current user is assigned assessor.
+            return assessment.assigned_assessor && assessment.assigned_assessor.id===this.current_user.id
+        },  
         userHasRole: function(role, activity_id) {
             return this.hasRole(role, activity_id);
         },
@@ -587,18 +591,18 @@ export default {
                             mRender:function (data,type,full) {
                                 let links = '';
                                 const pending = full.status.id === 'awaiting_assessment';
-                                if(full.status.id == 'completed' && vm.isLicensingOfficer){
+                                if(full.status.id == 'completed' && vm.canAssignOfficerFor(activity.id)){
                                     links +=  `
                                         <a data-assessmentid='${full.id}' class="assessment-action assessment_resend">Resend</a>
                                     `;
-                                } else if(pending && vm.isLicensingOfficer){
+                                } else if(pending && vm.canAssignOfficerFor(activity.id)){
                                     links +=  `
                                         <a data-assessmentid='${full.id}' class="assessment-action assessment_remind">Remind</a>
                                         <a data-assessmentid='${full.id}' class="assessment-action assessment_recall">Recall</a>
                                     `;
                                 }
                                 links +=  `
-                                    <a data-assessmentid='${full.id}' class="assessment-action assessment_view">${pending && vm.canCompleteAssessment? 'Edit' : 'View'}</a>
+                                    <a data-assessmentid='${full.id}' class="assessment-action assessment_view">${pending && vm.canEditAssessment(full)? 'Edit' : 'View'}</a>
                                 `;
                                 return links;
                             }}
