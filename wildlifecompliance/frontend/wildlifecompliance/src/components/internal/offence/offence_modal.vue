@@ -149,29 +149,20 @@
                             </div></div-->
 
                             <div class="form-group"><div class="row">
-                                    <div class="col-sm-12">
-                                        <strong><label>Offender</label></strong>
-                                    </div>
-                                <!-- <div class="col-sm-6">
-                                    <input class="form-control" id="offender_input" />
-                                </div> -->
+                                <div class="col-sm-12">
+                                    <strong><label>Offender</label></strong>
+                                </div>
                                 <div>
                                     <SearchPersonOrganisation 
                                     :excludeStaff="true" 
+                                    :personOnly="true" 
                                     classNames="form-control" 
                                     @entity-selected="personSelected" 
                                     showCreateUpdate
                                     ref="search_offender"
                                     domIdHelper="offender"
-                                    v-bind:key="updateSearchPersonOrganisationBindId"/>
-                                    <!--SearchPersonOrganisation ref="search" elementId="idSetInParent" classNames="col-sm-5 form-control" @person-selected="personSelected" :search_type="offender_search_type" /-->
+                                    :key="updateSearchPersonOrganisationBindId"/>
                                 </div>
-                                <!--div class="col-sm-1">
-                                    <input type="button" class="btn btn-primary" value="Add" @click.prevent="addOffenderClicked()" />
-                                </div>
-                                <div class="col-sm-2">
-                                    <input type="button" class="btn btn-primary" value="Create New Person" @click.prevent="createNewPersonClicked()" />
-                                </div-->
                             </div></div>
 
                             <div class="form-group"><div class="row">
@@ -180,9 +171,6 @@
                                 </div>
                             </div></div>
                             <div class="form-group"><div class="row">
-                                <!--div class="col-sm-12">
-                                  <CreateNewPerson :displayComponent="displayCreateNewPerson" @new-person-created="newPersonCreated"/>
-                                </div-->
 
                                 <div class="col-sm-12">
                                     <datatable ref="offender_table" id="offender-table" :dtOptions="dtOptionsOffender" :dtHeaders="dtHeadersOffender" />

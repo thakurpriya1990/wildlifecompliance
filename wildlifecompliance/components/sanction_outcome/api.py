@@ -28,7 +28,7 @@ from wildlifecompliance.components.offence.models import AllegedOffence
 from wildlifecompliance.components.sanction_outcome.email import send_infringement_notice, \
     send_due_date_extended_mail, send_return_to_officer_email, send_to_manager_email, send_withdraw_by_manager_email, \
     send_withdraw_by_branch_manager_email, send_return_to_infringement_notice_coordinator_email, send_decline_email, \
-    send_escalate_for_withdrawal_email
+    send_escalate_for_withdrawal_email, email_detais_to_department_of_transport
 from wildlifecompliance.components.sanction_outcome.models import SanctionOutcome, RemediationAction, \
     SanctionOutcomeCommsLogEntry, AllegedCommittedOffence, SanctionOutcomeUserAction, SanctionOutcomeCommsLogDocument
 from wildlifecompliance.components.sanction_outcome.serializers import SanctionOutcomeSerializer, \
@@ -756,15 +756,25 @@ class SanctionOutcomeViewSet(viewsets.ModelViewSet):
                         pass
 
                 elif workflow_type == SanctionOutcome.WORKFLOW_ENDORSE:
-                    if instance.is_parking_offence:
-                        pass
-                        # TODO: Send email to Dot with attachment
+                    if instance.is_parking_offence and not instance.offender:
+                        # Send email to DoT with attachment
+                        to_address = ['shibaken+dot@dbca.gov.wa.au', ]
+                        cc = [instance.responsible_officer.email, request.user.email,]
+                        bcc = None
+                        email_data = email_detais_to_department_of_transport(to_address, instance, workflow_entry, request, cc, bcc)
+
+                        # TODO: Set status to with_DoT
+
                     else:
                         instance.endorse(request)
-                        # Email to the offender, and bcc to the respoinsible officer
+                        # Email to the offender, and bcc to the respoinsible officer, manager and infringement notice coordinators
+                        inc_group = SanctionOutcome.get_compliance_permission_group(None, SanctionOutcome.WORKFLOW_ENDORSE)
+                        inc_emails = [member.email for member in inc_group.members]
+
                         to_address = [instance.offender.person.email, ]
                         cc = None
-                        bcc = [instance.responsible_officer.email, request.user.email,]
+                        bcc = [instance.responsible_officer.email, request.user.email] + inc_emails
+
                         email_data = send_infringement_notice(to_address, instance, workflow_entry, request, cc, bcc)
 
 

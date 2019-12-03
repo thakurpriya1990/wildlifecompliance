@@ -30,9 +30,15 @@ class SanctionOutcomeDueDate(models.Model):
     reason_for_extension = models.TextField(blank=True)
     extended_by = models.ForeignKey(EmailUser, null=True)
     sanction_outcome = models.ForeignKey('SanctionOutcome', null=False, related_name='due_dates')
+    due_date_term_currently_applied = models.CharField(default='1st', max_length=3)  # This field must be '1st' or '2nd'
 
     class Meta:
         app_label = 'wildlifecompliance'
         verbose_name = 'CM_SanctionOutcomeDueDate'
         verbose_name_plural = 'CM_SanctionOutcomeDueDates'
         ordering = ('created_at',)
+
+
+    def __str__(self):
+        return 'ID: {}, Sanction Outcome: {} due_date_1: {} due_date_2: {})'.format(
+            self.id, self.sanction_outcome_id, self.due_date_1st, self.due_date_2nd)

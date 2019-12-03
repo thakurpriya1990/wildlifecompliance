@@ -39,4 +39,5 @@ class SaveSanctionOutcomeDueDateSerializer(serializers.ModelSerializer):
             'reason_for_extension',
             'extended_by_id',
             'sanction_outcome_id',
+            'due_date_term_currently_applied',
         )

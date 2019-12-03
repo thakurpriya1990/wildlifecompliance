@@ -64,7 +64,8 @@
 import Vue from "vue";
 import $ from 'jquery'
 import datatable from '@vue-utils/datatable.vue'
-import FormSection from "@/components/compliance_forms/section.vue";
+//import FormSection from "@/components/compliance_forms/section.vue";
+import FormSection from "@/components/forms/section_toggle.vue";
 import { api_endpoints, helpers, cache_helper } from '@/utils/hooks'
 import OffenceModal from "./offence_modal.vue";
 import MapLocations from "./offence_locations.vue";

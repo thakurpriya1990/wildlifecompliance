@@ -150,6 +150,10 @@ def send_return_to_officer_email(to_address, sanction_outcome, workflow_entry, r
     return email_data
 
 
+def email_detais_to_department_of_transport(sanction_outcome):
+    pass
+
+
 def send_to_manager_email(to_address, sanction_outcome, workflow_entry, request, cc=None, bcc=None):
     email = SendToManagerEmail()
     if request.data.get('email_subject'):
