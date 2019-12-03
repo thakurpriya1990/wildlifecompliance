@@ -36,7 +36,7 @@
                 </div>
                 <a href="" v-else @click.prevent="toggleDeficiencies"><i class="fa fa-ban">&nbsp;</i></a>
             </div>
-            <div v-else-if="field_data.deficiency_value" style="color:red">
+            <div v-if="!canEditDeficiencies && field_data.deficiency_value" style="color:red">
                 <i class="fa fa-exclamation-triangle">&nbsp;</i>
                 <span>{{field_data.deficiency_value}}</span>
             </div>
