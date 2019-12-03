@@ -139,7 +139,7 @@
                                             <!-- button v-else disabled class="btn btn-primary top-buffer-s col-xs-12">Issue/Decline       -->
                                         </div>
                                     </div>
-                                    <div v-if="!applicationIsDraft" class="row">
+                                    <div v-if="!applicationIsDraft && canAssignToOfficer" class="row">
                                         <div class="col-sm-12">
                                             <button class="btn btn-primary top-buffer-s col-xs-12" @click.prevent="togglesendtoAssessor()">Assessments &amp; Conditions</button><br/>
                                         </div>

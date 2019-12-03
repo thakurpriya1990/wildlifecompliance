@@ -217,7 +217,7 @@ export default {
             'unfinishedActivities',
             'current_user',
             'sendToAssessorActivities',
-            'canSendAssessmentFor',
+            'canAssignOfficerFor',
         ]),
         inspection_report_file_name: function() {
             return this.assessment.inspection_report != null ? this.assessment.inspection_report.name: '';
@@ -248,6 +248,10 @@ export default {
         },
         canSendToAssessor: function() {
             this.showSendToAssessorButton = false;
+            if (!this.canAssignOfficerFor(this.selected_activity_tab_id)) {
+                // officer has no permissions for licence activity.
+                return null;
+            }          
             return this.sendToAssessorActivities.filter(visible_activity => {
                 if(visible_activity.id != this.selected_activity_tab_id) {
                     return false;
