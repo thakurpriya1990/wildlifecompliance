@@ -114,7 +114,9 @@ export default {
         },
         extendMinDateDisplay: function() {
             if (this.comingDueDate){
-                return (this.comingDueDate.getDate() + 1) + '/' + (this.comingDueDate.getMonth() + 1) + '/' + this.comingDueDate.getFullYear()
+                let newDate = new Date()
+                newDate.setDate(this.comingDueDate.getDate() + 1)
+                return (newDate.getDate()) + '/' + (newDate.getMonth() + 1) + '/' + newDate.getFullYear()
             } else {
                 return '';
             }
@@ -197,7 +199,9 @@ export default {
                 this.processingDetails = true;
                 const response = await this.sendData();
                 this.close();
-                this.$router.push({ name: 'internal-sanction-outcome-dash' });
+            //    this.$router.push({ name: 'internal-sanction-outcome-dash' });
+                console.log(this.$parent)
+                this.$parent.loadSanctionOutcome({ sanction_outcome_id: this.$parent.sanction_outcome.id });
             } catch (err){
                 this.processError(err);
             } finally {
