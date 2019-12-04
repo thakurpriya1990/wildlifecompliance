@@ -275,9 +275,9 @@ export default {
                             this.showSendToAssessorButton = true;
                             return true;
                         };
-                        return false; // this assessor is already allocated.
                     }
                 }
+                return false; // no assessors in group.
             }).length;
         },
     },

@@ -167,7 +167,7 @@ export default {
             switch(this.activity.processing_status.id) {
                 case 'with_assessor':
                     let assessment = this.canEditAssessmentFor(this.selected_activity_tab_id)
-                    required_role = assessment.assessors.find(assessor => assessor.id === this.current_user.id) ? 'assessor' : false;
+                    required_role = assessment && assessment.assessors.find(assessor => assessor.id === this.current_user.id) ? 'assessor' : false;
                 break;
                 case 'with_officer_conditions':
                     required_role =  this.canAssignOfficerFor(this.selected_activity_tab_id) ? 'licensing_officer' : false;
