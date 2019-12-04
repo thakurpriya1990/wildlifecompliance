@@ -676,7 +676,6 @@ export default {
       } else {
           await this.saveLegalCase({ internal: false });
       }
-      this.calculateHash();
       if (returnToDash) {
         // remove redundant eventListeners
         window.removeEventListener('beforeunload', this.leaving);
@@ -684,8 +683,9 @@ export default {
         // return to dash
         this.$router.push({ name: 'internal-legal-case-dash' });
       } else {
+          this.calculateHash();
           this.runningSheetEntriesUpdated = [];
-          this.constructRunningSheetTableWrapper();
+          //this.constructRunningSheetTableWrapper();
       }
       this.showSpinner = false;
       this.showExit = false;
@@ -731,7 +731,8 @@ export default {
             this.runningSheetEntriesUpdated.push(recordNumber);
         }
 
-        const ignoreArray = [49, 50, 16]
+        //const ignoreArray = [49, 50, 16]
+        const ignoreArray = []
         if (ignoreArray.includes(e.which)) {
             //pass
         } else {
@@ -749,28 +750,33 @@ export default {
         }
     },
     runningSheetKeydown: async function(e) {
+        console.log(e)
 
         // keycode 49 = !
-        if (e.which === 49 && this.searchObjectKeyPressed) {
+        //if (e.which === 49 && this.searchObjectKeyPressed) {
+        if (e.key === '!' && e.shiftKey && this.searchObjectKeyPressed) {
             // TODO: replace with modal_open call
             console.log("open modal")
             this.openInspection()
             this.searchObjectKeyPressed = false;
-        } else if (e.which === 49) {
+        //} else if (e.which === 49) {
+        } else if (e.key === '!' && e.shiftKey) {
             this.searchObjectKeyPressed = true;
-        } else if (e.which === 50 && this.searchPersonKeyPressed) {
+        //} else if (e.which === 50 && this.searchPersonKeyPressed) {
+        } else if (e.key === '@' && e.shiftKey && this.searchPersonKeyPressed) {
             // TODO: replace with modal_open call
             console.log("open modal")
             console.log(e.target.id)
             let rowElement = $('#' + e.target.id);
             this.openSearchPersonOrganisation(e.target.id)
             this.searchPersonKeyPressed = false;
-        } else if (e.which === 50) {
-            console.log(e);
+        //} else if (e.which === 50) {
+        } else if (e.key === '@' && e.shiftKey) {
             this.searchPersonKeyPressed = true;
         // keycode 16 = Shift (must be pressed to access !)
         //} else if (e.which === 16 || e.which === 32) {
-        } else if (e.which === 16) {
+        //} else if (e.which === 16) {
+        } else if (e.key === 'Shift' && e.shiftKey) {
             // pass
         } else {
             this.searchPersonKeyPressed = false;

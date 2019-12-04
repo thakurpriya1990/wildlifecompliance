@@ -75,6 +75,8 @@ from wildlifecompliance.components.legal_case.serializers import (
         LegalCaseRunningSheetSerializer,
         LegalCaseRunningSheetEntrySerializer,
         DeleteReinstateLegalCaseRunningSheetEntrySerializer,
+        RunningSheetEntryVersionSerializer,
+        RunningSheetEntryHistorySerializer,
         )
 from wildlifecompliance.components.users.models import (
     CompliancePermissionGroup,    
@@ -91,7 +93,7 @@ from rest_framework_datatables.renderers import DatatablesRenderer
 
 from wildlifecompliance.components.legal_case.email import (
     send_mail)
-from reversion.models import Version
+#from reversion.models import Version
 #import unicodedata
 
 
@@ -358,6 +360,7 @@ class LegalCaseViewSet(viewsets.ModelViewSet):
     def update(self, request, workflow=False, *args, **kwargs):
         try:
             with transaction.atomic():
+                print(request.data)
                 instance = self.get_object()
                 running_sheet_entries = request.data.get('running_sheet_transform')
                 #running_sheet_saved = None
@@ -392,10 +395,37 @@ class LegalCaseViewSet(viewsets.ModelViewSet):
                     headers = self.get_success_headers(serializer.data)
                     return_serializer = LegalCaseSerializer(instance, context={'request': request})
                     return Response(
-                            return_serializer.data,
+                            #return_serializer.data,
                             status=status.HTTP_201_CREATED,
                             headers=headers
                             )
+        except serializers.ValidationError:
+            print(traceback.print_exc())
+            raise
+        except ValidationError as e:
+            print(traceback.print_exc())
+            raise serializers.ValidationError(repr(e.error_dict))
+        except Exception as e:
+            print(traceback.print_exc())
+            raise serializers.ValidationError(str(e))
+
+    @detail_route(methods=['POST', ])
+    @renderer_classes((JSONRenderer,))
+    def running_sheet_history(self, request, *args, **kwargs):
+        try:
+            print("running sheet history")
+            print("request.data")
+            print(request.data)
+            instance = self.get_object()
+            entry_number = request.data.get("running_sheet_entry_number")
+            row_num = entry_number.split('-')[1]
+            entry_instance = instance.running_sheet_entries.get(row_num=row_num)
+
+            serializer = RunningSheetEntryHistorySerializer(entry_instance)
+            return Response(
+                    serializer.data, 
+                    status=status.HTTP_200_OK,
+                    )
         except serializers.ValidationError:
             print(traceback.print_exc())
             raise
