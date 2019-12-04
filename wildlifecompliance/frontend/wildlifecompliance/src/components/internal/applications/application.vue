@@ -82,15 +82,16 @@
 
                                         <template>
                                             <!-- display selects when Assessor has been allocated -->
-                                            <select v-if="activity_assessment.assigned_assessor!=null" ref="assigned_assessor" :disabled="!canAssignToAssessor" class="form-control" v-on:change="onChangeAssessor(activity_assessment)" v-model="activity_assessment.assigned_assessor.id">
+                                            <select v-if="activity_assessment.assigned_assessor!=null" ref="assigned_assessor" :disabled="!canAssignToAssessor" class="form-control" v-model="activity_assessment.assigned_assessor.id">
                                                 <option :value="null"></option>                                                
                                                 <option v-for="member in activity_assessment.assessors" :value="member.id" v-bind:key="member.id">{{member.first_name}} {{member.last_name}}</option>
                                             </select>
                                             <!-- display select when no Assessor exist -->
-                                            <select v-if="activity_assessment.assigned_assessor==null" ref="assigned_assessor" :disabled="!canAssignToAssessor" class="form-control" v-on:change="onChangeAssessor(activity_assessment)" v-model="activity_assessment.assigned_assessor_id" >
+                                            <select v-if="activity_assessment.assigned_assessor==null" ref="assigned_assessor" :disabled="!canAssignToAssessor" class="form-control" v-model="activity_assessment.assigned_assessor_id" >
                                                 <option :value="null"></option>
                                                 <option v-for="member in activity_assessment.assessors" :value="member.id" v-bind:key="member.id">{{member.first_name}} {{member.last_name}}</option>
-                                            </select>                                           
+                                            </select>
+                                            <a @click.prevent="makeMeAssessor(activity_assessment)" class="actionBtn pull-right">Assign to me</a>
                                         </template>
                            
                                     </div>
@@ -1249,11 +1250,31 @@ export default {
                     'error'
                 )
             });
-        },        
+        },
+        makeMeAssessor: function(assessment){
+            let vm = this;
+            const data = {
+                "assessment_id" : assessment.id,
+                "assessor_id": this.current_user.id
+            }
+            this.setOriginalApplication(this.application);
+            this.$http.post(helpers.add_endpoint_json(
+                    api_endpoints.applications, (this.application.id+'/assign_application_assessment')
+                ), JSON.stringify(data)).then((response) => {
+                    this.setApplication(response.body);
+                }, (error) => {
+                    this.revert();
+                       swal(
+                        'Application Error',
+                        helpers.apiVueResourceError(error),
+                        'error'
+                        )
+                }); 
+        },
         onChangeAssessor: function(assessment){
             const data = {
                 "assessment_id" : assessment.id,
-                "assessor_id": assessment.assigned_assessor==null ? assessment.assigned_assessor_id : assessment.assigned_assessor.id
+                "assessor_id": assessment.assigned_assessor==null ? assessment.assigned_assessor_id : assessment.assigned_assessor
             }
             this.setOriginalApplication(this.application);
             this.$http.post(helpers.add_endpoint_json(
@@ -1268,6 +1289,11 @@ export default {
                         'error'
                         )
                 });            
+        },
+        updateAssignedAssessorSelect:function(assessment){
+            let vm = this;
+            $(vm.$refs.assigned_assessor).val(assessment.assigned_assessor);
+            $(vm.$refs.assigned_assessor).trigger('change');
         },
         completeAssessmentsToMe: function(){
             let vm = this;
@@ -1365,13 +1391,44 @@ export default {
                 vm.assignApprover();
             });
         },
+        initialiseAssignedAssessorSelect: function(reinit=false){
+            let vm = this;
+            if (reinit){
+                $(vm.$refs.assigned_assessor).data('select2') ? $(vm.$refs.assigned_assessor).select2('destroy'): '';
+            }
+            $(vm.$refs.assigned_assessor).select2({
+                theme: "bootstrap",
+                allowClear: true,
+                placeholder: "Select Assessor"
+            }).
+            on("select2:select",function (e) {
+                var selected = $(e.currentTarget);
+                // Note: currently only one assessment active per licence activity.
+                var assessment = vm.activeAssessments[0];
+                assessment.assigned_assessor = selected.val();
+                vm.onChangeAssessor(assessment)
+            }).on("select2:unselecting", function(e) {
+                var self = $(this);
+                setTimeout(() => {
+                    self.select2('close');
+                }, 0);
+            }).on("select2:unselect",function (e) {
+                var selected = $(e.currentTarget);
+                // Note: currently only one assessment active per licence activity.
+                var assessment = vm.activeAssessments[0];
+                assessment.assigned_assessor = null;
+                assessment.assigned_assessor_id = null;
+                vm.onChangeAssessor(assessment);
+            });
+        },
         initialiseSelects: function(){
             if (!this.initialisedSelects){
                 this.initialisedSelects = true;
                 this.initMainTab();
             }
             this.initialiseAssignedOfficerSelect();            
-            this.initialiseAssignedApproverSelect();          
+            this.initialiseAssignedApproverSelect();
+            this.initialiseAssignedAssessorSelect();
         },
         initMainTab: function() {
             if(!this.$refs.applicantTab) {
