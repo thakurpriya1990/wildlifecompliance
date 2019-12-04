@@ -284,6 +284,7 @@ export default {
             ),
             sanctionOutcomeInitialised: false,
             searchPersonOrganisationInitialised: false,
+            searchPersonOrganisationKeyPosition: null,
             offenceInitialised: false,
             inspectionInitialised: false,
             hashAttributeWhitelist: [
@@ -311,6 +312,9 @@ export default {
                 "Action",
             ],
             dtOptionsRunningSheet: {
+                order: [
+                    [0, 'desc'],
+                    ],
                 columns: [
                     {
                         visible: false,
@@ -534,7 +538,15 @@ export default {
         if (entity.full_name) {
             replacementVal = `<a contenteditable="false" target="_blank" href="/internal/users/${entity.id}">${entity.full_name}</a>`
         }
-        let recordDescriptionHtml = recordNumberElement[0].innerHTML.replace('@@', replacementVal).replace(/&nbsp\;/g, ' ');
+        // let recordDescriptionHtml = recordNumberElement[0].innerHTML.replace('@@', replacementVal).replace(/&nbsp\;/g, ' ');
+        console.log(this.searchPersonOrganisationKeyPosition);
+        let recordDescriptionHtml = recordNumberElement[0].innerHTML.replace(/&nbsp\;/g, ' ');
+        recordDescriptionHtml = recordDescriptionHtml.slice(0, this.searchPersonOrganisationKeyPosition) +
+                                        " " +
+                                        replacementVal +
+                                        " " +
+                                        recordDescriptionHtml.slice(this.searchPersonOrganisationKeyPosition);
+
         this.updateRunningSheetUrlEntry({
             "recordNumber": recordNumber,
             "recordDescription": recordDescriptionHtml,
@@ -593,8 +605,8 @@ export default {
     },
     createNewRunningSheetEntry: async function() {
         // save changes to running sheet
-        await this.save({ "createNewRow": true})
-        /*
+        //await this.save({ "createNewRow": true})
+        
         // add new entry and add to datatable
         let payload = {
             "legal_case_id": this.legal_case.id,
@@ -613,7 +625,7 @@ export default {
             this.runningSheetUrl.push(returnPayload);
             this.constructRunningSheetTable(returnPayload.id);
         }
-        */
+        
     },
     openInspection() {
       this.uuid += 1;
@@ -637,10 +649,11 @@ export default {
           this.$refs.offence.isModalOpen = true;
       });
     },
-    openSearchPersonOrganisation(rowNumber){
+    openSearchPersonOrganisation(rowNumber, offset){
       this.uuid += 1;
       this.rowNumberSelected = rowNumber;
       this.searchPersonOrganisationInitialised = true;
+      this.searchPersonOrganisationKeyPosition = offset;
       this.$nextTick(() => {
           this.$refs.search_person_or_organisation_modal.isModalOpen = true;
       });
@@ -749,6 +762,16 @@ export default {
             }
         }
     },
+    runningSheetKeydown: async function(e, offset) {
+        console.log(e)
+        console.log(offset)
+        if (e.key === 'o' && e.altKey) {
+            this.openInspection()
+        } else if (e.key === 'p' && e.altKey) {
+            this.openSearchPersonOrganisation(e.target.id, offset)
+        }
+    },
+    /*
     runningSheetKeydown: async function(e) {
         console.log(e)
 
@@ -783,6 +806,7 @@ export default {
             this.searchObjectKeyPressed = false;
         }
     },
+    */
     urlToToken: function(description) {
         let parsedText = description;
         const personUrlRegex = /<a contenteditable\=\"false\" target\=\"\_blank\" href\=\"\/internal\/users\/\d+\"\>\w+(\s\w+)*\<\/a\>/g
@@ -840,7 +864,12 @@ export default {
       runningSheetTable.on(
           'keydown',
           (e) => {
-              this.runningSheetKeydown(e)
+              /*
+              setTimeout(function() {
+                  console.log(e.type, window.getSelection().getRangeAt(0).startOffset);
+              }, 0);
+              */
+              this.runningSheetKeydown(e, window.getSelection().getRangeAt(0).startOffset);
           });
       runningSheetTable.on(
           'keyup',
