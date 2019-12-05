@@ -6,6 +6,8 @@
         <form action="" method="POST">
             {% csrf_token %}
             <button type="submit" name="script" value="update_workbooks" {% if update_workbooks == 'true' %}style="color:green" {% endif %} title="Run command to update Excel workbooks from the system">Run Script 'update_workbooks'</button><br><br>
+            <button type="submit" name="script" value="extend_due_date_from_1st_to_2nd" title="Run command to pick up all the overdue (1st period) infringement notices and process them.">Run Script 'extend_due_date_from_1st_to_2nd'</button><br><br>
+            <button type="submit" name="script" value="send_unpaid_infringements_file" title="Run command to pick up all the overdue (2nd period) infringement notices and process them.">Run Script 'send_unpaid_infringements_file'</button><br><br>
         </form>
         <br>
     </div>
@@ -13,4 +15,3 @@
     {{ ret }}
     {{ block.super }}
 {% endblock %}
-
