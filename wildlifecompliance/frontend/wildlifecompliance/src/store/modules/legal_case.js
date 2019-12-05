@@ -11,9 +11,6 @@ export const legalCaseStore = {
     state: {
         legal_case: {
             running_sheet_entries: [
-                {
-                    versions: [],
-                },
             ],
         },
         
@@ -128,7 +125,7 @@ export const legalCaseStore = {
                         )
                     savedLegalCase = await Vue.http.put(fetchUrl, payload);
                 }
-                await dispatch("setLegalCase", savedLegalCase.body);
+                //await dispatch("setLegalCase", savedLegalCase.body);
                 legalCaseId = savedLegalCase.body.id;
 
             } catch (err) {
