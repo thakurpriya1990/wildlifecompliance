@@ -16,8 +16,6 @@ class Command(BaseCommand):
         logger.info('Running command {}'.format(__name__))
 
         subprocess.call('python manage_wc.py send_unpaid_infringements_file', shell=True)
-        # subprocess.call('python manage_wc.py extend_due_date_from_1st_to_2nd', shell=True)
-
-        # TODO: Add another cron job so that the system is to remind the offende of an unpaid infringement notice after 28 days after issuing.
+        subprocess.call('python manage_wc.py extend_due_date_from_1st_to_2nd', shell=True)
 
         logger.info('Command {} completed'.format(__name__))

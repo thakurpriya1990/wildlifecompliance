@@ -33,6 +33,7 @@ def belongs_to_list(user, group_names):
 
 def is_model_backend(request):
     # Return True if user logged in via single sign-on (i.e. an internal)
+    print request.session.get('_auth_user_backend')
     return 'ModelBackend' in request.session.get('_auth_user_backend')
 
 
@@ -43,6 +44,11 @@ def is_email_auth_backend(request):
 
 
 def is_wildlifecompliance_admin(request):
+    # a = request.user.is_authenticated()
+    # b = is_model_backend(request)
+    # c = in_dbca_domain(request)
+    # d = request.user.has_perm('wildlifecompliance.system.administrator')
+    # e = request.user.is_superuser
     return request.user.is_authenticated() and is_model_backend(request) and in_dbca_domain(
         request) and (request.user.has_perm('wildlifecompliance.system_administrator') or request.user.is_superuser)
 

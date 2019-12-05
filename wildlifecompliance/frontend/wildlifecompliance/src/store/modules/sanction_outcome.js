@@ -100,7 +100,7 @@ export const sanctionOutcomeStore = {
             let savedSanctionOutcome = await Vue.http.put(putUrl, payload);
 
             // Update sanction outcome in the vuex store
-            await dispatch("setSanctionOutcome", savedSanctionOutcome.body);
+            //await dispatch("setSanctionOutcome", savedSanctionOutcome.body);
 
             // Return the saved data just in case needed
             return savedSanctionOutcome;

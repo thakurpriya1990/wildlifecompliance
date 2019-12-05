@@ -191,6 +191,14 @@ class SanctionOutcome(models.Model):
         except Exception as e:
             return None
 
+    def get_offender(self):
+        if self.driver:
+            return self.driver
+        elif self.registration_holder:
+            return self.registration_holder
+        else:
+            return self.offender.person
+
     @property
     def prefix_lodgement_nubmer(self):
         prefix_lodgement = ''
@@ -240,7 +248,7 @@ class SanctionOutcome(models.Model):
         self.__original_status = self.status
 
     def __str__(self):
-        return 'Type : {}, Identifier: {}'.format(self.type, self.identifier)
+        return 'ID: {}, Type : {}, Identifier: {}'.format(self.id, self.type, self.identifier)
     
     @property
     def get_related_items_identifier(self):
@@ -541,13 +549,6 @@ class AllegedCommittedOffence(RevisionedMixin):
     sanction_outcome = models.ForeignKey(SanctionOutcome, null=False,)
     included = models.BooleanField(default=True)  # True means sanction_outcome is included in the sanction_outcome
 
-    # TODO: following three fields are not used probably
-    # reason_for_removal = models.TextField(blank=True)
-    # removed = models.BooleanField(default=False)  # Never make this field False once becomes True. Rather you have to create another record making this field False.
-    # removed_by = models.ForeignKey(EmailUser, null=True, related_name='alleged_committed_offence_removed_by')
-    # objects = models.Manager()
-    # objects_active = AllegedCommittedOffenceActiveManager()
-
     def retrieve_penalty_amounts_by_date(self, date_of_issue):
         return self.alleged_offence.retrieve_penalty_amounts_by_date(date_of_issue)
 
@@ -624,6 +625,7 @@ class SanctionOutcomeUserAction(models.Model):
     ACTION_EXTEND_DUE_DATE = "Extend due date of Sanction Outcome {}"
     ACTION_SEND_DETAILS_TO_INFRINGEMENT_NOTICE_COORDINATOR = "Send details of the Unpaid Infringement Notice {} to Infringement Notice Coordinator"
     ACTION_ESCALATE_FOR_WITHDRAWAL = "Escalate Infringement Notice {} for withdrawal"
+    ACTION_INCREASE_FEE_AND_EXTEND_DUE = "Increase penalty amount from {} to {} and extend due date from {} to {}"
 
     who = models.ForeignKey(EmailUser, null=True, blank=True)
     when = models.DateTimeField(null=False, blank=False, auto_now_add=True)
