@@ -6,6 +6,7 @@ from wildlifecompliance.components.sanction_outcome_due.models import SanctionOu
 
 class SanctionOutcomeDueDateSerializer(serializers.ModelSerializer):
     extended_by = EmailUserSerializer(read_only=True)
+    due_date_applied = serializers.ReadOnlyField()
 
     class Meta:
         model = SanctionOutcomeDueDate

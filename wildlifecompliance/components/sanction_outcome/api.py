@@ -375,7 +375,7 @@ class SanctionOutcomeViewSet(viewsets.ModelViewSet):
                             else:
                                 instance.log_user_action(SanctionOutcomeUserAction.ACTION_REMOVE_ALLEGED_COMMITTED_OFFENCE.format(existing_aco.alleged_offence), request)
 
-                instance.log_user_action(SanctionOutcomeUserAction.ACTION_SAVE.format(instance), request)
+                instance.log_user_action(SanctionOutcomeUserAction.ACTION_UPDATE.format(instance), request)
 
                 # Return
                 # return_serializer = SanctionOutcomeSerializer(instance=instance,)
@@ -444,6 +444,9 @@ class SanctionOutcomeViewSet(viewsets.ModelViewSet):
                     serializer = SaveSanctionOutcomeSerializer(data=request_data, partial=True, context={'num_of_documents_attached': num_of_documents})
                 serializer.is_valid(raise_exception=True)
                 instance = serializer.save()
+
+                # Action log for creation
+                instance.log_user_action(SanctionOutcomeUserAction.ACTION_CREATE.format(instance.lodgement_number), request)
 
                 # Link temp uploaded files to the sanction outcome
                 if num_of_documents:
@@ -683,14 +686,20 @@ class SanctionOutcomeViewSet(viewsets.ModelViewSet):
 
                 new_due_date = request.data.get('new_due_date', None)
                 if not new_due_date:
-                    raise serializers.ValidationError({'New due date' : ['You must enter a new due date.', ]})
+                    raise serializers.ValidationError({'New due date': ['You must enter a new due date.', ]})
 
                 new_due_date = datetime.strptime(new_due_date, '%d/%m/%Y').date()
                 reason = request.data.get('reason', '')
 
                 if instance.extend_due_date(new_due_date, reason, request.user.id):
                     # Action log
-                    instance.log_user_action(SanctionOutcomeUserAction.ACTION_EXTEND_DUE_DATE.format(instance.lodgement_number), request)
+                    dates = instance.due_dates.all().order_by('-id')
+                    last_date = dates[0]
+                    second_last = dates[1]
+                    instance.log_user_action(SanctionOutcomeUserAction.ACTION_EXTEND_DUE_DATE.format(
+                        second_last.due_date_applied.strftime('%d/%m/%Y'),
+                        last_date.due_date_applied.strftime('%d/%m/%Y')),
+                        request)
 
                 to_address = [instance.offender.person.email,]
                 cc = [instance.responsible_officer.email, request.user.email] if instance.responsible_officer else None

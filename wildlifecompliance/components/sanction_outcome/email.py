@@ -83,7 +83,7 @@ class Remind1stPeriodOverdueMail(TemplateEmailBase):
     """
     This is the template for the email sent when overdue the 1st period
     """
-    subject = 'Overdue of the infringement notice'
+    subject = 'Infringement Notice overdue and extended'
     html_template = 'wildlifecompliance/emails/remind_1st_period_overdue.html'
     txt_template = 'wildlifecompliance/emails/remind_1st_period_overdue.txt'
 
@@ -151,6 +151,8 @@ def send_unpaid_infringements_file(to_address, cc=None, bcc=None, attachements=[
                      bcc=bcc)
     sender = settings.DEFAULT_FROM_EMAIL
     email_data = _extract_email_headers(msg, sender=sender)
+
+
     return email_data
 
 
@@ -177,7 +179,8 @@ def send_infringement_notice(to_address, sanction_outcome, workflow_entry, reque
     sender = request.user if request else settings.DEFAULT_FROM_EMAIL
     email_data = _extract_email_headers(msg, sender=sender)
 
-    # Create SanctionOutcomeCommsLogDocument object so that the link to the infringement notice file can be created in the comms log
+    # Create SanctionOutcomeCommsLogDocument object
+    # so that the link to the infringement notice file can be created in the comms log
     temp = SanctionOutcomeCommsLogDocument(log_entry=workflow_entry, _file=File(BytesIO()), name=pdf_file_name)
     temp.save()
 

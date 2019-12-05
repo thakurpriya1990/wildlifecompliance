@@ -87,7 +87,7 @@ class Command(BaseCommand):
                         # Send reminder email (to: offender, cc: , bcc: respoinsible officer)
                         to_address = [overdue_sanction_outcome.get_offender().email, ]
                         cc = None
-                        bcc = None
+                        bcc = [overdue_sanction_outcome.responsible_officer.email,] if overdue_sanction_outcome.responsible_officer else None
                         email_data = send_remind_1st_period_overdue_mail(to_address, overdue_sanction_outcome, cc, bcc)
 
                         # Add communication log

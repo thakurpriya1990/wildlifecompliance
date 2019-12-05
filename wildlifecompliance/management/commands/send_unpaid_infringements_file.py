@@ -103,7 +103,7 @@ class Command(BaseCommand):
                     groups = [group for group in allowed_groups.all()]
                     members = [member for member in group.members for group in groups]
 
-                    # Emailing function above by the one below
+                    # Emailing
                     to_address = [member.email for member in members] if members else [settings.NOTIFICATION_EMAIL]
                     cc = None
                     bcc = None
@@ -116,6 +116,11 @@ class Command(BaseCommand):
                         serializer = SanctionOutcomeCommsLogEntrySerializer(data=email_data, partial=True)
                         serializer.is_valid(raise_exception=True)
                         serializer.save()
+
+                        # Create SanctionOutcomeCommsLogDocument object
+                        # so that the link to the infringement notice file can be created in the comms log
+                        # temp = SanctionOutcomeCommsLogDocument(log_entry=serializer.instance, _file=File(BytesIO()), name=pdf_file_name)
+                        # temp.save()
 
                     # Record action log per infringement notice
                     for dict_item in due_dates:
