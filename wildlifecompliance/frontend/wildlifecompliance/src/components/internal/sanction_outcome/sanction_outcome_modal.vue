@@ -247,7 +247,9 @@
                     </div>
                 </div>
                 <button type="button" v-if="processingDetails" disabled class="btn btn-default" @click="ok"><i class="fa fa-spinner fa-spin"></i> Adding</button>
-                <button type="button" v-else :disabled="!displaySendToManagerButton" class="btn btn-default" @click="ok">Send to Manager</button>
+                <span v-else>
+                    <button type="button" :disabled="!displaySendToManagerButton" class="btn btn-default" @click="ok">Send to Manager</button>
+                </span>
                 <button type="button" class="btn btn-default" @click="cancel">Cancel</button>
             </div>
         </modal>
@@ -466,9 +468,8 @@ export default {
         return this.sanction_outcome.type == "" ? false : true;
       },
       displaySendToManagerButton: function() {
-          return true;
-
           let retValue = false;
+
           if (!this.processingDetails && this.sanction_outcome.type) {
               if (this.regionDistrictId) {
                   if ((this.sanction_outcome.issued_on_paper && this.sanction_outcome.date_of_issue) || !this.sanction_outcome.issued_on_paper) {
