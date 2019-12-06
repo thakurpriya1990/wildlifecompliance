@@ -118,7 +118,7 @@ class SanctionOutcomeSerializer(serializers.ModelSerializer):
     due_dates = serializers.SerializerMethodField()
     is_parking_offence = serializers.ReadOnlyField()
     registration_holder = IndividualSerializer()
-    driver= IndividualSerializer()
+    driver = IndividualSerializer()
 
     class Meta:
         model = SanctionOutcome
@@ -159,16 +159,9 @@ class SanctionOutcomeSerializer(serializers.ModelSerializer):
         )
 
     def get_due_dates(self, obj):
-        due_dates = SanctionOutcomeDueDate.objects.filter(sanction_outcome=obj)
         ret = []
 
-        # if not due_dates:
-        #     # Should not reach here.
-        #     # They should be created when endorsed
-        #     obj.create_due_dates()
-        #     due_dates = SanctionOutcomeDueDate.objects.filter(sanction_outcome=obj)
-
-        for date in due_dates:
+        for date in obj.due_dates.all():
             ret.append(SanctionOutcomeDueDateSerializer(date).data)
 
         return ret
@@ -279,18 +272,22 @@ class SanctionOutcomeDatatableSerializer(serializers.ModelSerializer):
         url_list = []
 
         if obj.documents.all().count():
+            # Paper notices
             for doc in obj.documents.all():
                 url = '<a href="{}">{}</a>'.format(doc._file.url, doc.name)
                 url_list.append(url)
         else:
-            if obj.type == SanctionOutcome.TYPE_INFRINGEMENT_NOTICE:
-                url_list.append('<a href="/sanction_outcome/pdf/' + str(obj.id) + '/"><i style="color:red" class="fa fa-file-pdf-o"></i> Infringement Notice</a>')
-            elif obj.type == SanctionOutcome.TYPE_CAUTION_NOTICE:
-                url_list.append('<a href="#"><i style="color:red" class="fa fa-file-pdf-o"></i> Caution Notice</a>')
-            elif obj.type == SanctionOutcome.TYPE_LETTER_OF_ADVICE:
-                url_list.append('<a href="#"><i style="color:red" class="fa fa-file-pdf-o"></i> Letter of Advice</a>')
-            elif obj.type == SanctionOutcome.TYPE_REMEDIATION_NOTICE:
-                url_list.append('<a href="#"><i style="color:red" class="fa fa-file-pdf-o"></i> Remediation Notice</a>')
+            # No paper notices
+            if obj.date_of_issue:
+                # date_of_issue can have a value only after issued
+                if obj.type == SanctionOutcome.TYPE_INFRINGEMENT_NOTICE:
+                    url_list.append('<a href="/sanction_outcome/pdf/' + str(obj.id) + '/"><i style="color:red" class="fa fa-file-pdf-o"></i> Infringement Notice</a>')
+                elif obj.type == SanctionOutcome.TYPE_CAUTION_NOTICE:
+                    url_list.append('<a href="#"><i style="color:red" class="fa fa-file-pdf-o"></i> Caution Notice</a>')
+                elif obj.type == SanctionOutcome.TYPE_LETTER_OF_ADVICE:
+                    url_list.append('<a href="#"><i style="color:red" class="fa fa-file-pdf-o"></i> Letter of Advice</a>')
+                elif obj.type == SanctionOutcome.TYPE_REMEDIATION_NOTICE:
+                    url_list.append('<a href="#"><i style="color:red" class="fa fa-file-pdf-o"></i> Remediation Notice</a>')
 
         urls = '<br />'.join(url_list)
         return urls
@@ -445,11 +442,19 @@ class SaveRemediationActionSerializer(serializers.ModelSerializer):
 
 
 class SanctionOutcomeUserActionSerializer(serializers.ModelSerializer):
-    who = serializers.CharField(source='who.get_full_name')
+    # who = serializers.CharField(source='who.get_full_name')
+    who = serializers.SerializerMethodField()
 
     class Meta:
         model = SanctionOutcomeUserAction
         fields = '__all__'
+
+    def get_who(self, obj):
+        if obj.who:
+            return obj.who.get_full_name()
+        else:
+            # When who==None, which means System performed the action
+            return 'System'
 
 
 class SanctionOutcomeCommsLogEntrySerializer(CommunicationLogEntrySerializer):

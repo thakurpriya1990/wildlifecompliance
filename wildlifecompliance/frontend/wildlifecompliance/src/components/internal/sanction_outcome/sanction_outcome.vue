@@ -347,9 +347,8 @@
                                             <div class="col-sm-3">
                                                 <label>Payment due date:</label>
                                             </div>
-                                            <div v-if="item.due_date_term_currently_applied=='1st'" class="col-sm-3">
-                                                <span v-if="item.due_date_term_currently_applied=='1st'">{{ item.due_date_1st }}</span>
-                                                <span v-else>{{ item.due_date_2nd }}</span>
+                                            <div class="col-sm-3">
+                                                <span>{{ item.due_date_applied }}</span>
                                             </div>
                                             <div class="col-sm-3">
                                                 <label>Reason:</label>

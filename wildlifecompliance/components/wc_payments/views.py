@@ -47,6 +47,8 @@ from django.db import transaction
 
 # from commercialoperator.components.proposals.serializers import ProposalSerializer
 # from commercialoperator.components.bookings.confirmation_pdf import create_confirmation_pdf_bytes
+from rest_framework.response import Response
+
 from commercialoperator.components.bookings.confirmation_pdf import create_confirmation_pdf_bytes
 from ledger.checkout.utils import create_basket_session, create_checkout_session, place_order_submission, get_cookie_basket
 from ledger.payments.pdf import create_invoice_pdf_bytes
@@ -242,9 +244,11 @@ class SanctionOutcomePDFView(SanctionOutcomePdfMixin, View):
     """
     def get(self, request, *args, **kwargs):
         so = get_object_or_404(SanctionOutcome, id=self.kwargs['sanction_outcome_id'])
-        response = HttpResponse(content_type='application/pdf')
-        response.write(create_infringement_notice_pdf_bytes('infringement_notice.pdf', so))
-        return response
+        if so.date_of_issue:
+            # Sanction outcome pdf should be created only after issued
+            response = HttpResponse(content_type='application/pdf')
+            response.write(create_infringement_notice_pdf_bytes('infringement_notice.pdf', so))
+            return response
 
     def get_object(self):
         so = get_object_or_404(SanctionOutcome, id=self.kwargs['sanction_outcome_id'])

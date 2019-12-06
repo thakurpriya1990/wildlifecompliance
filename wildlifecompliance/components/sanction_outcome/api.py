@@ -343,8 +343,12 @@ class SanctionOutcomeViewSet(viewsets.ModelViewSet):
 
                 # Offence should not be changed
                 # Offender
-                # TODO: Now working when officer edit after return-to-officer
                 request_data['offender_id'] = request_data.get('current_offender', {}).get('id', None)
+                if not request_data['offender_id'] and request_data.get('offender') and request_data.get('offender').get('id'):
+                    request_data['offender_id'] = request_data.get('offender').get('id')
+                else:
+                    if not instance.is_parking_offence:
+                        raise serializers.ValidationError('An offender must be selected.')
 
                 # No workflow
                 # No allocated group changes
@@ -371,10 +375,16 @@ class SanctionOutcomeViewSet(viewsets.ModelViewSet):
                             else:
                                 instance.log_user_action(SanctionOutcomeUserAction.ACTION_REMOVE_ALLEGED_COMMITTED_OFFENCE.format(existing_aco.alleged_offence), request)
 
-                instance.log_user_action(SanctionOutcomeUserAction.ACTION_SAVE.format(instance), request)
+                instance.log_user_action(SanctionOutcomeUserAction.ACTION_UPDATE.format(instance), request)
 
                 # Return
-                return self.retrieve(request)
+                # return_serializer = SanctionOutcomeSerializer(instance=instance,)
+                # headers = self.get_success_headers(return_serializer.data)
+                return Response(
+                    # return_serializer.data,
+                    status=status.HTTP_200_OK,
+                    # headers=headers
+                )
 
         except serializers.ValidationError:
             print(traceback.print_exc())
@@ -435,6 +445,9 @@ class SanctionOutcomeViewSet(viewsets.ModelViewSet):
                 serializer.is_valid(raise_exception=True)
                 instance = serializer.save()
 
+                # Action log for creation
+                instance.log_user_action(SanctionOutcomeUserAction.ACTION_CREATE.format(instance.lodgement_number), request)
+
                 # Link temp uploaded files to the sanction outcome
                 if num_of_documents:
                     for doc in temp_doc_collection.documents.all():
@@ -453,7 +466,10 @@ class SanctionOutcomeViewSet(viewsets.ModelViewSet):
 
                 # Validate if alleged offences are selected
                 if count_alleged_offences == 0:
-                    raise serializers.ValidationError(['No alleged offences selected.'])
+                    if instance.type == SanctionOutcome.TYPE_INFRINGEMENT_NOTICE:
+                        raise serializers.ValidationError(['You must select an alleged committed offence.'])
+                    else:
+                        raise serializers.ValidationError(['You must select at least one alleged committed offence.'])
 
                 # Validate if an offender is selected
                 if not instance.offender and not instance.is_parking_offence:
@@ -670,14 +686,20 @@ class SanctionOutcomeViewSet(viewsets.ModelViewSet):
 
                 new_due_date = request.data.get('new_due_date', None)
                 if not new_due_date:
-                    raise serializers.ValidationError({'New due date' : ['You must enter a new due date.', ]})
+                    raise serializers.ValidationError({'New due date': ['You must enter a new due date.', ]})
 
                 new_due_date = datetime.strptime(new_due_date, '%d/%m/%Y').date()
                 reason = request.data.get('reason', '')
 
                 if instance.extend_due_date(new_due_date, reason, request.user.id):
                     # Action log
-                    instance.log_user_action(SanctionOutcomeUserAction.ACTION_EXTEND_DUE_DATE.format(instance.lodgement_number), request)
+                    dates = instance.due_dates.all().order_by('-id')
+                    last_date = dates[0]
+                    second_last = dates[1]
+                    instance.log_user_action(SanctionOutcomeUserAction.ACTION_EXTEND_DUE_DATE.format(
+                        second_last.due_date_applied.strftime('%d/%m/%Y'),
+                        last_date.due_date_applied.strftime('%d/%m/%Y')),
+                        request)
 
                 to_address = [instance.offender.person.email,]
                 cc = [instance.responsible_officer.email, request.user.email] if instance.responsible_officer else None
@@ -756,14 +778,19 @@ class SanctionOutcomeViewSet(viewsets.ModelViewSet):
                         pass
 
                 elif workflow_type == SanctionOutcome.WORKFLOW_ENDORSE:
-                    if instance.is_parking_offence and not instance.offender:
-                        # Send email to DoT with attachment
-                        to_address = ['shibaken+dot@dbca.gov.wa.au', ]
-                        cc = [instance.responsible_officer.email, request.user.email,]
-                        bcc = None
-                        email_data = email_detais_to_department_of_transport(to_address, instance, workflow_entry, request, cc, bcc)
+                    if instance.is_parking_offence:
+                        if instance.offender:
+                            # TODO: send infringement notice
+                            pass
 
-                        # TODO: Set status to with_DoT
+                        else:
+                            # Send email to DoT with attachment
+                            to_address = ['shibaken+dot@dbca.gov.wa.au', ]
+                            cc = [instance.responsible_officer.email, request.user.email,]
+                            bcc = None
+                            email_data = email_detais_to_department_of_transport(to_address, instance, workflow_entry, request, cc, bcc)
+
+                            # TODO: Set status to with_DoT
 
                     else:
                         instance.endorse(request)
@@ -776,7 +803,6 @@ class SanctionOutcomeViewSet(viewsets.ModelViewSet):
                         bcc = [instance.responsible_officer.email, request.user.email] + inc_emails
 
                         email_data = send_infringement_notice(to_address, instance, workflow_entry, request, cc, bcc)
-
 
                 elif workflow_type == SanctionOutcome.WORKFLOW_RETURN_TO_OFFICER:
                     if not reason:
@@ -876,16 +902,10 @@ class SanctionOutcomeViewSet(viewsets.ModelViewSet):
                 request_data = request.data.copy()
                 request_data['sanction_outcome'] = u'{}'.format(instance.id)
                 if request_data.get('comms_log_id'):
-                    comms = SanctionOutcomeCommsLogEntry.objects.get(
-                        id=request_data.get('comms_log_id')
-                    )
-                    serializer = SanctionOutcomeCommsLogEntrySerializer(
-                        instance=comms,
-                        data=request.data)
+                    comms = SanctionOutcomeCommsLogEntry.objects.get(id=request_data.get('comms_log_id'))
+                    serializer = SanctionOutcomeCommsLogEntrySerializer(instance=comms, data=request.data)
                 else:
-                    serializer = SanctionOutcomeCommsLogEntrySerializer(
-                        data=request_data
-                    )
+                    serializer = SanctionOutcomeCommsLogEntrySerializer(data=request_data)
                 serializer.is_valid(raise_exception=True)
                 # overwrite comms with updated instance
                 comms = serializer.save()

@@ -79,6 +79,21 @@ class SendDeclineEmail(TemplateEmailBase):
     txt_template = 'wildlifecompliance/emails/decline_infringement_notice.txt'
 
 
+class Remind1stPeriodOverdueMail(TemplateEmailBase):
+    """
+    This is the template for the email sent when overdue the 1st period
+    """
+    subject = 'Infringement Notice overdue and extended'
+    html_template = 'wildlifecompliance/emails/remind_1st_period_overdue.html'
+    txt_template = 'wildlifecompliance/emails/remind_1st_period_overdue.txt'
+
+
+class UnpaidInfringementsFileMail(TemplateEmailBase):
+    subject = 'Unpaid Infringements File'
+    html_template = 'wildlifecompliance/emails/unpaid_infringements_file.html'
+    txt_template = 'wildlifecompliance/emails/unpaid_infringements_file.txt'
+
+
 def send_due_date_extended_mail(to_address, sanction_outcome, workflow_entry, request, cc=None, bcc=None):
     email = InfringementNoticeDueDateExtendedEmail()
     if request.data.get('email_subject'):
@@ -96,6 +111,48 @@ def send_due_date_extended_mail(to_address, sanction_outcome, workflow_entry, re
                      bcc=bcc)
     sender = request.user if request else settings.DEFAULT_FROM_EMAIL
     email_data = _extract_email_headers(msg, sender=sender)
+    return email_data
+
+
+def send_remind_1st_period_overdue_mail(to_address, sanction_outcome, cc=None, bcc=None):
+    email = Remind1stPeriodOverdueMail()
+    # if request.data.get('email_subject'):
+    #     email.subject = request.data.get('email_subject')
+    # url = request.build_absolute_uri(reverse('internal-sanction-outcome-detail', kwargs={ 'sanction_outcome_id': sanction_outcome.id }))
+    context = {
+        # 'url': url,
+        'sanction_outcome': sanction_outcome,
+        'workflow_entry_details': 'This is message body.',
+    }
+    msg = email.send(to_address,
+                     context=context,
+                     cc=cc,
+                     bcc=bcc)
+    sender = settings.DEFAULT_FROM_EMAIL
+    email_data = _extract_email_headers(msg, sender=sender)
+    return email_data
+
+
+def send_unpaid_infringements_file(to_address, cc=None, bcc=None, attachements=[]):
+    email = UnpaidInfringementsFileMail()
+    # if request.data.get('email_subject'):
+    #     email.subject = request.data.get('email_subject')
+    # url = request.build_absolute_uri(reverse('internal-sanction-outcome-detail', kwargs={ 'sanction_outcome_id': sanction_outcome.id }))
+    context = {
+        # 'url': url,
+        # 'sanction_outcome': sanction_outcome,
+        'workflow_entry_details': 'This is unpaid infringements message body.',
+    }
+    msg = email.send(to_address,
+                     context=context,
+                     # attachments=[('infringement_notice.pdf', pdf, 'application/pdf')],
+                     attachments=attachements,
+                     cc=cc,
+                     bcc=bcc)
+    sender = settings.DEFAULT_FROM_EMAIL
+    email_data = _extract_email_headers(msg, sender=sender)
+
+
     return email_data
 
 
@@ -122,7 +179,8 @@ def send_infringement_notice(to_address, sanction_outcome, workflow_entry, reque
     sender = request.user if request else settings.DEFAULT_FROM_EMAIL
     email_data = _extract_email_headers(msg, sender=sender)
 
-    # Create SanctionOutcomeCommsLogDocument object so that the link to the infringement notice file can be created in the comms log
+    # Create SanctionOutcomeCommsLogDocument object
+    # so that the link to the infringement notice file can be created in the comms log
     temp = SanctionOutcomeCommsLogDocument(log_entry=workflow_entry, _file=File(BytesIO()), name=pdf_file_name)
     temp.save()
 
@@ -151,6 +209,7 @@ def send_return_to_officer_email(to_address, sanction_outcome, workflow_entry, r
 
 
 def email_detais_to_department_of_transport(sanction_outcome):
+    # TODO
     pass
 
 
