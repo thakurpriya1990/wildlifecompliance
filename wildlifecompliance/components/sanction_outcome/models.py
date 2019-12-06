@@ -191,6 +191,14 @@ class SanctionOutcome(models.Model):
         except Exception as e:
             return None
 
+    def get_offender(self):
+        if self.driver:
+            return self.driver
+        elif self.registration_holder:
+            return self.registration_holder
+        else:
+            return self.offender.person
+
     @property
     def prefix_lodgement_nubmer(self):
         prefix_lodgement = ''
@@ -240,7 +248,7 @@ class SanctionOutcome(models.Model):
         self.__original_status = self.status
 
     def __str__(self):
-        return 'Type : {}, Identifier: {}'.format(self.type, self.identifier)
+        return 'ID: {}, Type : {}, Identifier: {}'.format(self.id, self.type, self.identifier)
     
     @property
     def get_related_items_identifier(self):
@@ -488,12 +496,16 @@ class SanctionOutcome(models.Model):
             if now_date <= self.last_due_date_1st:
                 data['due_date_1st'] = target_date
                 data['due_date_2nd'] = target_date + relativedelta(days=due_date_config.due_date_window_2nd)
+                data['due_date_term_currently_applied'] = '1st'
             elif now_date <= self.last_due_date_2nd:
                 data['due_date_1st'] = self.last_due_date_1st
                 data['due_date_2nd'] = target_date
+                data['due_date_term_currently_applied'] = '2nd'
             data['reason_for_extension'] = reason_for_extension
             data['extended_by_id'] = extended_by_id
             data['sanction_outcome_id'] = self.id
+
+            # Create new duedate record
             serializer = SaveSanctionOutcomeDueDateSerializer(data=data)
             serializer.is_valid(raise_exception=True)
             serializer.save()
@@ -540,13 +552,6 @@ class AllegedCommittedOffence(RevisionedMixin):
     alleged_offence = models.ForeignKey(AllegedOffence, null=False,)
     sanction_outcome = models.ForeignKey(SanctionOutcome, null=False,)
     included = models.BooleanField(default=True)  # True means sanction_outcome is included in the sanction_outcome
-
-    # TODO: following three fields are not used probably
-    # reason_for_removal = models.TextField(blank=True)
-    # removed = models.BooleanField(default=False)  # Never make this field False once becomes True. Rather you have to create another record making this field False.
-    # removed_by = models.ForeignKey(EmailUser, null=True, related_name='alleged_committed_offence_removed_by')
-    # objects = models.Manager()
-    # objects_active = AllegedCommittedOffenceActiveManager()
 
     def retrieve_penalty_amounts_by_date(self, date_of_issue):
         return self.alleged_offence.retrieve_penalty_amounts_by_date(date_of_issue)
@@ -608,8 +613,9 @@ class SanctionOutcomeCommsLogEntry(CommunicationsLogEntry):
 
 
 class SanctionOutcomeUserAction(models.Model):
+    ACTION_CREATE = "Create Sanction Outcome {}"
     ACTION_SEND_TO_MANAGER = "Send Sanction Outcome {} to manager"
-    ACTION_SAVE = "Save Sanction Outcome {}"
+    ACTION_UPDATE = "Update Sanction Outcome {}"
     ACTION_ENDORSE = "Endorse Sanction Outcome {}"
     ACTION_DECLINE = "Decline Sanction Outcome {}"
     ACTION_RETURN_TO_OFFICER = "Request amendment for Sanction Outcome {}"
@@ -621,9 +627,10 @@ class SanctionOutcomeUserAction(models.Model):
     ACTION_REMOVE_ALLEGED_COMMITTED_OFFENCE = "Remove alleged committed offence: {}"
     ACTION_RESTORE_ALLEGED_COMMITTED_OFFENCE = "Restore alleged committed offence: {}"
     ACTION_INCLUDE_ALLEGED_COMMITTED_OFFENCE = "Include alleged committed offence: {}"
-    ACTION_EXTEND_DUE_DATE = "Extend due date of Sanction Outcome {}"
+    ACTION_EXTEND_DUE_DATE = "Extend due date from {} to {}"
     ACTION_SEND_DETAILS_TO_INFRINGEMENT_NOTICE_COORDINATOR = "Send details of the Unpaid Infringement Notice {} to Infringement Notice Coordinator"
     ACTION_ESCALATE_FOR_WITHDRAWAL = "Escalate Infringement Notice {} for withdrawal"
+    ACTION_INCREASE_FEE_AND_EXTEND_DUE = "Increase penalty amount from {} to {} and extend due date from {} to {}"
 
     who = models.ForeignKey(EmailUser, null=True, blank=True)
     when = models.DateTimeField(null=False, blank=False, auto_now_add=True)

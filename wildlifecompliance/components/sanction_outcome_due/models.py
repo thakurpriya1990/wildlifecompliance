@@ -1,5 +1,6 @@
 from django.db import models
 from django.db.models import Q
+from rest_framework.exceptions import ValidationError
 
 from ledger.accounts.models import RevisionedMixin, EmailUser
 
@@ -38,6 +39,15 @@ class SanctionOutcomeDueDate(models.Model):
         verbose_name_plural = 'CM_SanctionOutcomeDueDates'
         ordering = ('created_at',)
 
+    @property
+    def due_date_applied(self):
+        if self.due_date_term_currently_applied == '1st':
+            return self.due_date_1st
+        elif self.due_date_term_currently_applied == '2nd':
+            return self.due_date_2nd
+        else:
+            # Should not reach here
+            raise ValidationError(['Something wrong with SanctionOutcomeDueDate object',])
 
     def __str__(self):
         return 'ID: {}, Sanction Outcome: {} due_date_1: {} due_date_2: {})'.format(
