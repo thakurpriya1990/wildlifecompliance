@@ -104,27 +104,12 @@ class RunningSheetEntryVersionSerializer(serializers.ModelSerializer):
         return modified_fields
 
 
-class RunningSheetEntryHistorySerializer(serializers.ModelSerializer):
-    versions = serializers.SerializerMethodField()
-    class Meta:
-        model = LegalCaseRunningSheetEntry
-        fields = (
-                'id',
-                'versions',
-                )
-    def get_versions(self, obj):
-        entry_versions = RunningSheetEntryVersionSerializer(
-                Version.objects.get_for_object(obj),
-                many=True)
-        return entry_versions.data
-
-
 class LegalCaseRunningSheetEntrySerializer(serializers.ModelSerializer):
     #person = LegalCasePersonSerializer(many=True)
     #legal_case_persons = LegalCasePersonSerializer(many=True)
     #action = serializers.SerializerMethodField()
     user_full_name = serializers.SerializerMethodField()
-    #versions = serializers.SerializerMethodField()
+    versions = serializers.SerializerMethodField()
     date_mod = serializers.SerializerMethodField()
     time_mod = serializers.SerializerMethodField()
 
@@ -144,7 +129,7 @@ class LegalCaseRunningSheetEntrySerializer(serializers.ModelSerializer):
                 'description',
                 'deleted',
                 #'action',
-                #'versions',
+                'versions',
                 )
         read_only_fields = (
                 'id',
@@ -164,11 +149,17 @@ class LegalCaseRunningSheetEntrySerializer(serializers.ModelSerializer):
     #def get_time_mod(self, obj):
      #   return obj.date_modified.strftime('%I:%M:%S')
 
-    #def get_versions(self, obj):
-    #    entry_versions = RunningSheetEntryVersionSerializer(
-    #            Version.objects.get_for_object(obj),
-    #            many=True)
-    #    return entry_versions.data
+    def get_versions(self, obj):
+        #pass
+        #versions = []
+        #entry_version_objs = Version.objects.get_for_object(obj)
+        entry_versions = RunningSheetEntryVersionSerializer(
+                Version.objects.get_for_object(obj),
+                many=True)
+        #print(entry_versions.data)
+        #if entry_versions:
+         #   versions = entry_versions
+        return entry_versions.data
 
     def get_user_full_name(self, obj):
         user_full_name = ''
