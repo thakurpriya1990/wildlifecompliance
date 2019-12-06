@@ -218,12 +218,22 @@ export default {
             'current_user',
             'sendToAssessorActivities',
             'canAssignOfficerFor',
+            'filterActivityList',
         ]),
         inspection_report_file_name: function() {
             return this.assessment.inspection_report != null ? this.assessment.inspection_report.name: '';
         },
         applicationActivities: function() {
-            return this.licenceActivities();
+            if (this.canCompleteAssessment){ // build authorised activities for assessor.
+                return this.filterActivityList({
+                    activity_list: this.licenceActivities([
+                        'with_assessor'
+                    ], 'assessor'),
+                    exclude_processing_statuses: ['discarded']
+                });
+            } else { // build authorised activities for officer.
+                return this.licenceActivities().filter(activity => this.canAssignOfficerFor(activity.id))
+            }
         },
         selectedActivity: function(){
             const activities_list = this.licence_type_data.activity;
@@ -438,8 +448,9 @@ export default {
             if(this.selected_activity_tab_id && !force) {
                 return;
             }
-            const tab = $('#tabs-section li:first-child a')[0];
-            const FIRST_TAB = 1;
+            // const tab = $('#tabs-assessor li:first-child a')[0];
+            const tab = null
+            const FIRST_TAB = this.applicationActivities[0].id
             if(tab) {
                 tab.click();
             }

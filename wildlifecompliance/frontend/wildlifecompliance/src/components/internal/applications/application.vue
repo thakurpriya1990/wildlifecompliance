@@ -51,29 +51,29 @@
                                     </div>
                                 </div>
                             </div>
-                             <div class="col-sm-12 top-buffer-s" v-if="!canAssignToApprover" >
+                             <div class="col-sm-12 top-buffer-s" v-show="showAssignToOfficer" >
                                 <strong>Assigned Officer</strong><br/>
                                 <div class="form-group">
                                     <template>
-                                        <select ref="assigned_officer" :disabled="!canAssignToOfficer" class="form-control" v-model="selectedActivity.assigned_officer">
+                                        <select ref="assigned_officer" class="form-control" v-model="selectedActivity.assigned_officer">
                                             <option v-for="member in selectedActivity.licensing_officers" :value="member.id" v-bind:key="member.id">{{member.first_name}} {{member.last_name}}</option>
                                         </select>
-                                        <a v-if="canAssignToOfficer" @click.prevent="assignToMe()" class="actionBtn pull-right">Assign to me</a>
+                                        <a @click.prevent="assignToMe()" class="actionBtn pull-right">Assign to me</a>
                                     </template>
                                 </div>
                             </div>
-                            <div class="col-sm-12 top-buffer-s" v-if="canAssignToApprover" >
+                            <div class="col-sm-12 top-buffer-s" v-show="showAssignToApprover" >
                                 <strong>Assigned Approver</strong><br/>
                                 <div class="form-group">
                                     <template>
-                                        <select ref="assigned_approver" :disabled="!canAssignToApprover" class="form-control" v-model="selectedActivity.assigned_approver" >
+                                        <select ref="assigned_approver" class="form-control" v-model="selectedActivity.assigned_approver" >
                                             <option v-for="member in selectedActivity.issuing_officers" :value="member.id" v-bind:key="member.id">{{member.first_name}} {{member.last_name}}</option>
                                         </select>
                                         <a @click.prevent="makeMeApprover()" class="actionBtn pull-right">Assign to me</a>
                                     </template>                                    
                                 </div>
                             </div>
-                            <div class="col-sm-12 top-buffer-s" v-if="isWithAssessor">
+                            <div class="col-sm-12 top-buffer-s" v-show="showAssignToAssessor">
                                 <strong>Assigned Assessors</strong><br/>
                             
                                 <div v-for="activity_assessment in activeAssessments">
@@ -82,12 +82,12 @@
 
                                         <template>
                                             <!-- display selects when Assessor has been allocated -->
-                                            <select v-if="activity_assessment.assigned_assessor!=null" ref="assigned_assessor" :disabled="!canAssignToAssessor" class="form-control" v-model="activity_assessment.assigned_assessor.id">
+                                            <select v-if="activity_assessment.assigned_assessor!=null" ref="assigned_assessor" class="form-control" v-model="activity_assessment.assigned_assessor.id">
                                                 <option :value="null"></option>                                                
                                                 <option v-for="member in activity_assessment.assessors" :value="member.id" v-bind:key="member.id">{{member.first_name}} {{member.last_name}}</option>
                                             </select>
                                             <!-- display select when no Assessor exist -->
-                                            <select v-if="activity_assessment.assigned_assessor==null" ref="assigned_assessor" :disabled="!canAssignToAssessor" class="form-control" v-model="activity_assessment.assigned_assessor_id" >
+                                            <select v-if="activity_assessment.assigned_assessor==null" ref="assigned_assessor" class="form-control" v-model="activity_assessment.assigned_assessor_id" >
                                                 <option :value="null"></option>
                                                 <option v-for="member in activity_assessment.assessors" :value="member.id" v-bind:key="member.id">{{member.first_name}} {{member.last_name}}</option>
                                             </select>
@@ -140,7 +140,7 @@
                                             <!-- button v-else disabled class="btn btn-primary top-buffer-s col-xs-12">Issue/Decline       -->
                                         </div>
                                     </div>
-                                    <div v-if="!applicationIsDraft && (canAssignToOfficer || canAssignToAssessor)" class="row">
+                                    <div v-show="showAssessmentConditionButton" class="row">
                                         <div class="col-sm-12">
                                             <button class="btn btn-primary top-buffer-s col-xs-12" @click.prevent="togglesendtoAssessor()">Assessments &amp; Conditions</button><br/>
                                         </div>
@@ -782,15 +782,6 @@ export default {
         isCharacterCheckAccepted: function(){
             return this.application.character_check_status.id == 'accepted';
         },
-        canAssignToOfficer: function(){
-            return this.application && this.canAssignOfficerFor(this.selectedActivity.licence_activity)
-        },
-        canAssignToAssessor: function(){
-            return this.application && this.canAssignAssessorFor(this.selectedActivity.licence_activity)
-        },
-        canAssignToApprover: function(){
-            return this.application && this.canAssignApproverFor(this.selectedActivity.licence_activity)
-        },
         userIsAssignedOfficer: function(){
             return this.current_user.id == this.selectedActivity.assigned_officer;
         },
@@ -819,6 +810,20 @@ export default {
                 return assessment.assigned_assessor
                     && assessment.assigned_assessor.id === this.current_user.id;               
             });
+        },
+        showAssignToOfficer: function(){
+            return this.showingApplication && this.canAssignOfficerFor(this.selectedActivity.licence_activity)
+        },
+        showAssignToAssessor: function(){
+            return !this.showingApplication && this.canAssignAssessorFor(this.selectedActivity.licence_activity)
+        },
+        showAssignToApprover: function(){
+            return this.showingApplication && this.canAssignApproverFor(this.selectedActivity.licence_activity)
+        },
+        showAssessmentConditionButton: function() {
+            return this.showingApplication 
+                && !this.applicationIsDraft 
+                && (this.canAssignOfficerFor(this.selectedActivity.licence_activity) || this.canAssignAssessorFor(this.selectedActivity.licence_activity))
         },
         isWithAssessor: function() {
             return this.selectedActivity.processing_status.id === 'with_assessor' ? true : false;
