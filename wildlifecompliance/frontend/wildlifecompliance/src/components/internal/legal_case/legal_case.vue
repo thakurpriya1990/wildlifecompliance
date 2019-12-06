@@ -717,12 +717,14 @@ export default {
         if (this.magic && recordDescription && recordDescription.toLowerCase().includes('shibaken')) {
             this.magicMethod()
         }
+        /*
         console.log(recordNumber)
         console.log(recordDescription)
         console.log(redraw)
+        */
         let i = 0;
         for (let r of this.runningSheetUrl) {
-            console.log(r.deleted)
+            //console.log(r.deleted)
             if (r.number === recordNumber) {
                 if (recordDescription) {
                     r.description = recordDescription
@@ -895,7 +897,18 @@ export default {
           (e) => {
               this.runningSheetRowReinstate(e)
           });
-      
+      runningSheetTable.on(
+          'paste', 
+          (e) => {
+              console.log("plain text only");
+              // cancel paste
+              e.preventDefault();
+              // get text representation of clipboard
+              let text = (e.originalEvent || e).clipboardData.getData('text/plain');
+              let transformedText = text.replace(/\n/g,'<br/>')
+              // insert text manually
+              document.execCommand("insertHTML", false, transformedText);
+          });
       window.addEventListener('beforeunload', this.leaving);
       window.addEventListener('onblur', this.leaving);
     },
