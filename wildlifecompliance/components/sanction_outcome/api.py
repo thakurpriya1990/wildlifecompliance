@@ -774,31 +774,24 @@ class SanctionOutcomeViewSet(viewsets.ModelViewSet):
                     email_data = send_decline_email(to_address, instance, workflow_entry, request, cc, bcc)
 
                 elif workflow_type == SanctionOutcome.WORKFLOW_ENDORSE:
-                    if instance.is_parking_offence:
-                        if instance.offender:
-                            # TODO: send infringement notice
-                            pass
-
-                        else:
-                            # Send email to DoT with attachment
-                            to_address = ['shibaken+dot@dbca.gov.wa.au', ]
-                            cc = [instance.responsible_officer.email, request.user.email,]
-                            bcc = None
-                            email_data = email_detais_to_department_of_transport(to_address, instance, workflow_entry, request, cc, bcc)
-
-                            # TODO: Set status to with_DoT
-
-                    else:
+                    if not instance.is_parking_offence or (instance.is_parking_offence and instance.offender):
                         instance.endorse(request)
+
                         # Email to the offender, and bcc to the respoinsible officer, manager and infringement notice coordinators
                         inc_group = SanctionOutcome.get_compliance_permission_group(None, SanctionOutcome.WORKFLOW_ENDORSE)
                         inc_emails = [member.email for member in inc_group.members]
-
                         to_address = [instance.offender.person.email, ]
                         cc = None
                         bcc = [instance.responsible_officer.email, request.user.email] + inc_emails
-
                         email_data = send_infringement_notice(to_address, instance, workflow_entry, request, cc, bcc)
+                    else:
+                        instance.endorse_and_dot(request)
+
+                        # Send email to DoT with attachment
+                        to_address = ['shibaken+dot@dbca.gov.wa.au', ]
+                        cc = [instance.responsible_officer.email, request.user.email,]
+                        bcc = None
+                        email_data = email_detais_to_department_of_transport(to_address, instance, request, cc, bcc)
 
                 elif workflow_type == SanctionOutcome.WORKFLOW_RETURN_TO_OFFICER:
                     if not reason:

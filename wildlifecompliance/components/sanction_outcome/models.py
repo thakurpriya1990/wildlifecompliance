@@ -67,6 +67,7 @@ class SanctionOutcome(models.Model):
     STATUS_OVERDUE = 'overdue'
     STATUS_WITHDRAWN = 'withdrawn'
     STATUS_CLOSED = 'closed'
+    STATUS_WITH_DOT = 'with_dot'
     STATUS_CHOICES_FOR_EXTERNAL = (
         (STATUS_AWAITING_PAYMENT, 'Awaiting Payment'),
         (STATUS_AWAITING_REMEDIATION_ACTIONS, 'Awaiting Remediation Actions'),
@@ -81,6 +82,7 @@ class SanctionOutcome(models.Model):
         (STATUS_AWAITING_ENDORSEMENT, 'Awaiting Endorsement'),
         (STATUS_AWAITING_PAYMENT, 'Awaiting Payment'),  # TODO: implement pending closuer of SanctionOutcome with type RemediationActions
                                                         # This is pending closure status
+        (STATUS_WITH_DOT, 'With Dep. of Transport'),
         (STATUS_AWAITING_REVIEW, 'Awaiting Review'),
         (STATUS_AWAITING_REMEDIATION_ACTIONS, 'Awaiting Remediation Actions'),  # TODO: implement pending closuer of SanctionOutcome with type RemediationActions
                                                                                 # This is pending closure status
@@ -342,24 +344,49 @@ class SanctionOutcome(models.Model):
     def offence_occurrence_datetime(self):
         return self.offence.offence_occurrence_datetime
 
-    def endorse(self, request):
+    def confirm_date_time_issue(self, raise_exception=False):
         current_datetime = datetime.datetime.now()
         if not self.issued_on_paper:
             self.date_of_issue = current_datetime.date()
             self.time_of_issue = current_datetime.time()
         elif not self.date_of_issue:
-            raise ValidationError('Sanction outcome cannot be endorsed without setting date of issue.')
+            if raise_exception:
+                raise ValidationError('Sanction outcome cannot be endorsed without setting date of issue.')
+
+    def is_issuable(self, raise_exception=False):
+        date_window = self.retrieve_issue_due_date_window()
+        issue_due_date = self.offence_occurrence_date + relativedelta(days=date_window)
+        if self.date_of_issue > issue_due_date:
+            if raise_exception:
+                raise ValidationError('Infringement notice must be issued before %s' % issue_due_date.strftime("%d-%m-%Y"))
+            else:
+                return False
+        else:
+            return True
+
+    def endorse_and_dot(self, request):
+        self.confirm_date_time_issue(raise_exception=True)
 
         if self.type == SanctionOutcome.TYPE_INFRINGEMENT_NOTICE:
-            date_window = self.retrieve_issue_due_date_window()
-            issue_due_date = self.offence_occurrence_date + relativedelta(days=date_window)
-            if self.date_of_issue > issue_due_date:
-                raise ValidationError('Infringement notice must be issued before %s' % issue_due_date.strftime("%d-%m-%Y"))
+            if self.is_issuable(raise_exception=True):
+                self.status = SanctionOutcome.STATUS_WITH_DOT
+                self.save()
 
-            self.status = SanctionOutcome.STATUS_AWAITING_PAYMENT
-            self.payment_status = SanctionOutcome.PAYMENT_STATUS_UNPAID
-            self.set_penalty_amounts()
-            self.create_due_dates()
+                # Add action log
+                self.log_user_action(SanctionOutcomeUserAction.ACTION_SEND_TO_DOT.format(self.lodgement_number), request)
+        else:
+            # Should not reach here
+            pass
+
+    def endorse(self, request):
+        self.confirm_date_time_issue()
+
+        if self.type == SanctionOutcome.TYPE_INFRINGEMENT_NOTICE:
+            if self.is_issuable(raise_exception=True):
+                self.status = SanctionOutcome.STATUS_AWAITING_PAYMENT
+                self.payment_status = SanctionOutcome.PAYMENT_STATUS_UNPAID
+                self.set_penalty_amounts()
+                self.create_due_dates()
 
         elif self.type in (SanctionOutcome.TYPE_CAUTION_NOTICE, SanctionOutcome.TYPE_LETTER_OF_ADVICE):
             self.status = SanctionOutcome.STATUS_CLOSED
@@ -372,6 +399,7 @@ class SanctionOutcome(models.Model):
         self.allocated_group = new_group
         self.save()
 
+        # Add action log
         self.log_user_action(SanctionOutcomeUserAction.ACTION_ENDORSE.format(self.lodgement_number), request)
 
     def create_due_dates(self, reason_for_extension='original', extended_by_id=None):
@@ -617,6 +645,7 @@ class SanctionOutcomeUserAction(models.Model):
     ACTION_SEND_TO_MANAGER = "Send Sanction Outcome {} to manager"
     ACTION_UPDATE = "Update Sanction Outcome {}"
     ACTION_ENDORSE = "Endorse Sanction Outcome {}"
+    ACTION_SEND_TO_DOT = "Send details of Sanction Outcome {} to Dep. of Transport"
     ACTION_DECLINE = "Decline Sanction Outcome {}"
     ACTION_RETURN_TO_OFFICER = "Request amendment for Sanction Outcome {}"
     ACTION_RETURN_TO_INFRINGEMENT_NOTICE_COORDINATOR = "Return Sanction Outcome {} to Infringement Notice Coordinator"

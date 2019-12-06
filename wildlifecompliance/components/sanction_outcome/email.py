@@ -38,13 +38,13 @@ class InfringementNoticeEmail(TemplateEmailBase):
 
 
 class ReturnToOfficerEmail(TemplateEmailBase):
-    subject = 'Return to Officer'
+    subject = 'Infringement Notice Returned'
     html_template = 'wildlifecompliance/emails/return_to_officer.html'
     txt_template = 'wildlifecompliance/emails/return_to_officer.txt'
 
 
 class SendToManagerEmail(TemplateEmailBase):
-    subject = 'Send to Manager'
+    subject = 'Infringement Notice Fowarded'
     html_template = 'wildlifecompliance/emails/send_to_manager.html'
     txt_template = 'wildlifecompliance/emails/send_to_manager.txt'
 
@@ -86,6 +86,12 @@ class Remind1stPeriodOverdueMail(TemplateEmailBase):
     subject = 'Infringement Notice overdue and extended'
     html_template = 'wildlifecompliance/emails/remind_1st_period_overdue.html'
     txt_template = 'wildlifecompliance/emails/remind_1st_period_overdue.txt'
+
+
+class SendDetailsToDotEmail(TemplateEmailBase):
+    subject = 'Details of Parking Infringement'
+    html_template = 'wildlifecompliance/emails/send_details_to_dot.html'
+    txt_template = 'wildlifecompliance/emails/send_details_to_dot.txt'
 
 
 class UnpaidInfringementsFileMail(TemplateEmailBase):
@@ -208,16 +214,32 @@ def send_return_to_officer_email(to_address, sanction_outcome, workflow_entry, r
     return email_data
 
 
-def email_detais_to_department_of_transport(sanction_outcome):
-    # TODO
-    pass
+def email_detais_to_department_of_transport(to_address, sanction_outcome, request, cc=None, bcc=None):
+    email = SendDetailsToDotEmail()
+    if request.data.get('email_subject'):
+        email.subject = request.data.get('email_subject')
+    url = request.build_absolute_uri(reverse('internal-sanction-outcome-detail', kwargs={'sanction_outcome_id': sanction_outcome.id}))
+    context = {
+        'url': url,
+        'sanction_outcome': sanction_outcome,
+        'workflow_entry_details': request.data.get('details'),
+    }
+    msg = email.send(to_address,
+                     context=context,
+                     attachments=[],
+                     cc=cc,
+                     bcc=bcc,
+                     )
+    sender = request.user if request else settings.DEFAULT_FROM_EMAIL
+    email_data = _extract_email_headers(msg, sender=sender)
+    return email_data
 
 
 def send_to_manager_email(to_address, sanction_outcome, workflow_entry, request, cc=None, bcc=None):
     email = SendToManagerEmail()
     if request.data.get('email_subject'):
         email.subject = request.data.get('email_subject')
-    url = request.build_absolute_uri(reverse('internal-sanction-outcome-detail', kwargs={ 'sanction_outcome_id': sanction_outcome.id }))
+    url = request.build_absolute_uri(reverse('internal-sanction-outcome-detail', kwargs={'sanction_outcome_id': sanction_outcome.id}))
     context = {
         'url': url,
         'sanction_outcome': sanction_outcome,
