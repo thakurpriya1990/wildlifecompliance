@@ -215,6 +215,7 @@
         :readonlyForm="readonlyForm"
         v-bind:key="searchPersonOrganisationBindId"
         @person-selected="insertPersonModalUrl"
+        @cancel-person-selected="cancelPersonModalUrl"
         :rowNumberSelected="rowNumberSelected"
         />
         <div v-if="runningSheetHistoryEntryBindId">
@@ -299,6 +300,7 @@ export default {
             ],
             searchPersonKeyPressed: false,
             searchObjectKeyPressed: false,
+            insertUrlKeyPressed: false,
             //magicValue: null,
             magic: true,
             dtHeadersRunningSheet: [
@@ -531,6 +533,18 @@ export default {
         }
         await this.setRunningSheetTransform(runningSheet)
     },
+    cancelPersonModalUrl: function(entity) {
+        let recordNumber = entity.row_number_selected;
+        let recordNumberElement = $('#' + recordNumber)
+        let replacementVal = ''
+        let recordDescriptionHtml = recordNumberElement[0].innerHTML.replace('@@', replacementVal).replace(/&nbsp\;/g, ' ');
+        this.updateRunningSheetUrlEntry({
+            "recordNumber": recordNumber,
+            "recordDescription": recordDescriptionHtml,
+            "redraw": true,
+        })
+    },
+
     insertPersonModalUrl: function(entity) {
         let recordNumber = entity.row_number_selected;
         let recordNumberElement = $('#' + recordNumber)
@@ -538,7 +552,8 @@ export default {
         if (entity.full_name) {
             replacementVal = `<a contenteditable="false" target="_blank" href="/internal/users/${entity.id}">${entity.full_name}</a>`
         }
-        // let recordDescriptionHtml = recordNumberElement[0].innerHTML.replace('@@', replacementVal).replace(/&nbsp\;/g, ' ');
+        let recordDescriptionHtml = recordNumberElement[0].innerHTML.replace('@@', replacementVal).replace(/&nbsp\;/g, ' ');
+        /*
         console.log(this.searchPersonOrganisationKeyPosition);
         let recordDescriptionHtml = recordNumberElement[0].innerHTML.replace(/&nbsp\;/g, ' ');
         recordDescriptionHtml = recordDescriptionHtml.slice(0, this.searchPersonOrganisationKeyPosition) +
@@ -546,6 +561,7 @@ export default {
                                         replacementVal +
                                         " " +
                                         recordDescriptionHtml.slice(this.searchPersonOrganisationKeyPosition);
+        */
 
         this.updateRunningSheetUrlEntry({
             "recordNumber": recordNumber,
@@ -758,12 +774,13 @@ export default {
                         "recordDescription": recordDescriptionHtml, 
                         "redraw": false
                     })
-                    this.searchPersonKeyPressed = false;
-                    this.searchObjectKeyPressed = false;
+                    //this.searchPersonKeyPressed = false;
+                    //this.searchObjectKeyPressed = false;
                 }
             }
         }
     },
+    /*
     runningSheetKeydown: async function(e, offset) {
         console.log(e)
         console.log(offset)
@@ -773,34 +790,27 @@ export default {
             this.openSearchPersonOrganisation(e.target.id, offset)
         }
     },
-    /*
+    */
     runningSheetKeydown: async function(e) {
         console.log(e)
-
-        // keycode 49 = !
-        //if (e.which === 49 && this.searchObjectKeyPressed) {
         if (e.key === '!' && e.shiftKey && this.searchObjectKeyPressed) {
-            // TODO: replace with modal_open call
-            console.log("open modal")
-            this.openInspection()
+            //this.openInspection()
             this.searchObjectKeyPressed = false;
-        //} else if (e.which === 49) {
         } else if (e.key === '!' && e.shiftKey) {
             this.searchObjectKeyPressed = true;
-        //} else if (e.which === 50 && this.searchPersonKeyPressed) {
         } else if (e.key === '@' && e.shiftKey && this.searchPersonKeyPressed) {
-            // TODO: replace with modal_open call
-            console.log("open modal")
-            console.log(e.target.id)
             let rowElement = $('#' + e.target.id);
             this.openSearchPersonOrganisation(e.target.id)
             this.searchPersonKeyPressed = false;
-        //} else if (e.which === 50) {
         } else if (e.key === '@' && e.shiftKey) {
             this.searchPersonKeyPressed = true;
-        // keycode 16 = Shift (must be pressed to access !)
-        //} else if (e.which === 16 || e.which === 32) {
-        //} else if (e.which === 16) {
+        } else if (e.key === '^' && e.shiftKey && this.insertUrlKeyPressed) {
+            let rowElement = $('#' + e.target.id);
+            console.log("open url")
+            //this.openSearchPersonOrganisation(e.target.id);
+            this.insertUrlKeyPressed = false;
+        } else if (e.key === '^' && e.shiftKey) {
+            this.insertUrlKeyPressed = true;
         } else if (e.key === 'Shift' && e.shiftKey) {
             // pass
         } else {
@@ -808,7 +818,6 @@ export default {
             this.searchObjectKeyPressed = false;
         }
     },
-    */
     urlToToken: function(description) {
         let parsedText = description;
         const personUrlRegex = /<a contenteditable\=\"false\" target\=\"\_blank\" href\=\"\/internal\/users\/\d+\"\>\w+(\s\w+)*\<\/a\>/g
@@ -866,12 +875,8 @@ export default {
       runningSheetTable.on(
           'keydown',
           (e) => {
-              /*
-              setTimeout(function() {
-                  console.log(e.type, window.getSelection().getRangeAt(0).startOffset);
-              }, 0);
-              */
-              this.runningSheetKeydown(e, window.getSelection().getRangeAt(0).startOffset);
+              //this.runningSheetKeydown(e, window.getSelection().getRangeAt(0).startOffset);
+              this.runningSheetKeydown(e);
           });
       runningSheetTable.on(
           'keyup',
@@ -897,6 +902,7 @@ export default {
           (e) => {
               this.runningSheetRowReinstate(e)
           });
+        
       runningSheetTable.on(
           'paste', 
           (e) => {
@@ -909,6 +915,7 @@ export default {
               // insert text manually
               document.execCommand("insertHTML", false, transformedText);
           });
+          
       window.addEventListener('beforeunload', this.leaving);
       window.addEventListener('onblur', this.leaving);
     },
