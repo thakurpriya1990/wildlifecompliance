@@ -767,15 +767,11 @@ class SanctionOutcomeViewSet(viewsets.ModelViewSet):
                     if not reason:
                         raise serializers.ValidationError({'Reason': ['You must enter the reason.', ]})
                     instance.decline(request)
-                    if instance.issued_on_paper:
-                        #  Email to officer in the case issued_on_paper=True so that the responsible officer can manually withdraw paper-issued sanction outcome
-                        to_address = [instance.responsible_officer.email,]
-                        cc = [request.user.email, ]
-                        bcc = None
-                        email_data = send_decline_email(to_address, instance, workflow_entry, request, cc, bcc)
-                    else:
-                        # No need to email
-                        pass
+
+                    to_address = [instance.responsible_officer.email,]
+                    cc = [request.user.email, ]
+                    bcc = None
+                    email_data = send_decline_email(to_address, instance, workflow_entry, request, cc, bcc)
 
                 elif workflow_type == SanctionOutcome.WORKFLOW_ENDORSE:
                     if instance.is_parking_offence:

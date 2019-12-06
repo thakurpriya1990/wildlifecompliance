@@ -246,7 +246,8 @@ class Offender(models.Model):
 class OffenceUserAction(models.Model):
     ACTION_CLOSE = "Close offence: {}"
     ACTION_PENDING_CLOSURE = "Mark offence {} as pending closure"
-    ACTION_CREATE = "Create offence: {}"
+    ACTION_CREATE = "Create Offence: {}"
+    ACTION_UPDATE = "Update Offence {}"
     ACTION_REMOVE_ALLEGED_OFFENCE = "Remove alleged offence: {}, Reason: {}"
     ACTION_REMOVE_OFFENDER = "Remove offender: {}, Reason: {}"
     ACTION_RESTORE_ALLEGED_OFFENCE = "Restore alleged offence: {}"
