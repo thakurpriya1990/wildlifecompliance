@@ -210,13 +210,16 @@
             />
         </div>
         <Magic ref="magic" />
-        <SearchPersonOrganisationModal 
-        ref="search_person_or_organisation_modal"
-        :readonlyForm="readonlyForm"
-        v-bind:key="searchPersonOrganisationBindId"
-        @person-selected="insertPersonModalUrl"
-        :rowNumberSelected="rowNumberSelected"
-        />
+        <div v-if="personOrArtifactInitialised">
+            <PersonOrArtifactModal 
+            ref="person_or_artifact_modal"
+            :readonlyForm="readonlyForm"
+            v-bind:key="personOrArtifactBindId"
+            @modal-action="receivePersonOrArtifactEntity"
+            :rowNumberSelected="rowNumberSelected"
+            :initialTabSelected="tabSelected"
+            />
+        </div>
         <div v-if="runningSheetHistoryEntryBindId">
             <RunningSheetHistory 
             ref="running_sheet_history"
@@ -246,7 +249,8 @@ require("select2/dist/css/select2.min.css");
 require("select2-bootstrap-theme/dist/select2-bootstrap.min.css");
 import hash from 'object-hash';
 import Magic from './magic';
-import SearchPersonOrganisationModal from '@/components/common/search_person_or_organisation_modal';
+//import SearchPersonOrganisationModal from '@/components/common/search_person_or_organisation_modal';
+import PersonOrArtifactModal from '@/components/common/person_or_artifact_modal';
 import _ from 'lodash';
 import RunningSheetHistory from './running_sheet_history'
 
@@ -259,6 +263,7 @@ export default {
             showSpinner: false,
             showExit: false,
             rowNumberSelected: '',
+            tabSelected: '',
             runningSheetUrl: [],
             runningSheetEntriesUpdated: [],
             runningSheetHistoryEntryBindId: '',
@@ -283,8 +288,8 @@ export default {
               this.$route.params.legal_case_id + "/action_log"
             ),
             sanctionOutcomeInitialised: false,
-            searchPersonOrganisationInitialised: false,
-            searchPersonOrganisationKeyPosition: null,
+            personOrArtifactInitialised: false,
+            //searchPersonOrganisationKeyPosition: null,
             offenceInitialised: false,
             inspectionInitialised: false,
             hashAttributeWhitelist: [
@@ -298,7 +303,8 @@ export default {
               'district_id',
             ],
             searchPersonKeyPressed: false,
-            searchObjectKeyPressed: false,
+            searchArtifactKeyPressed: false,
+            insertUrlKeyPressed: false,
             //magicValue: null,
             magic: true,
             dtHeadersRunningSheet: [
@@ -398,7 +404,7 @@ export default {
     RelatedItems,
     Inspection,
     Magic,
-    SearchPersonOrganisationModal,
+    PersonOrArtifactModal,
     RunningSheetHistory,
   },
   computed: {
@@ -471,10 +477,10 @@ export default {
         }
         return related_items_visibility;
     },
-    searchPersonOrganisationBindId: function() {
-        let search_person_organisation_id = ''
-        search_person_organisation_id = 'search_person_organisation_' + parseInt(this.uuid);
-        return search_person_organisation_id;
+    personOrArtifactBindId: function() {
+        let person_or_artifact_id = ''
+        person_or_artifact_id = this.tabSelected + parseInt(this.uuid);
+        return person_or_artifact_id;
     },
     offenceBindId: function() {
         let offence_bind_id = ''
@@ -491,6 +497,17 @@ export default {
         inspection_bind_id = 'inspection' + parseInt(this.uuid);
         return inspection_bind_id;
     },
+    tabSelectedKeyCombination: function() {
+        let keyCombination = '';
+        if (this.tabSelected === 'person') {
+            keyCombination = '@@';
+        } else if (this.tabSelected === 'artifact') {
+            keyCombination = '!!';
+        } else if (this.tabSelected === 'url') {
+            keyCombination = '^^';
+        }
+        return keyCombination;
+    }
   },
   filters: {
     formatDate: function(data) {
@@ -531,27 +548,98 @@ export default {
         }
         await this.setRunningSheetTransform(runningSheet)
     },
-    insertPersonModalUrl: function(entity) {
-        let recordNumber = entity.row_number_selected;
+    receivePersonOrArtifactEntity: function({
+        "row_number_selected": row_number_selected, 
+        "entity": entity, 
+        "action": action
+    }) {
+        console.log(row_number_selected);
+        console.log(entity);
+        console.log(action);
+        let recordNumber = row_number_selected;
         let recordNumberElement = $('#' + recordNumber)
+        let recordDescriptionHtml = ''
+        if (entity && entity.data_type === 'individual') {
+            if (action === 'cancel') {
+                //recordDescriptionHtml = this.cancelPersonModalUrl(recordNumberElement)
+                recordDescriptionHtml = this.cancelModalUrl(recordNumberElement)
+            } else if (action === 'ok') {
+                recordDescriptionHtml = this.insertPersonModalUrl({"entity": entity, "recordNumberElement": recordNumberElement})
+            }
+        } else if (entity && entity.data_type === 'artifact') {
+            if (action === 'cancel') {
+                //recordDescriptionHtml = this.cancelArtifactModalUrl(recordNumberElement)
+                recordDescriptionHtml = this.cancelModalUrl(recordNumberElement)
+            } else if (action === 'ok') {
+                recordDescriptionHtml = this.insertArtifactModalUrl({"entity": entity, "recordNumberElement": recordNumberElement})
+            }
+        } else if (entity && entity.data_type === 'url') {
+            if (action === 'cancel') {
+                recordDescriptionHtml = this.cancelModalUrl(recordNumberElement)
+            } else if (action === 'ok') {
+                recordDescriptionHtml = this.insertModalUrl({"entity": entity, "recordNumberElement": recordNumberElement})
+            }
+        }
+        this.updateRunningSheetUrlEntry({
+            "recordNumber": recordNumber,
+                "recordDescription": recordDescriptionHtml,
+                "redraw": true,
+        })
+    },
+    /*
+    cancelPersonModalUrl: function(recordNumberElement) {
+        let replacementVal = ''
+        //let recordDescriptionHtml = recordNumberElement[0].innerHTML.replace('@@', replacementVal).replace(/&nbsp\;/g, ' ');
+        let recordDescriptionHtml = recordNumberElement[0].innerHTML.replace(this.tabSelectedKeyCombination, replacementVal).replace(/&nbsp\;/g, ' ');
+        return recordDescriptionHtml;
+    },
+    */
+    insertPersonModalUrl: function({"entity": entity, "recordNumberElement": recordNumberElement}) {
+        console.log(entity);
+        console.log(recordNumberElement);
         let replacementVal = ''
         if (entity.full_name) {
             replacementVal = `<a contenteditable="false" target="_blank" href="/internal/users/${entity.id}">${entity.full_name}</a>`
         }
-        // let recordDescriptionHtml = recordNumberElement[0].innerHTML.replace('@@', replacementVal).replace(/&nbsp\;/g, ' ');
-        console.log(this.searchPersonOrganisationKeyPosition);
-        let recordDescriptionHtml = recordNumberElement[0].innerHTML.replace(/&nbsp\;/g, ' ');
-        recordDescriptionHtml = recordDescriptionHtml.slice(0, this.searchPersonOrganisationKeyPosition) +
-                                        " " +
-                                        replacementVal +
-                                        " " +
-                                        recordDescriptionHtml.slice(this.searchPersonOrganisationKeyPosition);
+        let recordDescriptionHtml = recordNumberElement[0].innerHTML.replace(this.tabSelectedKeyCombination, replacementVal).replace(/&nbsp\;/g, ' ');
+        return recordDescriptionHtml;
+    },
+    /*
+    cancelArtifactModalUrl: function(recordNumberElement) {
+        let replacementVal = ''
+        let recordDescriptionHtml = recordNumberElement[0].innerHTML.replace(this.tabSelectedKeyCombination, replacementVal).replace(/&nbsp\;/g, ' ');
+        return recordDescriptionHtml;
+    },
+    */
+    insertArtifactModalUrl: function({"entity": entity, "recordNumberElement": recordNumberElement}) {
+        let replacementVal = ''
+            // TODO: replace with correct artifact url
+        if (entity.full_name) {
+            replacementVal = `<a contenteditable="false" target="_blank" href="/internal/users/${entity.id}">${entity.full_name}</a>`
+        }
+        let recordDescriptionHtml = recordNumberElement[0].innerHTML.replace(this.tabSelectedKeyCombination, replacementVal).replace(/&nbsp\;/g, ' ');
+        return recordDescriptionHtml;
+    },
+    cancelModalUrl: function(recordNumberElement) {
+        let replacementVal = ''
+        let recordDescriptionHtml = recordNumberElement[0].innerHTML.replace(this.tabSelectedKeyCombination, replacementVal).replace(/&nbsp\;/g, ' ');
+        return recordDescriptionHtml;
+    },
+    insertModalUrl: function({"entity": entity, "recordNumberElement": recordNumberElement}) {
+        let replacementVal = ''
+        /*
+        console.log(entity)
+        console.log(recordNumberElement)
+        */
 
-        this.updateRunningSheetUrlEntry({
-            "recordNumber": recordNumber,
-            "recordDescription": recordDescriptionHtml,
-            "redraw": true,
-        })
+        if (entity.url) {
+            let fullUrl = "https://" + entity.url.trim();
+            replacementVal = `<a contenteditable="false" target="_blank" href=${fullUrl}>${entity.url}</a>`
+            //replacementVal = `<a target="_blank" href=${fullUrl}>${entity.url}</a>`
+        }
+        let recordDescriptionHtml = recordNumberElement[0].innerHTML.replace(this.tabSelectedKeyCombination, replacementVal).replace(/&nbsp\;/g, ' ');
+        //console.log(recordDescriptionHtml)
+        return recordDescriptionHtml;
     },
     constructRunningSheetTable: function(pk){
         console.log("constructRunningSheetTable")
@@ -649,13 +737,14 @@ export default {
           this.$refs.offence.isModalOpen = true;
       });
     },
-    openSearchPersonOrganisation(rowNumber, offset){
+    //openPersonOrObject(rowNumber){
+    openPersonOrArtifact(){
       this.uuid += 1;
-      this.rowNumberSelected = rowNumber;
-      this.searchPersonOrganisationInitialised = true;
-      this.searchPersonOrganisationKeyPosition = offset;
+      //this.rowNumberSelected = rowNumber;
+      this.personOrArtifactInitialised = true;
+      //this.personObjectKeyPosition = offset;
       this.$nextTick(() => {
-          this.$refs.search_person_or_organisation_modal.isModalOpen = true;
+          this.$refs.person_or_artifact_modal.isModalOpen = true;
       });
     },
     updateWorkflowBindId: function() {
@@ -758,12 +847,13 @@ export default {
                         "recordDescription": recordDescriptionHtml, 
                         "redraw": false
                     })
-                    this.searchPersonKeyPressed = false;
-                    this.searchObjectKeyPressed = false;
+                    //this.searchPersonKeyPressed = false;
+                    //this.searchObjectKeyPressed = false;
                 }
             }
         }
     },
+    /*
     runningSheetKeydown: async function(e, offset) {
         console.log(e)
         console.log(offset)
@@ -773,42 +863,44 @@ export default {
             this.openSearchPersonOrganisation(e.target.id, offset)
         }
     },
-    /*
+    */
     runningSheetKeydown: async function(e) {
         console.log(e)
-
-        // keycode 49 = !
-        //if (e.which === 49 && this.searchObjectKeyPressed) {
-        if (e.key === '!' && e.shiftKey && this.searchObjectKeyPressed) {
-            // TODO: replace with modal_open call
-            console.log("open modal")
-            this.openInspection()
-            this.searchObjectKeyPressed = false;
-        //} else if (e.which === 49) {
+        if (e.key === '!' && e.shiftKey && this.searchArtifactKeyPressed) {
+            this.rowNumberSelected = e.target.id;
+            this.tabSelected = 'artifact';
+            this.openPersonOrArtifact();
+            //this.openInspection()
+            this.searchArtifactKeyPressed = false;
         } else if (e.key === '!' && e.shiftKey) {
-            this.searchObjectKeyPressed = true;
-        //} else if (e.which === 50 && this.searchPersonKeyPressed) {
+            this.searchArtifactKeyPressed = true;
         } else if (e.key === '@' && e.shiftKey && this.searchPersonKeyPressed) {
-            // TODO: replace with modal_open call
-            console.log("open modal")
-            console.log(e.target.id)
-            let rowElement = $('#' + e.target.id);
-            this.openSearchPersonOrganisation(e.target.id)
+            //let rowElement = $('#' + e.target.id);
+            //this.openSearchPersonOrganisation(e.target.id)
+            this.rowNumberSelected = e.target.id;
+            this.tabSelected = 'person';
+            this.openPersonOrArtifact();
             this.searchPersonKeyPressed = false;
-        //} else if (e.which === 50) {
         } else if (e.key === '@' && e.shiftKey) {
             this.searchPersonKeyPressed = true;
-        // keycode 16 = Shift (must be pressed to access !)
-        //} else if (e.which === 16 || e.which === 32) {
-        //} else if (e.which === 16) {
+        } else if (e.key === '^' && e.shiftKey && this.insertUrlKeyPressed) {
+            this.rowNumberSelected = e.target.id;
+            this.tabSelected = 'url';
+            //let rowElement = $('#' + e.target.id);
+            this.openPersonOrArtifact();
+            //console.log("open url")
+            //this.openSearchPersonOrganisation(e.target.id);
+            this.insertUrlKeyPressed = false;
+        } else if (e.key === '^' && e.shiftKey) {
+            this.insertUrlKeyPressed = true;
         } else if (e.key === 'Shift' && e.shiftKey) {
             // pass
         } else {
             this.searchPersonKeyPressed = false;
-            this.searchObjectKeyPressed = false;
+            this.searchArtifactKeyPressed = false;
+            this.insertUrlKeyPressed = false;
         }
     },
-    */
     urlToToken: function(description) {
         let parsedText = description;
         const personUrlRegex = /<a contenteditable\=\"false\" target\=\"\_blank\" href\=\"\/internal\/users\/\d+\"\>\w+(\s\w+)*\<\/a\>/g
@@ -818,44 +910,34 @@ export default {
         if (matchArray && matchArray.length > 0) {
             for (let match of matchArray) {
                 let idArray = [...match[0].matchAll(personIdRegex)];
-                console.log(idArray)
                 let idStr = idArray[0][0]
                 let id = idStr.substring(16)
                 let personArray = [...match[0].matchAll(personNameRegex)];
-                console.log(personArray)
                 let personFound = personArray[0][0]
                 let person = personFound.replace(/\/internal\/users\/\d+\"\>/g, String(''));
                 let replacementVal = `{{ "person_id": "${id}", "full_name": "${person}" }}`
                 parsedText = parsedText.replace(match[0], replacementVal).replace(/\&nbsp\;/g, ' ');
-                console.log(parsedText);
             }
         }
         return parsedText;
     },
     tokenToUrl: function(description) {
-        console.log("tokenToUrl")
         let parsedText = description;
         const personTokenRegex = /\{\{ \"person\_id\"\: \"\d+\"\, \"full\_name\"\: \"\w+(\s\w+)*\" \}\}/g;
         const personIdRegex = /\{\{ \"person\_id\"\: \"\d+/g;
         const personNameRegex = /\"full\_name\"\: \"\w+ \w+/g;
         let personTokenArray = [...description.matchAll(personTokenRegex)];
         for (let personToken of personTokenArray) {
-            console.log(personToken)
             let idArray = [...personToken[0].matchAll(personIdRegex)];
-            console.log(idArray)
             let idStr = idArray[0][0]
             let id = idStr.substring(17)
-            console.log(id)
             let nameArray = [...personToken[0].matchAll(personNameRegex)];
-            console.log(nameArray)
             let nameStr = nameArray[0][0]
             let fullName = nameStr.substring(14)
-            console.log(id)
             parsedText = parsedText.replace(
                 personToken[0],
                 `<a contenteditable="false" target="_blank" href="/internal/users/${id}">${fullName}</a>`
             );
-            console.log(parsedText)
         }
         return parsedText
     },
@@ -866,12 +948,8 @@ export default {
       runningSheetTable.on(
           'keydown',
           (e) => {
-              /*
-              setTimeout(function() {
-                  console.log(e.type, window.getSelection().getRangeAt(0).startOffset);
-              }, 0);
-              */
-              this.runningSheetKeydown(e, window.getSelection().getRangeAt(0).startOffset);
+              //this.runningSheetKeydown(e, window.getSelection().getRangeAt(0).startOffset);
+              this.runningSheetKeydown(e);
           });
       runningSheetTable.on(
           'keyup',
@@ -897,6 +975,7 @@ export default {
           (e) => {
               this.runningSheetRowReinstate(e)
           });
+        
       runningSheetTable.on(
           'paste', 
           (e) => {
@@ -909,6 +988,7 @@ export default {
               // insert text manually
               document.execCommand("insertHTML", false, transformedText);
           });
+          
       window.addEventListener('beforeunload', this.leaving);
       window.addEventListener('onblur', this.leaving);
     },
