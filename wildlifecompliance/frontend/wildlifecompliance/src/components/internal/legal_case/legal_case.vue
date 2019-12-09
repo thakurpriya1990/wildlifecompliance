@@ -210,14 +210,17 @@
             />
         </div>
         <Magic ref="magic" />
-        <SearchPersonOrganisationModal 
-        ref="search_person_or_organisation_modal"
-        :readonlyForm="readonlyForm"
-        v-bind:key="searchPersonOrganisationBindId"
-        @person-selected="insertPersonModalUrl"
-        @cancel-person-selected="cancelPersonModalUrl"
-        :rowNumberSelected="rowNumberSelected"
-        />
+        <div v-if="personOrObjectInitialised">
+            <PersonOrObjectModal 
+            ref="person_or_object_modal"
+            :readonlyForm="readonlyForm"
+            v-bind:key="personOrObjectBindId"
+            @person-selected="insertPersonModalUrl"
+            @cancel-person-selected="cancelPersonModalUrl"
+            :rowNumberSelected="rowNumberSelected"
+            :tabSelected="tabSelected"
+            />
+        </div>
         <div v-if="runningSheetHistoryEntryBindId">
             <RunningSheetHistory 
             ref="running_sheet_history"
@@ -247,7 +250,8 @@ require("select2/dist/css/select2.min.css");
 require("select2-bootstrap-theme/dist/select2-bootstrap.min.css");
 import hash from 'object-hash';
 import Magic from './magic';
-import SearchPersonOrganisationModal from '@/components/common/search_person_or_organisation_modal';
+//import SearchPersonOrganisationModal from '@/components/common/search_person_or_organisation_modal';
+import PersonOrObjectModal from '@/components/common/person_or_object_modal';
 import _ from 'lodash';
 import RunningSheetHistory from './running_sheet_history'
 
@@ -260,6 +264,7 @@ export default {
             showSpinner: false,
             showExit: false,
             rowNumberSelected: '',
+            tabSelected: '',
             runningSheetUrl: [],
             runningSheetEntriesUpdated: [],
             runningSheetHistoryEntryBindId: '',
@@ -284,8 +289,8 @@ export default {
               this.$route.params.legal_case_id + "/action_log"
             ),
             sanctionOutcomeInitialised: false,
-            searchPersonOrganisationInitialised: false,
-            searchPersonOrganisationKeyPosition: null,
+            personOrObjectInitialised: false,
+            //searchPersonOrganisationKeyPosition: null,
             offenceInitialised: false,
             inspectionInitialised: false,
             hashAttributeWhitelist: [
@@ -400,7 +405,7 @@ export default {
     RelatedItems,
     Inspection,
     Magic,
-    SearchPersonOrganisationModal,
+    PersonOrObjectModal,
     RunningSheetHistory,
   },
   computed: {
@@ -473,10 +478,10 @@ export default {
         }
         return related_items_visibility;
     },
-    searchPersonOrganisationBindId: function() {
-        let search_person_organisation_id = ''
-        search_person_organisation_id = 'search_person_organisation_' + parseInt(this.uuid);
-        return search_person_organisation_id;
+    personOrObjectBindId: function() {
+        let person_or_object_id = ''
+        person_or_object_id = this.tabSelected + parseInt(this.uuid);
+        return person_or_object_id;
     },
     offenceBindId: function() {
         let offence_bind_id = ''
@@ -665,13 +670,14 @@ export default {
           this.$refs.offence.isModalOpen = true;
       });
     },
-    openSearchPersonOrganisation(rowNumber, offset){
+    //openPersonOrObject(rowNumber){
+    openPersonOrObject(){
       this.uuid += 1;
-      this.rowNumberSelected = rowNumber;
-      this.searchPersonOrganisationInitialised = true;
-      this.searchPersonOrganisationKeyPosition = offset;
+      //this.rowNumberSelected = rowNumber;
+      this.personOrObjectInitialised = true;
+      //this.personObjectKeyPosition = offset;
       this.$nextTick(() => {
-          this.$refs.search_person_or_organisation_modal.isModalOpen = true;
+          this.$refs.person_or_object_modal.isModalOpen = true;
       });
     },
     updateWorkflowBindId: function() {
@@ -800,7 +806,10 @@ export default {
             this.searchObjectKeyPressed = true;
         } else if (e.key === '@' && e.shiftKey && this.searchPersonKeyPressed) {
             let rowElement = $('#' + e.target.id);
-            this.openSearchPersonOrganisation(e.target.id)
+            //this.openSearchPersonOrganisation(e.target.id)
+            this.rowNumberSelected = e.target.id;
+            this.tabSelected = 'person';
+            this.openPersonOrObject();
             this.searchPersonKeyPressed = false;
         } else if (e.key === '@' && e.shiftKey) {
             this.searchPersonKeyPressed = true;
@@ -827,44 +836,34 @@ export default {
         if (matchArray && matchArray.length > 0) {
             for (let match of matchArray) {
                 let idArray = [...match[0].matchAll(personIdRegex)];
-                console.log(idArray)
                 let idStr = idArray[0][0]
                 let id = idStr.substring(16)
                 let personArray = [...match[0].matchAll(personNameRegex)];
-                console.log(personArray)
                 let personFound = personArray[0][0]
                 let person = personFound.replace(/\/internal\/users\/\d+\"\>/g, String(''));
                 let replacementVal = `{{ "person_id": "${id}", "full_name": "${person}" }}`
                 parsedText = parsedText.replace(match[0], replacementVal).replace(/\&nbsp\;/g, ' ');
-                console.log(parsedText);
             }
         }
         return parsedText;
     },
     tokenToUrl: function(description) {
-        console.log("tokenToUrl")
         let parsedText = description;
         const personTokenRegex = /\{\{ \"person\_id\"\: \"\d+\"\, \"full\_name\"\: \"\w+(\s\w+)*\" \}\}/g;
         const personIdRegex = /\{\{ \"person\_id\"\: \"\d+/g;
         const personNameRegex = /\"full\_name\"\: \"\w+ \w+/g;
         let personTokenArray = [...description.matchAll(personTokenRegex)];
         for (let personToken of personTokenArray) {
-            console.log(personToken)
             let idArray = [...personToken[0].matchAll(personIdRegex)];
-            console.log(idArray)
             let idStr = idArray[0][0]
             let id = idStr.substring(17)
-            console.log(id)
             let nameArray = [...personToken[0].matchAll(personNameRegex)];
-            console.log(nameArray)
             let nameStr = nameArray[0][0]
             let fullName = nameStr.substring(14)
-            console.log(id)
             parsedText = parsedText.replace(
                 personToken[0],
                 `<a contenteditable="false" target="_blank" href="/internal/users/${id}">${fullName}</a>`
             );
-            console.log(parsedText)
         }
         return parsedText
     },

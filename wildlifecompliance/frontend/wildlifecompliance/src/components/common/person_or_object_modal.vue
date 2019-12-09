@@ -1,5 +1,5 @@
 <template lang="html">
-    <div id="SearchPersonOrganisationModal">
+    <div id="PersonOrObjectModal">
         <modal transition="modal fade" @ok="ok()" @cancel="cancel()" title="" large force>
             <div class="container-fluid">
                 <ul class="nav nav-pills aho2">
@@ -26,14 +26,13 @@
                     <div :id="oTab" class="tab-pane fade in">
                     </div>
                     <div :id="uTab" class="tab-pane fade in">
-                        <div>
-                            <!--form action="#" @submit="checkUrlForm"-->
-                            <form action="#">
-                                <label for="url">url</label>
-                                <input type="url" value="http"/>
-                                <input type="submit" value="Submit"/>
-                            </form>
-                        </div>
+                        <div class="col-sm-12 form-group"><div class="row">
+                            <div>
+                                <label for="url">URL</label>
+                                <span class="plain-style">https://</span>
+                                <input id="inputUrl" type="text"/>
+                            </div>
+                        </div></div>
                     </div>
                 </div>
             </div>
@@ -46,7 +45,7 @@ import modal from '@vue-utils/bootstrap-modal.vue';
 import SearchPersonOrganisation from './search_person_or_organisation'
 
 export default {
-    name: "SearchPersonOrganisationModal",
+    name: "PersonOrObjectModal",
     data: function() {
       return {
         isModalOpen: false,
@@ -66,7 +65,11 @@ export default {
             default: true
         },
         rowNumberSelected: {
+            type: String,
             required: true,
+        },
+        tabSelected: {
+            type: String,
         },
         //caseRunningSheet: {
         //    type: Boolean,
@@ -122,4 +125,7 @@ export default {
 </script>
 
 <style lang="css">
+.plain-text {
+    font-style: normal;
+}
 </style>
