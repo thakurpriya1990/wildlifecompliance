@@ -3,9 +3,9 @@
         <modal transition="modal fade" @ok="ok()" @cancel="cancel()" title="" large force>
             <div class="container-fluid">
                 <ul class="nav nav-pills aho2">
-                    <li :class="personTabListClass"><a data-toggle="tab" :href="'#'+pTab">Search Person</a></li>
-                    <li :class="artifactTabListClass"><a data-toggle="tab" :href="'#'+aTab" >Search Object</a></li>
-                    <li :class="urlTabListClass"><a data-toggle="tab" :href="'#'+uTab">Insert URL</a></li>
+                    <li :class="personTabListClass"><a data-toggle="tab" @click="updateTabSelected('pTab')" :href="'#'+pTab">Search Person</a></li>
+                    <li :class="artifactTabListClass"><a data-toggle="tab" @click="updateTabSelected('aTab')" :href="'#'+aTab" >Search Object</a></li>
+                    <li :class="urlTabListClass"><a data-toggle="tab" @click="updateTabSelected('uTab')" :href="'#'+uTab">Insert URL</a></li>
                 </ul>
                 <div class="tab-content">
                     <div :id="pTab" :class="personTabClass">
@@ -27,10 +27,10 @@
                     </div>
                     <div :id="uTab" :class="urlTabClass">
                         <div class="col-sm-12 form-group"><div class="row">
-                            <div>
+                            <div class="col-sm-6">
                                 <label for="url">URL</label>
                                 <span>https://</span>
-                                <input id="inputUrl" type="text"/>
+                                <input id="inputUrl" type="text" v-model="urlText"/>
                             </div>
                         </div></div>
                     </div>
@@ -50,6 +50,7 @@ export default {
       return {
         isModalOpen: false,
         tabSelected: '',
+        urlText: '',
         uuid: 0,
         entity: {},
         pTab: 'pTab' + this._uid,
@@ -153,6 +154,9 @@ export default {
     },
 
     methods: {
+        updateTabSelected: function(tabValue) {
+            this.tabSelected = tabValue;
+        },
         cancel: function() {
             this.$emit('modal-action', {
                 row_number_selected: this.rowNumberSelected,
@@ -161,24 +165,37 @@ export default {
             this.isModalOpen = false;
         },
         ok: function() {
-            if (this.entity.id) {
-                this.$emit('modal-action', {
-                    entity: this.entity,
-                    row_number_selected: this.rowNumberSelected,
-                    action: 'ok',
-                });
-            } else {
-                this.cancel();
+            if (this.urlTabSelected && this.urlText) {
+                this.submitUrl();
             }
-            this.isModalOpen = false;
+            this.$nextTick(() => {
+                if (this.entity.id || this.urlTabSelected && this.urlText) {
+                    this.$emit('modal-action', {
+                        entity: this.entity,
+                        row_number_selected: this.rowNumberSelected,
+                        action: 'ok',
+                    });
+                } else {
+                    this.cancel();
+                }
+                this.isModalOpen = false;
+            });
         },
         close: function () {
             this.isModalOpen = false;
         },
-        entitySelected: async function(entity) {
+        entitySelected: function(entity) {
             console.log(entity);
             Object.assign(this.entity, entity)
         },
+        submitUrl: function() {
+            console.log(this.urlText);
+            let urlEntity = {
+                data_type: 'url',
+                url: this.urlText,
+            }
+            Object.assign(this.entity, urlEntity);
+        }
     },
     created: async function() {
         if (this.initialTabSelected === 'person') {

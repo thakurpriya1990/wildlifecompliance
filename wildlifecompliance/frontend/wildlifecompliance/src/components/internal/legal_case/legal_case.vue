@@ -556,42 +556,44 @@ export default {
         console.log(row_number_selected);
         console.log(entity);
         console.log(action);
-        if (entity.id) {
-            let recordNumber = row_number_selected;
-            let recordNumberElement = $('#' + recordNumber)
-            let recordDescriptionHtml = ''
-            if (entity.data_type === 'individual') {
-                if (action === 'cancel') {
-                    recordDescriptionHtml = this.cancelPersonModalUrl(recordNumberElement)
-                } else if (action === 'ok') {
-                    recordDescriptionHtml = this.insertPersonModalUrl({"entity": entity, "recordNumberElement": recordNumberElement})
-                }
-            } else if (entity.data_type === 'artifact') {
-                if (action === 'cancel') {
-                    recordDescriptionHtml = this.cancelArtifactModalUrl(recordNumberElement)
-                } else if (action === 'ok') {
-                    recordDescriptionHtml = this.insertArtifactModalUrl({"entity": entity, "recordNumberElement": recordNumberElement})
-                }
-            } else if (entity.data_type === 'url') {
-                if (action === 'cancel') {
-                    recordDescriptionHtml = this.cancelModalUrl(recordNumberElement)
-                } else if (action === 'ok') {
-                    recordDescriptionHtml = this.insertModalUrl({"entity": entity, "recordNumberElement": recordNumberElement})
-                }
+        let recordNumber = row_number_selected;
+        let recordNumberElement = $('#' + recordNumber)
+        let recordDescriptionHtml = ''
+        if (entity && entity.data_type === 'individual') {
+            if (action === 'cancel') {
+                //recordDescriptionHtml = this.cancelPersonModalUrl(recordNumberElement)
+                recordDescriptionHtml = this.cancelModalUrl(recordNumberElement)
+            } else if (action === 'ok') {
+                recordDescriptionHtml = this.insertPersonModalUrl({"entity": entity, "recordNumberElement": recordNumberElement})
             }
-            this.updateRunningSheetUrlEntry({
-                "recordNumber": recordNumber,
+        } else if (entity && entity.data_type === 'artifact') {
+            if (action === 'cancel') {
+                //recordDescriptionHtml = this.cancelArtifactModalUrl(recordNumberElement)
+                recordDescriptionHtml = this.cancelModalUrl(recordNumberElement)
+            } else if (action === 'ok') {
+                recordDescriptionHtml = this.insertArtifactModalUrl({"entity": entity, "recordNumberElement": recordNumberElement})
+            }
+        } else if (entity && entity.data_type === 'url') {
+            if (action === 'cancel') {
+                recordDescriptionHtml = this.cancelModalUrl(recordNumberElement)
+            } else if (action === 'ok') {
+                recordDescriptionHtml = this.insertModalUrl({"entity": entity, "recordNumberElement": recordNumberElement})
+            }
+        }
+        this.updateRunningSheetUrlEntry({
+            "recordNumber": recordNumber,
                 "recordDescription": recordDescriptionHtml,
                 "redraw": true,
-            })
-        }
+        })
     },
+    /*
     cancelPersonModalUrl: function(recordNumberElement) {
         let replacementVal = ''
         //let recordDescriptionHtml = recordNumberElement[0].innerHTML.replace('@@', replacementVal).replace(/&nbsp\;/g, ' ');
         let recordDescriptionHtml = recordNumberElement[0].innerHTML.replace(this.tabSelectedKeyCombination, replacementVal).replace(/&nbsp\;/g, ' ');
         return recordDescriptionHtml;
     },
+    */
     insertPersonModalUrl: function({"entity": entity, "recordNumberElement": recordNumberElement}) {
         console.log(entity);
         console.log(recordNumberElement);
@@ -602,18 +604,41 @@ export default {
         let recordDescriptionHtml = recordNumberElement[0].innerHTML.replace(this.tabSelectedKeyCombination, replacementVal).replace(/&nbsp\;/g, ' ');
         return recordDescriptionHtml;
     },
+    /*
     cancelArtifactModalUrl: function(recordNumberElement) {
         let replacementVal = ''
         let recordDescriptionHtml = recordNumberElement[0].innerHTML.replace(this.tabSelectedKeyCombination, replacementVal).replace(/&nbsp\;/g, ' ');
         return recordDescriptionHtml;
     },
+    */
     insertArtifactModalUrl: function({"entity": entity, "recordNumberElement": recordNumberElement}) {
         let replacementVal = ''
-        if (entity.full_name) {
             // TODO: replace with correct artifact url
+        if (entity.full_name) {
             replacementVal = `<a contenteditable="false" target="_blank" href="/internal/users/${entity.id}">${entity.full_name}</a>`
         }
         let recordDescriptionHtml = recordNumberElement[0].innerHTML.replace(this.tabSelectedKeyCombination, replacementVal).replace(/&nbsp\;/g, ' ');
+        return recordDescriptionHtml;
+    },
+    cancelModalUrl: function(recordNumberElement) {
+        let replacementVal = ''
+        let recordDescriptionHtml = recordNumberElement[0].innerHTML.replace(this.tabSelectedKeyCombination, replacementVal).replace(/&nbsp\;/g, ' ');
+        return recordDescriptionHtml;
+    },
+    insertModalUrl: function({"entity": entity, "recordNumberElement": recordNumberElement}) {
+        let replacementVal = ''
+        /*
+        console.log(entity)
+        console.log(recordNumberElement)
+        */
+
+        if (entity.url) {
+            let fullUrl = "https://" + entity.url.trim();
+            replacementVal = `<a contenteditable="false" target="_blank" href=${fullUrl}>${entity.url}</a>`
+            //replacementVal = `<a target="_blank" href=${fullUrl}>${entity.url}</a>`
+        }
+        let recordDescriptionHtml = recordNumberElement[0].innerHTML.replace(this.tabSelectedKeyCombination, replacementVal).replace(/&nbsp\;/g, ' ');
+        //console.log(recordDescriptionHtml)
         return recordDescriptionHtml;
     },
     constructRunningSheetTable: function(pk){
