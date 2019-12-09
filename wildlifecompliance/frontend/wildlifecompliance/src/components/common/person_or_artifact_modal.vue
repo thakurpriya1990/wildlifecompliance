@@ -1,14 +1,14 @@
 <template lang="html">
-    <div id="PersonOrObjectModal">
+    <div id="PersonOrArtifactModal">
         <modal transition="modal fade" @ok="ok()" @cancel="cancel()" title="" large force>
             <div class="container-fluid">
                 <ul class="nav nav-pills aho2">
-                    <li class="nav-item active"><a data-toggle="tab" :href="'#'+pTab">Search Person</a></li>
-                    <li class="nav-item"><a data-toggle="tab" :href="'#'+oTab" >Search Object</a></li>
-                    <li class="nav-item"><a data-toggle="tab" :href="'#'+uTab">Insert URL</a></li>
+                    <li :class="personTabListClass"><a data-toggle="tab" :href="'#'+pTab">Search Person</a></li>
+                    <li :class="artifactTabListClass"><a data-toggle="tab" :href="'#'+aTab" >Search Object</a></li>
+                    <li :class="urlTabListClass"><a data-toggle="tab" :href="'#'+uTab">Insert URL</a></li>
                 </ul>
                 <div class="tab-content">
-                    <div :id="pTab" class="tab-pane fade in active">
+                    <div :id="pTab" :class="personTabClass">
                         <div>
                             <SearchPersonOrganisation 
                             personOnly
@@ -23,13 +23,13 @@
                             />
                         </div>
                     </div>
-                    <div :id="oTab" class="tab-pane fade in">
+                    <div :id="aTab" :class="artifactTabClass">
                     </div>
-                    <div :id="uTab" class="tab-pane fade in">
+                    <div :id="uTab" :class="urlTabClass">
                         <div class="col-sm-12 form-group"><div class="row">
                             <div>
                                 <label for="url">URL</label>
-                                <span class="plain-style">https://</span>
+                                <span>https://</span>
                                 <input id="inputUrl" type="text"/>
                             </div>
                         </div></div>
@@ -45,14 +45,15 @@ import modal from '@vue-utils/bootstrap-modal.vue';
 import SearchPersonOrganisation from './search_person_or_organisation'
 
 export default {
-    name: "PersonOrObjectModal",
+    name: "PersonOrArtifactModal",
     data: function() {
       return {
         isModalOpen: false,
+        tabSelected: '',
         uuid: 0,
         entity: {},
         pTab: 'pTab' + this._uid,
-        oTab: 'oTab' + this._uid,
+        aTab: 'aTab' + this._uid,
         uTab: 'uTab' + this._uid,
         //image: "/static/wildlifecompliance_vue/img/shibaken.jpg"
         //image: "/static/wildlifecompliance_vue/img/shibaken.c4c9d81.jpg"
@@ -68,7 +69,7 @@ export default {
             type: String,
             required: true,
         },
-        tabSelected: {
+        initialTabSelected: {
             type: String,
         },
         //caseRunningSheet: {
@@ -85,26 +86,86 @@ export default {
         updateSearchPersonOrganisationBindId: function() {
             this.uuid += 1
             return "SearchPerson_" + this.uuid.toString();
-            //if (this.inspectedEntity.data_type && this.inspectedEntity.id) {
-            //    return this.inspectedEntity.data_type + '_' + this.inspectedEntity.id
-            //}
+        },
+        personTabSelected: function() {
+            let isPersonTab = false;
+            if (this.tabSelected === 'pTab') {
+                isPersonTab = true;
+            }
+            return isPersonTab;
+        },
+        artifactTabSelected: function() {
+            let isArtifactTab = false;
+            if (this.tabSelected === 'aTab') {
+                isArtifactTab = true;
+            }
+            return isArtifactTab;
+        },
+        urlTabSelected: function() {
+            let isUrlTab = false;
+            if (this.tabSelected === 'uTab') {
+                isUrlTab = true;
+            }
+            return isUrlTab;
+        },
+        personTabClass: function() {
+            let tabClass = 'tab-pane fade in';
+            if (this.personTabSelected) {
+                tabClass += ' active';
+            }
+            return tabClass;
+        },
+        personTabListClass: function() {
+            let tabClass = 'nav-item';
+            if (this.personTabSelected) {
+                tabClass += ' active';
+            }
+            return tabClass;
+        },
+        artifactTabClass: function() {
+            let tabClass = 'tab-pane fade in';
+            if (this.artifactTabSelected) {
+                tabClass += ' active';
+            }
+            return tabClass;
+        },
+        artifactTabListClass: function() {
+            let tabClass = 'nav-item';
+            if (this.objectTabSelected) {
+                tabClass += ' active';
+            }
+            return tabClass;
+        },
+        urlTabClass: function() {
+            let tabClass = 'tab-pane fade in';
+            if (this.urlTabSelected) {
+                tabClass += ' active';
+            }
+            return tabClass;
+        },
+        urlTabListClass: function() {
+            let tabClass = 'nav-item';
+            if (this.urlTabSelected) {
+                tabClass += ' active';
+            }
+            return tabClass;
         },
     },
 
     methods: {
         cancel: function() {
-            this.$emit('cancel-person-selected', {
+            this.$emit('modal-action', {
                 row_number_selected: this.rowNumberSelected,
+                action: 'cancel',
             });
             this.isModalOpen = false;
         },
         ok: function() {
             if (this.entity.id) {
-                this.$emit('person-selected', {
-                    id: this.entity.id, 
-                    data_type: this.entity.data_type,
+                this.$emit('modal-action', {
+                    entity: this.entity,
                     row_number_selected: this.rowNumberSelected,
-                    full_name: this.entity.full_name,
+                    action: 'ok',
                 });
             } else {
                 this.cancel();
@@ -120,12 +181,16 @@ export default {
         },
     },
     created: async function() {
+        if (this.initialTabSelected === 'person') {
+            this.tabSelected = 'pTab';
+        } else if (this.initialTabSelected === 'artifact') {
+            this.tabSelected = 'aTab';
+        } else if (this.initialTabSelected === 'url') {
+            this.tabSelected = 'uTab';
+        }
     }
 };
 </script>
 
 <style lang="css">
-.plain-text {
-    font-style: normal;
-}
 </style>

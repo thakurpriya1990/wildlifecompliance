@@ -210,15 +210,14 @@
             />
         </div>
         <Magic ref="magic" />
-        <div v-if="personOrObjectInitialised">
-            <PersonOrObjectModal 
-            ref="person_or_object_modal"
+        <div v-if="personOrArtifactInitialised">
+            <PersonOrArtifactModal 
+            ref="person_or_artifact_modal"
             :readonlyForm="readonlyForm"
-            v-bind:key="personOrObjectBindId"
-            @person-selected="insertPersonModalUrl"
-            @cancel-person-selected="cancelPersonModalUrl"
+            v-bind:key="personOrArtifactBindId"
+            @modal-action="receivePersonOrArtifactEntity"
             :rowNumberSelected="rowNumberSelected"
-            :tabSelected="tabSelected"
+            :initialTabSelected="tabSelected"
             />
         </div>
         <div v-if="runningSheetHistoryEntryBindId">
@@ -251,7 +250,7 @@ require("select2-bootstrap-theme/dist/select2-bootstrap.min.css");
 import hash from 'object-hash';
 import Magic from './magic';
 //import SearchPersonOrganisationModal from '@/components/common/search_person_or_organisation_modal';
-import PersonOrObjectModal from '@/components/common/person_or_object_modal';
+import PersonOrArtifactModal from '@/components/common/person_or_artifact_modal';
 import _ from 'lodash';
 import RunningSheetHistory from './running_sheet_history'
 
@@ -289,7 +288,7 @@ export default {
               this.$route.params.legal_case_id + "/action_log"
             ),
             sanctionOutcomeInitialised: false,
-            personOrObjectInitialised: false,
+            personOrArtifactInitialised: false,
             //searchPersonOrganisationKeyPosition: null,
             offenceInitialised: false,
             inspectionInitialised: false,
@@ -304,7 +303,7 @@ export default {
               'district_id',
             ],
             searchPersonKeyPressed: false,
-            searchObjectKeyPressed: false,
+            searchArtifactKeyPressed: false,
             insertUrlKeyPressed: false,
             //magicValue: null,
             magic: true,
@@ -405,7 +404,7 @@ export default {
     RelatedItems,
     Inspection,
     Magic,
-    PersonOrObjectModal,
+    PersonOrArtifactModal,
     RunningSheetHistory,
   },
   computed: {
@@ -478,10 +477,10 @@ export default {
         }
         return related_items_visibility;
     },
-    personOrObjectBindId: function() {
-        let person_or_object_id = ''
-        person_or_object_id = this.tabSelected + parseInt(this.uuid);
-        return person_or_object_id;
+    personOrArtifactBindId: function() {
+        let person_or_artifact_id = ''
+        person_or_artifact_id = this.tabSelected + parseInt(this.uuid);
+        return person_or_artifact_id;
     },
     offenceBindId: function() {
         let offence_bind_id = ''
@@ -498,6 +497,17 @@ export default {
         inspection_bind_id = 'inspection' + parseInt(this.uuid);
         return inspection_bind_id;
     },
+    tabSelectedKeyCombination: function() {
+        let keyCombination = '';
+        if (this.tabSelected === 'person') {
+            keyCombination = '@@';
+        } else if (this.tabSelected === 'artifact') {
+            keyCombination = '!!';
+        } else if (this.tabSelected === 'url') {
+            keyCombination = '^^';
+        }
+        return keyCombination;
+    }
   },
   filters: {
     formatDate: function(data) {
@@ -538,41 +548,73 @@ export default {
         }
         await this.setRunningSheetTransform(runningSheet)
     },
-    cancelPersonModalUrl: function(entity) {
-        let recordNumber = entity.row_number_selected;
-        let recordNumberElement = $('#' + recordNumber)
-        let replacementVal = ''
-        let recordDescriptionHtml = recordNumberElement[0].innerHTML.replace('@@', replacementVal).replace(/&nbsp\;/g, ' ');
-        this.updateRunningSheetUrlEntry({
-            "recordNumber": recordNumber,
-            "recordDescription": recordDescriptionHtml,
-            "redraw": true,
-        })
+    receivePersonOrArtifactEntity: function({
+        "row_number_selected": row_number_selected, 
+        "entity": entity, 
+        "action": action
+    }) {
+        console.log(row_number_selected);
+        console.log(entity);
+        console.log(action);
+        if (entity.id) {
+            let recordNumber = row_number_selected;
+            let recordNumberElement = $('#' + recordNumber)
+            let recordDescriptionHtml = ''
+            if (entity.data_type === 'individual') {
+                if (action === 'cancel') {
+                    recordDescriptionHtml = this.cancelPersonModalUrl(recordNumberElement)
+                } else if (action === 'ok') {
+                    recordDescriptionHtml = this.insertPersonModalUrl({"entity": entity, "recordNumberElement": recordNumberElement})
+                }
+            } else if (entity.data_type === 'artifact') {
+                if (action === 'cancel') {
+                    recordDescriptionHtml = this.cancelArtifactModalUrl(recordNumberElement)
+                } else if (action === 'ok') {
+                    recordDescriptionHtml = this.insertArtifactModalUrl({"entity": entity, "recordNumberElement": recordNumberElement})
+                }
+            } else if (entity.data_type === 'url') {
+                if (action === 'cancel') {
+                    recordDescriptionHtml = this.cancelModalUrl(recordNumberElement)
+                } else if (action === 'ok') {
+                    recordDescriptionHtml = this.insertModalUrl({"entity": entity, "recordNumberElement": recordNumberElement})
+                }
+            }
+            this.updateRunningSheetUrlEntry({
+                "recordNumber": recordNumber,
+                "recordDescription": recordDescriptionHtml,
+                "redraw": true,
+            })
+        }
     },
-
-    insertPersonModalUrl: function(entity) {
-        let recordNumber = entity.row_number_selected;
-        let recordNumberElement = $('#' + recordNumber)
+    cancelPersonModalUrl: function(recordNumberElement) {
+        let replacementVal = ''
+        //let recordDescriptionHtml = recordNumberElement[0].innerHTML.replace('@@', replacementVal).replace(/&nbsp\;/g, ' ');
+        let recordDescriptionHtml = recordNumberElement[0].innerHTML.replace(this.tabSelectedKeyCombination, replacementVal).replace(/&nbsp\;/g, ' ');
+        return recordDescriptionHtml;
+    },
+    insertPersonModalUrl: function({"entity": entity, "recordNumberElement": recordNumberElement}) {
+        console.log(entity);
+        console.log(recordNumberElement);
         let replacementVal = ''
         if (entity.full_name) {
             replacementVal = `<a contenteditable="false" target="_blank" href="/internal/users/${entity.id}">${entity.full_name}</a>`
         }
-        let recordDescriptionHtml = recordNumberElement[0].innerHTML.replace('@@', replacementVal).replace(/&nbsp\;/g, ' ');
-        /*
-        console.log(this.searchPersonOrganisationKeyPosition);
-        let recordDescriptionHtml = recordNumberElement[0].innerHTML.replace(/&nbsp\;/g, ' ');
-        recordDescriptionHtml = recordDescriptionHtml.slice(0, this.searchPersonOrganisationKeyPosition) +
-                                        " " +
-                                        replacementVal +
-                                        " " +
-                                        recordDescriptionHtml.slice(this.searchPersonOrganisationKeyPosition);
-        */
-
-        this.updateRunningSheetUrlEntry({
-            "recordNumber": recordNumber,
-            "recordDescription": recordDescriptionHtml,
-            "redraw": true,
-        })
+        let recordDescriptionHtml = recordNumberElement[0].innerHTML.replace(this.tabSelectedKeyCombination, replacementVal).replace(/&nbsp\;/g, ' ');
+        return recordDescriptionHtml;
+    },
+    cancelArtifactModalUrl: function(recordNumberElement) {
+        let replacementVal = ''
+        let recordDescriptionHtml = recordNumberElement[0].innerHTML.replace(this.tabSelectedKeyCombination, replacementVal).replace(/&nbsp\;/g, ' ');
+        return recordDescriptionHtml;
+    },
+    insertArtifactModalUrl: function({"entity": entity, "recordNumberElement": recordNumberElement}) {
+        let replacementVal = ''
+        if (entity.full_name) {
+            // TODO: replace with correct artifact url
+            replacementVal = `<a contenteditable="false" target="_blank" href="/internal/users/${entity.id}">${entity.full_name}</a>`
+        }
+        let recordDescriptionHtml = recordNumberElement[0].innerHTML.replace(this.tabSelectedKeyCombination, replacementVal).replace(/&nbsp\;/g, ' ');
+        return recordDescriptionHtml;
     },
     constructRunningSheetTable: function(pk){
         console.log("constructRunningSheetTable")
@@ -671,13 +713,13 @@ export default {
       });
     },
     //openPersonOrObject(rowNumber){
-    openPersonOrObject(){
+    openPersonOrArtifact(){
       this.uuid += 1;
       //this.rowNumberSelected = rowNumber;
-      this.personOrObjectInitialised = true;
+      this.personOrArtifactInitialised = true;
       //this.personObjectKeyPosition = offset;
       this.$nextTick(() => {
-          this.$refs.person_or_object_modal.isModalOpen = true;
+          this.$refs.person_or_artifact_modal.isModalOpen = true;
       });
     },
     updateWorkflowBindId: function() {
@@ -799,23 +841,29 @@ export default {
     */
     runningSheetKeydown: async function(e) {
         console.log(e)
-        if (e.key === '!' && e.shiftKey && this.searchObjectKeyPressed) {
+        if (e.key === '!' && e.shiftKey && this.searchArtifactKeyPressed) {
+            this.rowNumberSelected = e.target.id;
+            this.tabSelected = 'artifact';
+            this.openPersonOrArtifact();
             //this.openInspection()
-            this.searchObjectKeyPressed = false;
+            this.searchArtifactKeyPressed = false;
         } else if (e.key === '!' && e.shiftKey) {
-            this.searchObjectKeyPressed = true;
+            this.searchArtifactKeyPressed = true;
         } else if (e.key === '@' && e.shiftKey && this.searchPersonKeyPressed) {
-            let rowElement = $('#' + e.target.id);
+            //let rowElement = $('#' + e.target.id);
             //this.openSearchPersonOrganisation(e.target.id)
             this.rowNumberSelected = e.target.id;
             this.tabSelected = 'person';
-            this.openPersonOrObject();
+            this.openPersonOrArtifact();
             this.searchPersonKeyPressed = false;
         } else if (e.key === '@' && e.shiftKey) {
             this.searchPersonKeyPressed = true;
         } else if (e.key === '^' && e.shiftKey && this.insertUrlKeyPressed) {
-            let rowElement = $('#' + e.target.id);
-            console.log("open url")
+            this.rowNumberSelected = e.target.id;
+            this.tabSelected = 'url';
+            //let rowElement = $('#' + e.target.id);
+            this.openPersonOrArtifact();
+            //console.log("open url")
             //this.openSearchPersonOrganisation(e.target.id);
             this.insertUrlKeyPressed = false;
         } else if (e.key === '^' && e.shiftKey) {
@@ -824,7 +872,8 @@ export default {
             // pass
         } else {
             this.searchPersonKeyPressed = false;
-            this.searchObjectKeyPressed = false;
+            this.searchArtifactKeyPressed = false;
+            this.insertUrlKeyPressed = false;
         }
     },
     urlToToken: function(description) {
