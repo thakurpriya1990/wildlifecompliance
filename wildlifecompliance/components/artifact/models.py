@@ -25,13 +25,16 @@ class DocumentArtifact(models.Model):
     doc_type = models.CharField(max_length=50)
     _file = models.FileField(max_length=255)
     identifier = models.CharField(max_length=200, blank=True, null=True)
-    
 
 
 
 
 class Artifact(RevisionedMixin):
     document = 
+
+    # prop looks at doc or phys fk to determine type
+
+    # save should prevent doc and phys fk
 
 
 import reversion
