@@ -568,7 +568,7 @@ export default {
         } else if (entity && entity.data_type === 'url' && action === 'ok') {
             recordDescriptionHtml = this.insertModalUrl({"entity": entity, "recordNumberElement": recordNumberElement})
         }
-        if (recordDescriptionHtml && row_number_selected) {
+        if (row_number_selected) {
             this.updateRunningSheetUrlEntry({
                 "recordNumber": recordNumber,
                     "recordDescription": recordDescriptionHtml,

@@ -20,11 +20,33 @@ from django.core.exceptions import ValidationError
 
 logger = logging.getLogger(__name__)
 
+class DocumentArtifactType(models.Model):
+    document_type = models.CharField(max_length=50)
+    schema = JSONField(null=True)
+    version = models.SmallIntegerField(default=1, blank=False, null=False)
+    description = models.CharField(max_length=255, blank=True, null=True)
+    replaced_by = models.ForeignKey(
+        'self', on_delete=models.PROTECT, blank=True, null=True)
+    date_created = models.DateTimeField(auto_now_add=True, null=True)
+    #approval_document = models.ForeignKey(
+    #    'InspectionTypeApprovalDocument',
+    #    related_name='inspection_type',
+    #    null=True)
+
+    class Meta:
+        app_label = 'wildlifecompliance'
+        verbose_name = 'CM_CasePriority'
+        verbose_name_plural = 'CM_CasePriorities'
+        unique_together = ('case_priority', 'version')
+
 
 class DocumentArtifact(models.Model):
-    doc_type = models.CharField(max_length=50)
+    doc_type = models.ForeignKey(
+            DocumentArtifactType,
+            null=True
+            )
     _file = models.FileField(max_length=255)
-    identifier = models.CharField(max_length=200, blank=True, null=True)
+    identifier = models.CharField(max_length=255, blank=True, null=True)
 
 
 
