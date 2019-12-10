@@ -568,11 +568,11 @@ export default {
         } else if (entity && entity.data_type === 'url' && action === 'ok') {
             recordDescriptionHtml = this.insertModalUrl({"entity": entity, "recordNumberElement": recordNumberElement})
         }
-        if (row_number_selected) {
+        if (recordNumber) {
             this.updateRunningSheetUrlEntry({
                 "recordNumber": recordNumber,
-                    "recordDescription": recordDescriptionHtml,
-                    "redraw": true,
+                "recordDescription": recordDescriptionHtml,
+                "redraw": true,
             })
         }
     },
@@ -806,9 +806,12 @@ export default {
         for (let r of this.runningSheetUrl) {
             //console.log(r.deleted)
             if (r.number === recordNumber) {
+                r.description = recordDescription
+                /*
                 if (recordDescription) {
                     r.description = recordDescription
                 }
+                */
                 if (redraw) {
                     this.constructRunningSheetTableEntry( recordNumber );
                 }
