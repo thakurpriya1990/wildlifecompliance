@@ -868,6 +868,8 @@ export default {
             this.searchArtifactKeyPressed = false;
         } else if (e.key === '!' && e.shiftKey) {
             this.searchArtifactKeyPressed = true;
+            this.searchPersonKeyPressed = false;
+            this.insertUrlKeyPressed = false;
         } else if (e.key === '@' && e.shiftKey && this.searchPersonKeyPressed) {
             //let rowElement = $('#' + e.target.id);
             //this.openSearchPersonOrganisation(e.target.id)
@@ -877,6 +879,8 @@ export default {
             this.searchPersonKeyPressed = false;
         } else if (e.key === '@' && e.shiftKey) {
             this.searchPersonKeyPressed = true;
+            this.searchArtifactKeyPressed = false;
+            this.insertUrlKeyPressed = false;
         } else if (e.key === '^' && e.shiftKey && this.insertUrlKeyPressed) {
             this.rowNumberSelected = e.target.id;
             this.tabSelected = 'url';
@@ -887,6 +891,8 @@ export default {
             this.insertUrlKeyPressed = false;
         } else if (e.key === '^' && e.shiftKey) {
             this.insertUrlKeyPressed = true;
+            this.searchPersonKeyPressed = false;
+            this.searchArtifactKeyPressed = false;
         } else if (e.key === 'Shift' && e.shiftKey) {
             // pass
         } else {
