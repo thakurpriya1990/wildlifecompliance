@@ -2,7 +2,7 @@
     <div id="PersonOrArtifactModal">
         <modal transition="modal fade" @ok="ok()" @cancel="cancel()" title="" large force>
             <div class="container-fluid">
-                <ul class="nav nav-pills aho2">
+                <ul class="nav nav-pills">
                     <li :class="personTabListClass"><a data-toggle="tab" @click="updateTabSelected('pTab')" :href="'#'+pTab">Search Person</a></li>
                     <li :class="artifactTabListClass"><a data-toggle="tab" @click="updateTabSelected('aTab')" :href="'#'+aTab" >Search Object</a></li>
                     <li :class="urlTabListClass"><a data-toggle="tab" @click="updateTabSelected('uTab')" :href="'#'+uTab">Insert URL</a></li>
@@ -132,7 +132,7 @@ export default {
         },
         artifactTabListClass: function() {
             let tabClass = 'nav-item';
-            if (this.objectTabSelected) {
+            if (this.artifactTabSelected) {
                 tabClass += ' active';
             }
             return tabClass;

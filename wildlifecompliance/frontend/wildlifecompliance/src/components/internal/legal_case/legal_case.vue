@@ -559,32 +559,22 @@ export default {
         let recordNumber = row_number_selected;
         let recordNumberElement = $('#' + recordNumber)
         let recordDescriptionHtml = ''
-        if (entity && entity.data_type === 'individual') {
-            if (action === 'cancel') {
-                //recordDescriptionHtml = this.cancelPersonModalUrl(recordNumberElement)
-                recordDescriptionHtml = this.cancelModalUrl(recordNumberElement)
-            } else if (action === 'ok') {
-                recordDescriptionHtml = this.insertPersonModalUrl({"entity": entity, "recordNumberElement": recordNumberElement})
-            }
-        } else if (entity && entity.data_type === 'artifact') {
-            if (action === 'cancel') {
-                //recordDescriptionHtml = this.cancelArtifactModalUrl(recordNumberElement)
-                recordDescriptionHtml = this.cancelModalUrl(recordNumberElement)
-            } else if (action === 'ok') {
-                recordDescriptionHtml = this.insertArtifactModalUrl({"entity": entity, "recordNumberElement": recordNumberElement})
-            }
-        } else if (entity && entity.data_type === 'url') {
-            if (action === 'cancel') {
-                recordDescriptionHtml = this.cancelModalUrl(recordNumberElement)
-            } else if (action === 'ok') {
-                recordDescriptionHtml = this.insertModalUrl({"entity": entity, "recordNumberElement": recordNumberElement})
-            }
+        if (action === 'cancel') {
+            recordDescriptionHtml = this.cancelModalUrl(recordNumberElement)
+        } else if (entity && entity.data_type === 'individual' && action === 'ok') {
+            recordDescriptionHtml = this.insertPersonModalUrl({"entity": entity, "recordNumberElement": recordNumberElement})
+        } else if (entity && entity.data_type === 'artifact' && action === 'ok') {
+            recordDescriptionHtml = this.insertArtifactModalUrl({"entity": entity, "recordNumberElement": recordNumberElement})
+        } else if (entity && entity.data_type === 'url' && action === 'ok') {
+            recordDescriptionHtml = this.insertModalUrl({"entity": entity, "recordNumberElement": recordNumberElement})
         }
-        this.updateRunningSheetUrlEntry({
-            "recordNumber": recordNumber,
-                "recordDescription": recordDescriptionHtml,
-                "redraw": true,
-        })
+        if (recordDescriptionHtml && row_number_selected) {
+            this.updateRunningSheetUrlEntry({
+                "recordNumber": recordNumber,
+                    "recordDescription": recordDescriptionHtml,
+                    "redraw": true,
+            })
+        }
     },
     /*
     cancelPersonModalUrl: function(recordNumberElement) {
@@ -621,6 +611,7 @@ export default {
         return recordDescriptionHtml;
     },
     cancelModalUrl: function(recordNumberElement) {
+        console.log(recordNumberElement)
         let replacementVal = ''
         let recordDescriptionHtml = recordNumberElement[0].innerHTML.replace(this.tabSelectedKeyCombination, replacementVal).replace(/&nbsp\;/g, ' ');
         return recordDescriptionHtml;
