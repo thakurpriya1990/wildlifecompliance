@@ -284,7 +284,8 @@ export default {
                             links +=  `<a href='#${full.id}' data-pay-application-fee='${full.id}'>Pay Application Fee</a><br/>`;
                         }
                         if (full.customer_status.id == 'awaiting_payment' && full.payment_status == 'paid'){
-                            links +=  `<a href='#${full.id}' data-pay-application-licence-fee='${full.id}' pay-licence-fee-for='${full.activities[0].id}'>Pay Licence Fee</a><br/>`;
+                            let activity = full.activities.find(activity => activity.can_pay_licence_fee=true)
+                            links +=  `<a href='#${full.id}' data-pay-application-licence-fee='${full.id}' pay-licence-fee-for='${activity.id}'>Pay Licence Fee</a><br/>`;
                         }                        
                     }
                     return links;
