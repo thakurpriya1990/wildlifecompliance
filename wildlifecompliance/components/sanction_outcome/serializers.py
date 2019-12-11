@@ -338,6 +338,7 @@ class SanctionOutcomeDatatableSerializer(serializers.ModelSerializer):
         urls = '<br />'.join(url_list)
         return urls
 
+
 class RecordFerCaseNumberSerializer(serializers.ModelSerializer):
 
     class Meta:
@@ -385,6 +386,7 @@ class SaveSanctionOutcomeSerializer(serializers.ModelSerializer):
             'time_of_issue',
             'registration_holder_id',
             'driver_id',
+            'status',
         )
 
     def validate(self, data):

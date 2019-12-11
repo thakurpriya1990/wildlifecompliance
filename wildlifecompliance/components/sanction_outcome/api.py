@@ -353,6 +353,12 @@ class SanctionOutcomeViewSet(viewsets.ModelViewSet):
                 # No workflow
                 # No allocated group changes
 
+                # When updated from with_dot status by adding registrationholder, status becomes awaiting_issuance
+                if request_data['status']['id'] == SanctionOutcome.STATUS_WITH_DOT and (request_data['registration_holder_id'] or request_data['driver_id']):
+                    request_data['status'] = SanctionOutcome.STATUS_AWAITING_ISSUANCE
+                else:
+                    request_data['status'] = request_data['status']['id']
+
                 # Add number of files attached to the instance
                 # By the filefield component in the front end, files should be already uploaded as attachment of this instance
                 num_of_documents = instance.documents.all().count()
@@ -378,12 +384,12 @@ class SanctionOutcomeViewSet(viewsets.ModelViewSet):
                 instance.log_user_action(SanctionOutcomeUserAction.ACTION_UPDATE.format(instance), request)
 
                 # Return
-                # return_serializer = SanctionOutcomeSerializer(instance=instance,)
-                # headers = self.get_success_headers(return_serializer.data)
+                return_serializer = SanctionOutcomeSerializer(instance=instance, context={'request': request})
+                headers = self.get_success_headers(return_serializer.data)
                 return Response(
-                    # return_serializer.data,
+                    return_serializer.data,
                     status=status.HTTP_200_OK,
-                    # headers=headers
+                    headers=headers
                 )
 
         except serializers.ValidationError:
@@ -635,6 +641,52 @@ class SanctionOutcomeViewSet(viewsets.ModelViewSet):
 
     @detail_route(methods=['POST'])
     @renderer_classes((JSONRenderer,))
+    def send_parking_infringement(self, request, instance=None, *args, **kwargs):
+        try:
+            with transaction.atomic():
+                instance = self.get_object() if not instance else instance
+                instance.endorse_parking_infringement()
+
+                workflow_entry = self.add_comms_log(request, instance, workflow=True)
+
+                # Email to the offender, and bcc to the respoinsible officer, manager and infringement notice coordinators
+                inc_group = SanctionOutcome.get_compliance_permission_group(None, SanctionOutcome.WORKFLOW_ENDORSE)
+                inc_emails = [member.email for member in inc_group.members]
+                to_address = [instance.get_offender().email, ]
+                cc = None
+                bcc = [instance.responsible_officer.email, request.user.email] + inc_emails
+                email_data = send_infringement_notice(to_address, instance, workflow_entry, request, cc, bcc)
+
+                # Log the above email as a communication log entry
+                if email_data:
+                    email_data['sanction_outcome'] = instance.id
+                    serializer = SanctionOutcomeCommsLogEntrySerializer(instance=workflow_entry, data=email_data, partial=True)
+                    serializer.is_valid(raise_exception=True)
+                    serializer.save()
+
+                instance.log_user_action(SanctionOutcomeUserAction.ACTION_ISSUE_PARKING_INFRINGEMENT.format(instance.lodgement_number), request)
+
+                return Response(
+                    # return_serializer.data,
+                    status=status.HTTP_200_OK,
+                    # headers=headers
+                )
+
+        except serializers.ValidationError:
+            print(traceback.print_exc())
+            raise
+        except ValidationError as e:
+            print(traceback.print_exc())
+            if hasattr(e, 'error_dict'):
+                raise serializers.ValidationError(repr(e.error_dict))
+            else:
+                raise serializers.ValidationError(repr(e[0].encode('utf-8')))
+        except Exception as e:
+            print(traceback.print_exc())
+            raise serializers.ValidationError(str(e))
+
+    @detail_route(methods=['POST'])
+    @renderer_classes((JSONRenderer,))
     def record_fer_case_number(self, request, instance=None, *args, **kwargs):
         try:
             with transaction.atomic():
@@ -701,7 +753,7 @@ class SanctionOutcomeViewSet(viewsets.ModelViewSet):
                         last_date.due_date_applied.strftime('%d/%m/%Y')),
                         request)
 
-                to_address = [instance.offender.person.email,]
+                to_address = [instance.get_offender().email,]
                 cc = [instance.responsible_officer.email, request.user.email] if instance.responsible_officer else None
                 bcc = None
                 email_data = send_due_date_extended_mail(to_address, instance, workflow_entry, request, cc, bcc)
@@ -775,23 +827,32 @@ class SanctionOutcomeViewSet(viewsets.ModelViewSet):
 
                 elif workflow_type == SanctionOutcome.WORKFLOW_ENDORSE:
                     if not instance.is_parking_offence or (instance.is_parking_offence and instance.offender):
-                        instance.endorse(request)
+                        instance.endorse()
 
-                        # Email to the offender, and bcc to the respoinsible officer, manager and infringement notice coordinators
-                        inc_group = SanctionOutcome.get_compliance_permission_group(None, SanctionOutcome.WORKFLOW_ENDORSE)
-                        inc_emails = [member.email for member in inc_group.members]
-                        to_address = [instance.offender.person.email, ]
-                        cc = None
-                        bcc = [instance.responsible_officer.email, request.user.email] + inc_emails
-                        email_data = send_infringement_notice(to_address, instance, workflow_entry, request, cc, bcc)
+                        if not instance.issued_on_paper:
+                            # Email to the offender, and bcc to the respoinsible officer, manager and infringement notice coordinators
+                            inc_group = SanctionOutcome.get_compliance_permission_group(None, SanctionOutcome.WORKFLOW_ENDORSE)
+                            inc_emails = [member.email for member in inc_group.members]
+                            to_address = [instance.offender.person.email, ]
+                            cc = None
+                            bcc = [instance.responsible_officer.email, request.user.email] + inc_emails
+                            email_data = send_infringement_notice(to_address, instance, workflow_entry, request, cc, bcc)
+
+                            # Log action
+                            instance.log_user_action(SanctionOutcomeUserAction.ACTION_ENDORSE_AND_ISSUE.format(instance.lodgement_number), request)
+                        else:
+                            instance.log_user_action(SanctionOutcomeUserAction.ACTION_ENDORSE.format(instance.lodgement_number), request)
+
                     else:
-                        instance.endorse_and_dot(request)
+                        instance.send_to_dot()
 
                         # Send email to DoT with attachment
                         to_address = ['shibaken+dot@dbca.gov.wa.au', ]
                         cc = [instance.responsible_officer.email, request.user.email,]
                         bcc = None
                         email_data = email_detais_to_department_of_transport(to_address, instance, request, cc, bcc)
+
+                        instance.log_user_action(SanctionOutcomeUserAction.ACTION_SEND_TO_DOT.format(instance.lodgement_number), request)
 
                 elif workflow_type == SanctionOutcome.WORKFLOW_RETURN_TO_OFFICER:
                     if not reason:
