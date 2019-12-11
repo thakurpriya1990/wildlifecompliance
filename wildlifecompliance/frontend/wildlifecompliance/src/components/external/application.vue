@@ -246,9 +246,7 @@ export default {
         let swal_html = 'Are you sure you want to submit this application?'
         if (vm.requiresCheckout) {
             swal_title = 'Submit Application and Checkout'
-            swal_html = 'Are you sure you want to submit this application and proceed to checkout?<br><br>' +
-                'Upon proceeding, you agree that the system will charge the same credit card used to ' +
-                'pay the application fee when your licence is issued.'
+            swal_html = 'Are you sure you want to submit this application and proceed to checkout?<br><br>'
         }
         swal({
             title: swal_title,
