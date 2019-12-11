@@ -218,22 +218,16 @@ export default {
             'current_user',
             'sendToAssessorActivities',
             'canAssignOfficerFor',
-            'filterActivityList',
+            'canAssignAssessorFor',
         ]),
         inspection_report_file_name: function() {
             return this.assessment.inspection_report != null ? this.assessment.inspection_report.name: '';
         },
         applicationActivities: function() {
-            if (this.canCompleteAssessment){ // build authorised activities for assessor.
-                return this.filterActivityList({
-                    activity_list: this.licenceActivities([
-                        'with_assessor'
-                    ], 'assessor'),
-                    exclude_processing_statuses: ['discarded']
-                });
-            } else { // build authorised activities for officer.
-                return this.licenceActivities().filter(activity => this.canAssignOfficerFor(activity.id))
-            }
+            return this.licenceActivities().filter(activity => {
+
+                return this.canAssignOfficerFor(activity.id) || this.canAssignAssessorFor(activity.id);
+            })
         },
         selectedActivity: function(){
             const activities_list = this.licence_type_data.activity;
@@ -258,10 +252,14 @@ export default {
         },
         canSendToAssessor: function() {
             this.showSendToAssessorButton = false;
+            if (this.$router.currentRoute.name=='complete-assessment'){
+                // complete assessment route is only for assessors.
+                return null;
+            }            
             if (!this.canAssignOfficerFor(this.selected_activity_tab_id)) {
                 // officer has no permissions for licence activity.
                 return null;
-            }          
+            }
             return this.sendToAssessorActivities.filter(visible_activity => {
                 if(visible_activity.id != this.selected_activity_tab_id) {
                     return false;
@@ -450,7 +448,8 @@ export default {
             }
             // const tab = $('#tabs-assessor li:first-child a')[0];
             const tab = null
-            const FIRST_TAB = this.applicationActivities[0].id
+            // force first tab to be the first activity in list.
+            const FIRST_TAB = this.application.activities[0].licence_activity
             if(tab) {
                 tab.click();
             }

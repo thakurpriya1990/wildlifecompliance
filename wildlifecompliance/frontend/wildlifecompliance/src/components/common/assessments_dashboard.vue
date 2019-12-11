@@ -191,7 +191,7 @@ export default {
                     {
                         mRender:function (data,type,full) {
                             let links = '';
-                            links +=  full.can_be_processed ? `<a href='/internal/application/${full.application_id}'>Process</a><br/>`: `<a href='/internal/application/${full.application_id}'>View</a><br/>`;
+                            links +=  full.can_be_processed ? `<a href='/internal/application/assessment/${full.application_id}'>Process</a><br/>`: `<a href='/internal/application/assessment/${full.application_id}'>View</a><br/>`;
                             return links;
                         },
                         orderable: false,

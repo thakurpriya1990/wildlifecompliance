@@ -6,6 +6,7 @@ import Organisation from '../organisations/manage.vue'
 import UserDashTable from '../users/dashboard.vue'
 import User from '../users/manage.vue'
 import Application from '../applications/application.vue'
+import CompleteAssessment from '../applications/complete_assessment.vue'
 import LicenceDashTable from '../licences/dashboard.vue'
 import ReturnDashTable from '../returns/dashboard.vue'
 import Returns from '../returns/return.vue'
@@ -118,6 +119,11 @@ export default
                         },
                         
                     ]
+                },
+                {
+                    path: 'assessment/:application_id',
+                    component: CompleteAssessment,
+                    name:"complete-assessment"
                 },
  
             ]

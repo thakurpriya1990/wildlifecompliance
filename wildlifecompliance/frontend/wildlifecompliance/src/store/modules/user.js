@@ -113,7 +113,13 @@ export const userStore = {
                     // verify user is authorised for activity.
                     && getters.hasRole('assessor', activity_id)
                     // verify activity status.
-                    && ['with_assessor'].includes(activity.processing_status.id);
+                    && ['with_assessor'].includes(activity.processing_status.id)
+                    // verify user belongs to assessor group.
+                    && rootGetters.application.assessments.find(assessment => {
+
+                        return assessment.licence_activity === activity_id
+                            && assessment.assessors.find(assessor => assessor.id === getters.current_user.id);
+                    });
             });                    
         },
     },

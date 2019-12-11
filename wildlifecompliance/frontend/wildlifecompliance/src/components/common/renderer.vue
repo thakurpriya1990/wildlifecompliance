@@ -100,8 +100,13 @@ export default {
         'unfinishedActivities',
         'allCurrentActivities',
         'sectionsForTab',
+        'allCurrentActivitiesWithAssessor',
     ]),
     listVisibleActivities: function() {
+        if (this.$router.currentRoute.name=='complete-assessment'){
+            // filtered activity list for application when completing assessments.
+            return this.allCurrentActivitiesWithAssessor ? this.allCurrentActivitiesWithAssessor : this.allCurrentActivities;
+        }
         return this.application.can_user_edit ? this.unfinishedActivities : this.allCurrentActivities;
     },
   },

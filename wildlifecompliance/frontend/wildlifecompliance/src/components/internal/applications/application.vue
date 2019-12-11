@@ -73,31 +73,6 @@
                                     </template>                                    
                                 </div>
                             </div>
-                            <div class="col-sm-12 top-buffer-s" v-show="showAssignToAssessor">
-                                <strong>Assigned Assessors</strong><br/>
-                            
-                                <div v-for="activity_assessment in activeAssessments">
-                                    <div v-if="activity_assessment.assessor_group.name">
-                                        <div>Assessment for {{activity_assessment.assessor_group.name.split('Wildlife Compliance - Assessors:')[1]}}</div>
-
-                                        <template>
-                                            <!-- display selects when Assessor has been allocated -->
-                                            <select v-if="activity_assessment.assigned_assessor!=null" ref="assigned_assessor" class="form-control" v-model="activity_assessment.assigned_assessor.id">
-                                                <option :value="null"></option>                                                
-                                                <option v-for="member in activity_assessment.assessors" :value="member.id" v-bind:key="member.id">{{member.first_name}} {{member.last_name}}</option>
-                                            </select>
-                                            <!-- display select when no Assessor exist -->
-                                            <select v-if="activity_assessment.assigned_assessor==null" ref="assigned_assessor" class="form-control" v-model="activity_assessment.assigned_assessor_id" >
-                                                <option :value="null"></option>
-                                                <option v-for="member in activity_assessment.assessors" :value="member.id" v-bind:key="member.id">{{member.first_name}} {{member.last_name}}</option>
-                                            </select>
-                                            <a @click.prevent="makeMeAssessor(activity_assessment)" class="actionBtn pull-right">Assign to me</a>
-                                        </template>
-                           
-                                    </div>
-                                </div>
-
-                            </div>
 
                             <template v-if="isFinalised">
                                 <div>
@@ -162,8 +137,7 @@
                                             <button class="btn btn-primary top-buffer-s col-xs-12" @click.prevent="proposedLicence()">Propose Issue</button>
                                             <button class="btn btn-primary top-buffer-s col-xs-12" @click.prevent="proposedDecline()">Propose Decline</button>
                                         </div>
-                                    </div>                                    
-                                    <button v-show="showCompleteAssessmentsButton" @click.prevent="completeAssessmentsToMe()" class="btn btn-primary top-buffer-s col-xs-12" >Complete Assessments</button><br/>                                   
+                                    </div>
                                 </template>
                             </div>
                         </div>
@@ -804,18 +778,8 @@ export default {
         showNavBarBottom: function() {
             return this.canReturnToConditions || (!this.applicationIsDraft && this.canSaveApplication)
         },
-        showCompleteAssessmentsButton: function() {
-            return this.isWithAssessor && this.activeAssessments.find(assessment => {
-                // Only active assessments assigned to user.
-                return assessment.assigned_assessor
-                    && assessment.assigned_assessor.id === this.current_user.id;               
-            });
-        },
         showAssignToOfficer: function(){
             return this.showingApplication && this.canAssignOfficerFor(this.selectedActivity.licence_activity)
-        },
-        showAssignToAssessor: function(){
-            return !this.showingApplication && this.canAssignAssessorFor(this.selectedActivity.licence_activity)
         },
         showAssignToApprover: function(){
             return this.showingApplication && this.canAssignApproverFor(this.selectedActivity.licence_activity)
@@ -823,20 +787,8 @@ export default {
         showAssessmentConditionButton: function() {
             return this.showingApplication 
                 && !this.applicationIsDraft 
-                && (this.canAssignOfficerFor(this.selectedActivity.licence_activity) || this.canAssignAssessorFor(this.selectedActivity.licence_activity))
+                && (this.canAssignOfficerFor(this.selectedActivity.licence_activity) || this.canAssignApproverFor(this.selectedActivity.licence_activity))
         },
-        isWithAssessor: function() {
-            return this.selectedActivity.processing_status.id === 'with_assessor' ? true : false;
-        },
-        activeAssessments: function() {
-            return this.application.assessments.filter(assessment => {
-
-                return assessment.status.id !== 'completed'
-                    && assessment.licence_activity === this.selected_activity_tab_id
-                    // Only assessor groups associated with user.
-                    && assessment.assessors.find(assessor => assessor.id === this.current_user.id);
-            });
-        }
     },
     methods: {
         ...mapActions({
@@ -1256,75 +1208,6 @@ export default {
                 )
             });
         },
-        makeMeAssessor: function(assessment){
-            let vm = this;
-            const data = {
-                "assessment_id" : assessment.id,
-                "assessor_id": this.current_user.id
-            }
-            this.setOriginalApplication(this.application);
-            this.$http.post(helpers.add_endpoint_json(
-                    api_endpoints.applications, (this.application.id+'/assign_application_assessment')
-                ), JSON.stringify(data)).then((response) => {
-                    this.setApplication(response.body);
-                }, (error) => {
-                    this.revert();
-                       swal(
-                        'Application Error',
-                        helpers.apiVueResourceError(error),
-                        'error'
-                        )
-                }); 
-        },
-        onChangeAssessor: function(assessment){
-            const data = {
-                "assessment_id" : assessment.id,
-                "assessor_id": assessment.assigned_assessor==null ? assessment.assigned_assessor_id : assessment.assigned_assessor
-            }
-            this.setOriginalApplication(this.application);
-            this.$http.post(helpers.add_endpoint_json(
-                    api_endpoints.applications, (this.application.id+'/assign_application_assessment')
-                ), JSON.stringify(data)).then((response) => {
-                    this.setApplication(response.body);
-                }, (error) => {
-                    this.revert();
-                       swal(
-                        'Application Error',
-                        helpers.apiVueResourceError(error),
-                        'error'
-                        )
-                });            
-        },
-        updateAssignedAssessorSelect:function(assessment){
-            let vm = this;
-            $(vm.$refs.assigned_assessor).val(assessment.assigned_assessor);
-            $(vm.$refs.assigned_assessor).trigger('change');
-        },
-        completeAssessmentsToMe: function(){
-            let vm = this;
-            const data = {
-                "activity_id" : this.selectedActivity.licence_activity,
-            }
-            this.setOriginalApplication(this.application);            
-            vm.$http.post(helpers.add_endpoint_json(api_endpoints.applications,(vm.application.id+'/complete_application_assessments')
-                ), JSON.stringify(data)).then((response) => {
-                    this.setApplication(response.body);
-                swal(
-                    'Complete Assessments',
-                    'Assessments have been marked for completion.',
-                    'success'
-                    );
-
-                this.$router.push({name:"internal-dash"});               
-            }, (error) => {
-                this.revert();
-                swal(
-                    'Application Error',
-                    helpers.apiVueResourceError(error),
-                    'error'
-                )
-            });
-        },
         updateActivityStatus: function(activity_id, status){
             let vm = this;
             let data = {
@@ -1396,36 +1279,6 @@ export default {
                 vm.assignApprover();
             });
         },
-        initialiseAssignedAssessorSelect: function(reinit=false){
-            let vm = this;
-            if (reinit){
-                $(vm.$refs.assigned_assessor).data('select2') ? $(vm.$refs.assigned_assessor).select2('destroy'): '';
-            }
-            $(vm.$refs.assigned_assessor).select2({
-                theme: "bootstrap",
-                allowClear: true,
-                placeholder: "Select Assessor"
-            }).
-            on("select2:select",function (e) {
-                var selected = $(e.currentTarget);
-                // Note: currently only one assessment active per licence activity.
-                var assessment = vm.activeAssessments[0];
-                assessment.assigned_assessor = selected.val();
-                vm.onChangeAssessor(assessment)
-            }).on("select2:unselecting", function(e) {
-                var self = $(this);
-                setTimeout(() => {
-                    self.select2('close');
-                }, 0);
-            }).on("select2:unselect",function (e) {
-                var selected = $(e.currentTarget);
-                // Note: currently only one assessment active per licence activity.
-                var assessment = vm.activeAssessments[0];
-                assessment.assigned_assessor = null;
-                assessment.assigned_assessor_id = null;
-                vm.onChangeAssessor(assessment);
-            });
-        },
         initialiseSelects: function(){
             if (!this.initialisedSelects){
                 this.initialisedSelects = true;
@@ -1433,7 +1286,6 @@ export default {
             }
             this.initialiseAssignedOfficerSelect();            
             this.initialiseAssignedApproverSelect();
-            this.initialiseAssignedAssessorSelect();
         },
         initMainTab: function() {
             if(!this.$refs.applicantTab) {
