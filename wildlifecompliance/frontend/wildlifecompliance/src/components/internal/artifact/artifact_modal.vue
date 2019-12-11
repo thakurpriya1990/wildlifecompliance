@@ -1,77 +1,9 @@
 <template lang="html">
     <div id="ArtifactModal">
-        <modal transition="modal fade" @ok="ok()" @cancel="cancel()" title="Create New Case" large force>
+        <modal transition="modal fade" @ok="ok()" @cancel="cancel()" title="Identify Object" large force>
           <div class="container-fluid">
             <div class="row">
                 <div class="col-sm-12">
-                        <div class="form-group">
-                          <div class="row">
-                            <div class="col-sm-3">
-                              <label>Region</label>
-                            </div>
-                            <div class="col-sm-9">
-                              <select class="form-control col-sm-9" @change.prevent="updateDistricts()" v-model="region_id">
-                                <option  v-for="option in regions" :value="option.id" v-bind:key="option.id">
-                                  {{ option.display_name }} 
-                                </option>
-                              </select>
-                            </div>
-                          </div>
-                        </div>
-                        <div class="form-group">
-                          <div class="row">
-                            <div class="col-sm-3">
-                              <label>District</label>
-                            </div>
-                            <div class="col-sm-9">
-                              <select class="form-control" @change.prevent="updateAllocatedGroup()" v-model="district_id">
-                                <option  v-for="option in availableDistricts" :value="option.id" v-bind:key="option.id">
-                                  {{ option.display_name }} 
-                                </option>
-                              </select>
-                            </div>
-                          </div>
-                        </div>
-                        <div class="form-group">
-                          <div class="row">
-                            <div class="col-sm-3">
-                              <label>Allocate to</label>
-                            </div>
-                            <div class="col-sm-9">
-                              <select class="form-control" v-model="assigned_to_id">
-                                <option  v-for="option in allocatedGroup" :value="option.id" v-bind:key="option.id">
-                                  {{ option.full_name }} 
-                                </option>
-                              </select>
-                            </div>
-                          </div>
-                        </div>
-
-                        <div class="form-group">
-                          <div class="row">
-                            <div class="col-sm-3">
-                              <label>Case Priority</label>
-                            </div>
-                            <div class="col-sm-9">
-                              <select class="form-control" v-model="legal_case_priority_id">
-                                <option  v-for="option in legalCasePriorities" :value="option.id" v-bind:key="option.id">
-                                  {{ option.case_priority }}
-                                </option>
-                              </select>
-                            </div>
-                          </div>
-                        </div>
-
-                        <div class="form-group">
-                          <div class="row">
-                              <div class="col-sm-3">
-                                  <label class="control-label pull-left" for="details">Details</label>
-                              </div>
-            			      <div class="col-sm-6">
-                                  <textarea class="form-control" placeholder="add details" id="details" v-model="legalCaseDetails"/>
-                              </div>
-                          </div>
-                        </div>
                         <div class="form-group">
                             <div class="row">
                                 <div class="col-sm-3">

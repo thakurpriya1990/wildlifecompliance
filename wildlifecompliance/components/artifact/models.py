@@ -23,9 +23,11 @@ logger = logging.getLogger(__name__)
 
 class Artifact(RevisionedMixin):
     # _file - document or seizure notice
-    _file = models.FileField(max_length=255, null=True)
+    #_file = models.FileField(max_length=255, null=True)
     identifier = models.CharField(max_length=255, blank=True, null=True)
     description = models.TextField(blank=True, null=True)
+    artifact_date = models.DateField(null=True)
+    artifact_time = models.TimeField(blank=True, null=True)
     custodian = models.ForeignKey(
             EmailUser,
             related_name='artifact_custodian',
@@ -107,8 +109,8 @@ class DocumentArtifact(Artifact):
     #        related_name='document_artifact_custodian',
     #        null=True,
     #        )
-    document_created_date = models.DateField(null=True)
-    document_created_time = models.TimeField(blank=True, null=True)
+    #document_created_date = models.DateField(null=True)
+    #document_created_time = models.TimeField(blank=True, null=True)
     person_providing_statement = models.ForeignKey(
             EmailUser,
             related_name='document_artifact_person_providing_statement',
@@ -162,8 +164,8 @@ class PhysicalArtifact(Artifact):
     #        related_name='physical_artifact_custodian',
     #        null=True,
     #        )
-    artifact_created_date = models.DateField(null=True)
-    artifact_created_time = models.TimeField(blank=True, null=True)
+    #artifact_created_date = models.DateField(null=True)
+    #artifact_created_time = models.TimeField(blank=True, null=True)
     disposal_date = models.DateField(null=True)
     disposal_details = models.TextField(blank=True, null=True)
     disposal_method = models.ForeignKey(
@@ -239,11 +241,6 @@ class ArtifactDocument(Document):
     def delete(self):
         if self.can_delete:
             return super(ArtifactDocument, self).delete()
-        #logger.info(
-         #   'Cannot delete existing document object after application has been submitted (including document submitted before\
-          #  application pushback to status Draft): {}'.format(
-           #     self.name)
-        #)
 
     class Meta:
         app_label = 'wildlifecompliance'

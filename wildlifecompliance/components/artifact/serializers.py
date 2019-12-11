@@ -55,6 +55,8 @@ class ArtifactSerializer(serializers.ModelSerializer):
                 'identifier',
                 'description',
                 'custodian',
+                'artifact_date',
+                'artifact_time',
                 )
         read_only_fields = (
                 'id',
@@ -136,8 +138,6 @@ class DocumentArtifactSerializer(ArtifactSerializer):
         fields = (
                 'id',
                 'document_type',
-                'document_created_date',
-                'document_created_time',
                 'statement',
                 'person_providing_statement',
                 'interviewer',
@@ -166,8 +166,6 @@ class PhysicalArtifactSerializer(ArtifactSerializer):
                 'sensitive_non_disclosable',
                 'disposal_method',
                 'description',
-                'artifact_created_date',
-                'artifact_created_time',
                 'officer',
                 'disposal_date',
                 'disposal_details',
