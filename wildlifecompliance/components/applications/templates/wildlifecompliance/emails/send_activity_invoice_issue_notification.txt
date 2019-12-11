@@ -1,7 +1,7 @@
 {%  extends 'wildlifecompliance/emails/base_email.txt' %}
 
 {%  block content %}
-        Payment for your licensed activity was unsuccessful. Please use the link to make payment.
+        Issuance of your licensed activity is pending payment. Please use the link to make payment.
 
         Application: {{ application.id }}
 

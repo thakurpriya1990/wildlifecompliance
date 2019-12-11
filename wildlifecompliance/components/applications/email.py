@@ -33,7 +33,7 @@ class ActivityInvoiceNotificationEmail(TemplateEmailBase):
 
 
 class ActivityInvoiceIssueNotificationEmail(TemplateEmailBase):
-    subject = 'Unsuccessful payment for your licensed activity.'
+    subject = 'Issuance of your licence activity is pending payment.'
     html_template = 'wildlifecompliance/emails/send_activity_invoice_issue_notification.html'
     txt_template = 'wildlifecompliance/emails/send_activity_invoice_issue_notification.txt'
 
@@ -256,6 +256,13 @@ def send_application_submit_email_notification(
             'internal-application-detail',
             kwargs={
                 'application_pk': application.id}))
+
+    if '-internal' not in url:
+        url = "{0}://{1}{2}.{3}{4}".format(request.scheme,
+                                           settings.SITE_PREFIX,
+                                           '-internal',
+                                           settings.SITE_DOMAIN,
+                                           url.split(request.get_host())[1])
 
     context = {
         'application': application,

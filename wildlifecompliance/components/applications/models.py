@@ -1792,6 +1792,9 @@ class Application(RevisionedMixin):
 
             selected_activity.save()
 
+            # update the status of the application.
+            self.update_customer_approval_status()
+
             parent_licence.current_application = latest_application_in_function
             parent_licence.save()
 
@@ -1936,9 +1939,6 @@ class Application(RevisionedMixin):
                 self.customer_status = Application.CUSTOMER_STATUS_AWAITING_PAYMENT
                 self.save()
                 send_activity_invoice_issue_notification(self, activity, request)
-            raise Exception("Could not process licence fee payment for: {}".format(
-                ", ".join([activity.licence_activity.name for activity in failed_payment_activities])
-            ))
 
         self.update_customer_approval_status()
 
