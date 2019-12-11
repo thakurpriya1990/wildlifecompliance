@@ -140,7 +140,7 @@ class PhysicalArtifact(Artifact):
     _file = models.FileField(max_length=255)
     disposal_date = models.DateField(null=True)
     disposal_details = models.TextField(blank=True, null=True)
-    # disposal_method = fk ?
+    # disposal_method = fk def in admin - simple char
 
 
     
