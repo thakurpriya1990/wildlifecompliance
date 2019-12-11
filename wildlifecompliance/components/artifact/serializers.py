@@ -29,10 +29,9 @@ from wildlifecompliance.components.artifact.models import (
         )
 
 from wildlifecompliance.components.offence.serializers import OffenceSerializer, OffenderSerializer
-#from wildlifecompliance.components.offence.serializers import OrganisationSerializer
-#from django.contrib.auth.models import Permission, ContentType
+# local EmailUser serializer req?
+from wildlifecompliance.components.call_email.serializers import EmailUserSerializer
 from reversion.models import Version
-#from datetime import datetime, timedelta, date
 from django.utils import timezone
 
 
@@ -45,6 +44,8 @@ from django.utils import timezone
 #                )
 
 class ArtifactSerializer(serializers.ModelSerializer):
+    custodian = EmailUserSerializer(read_only=True)
+    #statement = DocumentArtifactStatementSerializer(read_only=True)
     class Meta:
         model = Artifact
         #fields = '__all__'
@@ -53,6 +54,7 @@ class ArtifactSerializer(serializers.ModelSerializer):
                 '_file',
                 'identifier',
                 'description',
+                'custodian',
                 )
         read_only_fields = (
                 'id',
@@ -68,6 +70,7 @@ class DocumentArtifactTypeSerializer(serializers.ModelSerializer):
                 'version',
                 'description',
                 'date_created',
+
                 )
         read_only_fields = (
                 'id',
@@ -104,16 +107,75 @@ class PhysicalArtifactDisposalMethodSerializer(serializers.ModelSerializer):
                 )
 
 
-class DocumentArtifactSerializer(serializers.ModelSerializer):
+class DocumentArtifactStatementSerializer(ArtifactSerializer):
     class Meta:
         model = DocumentArtifact
-        fields = '__all__'
+        fields = (
+                'id',
+                '_file',
+                'identifier',
+                'description',
+                'custodian',
+                )
+        read_only_fields = (
+                'id',
+                )
 
 
-class PhysicalArtifactSerializer(serializers.ModelSerializer):
+class DocumentArtifactSerializer(ArtifactSerializer):
+    statement = DocumentArtifactStatementSerializer(read_only=True)
+    document_type = DocumentArtifactTypeSerializer(read_only=True)
+    person_providing_statement = EmailUserSerializer(read_only=True)
+    interviewer = EmailUserSerializer(read_only=True)
+    people_attending = EmailUserSerializer(many=True)
+    offence = OffenceSerializer(read_only=True)
+
+    class Meta:
+        model = DocumentArtifact
+        #fields = '__all__'
+        fields = (
+                'id',
+                'document_type',
+                'document_created_date',
+                'document_created_time',
+                'statement',
+                'person_providing_statement',
+                'interviewer',
+                'people_attending',
+                'offence',
+                )
+        read_only_fields = (
+                'id',
+                )
+
+
+class PhysicalArtifactSerializer(ArtifactSerializer):
+    statement = DocumentArtifactSerializer(read_only=True)
+    physical_artifact_type = PhysicalArtifactTypeSerializer(read_only=True)
+    officer = EmailUserSerializer(read_only=True)
+    disposal_method = PhysicalArtifactDisposalMethodSerializer(read_only=True)
+
     class Meta:
         model = PhysicalArtifact
-        fields = '__all__'
+        #fields = '__all__'
+        fields = (
+                'id',
+                'statement',
+                'physical_artifact_type',
+                'used_within_case',
+                'sensitive_non_disclosable',
+                'disposal_method',
+                'description',
+                'artifact_created_date',
+                'artifact_created_time',
+                'officer',
+                'disposal_date',
+                'disposal_details',
+                'disposal_method',
+                )
+        read_only_fields = (
+                'id',
+                )
 
 
 class ArtifactUserActionSerializer(serializers.ModelSerializer):

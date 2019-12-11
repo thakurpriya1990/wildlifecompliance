@@ -26,6 +26,11 @@ class Artifact(RevisionedMixin):
     _file = models.FileField(max_length=255, null=True)
     identifier = models.CharField(max_length=255, blank=True, null=True)
     description = models.TextField(blank=True, null=True)
+    custodian = models.ForeignKey(
+            EmailUser,
+            related_name='artifact_custodian',
+            null=True,
+            )
 
     class Meta:
         app_label = 'wildlifecompliance'
@@ -97,11 +102,11 @@ class DocumentArtifact(Artifact):
         blank=True, 
         null=True
         )
-    custodian = models.ForeignKey(
-            EmailUser,
-            related_name='document_artifact_custodian',
-            null=True,
-            )
+    #custodian = models.ForeignKey(
+    #        EmailUser,
+    #        related_name='document_artifact_custodian',
+    #        null=True,
+    #        )
     document_created_date = models.DateField(null=True)
     document_created_time = models.TimeField(blank=True, null=True)
     person_providing_statement = models.ForeignKey(
@@ -152,11 +157,11 @@ class PhysicalArtifact(Artifact):
         blank=True, 
         null=True
         )
-    custodian = models.ForeignKey(
-            EmailUser,
-            related_name='physical_artifact_custodian',
-            null=True,
-            )
+    #custodian = models.ForeignKey(
+    #        EmailUser,
+    #        related_name='physical_artifact_custodian',
+    #        null=True,
+    #        )
     artifact_created_date = models.DateField(null=True)
     artifact_created_time = models.TimeField(blank=True, null=True)
     disposal_date = models.DateField(null=True)
