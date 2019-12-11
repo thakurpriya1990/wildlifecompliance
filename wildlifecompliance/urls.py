@@ -34,6 +34,7 @@ from wildlifecompliance.components.sanction_outcome import api as sanction_outco
 from wildlifecompliance.components.main import api as main_api
 from wildlifecompliance.components.wc_payments import views as payment_views
 from wildlifecompliance.components.legal_case import api as legal_case_api
+from wildlifecompliance.components.artifact import api as artifact_api
 
 from wildlifecompliance.utils import are_migrations_running
 
@@ -104,6 +105,9 @@ router.register(r'offence_paginated', offence_api.OffencePaginatedViewSet)
 router.register(r'temporary_document', main_api.TemporaryDocumentCollectionViewSet)
 router.register(r'legal_case', legal_case_api.LegalCaseViewSet)
 router.register(r'legal_case_paginated', legal_case_api.LegalCasePaginatedViewSet)
+router.register(r'document_artifact', artifact_api.DocumentArtifactViewSet)
+router.register(r'artifact', artifact_api.ArtifactViewSet)
+router.register(r'physical_artifact', artifact_api.PhysicalArtifactViewSet)
 
 api_patterns = [url(r'^api/my_user_details/$',
                     users_api.GetMyUserDetails.as_view(),
