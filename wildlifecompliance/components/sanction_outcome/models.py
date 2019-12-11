@@ -169,7 +169,9 @@ class SanctionOutcome(models.Model):
         return is_parking_offence
 
     def retrieve_alleged_committed_offences(self):
-        # Check if there is newly aded alleged offence to be added to this sanction outcome
+        # Check if there are new alleged offences added to the offence which this sanction outcome belongs to.
+        # If sanction outcome is in the draft status and new alleged offences have been added to the offence
+        # those alleged offences should be added to the sanction outcome, too.
         if self.status == SanctionOutcome.STATUS_DRAFT:
             ao_ids_already_included = AllegedCommittedOffence.objects.filter(sanction_outcome=self).values_list(
                 'alleged_offence__id', flat=True)

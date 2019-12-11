@@ -462,11 +462,14 @@ class SanctionOutcomeViewSet(viewsets.ModelViewSet):
 
                 # Create relations between this sanction outcome and the alleged offence(s)
                 count_alleged_offences = 0
+                parking_offence_included = False
                 for id in request_data['alleged_offence_ids_included']:
                     try:
                         alleged_offence = AllegedOffence.objects.get(id=id)
                         alleged_commited_offence = AllegedCommittedOffence.objects.create(sanction_outcome=instance, alleged_offence=alleged_offence, included=True)
                         count_alleged_offences += 1
+                        if alleged_offence.section_regulation.is_parking_offence:
+                            parking_offence_included = True
                     except:
                         pass  # Should not reach here
 
@@ -478,7 +481,7 @@ class SanctionOutcomeViewSet(viewsets.ModelViewSet):
                         raise serializers.ValidationError(['You must select at least one alleged committed offence.'])
 
                 # Validate if an offender is selected
-                if not instance.offender and not instance.is_parking_offence:
+                if not instance.offender and not parking_offence_included:
                     raise serializers.ValidationError(['An offender must be selected.'])
 
                 for id in request_data['alleged_offence_ids_excluded']:
