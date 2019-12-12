@@ -14,7 +14,8 @@ import logging
 from wildlifecompliance import settings
 from wildlifecompliance.components.sanction_outcome.email import send_remind_1st_period_overdue_mail, \
     send_unpaid_infringements_file
-from wildlifecompliance.components.sanction_outcome.models import SanctionOutcome, SanctionOutcomeUserAction
+from wildlifecompliance.components.sanction_outcome.models import SanctionOutcome, SanctionOutcomeUserAction, \
+    UnpaidInfringementFile
 from wildlifecompliance.components.sanction_outcome.serializers import SanctionOutcomeCommsLogEntrySerializer
 from wildlifecompliance.components.sanction_outcome_due.models import SanctionOutcomeDueDate
 from wildlifecompliance.components.users.models import CompliancePermissionGroup
@@ -109,6 +110,10 @@ class Command(BaseCommand):
 
                     # Construct file contents
                     contents_to_attach = content_header + content_body + content_trailer
+                    uin_file = UnpaidInfringementFile()
+                    uin_file.contents = contents_to_attach
+                    uin_file.save()
+
 
                     dt = datetime.datetime.now().strftime('%Y/%m/%d %H:%M:%S')
 

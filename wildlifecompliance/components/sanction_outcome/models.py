@@ -748,10 +748,24 @@ class SanctionOutcomeUserAction(models.Model):
         )
 
 
-# class UnpaidInfringementFile(models.Model):
-#     contents = models.CharField(max_length=30, choices=TYPE_CHOICES, blank=True,)
-#
-#     class Meta:
-#         app_label = 'wildlifecompliance'
-#         verbose_name = 'CM_UnpaidInfringementFile'
-#         verbose_name_plural = 'CM_UnpaidInfringementFiles'
+class UnpaidInfringementFile(models.Model):
+    contents = models.TextField(blank=True)
+    filename = models.CharField(max_length=100, blank=True)
+    created_at = models.DateTimeField(auto_now_add=True)
+    updated_at = models.DateTimeField(auto_now=True)
+
+    def save(self, *args, **kwargs):
+        super(UnpaidInfringementFile, self).save(*args, **kwargs)
+
+        need_save = False
+
+        if not self.filename:
+            self.filename = '{0:05d}'.format(self.pk) + 'UIN.uin'
+
+        if need_save:
+            self.save()  # Be careful, this might lead to the infinite loop
+
+    class Meta:
+        app_label = 'wildlifecompliance'
+        verbose_name = 'CM_UnpaidInfringementFile'
+        verbose_name_plural = 'CM_UnpaidInfringementFiles'
