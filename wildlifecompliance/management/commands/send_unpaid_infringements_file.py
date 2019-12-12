@@ -1,4 +1,6 @@
 import datetime
+import io
+
 from django.db import transaction
 
 from django.contrib.auth.models import Permission
@@ -62,7 +64,7 @@ class Command(BaseCommand):
 
                     # Conditions for filter the SanctionOutcomeDueDate
                     due_date_condition = (
-                            Q(due_date_term_currently_applied='2nd') &
+                            # Q(due_date_term_currently_applied='2nd') &
                             Q(sanction_outcome__in=sanction_outcomes))
 
                     # Final query
@@ -75,24 +77,17 @@ class Command(BaseCommand):
                 due_dates = due_dates.distinct()
 
                 count = due_dates.count()
+                sanction_outcome_ids = []  # Used when logging
                 logger.info('{} overdue (1st) infringement notice(s) found.'.format(str(count)))
 
                 if count:
-                    # START: Generate CSV file
-                    strIO = StringIO()
-                    fieldnames = ['Infringement Number', 'Offence Date/Time', ]
-                    writer = csv.writer(strIO)
-                    writer.writerow(fieldnames)
+                    contents_to_attach = ''
+
                     for dict_item in due_dates:
-                        # latest_due_date = SanctionOutcomeDueDate.objects.get(id=dict_item.get('max_id'))
-                        overdue_sanction_outcome = SanctionOutcome.objects.get(id=dict_item.get('sanction_outcome'))
-                        # fullname = '{} {}'.format(o.details.get('first_name'),o.details.get('last_name'))
-                        # writer.writerow([o.confirmation_number,fullname,o.campground.name,o.arrival.strftime('%d/%m/%Y'),o.departure.strftime('%d/%m/%Y'),o.outstanding])
-                        writer.writerow([overdue_sanction_outcome.lodgement_number, overdue_sanction_outcome.offence_occurrence_datetime])
-                    strIO.flush()
-                    strIO.seek(0)
-                    _file = strIO
-                    # END: Generate CSV file
+                        sanction_outcome_id = dict_item.get('sanction_outcome')
+                        sanction_outcome_ids.append(sanction_outcome_id)
+                        so = SanctionOutcome.objects.get(id=sanction_outcome_id)
+                        contents_to_attach += so.get_content() + u'\n'
 
                     dt = datetime.datetime.now().strftime('%Y/%m/%d %H:%M:%S')
 
@@ -107,20 +102,16 @@ class Command(BaseCommand):
                     to_address = [member.email for member in members] if members else [settings.NOTIFICATION_EMAIL]
                     cc = None
                     bcc = None
-                    attachments = [('UnpaidInfringementsFile_{}.csv'.format(dt), _file.getvalue(), 'text/csv'),]
+                    attachments = [('UnpaidInfringementsFile_{}.uin'.format(dt), contents_to_attach, 'text/plain'),]
                     email_data = send_unpaid_infringements_file(to_address, cc, bcc, attachments)
 
                     # # Add communication log
                     if email_data:
-                        email_data['sanction_outcome'] = overdue_sanction_outcome.id
-                        serializer = SanctionOutcomeCommsLogEntrySerializer(data=email_data, partial=True)
-                        serializer.is_valid(raise_exception=True)
-                        serializer.save()
-
-                        # Create SanctionOutcomeCommsLogDocument object
-                        # so that the link to the infringement notice file can be created in the comms log
-                        # temp = SanctionOutcomeCommsLogDocument(log_entry=serializer.instance, _file=File(BytesIO()), name=pdf_file_name)
-                        # temp.save()
+                        for id in sanction_outcome_ids:
+                            email_data['sanction_outcome'] = id
+                            serializer = SanctionOutcomeCommsLogEntrySerializer(data=email_data, partial=True)
+                            serializer.is_valid(raise_exception=True)
+                            serializer.save()
 
                     # Record action log per infringement notice
                     for dict_item in due_dates:

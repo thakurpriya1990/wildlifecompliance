@@ -30,8 +30,8 @@ class SectionRegulation(RevisionedMixin):
 
 
 class PenaltyAmount(RevisionedMixin):
-    amount =  models.DecimalField(max_digits=8, decimal_places=2, default='0.00')
-    amount_after_due =  models.DecimalField(max_digits=8, decimal_places=2, default='0.00')
+    amount = models.DecimalField(max_digits=8, decimal_places=2, default='0.00')
+    amount_after_due = models.DecimalField(max_digits=8, decimal_places=2, default='0.00')
     date_of_enforcement = models.DateField(blank=True, null=True)
     section_regulation = models.ForeignKey(SectionRegulation, related_name='penalty_amounts')
 

@@ -16,6 +16,7 @@ from wildlifecompliance.components.sanction_outcome_due.models import SanctionOu
 from wildlifecompliance.components.sanction_outcome_due.serializers import SaveSanctionOutcomeDueDateSerializer
 from wildlifecompliance.components.section_regulation.models import SectionRegulation
 from wildlifecompliance.components.users.models import RegionDistrict, CompliancePermissionGroup
+from wildlifecompliance.management.commands.unpaid_infringement_file import UnpaidInfringementFileBody
 
 
 class SanctionOutcomeActiveManager(models.Manager):
@@ -145,8 +146,8 @@ class SanctionOutcome(models.Model):
     time_of_issue = models.TimeField(null=True, blank=True)
 
     # Following attributes should be determined at the moment of issue
-    penalty_amount_1st =  models.DecimalField(max_digits=8, decimal_places=2, default='0.00')
-    penalty_amount_2nd =  models.DecimalField(max_digits=8, decimal_places=2, default='0.00')
+    penalty_amount_1st = models.DecimalField(max_digits=8, decimal_places=2, default='0.00')
+    penalty_amount_2nd = models.DecimalField(max_digits=8, decimal_places=2, default='0.00')
     due_date_extended_max = models.DateField(null=True, blank=True)
 
     # This field is used once infringement notice gets overdue
@@ -167,6 +168,46 @@ class SanctionOutcome(models.Model):
                     is_parking_offence = True
 
         return is_parking_offence
+
+    def get_content(self):
+        offender = self.get_offender()
+        uin = UnpaidInfringementFileBody()
+        uin.offenders_surname.set(offender.last_name)
+        uin.offenders_other_names.set(offender.first_name)
+        uin.offenders_date_of_birth.set(offender.dob)
+        uin.offenders_sid.set('')
+        uin.offenders_organisation_name.set(offender.organisation)
+        uin.party_indicator.set('I')
+        uin.offenders_gender.set('U')
+        uin.offenders_address_line_1.set(offender.residential_address.line1)
+        uin.offenders_address_line_2.set(offender.residential_address.line2)
+        uin.offenders_address_line_3.set(offender.residential_address.line3)
+        uin.offenders_address_line_4.set('')
+        uin.offenders_suburb.set(offender.residential_address.locality)
+        uin.offenders_state.set(offender.residential_address.state)
+        uin.offenders_postcode.set(offender.residential_address.postcode)
+        uin.offenders_country.set(offender.residential_address.country.name)
+        uin.date_address_known_to_be_current.set('')
+        uin.acn.set('')
+        uin.infringement_number.set(self.lodgement_number)
+        uin.offence_datetime.set(self.offence_occurrence_datetime)
+        uin.offence_location.set(self.offence.location.__str__())
+        uin.drivers_licence_number.set('')
+        uin.vehicle_registration_number.set('')
+        uin.offence_code.set('')
+        uin.penalty_amount.set(self.penalty_amount_2nd)
+        uin.infringement_issue_date.set(self.date_of_issue)
+        uin.final_demand_letter_date.set('')
+        uin.zone_speed_limit.set('')
+        uin.speed_reading.set('')
+        uin.first_additional_cost_code.set('')
+        uin.first_additional_amount.set('')
+        uin.second_additional_cost_code.set('')
+        uin.second_additional_amount.set('')
+
+        ret_text = uin.get_content()
+
+        return ret_text
 
     def retrieve_alleged_committed_offences(self):
         # Check if there are new alleged offences added to the offence which this sanction outcome belongs to.
