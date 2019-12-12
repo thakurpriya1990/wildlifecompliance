@@ -1,7 +1,7 @@
 import datetime
 
 
-class UinField:
+class UinField(object):
     def __init__(self, required, field_name, length):
         self.__required = required
         self.__field_name = field_name
@@ -9,9 +9,9 @@ class UinField:
         self.__value = ''
 
     def __str__(self):
-        return self.export()
+        return self.get_content()
 
-    def export(self):
+    def get_content(self):
         # Convert to string typegt
         if not self.__value:
             value_str = ''
@@ -31,33 +31,36 @@ class UinField:
         self.__value = text
 
 
-class UnpaidInfringementFileBase:
+class UnpaidInfringementFileBase(object):
 
-    def __init__(self):
+    def __init__(self, delimiter=u'\r\n'):
         self.fields_list = []
+        self.delimiter = delimiter
 
     def get_content(self):
         ret_text = u''
         for field in self.fields_list:
-            ret_text += field.export()
-        return ret_text
-        # return unicode(ret_text, "utf-8")
+            ret_text += field.get_content()
+        return ret_text + self.delimiter
 
 
 class UnpaidInfringementFileHeader(UnpaidInfringementFileBase):
+    # 72 chars + CRLF
     agency_code = UinField(True, 'Agency Code', 6)
     uin_file_reference = UinField(True, 'UIN File Reference', 8)
     date_created = UinField(True, 'Date Created', 8)
     responsible_officer = UinField(False, 'Responsible Officer', 50)
 
-    def __init__(self):
-        self.fields_list = [self.agency_code,
-                            self.uin_file_reference,
-                            self.date_created,
-                            self.responsible_officer]
+    def __init__(self, delimiter=u'\r\n'):
+        super(UnpaidInfringementFileHeader, self).__init__(delimiter)
+        self.fields_list.append(self.agency_code)
+        self.fields_list.append(self.uin_file_reference)
+        self.fields_list.append(self.date_created)
+        self.fields_list.append(self.responsible_officer)
 
 
 class UnpaidInfringementFileBody(UnpaidInfringementFileBase):
+    # 998 chars + CRLF
     offenders_surname = UinField(False, 'Offender\'s Surname', 50)
     offenders_other_names = UinField(False, 'Offender\'s Other Names', 50)
     offenders_date_of_birth = UinField(False, 'Offender\'s Date of Birth', 8)
@@ -79,7 +82,7 @@ class UnpaidInfringementFileBody(UnpaidInfringementFileBase):
     offence_datetime = UinField(True, 'Offence Date/Time', 12)
     offence_location = UinField(True, 'Offence Location', 60)
     drivers_licence_number = UinField(False, 'Drivers Licence Number', 25)
-    vehicle_registration_number = UinField(False, 'Drivers Licence Number', 25)
+    vehicle_registration_number = UinField(False, 'Drivers Licence Number', 15)
     offence_code = UinField(True, 'Offence Code', 9)
     penalty_amount = UinField(True, 'Penalty Amount', 8)
     infringement_issue_date = UinField(True, 'Infringement Issue Date', 8)
@@ -92,52 +95,55 @@ class UnpaidInfringementFileBody(UnpaidInfringementFileBase):
     second_additional_amount = UinField(False, 'Second Additional Amount', 8)
 
     def __init__(self):
-        self.fields_list = [self.offenders_surname,
-                            self.offenders_other_names,
-                            self.offenders_date_of_birth,
-                            self.offenders_sid,
-                            self.offenders_organisation_name,
-                            self.party_indicator,
-                            self.offenders_gender,
-                            self.offenders_address_line_1,
-                            self.offenders_address_line_2,
-                            self.offenders_address_line_3,
-                            self.offenders_address_line_4,
-                            self.offenders_suburb,
-                            self.offenders_state,
-                            self.offenders_postcode,
-                            self.offenders_country,
-                            self.date_address_known_to_be_current,
-                            self.acn,
-                            self.infringement_number,
-                            self.offence_datetime,
-                            self.offence_location,
-                            self.drivers_licence_number,
-                            self.vehicle_registration_number,
-                            self.offence_code,
-                            self.penalty_amount,
-                            self.infringement_issue_date,
-                            self.final_demand_letter_date,
-                            self.zone_speed_limit,
-                            self.speed_reading,
-                            self.first_additional_cost_code,
-                            self.first_additional_amount,
-                            self.second_additional_cost_code,
-                            self.second_additional_amount,]
+        super(UnpaidInfringementFileBody, self).__init__(delimiter=u'\r\n')
+        self.fields_list.append(self.offenders_surname)
+        self.fields_list.append(self.offenders_other_names)
+        self.fields_list.append(self.offenders_date_of_birth)
+        self.fields_list.append(self.offenders_sid)
+        self.fields_list.append(self.offenders_organisation_name)
+        self.fields_list.append(self.party_indicator)
+        self.fields_list.append(self.offenders_gender)
+        self.fields_list.append(self.offenders_address_line_1)
+        self.fields_list.append(self.offenders_address_line_2)
+        self.fields_list.append(self.offenders_address_line_3)
+        self.fields_list.append(self.offenders_address_line_4)
+        self.fields_list.append(self.offenders_suburb)
+        self.fields_list.append(self.offenders_state)
+        self.fields_list.append(self.offenders_postcode)
+        self.fields_list.append(self.offenders_country)
+        self.fields_list.append(self.date_address_known_to_be_current)
+        self.fields_list.append(self.acn)
+        self.fields_list.append(self.infringement_number)
+        self.fields_list.append(self.offence_datetime)
+        self.fields_list.append(self.offence_location)
+        self.fields_list.append(self.drivers_licence_number)
+        self.fields_list.append(self.vehicle_registration_number)
+        self.fields_list.append(self.offence_code)
+        self.fields_list.append(self.penalty_amount)
+        self.fields_list.append(self.infringement_issue_date)
+        self.fields_list.append(self.final_demand_letter_date)
+        self.fields_list.append(self.zone_speed_limit)
+        self.fields_list.append(self.speed_reading)
+        self.fields_list.append(self.first_additional_cost_code)
+        self.fields_list.append(self.first_additional_amount)
+        self.fields_list.append(self.second_additional_cost_code)
+        self.fields_list.append(self.second_additional_amount)
 
 
 class UnpaidInfringementFileTrailer(UnpaidInfringementFileBase):
+    # 39 chars + CRLF
     number_of_records = UinField(True, 'Number of Records', 5)
     total_penalty_amount = UinField(True, 'Total Penalty Amount', 10)
-    first_additional_cost_code_trailer = UinField(False, 'First Additional Cost Code', 2)
+    first_additional_cost_code = UinField(False, 'First Additional Cost Code', 2)
     first_additional_cost_total = UinField(False, 'First Additional Cost Total', 10)
-    second_additional_cost_code_trailer = UinField(False, 'Second Additional Cost Code', 2)
+    second_additional_cost_code = UinField(False, 'Second Additional Cost Code', 2)
     second_additional_cost_total = UinField(False, 'Second Additional Cost Total', 10)
 
     def __init__(self):
-        self.fields_list = [self.number_of_records,
-                            self.total_penalty_amount,
-                            self.first_additional_cost_code_trailer,
-                            self.first_additional_cost_total,
-                            self.second_additional_cost_code_trailer,
-                            self.second_additional_cost_total]
+        super(UnpaidInfringementFileTrailer, self).__init__(delimiter=u'\r\n')
+        self.fields_list.append(self.number_of_records)
+        self.fields_list.append(self.total_penalty_amount)
+        self.fields_list.append(self.first_additional_cost_code)
+        self.fields_list.append(self.first_additional_cost_total)
+        self.fields_list.append(self.second_additional_cost_code)
+        self.fields_list.append(self.second_additional_cost_total)

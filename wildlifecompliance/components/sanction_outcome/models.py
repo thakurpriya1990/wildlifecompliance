@@ -748,3 +748,10 @@ class SanctionOutcomeUserAction(models.Model):
         )
 
 
+# class UnpaidInfringementFile(models.Model):
+#     contents = models.CharField(max_length=30, choices=TYPE_CHOICES, blank=True,)
+#
+#     class Meta:
+#         app_label = 'wildlifecompliance'
+#         verbose_name = 'CM_UnpaidInfringementFile'
+#         verbose_name_plural = 'CM_UnpaidInfringementFiles'

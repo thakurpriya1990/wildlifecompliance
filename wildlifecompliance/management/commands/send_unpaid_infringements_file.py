@@ -9,10 +9,6 @@ from django.core.management.base import BaseCommand
 from django.db.models import Q, Max
 
 from django.utils import timezone
-from django.core.mail import EmailMessage
-from six.moves import StringIO
-import csv
-
 import logging
 
 from wildlifecompliance import settings
@@ -23,6 +19,8 @@ from wildlifecompliance.components.sanction_outcome.serializers import SanctionO
 from wildlifecompliance.components.sanction_outcome_due.models import SanctionOutcomeDueDate
 from wildlifecompliance.components.users.models import CompliancePermissionGroup
 from wildlifecompliance.helpers import DEBUG
+from wildlifecompliance.management.commands.unpaid_infringement_file import UnpaidInfringementFileHeader, \
+    UnpaidInfringementFileTrailer
 
 logger = logging.getLogger(__name__)
 
@@ -81,13 +79,36 @@ class Command(BaseCommand):
                 logger.info('{} overdue (1st) infringement notice(s) found.'.format(str(count)))
 
                 if count:
-                    contents_to_attach = ''
+                    # Construct header
+                    uin_header = UnpaidInfringementFileHeader()
+                    uin_header.agency_code.set('DPW')
+                    uin_header.uin_file_reference.set('')  # TODO: Must match the name of the file lodged.
+                    uin_header.date_created.set(datetime.date.today())
+                    uin_header.responsible_officer.set('')
+                    content_header = uin_header.get_content()
 
+                    # Construct body
+                    content_body = ''
+                    penalty_amount_total = 0
                     for dict_item in due_dates:
                         sanction_outcome_id = dict_item.get('sanction_outcome')
                         sanction_outcome_ids.append(sanction_outcome_id)
                         so = SanctionOutcome.objects.get(id=sanction_outcome_id)
-                        contents_to_attach += so.get_content() + u'\n'
+                        content_body += so.get_content()
+                        penalty_amount_total += so.penalty_amount_2nd
+
+                    # Construct trailer
+                    uin_trailer = UnpaidInfringementFileTrailer()
+                    uin_trailer.number_of_records.set(due_dates.count())
+                    uin_trailer.total_penalty_amount.set(penalty_amount_total)
+                    uin_trailer.first_additional_cost_code.set('')
+                    uin_trailer.first_additional_cost_total.set('')
+                    uin_trailer.second_additional_cost_code.set('')
+                    uin_trailer.second_additional_cost_total.set('')
+                    content_trailer = uin_trailer.get_content()
+
+                    # Construct file contents
+                    contents_to_attach = content_header + content_body + content_trailer
 
                     dt = datetime.datetime.now().strftime('%Y/%m/%d %H:%M:%S')
 
