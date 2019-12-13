@@ -265,35 +265,17 @@ class SanctionOutcomeDatatableSerializer(serializers.ModelSerializer):
         )
         read_only_fields = ()
 
-    # def get_invoice_reference(self, obj):
-    #      return obj.infringement_penalty_invoice_reference
-
     def get_paper_notices(self, obj):
         url_list = []
 
         if obj.documents.all().count():
             # Paper notices
             for doc in obj.documents.all():
-                url = '<a href="{}">{}</a>'.format(doc._file.url, doc.name)
+                url = '<a href="{}" target="_blank">{}</a>'.format(doc._file.url, doc.name)
                 url_list.append(url)
-        else:
-            # No paper notices
-            if obj.date_of_issue:
-                # date_of_issue can have a value only after issued
-                if obj.type == SanctionOutcome.TYPE_INFRINGEMENT_NOTICE:
-                    url_list.append('<a href="/sanction_outcome/pdf/' + str(obj.id) + '/"><i style="color:red" class="fa fa-file-pdf-o"></i> Infringement Notice</a>')
-                elif obj.type == SanctionOutcome.TYPE_CAUTION_NOTICE:
-                    url_list.append('<a href="#"><i style="color:red" class="fa fa-file-pdf-o"></i> Caution Notice</a>')
-                elif obj.type == SanctionOutcome.TYPE_LETTER_OF_ADVICE:
-                    url_list.append('<a href="#"><i style="color:red" class="fa fa-file-pdf-o"></i> Letter of Advice</a>')
-                elif obj.type == SanctionOutcome.TYPE_REMEDIATION_NOTICE:
-                    url_list.append('<a href="#"><i style="color:red" class="fa fa-file-pdf-o"></i> Remediation Notice</a>')
 
         urls = '<br />'.join(url_list)
         return urls
-
-
-        # return [[r.name, r._file.url] for r in obj.documents.all()]
 
     def get_user_action(self, obj):
         url_list = []
@@ -477,7 +459,8 @@ class SanctionOutcomeCommsLogEntrySerializer(CommunicationLogEntrySerializer):
             else:
                 if d.name:
                     # If there is d.name but no d._file, we expect that which is infringement notice pdf file
-                    docs.append([d.name, '/sanction_outcome/pdf/' + str(obj.sanction_outcome.id)])
+                    # docs.append([d.name, '/sanction_outcome/pdf/' + str(obj.sanction_outcome.id)])
+                    pass
         return docs
         # return [[d.name, d._file.url] for d in obj.documents.all()]
 

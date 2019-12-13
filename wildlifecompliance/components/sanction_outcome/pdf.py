@@ -329,29 +329,18 @@ def _create_invoice(invoice_buffer, sanction_outcome):
 
 
 def create_infringement_notice_pdf_bytes(filename, sanction_outcome):
-    invoice_buffer = BytesIO()
+    with BytesIO() as invoice_buffer:
+        _create_invoice(invoice_buffer, sanction_outcome)
 
-    _create_invoice(invoice_buffer, sanction_outcome)
+        # Get the value of the BytesIO buffer
+        value = invoice_buffer.getvalue()
 
-    # Get the value of the BytesIO buffer
-    value = invoice_buffer.getvalue()
-    # invoice_buffer.close()
+        # START: Save the pdf file to the database
+        document = sanction_outcome.documents.create(name=filename)
+        path = default_storage.save('wildlifecompliance/{}/{}/documents/{}'.format(sanction_outcome._meta.model_name, sanction_outcome.id, filename), invoice_buffer)
+        document._file = path
+        document.save()
+        # END: Save
 
-    # START: Save to the database
-    # filename = sanction_outcome.lodgement_number + '.pdf'  # Should be unique
-    document = sanction_outcome.documents.create(name=filename)
-    path = default_storage.save('wildlifecompliance/{}/{}/documents/{}'.format(sanction_outcome._meta.model_name, sanction_outcome.id, filename), invoice_buffer)
-    document._file = path
-    document.save()
-    # END: Save
-
-    return value
-
-# document = instance.documents.get_or_create(
-# name=filename)[0]
-# path = default_storage.save(
-# 'wildlifecompliance/{}/{}/documents/{}'.format(
-# instance._meta.model_name, instance.id, filename), ContentFile(
-# _file.read()))
-# document._file = path
-# document.save()
+        return document
+        # return value

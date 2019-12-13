@@ -1,3 +1,4 @@
+import datetime
 import logging
 import traceback
 from io import BytesIO
@@ -172,13 +173,14 @@ def send_infringement_notice(to_address, sanction_outcome, workflow_entry, reque
         'sanction_outcome': sanction_outcome,
         'workflow_entry_details': request.data.get('details'),
     }
-    pdf_file_name = 'infringement_notice_{}.pdf'.format(sanction_outcome.lodgement_number)
+    pdf_file_name = 'infringement_notice_{}_{}.pdf'.format(sanction_outcome.lodgement_number, datetime.datetime.now().strftime("%Y%m%d%H%M%S"))
 
-    pdf = create_infringement_notice_pdf_bytes(pdf_file_name, sanction_outcome)
+    # pdf = create_infringement_notice_pdf_bytes(pdf_file_name, sanction_outcome)
+    document = create_infringement_notice_pdf_bytes(pdf_file_name, sanction_outcome)
     msg = email.send(to_address,
                      context=context,
                      # attachments=prepare_attachments(workflow_entry.documents),
-                     attachments=[('infringement_notice.pdf', pdf, 'application/pdf')],
+                     attachments=[(pdf_file_name, document._file.path, 'application/pdf')],
                      cc=cc,
                      bcc=bcc,
                      )
@@ -197,7 +199,7 @@ def send_return_to_officer_email(to_address, sanction_outcome, workflow_entry, r
     email = ReturnToOfficerEmail()
     if request.data.get('email_subject'):
         email.subject = request.data.get('email_subject')
-    url = request.build_absolute_uri(reverse('internal-sanction-outcome-detail', kwargs={ 'sanction_outcome_id': sanction_outcome.id }))
+    url = request.build_absolute_uri(reverse('internal-sanction-outcome-detail', kwargs={'sanction_outcome_id': sanction_outcome.id}))
     context = {
         'url': url,
         'sanction_outcome': sanction_outcome,
@@ -327,7 +329,7 @@ def send_decline_email(to_address, sanction_outcome, workflow_entry, request, cc
     email = SendDeclineEmail()
     if request.data.get('email_subject'):
         email.subject = request.data.get('email_subject')
-    url = request.build_absolute_uri(reverse('internal-sanction-outcome-detail', kwargs={ 'sanction_outcome_id': sanction_outcome.id }))
+    url = request.build_absolute_uri(reverse('internal-sanction-outcome-detail', kwargs={'sanction_outcome_id': sanction_outcome.id }))
     context = {
         'url': url,
         'sanction_outcome': sanction_outcome,
