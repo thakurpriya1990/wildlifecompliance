@@ -111,13 +111,18 @@ def send_due_date_extended_mail(to_address, sanction_outcome, workflow_entry, re
         'sanction_outcome': sanction_outcome,
         'workflow_entry_details': request.data.get('details'),
     }
+    pdf_file_name = 'infringement_notice_{}_{}.pdf'.format(sanction_outcome.lodgement_number, datetime.datetime.now().strftime("%Y%m%d%H%M%S"))
+    document = create_infringement_notice_pdf_bytes(pdf_file_name, sanction_outcome)
+
     msg = email.send(to_address,
                      context=context,
-                     attachments=prepare_attachments(workflow_entry.documents),
+                     # attachments=prepare_attachments(workflow_entry.documents),
+                     attachments=[(pdf_file_name, document._file.path, 'application/pdf')],
                      cc=cc,
                      bcc=bcc)
     sender = request.user if request else settings.DEFAULT_FROM_EMAIL
     email_data = _extract_email_headers(msg, sender=sender)
+
     return email_data
 
 
@@ -131,12 +136,17 @@ def send_remind_1st_period_overdue_mail(to_address, sanction_outcome, cc=None, b
         'sanction_outcome': sanction_outcome,
         'workflow_entry_details': 'This is message body.',
     }
+    pdf_file_name = 'infringement_notice_{}_{}.pdf'.format(sanction_outcome.lodgement_number, datetime.datetime.now().strftime("%Y%m%d%H%M%S"))
+    document = create_infringement_notice_pdf_bytes(pdf_file_name, sanction_outcome)
+
     msg = email.send(to_address,
                      context=context,
+                     attachments=[(pdf_file_name, document._file.path, 'application/pdf')],
                      cc=cc,
                      bcc=bcc)
     sender = settings.DEFAULT_FROM_EMAIL
     email_data = _extract_email_headers(msg, sender=sender)
+
     return email_data
 
 
@@ -159,7 +169,6 @@ def send_unpaid_infringements_file(to_address, cc=None, bcc=None, attachements=[
     sender = settings.DEFAULT_FROM_EMAIL
     email_data = _extract_email_headers(msg, sender=sender)
 
-
     return email_data
 
 
@@ -173,10 +182,10 @@ def send_infringement_notice(to_address, sanction_outcome, workflow_entry, reque
         'sanction_outcome': sanction_outcome,
         'workflow_entry_details': request.data.get('details'),
     }
-    pdf_file_name = 'infringement_notice_{}_{}.pdf'.format(sanction_outcome.lodgement_number, datetime.datetime.now().strftime("%Y%m%d%H%M%S"))
 
-    # pdf = create_infringement_notice_pdf_bytes(pdf_file_name, sanction_outcome)
+    pdf_file_name = 'infringement_notice_{}_{}.pdf'.format(sanction_outcome.lodgement_number, datetime.datetime.now().strftime("%Y%m%d%H%M%S"))
     document = create_infringement_notice_pdf_bytes(pdf_file_name, sanction_outcome)
+
     msg = email.send(to_address,
                      context=context,
                      # attachments=prepare_attachments(workflow_entry.documents),
@@ -189,8 +198,8 @@ def send_infringement_notice(to_address, sanction_outcome, workflow_entry, reque
 
     # Create SanctionOutcomeCommsLogDocument object
     # so that the link to the infringement notice file can be created in the comms log
-    temp = SanctionOutcomeCommsLogDocument(log_entry=workflow_entry, _file=File(BytesIO()), name=pdf_file_name)
-    temp.save()
+    # temp = SanctionOutcomeCommsLogDocument(log_entry=workflow_entry, _file=File(BytesIO()), name=pdf_file_name)
+    # temp.save()
 
     return email_data
 

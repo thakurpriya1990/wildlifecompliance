@@ -12,8 +12,7 @@ from django.utils import timezone
 import logging
 
 from wildlifecompliance import settings
-from wildlifecompliance.components.sanction_outcome.email import send_remind_1st_period_overdue_mail, \
-    send_unpaid_infringements_file
+from wildlifecompliance.components.sanction_outcome.email import send_unpaid_infringements_file
 from wildlifecompliance.components.sanction_outcome.models import SanctionOutcome, SanctionOutcomeUserAction, \
     UnpaidInfringementFile
 from wildlifecompliance.components.sanction_outcome.serializers import SanctionOutcomeCommsLogEntrySerializer

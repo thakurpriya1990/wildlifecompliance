@@ -481,8 +481,9 @@ class SanctionOutcomeViewSet(viewsets.ModelViewSet):
                         raise serializers.ValidationError(['You must select at least one alleged committed offence.'])
 
                 # Validate if an offender is selected
-                if not instance.offender and not parking_offence_included:
-                    raise serializers.ValidationError(['An offender must be selected.'])
+                if not instance.offender:
+                    if not instance.is_parking_offence:
+                        raise serializers.ValidationError(['An offender must be selected.'])
 
                 for id in request_data['alleged_offence_ids_excluded']:
                     try:
