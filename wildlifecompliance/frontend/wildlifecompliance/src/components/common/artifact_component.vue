@@ -102,56 +102,36 @@ export default {
           this.temporary_document_collection_id = val;
       },
       ok: async function () {
-          let is_valid_form = this.isValidForm();
-          if (is_valid_form) {
-              const response = await this.sendData();
-              console.log(response);
-              if (response.ok) {
-                  // For LegalCase Dashboard
-                  if (this.$parent.$refs.legal_case_table) {
-                      this.$parent.$refs.legal_case_table.vmDataTable.ajax.reload()
-                  }
-                  // For CallEmail related items table
-                  if (this.parent_call_email) {
-                      await this.loadCallEmail({
-                          call_email_id: this.call_email.id,
-                      });
-                  }
-                  if (this.$parent.$refs.related_items_table) {
-                      this.$parent.constructRelatedItemsTable();
-                  }
-                  this.close();
+          const response = await this.sendData();
+          console.log(response);
+          if (response.ok) {
+              // For LegalCase Dashboard
+              if (this.$parent.$refs.legal_case_table) {
+                  this.$parent.$refs.legal_case_table.vmDataTable.ajax.reload()
+              }
+              // For CallEmail related items table
+              if (this.parent_call_email) {
+                  await this.loadCallEmail({
+                      call_email_id: this.call_email.id,
+                  });
+              }
+              if (this.$parent.$refs.related_items_table) {
+                  this.$parent.constructRelatedItemsTable();
+              }
+              this.close();
                   //this.$router.push({ name: 'internal-inspection-dash' });
-              }
-          }
-      },
-      isValidForm: function() {
-          console.log("performValidation");
-          this.$v.$touch();
-          if (this.$v.$invalid) {
-              this.errorResponse = 'Invalid form:\n';
-              if (this.$v.region_id.$invalid) {
-                  this.errorResponse += 'Region is required\n';
-              }
-              if (this.$v.assigned_to_id.$invalid) {
-                  this.errorResponse += 'Officer must be assigned\n';
-              }
-              if (this.$v.legal_case_priority_id.$invalid) {
-                  this.errorResponse += 'Choose Case Priority\n';
-              }
-              return false;
-          } else {
-              return true;
           }
       },
       cancel: async function() {
           await this.$refs.comms_log_file.cancel();
           this.isModalOpen = false;
-          this.close();
+          //this.close();
       },
+      /*
       close: function () {
           this.isModalOpen = false;
       },
+      */
       sendData: async function() {
           let post_url = '/api/legal_case/';
           //if (!this.inspection.id) {
@@ -198,82 +178,16 @@ export default {
 
     },
     created: async function() {
-        // regions
-        let returned_regions = await cache_helper.getSetCacheList('Regions', '/api/region_district/get_regions/');
-        Object.assign(this.regions, returned_regions);
-        // blank entry allows user to clear selection
-        this.regions.splice(0, 0, 
-            {
-              id: "", 
-              display_name: "",
-              district: "",
-              districts: [],
-              region: null,
-            });
-        // regionDistricts
-        let returned_region_districts = await cache_helper.getSetCacheList(
-            'RegionDistricts', 
-            api_endpoints.region_district
-            );
-        Object.assign(this.regionDistricts, returned_region_districts);
 
-        // inspection_types
-        let returned_legal_case_priorities = await cache_helper.getSetCacheList(
-            'LegalCasePriorities',
-            api_endpoints.legal_case_priorities
-            );
-        Object.assign(this.legalCasePriorities, returned_legal_case_priorities);
-        // blank entry allows user to clear selection
-        this.legalCasePriorities.splice(0, 0, 
-            {
-              id: "", 
-              description: "",
-            });
-        // If exists, get parent component details from vuex
-        if (this.parent_call_email) {
-            this.region_id = this.call_email.region_id;
-            this.district_id = this.call_email.district_id;
-        }
-
-        // If no Region/District selected, initialise region as Kensington
-        if (!this.regionDistrictId) {
-            for (let record of this.regionDistricts) {
-                if (record.district === 'KENSINGTON') {
-                    this.district_id = null;
-                    this.region_id = record.id;
-                }
-            }
-        }
-        // ensure availableDistricts and allocated group is current
-        this.updateDistricts();
-        await this.updateAllocatedGroup();
     },
 };
 </script>
 
 <style lang="css">
-.btn-file {
-    position: relative;
-    overflow: hidden;
-}
-.btn-file input[type=file] {
-    position: absolute;
-    top: 0;
-    right: 0;
-    min-width: 100%;
-    min-height: 100%;
-    font-size: 100px;
-    text-align: right;
-    filter: alpha(opacity=0);
-    opacity: 0;
-    outline: none;
-    background: white;
-    cursor: inherit;
-    display: block;
-}
-.top-buffer{margin-top: 5px;}
-.top-buffer-2x{margin-top: 10px;}
 .li-top-buffer {
     margin-top: 20px;
+}
+.tab-content {
+  background: white;
 }
 </style>
