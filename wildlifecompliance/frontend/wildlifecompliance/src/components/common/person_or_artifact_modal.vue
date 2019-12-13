@@ -7,30 +7,39 @@
                     <li :class="artifactTabListClass"><a data-toggle="tab" @click="updateTabSelected('aTab')" :href="'#'+aTab" >Search Object</a></li>
                     <li :class="urlTabListClass"><a data-toggle="tab" @click="updateTabSelected('uTab')" :href="'#'+uTab">Insert URL</a></li>
                 </ul>
-                <div class="tab-content">
-                    <div :id="pTab" :class="personTabClass">
-                        <div>
-                            <SearchPersonOrganisation 
-                            personOnly
-                            :excludeStaff="true" 
-                            :isEditable="!readonlyForm" 
-                            classNames="form-control" 
-                            @entity-selected="entitySelected"
-                            showCreateUpdate
-                            ref="search_person_organisation"
-                            v-bind:key="updateSearchPersonOrganisationBindId"
-                            addFullName
-                            />
-                        </div>
-                    </div>
+                <div class="tab-content ul-top-buffer">
+                    <div :id="pTab" :class="personTabClass"><div class="row">
+                        <div class="col-sm-12 form-group"><div class="row">
+                            <div class="col-sm-12">
+                                <SearchPersonOrganisation 
+                                personOnly
+                                :excludeStaff="true" 
+                                :isEditable="!readonlyForm" 
+                                classNames="form-control" 
+                                @entity-selected="entitySelected"
+                                showCreateUpdate
+                                ref="search_person_organisation"
+                                v-bind:key="updateSearchPersonOrganisationBindId"
+                                addFullName
+                                />
+                            </div>
+                        </div></div>
+                    </div></div>
                     <div :id="aTab" :class="artifactTabClass">
+                        <Artifact />
                     </div>
                     <div :id="uTab" :class="urlTabClass">
                         <div class="col-sm-12 form-group"><div class="row">
-                            <div class="col-sm-6">
-                                <label for="url">URL</label>
-                                <span>https://</span>
-                                <input id="inputUrl" type="text" v-model="urlText"/>
+                            <div class="col-sm-10">
+                                <div class="col-sm-2">
+                                    <select class="form-control" name="protocol" v-model="urlProtocol">
+                                        <option value="https">https</option>
+                                        <option value="http">http</option>
+                                    </select>
+                                </div>
+                                <div class="col-sm-6">
+                                    <input class="form-control" id="inputUrl" type="text" v-model="urlText"/>
+                                </div>
                             </div>
                         </div></div>
                     </div>
@@ -43,6 +52,7 @@
 import Vue from "vue";
 import modal from '@vue-utils/bootstrap-modal.vue';
 import SearchPersonOrganisation from './search_person_or_organisation'
+import Artifact from './artifact_component'
 
 export default {
     name: "PersonOrArtifactModal",
@@ -51,6 +61,7 @@ export default {
         isModalOpen: false,
         tabSelected: '',
         urlText: '',
+        urlProtocol: 'https',
         uuid: 0,
         entity: {},
         pTab: 'pTab' + this._uid,
@@ -82,6 +93,7 @@ export default {
     components: {
       modal,
       SearchPersonOrganisation,
+      Artifact,
     },
     computed: {
         updateSearchPersonOrganisationBindId: function() {
@@ -193,6 +205,7 @@ export default {
             let urlEntity = {
                 data_type: 'url',
                 url: this.urlText,
+                urlProtocol: this.urlProtocol,
             }
             Object.assign(this.entity, urlEntity);
         }
@@ -210,4 +223,7 @@ export default {
 </script>
 
 <style lang="css">
+    .ul-top-buffer {
+        margin-top: 20px;
+    }
 </style>

@@ -617,6 +617,7 @@ export default {
         return recordDescriptionHtml;
     },
     insertModalUrl: function({"entity": entity, "recordNumberElement": recordNumberElement}) {
+        console.log(entity)
         let replacementVal = ''
         /*
         console.log(entity)
@@ -624,7 +625,8 @@ export default {
         */
 
         if (entity.url) {
-            let fullUrl = "https://" + entity.url.trim();
+            //let fullUrl = "https://" + entity.url.trim();
+            let fullUrl = entity.urlProtocol + "://" + entity.url.trim();
             replacementVal = `<a contenteditable="false" target="_blank" href=${fullUrl}>${entity.url}</a>`
             //replacementVal = `<a target="_blank" href=${fullUrl}>${entity.url}</a>`
         }
