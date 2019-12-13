@@ -761,6 +761,7 @@ class UnpaidInfringementFile(models.Model):
 
         if not self.filename:
             self.filename = '{0:05d}'.format(self.pk) + 'UIN.uin'
+            need_save = True
 
         if need_save:
             self.save()  # Be careful, this might lead to the infinite loop

@@ -80,10 +80,14 @@ class Command(BaseCommand):
                 logger.info('{} overdue (1st) infringement notice(s) found.'.format(str(count)))
 
                 if count:
+                    # Create record first to generate filename based on the ID
+                    uin_file = UnpaidInfringementFile()
+                    uin_file.save()
+
                     # Construct header
                     uin_header = UnpaidInfringementFileHeader()
                     uin_header.agency_code.set('DPW')
-                    uin_header.uin_file_reference.set('')  # TODO: Must match the name of the file lodged.
+                    uin_header.uin_file_reference.set(uin_file.filename)
                     uin_header.date_created.set(datetime.date.today())
                     uin_header.responsible_officer.set('')
                     content_header = uin_header.get_content()
@@ -110,12 +114,10 @@ class Command(BaseCommand):
 
                     # Construct file contents
                     contents_to_attach = content_header + content_body + content_trailer
-                    uin_file = UnpaidInfringementFile()
+
+                    # Save contents in the DB, too
                     uin_file.contents = contents_to_attach
                     uin_file.save()
-
-
-                    dt = datetime.datetime.now().strftime('%Y/%m/%d %H:%M:%S')
 
                     # Determine the recipients
                     compliance_content_type = ContentType.objects.get(model="compliancepermissiongroup")
@@ -128,7 +130,7 @@ class Command(BaseCommand):
                     to_address = [member.email for member in members] if members else [settings.NOTIFICATION_EMAIL]
                     cc = None
                     bcc = None
-                    attachments = [('UnpaidInfringementsFile_{}.uin'.format(dt), contents_to_attach, 'text/plain'),]
+                    attachments = [(uin_file.filename, contents_to_attach, 'text/plain'),]
                     email_data = send_unpaid_infringements_file(to_address, cc, bcc, attachments)
 
                     # # Add communication log
