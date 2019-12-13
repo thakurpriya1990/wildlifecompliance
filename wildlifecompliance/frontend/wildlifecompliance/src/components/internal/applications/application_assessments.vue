@@ -91,14 +91,14 @@
                 <div v-if="selectedActivity" :id="`${selectedActivity.id}`">
                     <div>
                         <div class="panel panel-default">
-                            <div class="panel-heading" v-if="isLicensingOfficer">
+                            <div class="panel-heading">
                                 <h3 class="panel-title">{{canSendToAssessor ? 'Send to Assessor' : 'Assessments'}}
                                     <a class="panelClicker" :href="`#${selectedActivity.id}`+assessorsBody" data-toggle="collapse"  data-parent="#userInfo" expanded="true" :aria-controls="assessorsBody">
                                         <span class="glyphicon glyphicon-chevron-down pull-right "></span>
                                     </a>
                                 </h3>
                             </div>
-                            <div class="panel-body panel-collapse collapse in" :id="`${selectedActivity.id}`+assessorsBody" v-if="isLicensingOfficer">
+                            <div class="panel-body panel-collapse collapse in" :id="`${selectedActivity.id}`+assessorsBody">
                                 <div v-if="canSendToAssessor" class="row">
                                     <div class="col-sm-10" style="margin-bottom: 10px">
                                             <label class="control-label pull-left"  for="Name">Assessor Group</label>
@@ -125,12 +125,12 @@
                                         :onMount="eventListeners"/>
                                 </div>
                             </div>
-                            <div :id="`${selectedActivity.id}`" class="tab-pane fade in">
-                                <Conditions
-                                    :key="`assessor_condition_${selected_activity_tab_id}`"
-                                    :final_view_conditions="final_view_conditions"
-                                    :activity="selectedActivity"/>
-                            </div>
+                        </div>
+                        <div :id="`${selectedActivity.id}`" class="tab-pane fade in">
+                            <Conditions
+                                :key="`assessor_condition_${selected_activity_tab_id}`"
+                                :final_view_conditions="final_view_conditions"
+                                :activity="selectedActivity"/>
                         </div>
                     </div>
                 </div>
@@ -218,16 +218,18 @@ export default {
             'current_user',
             'sendToAssessorActivities',
             'canAssignOfficerFor',
-            'canAssignAssessorFor',
+            'allCurrentActivities',
+            'allCurrentActivitiesWithAssessor',
         ]),
         inspection_report_file_name: function() {
             return this.assessment.inspection_report != null ? this.assessment.inspection_report.name: '';
         },
         applicationActivities: function() {
-            return this.licenceActivities().filter(activity => {
-
-                return this.canAssignOfficerFor(activity.id) || this.canAssignAssessorFor(activity.id);
-            })
+            if (this.$router.currentRoute.name=='complete-assessment'){
+                // filtered activity list for application when completing assessments.
+                return this.allCurrentActivitiesWithAssessor
+            }
+            return this.allCurrentActivities
         },
         selectedActivity: function(){
             const activities_list = this.licence_type_data.activity;
@@ -448,8 +450,7 @@ export default {
             }
             // const tab = $('#tabs-assessor li:first-child a')[0];
             const tab = null
-            // force first tab to be the first activity in list.
-            const FIRST_TAB = this.application.activities[0].licence_activity
+            const FIRST_TAB = this.selected_activity_tab_id
             if(tab) {
                 tab.click();
             }

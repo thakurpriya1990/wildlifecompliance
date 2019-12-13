@@ -787,7 +787,7 @@ export default {
         showAssessmentConditionButton: function() {
             return this.showingApplication 
                 && !this.applicationIsDraft 
-                && (this.canAssignOfficerFor(this.selectedActivity.licence_activity) || this.canAssignApproverFor(this.selectedActivity.licence_activity))
+                && (this.hasRole('licensing_officer') || this.hasRole('issuing_officer'))
         },
     },
     methods: {

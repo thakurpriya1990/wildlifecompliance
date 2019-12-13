@@ -365,8 +365,7 @@ export default {
         },
         initFirstTab: function(force){
             this.isSendingToAssessor = true;
-            var first_tab = this.application.activities[0]
-
+            var first_tab = this.application.activities.find(activity => this.canAssignAssessorFor(activity.licence_activity))
             if(this.selected_activity_tab_id && !force) {
                 return;
             }            
