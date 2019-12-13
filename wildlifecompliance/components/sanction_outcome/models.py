@@ -194,7 +194,7 @@ class SanctionOutcome(models.Model):
         uin.offence_location.set(self.offence.location.__str__())
         uin.drivers_licence_number.set('')
         uin.vehicle_registration_number.set('')
-        uin.offence_code.set('')
+        uin.offence_code.set(self.dotag_offence_code)
         uin.penalty_amount.set(self.penalty_amount_2nd)
         uin.infringement_issue_date.set(self.date_of_issue)
         uin.final_demand_letter_date.set('')
@@ -377,10 +377,21 @@ class SanctionOutcome(models.Model):
         self.log_user_action(SanctionOutcomeUserAction.ACTION_SEND_TO_MANAGER.format(self.lodgement_number), request)
         self.save()
 
-    def retrieve_issue_due_date_window(self):
-        # Expecting this function is called only for an infringement notice which can have only one alleged offence.
-        date_window = self.alleged_committed_offences.first().section_regulation.issue_due_date_window
-        return date_window
+    @property
+    def issue_due_date_window(self):
+        qs_aco = AllegedCommittedOffence.objects.filter(Q(sanction_outcome=self) & Q(included=True))
+        if qs_aco.count() != 1:  # Only infringement notice can have penalty. Infringement notice can have only one alleged offence.
+            raise ValidationError('There are multiple alleged committed offences in this sanction outcome.')
+        else:
+            return qs_aco.first().issue_due_date_window
+
+    @property
+    def dotag_offence_code(self):
+        qs_aco = AllegedCommittedOffence.objects.filter(Q(sanction_outcome=self) & Q(included=True))
+        if qs_aco.count() != 1:  # Only infringement notice can have penalty. Infringement notice can have only one alleged offence.
+            raise ValidationError('There are multiple alleged committed offences in this sanction outcome.')
+        else:
+            return qs_aco.first().dotag_offence_code
 
     @property
     def offence_occurrence_date(self):
@@ -401,7 +412,7 @@ class SanctionOutcome(models.Model):
             self.time_of_issue = current_datetime.time()
 
     def is_issuable(self, raise_exception=False):
-        date_window = self.retrieve_issue_due_date_window()
+        date_window = self.issue_due_date_window
         issue_due_date = self.offence_occurrence_date + relativedelta(days=date_window)
 
         today = datetime.date.today()
@@ -650,6 +661,14 @@ class AllegedCommittedOffence(RevisionedMixin):
 
     def retrieve_penalty_amounts_by_date(self, date_of_issue):
         return self.alleged_offence.retrieve_penalty_amounts_by_date(date_of_issue)
+
+    @property
+    def dotag_offence_code(self):
+        return self.alleged_offence.dotag_offence_code
+
+    @property
+    def issue_due_date_window(self):
+        return self.alleged_offence.issue_due_date_window
 
     class Meta:
         app_label = 'wildlifecompliance'

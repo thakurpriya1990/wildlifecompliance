@@ -194,6 +194,14 @@ class AllegedOffence(RevisionedMixin):
     def retrieve_penalty_amounts_by_date(self, date_of_issue):
         return self.section_regulation.retrieve_penalty_amounts_by_date(date_of_issue)
 
+    @property
+    def dotag_offence_code(self):
+        return self.section_regulation.dotag_offence_code
+
+    @property
+    def issue_due_date_window(self):
+        return self.section_regulation.issue_due_date_window
+
     class Meta:
         app_label = 'wildlifecompliance'
         verbose_name = 'CM_AllegedOffence'
