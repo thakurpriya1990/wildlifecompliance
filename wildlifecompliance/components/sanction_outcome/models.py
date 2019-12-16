@@ -138,6 +138,7 @@ class SanctionOutcome(models.Model):
     # Updated whenever the sanction outcome is sent to the manager
     responsible_officer = models.ForeignKey(EmailUser, related_name='sanction_outcome_responsible_officer', null=True)
 
+    registration_number = models.CharField(max_length=10, blank=True)
     registration_holder = models.ForeignKey(EmailUser, related_name='sanction_outcome_registration_holder', blank=True, null=True)
     driver = models.ForeignKey(EmailUser, related_name='sanction_outcome_driver', blank=True, null=True)
 
