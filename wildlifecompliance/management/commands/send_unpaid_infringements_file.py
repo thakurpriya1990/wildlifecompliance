@@ -1,5 +1,4 @@
 import datetime
-import io
 
 from django.db import transaction
 
@@ -19,7 +18,7 @@ from wildlifecompliance.components.sanction_outcome.serializers import SanctionO
 from wildlifecompliance.components.sanction_outcome_due.models import SanctionOutcomeDueDate
 from wildlifecompliance.components.users.models import CompliancePermissionGroup
 from wildlifecompliance.helpers import DEBUG
-from wildlifecompliance.management.commands.unpaid_infringement_file import UnpaidInfringementFileHeader, \
+from wildlifecompliance.management.classes.unpaid_infringement_file import UnpaidInfringementFileHeader, \
     UnpaidInfringementFileTrailer
 
 logger = logging.getLogger(__name__)

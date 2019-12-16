@@ -16,7 +16,7 @@ from wildlifecompliance.components.sanction_outcome_due.models import SanctionOu
 from wildlifecompliance.components.sanction_outcome_due.serializers import SaveSanctionOutcomeDueDateSerializer
 from wildlifecompliance.components.section_regulation.models import SectionRegulation
 from wildlifecompliance.components.users.models import RegionDistrict, CompliancePermissionGroup
-from wildlifecompliance.management.commands.unpaid_infringement_file import UnpaidInfringementFileBody
+from wildlifecompliance.management.classes.unpaid_infringement_file import UnpaidInfringementFileBody
 
 
 class SanctionOutcomeActiveManager(models.Manager):
