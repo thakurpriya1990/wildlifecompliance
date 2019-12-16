@@ -32,8 +32,13 @@ import {
 	legalCaseStore
 } from './modules/legal_case';
 import {
-	artifactStore
-} from './modules/artifact';
+	documentArtifactStore
+} from './modules/document_artifact';
+/*
+import {
+	physicalArtifactStore
+} from './modules/physical_artifact';
+*/
 
 Vue.use(Vuex);
 
@@ -52,6 +57,7 @@ export default new Vuex.Store({
 		inspectionStore: inspectionStore,
 		sanctionOutcomeStore: sanctionOutcomeStore,
 		legalCaseStore: legalCaseStore,
-		artifactStore: artifactStore,
+		documentArtifactStore: documentArtifactStore,
+	//	physicalArtifactStore: physicalArtifactStore,
 	}
 });

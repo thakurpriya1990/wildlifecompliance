@@ -6,22 +6,22 @@ import {
 from '@/utils/hooks';
 import moment from 'moment';
 
-export const artifactStore = {
+export const documentArtifactStore = {
     namespaced: true,
     state: {
-        artifact: {
+        document_artifact: {
         },
         
     },
     getters: {
-        artifact: (state) => state.artifact,
+        document_artifact: (state) => state.document_artifact,
     },
     mutations: {
-        updateArtifact(state, artifact) {
-            Vue.set(state, 'artifact', {
-                ...artifact
+        updateDocumentArtifact(state, document_artifact) {
+            Vue.set(state, 'document_artifact', {
+                ...document_artifact
             });
-            console.log('updateArtifact');
+            console.log('updateDocumentArtifact');
             /*
             if (state.legal_case.case_created_date) {
                 state.legal_case.case_created_date = moment(state.legal_case.case_created_date, 'YYYY-MM-DD').format('DD/MM/YYYY');
@@ -48,27 +48,28 @@ export const artifactStore = {
         },
     },
     actions: {
-        async loadArtifact({ dispatch, commit }, { artifact_id }) {
+        async loadDocumentArtifact({ dispatch, commit }, { document_artifact_id }) {
             try {
-                const returnedArtifact = await Vue.http.get(
+                const returnedDocumentArtifact = await Vue.http.get(
                     helpers.add_endpoint_json(
-                        api_endpoints.artifact,
-                        artifact_id)
+                        api_endpoints.document_artifact,
+                        document_artifact_id)
                     );
 
-                console.log(returnedArtifact)
-                commit("updateArtifact", returnedArtifact.body);
+                console.log(returnedDocumentArtifact)
+                commit("updateDocumentArtifact", returnedDocumentArtifact.body);
 
             } catch (err) {
                 console.log(err);
             }
         },
-        async saveArtifact({ dispatch, state, rootGetters }, { create, internal }) {
-            let artifactId = null;
-            let savedArtifact = null;
+        async saveDocumentArtifact({ dispatch, state, rootGetters }, { create, internal, parentSave }) {
+            console.log(parentSave)
+            let documentArtifactId = null;
+            let savedDocumentArtifact = null;
             try {
                 let payload = new Object();
-                Object.assign(payload, state.artifact);
+                Object.assign(payload, state.document_artifact);
                 console.log(payload);
                 /*
                 if (payload.case_created_date) {
@@ -80,18 +81,18 @@ export const artifactStore = {
 
                 let fetchUrl = null;
                 if (create) {
-                    fetchUrl = api_endpoints.artifact;
-                    savedLegalCase = await Vue.http.post(fetchUrl, payload);
+                    fetchUrl = api_endpoints.document_artifact;
+                    savedDocumentArtifact = await Vue.http.post(fetchUrl, payload);
                 } else {
                     fetchUrl = helpers.add_endpoint_join(
-                        api_endpoints.artifact,
-                        state.artifact.id + '/'
+                        api_endpoints.document_artifact,
+                        state.document_artifact.id + '/'
                         )
                     console.log(payload);
-                    savedArtifact = await Vue.http.put(fetchUrl, payload);
+                    savedDocumentArtifact = await Vue.http.put(fetchUrl, payload);
                 }
                 //await dispatch("setLegalCase", savedLegalCase.body);
-                artifactId = savedArtifact.body.id;
+                documentArtifactId = savedDocumentArtifact.body.id;
 
             } catch (err) {
                 console.log(err);
@@ -111,8 +112,8 @@ export const artifactStore = {
                 await swal("Saved", "The record has been saved", "success");
             }
         },
-        setArtifact({ commit, }, artifact) {
-            commit("updateArtifact", artifact);
+        setArtifact({ commit, }, document_artifact) {
+            commit("updateDocumentArtifact", document_artifact);
         },
         setRelatedItems({ commit }, related_items ) {
             commit("updateRelatedItems", related_items);

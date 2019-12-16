@@ -26,7 +26,10 @@
                         </div></div>
                     </div></div>
                     <div :id="aTab" :class="artifactTabClass">
-                        <Artifact />
+                        <Artifact 
+                        ref="artifact"
+                        @entity-selected="entitySelected"
+                        />
                     </div>
                     <div :id="uTab" :class="urlTabClass">
                         <div class="col-sm-12 form-group"><div class="row">
@@ -176,7 +179,10 @@ export default {
             });
             this.isModalOpen = false;
         },
-        ok: function() {
+        ok: async function() {
+            if (this.artifactTabSelected) {
+                await this.$refs.artifact.parentSave();
+            }
             if (this.urlTabSelected && this.urlText) {
                 this.submitUrl();
             }

@@ -108,6 +108,8 @@ router.register(r'legal_case_paginated', legal_case_api.LegalCasePaginatedViewSe
 router.register(r'document_artifact', artifact_api.DocumentArtifactViewSet)
 router.register(r'artifact', artifact_api.ArtifactViewSet)
 router.register(r'physical_artifact', artifact_api.PhysicalArtifactViewSet)
+router.register(r'physical_artifact_types', artifact_api.PhysicalArtifactTypeViewSet)
+router.register(r'document_artifact_types', artifact_api.DocumentArtifactTypeViewSet)
 
 api_patterns = [url(r'^api/my_user_details/$',
                     users_api.GetMyUserDetails.as_view(),

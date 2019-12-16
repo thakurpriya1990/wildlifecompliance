@@ -28,6 +28,7 @@ class Artifact(RevisionedMixin):
     description = models.TextField(blank=True, null=True)
     artifact_date = models.DateField(null=True)
     artifact_time = models.TimeField(blank=True, null=True)
+    number = models.CharField(max_length=50, blank=True, null=True)
     custodian = models.ForeignKey(
             EmailUser,
             related_name='artifact_custodian',
@@ -39,6 +40,8 @@ class Artifact(RevisionedMixin):
         verbose_name = 'CM_Artifact'
         verbose_name_plural = 'CM_Artifacts'
 
+    #def log_user_action(self, action, request):
+     #   return ArtifactUserAction.log_action(self, action, request.user)
 
 class DocumentArtifactType(models.Model):
     artifact_type = models.CharField(max_length=50)
@@ -55,11 +58,14 @@ class DocumentArtifactType(models.Model):
         verbose_name_plural = 'CM_DocumentArtifactTypes'
         unique_together = ('artifact_type', 'version')
 
+    def __str__(self):
+        return self.artifact_type
+
 
 class PhysicalArtifactType(models.Model):
     artifact_type = models.CharField(max_length=50)
-    details_schema = JSONField(null=True)
-    storage_schema = JSONField(null=True)
+    details_schema = JSONField(default=[{}])
+    storage_schema = JSONField(default=[{}])
     version = models.SmallIntegerField(default=1, blank=False, null=False)
     description = models.CharField(max_length=255, blank=True, null=True)
     replaced_by = models.ForeignKey(
@@ -75,6 +81,9 @@ class PhysicalArtifactType(models.Model):
         verbose_name = 'CM_PhysicalArtifactType'
         verbose_name_plural = 'CM_PhysicalArtifactTypes'
         unique_together = ('artifact_type', 'version')
+
+    def __str__(self):
+        return self.artifact_type
 
 
 class PhysicalArtifactDisposalMethod(models.Model):
@@ -136,6 +145,18 @@ class DocumentArtifact(Artifact):
         verbose_name = 'CM_DocumentArtifact'
         verbose_name_plural = 'CM_DocumentArtifacts'
 
+    def log_user_action(self, action, request):
+        return ArtifactUserAction.log_action(self, action, request.user)
+
+    # Prefix "DO" char to DocumentArtifact number.
+    def save(self, *args, **kwargs):
+        
+        super(DocumentArtifact, self).save(*args,**kwargs)
+        if self.number is None:
+            new_number_id = 'DO{0:06d}'.format(self.pk)
+            self.number = new_number_id
+            self.save()
+        
 
 class PhysicalArtifact(Artifact):
     physical_artifact_type = models.ForeignKey(
@@ -175,8 +196,17 @@ class PhysicalArtifact(Artifact):
     
     class Meta:
         app_label = 'wildlifecompliance'
-        verbose_name = 'CM_DocumentArtifact'
-        verbose_name_plural = 'CM_DocumentArtifacts'
+        verbose_name = 'CM_PhysicalArtifact'
+        verbose_name_plural = 'CM_PhysicalArtifacts'
+
+    # Prefix "PO" char to DocumentArtifact number.
+    def save(self, *args, **kwargs):
+        
+        super(PhysicalArtifact, self).save(*args,**kwargs)
+        if self.number is None:
+            new_number_id = 'PO{0:06d}'.format(self.pk)
+            self.number = new_number_id
+            self.save()
 
 
 class ArtifactCommsLogEntry(CommunicationsLogEntry):

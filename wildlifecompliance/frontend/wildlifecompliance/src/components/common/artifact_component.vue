@@ -1,54 +1,31 @@
 <template lang="html">
     <div class="container-fluid">
-        <div class="col-sm-12">
+        <div class="col-sm-12 parent-artifact">
             <div class="form-group">
                 <div class="row">
-                    <ul class="nav nav-pills">
-                        <li class="nav-item active"><a data-toggle="tab" :href="'#'+newTab">New</a></li>
-                        <li class="nav-item"><a data-toggle="tab" :href="'#'+existingTab" >Existing</a></li>
-                    </ul>
-                    <div class="tab-content">
-                        <div :id="newTab" class="tab-pane fade in active">
-                            <ul class="nav nav-pills">
-                                <li class="nav-item active"><a data-toggle="tab" :href="'#'+objectTab">Object</a></li>
-                                <li class="nav-item"><a data-toggle="tab" :href="'#'+detailsTab" >Details</a></li>
-                                <li class="nav-item"><a data-toggle="tab" :href="'#'+storageTab" >Storage</a></li>
-                                <li class="nav-item"><a data-toggle="tab" :href="'#'+disposalTab" >Disposal</a></li>
-                            </ul>
-                            <div class="tab-content">
-                                <div :id="objectTab" class="tab-pane fade in active li-top-buffer">
-                                    <div class="col-sm-12">
-                                        <div class="form-group">
-                                            <div class="row">
-                                                <div class="col-sm-3">
-                                                    <label class="control-label pull-left" for="Name">Attachments</label>
-                                                </div>
-                                                <div class="col-sm-9">
-                                                    <filefield 
-                                                    ref="comms_log_file" 
-                                                    name="comms-log-file" 
-                                                    :isRepeatable="true" 
-                                                    documentActionUrl="temporary_document" 
-                                                    @update-temp-doc-coll-id="setTemporaryDocumentCollectionId"/>
-                                                </div>
-                                            </div>
-                                        </div>
-                                    </div>
-                                </div>
-                                <div :id="detailsTab" class="tab-pane fade in li-top-buffer">
-                                    details
-                                </div>
-                                <div :id="storageTab" class="tab-pane fade in li-top-buffer">
-                                    storage
-                                </div>
-                                <div :id="disposalTab" class="tab-pane fade in li-top-buffer">
-                                    disposal
-                                </div>
-                            </div>
+                    <div class="col-sm-12">
+                        <div class="col-sm-3">
+                            <input type="radio" id="document" value="document" v-model="componentType">
+                            <label for="document">Document</label>
                         </div>
-                        <div :id="existingTab" class="tab-pane fade in li-top-buffer">
+                        <div class="col-sm-3">
+                            <input type="radio" id="physical" value="physical" v-model="componentType">
+                            <label for="physical">Physical Object</label>
                         </div>
-                    </div>
+                        <!--select class="form-control" v-model="componentType">
+                            <option value="document">Document</option>
+                            <option value="physical">Physical Object</option>
+                          </select-->
+                </div>
+                <div v-if="showDocumentArtifactComponent" class="row">
+                    <DocumentArtifact 
+                    ref="document_artifact"
+                    />
+                </div>
+                <!--div v-if="documentArtifactComponent" class="row">
+                    <DocumentArtifact />
+                </div-->
+
                 </div>
             </div>
         </div>
@@ -61,12 +38,12 @@ import modal from '@vue-utils/bootstrap-modal.vue';
 import { mapState, mapGetters, mapActions, mapMutations } from "vuex";
 import { api_endpoints, helpers, cache_helper } from "@/utils/hooks";
 import filefield from '@/components/common/compliance_file.vue';
-import { required, minLength, between } from 'vuelidate/lib/validators'
+import DocumentArtifact from './document_artifact_component.vue';
 
 export default {
-    name: "ArtifactModal",
+    name: "ArtifactComponent",
     data: function() {
-      return {
+        return {
             newTab: 'newTab'+this._uid,
             existingTab: 'existingTab'+this._uid,
             objectTab: 'objectTab'+this._uid,
@@ -77,16 +54,29 @@ export default {
             processingDetails: false,
             documentActionUrl: '',
             temporary_document_collection_id: null,
-      }
+            componentType: '',
+        }
     },
     components: {
       modal,
       filefield,
+      DocumentArtifact,
     },
     computed: {
-      ...mapGetters('artifactStore', {
-        legal_case: "artifact",
-      }),
+        showDocumentArtifactComponent: function() {
+            let showComponent = false;
+            if (this.componentType === 'document') {
+                showComponent = true;
+            }
+            return showComponent;
+        },
+        showPhysicalArtifactComponent: function() {
+            let showComponent = false;
+            if (this.componentType === 'physical') {
+                showComponent = true;
+            }
+            return showComponent;
+        },
     },
     filters: {
       formatDate: function(data) {
@@ -94,100 +84,32 @@ export default {
       }
     },
     methods: {
-      ...mapActions('artifactStore', {
-          saveInspection: 'saveArtifact',
-          loadInspection: 'loadArtifact',
-      }),
-      setTemporaryDocumentCollectionId: function(val) {
-          this.temporary_document_collection_id = val;
-      },
-      ok: async function () {
-          const response = await this.sendData();
-          console.log(response);
-          if (response.ok) {
-              // For LegalCase Dashboard
-              if (this.$parent.$refs.legal_case_table) {
-                  this.$parent.$refs.legal_case_table.vmDataTable.ajax.reload()
-              }
-              // For CallEmail related items table
-              if (this.parent_call_email) {
-                  await this.loadCallEmail({
-                      call_email_id: this.call_email.id,
-                  });
-              }
-              if (this.$parent.$refs.related_items_table) {
-                  this.$parent.constructRelatedItemsTable();
-              }
-              this.close();
-                  //this.$router.push({ name: 'internal-inspection-dash' });
-          }
-      },
-      cancel: async function() {
-          await this.$refs.comms_log_file.cancel();
-          this.isModalOpen = false;
-          //this.close();
-      },
-      /*
-      close: function () {
-          this.isModalOpen = false;
-      },
-      */
-      sendData: async function() {
-          let post_url = '/api/legal_case/';
-          //if (!this.inspection.id) {
-          //    post_url = '/api/legal_case/';
-          //} else {
-          //    post_url = '/api/inspection/' + this.inspection.id + '/workflow_action/';
-          //}
-          
-          let payload = new FormData();
-          payload.append('details', this.legalCaseDetails);
-          this.$refs.comms_log_file.commsLogId ? payload.append('legal_case_comms_log_id', this.$refs.comms_log_file.commsLogId) : null;
-          this.parent_call_email ? payload.append('call_email_id', this.call_email.id) : null;
-          this.district_id ? payload.append('district_id', this.district_id) : null;
-          this.assigned_to_id ? payload.append('assigned_to_id', this.assigned_to_id) : null;
-          this.inspection_type_id ? payload.append('legal_case_priority_id', this.legal_case_priority_id) : null;
-          this.region_id ? payload.append('region_id', this.region_id) : null;
-          this.allocated_group_id ? payload.append('allocated_group_id', this.allocated_group_id) : null;
-          this.temporary_document_collection_id ? payload.append('temporary_document_collection_id', this.temporary_document_collection_id) : null;
-
-          //this.workflow_type ? payload.append('workflow_type', this.workflow_type) : null;
-          //!payload.has('allocated_group') ? payload.append('allocated_group', this.allocatedGroup) : null;
-
-          try {
-              let res = await Vue.http.post(post_url, payload);
-              console.log(res);
-              if (res.ok) {
-                  return res
-              }
-          } catch(err) {
-                  this.errorResponse = 'Error:' + err.statusText;
-              }
-          
-      },
-      //createDocumentActionUrl: async function(done) {
-      //  if (!this.inspection.id) {
-      //      // create inspection and update vuex
-      //      let returned_inspection = await this.saveInspection({ create: true, internal: true })
-      //      await this.loadInspection({inspection_id: returned_inspection.body.id});
-      //  }
-      //  // populate filefield document_action_url
-      //  this.$refs.comms_log_file.document_action_url = this.inspection.createInspectionProcessCommsLogsDocumentUrl;
-      //  return done(true);
-      //},
-
+        setTemporaryDocumentCollectionId: function(val) {
+            this.temporary_document_collection_id = val;
+        },
+        parentSave: async function() {
+            let entity = {};
+            //if (this.showDocumentArtifactComponent && this.documentEntityDatatype) {
+            if (this.showDocumentArtifactComponent) {
+                let documentArtifactEntity = null;
+                //documentArtifactEntity = await this.$refs.document_artifact.parentSave({'parentSave': true})
+                documentArtifactEntity = await this.$refs.document_artifact.parentSave({'parentSave': true})
+                console.log(documentArtifactEntity);
+                Object.assign(entity, documentArtifactEntity)
+            }
+            // emit?
+            return entity;
+        },
     },
     created: async function() {
-
+    /*
+      if (this.$route.params.inspection_id) {
+          await this.loadInspection({ inspection_id: this.$route.params.inspection_id });
+      }
+      */
     },
 };
 </script>
 
 <style lang="css">
-.li-top-buffer {
-    margin-top: 20px;
-}
-.tab-content {
-  background: white;
-}
 </style>

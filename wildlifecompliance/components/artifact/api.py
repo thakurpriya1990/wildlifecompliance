@@ -57,10 +57,12 @@ from wildlifecompliance.components.artifact.models import (
         DocumentArtifactType,
         PhysicalArtifactType,
         PhysicalArtifactDisposalMethod,
+        ArtifactUserAction,
         )
 from wildlifecompliance.components.artifact.serializers import (
         ArtifactSerializer,
         DocumentArtifactSerializer,
+        SaveDocumentArtifactSerializer,
         PhysicalArtifactSerializer,
         DocumentArtifactTypeSerializer,
         PhysicalArtifactTypeSerializer,
@@ -213,6 +215,40 @@ class DocumentArtifactViewSet(viewsets.ModelViewSet):
             return DocumentArtifact.objects.all()
         return DocumentArtifact.objects.none()
 
+    @renderer_classes((JSONRenderer,))
+    #def inspection_save(self, request, workflow=False, *args, **kwargs):
+    def update(self, request, workflow=False, *args, **kwargs):
+        print(request.data)
+        try:
+            with transaction.atomic():
+                instance = self.get_object()
+                #if request.data.get('renderer_data'):
+                 #   self.form_data(request)
+
+                serializer = SaveDocumentArtifactSerializer(instance, data=request.data)
+                serializer.is_valid(raise_exception=True)
+                if serializer.is_valid():
+                    serializer.save()
+                    instance.log_user_action(
+                            ArtifactUserAction.ACTION_SAVE_ARTIFACT.format(
+                            instance.number), request)
+                    headers = self.get_success_headers(serializer.data)
+                    return_serializer = DocumentArtifactSerializer(instance, context={'request': request})
+                    return Response(
+                            return_serializer.data,
+                            status=status.HTTP_201_CREATED,
+                            headers=headers
+                            )
+        except serializers.ValidationError:
+            print(traceback.print_exc())
+            raise
+        except ValidationError as e:
+            print(traceback.print_exc())
+            raise serializers.ValidationError(repr(e.error_dict))
+        except Exception as e:
+            print(traceback.print_exc())
+            raise serializers.ValidationError(str(e))
+
 
 class PhysicalArtifactViewSet(viewsets.ModelViewSet):
     queryset = PhysicalArtifact.objects.all()
@@ -341,4 +377,44 @@ class ArtifactViewSet(viewsets.ModelViewSet):
    #    except Exception as e:
    #        print(traceback.print_exc())
    #        raise serializers.ValidationError(str(e))
+
+class DocumentArtifactTypeViewSet(viewsets.ModelViewSet):
+   queryset = DocumentArtifactType.objects.all()
+   serializer_class = DocumentArtifactTypeSerializer
+
+   def get_queryset(self):
+       # user = self.request.user
+       if is_internal(self.request):
+           return DocumentArtifactType.objects.all()
+       return DocumentArtifactType.objects.none()
+
+   #@detail_route(methods=['GET',])
+   #@renderer_classes((JSONRenderer,))
+   #def get_schema(self, request, *args, **kwargs):
+   #    instance = self.get_object()
+   #    try:
+   #        serializer = InspectionTypeSchemaSerializer(instance)
+   #        return Response(
+   #            serializer.data,
+   #            status=status.HTTP_201_CREATED,
+   #            )
+   #    except serializers.ValidationError:
+   #        print(traceback.print_exc())
+   #        raise
+   #    except ValidationError as e:
+   #        print(traceback.print_exc())
+   #        raise serializers.ValidationError(repr(e.error_dict))
+   #    except Exception as e:
+   #        print(traceback.print_exc())
+   #        raise serializers.ValidationError(str(e))
+
+class PhysicalArtifactTypeViewSet(viewsets.ModelViewSet):
+   queryset = PhysicalArtifactType.objects.all()
+   serializer_class = PhysicalArtifactTypeSerializer
+
+   def get_queryset(self):
+       # user = self.request.user
+       if is_internal(self.request):
+           return PhysicalArtifactType.objects.all()
+       return PhysicalArtifactType.objects.none()
 
