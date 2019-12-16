@@ -156,6 +156,7 @@ class SanctionOutcomeSerializer(serializers.ModelSerializer):
             'driver',
             'registration_holder_id',
             'driver_id',
+            'registration_number',
         )
 
     def get_due_dates(self, obj):
@@ -368,6 +369,7 @@ class SaveSanctionOutcomeSerializer(serializers.ModelSerializer):
             'time_of_issue',
             'registration_holder_id',
             'driver_id',
+            'registration_number',
             'status',
         )
 

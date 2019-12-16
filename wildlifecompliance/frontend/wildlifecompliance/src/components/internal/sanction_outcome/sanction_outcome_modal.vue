@@ -100,6 +100,15 @@
                                 </div>
                             </div></div>
 
+                            <div class="col-sm-12 form-group"><div class="row">
+                                <div class="col-sm-3">
+                                    <label class="control-label pull-left">Registration Number</label>
+                                </div>
+                                <div class="col-sm-7">
+                                    <input :disabled="!is_parking_offence" type="text" class="form-control" name="registration_number" placeholder="" v-model="sanction_outcome.registration_number" >
+                                </div>
+                            </div></div>
+
                             <div class="col-sm-12 form-group">
                                 <div class="row col-sm-12">
                                     <label class="control-label pull-left">Alleged committed offences</label>
@@ -274,7 +283,7 @@ export default {
     data: function() {
       let vm = this;
   
-      return {
+    return {
         temporary_document_collection_id: null,
         nTab: "nTab" + vm._uid,
         aTab: "aTab" + vm._uid,
@@ -288,24 +297,28 @@ export default {
         documentActionUrl: null,
         elem_paper_id_notice: null,
         errorResponse: "",
-          offenceReadonly: false,
+        offenceReadonly: false,
+
+        aco_ids_included: [],
+        aco_ids_excluded: [],
+        is_parking_offence: false,
   
         // This is the object to be sent to the server when saving
         sanction_outcome: {
-          type: "",
-          region_id: null,
-          district_id: null,
-          identifier: "",
-          current_offence: {}, // Store an offence to be saved as an attribute of the sanction outcome
-          // The offenders and the alleged_offences under this offence object are used
-          // to construct a dropdown list for the offenders and the alleged offences datatable
-          current_offender: {}, // Store an offender to be saved as an attribute of the sanction outcome
-          issued_on_paper: false,
-          paper_id: "",
-          description: "",
-          date_of_issue: null,
-          time_of_issue: null,
-          remediation_actions: []
+            type: "",
+            region_id: null,
+            district_id: null,
+            identifier: "",
+            current_offence: {}, // Store an offence to be saved as an attribute of the sanction outcome
+            // The offenders and the alleged_offences under this offence object are used
+            // to construct a dropdown list for the offenders and the alleged offences datatable
+            current_offender: {}, // Store an offender to be saved as an attribute of the sanction outcome
+            issued_on_paper: false,
+            paper_id: "",
+            description: "",
+            date_of_issue: null,
+            time_of_issue: null,
+            remediation_actions: []
         },
         current_remediation_action: {
           action: "",
@@ -341,11 +354,6 @@ export default {
             {
               data: "Include",
               mRender: function(data, type, row) {
-                  console.log('data');
-                  console.log(data);
-                  console.log('row');
-                  console.log(row);
-  
                 let ret_line = null;
   
                 if (vm.sanction_outcome.type == 'infringement_notice'){
@@ -435,124 +443,157 @@ export default {
         },
     },
     computed: {
-      ...mapGetters("offenceStore", {
-        offence: "offence"
-      }),
-      issued_on_paper: function() {
-        return this.sanction_outcome.issued_on_paper;
-      },
-      current_offence: function() {
-        return this.sanction_outcome.current_offence;
-      },
-      current_offender: function() {
-        return this.sanction_outcome.current_offender;
-      },
-      current_region_id: function() {
-        return this.sanction_outcome.region_id;
-      },
-      current_type: function() {
-        return this.sanction_outcome.type;
-      },
-      modalTitle: function() {
-        return "Identify Sanction Outcome";
-      },
-      firstTabTitle: function() {
-        for (let i = 0; i < this.options_for_types.length; i++) {
-          if (this.options_for_types[i]["id"] == this.sanction_outcome.type) {
-            return this.options_for_types[i]["display"];
-          }
-        }
-        return "";
-      },
-      displayTabs: function() {
-        return this.sanction_outcome.type == "" ? false : true;
-      },
-      displaySendToManagerButton: function() {
-          let retValue = false;
+        ...mapGetters("offenceStore", {
+          offence: "offence"
+        }),
+        console_test: function() {
+            console.log('is_parking_offence');
+            console.log(this.is_parking_offence);
+        },
+        issued_on_paper: function() {
+            return this.sanction_outcome.issued_on_paper;
+        },
+        current_offence: function() {
+            return this.sanction_outcome.current_offence;
+        },
+        current_offender: function() {
+            return this.sanction_outcome.current_offender;
+        },
+        current_region_id: function() {
+            return this.sanction_outcome.region_id;
+        },
+        current_type: function() {
+            console.log('current_type');
+            return this.sanction_outcome.type;
+        },
+        modalTitle: function() {
+            return "Identify Sanction Outcome";
+        },
+        firstTabTitle: function() {
+            for (let i = 0; i < this.options_for_types.length; i++) {
+                if (this.options_for_types[i]["id"] == this.sanction_outcome.type) {
+                    return this.options_for_types[i]["display"];
+                }
+            }
+            return "";
+        },
+        displayTabs: function() {
+          return this.sanction_outcome.type == "" ? false : true;
+        },
+        displaySendToManagerButton: function() {
+            let retValue = false;
 
-          if (!this.processingDetails && this.sanction_outcome.type) {
-              if (this.regionDistrictId) {
-                  if ((this.sanction_outcome.issued_on_paper && this.sanction_outcome.date_of_issue) || !this.sanction_outcome.issued_on_paper) {
-                      retValue = true;
-                  }
-              }
+            if (!this.processingDetails && this.sanction_outcome.type) {
+                if (this.regionDistrictId) {
+                    if ((this.sanction_outcome.issued_on_paper && this.sanction_outcome.date_of_issue) || !this.sanction_outcome.issued_on_paper) {
+                        retValue = true;
+                    }
+                }
+            }
+            return retValue;
+        },
+        displayRemediationActions: function() {
+          return this.sanction_outcome.type == "remediation_notice" ? true : false;
+        },
+        regionDistrictId: function() {
+          if (
+            this.sanction_outcome.district_id ||
+            this.sanction_outcome.region_id
+          ) {
+            return this.sanction_outcome.district_id
+              ? this.sanction_outcome.district_id
+              : this.sanction_outcome.region_id;
+          } else {
+            return null;
           }
-          return retValue;
-      },
-      displayRemediationActions: function() {
-        return this.sanction_outcome.type == "remediation_notice" ? true : false;
-      },
-      regionDistrictId: function() {
-        if (
-          this.sanction_outcome.district_id ||
-          this.sanction_outcome.region_id
-        ) {
-          return this.sanction_outcome.district_id
-            ? this.sanction_outcome.district_id
-            : this.sanction_outcome.region_id;
-        } else {
-          return null;
-        }
-      },
-      groupPermission: function() {
-        return "manager"; // Send to manager
-      },
+        },
+        groupPermission: function() {
+          return "manager"; // Send to manager
+        },
     },
     methods: {
-          ...mapActions('offenceStore', {
-              loadOffence: 'loadOffence',
-          }),
-          setTemporaryDocumentCollectionId: function(val) {
-              this.temporary_document_collection_id = val;
-          },
-          ok: async function() {
-              try{
-                  this.processingDetails = true;
-                  let response = await this.sendData();
+        ...mapActions('offenceStore', {
+            loadOffence: 'loadOffence',
+        }),
+        aco_include_clicked: function() {
+            console.log('include  clicked');
 
-                  if(response.ok){
-                      if (this.$parent.offence && this.offence.id) {
-                          await this.loadOffence({
-                              offence_id: this.offence.id,
-                          });
-                      }
-                  }
+            let vm = this;
+            vm.aco_ids_included = [];
+            vm.aco_ids_excluded = [];
+            let checkboxes = $(".alleged_offence_include");
+            for (let i = 0; i < checkboxes.length; i++) {
+                if (checkboxes[i].checked) {
+                    vm.aco_ids_included.push(checkboxes[i].value);
+                } else {
+                    vm.aco_ids_excluded.push(checkboxes[i].value);
+                }
+            }
+            vm.check_if_is_parking_offence();
+        },
+        check_if_is_parking_offence: function() {
+            this.is_parking_offence = false;
+            if (this.sanction_outcome.type == 'infringement_notice' && this.aco_ids_included.length == 1){
+                for (let i=0; i < this.aco_ids_included.length; i++){
+                    if (this.sanction_outcome.current_offence.alleged_offences[i].id == this.aco_ids_included[0]){
+                        if (this.sanction_outcome.current_offence.alleged_offences[i].section_regulation.is_parking_offence){
+                            this.is_parking_offence = true
+                        }
+                    }
+                }
+            }
+        },
+        setTemporaryDocumentCollectionId: function(val) {
+            this.temporary_document_collection_id = val;
+        },
+        ok: async function() {
+            try{
+                this.processingDetails = true;
+                let response = await this.sendData();
 
-                  this.close();
-                  this.processingDetails = false;
-              } catch(err) {
-                  this.processError(err);
-                  this.processingDetails = false;
-              }
-          },
-          processError: async function(err){
-              let errorText = '';
-              if (err.body.non_field_errors) {
-                  // When non field errors raised
-                  for (let i=0; i<err.body.non_field_errors.length; i++){
-                      errorText += err.body.non_field_errors[i] + '<br />';
-                  }
-              } else if(Array.isArray(err.body)) {
-                  // When general errors raised
-                  for (let i=0; i<err.body.length; i++){
-                      errorText += err.body[i] + '<br />';
-                  }
-              } else {
-                  // When field errors raised
-                  for (let field_name in err.body){
-                      if (err.body.hasOwnProperty(field_name)){
-                          errorText += field_name + ':<br />';
-                          for (let j=0; j<err.body[field_name].length; j++){
-                              errorText += err.body[field_name][j] + '<br />';
-                          }
-                      }
-                  }
-              }
-              this.errorResponse = errorText;
-              //await swal("Error", errorText, "error");
-          },
+                if(response.ok){
+                    if (this.$parent.offence && this.offence.id) {
+                        await this.loadOffence({
+                            offence_id: this.offence.id,
+                        });
+                    }
+                }
+
+                this.close();
+                this.processingDetails = false;
+            } catch(err) {
+                this.processError(err);
+                this.processingDetails = false;
+            }
+        },
+        processError: async function(err){
+            let errorText = '';
+            if (err.body.non_field_errors) {
+                // When non field errors raised
+                for (let i=0; i<err.body.non_field_errors.length; i++){
+                    errorText += err.body.non_field_errors[i] + '<br />';
+                }
+            } else if(Array.isArray(err.body)) {
+                // When general errors raised
+                for (let i=0; i<err.body.length; i++){
+                    errorText += err.body[i] + '<br />';
+                }
+            } else {
+                // When field errors raised
+                for (let field_name in err.body){
+                    if (err.body.hasOwnProperty(field_name)){
+                        errorText += field_name + ':<br />';
+                        for (let j=0; j<err.body[field_name].length; j++){
+                            errorText += err.body[field_name][j] + '<br />';
+                        }
+                    }
+                }
+            }
+            this.errorResponse = errorText;
+            //await swal("Error", errorText, "error");
+        },
         ...mapActions({
-          loadAllocatedGroup: 'loadAllocatedGroup',  // defined in store/modules/user.js
+            loadAllocatedGroup: 'loadAllocatedGroup',  // defined in store/modules/user.js
         }),
         cancel: async function() {
             if(this.$refs.sanction_outcome_file) {
@@ -562,6 +603,7 @@ export default {
         },
           typeChanged: function(){
               this.constructAllegedOffencesTable();
+              this.check_if_is_parking_offence();
           },
         makeModalsDraggable: function(){
           this.elem_modal = $('.modal > .modal-dialog');
@@ -644,53 +686,50 @@ export default {
           });
         },
         addEventListeners: function() {
-          let vm = this;
-          let el_issue_date = $(vm.$refs.dateOfIssuePicker);
-          let el_due_date = $(vm.$refs.dueDatePicker);
-          let el_issue_time = $(vm.$refs.timeOfIssuePicker);
-  
-          // Issue "Date" field
-          el_issue_date.datetimepicker({
-            format: "DD/MM/YYYY",
-            maxDate: "now",
-            showClear: true
-          });
-          el_issue_date.on("dp.change", function(e) {
-            if (el_issue_date.data("DateTimePicker").date()) {
-              vm.sanction_outcome.date_of_issue = e.date.format("DD/MM/YYYY");
-            } else if (el_issue_date.data("date") === "") {
-              vm.sanction_outcome.date_of_issue = null;
-            }
-          });
-  
-          // Issue "Time" field
-          el_issue_time.datetimepicker({ format: "LT", showClear: true });
-          el_issue_time.on("dp.change", function(e) {
-            if (el_issue_time.data("DateTimePicker").date()) {
-              vm.sanction_outcome.time_of_issue = e.date.format("LT");
-            } else if (el_issue_time.data("date") === "") {
-              vm.sanction_outcome.time_of_issue = null;
-            }
-          });
-  
-          // Due "Date" field
-          el_due_date.datetimepicker({
-            format: "DD/MM/YYYY",
-            showClear: true
-          });
-          el_due_date.on("dp.change", function(e) {
-            if (el_due_date.data("DateTimePicker").date()) {
-              vm.current_remediation_action.due_date = e.date.format("DD/MM/YYYY");
-            } else if (el_due_date.data("date") === "") {
-              vm.current_remediation_action.due_date = null;
-            }
-          });
-  
-          $("#tbl_remediation_actions").on(
-            "click",
-            ".remove_button",
-            vm.removeClicked
-          );
+            let vm = this;
+            let el_issue_date = $(vm.$refs.dateOfIssuePicker);
+            let el_due_date = $(vm.$refs.dueDatePicker);
+            let el_issue_time = $(vm.$refs.timeOfIssuePicker);
+
+            // Issue "Date" field
+            el_issue_date.datetimepicker({
+              format: "DD/MM/YYYY",
+              maxDate: "now",
+              showClear: true
+            });
+            el_issue_date.on("dp.change", function(e) {
+              if (el_issue_date.data("DateTimePicker").date()) {
+                vm.sanction_outcome.date_of_issue = e.date.format("DD/MM/YYYY");
+              } else if (el_issue_date.data("date") === "") {
+                vm.sanction_outcome.date_of_issue = null;
+              }
+            });
+
+            // Issue "Time" field
+            el_issue_time.datetimepicker({ format: "LT", showClear: true });
+            el_issue_time.on("dp.change", function(e) {
+              if (el_issue_time.data("DateTimePicker").date()) {
+                vm.sanction_outcome.time_of_issue = e.date.format("LT");
+              } else if (el_issue_time.data("date") === "") {
+                vm.sanction_outcome.time_of_issue = null;
+              }
+            });
+
+            // Due "Date" field
+            el_due_date.datetimepicker({
+              format: "DD/MM/YYYY",
+              showClear: true
+            });
+            el_due_date.on("dp.change", function(e) {
+              if (el_due_date.data("DateTimePicker").date()) {
+                vm.current_remediation_action.due_date = e.date.format("DD/MM/YYYY");
+              } else if (el_due_date.data("date") === "") {
+                vm.current_remediation_action.due_date = null;
+              }
+            });
+
+            $("#tbl_remediation_actions").on("click", ".remove_button", vm.removeClicked);
+            $("#tbl_alleged_offence").on("click", ".alleged_offence_include", vm.aco_include_clicked);
         },
         removeClicked: function(e) {
           let vm = this;
@@ -738,9 +777,6 @@ export default {
           }
           // User selected the empty line
           vm.sanction_outcome.current_offender = {};
-        },
-        typeSelected: function(e) {
-          this.sanction_outcome.type = e.target.value;
         },
         constructRegionsAndDistricts: async function() {
           let returned_regions = await cache_helper.getSetCacheList(

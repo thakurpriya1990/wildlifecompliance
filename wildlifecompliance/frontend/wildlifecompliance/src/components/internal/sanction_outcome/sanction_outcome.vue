@@ -207,6 +207,15 @@
                                     </div></div>
 
                                     <div class="form-group"><div class="row">
+                                        <div class="col-sm-3">
+                                            <label>Registration Number</label>
+                                        </div>
+                                        <div class="col-sm-6">
+                                            <input :readonly="readonlyForm" class="form-control" v-model="sanction_outcome.registration_number"/>
+                                        </div>
+                                    </div></div>
+
+                                    <div class="form-group"><div class="row">
                                         <div class="col-sm-5">
                                             <label>Alleged committed offence</label>
                                         </div>
