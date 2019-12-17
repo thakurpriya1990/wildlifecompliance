@@ -201,3 +201,34 @@ def save_default_document_obj(instance, temp_document):
 
     document._file = path
     document.save()
+
+def save_details_document_obj(instance, temp_document):
+    document = instance.documents.get_or_create(
+        name=temp_document.name)[0]
+    path = default_storage.save(
+        'wildlifecompliance/{}/{}/details_documents/{}'.format(
+            instance._meta.model_name, 
+            instance.id, 
+            temp_document.name
+            ), 
+            temp_document._file
+        )
+
+    document._file = path
+    document.save()
+
+def save_storage_document_obj(instance, temp_document):
+    document = instance.documents.get_or_create(
+        name=temp_document.name)[0]
+    path = default_storage.save(
+        'wildlifecompliance/{}/{}/storage_documents/{}'.format(
+            instance._meta.model_name, 
+            instance.id, 
+            temp_document.name
+            ), 
+            temp_document._file
+        )
+
+    document._file = path
+    document.save()
+

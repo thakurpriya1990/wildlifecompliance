@@ -3,9 +3,9 @@
         <modal transition="modal fade" @ok="ok()" @cancel="cancel()" title="" large force>
             <div class="container-fluid">
                 <ul class="nav nav-pills">
-                    <li :class="personTabListClass"><a data-toggle="tab" @click="updateTabSelected('pTab')" :href="'#'+pTab">Search Person</a></li>
-                    <li :class="artifactTabListClass"><a data-toggle="tab" @click="updateTabSelected('aTab')" :href="'#'+aTab" >Search Object</a></li>
-                    <li :class="urlTabListClass"><a data-toggle="tab" @click="updateTabSelected('uTab')" :href="'#'+uTab">Insert URL</a></li>
+                    <li :class="personTabListClass"><a data-toggle="tab" @click="updateTabSelected('pTab')" :href="'#'+pTab">Person</a></li>
+                    <li :class="artifactTabListClass"><a data-toggle="tab" @click="updateTabSelected('aTab')" :href="'#'+aTab" >Object</a></li>
+                    <li :class="urlTabListClass"><a data-toggle="tab" @click="updateTabSelected('uTab')" :href="'#'+uTab">URL</a></li>
                 </ul>
                 <div class="tab-content ul-top-buffer">
                     <div :id="pTab" :class="personTabClass"><div class="row">
@@ -21,6 +21,7 @@
                                 ref="search_person_organisation"
                                 v-bind:key="updateSearchPersonOrganisationBindId"
                                 addFullName
+                                :displayTitle="false"
                                 />
                             </div>
                         </div></div>
@@ -52,19 +53,17 @@
                         /-->
                     </div>
                     <div :id="uTab" :class="urlTabClass">
-                        <div class="col-sm-12 form-group"><div class="row">
-                            <div class="col-sm-10">
-                                <div class="col-sm-2">
-                                    <select class="form-control" name="protocol" v-model="urlProtocol">
-                                        <option value="https">https</option>
-                                        <option value="http">http</option>
-                                    </select>
-                                </div>
-                                <div class="col-sm-6">
-                                    <input class="form-control" id="inputUrl" type="text" v-model="urlText"/>
-                                </div>
+                        <div class="col-sm-12">
+                            <div class="col-sm-2">
+                                <select class="form-control" name="protocol" v-model="urlProtocol">
+                                    <option value="https">https</option>
+                                    <option value="http">http</option>
+                                </select>
                             </div>
-                        </div></div>
+                            <div class="col-sm-6">
+                                <input class="form-control" id="inputUrl" type="text" v-model="urlText"/>
+                            </div>
+                        </div>
                     </div>
                 </div>
             </div>
@@ -136,7 +135,7 @@ export default {
         },
         updateSearchPersonOrganisationBindId: function() {
             this.uuid += 1
-            return "SearchPerson_" + this.uuid.toString();
+            return "PersonOrArtifact_SearchPerson_" + this.uuid.toString();
         },
         personTabSelected: function() {
             let isPersonTab = false;
@@ -207,7 +206,14 @@ export default {
         updateTabSelected: function(tabValue) {
             this.tabSelected = tabValue;
         },
-        cancel: function() {
+        cancel: async function() {
+            if (this.artifactTabSelected) {
+                if (this.showDocumentArtifactComponent) {
+                    await this.$refs.document_artifact.cancel();
+                } else if (this.showPhysicalArtifactComponent) {
+                    await this.$refs.physical_artifact.cancel();
+                }
+            }
             this.$emit('modal-action', {
                 row_number_selected: this.rowNumberSelected,
                 action: 'cancel',

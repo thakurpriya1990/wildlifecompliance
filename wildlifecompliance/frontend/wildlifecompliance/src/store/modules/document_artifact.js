@@ -22,20 +22,22 @@ export const documentArtifactStore = {
                 ...document_artifact
             });
             console.log('updateDocumentArtifact');
-            /*
-            if (state.legal_case.case_created_date) {
-                state.legal_case.case_created_date = moment(state.legal_case.case_created_date, 'YYYY-MM-DD').format('DD/MM/YYYY');
+            if (state.document_artifact.artifact_date) {
+                state.document_artifact.artifact_date = moment(state.document_artifact.artifact_date, 'YYYY-MM-DD').format('DD/MM/YYYY');
             }
+            // default doc implemented in Artifact model/viewset
             let defaultDocumentUrl = helpers.add_endpoint_join(
-                api_endpoints.legal_case,
-                state.legal_case.id + "/process_default_document/"
+                api_endpoints.artifact,
+                state.document_artifact.id + "/process_default_document/"
                 )
-            Vue.set(state.legal_case, 'defaultDocumentUrl', defaultDocumentUrl); 
+            Vue.set(state.document_artifact, 'defaultDocumentUrl', defaultDocumentUrl); 
+            // comms log doc implemented in Artifact model/viewset
             let commsLogsDocumentUrl = helpers.add_endpoint_join(
-                api_endpoints.legal_case,
-                state.legal_case.id + "/process_comms_log_document/"
+                api_endpoints.artifact,
+                state.document_artifact.id + "/process_comms_log_document/"
                 )
-            Vue.set(state.legal_case, 'commsLogsDocumentUrl', commsLogsDocumentUrl); 
+            Vue.set(state.document_artifact, 'commsLogsDocumentUrl', commsLogsDocumentUrl); 
+            /*
             let createLegalCaseProcessCommsLogsDocumentUrl = helpers.add_endpoint_join(
                 api_endpoints.legal_case,
                 state.legal_case.id + "/create_legal_case_process_comms_log_document/"
@@ -44,7 +46,7 @@ export const documentArtifactStore = {
             */
         },
         updateRelatedItems(state, related_items) {
-            Vue.set(state.legal_case, 'related_items', related_items);
+            Vue.set(state.document_artifact, 'related_items', related_items);
         },
     },
     actions: {
@@ -71,13 +73,11 @@ export const documentArtifactStore = {
                 let payload = new Object();
                 Object.assign(payload, state.document_artifact);
                 console.log(payload);
-                /*
-                if (payload.case_created_date) {
-                    payload.case_created_date = moment(payload.planned_for_date, 'DD/MM/YYYY').format('YYYY-MM-DD');
-                } else if (payload.case_created_date === '') {
-                    payload.case_created_date = null;
+                if (payload.artifact_date) {
+                    payload.artifact_date = moment(payload.artifact_date, 'DD/MM/YYYY').format('YYYY-MM-DD');
+                } else if (payload.artifact_date === '') {
+                    payload.artifact_date = null;
                 }
-                */
 
                 let fetchUrl = null;
                 if (create) {

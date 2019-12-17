@@ -42,7 +42,10 @@ from wildlifecompliance.components.main.api import save_location
 from wildlifecompliance.components.main.models import TemporaryDocumentCollection
 from wildlifecompliance.components.main.process_document import (
         process_generic_document, 
-        save_comms_log_document_obj
+        save_comms_log_document_obj,
+        save_default_document_obj,
+        save_details_document_obj,
+        save_storage_document_obj,
         )
 from wildlifecompliance.components.main.email import prepare_mail
 from wildlifecompliance.components.users.serializers import (

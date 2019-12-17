@@ -137,6 +137,11 @@ class DocumentArtifactSerializer(ArtifactSerializer):
         #fields = '__all__'
         fields = (
                 'id',
+                'identifier',
+                'description',
+                'custodian',
+                'artifact_date',
+                'artifact_time',
                 'document_type',
                 'document_type_id',
                 'statement',
@@ -153,12 +158,19 @@ class DocumentArtifactSerializer(ArtifactSerializer):
 class SaveDocumentArtifactSerializer(ArtifactSerializer):
     document_type_id = serializers.IntegerField(
         required=False, write_only=True, allow_null=True)
+    custodian_id = serializers.IntegerField(
+        required=False, write_only=True, allow_null=True)
 
     class Meta:
         model = DocumentArtifact
         #fields = '__all__'
         fields = (
                 'id',
+                'identifier',
+                'description',
+                'custodian_id',
+                'artifact_date',
+                'artifact_time',
                 'document_type_id',
                 )
         read_only_fields = (

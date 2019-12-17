@@ -160,7 +160,7 @@ class DocumentArtifact(Artifact):
 
 class PhysicalArtifact(Artifact):
     physical_artifact_type = models.ForeignKey(
-            DocumentArtifactType,
+            PhysicalArtifactType,
             null=True
             )
     #_file = models.FileField(max_length=255)
@@ -261,7 +261,9 @@ class ArtifactUserAction(UserAction):
 
 
 class ArtifactDocument(Document):
-    artifact = models.ForeignKey(Artifact, related_name='documents')
+    artifact = models.ForeignKey(
+            Artifact, 
+            related_name='documents')
     _file = models.FileField(max_length=255)
     input_name = models.CharField(max_length=255, blank=True, null=True)
     # after initial submit prevent document from being deleted
@@ -271,6 +273,26 @@ class ArtifactDocument(Document):
     def delete(self):
         if self.can_delete:
             return super(ArtifactDocument, self).delete()
+
+    class Meta:
+        app_label = 'wildlifecompliance'
+
+
+class DetailsDocument(Document):
+    log_entry = models.ForeignKey(
+        PhysicalArtifact,
+        related_name='details_documents')
+    _file = models.FileField(max_length=255)
+
+    class Meta:
+        app_label = 'wildlifecompliance'
+
+
+class StorageDocument(Document):
+    log_entry = models.ForeignKey(
+        PhysicalArtifact,
+        related_name='storage_documents')
+    _file = models.FileField(max_length=255)
 
     class Meta:
         app_label = 'wildlifecompliance'
