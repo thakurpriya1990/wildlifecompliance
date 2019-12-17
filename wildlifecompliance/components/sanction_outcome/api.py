@@ -482,7 +482,7 @@ class SanctionOutcomeViewSet(viewsets.ModelViewSet):
 
                 # Validate if an offender is selected
                 if not instance.offender:
-                    if not instance.is_parking_offence:
+                    if not instance.is_parking_offence:  #
                         raise serializers.ValidationError(['An offender must be selected.'])
 
                 for id in request_data['alleged_offence_ids_excluded']:
@@ -850,13 +850,13 @@ class SanctionOutcomeViewSet(viewsets.ModelViewSet):
                     else:
                         instance.send_to_dot()
 
-                        # Send email to DoT with attachment
-                        to_address = ['shibaken+dot@dbca.gov.wa.au', ]
-                        cc = [instance.responsible_officer.email, request.user.email,]
-                        bcc = None
-                        email_data = email_detais_to_department_of_transport(to_address, instance, request, cc, bcc)
+                        # Send email to DoT with attachment  <== This should be performed by the cron
+                        # to_address = ['shibaken+dot@dbca.gov.wa.au', ]
+                        # cc = [instance.responsible_officer.email, request.user.email,]
+                        # bcc = None
+                        # email_data = email_detais_to_department_of_transport(to_address, instance, request, cc, bcc)
 
-                        instance.log_user_action(SanctionOutcomeUserAction.ACTION_SEND_TO_DOT.format(instance.lodgement_number), request)
+                        # instance.log_user_action(SanctionOutcomeUserAction.ACTION_SEND_TO_DOT.format(instance.lodgement_number), request)
 
                 elif workflow_type == SanctionOutcome.WORKFLOW_RETURN_TO_OFFICER:
                     if not reason:

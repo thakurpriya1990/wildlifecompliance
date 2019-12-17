@@ -97,7 +97,7 @@ class Command(BaseCommand):
                         sanction_outcome_id = dict_item.get('sanction_outcome')
                         sanction_outcome_ids.append(sanction_outcome_id)
                         so = SanctionOutcome.objects.get(id=sanction_outcome_id)
-                        content_body += so.get_content()
+                        content_body += so.get_content_for_uin()
                         penalty_amount_total += so.penalty_amount_2nd
 
                     # Construct trailer

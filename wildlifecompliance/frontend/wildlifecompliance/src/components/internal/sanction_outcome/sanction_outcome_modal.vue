@@ -423,11 +423,13 @@ export default {
         },
         current_type: {
             handler: function() {
+                console.log('current_type in watch');
                 this.typeChanged();
             }
         },
         current_offence: {
             handler: function() {
+                console.log('current_offence in watch');
                 this.currentOffenceChanged();
             }
         },
@@ -446,14 +448,11 @@ export default {
         ...mapGetters("offenceStore", {
           offence: "offence"
         }),
-        console_test: function() {
-            console.log('is_parking_offence');
-            console.log(this.is_parking_offence);
-        },
         issued_on_paper: function() {
             return this.sanction_outcome.issued_on_paper;
         },
         current_offence: function() {
+            console.log('current_offence in computed');
             return this.sanction_outcome.current_offence;
         },
         current_offender: function() {
@@ -463,7 +462,7 @@ export default {
             return this.sanction_outcome.region_id;
         },
         current_type: function() {
-            console.log('current_type');
+            console.log('current_type in computed');
             return this.sanction_outcome.type;
         },
         modalTitle: function() {
@@ -516,8 +515,6 @@ export default {
             loadOffence: 'loadOffence',
         }),
         aco_include_clicked: function() {
-            console.log('include  clicked');
-
             let vm = this;
             vm.aco_ids_included = [];
             vm.aco_ids_excluded = [];
@@ -532,6 +529,7 @@ export default {
             vm.check_if_is_parking_offence();
         },
         check_if_is_parking_offence: function() {
+            console.log('check_if_is_parking_offence');
             this.is_parking_offence = false;
             if (this.sanction_outcome.type == 'infringement_notice' && this.aco_ids_included.length == 1){
                 for (let i=0; i < this.aco_ids_included.length; i++){
@@ -602,6 +600,7 @@ export default {
             this.close();
         },
           typeChanged: function(){
+              console.log('typeChanged called by watch');
               this.constructAllegedOffencesTable();
               this.check_if_is_parking_offence();
           },
@@ -616,7 +615,6 @@ export default {
             this.isModalOpen = false;
         },
         loadDefaultData: function() {
-            console.log('loadDefaultData');
             if (this.$parent.call_email) {
                 this.sanction_outcome.region_id = this.$parent.call_email.region_id;
                 this.sanction_outcome.district_id = this.$parent.call_email.district_id;
@@ -658,7 +656,6 @@ export default {
           }
         },
         updateDistricts: function(updateFromUI) {
-          console.log('updateDistricts');
           if (updateFromUI) {
             // We don't want to clear the default district selection when initially loaded, which derived from the call_email
             this.sanction_outcome.district_id = null;
@@ -750,7 +747,6 @@ export default {
           });
         },
         offenceSelected: function(e) {
-            console.log('offenceSelected');
           let vm = this;
           let offence_id = parseInt(e.target.value);
           for (let i = 0; i < vm.options_for_offences.length; i++) {
@@ -764,7 +760,6 @@ export default {
           vm.sanction_outcome.current_offence = {};
         },
         offenderSelected: function(e) {
-          console.log('offenderSelected');
           let vm = this;
           let offender_id = parseInt(e.target.value);
           for ( let i = 0; i < vm.sanction_outcome.current_offence.offenders.length; i++) {
@@ -839,7 +834,6 @@ export default {
             return savedObj;
         },
         currentOffenderChanged: function() {
-          console.log("currentOffenderChanged");
         },
         clearTableAllegedOffence: function() {
           this.$refs.tbl_alleged_offence.vmDataTable.rows().remove().draw(); // Clear the table anyway
@@ -848,14 +842,17 @@ export default {
           this.$refs.tbl_remediation_actions.vmDataTable.rows().remove().draw(); // Clear the table anyway
         },
         currentOffenceChanged: function() {
-          this.sanction_outcome.current_offender = {};
+            console.log('currentOffenceChanged called by watch');
+            this.sanction_outcome.current_offender = {};
   
-          // The dropdown list of the offenders are directly linked to the vm.sanction_outcome.offence.offenders.
-          // That's why the dropdown list is updated automatically whenever vm.sanction_outcome.offence is chanaged.
-          this.constructAllegedOffencesTable();
+            // The dropdown list of the offenders are directly linked to the vm.sanction_outcome.offence.offenders.
+            // That's why the dropdown list is updated automatically whenever vm.sanction_outcome.offence is chanaged.
+            this.constructAllegedOffencesTable();
         },
         constructAllegedOffencesTable: function(){
             // Construct the datatable of the alleged offences
+            console.log('constructAllegedOffencesTable');
+
             this.clearTableAllegedOffence();
   
             if (this.sanction_outcome.current_offence && this.sanction_outcome.current_offence.alleged_offences) {
@@ -872,7 +869,6 @@ export default {
             }
         },
         updateOptionsForOffences: async function() {
-            console.log('updateOptionsForOffences');
             let returned = null;
             if (this.$parent.call_email && this.$parent.call_email.id) {
                 returned = await Vue.http.get("/api/offence/filter_by_call_email.json", {

@@ -1,25 +1,10 @@
 import datetime
 import logging
-import traceback
-from io import BytesIO
-
-from django.core.files import File
-from django.core.mail import EmailMultiAlternatives, EmailMessage
-from django.utils.encoding import smart_text
 from django.core.urlresolvers import reverse
 from django.conf import settings
-
-from ledger.accounts.models import EmailUser
-from ledger.payments.pdf import create_invoice_pdf_bytes
-from ledger.payments.models import Invoice
-from wildlifecompliance.components.main.utils import get_choice_value
 from wildlifecompliance.components.emails.emails import TemplateEmailBase
 from wildlifecompliance.components.main.email import prepare_attachments, _extract_email_headers
-import os
-
-from wildlifecompliance.components.sanction_outcome.models import SanctionOutcomeCommsLogDocument
 from wildlifecompliance.components.sanction_outcome.pdf import create_infringement_notice_pdf_bytes
-from wildlifecompliance.components.users.models import CompliancePermissionGroup
 
 logger = logging.getLogger(__name__)
 
@@ -162,7 +147,6 @@ def send_unpaid_infringements_file(to_address, cc=None, bcc=None, attachements=[
     }
     msg = email.send(to_address,
                      context=context,
-                     # attachments=[('infringement_notice.pdf', pdf, 'application/pdf')],
                      attachments=attachements,
                      cc=cc,
                      bcc=bcc)
@@ -225,24 +209,21 @@ def send_return_to_officer_email(to_address, sanction_outcome, workflow_entry, r
     return email_data
 
 
-def email_detais_to_department_of_transport(to_address, sanction_outcome, request, cc=None, bcc=None):
+def email_detais_to_department_of_transport(to_address, attachments, cc=None, bcc=None):
     email = SendDetailsToDotEmail()
-    if request.data.get('email_subject'):
-        email.subject = request.data.get('email_subject')
-    url = request.build_absolute_uri(reverse('internal-sanction-outcome-detail', kwargs={'sanction_outcome_id': sanction_outcome.id}))
     context = {
-        'url': url,
-        'sanction_outcome': sanction_outcome,
-        'workflow_entry_details': request.data.get('details'),
+        # 'url': url,
+        'workflow_entry_details': 'This is body for dot mail.',
     }
     msg = email.send(to_address,
                      context=context,
-                     attachments=[],
+                     attachments=attachments,
                      cc=cc,
                      bcc=bcc,
                      )
-    sender = request.user if request else settings.DEFAULT_FROM_EMAIL
+    sender = settings.DEFAULT_FROM_EMAIL
     email_data = _extract_email_headers(msg, sender=sender)
+
     return email_data
 
 

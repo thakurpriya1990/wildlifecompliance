@@ -12,6 +12,7 @@ from ledger.accounts.models import EmailUser, RevisionedMixin
 from wildlifecompliance.components.main.models import Document, CommunicationsLogEntry
 from wildlifecompliance.components.main.related_item import can_close_record
 from wildlifecompliance.components.offence.models import Offence, Offender, AllegedOffence
+from wildlifecompliance.components.sanction_outcome.email import email_detais_to_department_of_transport
 from wildlifecompliance.components.sanction_outcome_due.models import SanctionOutcomeDueDateConfiguration
 from wildlifecompliance.components.sanction_outcome_due.serializers import SaveSanctionOutcomeDueDateSerializer
 from wildlifecompliance.components.section_regulation.models import SectionRegulation
@@ -163,14 +164,14 @@ class SanctionOutcome(models.Model):
         is_parking_offence = False
 
         if self.type == SanctionOutcome.TYPE_INFRINGEMENT_NOTICE:
-            qs_allegedCommittedOffences = self.retrieve_alleged_committed_offences()
+            qs_allegedCommittedOffences = AllegedCommittedOffence.objects.filter(sanction_outcome=self)
             for aco in qs_allegedCommittedOffences:
                 if aco.included and aco.alleged_offence.section_regulation.is_parking_offence:
                     is_parking_offence = True
 
         return is_parking_offence
 
-    def get_content(self):
+    def get_content_for_uin(self):
         offender = self.get_offender()
         uin = UnpaidInfringementFileBody()
         uin.offenders_surname.set(offender.last_name)
@@ -766,6 +767,20 @@ class SanctionOutcomeUserAction(models.Model):
             who=user,
             what=str(action)
         )
+
+
+class DotRequestFile(models.Model):
+    contents = models.TextField(blank=True)
+    filename = models.CharField(max_length=100, blank=True)
+    created_at = models.DateTimeField(auto_now_add=True)
+    updated_at = models.DateTimeField(auto_now=True)
+    sanction_outcomes = models.ManyToManyField(SanctionOutcome, related_name='dot_request_files')  # Make this manytomany for now, but it is used as onetomany
+
+    class Meta:
+        app_label = 'wildlifecompliance'
+        verbose_name = 'CM_DotReguestFile'
+        verbose_name_plural = 'CM_DotReguestFiles'
+
 
 
 class UnpaidInfringementFile(models.Model):
