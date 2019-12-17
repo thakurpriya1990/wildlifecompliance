@@ -107,6 +107,14 @@ def send_assessment_reminder_email(select_group, assessment, request=None):
             'internal-application-detail',
             kwargs={
                 'application_pk': application.id}))
+
+    if '-internal' not in url:
+        url = "{0}://{1}{2}.{3}{4}".format(request.scheme,
+                                           settings.SITE_PREFIX,
+                                           '-internal',
+                                           settings.SITE_DOMAIN,
+                                           url.split(request.get_host())[1])
+
     context = {
         'url': url
     }
@@ -126,6 +134,14 @@ def send_assessment_email_notification(select_group, assessment, request):
             'internal-application-detail',
             kwargs={
                 'application_pk': application.id}))
+
+    if '-internal' not in url:
+        url = "{0}://{1}{2}.{3}{4}".format(request.scheme,
+                                           settings.SITE_PREFIX,
+                                           '-internal',
+                                           settings.SITE_DOMAIN,
+                                           url.split(request.get_host())[1])
+
     context = {
         'text': text,
         'url': url
@@ -284,6 +300,13 @@ def send_amendment_submit_email_notification(
             kwargs={
                 'application_pk': application.id}))
 
+    if '-internal' not in url:
+        url = "{0}://{1}{2}.{3}{4}".format(request.scheme,
+                                           settings.SITE_PREFIX,
+                                           '-internal',
+                                           settings.SITE_DOMAIN,
+                                           url.split(request.get_host())[1])
+
     context = {
         'application': application,
         'url': url
@@ -402,6 +425,14 @@ def send_id_updated_notification(user, applications, assigned_officers, request)
     url = request.build_absolute_uri(
         '/internal/users/{}'.format(user.id)
     )
+
+    if '-internal' not in url:
+        url = "{0}://{1}{2}.{3}{4}".format(request.scheme,
+                                           settings.SITE_PREFIX,
+                                           '-internal',
+                                           settings.SITE_DOMAIN,
+                                           url.split(request.get_host())[1])
+
     applications_list_string = ', '.join([str(application.id) for application in applications])
     context = {
         'user': '{first_name} {last_name}'.format(
@@ -426,6 +457,13 @@ def send_application_return_to_officer_conditions_notification(
             'internal-application-detail',
             kwargs={
                 'application_pk': application.id}))
+
+    if '-internal' not in url:
+        url = "{0}://{1}{2}.{3}{4}".format(request.scheme,
+                                           settings.SITE_PREFIX,
+                                           '-internal',
+                                           settings.SITE_DOMAIN,
+                                           url.split(request.get_host())[1])
 
     context = {
         'application': application,
