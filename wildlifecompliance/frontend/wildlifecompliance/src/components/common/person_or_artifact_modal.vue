@@ -26,10 +26,30 @@
                         </div></div>
                     </div></div>
                     <div :id="aTab" :class="artifactTabClass">
-                        <Artifact 
+                        <div class="col-sm-12">
+                            <div class="col-sm-3">
+                                <input type="radio" id="document" value="document" v-model="componentType">
+                                <label for="document">Document</label>
+                            </div>
+                            <div class="col-sm-3">
+                                <input type="radio" id="physical" value="physical" v-model="componentType">
+                                <label for="physical">Physical Object</label>
+                            </div>
+                            <!--select class="form-control" v-model="componentType">
+                                <option value="document">Document</option>
+                                <option value="physical">Physical Object</option>
+                              </select-->
+                        </div>
+                        <div v-if="showDocumentArtifactComponent" class="row">
+                            <DocumentArtifact 
+                            ref="document_artifact"
+                            @entity-selected="entitySelected"
+                            />
+                        </div>
+                        <!--Artifact 
                         ref="artifact"
                         @entity-selected="entitySelected"
-                        />
+                        /-->
                     </div>
                     <div :id="uTab" :class="urlTabClass">
                         <div class="col-sm-12 form-group"><div class="row">
@@ -55,7 +75,7 @@
 import Vue from "vue";
 import modal from '@vue-utils/bootstrap-modal.vue';
 import SearchPersonOrganisation from './search_person_or_organisation'
-import Artifact from './artifact_component'
+import DocumentArtifact from './document_artifact_component'
 
 export default {
     name: "PersonOrArtifactModal",
@@ -70,6 +90,7 @@ export default {
         pTab: 'pTab' + this._uid,
         aTab: 'aTab' + this._uid,
         uTab: 'uTab' + this._uid,
+        componentType: '',
         //image: "/static/wildlifecompliance_vue/img/shibaken.jpg"
         //image: "/static/wildlifecompliance_vue/img/shibaken.c4c9d81.jpg"
         //image: "../../../assets/img/shibaken.jpg"
@@ -96,9 +117,23 @@ export default {
     components: {
       modal,
       SearchPersonOrganisation,
-      Artifact,
+      DocumentArtifact,
     },
     computed: {
+        showDocumentArtifactComponent: function() {
+            let showComponent = false;
+            if (this.componentType === 'document') {
+                showComponent = true;
+            }
+            return showComponent;
+        },
+        showPhysicalArtifactComponent: function() {
+            let showComponent = false;
+            if (this.componentType === 'physical') {
+                showComponent = true;
+            }
+            return showComponent;
+        },
         updateSearchPersonOrganisationBindId: function() {
             this.uuid += 1
             return "SearchPerson_" + this.uuid.toString();
@@ -181,7 +216,11 @@ export default {
         },
         ok: async function() {
             if (this.artifactTabSelected) {
-                await this.$refs.artifact.parentSave();
+                if (this.showDocumentArtifactComponent) {
+                    await this.$refs.document_artifact.parentSave();
+                } else if (this.showPhysicalArtifactComponent) {
+                    await this.$refs.physical_artifact.parentSave();
+                }
             }
             if (this.urlTabSelected && this.urlText) {
                 this.submitUrl();

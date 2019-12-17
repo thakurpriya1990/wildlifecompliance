@@ -91,7 +91,7 @@ export const documentArtifactStore = {
                     console.log(payload);
                     savedDocumentArtifact = await Vue.http.put(fetchUrl, payload);
                 }
-                //await dispatch("setLegalCase", savedLegalCase.body);
+                await dispatch("setArtifact", savedDocumentArtifact.body);
                 documentArtifactId = savedDocumentArtifact.body.id;
 
             } catch (err) {

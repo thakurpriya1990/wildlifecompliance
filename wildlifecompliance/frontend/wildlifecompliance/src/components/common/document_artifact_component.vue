@@ -94,6 +94,12 @@ export default {
             temporary_document_collection_id: null,
             documentArtifactTypes: [],
             physicalArtifactTypes: [],
+            /*
+            entity: {
+                id: null,
+                data_type: 'document_artifact',
+            },
+            */
         }
     },
     components: {
@@ -104,6 +110,13 @@ export default {
       ...mapGetters('documentArtifactStore', {
         document_artifact: "document_artifact",
       }),
+      artifactType: function() {
+          let aType = ''
+          if (this.document_artifact && this.document_artifact.document_type) {
+              aType = this.document_artifact.document_type.artifact_type;
+          }
+          return aType;
+      },
         /*
       ...mapGetters('physicalArtifactStore', {
         physical_artifact: "physical_artifact",
@@ -132,8 +145,14 @@ export default {
                 savedEmailUser = {'ok': true};
             }
             */
-            documentArtifactEntity = await this.saveDocumentArtifact({'parentSave': true})
-            return documentArtifactEntity;
+            await this.saveDocumentArtifact({'parentSave': true})
+            //this.entity.id = 
+            this.$emit('entity-selected', {
+                id: this.document_artifact.id,
+                data_type: 'document_artifact',
+                artifact_type: this.artifactType,
+            });
+            //return documentArtifactEntity;
         },
         cancel: async function() {
             await this.$refs.comms_log_file.cancel();
