@@ -235,10 +235,12 @@ class DocumentArtifactViewSet(viewsets.ModelViewSet):
                     instance.log_user_action(
                             ArtifactUserAction.ACTION_CREATE_ARTIFACT.format(
                             instance.number), request)
+                    headers = self.get_success_headers(serializer.data)
+                    return_serializer = DocumentArtifactSerializer(instance, context={'request': request})
                     return Response(
-                            #serializer.data,
+                            return_serializer.data,
                             status=status.HTTP_201_CREATED,
-                            #headers=headers
+                            headers=headers
                             )
                     # Create comms_log and send mail
                     #res = self.workflow_action(request, instance, create_legal_case=True)

@@ -280,6 +280,11 @@ export default {
             Object.assign(this.entity, urlEntity);
         }
     },
+    /*
+    destroyed: function() {
+        console.log("destroyed")
+    },
+    */
     created: async function() {
         if (this.initialTabSelected === 'person') {
             this.tabSelected = 'pTab';

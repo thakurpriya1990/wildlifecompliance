@@ -65,8 +65,7 @@ export const documentArtifactStore = {
                 console.log(err);
             }
         },
-        async saveDocumentArtifact({ dispatch, state, rootGetters }, { create, internal, parentSave }) {
-            console.log(parentSave)
+        async saveDocumentArtifact({ dispatch, state, rootGetters }, { create, internal }) {
             let documentArtifactId = null;
             let savedDocumentArtifact = null;
             try {
@@ -91,7 +90,7 @@ export const documentArtifactStore = {
                     console.log(payload);
                     savedDocumentArtifact = await Vue.http.put(fetchUrl, payload);
                 }
-                await dispatch("setArtifact", savedDocumentArtifact.body);
+                await dispatch("setDocumentArtifact", savedDocumentArtifact.body);
                 documentArtifactId = savedDocumentArtifact.body.id;
 
             } catch (err) {
@@ -112,7 +111,7 @@ export const documentArtifactStore = {
                 await swal("Saved", "The record has been saved", "success");
             }
         },
-        setArtifact({ commit, }, document_artifact) {
+        setDocumentArtifact({ commit, }, document_artifact) {
             commit("updateDocumentArtifact", document_artifact);
         },
         setRelatedItems({ commit }, related_items ) {
