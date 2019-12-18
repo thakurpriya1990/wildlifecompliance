@@ -803,6 +803,8 @@ export default {
           Object.assign(this.regionDistricts, returned_region_districts);
         },
         sendData: async function() {
+            console.log('sendData');
+
             let vm = this;
             let alleged_offence_ids_included = [];
             let alleged_offence_ids_excluded = [];
@@ -820,7 +822,10 @@ export default {
             let payload = new Object();
             Object.assign(payload, vm.sanction_outcome);
             if (payload.date_of_issue) {
-                payload.date_of_issue = moment(payload.date_of_issue, "DD/MM/YYYY").format("YYYY-MM-DD");
+                if (moment(payload.date_of_issue, "DD/MM/YYYY").isValid()){
+                    // Format date only when it is not formatted yet.
+                    payload.date_of_issue = moment(payload.date_of_issue, "DD/MM/YYYY").format("YYYY-MM-DD");
+                }
             }
             payload.alleged_offence_ids_included = alleged_offence_ids_included;
             payload.alleged_offence_ids_excluded = alleged_offence_ids_excluded;
@@ -831,12 +836,18 @@ export default {
             let remediation_actions = vm.$refs.tbl_remediation_actions.vmDataTable.rows().data().toArray();
             payload.remediation_actions = remediation_actions;
             for (let i = 0; i < payload.remediation_actions.length; i++) {
-                payload.remediation_actions[i].due_date = moment(payload.remediation_actions[i].due_date, "DD/MM/YYYY").format("YYYY-MM-DD");
+                if (moment(payload.remediation_actions[i].due_date, "DD/MM/YYYY").isValid()){
+                    // Format date only when it is not formatted yet.
+                    payload.remediation_actions[i].due_date = moment(payload.remediation_actions[i].due_date, "DD/MM/YYYY").format("YYYY-MM-DD");
+                }
             }
   
             payload.call_email_id = this.$parent.call_email ? this.$parent.call_email.id : null;
             payload.inspection_id = this.$parent.inspection ? this.$parent.inspection.id : null;
             payload.workflow_type = 'send_to_manager'  // Because this modal is used only when creating new sanction outcome to send to manager
+
+            console.log('payload');
+            console.log(payload);
   
             const savedObj = await Vue.http.post(postUrl, payload);
             return savedObj;
