@@ -368,8 +368,8 @@ class LegalCaseViewSet(viewsets.ModelViewSet):
                     for entry in running_sheet_entries:
                         entry_copy = dict(entry)
                         description = entry_copy.get('description', '')
-                        clean_description = description.replace(u'\xa0', u' ')
-                        entry_copy.update({'description': clean_description})
+                        ascii_description = description.encode('ascii', 'xmlcharrefreplace')
+                        entry_copy.update({'description': ascii_description})
                         entry_id = LegalCaseRunningSheetEntry.objects.get(id = entry_copy.get('id'))
                         running_sheet_entry_serializer = SaveLegalCaseRunningSheetEntrySerializer(
                                 instance=entry_id, 
@@ -377,11 +377,6 @@ class LegalCaseViewSet(viewsets.ModelViewSet):
                         running_sheet_entry_serializer.is_valid(raise_exception=True)
                         if running_sheet_entry_serializer.is_valid():
                             running_sheet_entry_serializer.save()
-                    #running_sheet_saved = True
-
-                #create_new_running_sheet_entry = request.data.get('create_new_running_sheet_entry')
-                #if create_new_running_sheet_entry:
-                #    self.create_running_sheet_entry(request, instance)
 
                 serializer = SaveLegalCaseSerializer(instance, data=request.data)
                 serializer.is_valid(raise_exception=True)
@@ -393,7 +388,7 @@ class LegalCaseViewSet(viewsets.ModelViewSet):
                             LegalCaseUserAction.ACTION_SAVE_LEGAL_CASE.format(
                             instance.number), request)
                     headers = self.get_success_headers(serializer.data)
-                    return_serializer = LegalCaseSerializer(instance, context={'request': request})
+                    #return_serializer = LegalCaseSerializer(instance, context={'request': request})
                     return Response(
                             #return_serializer.data,
                             status=status.HTTP_201_CREATED,
