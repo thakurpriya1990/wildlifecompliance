@@ -106,6 +106,7 @@ class SaveUserAddressSerializer(serializers.ModelSerializer):
 
 
 class EmailUserSerializer(serializers.ModelSerializer):
+    full_name = serializers.SerializerMethodField()
     residential_address = UserAddressSerializer()
 
     class Meta:
@@ -113,6 +114,7 @@ class EmailUserSerializer(serializers.ModelSerializer):
         fields = (
             'id',
             'email',
+            'full_name',
             'first_name',
             'last_name',
             'residential_address',
@@ -121,6 +123,9 @@ class EmailUserSerializer(serializers.ModelSerializer):
             'organisation',
             'dob',
         )
+
+    def get_full_name(self, obj):
+        return obj.get_full_name()
 
 
 class ComplianceFormDataRecordSerializer(serializers.ModelSerializer):

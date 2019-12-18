@@ -53,5 +53,10 @@ module.exports = {
     compliance_management_users: '/api/compliance_management_users/',
     legal_case: '/api/legal_case/',
     legal_case_priorities: '/api/legal_case_priorities/',
+    document_artifact_types: '/api/document_artifact_types/',
+    physical_artifact_types: '/api/physical_artifact_types/',
+    artifact: '/api/artifact/',
+    physical_artifact: '/api/physical_artifact/',
+    document_artifact: '/api/document_artifact/',
 }
 
