@@ -123,6 +123,7 @@ export const legalCaseStore = {
                         api_endpoints.legal_case,
                         state.legal_case.id + '/'
                         )
+                    console.log(payload);
                     savedLegalCase = await Vue.http.put(fetchUrl, payload);
                 }
                 //await dispatch("setLegalCase", savedLegalCase.body);
