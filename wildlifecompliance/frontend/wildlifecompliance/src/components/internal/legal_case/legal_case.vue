@@ -563,7 +563,7 @@ export default {
             recordDescriptionHtml = this.cancelModalUrl(recordNumberElement)
         } else if (entity && entity.data_type === 'individual' && action === 'ok') {
             recordDescriptionHtml = this.insertPersonModalUrl({"entity": entity, "recordNumberElement": recordNumberElement})
-        } else if (entity && entity.data_type === 'artifact' && action === 'ok') {
+        } else if (entity && entity.data_type === 'document_artifact' && action === 'ok') {
             recordDescriptionHtml = this.insertArtifactModalUrl({"entity": entity, "recordNumberElement": recordNumberElement})
         } else if (entity && entity.data_type === 'url' && action === 'ok') {
             recordDescriptionHtml = this.insertModalUrl({"entity": entity, "recordNumberElement": recordNumberElement})
@@ -603,11 +603,12 @@ export default {
     */
     insertArtifactModalUrl: function({"entity": entity, "recordNumberElement": recordNumberElement}) {
         let replacementVal = ''
-            // TODO: replace with correct artifact url
-        if (entity.full_name) {
-            replacementVal = `<a contenteditable="false" target="_blank" href="/internal/users/${entity.id}">${entity.full_name}</a>`
+        // TODO: replace with correct artifact url
+        if (entity.artifact_type) {
+            replacementVal = `<a contenteditable="false" target="_blank" href="/internal/users/${entity.id}">${entity.artifact_type}</a>`
         }
         let recordDescriptionHtml = recordNumberElement[0].innerHTML.replace(this.tabSelectedKeyCombination, replacementVal).replace(/&nbsp\;/g, ' ');
+        console.log(recordDescriptionHtml);
         return recordDescriptionHtml;
     },
     cancelModalUrl: function(recordNumberElement) {
@@ -617,6 +618,7 @@ export default {
         return recordDescriptionHtml;
     },
     insertModalUrl: function({"entity": entity, "recordNumberElement": recordNumberElement}) {
+        console.log(entity)
         let replacementVal = ''
         /*
         console.log(entity)
@@ -624,7 +626,8 @@ export default {
         */
 
         if (entity.url) {
-            let fullUrl = "https://" + entity.url.trim();
+            //let fullUrl = "https://" + entity.url.trim();
+            let fullUrl = entity.urlProtocol + "://" + entity.url.trim();
             replacementVal = `<a contenteditable="false" target="_blank" href=${fullUrl}>${entity.url}</a>`
             //replacementVal = `<a target="_blank" href=${fullUrl}>${entity.url}</a>`
         }
@@ -868,6 +871,8 @@ export default {
             this.searchArtifactKeyPressed = false;
         } else if (e.key === '!' && e.shiftKey) {
             this.searchArtifactKeyPressed = true;
+            this.searchPersonKeyPressed = false;
+            this.insertUrlKeyPressed = false;
         } else if (e.key === '@' && e.shiftKey && this.searchPersonKeyPressed) {
             //let rowElement = $('#' + e.target.id);
             //this.openSearchPersonOrganisation(e.target.id)
@@ -877,6 +882,8 @@ export default {
             this.searchPersonKeyPressed = false;
         } else if (e.key === '@' && e.shiftKey) {
             this.searchPersonKeyPressed = true;
+            this.searchArtifactKeyPressed = false;
+            this.insertUrlKeyPressed = false;
         } else if (e.key === '^' && e.shiftKey && this.insertUrlKeyPressed) {
             this.rowNumberSelected = e.target.id;
             this.tabSelected = 'url';
@@ -887,6 +894,8 @@ export default {
             this.insertUrlKeyPressed = false;
         } else if (e.key === '^' && e.shiftKey) {
             this.insertUrlKeyPressed = true;
+            this.searchPersonKeyPressed = false;
+            this.searchArtifactKeyPressed = false;
         } else if (e.key === 'Shift' && e.shiftKey) {
             // pass
         } else {
