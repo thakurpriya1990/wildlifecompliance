@@ -18,7 +18,7 @@ def retrieve_department_users():
     try:
         res = requests.get('{}/api/users?minimal'.format(settings.CMS_URL), auth=(settings.LEDGER_USER,settings.LEDGER_PASS), verify=False)
         res.raise_for_status()
-        #cache.set('department_users',json.loads(res.content).get('objects'),10800)
+        cache.set('department_users',json.loads(res.content).get('objects'),10800)
         #print("type(res.content)")
         #print(type(res.content))
         return_json = json.loads(res.content).get('objects')

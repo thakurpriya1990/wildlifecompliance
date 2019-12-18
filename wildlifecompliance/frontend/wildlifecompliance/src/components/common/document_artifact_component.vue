@@ -69,6 +69,13 @@
                                                 <label>Witness</label>
                                             </div>
                                             <div class="col-sm-9">
+                                                <select class="form-control" v-model="document_artifact.custodian_ad">
+                                                    <option  v-for="option in departmentStaffList" :value="option.pk" v-bind:key="option.pk">
+                                                    {{ option.name }} 
+                                                    </option>
+                                                </select>
+                                            </div>
+                                            <!--div class="col-sm-9">
                                                 <SearchPersonOrganisation 
                                                 personOnly
                                                 :isEditable="!readonlyForm" 
@@ -82,7 +89,7 @@
                                                 domIdHelper="document_artifact"
                                                 departmentalStaff
                                                 />
-                                            </div>
+                                            </div-->
                                         </div>
                                     </div>
                                     <div class="form-group">
@@ -148,6 +155,7 @@ export default {
             temporary_document_collection_id: null,
             documentArtifactTypes: [],
             physicalArtifactTypes: [],
+            departmentStaffList: [],
             entity: {
                 id: null,
             },
@@ -252,6 +260,20 @@ export default {
                 }
             });
         },
+        compare: function(a, b) {
+            console.log("compare")
+            const nameA = a.name.toLowerCase();
+            const nameB = b.name.toLowerCase();
+
+            let comparison = 0;
+            if (this.bandA > this.bandB) {
+                comparison = 1;
+            } else if (this.bandA < this.bandB) {
+                comparison = -1;
+            }
+            return comparison;
+        },
+
 
       //createDocumentActionUrl: async function(done) {
       //  if (!this.inspection.id) {
@@ -280,25 +302,44 @@ export default {
     },
     */
     created: async function() {
-      console.log("created")
-      if (this.$route.params.document_artifact_id) {
-          await this.loadDocumentArtifact({ document_artifact_id: this.$route.params.document_artifact_id });
-      }
-      //await this.loadDocumentArtifact({ document_artifact_id: 1 });
-      //console.log(this)
-      // document artifact types
-      let returned_document_artifact_types = await cache_helper.getSetCacheList(
+        console.log("created")
+        if (this.$route.params.document_artifact_id) {
+            await this.loadDocumentArtifact({ document_artifact_id: this.$route.params.document_artifact_id });
+        }
+        //await this.loadDocumentArtifact({ document_artifact_id: 1 });
+        //console.log(this)
+        // document artifact types
+        let returned_document_artifact_types = await cache_helper.getSetCacheList(
           'DocumentArtifactTypes',
           api_endpoints.document_artifact_types
           );
-      Object.assign(this.documentArtifactTypes, returned_document_artifact_types);
-      // blank entry allows user to clear selection
-      this.documentArtifactTypes.splice(0, 0,
+        Object.assign(this.documentArtifactTypes, returned_document_artifact_types);
+        // blank entry allows user to clear selection
+        this.documentArtifactTypes.splice(0, 0,
           {
             id: "",
             artifact_type: "",
             description: "",
           });
+        /*
+        let returned_department_staff = await cache_helper.getSetCacheList(
+          'DepartmentStaff',
+          //'https://itassets.dbca.wa.gov.au/api/users/fast/?minimal=true'
+          api_endpoints.get_department_users
+          );
+        const sorted_department_staff = returned_department_staff.sort(this.compare);
+        this.$nextTick(() => {
+            Object.assign(this.departmentStaffList, sorted_department_staff);
+            // blank entry allows user to clear selection
+            this.departmentStaffList.splice(0, 0,
+              {
+                pk: "",
+                name: "",
+                //artifact_type: "",
+                //description: "",
+              });
+        });
+        */
 
     },
 };
