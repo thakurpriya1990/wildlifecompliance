@@ -426,6 +426,9 @@ class SaveRemediationActionSerializer(serializers.ModelSerializer):
             'sanction_outcome_id',
         )
 
+    def validate(self, obj):
+        return obj
+
 
 class SanctionOutcomeUserActionSerializer(serializers.ModelSerializer):
     # who = serializers.CharField(source='who.get_full_name')
