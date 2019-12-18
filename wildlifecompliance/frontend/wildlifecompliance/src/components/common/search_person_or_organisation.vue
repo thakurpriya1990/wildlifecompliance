@@ -51,6 +51,7 @@ import "awesomplete/awesomplete.css";
 import updateCreatePerson from '@common-components/update_create_person.vue'
 import updateCreateOrganisation from '@common-components/update_create_organisation.vue'
 import hash from 'object-hash';
+import { api_endpoints, helpers, cache_helper } from "@/utils/hooks";
 
 export default {
     name: "search-person-organisation",
@@ -72,7 +73,7 @@ export default {
             showCreateNewOrganisation: false,
             creatingPerson: false,
             creatingOrganisation: false,
-            departmentalStaffList: null,
+            departmentalStaffList: [],
         }
     },
     components: {
@@ -443,7 +444,8 @@ export default {
         if (this.departmentalStaff) {
             let returned_departmental_staff = await cache_helper.getSetCacheList(
               'DepartmentalStaff',
-              'https://itassets.dbca.wa.gov.au/api/users/fast/?minimal=true'
+              //'https://itassets.dbca.wa.gov.au/api/users/fast/?minimal=true'
+              api_endpoints.get_department_users
               );
             Object.assign(this.departmentalStaffList, returned_departmental_staff);
             // blank entry allows user to clear selection

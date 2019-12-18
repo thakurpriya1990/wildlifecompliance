@@ -29,16 +29,33 @@ class Artifact(RevisionedMixin):
     artifact_date = models.DateField(null=True)
     artifact_time = models.TimeField(blank=True, null=True)
     number = models.CharField(max_length=50, blank=True, null=True)
-    custodian = models.ForeignKey(
-            EmailUser,
-            related_name='artifact_custodian',
-            null=True,
-            )
+    #custodian = models.ForeignKey(
+    #        EmailUser,
+    #        related_name='artifact_custodian',
+    #        null=True,
+    #        )
 
     class Meta:
         app_label = 'wildlifecompliance'
         verbose_name = 'CM_Artifact'
         verbose_name_plural = 'CM_Artifacts'
+
+    # Prefix "OB" char to DocumentArtifact number.
+    def save(self, *args, **kwargs):
+        
+        super(Artifact, self).save(*args,**kwargs)
+        if self.number is None:
+            new_number_id = 'OB{0:06d}'.format(self.pk)
+            self.number = new_number_id
+            self.save()
+
+    @property
+    def object_type(self):
+        return 'object_type'
+
+    @property
+    def custodian(self):
+        return 'custodian'
 
     #def log_user_action(self, action, request):
      #   return ArtifactUserAction.log_action(self, action, request.user)
@@ -148,14 +165,14 @@ class DocumentArtifact(Artifact):
     def log_user_action(self, action, request):
         return ArtifactUserAction.log_action(self, action, request.user)
 
-    # Prefix "DO" char to DocumentArtifact number.
-    def save(self, *args, **kwargs):
-        
-        super(DocumentArtifact, self).save(*args,**kwargs)
-        if self.number is None:
-            new_number_id = 'DO{0:06d}'.format(self.pk)
-            self.number = new_number_id
-            self.save()
+    ## Prefix "DO" char to DocumentArtifact number.
+    #def save(self, *args, **kwargs):
+    #    
+    #    super(DocumentArtifact, self).save(*args,**kwargs)
+    #    if self.number is None:
+    #        new_number_id = 'DO{0:06d}'.format(self.pk)
+    #        self.number = new_number_id
+    #        self.save()
         
 
 class PhysicalArtifact(Artifact):
@@ -199,14 +216,14 @@ class PhysicalArtifact(Artifact):
         verbose_name = 'CM_PhysicalArtifact'
         verbose_name_plural = 'CM_PhysicalArtifacts'
 
-    # Prefix "PO" char to DocumentArtifact number.
-    def save(self, *args, **kwargs):
-        
-        super(PhysicalArtifact, self).save(*args,**kwargs)
-        if self.number is None:
-            new_number_id = 'PO{0:06d}'.format(self.pk)
-            self.number = new_number_id
-            self.save()
+    ## Prefix "PO" char to DocumentArtifact number.
+    #def save(self, *args, **kwargs):
+    #    
+    #    super(PhysicalArtifact, self).save(*args,**kwargs)
+    #    if self.number is None:
+    #        new_number_id = 'PO{0:06d}'.format(self.pk)
+    #        self.number = new_number_id
+    #        self.save()
 
 
 class ArtifactCommsLogEntry(CommunicationsLogEntry):
