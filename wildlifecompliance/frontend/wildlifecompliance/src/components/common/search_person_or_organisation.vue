@@ -72,6 +72,7 @@ export default {
             showCreateNewOrganisation: false,
             creatingPerson: false,
             creatingOrganisation: false,
+            departmentalStaffList: null,
         }
     },
     components: {
@@ -176,6 +177,11 @@ export default {
             default: true
         },
         excludeStaff: {
+            type: Boolean,
+            required: false,
+            default: false,
+        },
+        departmentalStaff: {
             type: Boolean,
             required: false,
             default: false,
@@ -400,7 +406,7 @@ export default {
 
             vm.ajax_for_offender = $.ajax({
                 type: "GET",
-                url: search_url + searchTerm + '&exclude_staff=' + vm.excludeStaff,
+                url: search_url + searchTerm + '&exclude_staff=' + vm.excludeStaff + '&departmental_staff=' + vm.departmentalStaff,
                 success: function(data) {
                     if (data && data.results) {
                         let persons = data.results;
@@ -424,7 +430,7 @@ export default {
             });
         },
     },
-    created: function() {
+    created: async function() {
         this.uuid += 1;
         this.searchType = this.initialSearchType;
         this.$nextTick(()=>{
@@ -434,6 +440,20 @@ export default {
             this.initAwesomplete();
         });
         this.object_hash = hash(this.entity);
+        if (this.departmentalStaff) {
+            let returned_departmental_staff = await cache_helper.getSetCacheList(
+              'DepartmentalStaff',
+              'https://itassets.dbca.wa.gov.au/api/users/fast/?minimal=true'
+              );
+            Object.assign(this.departmentalStaffList, returned_departmental_staff);
+            // blank entry allows user to clear selection
+            this.departmentalStaffList.splice(0, 0,
+              {
+                pk: "",
+                //artifact_type: "",
+                //description: "",
+              });
+        }
     },
 }
 </script>
