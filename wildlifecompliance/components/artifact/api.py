@@ -63,16 +63,16 @@ from wildlifecompliance.components.artifact.models import (
         ArtifactUserAction,
         )
 from wildlifecompliance.components.artifact.serializers import (
-        ArtifactSerializer,
-        DocumentArtifactSerializer,
-        SaveDocumentArtifactSerializer,
-        PhysicalArtifactSerializer,
-        DocumentArtifactTypeSerializer,
-        PhysicalArtifactTypeSerializer,
-        PhysicalArtifactDisposalMethodSerializer,
-        ArtifactUserActionSerializer,
-        ArtifactCommsLogEntrySerializer,
-        )
+    ArtifactSerializer,
+    DocumentArtifactSerializer,
+    SaveDocumentArtifactSerializer,
+    PhysicalArtifactSerializer,
+    DocumentArtifactTypeSerializer,
+    PhysicalArtifactTypeSerializer,
+    PhysicalArtifactDisposalMethodSerializer,
+    ArtifactUserActionSerializer,
+    ArtifactCommsLogEntrySerializer,
+    ArtifactPaginatedSerializer)
 from wildlifecompliance.components.users.models import (
     CompliancePermissionGroup,    
 )
@@ -307,6 +307,112 @@ class PhysicalArtifactViewSet(viewsets.ModelViewSet):
         return PhysicalArtifact.objects.none()
 
 
+class ArtifactFilterBackend(DatatablesFilterBackend):
+    def filter_queryset(self, request, queryset, view):
+        total_count = queryset.count()
+
+        # Storage for the filters
+        # Required filters are accumulated here
+        # Then issue a query once at last
+        q_objects = Q()
+
+        # Filter by the search_text
+        search_text = request.GET.get('search[value]', '')
+        if search_text:
+            # q_objects &= Q(number__icontains=search_text) | \
+            #              Q(identifier__icontains=search_text) | \
+            #              Q(offender__person__first_name__icontains=search_text) | \
+            #              Q(offender__person__last_name__icontains=search_text) | \
+            #              Q(offender__person__email__icontains=search_text) | \
+            #              Q(offender__organisation__organisation__name__icontains=search_text) | \
+            #              Q(offender__organisation__organisation__abn__icontains=search_text) | \
+            #              Q(offender__organisation__organisation__trading_name__icontains=search_text)
+
+            q_objects &= Q(number__icontains=search_text) | \
+                         Q(identifier__icontains=search_text)
+
+        # TODO: implement filtering by the dropdown filters
+        # type = request.GET.get('type', '').lower()
+        # if type and type != 'all':
+        #     q_objects &= Q(type=type)
+        #
+        # status = request.GET.get('status', '').lower()
+        # if status and status != 'all':
+        #     q_objects &= Q(status=status)
+        #
+        # date_from = request.GET.get('date_from', '').lower()
+        # if date_from:
+        #     date_from = datetime.strptime(date_from, '%d/%m/%Y')
+        #     q_objects &= Q(date_of_issue__gte=date_from)
+        #
+        # date_to = request.GET.get('date_to', '').lower()
+        # if date_to:
+        #     date_to = datetime.strptime(date_to, '%d/%m/%Y')
+        #     q_objects &= Q(date_of_issue__lte=date_to)
+
+        # perform filters
+        queryset = queryset.filter(q_objects)
+
+        getter = request.query_params.get
+        fields = self.get_fields(getter)
+        ordering = self.get_ordering(getter, fields)
+        if len(ordering):
+            for num, item in enumerate(ordering):
+                pass
+                # TODO: implement ordering
+                # offender is the foreign key of the sanction outcome
+                # if item == 'status__name':
+                #     ordering[num] = 'status'
+                # elif item == '-status__name':
+                #     ordering[num] = '-status'
+                # elif item == 'lodgement_number':
+                #     ordering[num] = 'id'  # Prefixes, RN, IF, CN and LA should be ignored
+                # elif item == '-lodgement_number':
+                #     ordering[num] = '-id'  # Prefixes, RN, IF, CN and LA should be ignored
+
+            queryset = queryset.order_by(*ordering).distinct()
+
+        setattr(view, '_datatables_total_count', total_count)
+        return queryset
+
+
+class ArtifactPaginatedViewSet(viewsets.ModelViewSet):
+    filter_backends = (ArtifactFilterBackend,)
+    pagination_class = DatatablesPageNumberPagination
+    queryset = Artifact.objects.none()
+    serializer_class = ArtifactPaginatedSerializer
+    page_size = 10
+
+    def get_queryset(self):
+        # user = self.request.user
+        if is_internal(self.request):
+            return Artifact.objects.all()
+        return Artifact.objects.none()
+
+    @list_route(methods=['GET', ])
+    def get_paginated_datatable(self, request, *args, **kwargs):
+        queryset = self.get_queryset()
+        queryset = self.filter_queryset(queryset)
+        self.paginator.page_size = queryset.count()
+        result_page = self.paginator.paginate_queryset(queryset, request)
+        serializer = ArtifactPaginatedSerializer(result_page, many=True, context={'request': request})
+        ret = self.paginator.get_paginated_response(serializer.data)
+        return ret
+
+    @list_route(methods=['GET', ])
+    def external_datatable_list(self, request, *args, **kwargs):
+        """
+        This function is called from the external dashboard page by external user
+        """
+        queryset = Artifact.objects_for_external.filter(Q(offender__person=request.user))
+        queryset = self.filter_queryset(queryset).order_by('-id')
+        self.paginator.page_size = queryset.count()
+        result_page = self.paginator.paginate_queryset(queryset, request)
+        serializer = ArtifactPaginatedSerializer(result_page, many=True, context={'request': request})
+        ret = self.paginator.get_paginated_response(serializer.data)
+        return ret
+
+
 class ArtifactViewSet(viewsets.ModelViewSet):
     queryset = Artifact.objects.all()
     serializer_class = ArtifactSerializer
@@ -391,6 +497,35 @@ class ArtifactViewSet(viewsets.ModelViewSet):
         except Exception as e:
             print(traceback.print_exc())
             raise serializers.ValidationError(str(e))
+
+    @list_route(methods=['GET', ])
+    def types(self, request, *args, **kwargs):
+        #### TODO: This is just for now
+        res_obj = [{'id': 'type_1', 'display': 'Type 1'}, {'id': 'type_2', 'display': 'Type 2'}]
+        res_json = json.dumps(res_obj)
+        return HttpResponse(res_json, content_type='application/json')
+        #########################
+
+        res_obj = []
+        for choice in Artifact.TYPE_CHOICES:
+            res_obj.append({'id': choice[0], 'display': choice[1]});
+        res_json = json.dumps(res_obj)
+
+        return HttpResponse(res_json, content_type='application/json')
+
+    @list_route(methods=['GET', ])
+    def statuses(self, request, *args, **kwargs):
+        #### TODO: This is just for now
+        res_obj = [{'id': 'status_1', 'display': 'Status 1'}, {'id': 'status_2', 'display': 'Status 2'}]
+        res_json = json.dumps(res_obj)
+        return HttpResponse(res_json, content_type='application/json')
+        #########################
+
+        res_obj = []
+        for choice in Artifact.STATUS_CHOICES:
+            res_obj.append({'id': choice[0], 'display': choice[1]});
+        res_json = json.dumps(res_obj)
+        return HttpResponse(res_json, content_type='application/json')
 
 
 #class LegalCasePriorityViewSet(viewsets.ModelViewSet):

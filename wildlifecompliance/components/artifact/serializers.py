@@ -63,6 +63,18 @@ class ArtifactSerializer(serializers.ModelSerializer):
                 )
 
 
+class ArtifactPaginatedSerializer(serializers.ModelSerializer):
+
+    class Meta:
+        model = Artifact
+        fields = (
+            'id',
+            'number',
+            'identifier',
+            'description',
+        )
+
+
 class DocumentArtifactTypeSerializer(serializers.ModelSerializer):
     class Meta:
         model = DocumentArtifactType
