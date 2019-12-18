@@ -188,7 +188,7 @@
 
                             <div class="col-sm-12 form-group"><div class="row">
                                 <div class="col-sm-12">
-                                    <input type="button" class="btn btn-primary pull-right" value="Add" @click.prevent="addRemediationActionClicked()" />
+                                    <input :disabled="!enableAddActionButton" type="button" class="btn btn-primary pull-right" value="Add" @click.prevent="addRemediationActionClicked()" />
                                 </div>
                             </div></div>
 
@@ -448,6 +448,14 @@ export default {
         ...mapGetters("offenceStore", {
           offence: "offence"
         }),
+        enableAddActionButton: function() {
+            let enabled = false;
+            if(this.current_remediation_action.action && this.current_remediation_action.due_date){
+                enabled = true;
+            }
+            console.log('enableAddActionButton' + enabled);
+            return enabled;
+        },
         issued_on_paper: function() {
             return this.sanction_outcome.issued_on_paper;
         },
