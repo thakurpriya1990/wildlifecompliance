@@ -118,14 +118,22 @@ module.exports = {
                         );
                     returned_list.push(new_val[1]);
                 }
-                } else {
+                } else if (returnedFromUrl.body[0] && returnedFromUrl.body[0].id) {
                     for (let record of returnedFromUrl.body) {
                     let new_val = await storeInstance.setItem(
                         record.id.toString(), 
                         [timeNow, record]
                         );
                     returned_list.push(new_val[1]);
-                }
+                    }
+                } else if (returnedFromUrl.body[0] && returnedFromUrl.body[0].pk) {
+                    for (let record of returnedFromUrl.body) {
+                    let new_val = await storeInstance.setItem(
+                        record.pk.toString(), 
+                        [timeNow, record]
+                        );
+                    returned_list.push(new_val[1]);
+                    }
                 }
             }
             return returned_list;

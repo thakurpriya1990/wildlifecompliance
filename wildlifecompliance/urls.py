@@ -18,6 +18,7 @@ from wildlifecompliance.components.main.views import (
         SearchWeakLinksView,
         CreateWeakLinkView,
         RemoveWeakLinkView,
+        DepartmentUserView,
         )
 from wildlifecompliance.components.applications import views as application_views
 from wildlifecompliance.components.offence.api import OffenceViewSet
@@ -150,6 +151,9 @@ api_patterns = [url(r'^api/my_user_details/$',
                 url(r'^api/remove_weak_link',
                     RemoveWeakLinkView.as_view(),
                     name='remove_weak_link'),
+                url(r'^api/get_department_users',
+                    DepartmentUserView.as_view(),
+                    name='get_department_users'),
                 url(r'^api/',
                     include(router.urls))]
 

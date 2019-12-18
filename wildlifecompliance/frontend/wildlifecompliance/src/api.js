@@ -58,5 +58,6 @@ module.exports = {
     artifact: '/api/artifact/',
     physical_artifact: '/api/physical_artifact/',
     document_artifact: '/api/document_artifact/',
+    get_department_users: '/api/get_department_users',
 }
 

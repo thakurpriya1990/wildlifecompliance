@@ -7,6 +7,7 @@ from rest_framework.renderers import JSONRenderer
 from wildlifecompliance.components.main.utils import (
     search_keywords,
     search_reference,
+    retrieve_department_users,
 )
 from wildlifecompliance.components.main.serializers import (
     SearchKeywordSerializer,
@@ -20,6 +21,19 @@ from wildlifecompliance.components.main.related_item import (
         search_weak_links
        )
 from django.contrib.auth.models import ContentType
+
+
+class DepartmentUserView(views.APIView):
+    renderer_classes = [JSONRenderer]
+
+    def get(self, request, format=None):
+        qs = []
+        #if request.data.get('searchText'): # modify as appropriate
+         #   qs = search_weak_links(request.data)
+        qs = retrieve_department_users()
+        #return_qs = qs[:10]
+        #return Response(return_qs)
+        return Response(qs)
 
 
 class SearchKeywordsView(views.APIView):
