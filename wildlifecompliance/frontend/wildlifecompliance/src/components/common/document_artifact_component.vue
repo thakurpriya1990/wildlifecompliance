@@ -175,11 +175,6 @@ export default {
           this.uuid += 1
           return "DocumentArtifact_SearchPerson_" + this.uuid.toString();
       },
-        /*
-      ...mapGetters('physicalArtifactStore', {
-        physical_artifact: "physical_artifact",
-      }),
-      */
     },
     filters: {
       formatDate: function(data) {
@@ -267,13 +262,12 @@ export default {
       });
     },
     created: async function() {
-    /*
-      if (this.$route.params.inspection_id) {
-          await this.loadInspection({ inspection_id: this.$route.params.inspection_id });
+      console.log("created")
+      if (this.$route.params.document_artifact_id) {
+          await this.loadDocumentArtifact({ document_artifact_id: this.$route.params.document_artifact_id });
       }
-      */
-      await this.loadDocumentArtifact({ document_artifact_id: 1 });
-      console.log(this)
+      //await this.loadDocumentArtifact({ document_artifact_id: 1 });
+      //console.log(this)
       // document artifact types
       let returned_document_artifact_types = await cache_helper.getSetCacheList(
           'DocumentArtifactTypes',

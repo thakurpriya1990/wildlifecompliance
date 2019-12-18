@@ -45,6 +45,7 @@
                             <DocumentArtifact 
                             ref="document_artifact"
                             @entity-selected="entitySelected"
+                            v-bind:key="updateDocumentArtifactBindId"
                             />
                         </div>
                         <!--Artifact 
@@ -118,6 +119,16 @@ export default {
       SearchPersonOrganisation,
       DocumentArtifact,
     },
+    watch: {
+        tabSelected: {
+            handler: async function (){
+                //await this.cancelArtifactComponent();
+                this.uuid += 1;
+                //this.urlProtocol = 'https';
+                //this.urlText = '';
+            }
+        }
+    },
     computed: {
         showDocumentArtifactComponent: function() {
             let showComponent = false;
@@ -134,8 +145,13 @@ export default {
             return showComponent;
         },
         updateSearchPersonOrganisationBindId: function() {
-            this.uuid += 1
             return "PersonOrArtifact_SearchPerson_" + this.uuid.toString();
+        },
+        updateDocumentArtifactBindId: function() {
+            return "PersonOrArtifact_DocumentArtifact_" + this.uuid.toString();
+        },
+        updateURLBindId: function() {
+            return "PersonOrArtifact_URL_" + this.uuid.toString();
         },
         personTabSelected: function() {
             let isPersonTab = false;
@@ -206,7 +222,7 @@ export default {
         updateTabSelected: function(tabValue) {
             this.tabSelected = tabValue;
         },
-        cancel: async function() {
+        cancelArtifactComponent: async function() {
             if (this.artifactTabSelected) {
                 if (this.showDocumentArtifactComponent) {
                     await this.$refs.document_artifact.cancel();
@@ -214,6 +230,9 @@ export default {
                     await this.$refs.physical_artifact.cancel();
                 }
             }
+        },
+        cancel: async function() {
+            this.cancelArtifactComponent();
             this.$emit('modal-action', {
                 row_number_selected: this.rowNumberSelected,
                 action: 'cancel',

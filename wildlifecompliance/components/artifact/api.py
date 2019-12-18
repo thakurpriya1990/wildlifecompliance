@@ -218,6 +218,46 @@ class DocumentArtifactViewSet(viewsets.ModelViewSet):
             return DocumentArtifact.objects.all()
         return DocumentArtifact.objects.none()
 
+    def create(self, request, *args, **kwargs):
+        print("create")
+        print(request.data)
+        try:
+            with transaction.atomic():
+                serializer = SaveDocumentArtifactSerializer(
+                        data=request.data, 
+                        partial=True
+                        )
+                serializer.is_valid(raise_exception=True)
+                if serializer.is_valid():
+                    print("serializer.validated_data")
+                    print(serializer.validated_data)
+                    instance = serializer.save()
+                    instance.log_user_action(
+                            ArtifactUserAction.ACTION_CREATE_ARTIFACT.format(
+                            instance.number), request)
+                    return Response(
+                            #serializer.data,
+                            status=status.HTTP_201_CREATED,
+                            #headers=headers
+                            )
+                    # Create comms_log and send mail
+                    #res = self.workflow_action(request, instance, create_legal_case=True)
+                    #if instance.call_email:
+                     #   print("update parent")
+                      #  self.update_parent(request, instance)
+                    #return res
+        except serializers.ValidationError:
+            print(traceback.print_exc())
+            raise
+        except ValidationError as e:
+            if hasattr(e, 'error_dict'):
+                raise serializers.ValidationError(repr(e.error_dict))
+            else:
+                raise serializers.ValidationError(repr(e[0].encode('utf-8')))
+        except Exception as e:
+            print(traceback.print_exc())
+            raise serializers.ValidationError(str(e))
+
     @renderer_classes((JSONRenderer,))
     #def inspection_save(self, request, workflow=False, *args, **kwargs):
     def update(self, request, workflow=False, *args, **kwargs):
