@@ -80,6 +80,7 @@
                                                 addFullName
                                                 :displayTitle="false"
                                                 domIdHelper="document_artifact"
+                                                departmentalStaff
                                                 />
                                             </div>
                                         </div>
