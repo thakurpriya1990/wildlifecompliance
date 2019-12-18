@@ -185,6 +185,7 @@ export default {
         ...mapActions('documentArtifactStore', {
             saveDocumentArtifact: 'saveDocumentArtifact',
             loadDocumentArtifact: 'loadDocumentArtifact',
+            setDocumentArtifact: 'setDocumentArtifact',
         }),
         setTemporaryDocumentCollectionId: function(val) {
             this.temporary_document_collection_id = val;
@@ -193,8 +194,15 @@ export default {
             console.log(entity);
             Object.assign(this.entity, entity)
         },
+        save: async function() {
+            if (this.document_artifact.id) {
+                await this.saveDocumentArtifact({ create: false, internal: false });
+            } else {
+                await this.saveDocumentArtifact({ create: true, internal: false });
+            }
+        },
         parentSave: async function() {
-            let documentArtifactEntity = null;
+            //let documentArtifactEntity = null;
             /*
             if (this.saveButtonEnabled) {
                 savedEmailUser = await this.saveData('parentSave')
@@ -202,7 +210,7 @@ export default {
                 savedEmailUser = {'ok': true};
             }
             */
-            await this.saveDocumentArtifact({'parentSave': true})
+            await this.save();
             //this.entity.id = 
             this.$emit('entity-selected', {
                 id: this.document_artifact.id,
@@ -261,6 +269,15 @@ export default {
           this.addEventListeners();
       });
     },
+    beforeDestroy: async function() {
+        console.log("beforeDestroy")
+        await this.setDocumentArtifact({});
+    },
+    /*
+    destroyed: function() {
+        console.log("destroyed")
+    },
+    */
     created: async function() {
       console.log("created")
       if (this.$route.params.document_artifact_id) {
