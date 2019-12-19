@@ -17,7 +17,6 @@
                                           <label>Document Type</label>
                                         </div>
                                         <div class="col-sm-6">
-                                          <!--select :disabled="readonlyForm" class="form-control" v-model="artifact.artifact_id" @change="loadSchema"-->
                                           <select class="form-control" v-model="document_artifact.document_type_id">
                                             <option  v-for="option in documentArtifactTypes" :value="option.id" v-bind:key="option.id">
                                               {{ option.artifact_type }}
@@ -69,7 +68,7 @@
                                                 <label>Witness</label>
                                             </div>
                                             <div class="col-sm-9">
-                                                <select class="form-control" v-model="document_artifact.custodian_ad">
+                                                <select ref="department_users" class="form-control" v-model="document_artifact.custodian_ad">
                                                     <option  v-for="option in departmentStaffList" :value="option.pk" v-bind:key="option.pk">
                                                     {{ option.name }} 
                                                     </option>
@@ -137,6 +136,8 @@ import 'bootstrap/dist/css/bootstrap.css';
 import 'eonasdan-bootstrap-datetimepicker';
 import moment from 'moment';
 import SearchPersonOrganisation from './search_person_or_organisation'
+//require("select2/dist/css/select2.min.css");
+//require("select2-bootstrap-theme/dist/select2-bootstrap.min.css");
 
 export default {
     name: "DocumentArtifactComponent",
@@ -259,6 +260,22 @@ export default {
                   vm.document_artifact.artifact_time = "";
                 }
             });
+            // department_users
+            $(vm.$refs.department_users).select2({
+                    "theme": "bootstrap",
+                    allowClear: true,
+                    placeholder:"Select Referral"
+                })
+                /*.
+                on("select2:select",function (e) {
+                    var selected = $(e.currentTarget);
+                    vm.selected_referral = selected.val();
+                }).
+                on("select2:unselect",function (e) {
+                    var selected = $(e.currentTarget);
+                    vm.selected_referral = '' 
+                });
+                */
         },
         compare: function(a, b) {
             console.log("compare")
@@ -273,7 +290,6 @@ export default {
             }
             return comparison;
         },
-
 
       //createDocumentActionUrl: async function(done) {
       //  if (!this.inspection.id) {
@@ -321,15 +337,24 @@ export default {
             artifact_type: "",
             description: "",
           });
+        // retrieve department_users from backend cache
+        let returned_department_users = await this.$http.get(api_endpoints.department_users)
+        Object.assign(this.departmentStaffList, returned_department_users.body)
+        this.departmentStaffList.splice(0, 0,
+          {
+            pk: "",
+            name: "",
+          });
         /*
         let returned_department_staff = await cache_helper.getSetCacheList(
           'DepartmentStaff',
           //'https://itassets.dbca.wa.gov.au/api/users/fast/?minimal=true'
-          api_endpoints.get_department_users
+          api_endpoints.department_users
           );
-        const sorted_department_staff = returned_department_staff.sort(this.compare);
+        //const sorted_department_staff = returned_department_staff.sort(this.compare);
         this.$nextTick(() => {
-            Object.assign(this.departmentStaffList, sorted_department_staff);
+            //Object.assign(this.departmentStaffList, sorted_department_staff);
+            Object.assign(this.departmentStaffList, returned_department_staff);
             // blank entry allows user to clear selection
             this.departmentStaffList.splice(0, 0,
               {
