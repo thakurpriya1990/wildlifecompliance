@@ -48,6 +48,13 @@
                             v-bind:key="updateDocumentArtifactBindId"
                             />
                         </div>
+                        <div v-if="showPhysicalArtifactComponent" class="row">
+                            <PhysicalArtifact 
+                            ref="physical_artifact"
+                            @entity-selected="entitySelected"
+                            v-bind:key="updatePhysicalArtifactBindId"
+                            />
+                        </div>
                         <!--Artifact 
                         ref="artifact"
                         @entity-selected="entitySelected"
@@ -76,6 +83,7 @@ import Vue from "vue";
 import modal from '@vue-utils/bootstrap-modal.vue';
 import SearchPersonOrganisation from './search_person_or_organisation'
 import DocumentArtifact from './document_artifact_component'
+import PhysicalArtifact from './physical_artifact_component'
 
 export default {
     name: "PersonOrArtifactModal",
@@ -118,6 +126,7 @@ export default {
       modal,
       SearchPersonOrganisation,
       DocumentArtifact,
+      PhysicalArtifact,
     },
     watch: {
         tabSelected: {
@@ -149,6 +158,9 @@ export default {
         },
         updateDocumentArtifactBindId: function() {
             return "PersonOrArtifact_DocumentArtifact_" + this.uuid.toString();
+        },
+        updatePhysicalArtifactBindId: function() {
+            return "PersonOrArtifact_PhysicalArtifact_" + this.uuid.toString();
         },
         updateURLBindId: function() {
             return "PersonOrArtifact_URL_" + this.uuid.toString();

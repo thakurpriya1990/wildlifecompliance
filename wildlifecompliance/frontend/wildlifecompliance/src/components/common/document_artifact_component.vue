@@ -68,13 +68,6 @@
                                                 <label>Witness</label>
                                             </div>
                                             <div class="col-sm-9">
-                                                <select ref="department_users" class="form-control">
-                                                    <option  v-for="option in departmentStaffList" :value="option.pk" v-bind:key="option.pk">
-                                                    {{ option.name }} 
-                                                    </option>
-                                                </select>
-                                            </div>
-                                            <!--div class="col-sm-9">
                                                 <SearchPersonOrganisation 
                                                 personOnly
                                                 :isEditable="!readonlyForm" 
@@ -88,7 +81,7 @@
                                                 domIdHelper="document_artifact"
                                                 departmentalStaff
                                                 />
-                                            </div-->
+                                            </div>
                                         </div>
                                     </div>
                                     <div class="form-group">
@@ -136,8 +129,6 @@ import 'bootstrap/dist/css/bootstrap.css';
 import 'eonasdan-bootstrap-datetimepicker';
 import moment from 'moment';
 import SearchPersonOrganisation from './search_person_or_organisation'
-//require("select2/dist/css/select2.min.css");
-//require("select2-bootstrap-theme/dist/select2-bootstrap.min.css");
 
 export default {
     name: "DocumentArtifactComponent",
@@ -155,7 +146,6 @@ export default {
             documentActionUrl: '',
             temporary_document_collection_id: null,
             documentArtifactTypes: [],
-            physicalArtifactTypes: [],
             departmentStaffList: [],
             selectedCustodian: {},
             entity: {
@@ -261,34 +251,6 @@ export default {
                   vm.document_artifact.artifact_time = "";
                 }
             });
-            // department_users
-            $(vm.$refs.department_users).select2({
-                    "theme": "bootstrap",
-                    allowClear: true,
-                    placeholder:""
-                }).
-                on("select2:select",function (e) {
-                    console.log(e)
-                    let selected = $(e.currentTarget);
-                    let selectedData = selected.val();
-                    vm.setSelectedCustodian(selectedData);
-                    //let custodianData = e.params.data
-                    //console.log(custodianData)
-                    //Object.assign(vm.selectedCustodian, custodianData);
-                }).
-                on("select2:unselect",function (e) {
-                    var selected = $(e.currentTarget);
-                    vm.selectedCustodian = {}
-                });
-                
-        },
-        setSelectedCustodian: function(pk) {
-            for (let record of this.departmentStaffList) {
-                if (record.pk.toString() === pk) {
-                    console.log(record)
-                    Object.assign(this.selectedCustodian, record);
-                }
-            }
         },
         compare: function(a, b) {
             console.log("compare")
@@ -325,18 +287,11 @@ export default {
         console.log("beforeDestroy")
         await this.setDocumentArtifact({});
     },
-    /*
-    destroyed: function() {
-        console.log("destroyed")
-    },
-    */
     created: async function() {
         console.log("created")
         if (this.$route.params.document_artifact_id) {
             await this.loadDocumentArtifact({ document_artifact_id: this.$route.params.document_artifact_id });
         }
-        //await this.loadDocumentArtifact({ document_artifact_id: 1 });
-        //console.log(this)
         // document artifact types
         let returned_document_artifact_types = await cache_helper.getSetCacheList(
           'DocumentArtifactTypes',
@@ -350,35 +305,6 @@ export default {
             artifact_type: "",
             description: "",
           });
-        // retrieve department_users from backend cache
-        let returned_department_users = await this.$http.get(api_endpoints.department_users)
-        Object.assign(this.departmentStaffList, returned_department_users.body)
-        this.departmentStaffList.splice(0, 0,
-          {
-            pk: "",
-            name: "",
-          });
-        /*
-        let returned_department_staff = await cache_helper.getSetCacheList(
-          'DepartmentStaff',
-          //'https://itassets.dbca.wa.gov.au/api/users/fast/?minimal=true'
-          api_endpoints.department_users
-          );
-        //const sorted_department_staff = returned_department_staff.sort(this.compare);
-        this.$nextTick(() => {
-            //Object.assign(this.departmentStaffList, sorted_department_staff);
-            Object.assign(this.departmentStaffList, returned_department_staff);
-            // blank entry allows user to clear selection
-            this.departmentStaffList.splice(0, 0,
-              {
-                pk: "",
-                name: "",
-                //artifact_type: "",
-                //description: "",
-              });
-        });
-        */
-
     },
 };
 </script>

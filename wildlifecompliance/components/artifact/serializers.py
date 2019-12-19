@@ -189,6 +189,10 @@ class PhysicalArtifactSerializer(ArtifactSerializer):
         #fields = '__all__'
         fields = (
                 'id',
+                'identifier',
+                'description',
+                'artifact_date',
+                'artifact_time',
                 'statement',
                 'physical_artifact_type',
                 'used_within_case',
