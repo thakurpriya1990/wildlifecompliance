@@ -17,8 +17,8 @@
                                           <label>Document Type</label>
                                         </div>
                                         <div class="col-sm-6">
-                                          <select class="form-control" v-model="document_artifact.document_type_id">
-                                            <option  v-for="option in documentArtifactTypes" :value="option.id" v-bind:key="option.id">
+                                          <select class="form-control" v-model="document_artifact.document_type" ref="setArtifactType">
+                                            <option  v-for="option in documentArtifactTypes" :value="option" v-bind:key="option.id">
                                               {{ option.artifact_type }}
                                             </option>
                                           </select>
@@ -151,6 +151,13 @@ export default {
             entity: {
                 id: null,
             },
+            statementVisibilityArray: [
+                'Record of Interview',
+                'Witness Statement',
+                'Expert Statement',
+                'Officer Statement',
+                ],
+            statementVisibility: false,
         }
     },
     components: {
@@ -158,11 +165,23 @@ export default {
       filefield,
       SearchPersonOrganisation,
     },
+    watch: {
+        artifactType: {
+            handler: function (){
+                if (this.statementVisibilityArray.includes(this.artifactType)) {
+                    console.log("statementVisibility true")
+                    this.statementVisibility = true;
+                }
+            },
+            deep: true,
+        }
+    },
     computed: {
       ...mapGetters('documentArtifactStore', {
         document_artifact: "document_artifact",
       }),
       artifactType: function() {
+          console.log("artifact type")
           let aType = ''
           if (this.document_artifact && this.document_artifact.document_type) {
               aType = this.document_artifact.document_type.artifact_type;
@@ -176,6 +195,25 @@ export default {
           this.uuid += 1
           return "DocumentArtifact_SearchPerson_" + this.uuid.toString();
       },
+        /*
+      statementVisibility: function() {
+          if (this.artifactType) {
+              console.log("statement visibility")
+              let visibility = false;
+              let visibilityArray = []
+              visibilityArray.push('Record of Interview')
+              visibilityArray.push('Witness Statement')
+              visibilityArray.push('Expert Statement')
+              visibilityArray.push('Officer Statement')
+              console.log(visibilityArray)
+              if (visibilityArray.includes(this.artifactType)) {
+                  console.log("statement visible")
+                  visibility = true;
+              }
+          }
+          return visibility;
+      },
+      */
     },
     filters: {
       formatDate: function(data) {
@@ -251,6 +289,13 @@ export default {
                   vm.document_artifact.artifact_time = "";
                 }
             });
+            /*
+            // artifact type events
+            let artifactEvent = $(vm.$refs.setArtifactType);
+            artifactEvent.on("change", function(e) {
+            let artifactTypeId = e.target.value;
+            });
+            */
         },
         compare: function(a, b) {
             console.log("compare")
