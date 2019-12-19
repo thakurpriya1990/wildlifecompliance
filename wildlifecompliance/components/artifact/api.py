@@ -314,22 +314,23 @@ class ArtifactFilterBackend(DatatablesFilterBackend):
         # Storage for the filters
         # Required filters are accumulated here
         # Then issue a query once at last
-        q_objects = Q()
 
         # Filter by the search_text
         search_text = request.GET.get('search[value]', '')
-        if search_text:
-            # q_objects &= Q(number__icontains=search_text) | \
-            #              Q(identifier__icontains=search_text) | \
-            #              Q(offender__person__first_name__icontains=search_text) | \
-            #              Q(offender__person__last_name__icontains=search_text) | \
-            #              Q(offender__person__email__icontains=search_text) | \
-            #              Q(offender__organisation__organisation__name__icontains=search_text) | \
-            #              Q(offender__organisation__organisation__abn__icontains=search_text) | \
-            #              Q(offender__organisation__organisation__trading_name__icontains=search_text)
 
-            q_objects &= Q(number__icontains=search_text) | \
-                         Q(identifier__icontains=search_text)
+        q_objects = Q()
+        ids = []
+
+        if search_text:
+            # Found ids of the Artifact model
+            ids_p = PhysicalArtifact.objects.filter(Q(physical_artifact_type__artifact_type__icontains=search_text)).values_list('artifact_ptr_id', flat=True).distinct()
+            ids_d = DocumentArtifact.objects.filter(Q(document_type__artifact_type__icontains=search_text)).values_list('artifact_ptr_id', flat=True).distinct()
+
+            # Q object for filtering Artifact
+            q_objects &= Q(identifier__icontains=search_text) | \
+                         Q(number__icontains=search_text) | \
+                         Q(id__in=ids_p) | \
+                         Q(id__in=ids_d)
 
         # TODO: implement filtering by the dropdown filters
         # type = request.GET.get('type', '').lower()
@@ -340,15 +341,15 @@ class ArtifactFilterBackend(DatatablesFilterBackend):
         # if status and status != 'all':
         #     q_objects &= Q(status=status)
         #
-        # date_from = request.GET.get('date_from', '').lower()
-        # if date_from:
-        #     date_from = datetime.strptime(date_from, '%d/%m/%Y')
-        #     q_objects &= Q(date_of_issue__gte=date_from)
-        #
-        # date_to = request.GET.get('date_to', '').lower()
-        # if date_to:
-        #     date_to = datetime.strptime(date_to, '%d/%m/%Y')
-        #     q_objects &= Q(date_of_issue__lte=date_to)
+        date_from = request.GET.get('date_from', '').lower()
+        if date_from:
+            date_from = datetime.strptime(date_from, '%d/%m/%Y')
+            q_objects &= Q(artifact_date__gte=date_from)
+
+        date_to = request.GET.get('date_to', '').lower()
+        if date_to:
+            date_to = datetime.strptime(date_to, '%d/%m/%Y')
+            q_objects &= Q(artifact_date__lte=date_to)
 
         # perform filters
         queryset = queryset.filter(q_objects)
@@ -360,15 +361,14 @@ class ArtifactFilterBackend(DatatablesFilterBackend):
             for num, item in enumerate(ordering):
                 pass
                 # TODO: implement ordering
-                # offender is the foreign key of the sanction outcome
-                # if item == 'status__name':
-                #     ordering[num] = 'status'
-                # elif item == '-status__name':
-                #     ordering[num] = '-status'
-                # elif item == 'lodgement_number':
-                #     ordering[num] = 'id'  # Prefixes, RN, IF, CN and LA should be ignored
-                # elif item == '-lodgement_number':
-                #     ordering[num] = '-id'  # Prefixes, RN, IF, CN and LA should be ignored
+                if item == 'number':
+                    ordering[num] = 'number'
+                elif item == '-number':
+                    ordering[num] = '-number'
+                elif item == 'identifier':
+                    ordering[num] = 'identifier'
+                elif item == '-identifier':
+                    ordering[num] = '-identifier'
 
             queryset = queryset.order_by(*ordering).distinct()
 
@@ -391,21 +391,9 @@ class ArtifactPaginatedViewSet(viewsets.ModelViewSet):
 
     @list_route(methods=['GET', ])
     def get_paginated_datatable(self, request, *args, **kwargs):
+
         queryset = self.get_queryset()
         queryset = self.filter_queryset(queryset)
-        self.paginator.page_size = queryset.count()
-        result_page = self.paginator.paginate_queryset(queryset, request)
-        serializer = ArtifactPaginatedSerializer(result_page, many=True, context={'request': request})
-        ret = self.paginator.get_paginated_response(serializer.data)
-        return ret
-
-    @list_route(methods=['GET', ])
-    def external_datatable_list(self, request, *args, **kwargs):
-        """
-        This function is called from the external dashboard page by external user
-        """
-        queryset = Artifact.objects_for_external.filter(Q(offender__person=request.user))
-        queryset = self.filter_queryset(queryset).order_by('-id')
         self.paginator.page_size = queryset.count()
         result_page = self.paginator.paginate_queryset(queryset, request)
         serializer = ArtifactPaginatedSerializer(result_page, many=True, context={'request': request})

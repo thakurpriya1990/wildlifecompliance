@@ -22,7 +22,7 @@
         </div>
         <div class="row">
             <div class="col-md-3">
-                <label class="">Date created from:</label>
+                <label class="">Date from:</label>
                 <div class="input-group date" ref="issueDateFromPicker">
                     <input type="text" class="form-control" placeholder="DD/MM/YYYY" v-model="filterDateFromPicker" />
                     <span class="input-group-addon">
@@ -31,7 +31,7 @@
                 </div>
             </div>
             <div class="col-md-3">
-                <label class="">Date created to:</label>
+                <label class="">Date to:</label>
                 <div class="input-group date" ref="issueDateToPicker">
                     <input type="text" class="form-control" placeholder="DD/MM/YYYY" v-model="filterDateToPicker" />
                     <span class="input-group-addon">
@@ -98,12 +98,9 @@ export default {
                         orderable: true,
                     },
                     {
-                        //data: 'type',
-                        searchable: false,
-                        orderable: true,
-                        mRender: function (data, type, full) {
-                            return 'Not implemented';
-                        }
+                        data: 'type',
+                        searchable: true,
+                        orderable: false,
                     },
                     {
                         data: 'identifier',
@@ -111,26 +108,26 @@ export default {
                         orderable: true
                     },
                     {
-                        searchable: true,
+                        data: 'artifact_date',
+                        searchable: false,
                         orderable: true,
-                        mRender: function (data, type, full){
-                            return 'Not implemented';
+                    },
+                    {
+                        searchable: false,
+                        orderable: false,
+                        mRender: function (data, type,full){
+                            return '---';
                         }
                     },
                     {
-                        mRender: function (data, type,full){
-                            return 'Not implemented';
-                        }
+                        searchable: false,
+                        orderable: false,
+                        data: 'status'
                     },
                     {
-                        mRender: function (data, type,full){
-                            return 'Not implemented';
-                        }
-                    },
-                    {
-                        mRender: function (data, type,full){
-                            return 'Not implemented';
-                        }
+                        searchable: false,
+                        orderable: false,
+                        data: 'action',
                     }
                 ],
             },
@@ -138,7 +135,7 @@ export default {
                 'Number',
                 'Type',
                 'Identifier',
-                'Date Created',
+                'Date',
                 'Custodian',
                 'Status',
                 'Action',

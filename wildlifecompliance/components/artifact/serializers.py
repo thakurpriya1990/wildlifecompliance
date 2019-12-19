@@ -64,15 +64,38 @@ class ArtifactSerializer(serializers.ModelSerializer):
 
 
 class ArtifactPaginatedSerializer(serializers.ModelSerializer):
+    type = serializers.SerializerMethodField()
+    status = serializers.SerializerMethodField()
+    action = serializers.SerializerMethodField()
 
     class Meta:
         model = Artifact
         fields = (
             'id',
             'number',
+            'type',
+            'status',
+            'action',
+            'artifact_date',
             'identifier',
             'description',
         )
+
+    def get_type(self, artifact_obj):
+        pa = PhysicalArtifact.objects.filter(artifact_ptr_id=artifact_obj.id)
+        da = DocumentArtifact.objects.filter(artifact_ptr_id=artifact_obj.id)
+        if pa and pa.first().physical_artifact_type and pa.first().physical_artifact_type.artifact_type:
+            return pa.first().physical_artifact_type.artifact_type
+        elif da and da.first().document_type and da.first().document_type.artifact_type:
+            return da.first().document_type.artifact_type
+        else:
+            return '---'
+
+    def get_status(self, obj):
+        return 'not implemented yet'
+
+    def get_action(self, obj):
+        return 'not implemented yet'
 
 
 class DocumentArtifactTypeSerializer(serializers.ModelSerializer):
