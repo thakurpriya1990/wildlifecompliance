@@ -764,6 +764,7 @@ class InternalApplicationSerializer(BaseApplicationSerializer):
     user_roles = serializers.SerializerMethodField(read_only=True)
     assessments = AssessmentSerializer(many=True)
     licence_approvers = EmailUserAppViewSerializer(many=True)
+    permit = serializers.CharField(source='licence_document._file.url')
 
     class Meta:
         model = Application

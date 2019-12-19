@@ -77,12 +77,12 @@
                             <template v-if="isFinalised">
                                 <div>
                                     <div class="col-sm-12">
+                                        <div class="separator"></div>
+                                    </div>                                    
+                                    <div class="col-sm-12">
                                         <strong>Application</strong><br/>
                                         <a class="actionBtn" v-if="!showingApplication || !this.unfinishedActivities.length" @click.prevent="toggleApplication({show: true, showFinalised: true})">Show Application</a>
                                         <a class="actionBtn" v-else @click.prevent="toggleApplication({show: false})">Hide Application</a>
-                                    </div>
-                                    <div class="col-sm-12">
-                                        <div class="separator"></div>
                                     </div>
                                 </div>
                             </template>
@@ -530,12 +530,54 @@
             </div>
         </div>
     </template>
+
+    <!-- Final Decision display -->
+    <div v-show="showFinalDecision">
+        <div class="row">
+            <div class="col-md-12 alert alert-success" v-if="application.processing_status.name === 'Approved'">
+                <p>The licence has been issued and has been emailed to {{ application.applicant }}.</p>
+                <p>Permit: <a :href="application.permit" target="_blank" >licence.pdf</a></p>
+            </div>
+            <div v-else class="col-md-12 alert alert-warning">
+                <p>The application was declined. The decision was emailed to {{application.applicant}}</p>
+            </div>
         </div>
+        <div class="row">
+            <div class="col-md-12">          
+                <div class="row">
+                    <div class="panel panel-default">
+                        <div class="panel-heading">
+                            <h3 class="panel-title">Decision
+                                <a class="panelClicker" :href="'#'+decisionBody" data-toggle="collapse"  data-parent="#userInfo" expanded="true" :aria-controls="decisionBody">
+                                    <span class="glyphicon glyphicon-chevron-down pull-right "></span>
+                                </a>
+                            </h3>
+                        </div>
+                        <div class="panel-body panel-collapse collapse" :id="decisionBody">
+                            <div v-for="activity in application.activities.filter(activity => activity.decision_action==='issued')">
+                                <div class="col-sm-12">
+                                    <strong>&nbsp;</strong><br/>
+                                    <strong>Licence Activity: {{ activity.activity_name_str }}</strong><br/>
+                                    <strong>Decision: {{ activity.decision_action }}</strong><br/>
+                                    <strong>Start date: {{ activity.start_date | formatDateNoTime }}</strong><br/>
+                                    <strong>Expiry date: {{ activity.expiry_date | formatDateNoTime }}</strong>                                    
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
         </div>
-        </div>
-        <ProposedDecline ref="proposed_decline" @refreshFromResponse="refreshFromResponse"></ProposedDecline>
-        <AmendmentRequest ref="amendment_request" @refreshFromResponse="refreshFromResponse"></AmendmentRequest>
-        <ProposedLicence ref="proposed_licence" @refreshFromResponse="refreshFromResponse"></ProposedLicence>
+
+    </div>
+    <!-- End of Final Decision Display -->
+
+    </div>
+    </div>   
+    </div>
+    <ProposedDecline ref="proposed_decline" @refreshFromResponse="refreshFromResponse"></ProposedDecline>
+    <AmendmentRequest ref="amendment_request" @refreshFromResponse="refreshFromResponse"></AmendmentRequest>
+    <ProposedLicence ref="proposed_licence" @refreshFromResponse="refreshFromResponse"></ProposedLicence>
 
     </div>
 </div>
@@ -569,6 +611,7 @@ export default {
             addressBody: 'addressBody'+vm._uid,
             contactsBody: 'contactsBody'+vm._uid,
             checksBody: 'checksBody'+vm._uid,
+            decisionBody: 'decisionBody'+vm._uid,
             isSendingToAssessor: false,
             assessorGroup:{},
             "selectedAssessor":{},
@@ -640,7 +683,10 @@ export default {
     filters: {
         formatDate: function(data){
             return data ? moment(data).format('DD/MM/YYYY HH:mm:ss'): '';
-        }
+        },
+        formatDateNoTime: function(data){
+            return data ? moment(data).format('DD/MM/YYYY'): '';
+        },       
     },
     watch: {
     },
@@ -788,6 +834,11 @@ export default {
             return this.showingApplication 
                 && !this.applicationIsDraft 
                 && (this.hasRole('licensing_officer') || this.hasRole('issuing_officer'))
+        },
+        showFinalDecision: function() {
+            return (!this.showingApplication || !this.unfinishedActivities.length)  // when not displaying application.
+                && (!this.isSendingToAssessor || !this.isOfficerConditions)         // when not displaying assessments.
+                && (!this.canIssueDecline && !this.isofficerfinalisation)           // when not displaying issuance.
         },
     },
     methods: {

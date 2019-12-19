@@ -47,7 +47,9 @@ from wildlifecompliance.ordered_model import OrderedModel
 from wildlifecompliance.components.licences.models import (
     LicenceCategory,
     LicenceActivity,
-    LicencePurpose
+    LicencePurpose,
+    WildlifeLicence,
+    LicenceDocument,
 )
 logger = logging.getLogger(__name__)
 
@@ -309,6 +311,11 @@ class Application(RevisionedMixin):
         'wildlifecompliance.WildlifeLicence',
         null=True,
         blank=True)
+    # generated licence for the application.
+    licence_document = models.ForeignKey(
+        LicenceDocument,
+        blank=True,
+        null=True)
     previous_application = models.ForeignKey(
         'self', on_delete=models.PROTECT, blank=True, null=True, related_name='parents')
     application_fee = models.DecimalField(
@@ -502,7 +509,7 @@ class Application(RevisionedMixin):
 
     @property
     def permit(self):
-        return self.licence.licence_document._file.url if self.licence else None
+        return self.licence_document if self.licence_document else None
 
     @property
     def licence_officers(self):
@@ -1919,6 +1926,8 @@ class Application(RevisionedMixin):
                         request=request,
                         licence=parent_licence
                     )
+                    self.licence_document = parent_licence.licence_document
+                    self.save()
                 # If there are no issued_activities in this application and the parent_licence was
                 # created as part of this application (i.e. it was not a pre-existing one), delete it
                 elif not issued_activities and created:
