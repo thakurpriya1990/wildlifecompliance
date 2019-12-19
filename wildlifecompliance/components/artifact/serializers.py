@@ -44,7 +44,7 @@ from django.utils import timezone
 #                )
 
 class ArtifactSerializer(serializers.ModelSerializer):
-    custodian = EmailUserSerializer(read_only=True)
+    #custodian = EmailUserSerializer(read_only=True)
     #statement = DocumentArtifactStatementSerializer(read_only=True)
     class Meta:
         model = Artifact
@@ -54,7 +54,7 @@ class ArtifactSerializer(serializers.ModelSerializer):
                 #'_file',
                 'identifier',
                 'description',
-                'custodian',
+                #'custodian',
                 'artifact_date',
                 'artifact_time',
                 )
@@ -129,7 +129,7 @@ class DocumentArtifactSerializer(ArtifactSerializer):
     document_type = DocumentArtifactTypeSerializer(read_only=True)
     person_providing_statement = EmailUserSerializer(read_only=True)
     interviewer = EmailUserSerializer(read_only=True)
-    people_attending = EmailUserSerializer(many=True)
+    people_attending = EmailUserSerializer(read_only=True, many=True)
     offence = OffenceSerializer(read_only=True)
 
     class Meta:
@@ -139,7 +139,7 @@ class DocumentArtifactSerializer(ArtifactSerializer):
                 'id',
                 'identifier',
                 'description',
-                'custodian',
+                #'custodian',
                 'artifact_date',
                 'artifact_time',
                 'document_type',

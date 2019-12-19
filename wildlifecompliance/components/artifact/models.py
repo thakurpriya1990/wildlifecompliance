@@ -16,6 +16,7 @@ from wildlifecompliance.components.main.models import (
 from wildlifecompliance.components.main.related_item import can_close_record
 from wildlifecompliance.components.users.models import RegionDistrict, CompliancePermissionGroup
 from wildlifecompliance.components.offence.models import Offence
+from wildlifecompliance.components.legal_case.models import LegalCase
 from django.core.exceptions import ValidationError
 
 logger = logging.getLogger(__name__)
@@ -314,6 +315,23 @@ class StorageDocument(Document):
     class Meta:
         app_label = 'wildlifecompliance'
 
+
+class LegalCaseRunningSheetArtifacts(models.Model):
+    legal_case = models.OneToOneField(
+            LegalCase,
+            related_name='running_sheet_artifacts'
+            )
+    document_artifacts = models.ManyToManyField(
+            DocumentArtifact,
+            related_name='running_sheet_document_artifacts',
+            )
+    physical_artifacts = models.ManyToManyField(
+            PhysicalArtifact,
+            related_name='running_sheet_physical_artifacts',
+            )
+
+    class Meta:
+        app_label = 'wildlifecompliance'
 
 #import reversion
 #reversion.register(LegalCaseRunningSheetEntry, follow=['user'])
