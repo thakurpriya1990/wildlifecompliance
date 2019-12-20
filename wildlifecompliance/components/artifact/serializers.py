@@ -66,7 +66,7 @@ class ArtifactSerializer(serializers.ModelSerializer):
 class ArtifactPaginatedSerializer(serializers.ModelSerializer):
     type = serializers.SerializerMethodField()
     status = serializers.SerializerMethodField()
-    action = serializers.SerializerMethodField()
+    user_action = serializers.SerializerMethodField()
 
     class Meta:
         model = Artifact
@@ -75,7 +75,7 @@ class ArtifactPaginatedSerializer(serializers.ModelSerializer):
             'number',
             'type',
             'status',
-            'action',
+            'user_action',
             'artifact_date',
             'identifier',
             'description',
@@ -94,8 +94,13 @@ class ArtifactPaginatedSerializer(serializers.ModelSerializer):
     def get_status(self, obj):
         return 'not implemented yet'
 
-    def get_action(self, obj):
-        return 'not implemented yet'
+    def get_user_action(self, obj):
+        url_list = []
+        view_url = '<a href=/internal/artifact/' + str(obj.id) + '>View</a>'
+        url_list.append(view_url)
+
+        urls = '<br />'.join(url_list)
+        return urls
 
 
 class DocumentArtifactTypeSerializer(serializers.ModelSerializer):

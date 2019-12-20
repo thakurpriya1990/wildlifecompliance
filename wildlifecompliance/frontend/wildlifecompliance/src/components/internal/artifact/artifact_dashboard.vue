@@ -111,6 +111,9 @@ export default {
                         data: 'artifact_date',
                         searchable: false,
                         orderable: true,
+                        mRender: function (data, type, full) {
+                            return data != '' && data != null ? moment(data).format('DD/MM/YYYY') : '';
+                        }
                     },
                     {
                         searchable: false,
@@ -127,7 +130,7 @@ export default {
                     {
                         searchable: false,
                         orderable: false,
-                        data: 'action',
+                        data: 'user_action',
                     }
                 ],
             },
