@@ -28,6 +28,9 @@ from wildlifecompliance.components.users.serializers import (
     CompliancePermissionGroupMembersSerializer,
     UserAddressSerializer,
 )
+from wildlifecompliance.components.artifact.serializers import (
+        LegalCaseRunningSheetArtifactsSerializer,
+        )
 #from wildlifecompliance.components.offence.serializers import OrganisationSerializer
 #from django.contrib.auth.models import Permission, ContentType
 from reversion.models import Version
@@ -268,6 +271,7 @@ class LegalCaseSerializer(serializers.ModelSerializer):
     status = CustomChoiceField(read_only=True)
     related_items = serializers.SerializerMethodField()
     legal_case_priority = LegalCasePrioritySerializer()
+    running_sheet_artifacts = LegalCaseRunningSheetArtifactsSerializer(read_only=True)
     #inspection_report = serializers.SerializerMethodField()
     #data = InspectionFormDataRecordSerializer(many=True)
     #location = LocationSerializer(read_only=True)
@@ -295,6 +299,7 @@ class LegalCaseSerializer(serializers.ModelSerializer):
                 'legal_case_priority',
                 'legal_case_priority_id',
                 'running_sheet_entries',
+                'running_sheet_artifacts',
                 )
         read_only_fields = (
                 'id',

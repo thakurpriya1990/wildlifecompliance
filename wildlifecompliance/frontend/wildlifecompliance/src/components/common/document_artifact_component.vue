@@ -55,6 +55,20 @@
                                     <div class="form-group">
                                       <div class="row">
                                         <div class="col-sm-3">
+                                          <label>Statement</label>
+                                        </div>
+                                        <div class="col-sm-6">
+                                          <select class="form-control" v-model="document_artifact.statement" ref="setStatement">
+                                            <option  v-for="option in associatedStatementArtifacts" :value="option" v-bind:key="option.id">
+                                            {{ option.document_type.artifact_type }}: {{ option.identifier }}
+                                            </option>
+                                          </select>
+                                        </div>
+                                      </div>
+                                    </div>
+                                    <div class="form-group">
+                                      <div class="row">
+                                        <div class="col-sm-3">
                                           <label>Description</label>
                                         </div>
                                         <div class="col-sm-9">
@@ -151,7 +165,7 @@ export default {
             entity: {
                 id: null,
             },
-            statementVisibilityArray: [
+            statementArtifactTypes: [
                 'Record of Interview',
                 'Witness Statement',
                 'Expert Statement',
@@ -168,7 +182,7 @@ export default {
     watch: {
         artifactType: {
             handler: function (){
-                if (this.statementVisibilityArray.includes(this.artifactType)) {
+                if (this.statementArtifactTypes.includes(this.artifactType)) {
                     console.log("statementVisibility true")
                     this.statementVisibility = true;
                 }
@@ -183,6 +197,20 @@ export default {
       ...mapGetters('legalCaseStore', {
         legal_case: "legal_case",
       }),
+      associatedStatementArtifacts: function() {
+          let statementArtifacts = []
+          if (this.legal_case && this.legal_case.running_sheet_artifacts && 
+              this.legal_case.running_sheet_artifacts.document_artifacts &&
+              this.legal_case.running_sheet_artifacts.document_artifacts.length > 0) {
+              for (let artifact of this.legal_case.running_sheet_artifacts.document_artifacts) {
+                  if (artifact.document_type && artifact.document_type.artifact_type &&
+                      this.statementArtifactTypes.includes(artifact.document_type.artifact_type)) {
+                          statementArtifacts.push(artifact);
+                      }
+              }
+          }
+          return statementArtifacts;
+      },
       artifactType: function() {
           console.log("artifact type")
           let aType = ''

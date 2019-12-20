@@ -26,6 +26,7 @@ from wildlifecompliance.components.artifact.models import (
         PhysicalArtifactDisposalMethod,
         ArtifactCommsLogEntry,
         ArtifactUserAction,
+        LegalCaseRunningSheetArtifacts,
         )
 
 from wildlifecompliance.components.offence.serializers import OffenceSerializer, OffenderSerializer
@@ -160,6 +161,8 @@ class SaveDocumentArtifactSerializer(ArtifactSerializer):
         required=False, write_only=True, allow_null=True)
     custodian_id = serializers.IntegerField(
         required=False, write_only=True, allow_null=True)
+    statement_id = serializers.IntegerField(
+        required=False, write_only=True, allow_null=True)
 
     class Meta:
         model = DocumentArtifact
@@ -169,6 +172,7 @@ class SaveDocumentArtifactSerializer(ArtifactSerializer):
                 'identifier',
                 'description',
                 'custodian_id',
+                'statement_id',
                 'artifact_date',
                 'artifact_time',
                 'document_type_id',
@@ -253,3 +257,36 @@ class ArtifactCommsLogEntrySerializer(CommunicationLogEntrySerializer):
     def get_documents(self, obj):
         return [[d.name, d._file.url] for d in obj.documents.all()]
 
+
+class LegalCaseRunningSheetArtifactsSerializer(serializers.ModelSerializer):
+    document_artifacts = DocumentArtifactSerializer(read_only=True, many=True)
+    physical_artifacts = PhysicalArtifactSerializer(read_only=True, many=True)
+    class Meta:
+        model = LegalCaseRunningSheetArtifacts
+        fields = (
+                'id',
+                'legal_case_id',
+                'document_artifacts',
+                'physical_artifacts',
+                )
+        read_only_fields = (
+                'id',
+                'legal_case_id',
+                )
+
+
+#class SaveLegalCaseRunningSheetArtifactsSerializer(serializers.ModelSerializer):
+#    legal_case_id = serializers.IntegerField(
+#        required=False, write_only=True, allow_null=True)
+#    class Meta:
+#        model = LegalCaseRunningSheetArtifacts
+#        fields = (
+#                'id',
+#                'legal_case_id',
+#                'document_artifacts',
+#                'physical_artifacts',
+#                )
+#        read_only_fields = (
+#                'id',
+#                'legal_case_id',
+#                )

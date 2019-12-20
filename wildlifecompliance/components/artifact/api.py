@@ -224,31 +224,34 @@ class DocumentArtifactViewSet(viewsets.ModelViewSet):
         print(request.data)
         try:
             with transaction.atomic():
+                #request_data = request.data
+                #document_type = request_data.get('document_type')
+                #document_type_id = None
+                #if document_type:
+                #    document_type_id = document_type.get('id')
+                #    request_data['document_type_id'] = document_type_id
+                #serializer = SaveDocumentArtifactSerializer(
+                #        data=request_data, 
+                #        partial=True
+                #        )
+                #serializer.is_valid(raise_exception=True)
+                #if serializer.is_valid():
+                #    print("serializer.validated_data")
+                #    print(serializer.validated_data)
+                #    instance = serializer.save()
+                #    headers = self.get_success_headers(serializer.data)
                 request_data = request.data
-                document_type = request_data.get('document_type')
-                document_type_id = None
-                if document_type:
-                    document_type_id = document_type.get('id')
-                    request_data['document_type_id'] = document_type_id
-                serializer = SaveDocumentArtifactSerializer(
-                        data=request_data, 
-                        partial=True
+                instance, headers = self.common_save(request, request_data)
+
+                instance.log_user_action(
+                        ArtifactUserAction.ACTION_CREATE_ARTIFACT.format(
+                        instance.number), request)
+                return_serializer = DocumentArtifactSerializer(instance, context={'request': request})
+                return Response(
+                        return_serializer.data,
+                        status=status.HTTP_201_CREATED,
+                        headers=headers
                         )
-                serializer.is_valid(raise_exception=True)
-                if serializer.is_valid():
-                    print("serializer.validated_data")
-                    print(serializer.validated_data)
-                    instance = serializer.save()
-                    instance.log_user_action(
-                            ArtifactUserAction.ACTION_CREATE_ARTIFACT.format(
-                            instance.number), request)
-                    headers = self.get_success_headers(serializer.data)
-                    return_serializer = DocumentArtifactSerializer(instance, context={'request': request})
-                    return Response(
-                            return_serializer.data,
-                            status=status.HTTP_201_CREATED,
-                            headers=headers
-                            )
                     # Create comms_log and send mail
                     #res = self.workflow_action(request, instance, create_legal_case=True)
                     #if instance.call_email:
@@ -277,20 +280,72 @@ class DocumentArtifactViewSet(viewsets.ModelViewSet):
                 #if request.data.get('renderer_data'):
                  #   self.form_data(request)
 
-                serializer = SaveDocumentArtifactSerializer(instance, data=request.data)
+                #serializer = SaveDocumentArtifactSerializer(instance, data=request.data)
+                #serializer.is_valid(raise_exception=True)
+                #if serializer.is_valid():
+                #    serializer.save()
+                request_data = request.data
+                instance, headers = self.common_save(request, request_data, instance)
+                instance.log_user_action(
+                        ArtifactUserAction.ACTION_SAVE_ARTIFACT.format(
+                        instance.number), request)
+                headers = self.get_success_headers(serializer.data)
+                return_serializer = DocumentArtifactSerializer(instance, context={'request': request})
+                return Response(
+                        return_serializer.data,
+                        status=status.HTTP_201_CREATED,
+                        headers=headers
+                        )
+        except serializers.ValidationError:
+            print(traceback.print_exc())
+            raise
+        except ValidationError as e:
+            print(traceback.print_exc())
+            raise serializers.ValidationError(repr(e.error_dict))
+        except Exception as e:
+            print(traceback.print_exc())
+            raise serializers.ValidationError(str(e))
+
+    def common_save(self, request, request_data, instance=None):
+        try:
+            with transaction.atomic():
+                document_type = request_data.get('document_type')
+                document_type_id = None
+                if document_type:
+                    document_type_id = document_type.get('id')
+                    request_data['document_type_id'] = document_type_id
+                statement = request_data.get('statement')
+                statement_id = None
+                if statement:
+                    statement_id = statement.get('id')
+                    request_data['statement_id'] = statement_id
+                if instance:
+                    serializer = SaveDocumentArtifactSerializer(
+                            instance=instance,
+                            data=request_data, 
+                            partial=True
+                            )
+                else:
+                    serializer = SaveDocumentArtifactSerializer(
+                            data=request_data, 
+                            partial=True
+                            )
                 serializer.is_valid(raise_exception=True)
                 if serializer.is_valid():
-                    serializer.save()
-                    instance.log_user_action(
-                            ArtifactUserAction.ACTION_SAVE_ARTIFACT.format(
-                            instance.number), request)
+                    print("serializer.validated_data")
+                    print(serializer.validated_data)
+                    instance = serializer.save()
                     headers = self.get_success_headers(serializer.data)
-                    return_serializer = DocumentArtifactSerializer(instance, context={'request': request})
-                    return Response(
-                            return_serializer.data,
-                            status=status.HTTP_201_CREATED,
-                            headers=headers
-                            )
+                    return (instance, headers)
+                    #instance.log_user_action(
+                    #        ArtifactUserAction.ACTION_CREATE_ARTIFACT.format(
+                    #        instance.number), request)
+                    #return_serializer = DocumentArtifactSerializer(instance, context={'request': request})
+                    #return Response(
+                    #        return_serializer.data,
+                    #        status=status.HTTP_201_CREATED,
+                    #        headers=headers
+                    #        )
         except serializers.ValidationError:
             print(traceback.print_exc())
             raise

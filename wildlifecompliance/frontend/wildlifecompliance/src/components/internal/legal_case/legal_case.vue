@@ -268,8 +268,8 @@ export default {
             runningSheetEntriesUpdated: [],
             runningSheetHistoryEntryBindId: '',
             runningSheetHistoryEntryInstance: '',
-            runningSheetArtifactList: [],
-            runningSheetPersonList: [],
+            //runningSheetArtifactList: [],
+            //runningSheetPersonList: [],
             objectHash: null,
             runTab: 'runTab'+this._uid,
             rTab: 'rTab'+this._uid,
@@ -593,7 +593,7 @@ export default {
         if (entity.full_name) {
             replacementVal = `<a contenteditable="false" target="_blank" href="/internal/users/${entity.id}">${entity.full_name}</a>`
             // add to runningSheetPersonList
-            this.runningSheetPersonList.push(entity)
+            this.legal_case.runningSheetPersonList.push(entity)
         }
         let recordDescriptionHtml = recordNumberElement[0].innerHTML.replace(this.tabSelectedKeyCombination, replacementVal).replace(/&nbsp\;/g, ' ');
         return recordDescriptionHtml;
@@ -611,7 +611,10 @@ export default {
             // TODO: replace with correct artifact url
             replacementVal = `<a contenteditable="false" target="_blank" href="/internal/users/${entity.id}">${entity.artifact_type}</a>`
             // add to runningSheetArtifactList
-            this.runningSheetArtifactList.push(entity)
+            if (this.legal_case && !this.legal_case.runningSheetArtifactList) {
+                this.legal_case.runningSheetArtifactList = []
+            }
+            this.legal_case.runningSheetArtifactList.push(entity)
         }
         let recordDescriptionHtml = recordNumberElement[0].innerHTML.replace(this.tabSelectedKeyCombination, replacementVal).replace(/&nbsp\;/g, ' ');
         console.log(recordDescriptionHtml);
@@ -934,20 +937,24 @@ export default {
         let parsedText = description;
         const personTokenRegex = /\{\{ \"person\_id\"\: \"\d+\"\, \"full\_name\"\: \"\w+(\s\w+)*\" \}\}/g;
         const personIdRegex = /\{\{ \"person\_id\"\: \"\d+/g;
-        const personNameRegex = /\"full\_name\"\: \"\w+ \w+/g;
+        // const personNameRegex = /\"full\_name\"\: \"\w+ \w+/g;
+        const personNameRegex = /\"full\_name\"\: \"\w+/g;
         let personTokenArray = [...description.matchAll(personTokenRegex)];
         for (let personToken of personTokenArray) {
             let idArray = [...personToken[0].matchAll(personIdRegex)];
             let idStr = idArray[0][0]
             let id = idStr.substring(17)
             let nameArray = [...personToken[0].matchAll(personNameRegex)];
-            let nameStr = nameArray[0][0]
-            let fullName = nameStr.substring(14)
-            parsedText = parsedText.replace(
-                personToken[0],
-                `<a contenteditable="false" target="_blank" href="/internal/users/${id}">${fullName}</a>`
-            );
+            if (nameArray && nameArray.length > 0) {
+                let nameStr = nameArray[0][0]
+                let fullName = nameStr.substring(14)
+                parsedText = parsedText.replace(
+                    personToken[0],
+                    `<a contenteditable="false" target="_blank" href="/internal/users/${id}">${fullName}</a>`
+                );
+            }
         }
+        // TODO: add artifact url parsing here
         return parsedText
     },
     addEventListeners: function() {
