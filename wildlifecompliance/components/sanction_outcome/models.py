@@ -681,7 +681,7 @@ class AllegedCommittedOffence(RevisionedMixin):
 class RemediationAction(models.Model):
     action = models.TextField(blank=True)
     due_date = models.DateField(null=True, blank=True)
-    sanction_outcome = models.ForeignKey(SanctionOutcome, related_name='remediation_action', null=True, on_delete=models.SET_NULL,)
+    sanction_outcome = models.ForeignKey(SanctionOutcome, related_name='remediation_actions', null=True, on_delete=models.SET_NULL,)
 
     # validate if the sanction outcome is remediation_notice
     def clean_fields(self, exclude=None):

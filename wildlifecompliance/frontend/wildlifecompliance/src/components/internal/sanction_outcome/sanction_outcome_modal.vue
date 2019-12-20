@@ -470,7 +470,6 @@ export default {
             return this.sanction_outcome.region_id;
         },
         current_type: function() {
-            console.log('current_type in computed');
             return this.sanction_outcome.type;
         },
         modalTitle: function() {
