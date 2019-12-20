@@ -448,16 +448,22 @@ export default {
             if(this.selected_activity_tab_id && !force) {
                 return;
             }
-            // const tab = $('#tabs-assessor li:first-child a')[0];
+            //const tab = $('#tabs-assessor li:first-child a')[0];
             const tab = null
-            const FIRST_TAB = this.selected_activity_tab_id
+            var first_tab = this.application.activities[0].licence_activity
+
+            if (this.$router.currentRoute.name=='complete-assessment'){
+                // an activity is set for completing assessment.
+                first_tab = this.selected_activity_tab_id
+            }
+
             if(tab) {
                 tab.click();
             }
             else { // force first tab selection attributes.
 
                 this.licenceActivities().filter(activity => {
-                    if (activity.id==FIRST_TAB) {
+                    if (activity.id==first_tab) {
 
                         this.setActivityTab({ id: activity.id, name: activity.name });
                     }
