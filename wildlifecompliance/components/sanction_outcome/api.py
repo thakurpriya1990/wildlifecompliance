@@ -415,6 +415,11 @@ class SanctionOutcomeViewSet(viewsets.ModelViewSet):
 
                 request_data = request.data
 
+                if request_data['type'] == SanctionOutcome.TYPE_REMEDIATION_NOTICE:
+                    if not len(request_data['remediation_actions']):
+                        # Type is remediation action but no remediation actions defined
+                        raise serializers.ValidationError(['You must define at least one remediation action.'])
+
                 # offence and offender
                 request_data['offence_id'] = request_data.get('current_offence', {}).get('id', None);
                 request_data['offender_id'] = request_data.get('current_offender', {}).get('id', None);
