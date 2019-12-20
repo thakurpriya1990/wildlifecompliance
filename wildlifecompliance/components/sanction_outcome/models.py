@@ -474,6 +474,9 @@ class SanctionOutcome(models.Model):
 
         elif self.type == SanctionOutcome.TYPE_REMEDIATION_NOTICE:
             self.status = SanctionOutcome.STATUS_AWAITING_REMEDIATION_ACTIONS
+            for remediation_action in self.remediation_actions.all():
+                remediation_action.status = RemediationAction.STATUS_DUE
+                remediation_action.save()
 
         new_group = SanctionOutcome.get_compliance_permission_group(self.regionDistrictId, SanctionOutcome.WORKFLOW_ENDORSE)
         self.allocated_group = new_group

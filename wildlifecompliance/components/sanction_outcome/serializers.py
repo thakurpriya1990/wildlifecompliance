@@ -45,6 +45,7 @@ class RemediationActionSerializer(serializers.ModelSerializer):
         fields = (
             'id',
             'action',
+            'status',
             'due_date',
             'user_action',
             'actions_taken',
