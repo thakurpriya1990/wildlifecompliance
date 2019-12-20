@@ -450,7 +450,7 @@ export default {
             }
             //const tab = $('#tabs-assessor li:first-child a')[0];
             const tab = null
-            var first_tab = this.application.activities[0].licence_activity
+            var first_tab = this.applicationActivities[0].id
 
             if (this.$router.currentRoute.name=='complete-assessment'){
                 // an activity is set for completing assessment.
