@@ -539,7 +539,7 @@
                 <p>Licence: <a :href="application.permit" target="_blank" >licence.pdf</a></p>
             </div>
             <div v-else class="col-md-12 alert alert-warning">
-                <p>The application was declined. The decision was emailed to {{application.applicant}}</p>
+                <p>The application is not approved. An update to the status was emailed to {{application.applicant}}</p>
             </div>
         </div>
         <div class="row">
