@@ -536,7 +536,7 @@
         <div class="row">
             <div class="col-md-12 alert alert-success" v-if="application.processing_status.name === 'Approved'">
                 <p>The licence has been issued and has been emailed to {{ application.applicant }}.</p>
-                <p>Permit: <a :href="application.permit" target="_blank" >licence.pdf</a></p>
+                <p>Licence: <a :href="application.permit" target="_blank" >licence.pdf</a></p>
             </div>
             <div v-else class="col-md-12 alert alert-warning">
                 <p>The application was declined. The decision was emailed to {{application.applicant}}</p>
@@ -836,9 +836,7 @@ export default {
                 && (this.hasRole('licensing_officer') || this.hasRole('issuing_officer'))
         },
         showFinalDecision: function() {
-            return (!this.showingApplication || !this.unfinishedActivities.length)  // when not displaying application.
-                && (!this.isSendingToAssessor || !this.isOfficerConditions)         // when not displaying assessments.
-                && (!this.canIssueDecline && !this.isofficerfinalisation)           // when not displaying issuance.
+            return (!this.showingApplication || !this.unfinishedActivities.length) && !this.isSendingToAssessor && !this.canIssueDecline
         },
     },
     methods: {
