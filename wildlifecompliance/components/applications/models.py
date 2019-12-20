@@ -1261,8 +1261,7 @@ class Application(RevisionedMixin):
                 assessments = Assessment.objects.filter(
                     status=Assessment.STATUS_AWAITING_ASSESSMENT,
                     application=self,
-                    licence_activity=activity_id,
-                    actioned_by=request.user
+                    licence_activity=activity_id
                 )
 
                 # select each assessment on application.
@@ -1847,6 +1846,12 @@ class Application(RevisionedMixin):
                     ]:
                         raise Exception("Activity \"%s\" has an invalid processing status: %s" % (
                             selected_activity.licence_activity.name, selected_activity.processing_status))
+
+                    # skip over activities already issued and awaiting payment.
+                    if selected_activity.processing_status in [
+                        ApplicationSelectedActivity.PROCESSING_STATUS_AWAITING_LICENCE_FEE_PAYMENT,
+                    ]:
+                        continue
 
                     if item['final_status'] == ApplicationSelectedActivity.DECISION_ACTION_ISSUED:
 
@@ -2468,6 +2473,9 @@ class ApplicationSelectedActivity(models.Model):
     expiry_date = models.DateField(blank=True, null=True)
     is_inspection_required = models.BooleanField(default=False)
     licence_fee = models.DecimalField(
+        max_digits=8, decimal_places=2, default='0')
+    # TODO: application_fee on activity may not be required.
+    application_fee = models.DecimalField(
         max_digits=8, decimal_places=2, default='0')
     assigned_approver = models.ForeignKey(
         EmailUser,

@@ -232,7 +232,6 @@ export default {
             return this.filterActivityList({
                 activity_list: this.licenceActivities([
                     'with_officer_finalisation',
-                    'awaiting_licence_fee_payment'
                 ], 'issuing_officer'),
                 exclude_processing_statuses: ['discarded']
             });
@@ -274,10 +273,11 @@ export default {
             ).length;
         },
         canSubmit: function() {
-            const missingConfirmations = this.licence.activity.filter(
-                activity => !activity.confirmed
+            const required_confirmations = this.visibleLicenceActivities.length
+            const confirmations = this.licence.activity.filter(
+                activity => activity.confirmed
             ).length;
-            return missingConfirmations === 0;
+            return confirmations === required_confirmations;
         },
         canEditLicenceDates: function() {
             return this.application.application_type && this.application.application_type.id !== 'amend_activity';
@@ -415,6 +415,23 @@ export default {
         eventListeners(){
         },
 
+        initFirstTab: function(force){
+            const tab = $('#tabs-section li:first-child a')[0];
+            var first_tab = this.application.activities[0].licence_activity
+
+            if(tab) {
+                tab.click();
+            }
+            else { // force first tab selection attributes.
+                this.licenceActivities().filter(activity => {
+                    if (activity.id==first_tab) {
+
+                        this.setActivityTab({ id: activity.id, name: activity.name });
+                    }
+                })
+            }
+        },
+
         userHasRole: function(role, activity_id) {
             return this.application.user_roles.filter(
                 role_record => role_record.role == role && (!activity_id || activity_id == role_record.activity_id)
@@ -467,7 +484,7 @@ export default {
 
         this.$nextTick(() => {
             vm.eventListeners();
-            $('#tabs-section li:first-child a').click();
+            vm.initFirstTab();
         });
     },
     updated: function() {

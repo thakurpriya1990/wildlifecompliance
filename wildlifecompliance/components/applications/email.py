@@ -230,7 +230,7 @@ def send_activity_invoice_issue_notification(
 
     email = ActivityInvoiceIssueNotificationEmail()
     url = request.build_absolute_uri(
-        '/external/#{}'.format(application.id)
+        '/external/#'
     )
 
     context = {
