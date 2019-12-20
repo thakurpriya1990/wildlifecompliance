@@ -16,11 +16,26 @@ from wildlifecompliance.components.sanction_outcome_due.models import SanctionOu
 from wildlifecompliance.components.sanction_outcome_due.serializers import SanctionOutcomeDueDateSerializer
 from wildlifecompliance.components.section_regulation.serializers import SectionRegulationSerializer
 from wildlifecompliance.components.sanction_outcome.models import SanctionOutcome, RemediationAction, \
-    SanctionOutcomeCommsLogEntry, SanctionOutcomeUserAction, AllegedCommittedOffence
+    SanctionOutcomeCommsLogEntry, SanctionOutcomeUserAction, AllegedCommittedOffence, RemediationActionTaken
 from wildlifecompliance.components.users.serializers import CompliancePermissionGroupMembersSerializer
 
 
+class RemediationActionTakenSerializer(serializers.ModelSerializer):
+    attachments = serializers.SerializerMethodField()
+
+    class Meta:
+        model = RemediationActionTaken
+        fields = (
+            'details',
+            'attachments',
+        )
+
+    def get_attachments(self, obj):
+        return [[r.name, r._file.url] for r in obj.documents.all()]
+
+
 class RemediationActionSerializer(serializers.ModelSerializer):
+    actions_taken = RemediationActionTakenSerializer(read_only=True, many=True)
     user_action = serializers.SerializerMethodField()
 
     class Meta:
@@ -30,6 +45,7 @@ class RemediationActionSerializer(serializers.ModelSerializer):
             'action',
             'due_date',
             'user_action',
+            'actions_taken',
         )
 
     def get_user_action(self, obj):
