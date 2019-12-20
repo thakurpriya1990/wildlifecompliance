@@ -26,8 +26,10 @@ class RemediationActionTakenSerializer(serializers.ModelSerializer):
     class Meta:
         model = RemediationActionTaken
         fields = (
+            'id',
             'details',
             'attachments',
+            'created_at',
         )
 
     def get_attachments(self, obj):

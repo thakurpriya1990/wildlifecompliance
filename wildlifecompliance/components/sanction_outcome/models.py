@@ -821,6 +821,7 @@ class UnpaidInfringementFile(models.Model):
 class RemediationActionTaken(Document):
     remediation_action = models.ForeignKey(RemediationAction, related_name='actions_taken')
     details = models.TextField(blank=True)
+    created_at = models.DateTimeField(auto_now_add=True)
 
     class Meta:
         app_label = 'wildlifecompliance'
