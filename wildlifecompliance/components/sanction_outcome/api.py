@@ -28,7 +28,8 @@ from wildlifecompliance.components.offence.models import AllegedOffence
 from wildlifecompliance.components.sanction_outcome.email import send_infringement_notice, \
     send_due_date_extended_mail, send_return_to_officer_email, send_to_manager_email, send_withdraw_by_manager_email, \
     send_withdraw_by_branch_manager_email, send_return_to_infringement_notice_coordinator_email, send_decline_email, \
-    send_escalate_for_withdrawal_email, email_detais_to_department_of_transport
+    send_escalate_for_withdrawal_email, email_detais_to_department_of_transport, send_remediation_notice, \
+    send_caution_notice, send_letter_of_advice
 from wildlifecompliance.components.sanction_outcome.models import SanctionOutcome, RemediationAction, \
     SanctionOutcomeCommsLogEntry, AllegedCommittedOffence, SanctionOutcomeUserAction, SanctionOutcomeCommsLogDocument
 from wildlifecompliance.components.sanction_outcome.serializers import SanctionOutcomeSerializer, \
@@ -846,7 +847,17 @@ class SanctionOutcomeViewSet(viewsets.ModelViewSet):
                             to_address = [instance.offender.person.email, ]
                             cc = None
                             bcc = [instance.responsible_officer.email, request.user.email] + inc_emails
-                            email_data = send_infringement_notice(to_address, instance, workflow_entry, request, cc, bcc)
+                            if instance.type == SanctionOutcome.TYPE_INFRINGEMENT_NOTICE:
+                                email_data = send_infringement_notice(to_address, instance, workflow_entry, request, cc, bcc)
+                            elif instance.type == SanctionOutcome.TYPE_REMEDIATION_NOTICE:
+                                email_data = send_remediation_notice(to_address, instance, workflow_entry, request, cc, bcc)
+                            elif instance.type == SanctionOutcome.TYPE_CAUTION_NOTICE:
+                                email_data = send_caution_notice(to_address, instance, workflow_entry, request, cc, bcc)
+                            elif instance.type == SanctionOutcome.TYPE_LETTER_OF_ADVICE:
+                                email_data = send_letter_of_advice(to_address, instance, workflow_entry, request, cc, bcc)
+                            else:
+                                # Should not reach here
+                                pass
 
                             # Log action
                             instance.log_user_action(SanctionOutcomeUserAction.ACTION_ENDORSE_AND_ISSUE.format(instance.lodgement_number), request)

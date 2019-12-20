@@ -36,7 +36,11 @@ class RemediationActionSerializer(serializers.ModelSerializer):
         url_list = []
 
         view_url = '<a href=/internal/remediation_action/' + str(obj.id) + '>View</a>'
-        # url_list.append(view_url)
+        accept_url = '<a href=/internal/remediation_action/' + str(obj.id) + '>Accept</a>'
+        request_amendment_url = '<a href=/internal/remediation_action/' + str(obj.id) + '>Request Amendment</a>'
+        url_list.append(view_url)
+        url_list.append(accept_url)
+        url_list.append(request_amendment_url)
 
         urls = '<br />'.join(url_list)
         return urls
