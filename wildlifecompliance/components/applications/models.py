@@ -1814,6 +1814,10 @@ class Application(RevisionedMixin):
                     request=request,
                     licence=parent_licence
                 )
+                # Attach the re-generated licence to latest application.
+                latest_application_in_function.licence_document \
+                    = parent_licence.licence_document
+                latest_application_in_function.save()
 
     def final_decision(self, request):
         """
@@ -1952,18 +1956,28 @@ class Application(RevisionedMixin):
         self.update_customer_approval_status()
 
     def update_customer_approval_status(self):
-        # Update application customer approval status depending on count of approved/declined activities
+        # Update application customer approval status depending on count of approved/declined/unpaid activities
         total_activity_count = self.selected_activities.count()
+
         approved_activity_count = self.selected_activities.filter(
             processing_status=ApplicationSelectedActivity.PROCESSING_STATUS_ACCEPTED).count()
+
         declined_activity_count = self.selected_activities.filter(
             processing_status=ApplicationSelectedActivity.PROCESSING_STATUS_DECLINED).count()
+
+        unpaid_activity_count = self.selected_activities.filter(
+            processing_status=ApplicationSelectedActivity.PROCESSING_STATUS_AWAITING_LICENCE_FEE_PAYMENT).count()
+
         if 0 < approved_activity_count < total_activity_count:
             self.customer_status = Application.CUSTOMER_STATUS_PARTIALLY_APPROVED
         elif approved_activity_count == total_activity_count:
             self.customer_status = Application.CUSTOMER_STATUS_ACCEPTED
         elif declined_activity_count == total_activity_count:
             self.customer_status = Application.CUSTOMER_STATUS_DECLINED
+        # override decision status if payment is pending.
+        if unpaid_activity_count > 0:
+            self.customer_status = Application.CUSTOMER_STATUS_AWAITING_PAYMENT
+
         self.save()
 
     def generate_returns(self, licence, selected_activity, request):

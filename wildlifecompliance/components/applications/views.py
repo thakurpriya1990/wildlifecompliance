@@ -5,7 +5,11 @@ from django.views.generic import View, TemplateView
 from django.conf import settings
 from django.template.loader import render_to_string
 from wildlifecompliance.components.applications.utils import SchemaParser
-from wildlifecompliance.components.applications.models import Application, ActivityInvoice
+from wildlifecompliance.components.applications.models import (
+    Application,
+    ActivityInvoice,
+    ApplicationSelectedActivity
+)
 from wildlifecompliance.components.applications.email import (
     send_application_invoice_email_notification,
     send_activity_invoice_email_notification,
@@ -102,20 +106,35 @@ class LicenceFeeSuccessView(TemplateView):
 
     def get(self, request, *args, **kwargs):
         try:
-            activity = get_session_activity(request.session)
+            session_activity = get_session_activity(request.session)
             invoice_ref = request.GET.get('invoice')
 
-            ActivityInvoice.objects.get_or_create(
-                activity=activity,
-                invoice_reference=invoice_ref
-            )
-            if not activity.licence_fee_paid:
-                raise Exception("Licence fee payment failed!")
+            activities = ApplicationSelectedActivity.objects.filter(
+                application_id=session_activity.application_id,
+                processing_status=ApplicationSelectedActivity.PROCESSING_STATUS_AWAITING_LICENCE_FEE_PAYMENT)
 
-            activity.application.issue_activity(request, activity, generate_licence=True)
-            send_activity_invoice_email_notification(activity.application, activity, invoice_ref, request)
+            for activity in activities:
+                ActivityInvoice.objects.get_or_create(
+                    activity=activity,
+                    invoice_reference=invoice_ref
+                )
+                if not activity.licence_fee_paid:
+                    raise Exception("Licence fee payment failed!")
+
+                activity.application.issue_activity(
+                    request, activity,
+                    generate_licence=True)
+
+            send_activity_invoice_email_notification(
+                activities[0].application,
+                activities[0],
+                invoice_ref,
+                request)
+
             invoice_url = request.build_absolute_uri(
-                reverse('payments:invoice-pdf', kwargs={'reference': invoice_ref}))
+                reverse('payments:invoice-pdf',
+                        kwargs={'reference': invoice_ref}))
+
         except Exception as e:
             print(e)
             traceback.print_exc

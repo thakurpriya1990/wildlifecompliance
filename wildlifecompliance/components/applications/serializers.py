@@ -402,6 +402,7 @@ class BaseApplicationSerializer(serializers.ModelSerializer):
     data = ApplicationFormDataRecordSerializer(many=True)
     application_type = CustomChoiceField(read_only=True)
     invoice_url = serializers.SerializerMethodField(read_only=True)
+    can_user_view = serializers.SerializerMethodField(read_only=True)
 
     class Meta:
         model = Application
@@ -517,12 +518,21 @@ class BaseApplicationSerializer(serializers.ModelSerializer):
             user_orgs = [
                 org.id for org in self.context['request'].user.wildlifecompliance_organisations.all()]
             is_in_org_applicant = obj.org_applicant_id in user_orgs
-        if obj.can_user_edit and (
-            is_app_licence_officer
+
+        result = False if obj.customer_status == \
+            Application.CUSTOMER_STATUS_AWAITING_PAYMENT else obj.can_user_edit
+
+        if result and (
+            is_app_licence_officer 
             or is_submitter
             or is_proxy_applicant
             or is_in_org_applicant):
                 result = True
+        return result
+
+    def get_can_user_view(self, obj):
+        result = True if obj.customer_status == \
+            Application.CUSTOMER_STATUS_AWAITING_PAYMENT else obj.can_user_view
         return result
 
     def get_invoice_url(self, obj):

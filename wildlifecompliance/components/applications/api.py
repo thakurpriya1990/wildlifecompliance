@@ -652,20 +652,25 @@ class ApplicationViewSet(viewsets.ModelViewSet):
             if not activity_id:
                 raise Exception(
                     'No activity selected for payment!')
-            activity = ApplicationSelectedActivity.objects.get(id=activity_id)
+
+            activities = ApplicationSelectedActivity.objects.filter(
+                application_id=instance.id,
+                processing_status=ApplicationSelectedActivity.PROCESSING_STATUS_AWAITING_LICENCE_FEE_PAYMENT)
 
             product_lines = []
             application_submission = u'Activity licence issued for {} application {}'.format(
                 u'{} {}'.format(request.user.first_name, request.user.last_name), instance.lodgement_number)
 
-            set_session_activity(request.session, activity)
-            product_lines.append({
-                'ledger_description': '{}'.format(activity.licence_activity.name),
-                'quantity': 1,
-                'price_incl_tax': str(activity.licence_fee),
-                'price_excl_tax': str(calculate_excl_gst(activity.licence_fee)),
-                'oracle_code': ''
-            })
+            set_session_activity(request.session, activities[0])
+            for activity in activities:
+                product_lines.append({
+                    'ledger_description': '{}'.format(activity.licence_activity.name),
+                    'quantity': 1,
+                    'price_incl_tax': str(activity.licence_fee),
+                    'price_excl_tax': str(calculate_excl_gst(activity.licence_fee)),
+                    'oracle_code': ''
+                })
+
             checkout_result = checkout(
                 request, instance,
                 lines=product_lines,
