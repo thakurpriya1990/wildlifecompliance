@@ -209,6 +209,29 @@ class PhysicalArtifactSerializer(ArtifactSerializer):
                 )
 
 
+class SavePhysicalArtifactSerializer(ArtifactSerializer):
+    physical_artifact_type_id = serializers.IntegerField(
+        required=False, write_only=True, allow_null=True)
+    custodian_id = serializers.IntegerField(
+        required=False, write_only=True, allow_null=True)
+
+    class Meta:
+        model = PhysicalArtifact
+        #fields = '__all__'
+        fields = (
+                'id',
+                'identifier',
+                'description',
+                'custodian_id',
+                'artifact_date',
+                'artifact_time',
+                'physical_artifact_type_id',
+                )
+        read_only_fields = (
+                'id',
+                )
+
+
 class ArtifactUserActionSerializer(serializers.ModelSerializer):
     who = serializers.CharField(source='who.get_full_name')
 

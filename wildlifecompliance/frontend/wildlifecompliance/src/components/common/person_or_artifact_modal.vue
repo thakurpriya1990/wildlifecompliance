@@ -84,6 +84,7 @@ import modal from '@vue-utils/bootstrap-modal.vue';
 import SearchPersonOrganisation from './search_person_or_organisation'
 import DocumentArtifact from './document_artifact_component'
 import PhysicalArtifact from './physical_artifact_component'
+import { mapState, mapGetters, mapActions, mapMutations } from "vuex";
 
 export default {
     name: "PersonOrArtifactModal",
@@ -139,6 +140,9 @@ export default {
         }
     },
     computed: {
+        ...mapGetters('legalCaseStore', {
+          legal_case: "legal_case",
+        }),
         showDocumentArtifactComponent: function() {
             let showComponent = false;
             if (this.componentType === 'document') {

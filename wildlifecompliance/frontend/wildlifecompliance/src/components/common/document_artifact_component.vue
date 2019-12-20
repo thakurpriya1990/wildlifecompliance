@@ -180,6 +180,9 @@ export default {
       ...mapGetters('documentArtifactStore', {
         document_artifact: "document_artifact",
       }),
+      ...mapGetters('legalCaseStore', {
+        legal_case: "legal_case",
+      }),
       artifactType: function() {
           console.log("artifact type")
           let aType = ''
@@ -251,10 +254,13 @@ export default {
             */
             await this.save();
             //this.entity.id = 
-            this.$emit('entity-selected', {
-                id: this.document_artifact.id,
-                data_type: 'document_artifact',
-                artifact_type: this.artifactType,
+            this.$nextTick(() => {
+                this.$emit('entity-selected', {
+                    id: this.document_artifact.id,
+                    data_type: 'document_artifact',
+                    identifier: this.document_artifact.identifier,
+                    artifact_type: this.artifactType,
+                });
             });
             //return documentArtifactEntity;
         },

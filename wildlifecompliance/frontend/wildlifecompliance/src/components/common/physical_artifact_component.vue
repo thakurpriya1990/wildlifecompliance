@@ -4,119 +4,146 @@
             <div class="form-group">
                 <div class="row">
                     <ul class="nav nav-pills">
-                        <li class="nav-item active"><a data-toggle="tab" :href="'#'+newTab">New</a></li>
+                        <li class="nav-item active"><a data-toggle="tab" @click="updateTabSelected('objectTab')" :href="'#'+newTab">New</a></li>
                         <li class="nav-item"><a data-toggle="tab" :href="'#'+existingTab" >Existing</a></li>
                     </ul>
                     <div class="tab-content">
                         <div :id="newTab" class="tab-pane fade in active">
-                            <div :id="objectTab" class="tab-pane fade in active li-top-buffer">
-                                <div class="col-sm-12">
-                                    <div class="form-group">
-                                      <div class="row">
-                                        <div class="col-sm-3">
-                                          <label>Physical Type</label>
-                                        </div>
-                                        <div class="col-sm-6">
-                                          <select class="form-control" v-model="physical_artifact.physical_artifact_type_id">
-                                            <option  v-for="option in physicalArtifactTypes" :value="option.id" v-bind:key="option.id">
-                                              {{ option.artifact_type }}
-                                            </option>
-                                          </select>
-                                        </div>
-                                      </div>
-                                    </div>
-                                </div>
-                                <div class="col-sm-12">
-                                    <div class="form-group">
-                                        <div class="row">
-                                            <div class="col-sm-3">
-                                                <label class="control-label pull-left" for="Name">Seizure Notice</label>
-                                            </div>
-                                            <div class="col-sm-9">
-                                                <filefield
-                                                ref="default_document"
-                                                name="default-document"
-                                                :isRepeatable="true"
-                                                documentActionUrl="temporary_document"
-                                                @update-temp-doc-coll-id="setTemporaryDocumentCollectionId"/>
-                                            </div>
-                                        </div>
-                                    </div>
-                                    <div class="form-group">
-                                      <div class="row">
-                                        <div class="col-sm-3">
-                                          <label>Identifier</label>
-                                        </div>
-                                        <div class="col-sm-9">
-                                          <input :readonly="readonlyForm" class="form-control" v-model="physical_artifact.identifier"/>
-                                        </div>
-                                      </div>
-                                    </div>
-                                    <div class="form-group">
-                                      <div class="row">
-                                        <div class="col-sm-3">
-                                          <label>Description</label>
-                                        </div>
-                                        <div class="col-sm-9">
-                                          <textarea :readonly="readonlyForm" class="form-control" v-model="physical_artifact.description"/>
-                                        </div>
-                                      </div>
-                                    </div>
-                                    <div class="form-group">
-                                        <div class="row">
-                                            <div class="col-sm-3">
-                                                <label>Witness</label>
-                                            </div>
-                                            <div class="col-sm-9">
-                                                <select ref="department_users" class="form-control">
-                                                    <option  v-for="option in departmentStaffList" :value="option.pk" v-bind:key="option.pk">
-                                                    {{ option.name }} 
+                            <ul class="nav nav-pills">
+                                <li :class="objectTabListClass"><a data-toggle="tab" @click="updateTabSelected('objectTab')" :href="'#'+objectTab">Object</a></li>
+                                <li :class="detailsTabListClass"><a data-toggle="tab" @click="updateTabSelected('detailsTab')" :href="'#'+detailsTab" >Details</a></li>
+                                <li :class="storageTabListClass"><a data-toggle="tab" @click="updateTabSelected('storageTab')" :href="'#'+storageTab" >Storage</a></li>
+                                <li :class="disposalTabListClass"><a data-toggle="tab" @click="updateTabSelected('disposalTab')" :href="'#'+disposalTab" >Disposal</a></li>
+                            </ul>
+                            <div class="tab-content">
+                                    <div :id="objectTab" :class="objectTabClass">
+                                        <div class="col-sm-12">
+                                            <div class="form-group">
+                                              <div class="row">
+                                                <div class="col-sm-3">
+                                                  <label>Physical Type</label>
+                                                </div>
+                                                <div class="col-sm-6">
+                                                  <select class="form-control" v-model="physical_artifact.physical_artifact_type">
+                                                    <option  v-for="option in physicalArtifactTypes" :value="option" v-bind:key="option.id">
+                                                      {{ option.artifact_type }}
                                                     </option>
-                                                </select>
-                                            </div>
-                                            <!--div class="col-sm-9">
-                                                <SearchPersonOrganisation 
-                                                personOnly
-                                                :isEditable="!readonlyForm" 
-                                                classNames="form-control" 
-                                                @entity-selected="entitySelected"
-                                                showCreateUpdate
-                                                ref="physical_artifact_search_person_organisation"
-                                                v-bind:key="updateSearchPersonOrganisationBindId"
-                                                addFullName
-                                                :displayTitle="false"
-                                                domIdHelper="physical_artifact"
-                                                departmentalStaff
-                                                />
-                                            </div-->
-                                        </div>
-                                    </div>
-                                    <div class="form-group">
-                                        <div class="row">
-                                            <label class="col-sm-3">Date</label>
-                                            <div class="col-sm-3">
-                                                <div class="input-group date" ref="artifactDatePicker">
-                                                    <input :disabled="readonlyForm" type="text" class="form-control" placeholder="DD/MM/YYYY" v-model="physical_artifact.artifact_date" />
-                                                    <span class="input-group-addon">
-                                                        <span class="glyphicon glyphicon-calendar"></span>
-                                                    </span>
+                                                  </select>
                                                 </div>
-                                            </div>
-                                            <label class="col-sm-3">Time</label>
-                                            <div class="col-sm-3">
-                                                <div class="input-group date" ref="artifactTimePicker">
-                                                  <input :disabled="readonlyForm" type="text" class="form-control" placeholder="HH:MM" v-model="physical_artifact.artifact_time"/>
-                                                  <span class="input-group-addon">
-                                                      <span class="glyphicon glyphicon-calendar"></span>
-                                                  </span>
-                                                </div>
+                                              </div>
                                             </div>
                                         </div>
+                                        <div class="col-sm-12">
+                                            <div class="form-group">
+                                                <div class="row">
+                                                    <div class="col-sm-3">
+                                                        <label class="control-label pull-left" for="Name">Seizure Notice</label>
+                                                    </div>
+                                                    <div class="col-sm-9">
+                                                        <filefield
+                                                        ref="default_document"
+                                                        name="default-document"
+                                                        :isRepeatable="true"
+                                                        documentActionUrl="temporary_document"
+                                                        @update-temp-doc-coll-id="setTemporaryDocumentCollectionId"/>
+                                                    </div>
+                                                </div>
+                                            </div>
+                                            <div class="form-group">
+                                              <div class="row">
+                                                <div class="col-sm-3">
+                                                  <label>Identifier</label>
+                                                </div>
+                                                <div class="col-sm-9">
+                                                  <input :readonly="readonlyForm" class="form-control" v-model="physical_artifact.identifier"/>
+                                                </div>
+                                              </div>
+                                            </div>
+                                            <div class="form-group">
+                                              <div class="row">
+                                                <div class="col-sm-3">
+                                                  <label>Description</label>
+                                                </div>
+                                                <div class="col-sm-9">
+                                                  <textarea :readonly="readonlyForm" class="form-control" v-model="physical_artifact.description"/>
+                                                </div>
+                                              </div>
+                                            </div>
+                                            <div class="form-group">
+                                                <div class="row">
+                                                    <div class="col-sm-3">
+                                                        <label>Witness</label>
+                                                    </div>
+                                                    <div class="col-sm-9">
+                                                        <select ref="department_users" class="form-control">
+                                                            <option  v-for="option in departmentStaffList" :value="option.pk" v-bind:key="option.pk">
+                                                            {{ option.name }} 
+                                                            </option>
+                                                        </select>
+                                                    </div>
+                                                    <!--div class="col-sm-9">
+                                                        <SearchPersonOrganisation 
+                                                        personOnly
+                                                        :isEditable="!readonlyForm" 
+                                                        classNames="form-control" 
+                                                        @entity-selected="entitySelected"
+                                                        showCreateUpdate
+                                                        ref="physical_artifact_search_person_organisation"
+                                                        v-bind:key="updateSearchPersonOrganisationBindId"
+                                                        addFullName
+                                                        :displayTitle="false"
+                                                        domIdHelper="physical_artifact"
+                                                        departmentalStaff
+                                                        />
+                                                    </div-->
+                                                </div>
+                                            </div>
+                                            <div class="form-group">
+                                                <div class="row">
+                                                    <label class="col-sm-3">Date</label>
+                                                    <div class="col-sm-3">
+                                                        <div class="input-group date" ref="artifactDatePicker">
+                                                            <input :disabled="readonlyForm" type="text" class="form-control" placeholder="DD/MM/YYYY" v-model="physical_artifact.artifact_date" />
+                                                            <span class="input-group-addon">
+                                                                <span class="glyphicon glyphicon-calendar"></span>
+                                                            </span>
+                                                        </div>
+                                                    </div>
+                                                    <label class="col-sm-3">Time</label>
+                                                    <div class="col-sm-3">
+                                                        <div class="input-group date" ref="artifactTimePicker">
+                                                          <input :disabled="readonlyForm" type="text" class="form-control" placeholder="HH:MM" v-model="physical_artifact.artifact_time"/>
+                                                          <span class="input-group-addon">
+                                                              <span class="glyphicon glyphicon-calendar"></span>
+                                                          </span>
+                                                        </div>
+                                                    </div>
+                                                </div>
+                                            </div>
+                                        </div>
                                     </div>
-                                </div>
+                                    <!--div :id="detailsTab" class="tab-pane fade in li-top-buffer">
+                                        details
+                                    </div>
+                                    <div :id="storageTab" class="tab-pane fade in li-top-buffer">
+                                        storage
+                                    </div>
+                                    <div :id="disposalTab" class="tab-pane fade in li-top-buffer">
+                                        disposal
+                                    </div-->
+                                    <div :id="detailsTab" :class="detailsTabClass">
+                                        details
+                                    </div>
+                                    <div :id="storageTab" :class="storageTabClass">
+                                        storage
+                                    </div>
+                                    <div :id="disposalTab" :class="disposalTabClass">
+                                        disposal
+                                    </div>
                             </div>
                         </div>
                         <div :id="existingTab" class="tab-pane fade in li-top-buffer">
+                            existing
                         </div>
                     </div>
                 </div>
@@ -150,6 +177,7 @@ export default {
             detailsTab: 'detailsTab'+this._uid,
             storageTab: 'storageTab'+this._uid,
             disposalTab: 'disposalTab'+this._uid,
+            tabSelected: 'objectTab',
             isModalOpen: false,
             processingDetails: false,
             documentActionUrl: '',
@@ -167,24 +195,124 @@ export default {
       filefield,
       SearchPersonOrganisation,
     },
+    watch: {
+        artifactType: {
+            handler: function (){
+                /*
+                if (this.statementVisibilityArray.includes(this.artifactType)) {
+                    console.log("statementVisibility true")
+                    this.statementVisibility = true;
+                }
+                */
+            },
+            deep: true,
+        }
+    },
     computed: {
-      ...mapGetters('physicalArtifactStore', {
-        physical_artifact: "physical_artifact",
-      }),
-      artifactType: function() {
-          let aType = ''
-          if (this.physical_artifact && this.physical_artifact.physical_artifact_type) {
-              aType = this.physical_artifact.physical_artifact_type.artifact_type;
-          }
-          return aType;
-      },
-      readonlyForm: function() {
-          return false;
-      },
-      updateSearchPersonOrganisationBindId: function() {
-          this.uuid += 1
-          return "PhysicalArtifact_SearchPerson_" + this.uuid.toString();
-      },
+        ...mapGetters('physicalArtifactStore', {
+            physical_artifact: "physical_artifact",
+        }),
+        ...mapGetters('legalCaseStore', {
+            legal_case: "legal_case",
+        }),
+        artifactType: function() {
+            let aType = ''
+            if (this.physical_artifact && this.physical_artifact.physical_artifact_type) {
+                aType = this.physical_artifact.physical_artifact_type.artifact_type;
+            }
+            return aType;
+        },
+        readonlyForm: function() {
+            return false;
+        },
+        updateSearchPersonOrganisationBindId: function() {
+            this.uuid += 1
+            return "PhysicalArtifact_SearchPerson_" + this.uuid.toString();
+        },
+        objectTabSelected: function() {
+            let isTab = false;
+            if (this.tabSelected === 'objectTab') {
+                isTab = true;
+            }
+            return isTab;
+        },
+        detailsTabSelected: function() {
+            let isTab = false;
+            if (this.tabSelected === 'detailsTab') {
+                isTab = true;
+            }
+            return isTab;
+        },
+        storageTabSelected: function() {
+            let isTab = false;
+            if (this.tabSelected === 'storageTab') {
+                isTab = true;
+            }
+            return isTab;
+        },
+        disposalTabSelected: function() {
+            let isTab = false;
+            if (this.tabSelected === 'disposalTab') {
+                isTab = true;
+            }
+            return isTab;
+        },
+        objectTabListClass: function() {
+            let tabClass = 'nav-item';
+            if (this.objectTabSelected) {
+                tabClass += ' active';
+            }
+            return tabClass;
+        },
+        objectTabClass: function() {
+            let tabClass = 'li-top-buffer tab-pane fade in';
+            if (this.objectTabSelected) {
+                tabClass += ' active';
+            }
+            return tabClass;
+        },
+        detailsTabListClass: function() {
+            let tabClass = 'nav-item';
+            if (this.detailsTabSelected) {
+                tabClass += ' active';
+            }
+            return tabClass;
+        },
+        detailsTabClass: function() {
+            let tabClass = 'li-top-buffer tab-pane fade in';
+            if (this.detailsTabSelected) {
+                tabClass += ' active';
+            }
+            return tabClass;
+        },
+        storageTabListClass: function() {
+            let tabClass = 'nav-item';
+            if (this.storageTabSelected) {
+                tabClass += ' active';
+            }
+            return tabClass;
+        },
+        storageTabClass: function() {
+            let tabClass = 'li-top-buffer tab-pane fade in';
+            if (this.storageTabSelected) {
+                tabClass += ' active';
+            }
+            return tabClass;
+        },
+        disposalTabListClass: function() {
+            let tabClass = 'nav-item';
+            if (this.disposalTabSelected) {
+                tabClass += ' active';
+            }
+            return tabClass;
+        },
+        disposalTabClass: function() {
+            let tabClass = 'li-top-buffer tab-pane fade in';
+            if (this.disposalTabSelected) {
+                tabClass += ' active';
+            }
+            return tabClass;
+        },
     },
     filters: {
       formatDate: function(data) {
@@ -197,6 +325,9 @@ export default {
             loadPhysicalArtifact: 'loadPhysicalArtifact',
             setPhysicalArtifact: 'setPhysicalArtifact',
         }),
+        updateTabSelected: function(tabValue) {
+            this.tabSelected = tabValue;
+        },
         setTemporaryDocumentCollectionId: function(val) {
             this.temporary_document_collection_id = val;
         },
@@ -222,10 +353,13 @@ export default {
             */
             await this.save();
             //this.entity.id = 
-            this.$emit('entity-selected', {
-                id: this.physical_artifact.id,
-                data_type: 'physical_artifact',
-                artifact_type: this.artifactType,
+            this.$nextTick(() => {
+                this.$emit('entity-selected', {
+                    id: this.physical_artifact.id,
+                    data_type: 'physical_artifact',
+                    identifier: this.physical_artifact.identifier,
+                    artifact_type: this.artifactType,
+                });
             });
             //return physicalArtifactEntity;
         },
@@ -279,7 +413,7 @@ export default {
                     var selected = $(e.currentTarget);
                     vm.selectedCustodian = {}
                 });
-                
+            
         },
         setSelectedCustodian: function(pk) {
             for (let record of this.departmentStaffList) {

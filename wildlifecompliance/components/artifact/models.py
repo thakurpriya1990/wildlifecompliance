@@ -217,6 +217,9 @@ class PhysicalArtifact(Artifact):
         verbose_name = 'CM_PhysicalArtifact'
         verbose_name_plural = 'CM_PhysicalArtifacts'
 
+    def log_user_action(self, action, request):
+        return ArtifactUserAction.log_action(self, action, request.user)
+
     ## Prefix "PO" char to DocumentArtifact number.
     #def save(self, *args, **kwargs):
     #    

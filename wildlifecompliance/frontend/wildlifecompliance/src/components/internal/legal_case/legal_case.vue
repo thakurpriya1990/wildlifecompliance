@@ -268,6 +268,8 @@ export default {
             runningSheetEntriesUpdated: [],
             runningSheetHistoryEntryBindId: '',
             runningSheetHistoryEntryInstance: '',
+            runningSheetArtifactList: [],
+            runningSheetPersonList: [],
             objectHash: null,
             runTab: 'runTab'+this._uid,
             rTab: 'rTab'+this._uid,
@@ -563,7 +565,7 @@ export default {
             recordDescriptionHtml = this.cancelModalUrl(recordNumberElement)
         } else if (entity && entity.data_type === 'individual' && action === 'ok') {
             recordDescriptionHtml = this.insertPersonModalUrl({"entity": entity, "recordNumberElement": recordNumberElement})
-        } else if (entity && entity.data_type === 'document_artifact' && action === 'ok') {
+        } else if (entity && entity.artifact_type && action === 'ok') {
             recordDescriptionHtml = this.insertArtifactModalUrl({"entity": entity, "recordNumberElement": recordNumberElement})
         } else if (entity && entity.data_type === 'url' && action === 'ok') {
             recordDescriptionHtml = this.insertModalUrl({"entity": entity, "recordNumberElement": recordNumberElement})
@@ -590,6 +592,8 @@ export default {
         let replacementVal = ''
         if (entity.full_name) {
             replacementVal = `<a contenteditable="false" target="_blank" href="/internal/users/${entity.id}">${entity.full_name}</a>`
+            // add to runningSheetPersonList
+            this.runningSheetPersonList.push(entity)
         }
         let recordDescriptionHtml = recordNumberElement[0].innerHTML.replace(this.tabSelectedKeyCombination, replacementVal).replace(/&nbsp\;/g, ' ');
         return recordDescriptionHtml;
@@ -603,9 +607,11 @@ export default {
     */
     insertArtifactModalUrl: function({"entity": entity, "recordNumberElement": recordNumberElement}) {
         let replacementVal = ''
-        // TODO: replace with correct artifact url
         if (entity.artifact_type) {
+            // TODO: replace with correct artifact url
             replacementVal = `<a contenteditable="false" target="_blank" href="/internal/users/${entity.id}">${entity.artifact_type}</a>`
+            // add to runningSheetArtifactList
+            this.runningSheetArtifactList.push(entity)
         }
         let recordDescriptionHtml = recordNumberElement[0].innerHTML.replace(this.tabSelectedKeyCombination, replacementVal).replace(/&nbsp\;/g, ' ');
         console.log(recordDescriptionHtml);
