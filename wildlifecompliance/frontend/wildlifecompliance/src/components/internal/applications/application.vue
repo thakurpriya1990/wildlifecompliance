@@ -806,6 +806,9 @@ export default {
         form_data_comments_url: function() {
             return (this.application) ? `/api/application/${this.application.id}/officer_comments.json` : '';
         },
+        form_data_application_url: function() {
+            return (this.application) ? `/api/application/${this.application.id}/form_data.json` : '';
+        },
         headerLabel: function() {
             switch(this.application.application_type.id) {
                 case 'amend_activity':
@@ -1016,6 +1019,16 @@ export default {
         save: function(props = { showNotification: true }) {
             const { showNotification } = props;
             this.saveFormData({ url: this.form_data_comments_url }).then(response => {
+                // no notification.
+            }, error => {
+                console.log('Failed to save comments: ', error);
+                swal(
+                    'Application Error',
+                    helpers.apiVueResourceError(error),
+                    'error'
+                )
+            });
+            this.saveFormData({ url: this.form_data_application_url }).then(response => {
                 showNotification && swal(
                     'Saved',
                     'Your application has been saved',
