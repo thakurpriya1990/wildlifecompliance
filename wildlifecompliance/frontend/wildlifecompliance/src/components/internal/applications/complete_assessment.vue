@@ -313,9 +313,9 @@ export default {
         },
         showCompleteAssessmentsButton: function() {
             return this.isWithAssessor && this.activeAssessments.find(assessment => {
-                // Only active assessments assigned to user.
-                return assessment.assigned_assessor
-                    && assessment.assigned_assessor.id === this.current_user.id;               
+                // Only unassigned or active assessments assigned to user.
+                return !assessment.assigned_assessor 
+                    || (assessment.assigned_assessor && assessment.assigned_assessor.id === this.current_user.id);               
             });
         },
         showAssignToAssessor: function(){
