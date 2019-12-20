@@ -794,7 +794,6 @@ class DotRequestFile(models.Model):
         verbose_name_plural = 'CM_DotReguestFiles'
 
 
-
 class UnpaidInfringementFile(models.Model):
     contents = models.TextField(blank=True)
     filename = models.CharField(max_length=100, blank=True)
@@ -817,3 +816,23 @@ class UnpaidInfringementFile(models.Model):
         app_label = 'wildlifecompliance'
         verbose_name = 'CM_UnpaidInfringementFile'
         verbose_name_plural = 'CM_UnpaidInfringementFiles'
+
+
+class RemediationActionTaken(Document):
+    remediation_action = models.ForeignKey(RemediationAction, related_name='actions_taken')
+    description = models.TextField(blank=True)
+
+    class Meta:
+        app_label = 'wildlifecompliance'
+        verbose_name = 'CM_RemediationActionTaken'
+        verbose_name_plural = 'CM_RemediationActionsTaken'
+
+
+class RemediationActionTakenDocument(Document):
+    remediation_action_taken = models.ForeignKey(RemediationActionTaken, related_name='documents')
+    _file = models.FileField(max_length=255)
+
+    class Meta:
+        app_label = 'wildlifecompliance'
+        verbose_name = 'CM_RemediationActionTakenDocument'
+        verbose_name_plural = 'CM_RemediationActionTakenDocuments'
