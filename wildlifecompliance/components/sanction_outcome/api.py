@@ -415,6 +415,11 @@ class SanctionOutcomeViewSet(viewsets.ModelViewSet):
 
                 request_data = request.data
 
+                if request_data['type'] == SanctionOutcome.TYPE_REMEDIATION_NOTICE:
+                    if not len(request_data['remediation_actions']):
+                        # Type is remediation action but no remediation actions defined
+                        raise serializers.ValidationError(['You must define at least one remediation action.'])
+
                 # offence and offender
                 request_data['offence_id'] = request_data.get('current_offence', {}).get('id', None);
                 request_data['offender_id'] = request_data.get('current_offender', {}).get('id', None);
@@ -501,6 +506,7 @@ class SanctionOutcomeViewSet(viewsets.ModelViewSet):
                 # Save remediation action, and link to the sanction outcome
                 for dict in request_data['remediation_actions']:
                     dict['sanction_outcome_id'] = instance.id
+                    dict['action'] = dict['action_text']
                     remediation_action = SaveRemediationActionSerializer(data=dict)
                     if remediation_action.is_valid(raise_exception=True):
                         remediation_action.save()

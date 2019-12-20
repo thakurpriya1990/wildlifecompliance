@@ -60,15 +60,6 @@
                                     </a>
                                 </div>
                             </div>
-                            <!--
-                            <div v-if="visibilitySendToDotButton" class="row action-button">
-                                <div class="col-sm-12">
-                                    <a @click="addWorkflow('send_to_dot')" class="btn btn-primary btn-block">
-                                        Send to DoT
-                                    </a>
-                                </div>
-                            </div>
-                            -->
 
                             <div v-if="visibilityEscalateForWithdrawalButton" class="row action-button">
                                 <div class="col-sm-12">
@@ -159,6 +150,7 @@
                     <div class="container-fluid">
                         <ul class="nav nav-pills aho2">
                             <li class="nav-item active"><a data-toggle="tab" :href="'#'+soTab">{{ typeDisplay }}</a></li>
+                            <li class="nav-item" v-show="displayRemediationActions"><a data-toggle="tab" :href="'#'+raTab">Remediation Actions</a></li>
                             <li class="nav-item"><a data-toggle="tab" :href="'#'+deTab">Details</a></li>
                             <li class="nav-item"><a data-toggle="tab" :href="'#'+reTab">Related Items</a></li>
                         </ul>
@@ -272,8 +264,23 @@
                                 </FormSection>
                             </div>
 
+                            <div :id="raTab" class="tab-pane fade in">
+                                <FormSection :formCollapse="false" label="Remediation Actions" Index="2">
+                                    <div class="col-sm-12 form-group">
+                                        <div class="row col-sm-12">
+                                            <label class="control-label pull-left">Remediation Actions</label>
+                                        </div>
+                                        <div class="row">
+                                            <div class="col-sm-12">
+                                                <datatable ref="tbl_remediation_actions" id="tbl_remediation_actions" :dtOptions="dtOptionsRemediationActions" :dtHeaders="dtHeadersRemediationActions" />
+                                            </div>
+                                        </div>
+                                    </div>
+                                </FormSection>
+                            </div>
+
                             <div :id="deTab" class="tab-pane fade in">
-                                <FormSection :formCollapse="false" label="Details" Index="2">
+                                <FormSection :formCollapse="false" label="Details" Index="3">
                                     <div class="form-group"><div class="row">
                                         <div class="col-sm-3">
                                             <label>Description</label>
@@ -323,7 +330,7 @@
                                     </div></div>
                                 </FormSection>
 
-                                <FormSection v-if="visibilityParkingInfringementSection" :formCollapse="false" label="Further Offender Details" Index="3">
+                                <FormSection v-if="visibilityParkingInfringementSection" :formCollapse="false" label="Further Offender Details" Index="4">
                                     <div class="form-group"><div class="row">
                                         <div class="col-sm-3">
                                             <label>Registration Holder:</label>
@@ -362,7 +369,7 @@
                                     </div></div>
                                 </FormSection>
 
-                                <FormSection :formCollapse="false" label="Due Date" Index="4">
+                                <FormSection :formCollapse="false" label="Due Date" Index="5">
                                     <div v-for="item in sanction_outcome.due_dates">
                                         <div class="form-group"><div class="row">
                                             <div class="col-sm-3">
@@ -383,7 +390,7 @@
                             </div>
 
                             <div :id="reTab" class="tab-pane fade in">
-                                <FormSection :formCollapse="false" label="Related Items" Index="5">
+                                <FormSection :formCollapse="false" label="Related Items" Index="6">
                                     <div class="col-sm-12 form-group"><div class="row">
                                         <div class="col-sm-12">
                                             <RelatedItems v-bind:key="relatedItemsBindId" :parent_update_related_items="setRelatedItems" :readonlyForm="readonlyForm" />
@@ -472,6 +479,7 @@ export default {
             workflow_type :'',
             workflowBindId :'',
             soTab: 'soTab' + this._uid,
+            raTab: 'raTab' + this._uid,
             deTab: 'deTab' + this._uid,
             reTab: 'reTab' + this._uid,
             objectHash : null,
@@ -503,6 +511,41 @@ export default {
                 api_endpoints.sanction_outcome,
                 this.$route.params.sanction_outcome_id + "/action_log"
             ),
+            dtHeadersRemediationActions: [
+                "id", 
+                "Due Date", 
+                "Action Desc", 
+                "Action"
+            ],
+            dtOptionsRemediationActions: {
+                columns: [
+                    {
+                        data: 'id',
+                        visible: false,
+                        mRender: function(data, type, row){
+                            return data;
+                        }
+                    },
+                    {
+                        data: 'due_date',
+                        mRender: function(data, type, row) {
+                            return moment(data).format("YYYY/MM/DD");
+                        }
+                    },
+                    {
+                        data: 'action',
+                        mRender: function(data, type, row) {
+                            return data;
+                        }
+                    },
+                    {
+                        data: 'user_action',
+                        mRender: function(data, type, row) {
+                            return data;
+                        }
+                    }
+                ]
+            },
             dtHeadersAllegedOffence: [
                 "id",
                 "Act",
@@ -605,6 +648,7 @@ export default {
             await this.loadSanctionOutcome({ sanction_outcome_id: this.$route.params.sanction_outcome_id });
             this.createStorageAllegedCommittedOffences();
             this.constructAllegedCommittedOffencesTable();
+            this.constructRemediationActionsTable();
             this.updateObjectHash()
         }
     },
@@ -617,6 +661,12 @@ export default {
         ...mapGetters('sanctionOutcomeStore', {
             sanction_outcome: "sanction_outcome",
         }),
+        displayRemediationActions: function() {
+            if (this.sanction_outcome && this.sanction_outcome.type){
+                return this.sanction_outcome.type.id == "remediation_notice" ? true : false;
+            }
+            return false;
+        },
         registrationHolder: function() {
             let entity = {}
             if (this.sanction_outcome.registration_holder) {
@@ -1094,6 +1144,15 @@ export default {
             }
             this.constructAllegedCommittedOffencesTable();
         },
+        constructRemediationActionsTable: function(){
+            this.$refs.tbl_remediation_actions.vmDataTable.clear().draw();
+            if (this.sanction_outcome.remediation_actions) {
+                for(let i=0; i < this.sanction_outcome.remediation_actions.length; i++){
+                    let ra = this.sanction_outcome.remediation_actions[i];
+                    this.addRemediationActionToTable(ra);
+                }
+            }
+        },
         constructAllegedCommittedOffencesTable: function(){
             this.$refs.alleged_committed_offence_table.vmDataTable.clear().draw();
             if (this.sanction_outcome.alleged_committed_offences){
@@ -1101,6 +1160,9 @@ export default {
                     this.addAllegedOffenceToTable(this.sanction_outcome.alleged_committed_offences[i]);
                 }
             }
+        },
+        addRemediationActionToTable: function(remediation_action){
+            this.$refs.tbl_remediation_actions.vmDataTable.row.add(remediation_action).draw();
         },
         addAllegedOffenceToTable: function(allegedCommittedOffence){
             this.$refs.alleged_committed_offence_table.vmDataTable.row.add({
