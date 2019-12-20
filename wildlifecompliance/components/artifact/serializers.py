@@ -83,13 +83,14 @@ class ArtifactPaginatedSerializer(serializers.ModelSerializer):
 
     def get_type(self, artifact_obj):
         pa = PhysicalArtifact.objects.filter(artifact_ptr_id=artifact_obj.id)
-        da = DocumentArtifact.objects.filter(artifact_ptr_id=artifact_obj.id)
         if pa and pa.first().physical_artifact_type and pa.first().physical_artifact_type.artifact_type:
             return pa.first().physical_artifact_type.artifact_type
-        elif da and da.first().document_type and da.first().document_type.artifact_type:
+
+        da = DocumentArtifact.objects.filter(artifact_ptr_id=artifact_obj.id)
+        if da and da.first().document_type and da.first().document_type.artifact_type:
             return da.first().document_type.artifact_type
-        else:
-            return '---'
+
+        return '---'
 
     def get_status(self, obj):
         return 'not implemented yet'
