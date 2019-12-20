@@ -757,10 +757,8 @@ export default {
             return this.canRequestAmendmentFor(this.selected_activity_tab_id);
         },
         canReturnToConditions: function(){
-            if(!this.userHasRole('issuing_officer', this.selected_activity_tab_id)) {
-                return false;
-            }
-            return this.selected_activity_tab_id && this.selectedActivity.processing_status.id == 'with_officer_finalisation' ? true : false;
+            // required when issuing or declining.
+            return this.canIssueDecline;
         },
         canProposeIssueOrDecline: function(){
             let auth_activity = this.canAssignOfficerFor(this.selected_activity_tab_id);
@@ -1082,7 +1080,7 @@ export default {
                     }
                     const text = result.value;
                     const data = {
-                        "activity_id" : this.selectedActivity.id, // FIXME: this.selectedActivity.licence_activity
+                        "activity_id" : this.selectedActivity.licence_activity,
                         "text": text
                     }
                     this.$http.post(helpers.add_endpoint_json(
