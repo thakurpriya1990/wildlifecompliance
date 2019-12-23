@@ -52,7 +52,7 @@
                                         </div>
                                       </div>
                                     </div>
-                                    <div class="form-group">
+                                    <div v-if="statementVisibility" class="form-group">
                                       <div class="row">
                                         <div class="col-sm-3">
                                           <label>Statement</label>
@@ -182,7 +182,7 @@ export default {
     watch: {
         artifactType: {
             handler: function (){
-                if (this.statementArtifactTypes.includes(this.artifactType)) {
+                if (this.artifactType && !this.statementArtifactTypes.includes(this.artifactType)) {
                     console.log("statementVisibility true")
                     this.statementVisibility = true;
                 }
@@ -226,25 +226,6 @@ export default {
           this.uuid += 1
           return "DocumentArtifact_SearchPerson_" + this.uuid.toString();
       },
-        /*
-      statementVisibility: function() {
-          if (this.artifactType) {
-              console.log("statement visibility")
-              let visibility = false;
-              let visibilityArray = []
-              visibilityArray.push('Record of Interview')
-              visibilityArray.push('Witness Statement')
-              visibilityArray.push('Expert Statement')
-              visibilityArray.push('Officer Statement')
-              console.log(visibilityArray)
-              if (visibilityArray.includes(this.artifactType)) {
-                  console.log("statement visible")
-                  visibility = true;
-              }
-          }
-          return visibility;
-      },
-      */
     },
     filters: {
       formatDate: function(data) {
