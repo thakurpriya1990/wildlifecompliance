@@ -190,6 +190,7 @@ class Application(RevisionedMixin):
     PROCESSING_STATUS_DECLINED = 'declined'
     PROCESSING_STATUS_DISCARDED = 'discarded'
     PROCESSING_STATUS_UNDER_REVIEW = 'under_review'
+    PROCESSING_STATUS_AWAITING_PAYMENT = 'awaiting_payment'
     PROCESSING_STATUS_CHOICES = (
         (PROCESSING_STATUS_DRAFT, 'Draft'),
         (PROCESSING_STATUS_AWAITING_APPLICANT_RESPONSE, 'Awaiting Applicant Response'),
@@ -198,6 +199,7 @@ class Application(RevisionedMixin):
         (PROCESSING_STATUS_DECLINED, 'Declined'),
         (PROCESSING_STATUS_DISCARDED, 'Discarded'),
         (PROCESSING_STATUS_UNDER_REVIEW, 'Under Review'),
+        (PROCESSING_STATUS_AWAITING_PAYMENT, 'Awaiting Payment'),        
     )
 
     ID_CHECK_STATUS_NOT_CHECKED = 'not_checked'
@@ -391,6 +393,9 @@ class Application(RevisionedMixin):
         # not yet submitted
         if activity_statuses.count(ApplicationSelectedActivity.PROCESSING_STATUS_DRAFT) == len(activity_statuses):
             return self.PROCESSING_STATUS_DRAFT
+        # awaiting payment
+        if activity_statuses.count(ApplicationSelectedActivity.PROCESSING_STATUS_AWAITING_LICENCE_FEE_PAYMENT) == len(activity_statuses):
+            return self.PROCESSING_STATUS_AWAITING_PAYMENT
         # application discarded
         elif activity_statuses.count(ApplicationSelectedActivity.PROCESSING_STATUS_DISCARDED) == len(activity_statuses):
             return self.PROCESSING_STATUS_DISCARDED
@@ -1734,89 +1739,94 @@ class Application(RevisionedMixin):
             licence_activity_id=selected_activity.licence_activity_id)
 
         with transaction.atomic():
-            for existing_activity in licence_latest_activities_for_licence_activity_id:
-                # compare each activity's purposes and find the difference from
-                # the selected_purposes of the new application
-                issued_activity_purposes = application_selected_purpose_ids.filter(
-                    licence_activity_id=selected_activity.licence_activity_id)
-                existing_activity_purposes = existing_activity.purposes.values_list('id', flat=True)
-                common_purpose_ids = list(set(existing_activity_purposes) & set(issued_activity_purposes))
-                remaining_purpose_ids_list = list(set(existing_activity_purposes) - set(issued_activity_purposes))
+            try:
+                for existing_activity in licence_latest_activities_for_licence_activity_id:
+                    # compare each activity's purposes and find the difference from
+                    # the selected_purposes of the new application
+                    issued_activity_purposes = application_selected_purpose_ids.filter(
+                        licence_activity_id=selected_activity.licence_activity_id)
+                    existing_activity_purposes = existing_activity.purposes.values_list('id', flat=True)
+                    common_purpose_ids = list(set(existing_activity_purposes) & set(issued_activity_purposes))
+                    remaining_purpose_ids_list = list(set(existing_activity_purposes) - set(issued_activity_purposes))
 
-                # No relevant purposes were selected for action for this existing activity, do nothing
-                if not common_purpose_ids:
-                    pass
+                    # No relevant purposes were selected for action for this existing activity, do nothing
+                    if not common_purpose_ids:
+                        pass
 
-                # If there are no remaining purposes in the existing_activity
-                # (i.e. this issued activity replaces them all),
-                # mark activity as replaced
-                elif not remaining_purpose_ids_list:
-                    existing_activity.updated_by = request.user
-                    existing_activity.activity_status = ApplicationSelectedActivity.ACTIVITY_STATUS_REPLACED
-                    existing_activity.save()
+                    # If there are no remaining purposes in the existing_activity
+                    # (i.e. this issued activity replaces them all),
+                    # mark activity as replaced
+                    elif not remaining_purpose_ids_list:
+                        existing_activity.updated_by = request.user
+                        existing_activity.activity_status = ApplicationSelectedActivity.ACTIVITY_STATUS_REPLACED
+                        existing_activity.save()
 
-                # If only a subset of the existing_activity's purposes are to be actioned,
-                # create new_activity for remaining purposes:
-                elif remaining_purpose_ids_list:
-                    existing_application = existing_activity.application
-                    existing_activity_status = existing_activity.activity_status
-                    new_copied_application = existing_application.copy_application_purposes_for_status(
-                                            remaining_purpose_ids_list, existing_activity_status)
+                    # If only a subset of the existing_activity's purposes are to be actioned,
+                    # create new_activity for remaining purposes:
+                    elif remaining_purpose_ids_list:
+                        existing_application = existing_activity.application
+                        existing_activity_status = existing_activity.activity_status
+                        new_copied_application = existing_application.copy_application_purposes_for_status(
+                                                remaining_purpose_ids_list, existing_activity_status)
 
-                    # for each new application created, set its previous_application to latest_application_in_function,
-                    # then update latest_application_in_function to the new_copied_application
-                    new_copied_application.previous_application = latest_application_in_function
-                    new_copied_application.save()
-                    latest_application_in_function = new_copied_application
+                        # for each new application created, set its previous_application to latest_application_in_function,
+                        # then update latest_application_in_function to the new_copied_application
+                        new_copied_application.previous_application = latest_application_in_function
+                        new_copied_application.save()
+                        latest_application_in_function = new_copied_application
 
-                    # Mark existing_activity as replaced
-                    existing_activity.updated_by = request.user
-                    existing_activity.activity_status = ApplicationSelectedActivity.ACTIVITY_STATUS_REPLACED
-                    existing_activity.save()
+                        # Mark existing_activity as replaced
+                        existing_activity.updated_by = request.user
+                        existing_activity.activity_status = ApplicationSelectedActivity.ACTIVITY_STATUS_REPLACED
+                        existing_activity.save()
 
-            selected_activity.processing_status = ApplicationSelectedActivity.PROCESSING_STATUS_ACCEPTED
-            selected_activity.activity_status = ApplicationSelectedActivity.ACTIVITY_STATUS_CURRENT
+                selected_activity.processing_status = ApplicationSelectedActivity.PROCESSING_STATUS_ACCEPTED
+                selected_activity.activity_status = ApplicationSelectedActivity.ACTIVITY_STATUS_CURRENT
 
-            self.generate_returns(parent_licence, selected_activity, request)
-            # Log application action
-            self.log_user_action(
-                ApplicationUserAction.ACTION_ISSUE_LICENCE_.format(
-                    selected_activity.licence_activity.name), request)
-            # Log entry for organisation
-            if self.org_applicant:
-                self.org_applicant.log_user_action(
+                self.generate_returns(parent_licence, selected_activity, request)
+                # Log application action
+                self.log_user_action(
                     ApplicationUserAction.ACTION_ISSUE_LICENCE_.format(
                         selected_activity.licence_activity.name), request)
-            elif self.proxy_applicant:
-                self.proxy_applicant.log_user_action(
-                    ApplicationUserAction.ACTION_ISSUE_LICENCE_.format(
-                        selected_activity.licence_activity.name), request)
-            else:
-                self.submitter.log_user_action(
-                    ApplicationUserAction.ACTION_ISSUE_LICENCE_.format(
-                        selected_activity.licence_activity.name), request)
+                # Log entry for organisation
+                if self.org_applicant:
+                    self.org_applicant.log_user_action(
+                        ApplicationUserAction.ACTION_ISSUE_LICENCE_.format(
+                            selected_activity.licence_activity.name), request)
+                elif self.proxy_applicant:
+                    self.proxy_applicant.log_user_action(
+                        ApplicationUserAction.ACTION_ISSUE_LICENCE_.format(
+                            selected_activity.licence_activity.name), request)
+                else:
+                    self.submitter.log_user_action(
+                        ApplicationUserAction.ACTION_ISSUE_LICENCE_.format(
+                            selected_activity.licence_activity.name), request)
 
-            selected_activity.save()
+                selected_activity.save()
 
-            # update the status of the application.
-            self.update_customer_approval_status()
+                # update the status of the application.
+                self.update_customer_approval_status()
 
-            parent_licence.current_application = latest_application_in_function
-            parent_licence.save()
+                parent_licence.current_application = latest_application_in_function
+                parent_licence.save()
 
-            if generate_licence:
-                # Re-generate PDF document using all finalised activities
-                parent_licence.generate_doc()
-                send_application_issue_notification(
-                    activities=[selected_activity],
-                    application=self,
-                    request=request,
-                    licence=parent_licence
-                )
-                # Attach the re-generated licence to latest application.
-                latest_application_in_function.licence_document \
-                    = parent_licence.licence_document
-                latest_application_in_function.save()
+                if generate_licence:
+                    # Re-generate PDF document using all finalised activities
+                    parent_licence.generate_doc()
+                    send_application_issue_notification(
+                        activities=[selected_activity],
+                        application=self,
+                        request=request,
+                        licence=parent_licence
+                    )
+                    # Attach the re-generated licence to latest application.
+                    latest_application_in_function.licence_document \
+                        = parent_licence.licence_document
+                    latest_application_in_function.save()
+
+            except BaseException:
+                print(Exception)
+                raise
 
     def final_decision(self, request):
         """

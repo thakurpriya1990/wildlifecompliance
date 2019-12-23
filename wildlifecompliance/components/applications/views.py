@@ -113,17 +113,21 @@ class LicenceFeeSuccessView(TemplateView):
                 application_id=session_activity.application_id,
                 processing_status=ApplicationSelectedActivity.PROCESSING_STATUS_AWAITING_LICENCE_FEE_PAYMENT)
 
+            i = 1
             for activity in activities:
+
                 ActivityInvoice.objects.get_or_create(
-                    activity=activity,
+                    activity=session_activity,
                     invoice_reference=invoice_ref
                 )
-                if not activity.licence_fee_paid:
-                    raise Exception("Licence fee payment failed!")
+                # if not activity.licence_fee_paid:
+                #    raise Exception("Licence fee payment failed!")
 
                 activity.application.issue_activity(
                     request, activity,
-                    generate_licence=True)
+                    generate_licence=True if i == activities.count() else False)
+
+                i = i + 1
 
             send_activity_invoice_email_notification(
                 activities[0].application,
