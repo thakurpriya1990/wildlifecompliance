@@ -731,6 +731,10 @@ export default {
             })
         },
         canIssueDecline: function(){
+
+            if (this.selectedActivity.processing_status=='awaiting_payment') {
+                return false;
+            }
             // check user is authorised to issue/allocate for selected activity.
             if (!this.canAssignApproverFor(this.selected_activity_tab_id)) {
                 return false;
