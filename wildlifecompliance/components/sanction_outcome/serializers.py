@@ -20,6 +20,32 @@ from wildlifecompliance.components.sanction_outcome.models import SanctionOutcom
 from wildlifecompliance.components.users.serializers import CompliancePermissionGroupMembersSerializer
 
 
+class RemediationActionSerializer(serializers.ModelSerializer):
+    user_action = serializers.SerializerMethodField()
+
+    class Meta:
+        model = RemediationAction
+        fields = (
+            'id',
+            'action',
+            'due_date',
+            'user_action',
+        )
+
+    def get_user_action(self, obj):
+        url_list = []
+
+        view_url = '<a href=/internal/remediation_action/' + str(obj.id) + '>View</a>'
+        accept_url = '<a href=/internal/remediation_action/' + str(obj.id) + '>Accept</a>'
+        request_amendment_url = '<a href=/internal/remediation_action/' + str(obj.id) + '>Request Amendment</a>'
+        url_list.append(view_url)
+        url_list.append(accept_url)
+        url_list.append(request_amendment_url)
+
+        urls = '<br />'.join(url_list)
+        return urls
+
+
 class AllegedOffenceSerializer(serializers.ModelSerializer):
     offence = OffenceSerializer(read_only=True)
     section_regulation = SectionRegulationSerializer(read_only=True)
@@ -119,6 +145,7 @@ class SanctionOutcomeSerializer(serializers.ModelSerializer):
     is_parking_offence = serializers.ReadOnlyField()
     registration_holder = IndividualSerializer()
     driver = IndividualSerializer()
+    remediation_actions = RemediationActionSerializer(read_only=True, many=True)  # This is related field
 
     class Meta:
         model = SanctionOutcome
@@ -157,6 +184,7 @@ class SanctionOutcomeSerializer(serializers.ModelSerializer):
             'registration_holder_id',
             'driver_id',
             'registration_number',
+            'remediation_actions',
         )
 
     def get_due_dates(self, obj):

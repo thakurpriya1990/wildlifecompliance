@@ -470,7 +470,6 @@ export default {
             return this.sanction_outcome.region_id;
         },
         current_type: function() {
-            console.log('current_type in computed');
             return this.sanction_outcome.type;
         },
         modalTitle: function() {
@@ -693,8 +692,8 @@ export default {
         addEventListeners: function() {
             let vm = this;
             let el_issue_date = $(vm.$refs.dateOfIssuePicker);
-            let el_due_date = $(vm.$refs.dueDatePicker);
             let el_issue_time = $(vm.$refs.timeOfIssuePicker);
+            let el_due_date = $(vm.$refs.dueDatePicker);
 
             // Issue "Date" field
             el_issue_date.datetimepicker({
@@ -722,6 +721,7 @@ export default {
 
             // Due "Date" field
             el_due_date.datetimepicker({
+              minDate: moment().millisecond(0).second(0).minute(0).hour(0),
               format: "DD/MM/YYYY",
               showClear: true
             });
