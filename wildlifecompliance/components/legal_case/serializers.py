@@ -29,7 +29,8 @@ from wildlifecompliance.components.users.serializers import (
     UserAddressSerializer,
 )
 from wildlifecompliance.components.artifact.serializers import (
-        LegalCaseRunningSheetArtifactsSerializer,
+        #LegalCaseRunningSheetArtifactsSerializer,
+        DocumentArtifactSerializer,
         )
 #from wildlifecompliance.components.offence.serializers import OrganisationSerializer
 #from django.contrib.auth.models import Permission, ContentType
@@ -260,6 +261,35 @@ class LegalCaseRunningSheetSerializer(serializers.ModelSerializer):
                 )
 
 
+class LegalCaseStatementArtifactsSerializer(serializers.ModelSerializer):
+    statement_artifacts = serializers.SerializerMethodField()
+
+    class Meta:
+        model = LegalCase
+        fields = (
+                'id',
+                'statement_artifacts',
+                )
+        read_only_fields = (
+                'id',
+                )
+
+    def get_statement_artifacts(self, obj):
+        artifact_list = []
+        for artifact in obj.legal_case_document_artifacts.all():
+            if artifact.document_type \
+            and artifact.document_type.artifact_type in \
+            [
+                'Record of Interview',
+                'Witness Statement',
+                'Expert Statement',
+                'Officer Statement'
+            ]:
+                serialized_artifact = DocumentArtifactSerializer(artifact)
+                artifact_list.append(serialized_artifact)
+        return artifact_list
+
+
 class LegalCaseSerializer(serializers.ModelSerializer):
     running_sheet_entries = LegalCaseRunningSheetEntrySerializer(many=True)
     #running_sheet_entries = serializers.SerializerMethodField()
@@ -270,8 +300,9 @@ class LegalCaseSerializer(serializers.ModelSerializer):
     user_is_assignee = serializers.SerializerMethodField()
     status = CustomChoiceField(read_only=True)
     related_items = serializers.SerializerMethodField()
+    statement_artifacts = serializers.SerializerMethodField()
     legal_case_priority = LegalCasePrioritySerializer()
-    running_sheet_artifacts = LegalCaseRunningSheetArtifactsSerializer(read_only=True)
+    #running_sheet_artifacts = LegalCaseRunningSheetArtifactsSerializer(read_only=True)
     #inspection_report = serializers.SerializerMethodField()
     #data = InspectionFormDataRecordSerializer(many=True)
     #location = LocationSerializer(read_only=True)
@@ -299,11 +330,27 @@ class LegalCaseSerializer(serializers.ModelSerializer):
                 'legal_case_priority',
                 'legal_case_priority_id',
                 'running_sheet_entries',
-                'running_sheet_artifacts',
+                'statement_artifacts',
+                #'running_sheet_artifacts',
                 )
         read_only_fields = (
                 'id',
                 )
+
+    def get_statement_artifacts(self, obj):
+        artifact_list = []
+        for artifact in obj.legal_case_document_artifacts.all():
+            if artifact.document_type \
+            and artifact.document_type.artifact_type in \
+            [
+                'Record of Interview',
+                'Witness Statement',
+                'Expert Statement',
+                'Officer Statement'
+            ]:
+                serialized_artifact = DocumentArtifactSerializer(artifact)
+                artifact_list.append(serialized_artifact.data)
+        return artifact_list
 
     def get_related_items(self, obj):
         return get_related_items(obj)

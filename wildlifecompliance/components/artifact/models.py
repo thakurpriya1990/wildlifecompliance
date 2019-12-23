@@ -124,6 +124,11 @@ class DocumentArtifact(Artifact):
     #_file = models.FileField(max_length=255)
     #identifier = models.CharField(max_length=255, blank=True, null=True)
     #description = models.TextField(blank=True, null=True)
+    legal_case = models.ForeignKey(
+            LegalCase,
+            related_name='legal_case_document_artifacts',
+            null=True,
+            )
     statement = models.ForeignKey(
         'self', 
         related_name='document_artifact_statement',
@@ -180,6 +185,11 @@ class PhysicalArtifact(Artifact):
     physical_artifact_type = models.ForeignKey(
             PhysicalArtifactType,
             null=True
+            )
+    legal_case = models.ForeignKey(
+            LegalCase,
+            related_name='legal_case_physical_artifacts',
+            null=True,
             )
     #_file = models.FileField(max_length=255)
     #identifier = models.CharField(max_length=255, blank=True, null=True)
@@ -319,22 +329,22 @@ class StorageDocument(Document):
         app_label = 'wildlifecompliance'
 
 
-class LegalCaseRunningSheetArtifacts(models.Model):
-    legal_case = models.OneToOneField(
-            LegalCase,
-            related_name='running_sheet_artifacts'
-            )
-    document_artifacts = models.ManyToManyField(
-            DocumentArtifact,
-            related_name='running_sheet_document_artifacts',
-            )
-    physical_artifacts = models.ManyToManyField(
-            PhysicalArtifact,
-            related_name='running_sheet_physical_artifacts',
-            )
-
-    class Meta:
-        app_label = 'wildlifecompliance'
+#class LegalCaseRunningSheetArtifacts(models.Model):
+#    legal_case = models.OneToOneField(
+#            LegalCase,
+#            related_name='running_sheet_artifacts'
+#            )
+#    document_artifacts = models.ManyToManyField(
+#            DocumentArtifact,
+#            related_name='running_sheet_document_artifacts',
+#            )
+#    physical_artifacts = models.ManyToManyField(
+#            PhysicalArtifact,
+#            related_name='running_sheet_physical_artifacts',
+#            )
+#
+#    class Meta:
+#        app_label = 'wildlifecompliance'
 
 #import reversion
 #reversion.register(LegalCaseRunningSheetEntry, follow=['user'])

@@ -48,6 +48,11 @@ export const physicalArtifactStore = {
         updateRelatedItems(state, related_items) {
             Vue.set(state.physical_artifact, 'related_items', related_items);
         },
+        /*
+        updatePhysicalArtifactLegalId(state, legal_case_id) {
+            Vue.set(state.physical_artifact, 'legal_case_id', legal_case_id);
+        },
+        */
     },
     actions: {
         async loadPhysicalArtifact({ dispatch, commit }, { physical_artifact_id }) {
@@ -114,6 +119,11 @@ export const physicalArtifactStore = {
         setPhysicalArtifact({ commit, }, physical_artifact) {
             commit("updatePhysicalArtifact", physical_artifact);
         },
+        /*
+        setPhysicalArtifactLegalId({ commit, }, legal_case_id) {
+            commit("updatePhysicalArtifactLegalId", legal_case_id)
+        },
+        */
         setRelatedItems({ commit }, related_items ) {
             commit("updateRelatedItems", related_items);
         },

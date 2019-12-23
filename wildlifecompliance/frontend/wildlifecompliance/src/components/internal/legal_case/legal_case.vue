@@ -609,7 +609,7 @@ export default {
         let replacementVal = ''
         if (entity.artifact_type) {
             // TODO: replace with correct artifact url
-            replacementVal = `<a contenteditable="false" target="_blank" href="/internal/users/${entity.id}">${entity.artifact_type}</a>`
+            replacementVal = `<a contenteditable="false" target="_blank" href="/internal/object/${entity.id}">${entity.artifact_type}</a>`
             // add to runningSheetArtifactList
             /*
             if (this.legal_case && !this.legal_case.runningSheetArtifactList) {

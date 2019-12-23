@@ -26,7 +26,7 @@ from wildlifecompliance.components.artifact.models import (
         PhysicalArtifactDisposalMethod,
         ArtifactCommsLogEntry,
         ArtifactUserAction,
-        LegalCaseRunningSheetArtifacts,
+        #LegalCaseRunningSheetArtifacts,
         )
 
 from wildlifecompliance.components.offence.serializers import OffenceSerializer, OffenderSerializer
@@ -195,6 +195,7 @@ class DocumentArtifactSerializer(ArtifactSerializer):
                 'identifier',
                 'description',
                 #'custodian',
+                'legal_case_id',
                 'artifact_date',
                 'artifact_time',
                 'document_type',
@@ -217,6 +218,8 @@ class SaveDocumentArtifactSerializer(ArtifactSerializer):
         required=False, write_only=True, allow_null=True)
     statement_id = serializers.IntegerField(
         required=False, write_only=True, allow_null=True)
+    legal_case_id = serializers.IntegerField(
+        required=False, write_only=True, allow_null=True)
 
     class Meta:
         model = DocumentArtifact
@@ -227,6 +230,7 @@ class SaveDocumentArtifactSerializer(ArtifactSerializer):
                 'description',
                 'custodian_id',
                 'statement_id',
+                'legal_case_id',
                 'artifact_date',
                 'artifact_time',
                 'document_type_id',
@@ -249,6 +253,7 @@ class PhysicalArtifactSerializer(ArtifactSerializer):
                 'id',
                 'identifier',
                 'description',
+                'legal_case_id',
                 'artifact_date',
                 'artifact_time',
                 'statement',
@@ -272,6 +277,8 @@ class SavePhysicalArtifactSerializer(ArtifactSerializer):
         required=False, write_only=True, allow_null=True)
     custodian_id = serializers.IntegerField(
         required=False, write_only=True, allow_null=True)
+    legal_case_id = serializers.IntegerField(
+        required=False, write_only=True, allow_null=True)
 
     class Meta:
         model = PhysicalArtifact
@@ -281,6 +288,7 @@ class SavePhysicalArtifactSerializer(ArtifactSerializer):
                 'identifier',
                 'description',
                 'custodian_id',
+                'legal_case_id',
                 'artifact_date',
                 'artifact_time',
                 'physical_artifact_type_id',
@@ -312,21 +320,21 @@ class ArtifactCommsLogEntrySerializer(CommunicationLogEntrySerializer):
         return [[d.name, d._file.url] for d in obj.documents.all()]
 
 
-class LegalCaseRunningSheetArtifactsSerializer(serializers.ModelSerializer):
-    document_artifacts = DocumentArtifactSerializer(read_only=True, many=True)
-    physical_artifacts = PhysicalArtifactSerializer(read_only=True, many=True)
-    class Meta:
-        model = LegalCaseRunningSheetArtifacts
-        fields = (
-                'id',
-                'legal_case_id',
-                'document_artifacts',
-                'physical_artifacts',
-                )
-        read_only_fields = (
-                'id',
-                'legal_case_id',
-                )
+#class LegalCaseRunningSheetArtifactsSerializer(serializers.ModelSerializer):
+#    document_artifacts = DocumentArtifactSerializer(read_only=True, many=True)
+#    physical_artifacts = PhysicalArtifactSerializer(read_only=True, many=True)
+#    class Meta:
+#        model = LegalCaseRunningSheetArtifacts
+#        fields = (
+#                'id',
+#                'legal_case_id',
+#                'document_artifacts',
+#                'physical_artifacts',
+#                )
+#        read_only_fields = (
+#                'id',
+#                'legal_case_id',
+#                )
 
 
 #class SaveLegalCaseRunningSheetArtifactsSerializer(serializers.ModelSerializer):
