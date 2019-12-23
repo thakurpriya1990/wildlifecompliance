@@ -287,6 +287,7 @@ class SanctionOutcomeDatatableSerializer(serializers.ModelSerializer):
     offender = OffenderSerializer(read_only=True,)
     paper_notices = serializers.SerializerMethodField()
     coming_due_date = serializers.ReadOnlyField()
+    remediation_actions = serializers.SerializerMethodField()
 
     class Meta:
         model = SanctionOutcome
@@ -310,8 +311,30 @@ class SanctionOutcomeDatatableSerializer(serializers.ModelSerializer):
             'user_action',
             'paper_notices',
             'coming_due_date',
+            'remediation_actions',
         )
         read_only_fields = ()
+
+    def get_remediation_actions(self, so):
+        html = ''
+        body = ''
+        if so.type == SanctionOutcome.TYPE_REMEDIATION_NOTICE:
+            for idx, action_req in enumerate(so.remediation_actions.all()):
+                body += '<tr>' \
+                            '<td col="row">' + str(idx+1) + '</td>' \
+                            '<td col="row">' + action_req.due_date.strftime('%d%m%Y') + '</td>' \
+                            '<td col="row">' + action_req.status + '</td>' \
+                            '<td col="row"><a href="">View</a></td>' \
+                        '</tr>'
+            body = '<tbody>' + body + '</tbody>'
+            header = '<thead><tr>' \
+                        '<th scope="col">Action#</th>' \
+                        '<th scope="col">Due Date</th>' \
+                        '<th scope="col">Status</th>' \
+                        '<th scope="col">Action</th>' \
+                     '</tr></thead>'
+            html = '<table class="table">' + header + body + '</table>'
+        return html
 
     def get_paper_notices(self, obj):
         url_list = []
@@ -333,6 +356,7 @@ class SanctionOutcomeDatatableSerializer(serializers.ModelSerializer):
 
         view_url = '<a href=/internal/sanction_outcome/' + str(obj.id) + '>View</a>'
         process_url = '<a href=/internal/sanction_outcome/' + str(obj.id) + '>Process</a>'
+        remediation_url = '<a href=/external/sanction_outcome/' + str(obj.id) + '>Add </a>'
         view_payment_url = '<a href="/ledger/payments/invoice/payment?invoice=' + inv_ref + '">View Payment</a>' if inv_ref else ''
         payment_url = '<a href="#" data-pay-infringement-penalty="' + str(obj.id) + '">Pay</a>'
         record_payment_url = '<a href="/ledger/payments/invoice/payment?invoice=">Record Payment</a>'
