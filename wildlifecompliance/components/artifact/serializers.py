@@ -47,6 +47,7 @@ from django.utils import timezone
 class ArtifactSerializer(serializers.ModelSerializer):
     #custodian = EmailUserSerializer(read_only=True)
     #statement = DocumentArtifactStatementSerializer(read_only=True)
+    artifact_object_type = serializers.SerializerMethodField()
     class Meta:
         model = Artifact
         #fields = '__all__'
@@ -58,11 +59,23 @@ class ArtifactSerializer(serializers.ModelSerializer):
                 #'custodian',
                 'artifact_date',
                 'artifact_time',
+                'artifact_object_type',
                 )
         read_only_fields = (
                 'id',
                 )
 
+    def get_artifact_object_type(self, artifact_obj):
+        artifact_object_type = None
+        pa = PhysicalArtifact.objects.filter(artifact_ptr_id=artifact_obj.id)
+        if pa and pa.first().id:
+            artifact_object_type = 'physical'
+
+        da = DocumentArtifact.objects.filter(artifact_ptr_id=artifact_obj.id)
+        if da and da.first().id:
+            artifact_object_type = 'document'
+
+        return artifact_object_type
 
 class ArtifactPaginatedSerializer(serializers.ModelSerializer):
     type = serializers.SerializerMethodField()
@@ -98,7 +111,7 @@ class ArtifactPaginatedSerializer(serializers.ModelSerializer):
 
     def get_user_action(self, obj):
         url_list = []
-        view_url = '<a href=/internal/artifact/' + str(obj.id) + '>View</a>'
+        view_url = '<a href=/internal/object/' + str(obj.id) + '>View</a>'
         url_list.append(view_url)
 
         urls = '<br />'.join(url_list)

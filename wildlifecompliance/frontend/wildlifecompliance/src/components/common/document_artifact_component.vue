@@ -182,9 +182,16 @@ export default {
     watch: {
         artifactType: {
             handler: function (){
-                if (this.artifactType && !this.statementArtifactTypes.includes(this.artifactType)) {
+                if (
+                    (this.artifactType && !this.statementArtifactTypes.includes(this.artifactType)) ||
+                    (this.document_artifact && this.document_artifact.statement)
+                    )
+                {
                     console.log("statementVisibility true")
                     this.statementVisibility = true;
+                } else {
+                    console.log("statementVisibility false")
+                    this.statementVisibility = false;
                 }
             },
             deep: true,
