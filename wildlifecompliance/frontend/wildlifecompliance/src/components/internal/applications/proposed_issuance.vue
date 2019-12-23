@@ -144,10 +144,11 @@ export default {
             return this.application.processing_status.id == 'with_approver' ? 'Issue Licence' : 'Propose to issue licence';
         },
         visibleLicenceActivities: function() {
-            return this.licenceActivities(['with_officer_conditions', 'licensing_officer']).filter(
+            var activities = this.licenceActivities().filter(
                 // filter on activity user has perms for.
                 activity => { return this.canAssignOfficerFor(activity.id) }                
-            );       
+            );
+            return activities;
         },
     },
     methods:{
