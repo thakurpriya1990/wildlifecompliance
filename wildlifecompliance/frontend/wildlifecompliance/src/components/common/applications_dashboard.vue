@@ -106,6 +106,7 @@ export default {
             {
                 data: "lodgement_number",
                 width: "10%",
+                className: "app-row-icon",
             },
             {
                 data: "category_name",
@@ -204,6 +205,7 @@ export default {
             {
                 data: "lodgement_number",
                 width: "10%",
+                className: "app-row-icon",                
             },
             {
                 data: "category_name",
@@ -242,6 +244,7 @@ export default {
             {
                 data: "applicant",
                 width: "10%",
+                className: "normal-white-space",
                 orderable: false,
                 searchable: false // handled by filter_queryset override method - class ApplicationFilterBackend
             },
@@ -251,6 +254,7 @@ export default {
                 mRender:function(data,type,full){
                     return data.name;
                 },
+                className: "normal-white-space",
                 orderable: false,
                 searchable: false // handled by filter_queryset override method - class ApplicationFilterBackend
             },
@@ -260,6 +264,7 @@ export default {
                 mRender:function (data,type,full) {
                     return data != '' && data != null ? moment(data).format(vm.dateFormat): '';
                 },
+                className: "normal-white-space",
                 searchable: false // handled by filter_queryset override method - class ApplicationFilterBackend
             },
             {
