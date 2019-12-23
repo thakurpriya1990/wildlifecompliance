@@ -63,6 +63,47 @@ class ArtifactSerializer(serializers.ModelSerializer):
                 )
 
 
+class ArtifactPaginatedSerializer(serializers.ModelSerializer):
+    type = serializers.SerializerMethodField()
+    status = serializers.SerializerMethodField()
+    user_action = serializers.SerializerMethodField()
+
+    class Meta:
+        model = Artifact
+        fields = (
+            'id',
+            'number',
+            'type',
+            'status',
+            'user_action',
+            'artifact_date',
+            'identifier',
+            'description',
+        )
+
+    def get_type(self, artifact_obj):
+        pa = PhysicalArtifact.objects.filter(artifact_ptr_id=artifact_obj.id)
+        if pa and pa.first().physical_artifact_type and pa.first().physical_artifact_type.artifact_type:
+            return pa.first().physical_artifact_type.artifact_type
+
+        da = DocumentArtifact.objects.filter(artifact_ptr_id=artifact_obj.id)
+        if da and da.first().document_type and da.first().document_type.artifact_type:
+            return da.first().document_type.artifact_type
+
+        return '---'
+
+    def get_status(self, obj):
+        return 'not implemented yet'
+
+    def get_user_action(self, obj):
+        url_list = []
+        view_url = '<a href=/internal/artifact/' + str(obj.id) + '>View</a>'
+        url_list.append(view_url)
+
+        urls = '<br />'.join(url_list)
+        return urls
+
+
 class DocumentArtifactTypeSerializer(serializers.ModelSerializer):
     class Meta:
         model = DocumentArtifactType

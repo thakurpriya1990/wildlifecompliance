@@ -1,24 +1,10 @@
+import datetime
 import logging
-import traceback
-from io import BytesIO
-
-from django.core.files import File
-from django.core.mail import EmailMultiAlternatives, EmailMessage
-from django.utils.encoding import smart_text
 from django.core.urlresolvers import reverse
 from django.conf import settings
-
-from ledger.accounts.models import EmailUser
-from ledger.payments.pdf import create_invoice_pdf_bytes
-from ledger.payments.models import Invoice
-from wildlifecompliance.components.main.utils import get_choice_value
 from wildlifecompliance.components.emails.emails import TemplateEmailBase
 from wildlifecompliance.components.main.email import prepare_attachments, _extract_email_headers
-import os
-
-from wildlifecompliance.components.sanction_outcome.models import SanctionOutcomeCommsLogDocument
 from wildlifecompliance.components.sanction_outcome.pdf import create_infringement_notice_pdf_bytes
-from wildlifecompliance.components.users.models import CompliancePermissionGroup
 
 logger = logging.getLogger(__name__)
 
@@ -37,14 +23,32 @@ class InfringementNoticeEmail(TemplateEmailBase):
     txt_template = 'wildlifecompliance/emails/infringement_notice.txt'
 
 
+class RemediationNoticeEmail(TemplateEmailBase):
+    subject = 'Remediation Notice Issued'
+    html_template = 'wildlifecompliance/emails/remediation_notice.html'
+    txt_template = 'wildlifecompliance/emails/remediation_notice.txt'
+
+
+class CautionNoticeEmail(TemplateEmailBase):
+    subject = 'Caution Notice Issued'
+    html_template = 'wildlifecompliance/emails/caution_notice.html'
+    txt_template = 'wildlifecompliance/emails/caution_notice.txt'
+
+
+class LetterOfAdviceEmail(TemplateEmailBase):
+    subject = 'Letter of Advice Issued'
+    html_template = 'wildlifecompliance/emails/letter_of_advice.html'
+    txt_template = 'wildlifecompliance/emails/letter_of_advice.txt'
+
+
 class ReturnToOfficerEmail(TemplateEmailBase):
-    subject = 'Return to Officer'
+    subject = 'Infringement Notice Returned'
     html_template = 'wildlifecompliance/emails/return_to_officer.html'
     txt_template = 'wildlifecompliance/emails/return_to_officer.txt'
 
 
 class SendToManagerEmail(TemplateEmailBase):
-    subject = 'Send to Manager'
+    subject = 'Infringement Notice Fowarded'
     html_template = 'wildlifecompliance/emails/send_to_manager.html'
     txt_template = 'wildlifecompliance/emails/send_to_manager.txt'
 
@@ -88,6 +92,12 @@ class Remind1stPeriodOverdueMail(TemplateEmailBase):
     txt_template = 'wildlifecompliance/emails/remind_1st_period_overdue.txt'
 
 
+class SendDetailsToDotEmail(TemplateEmailBase):
+    subject = 'Details of Parking Infringement'
+    html_template = 'wildlifecompliance/emails/send_details_to_dot.html'
+    txt_template = 'wildlifecompliance/emails/send_details_to_dot.txt'
+
+
 class UnpaidInfringementsFileMail(TemplateEmailBase):
     subject = 'Unpaid Infringements File'
     html_template = 'wildlifecompliance/emails/unpaid_infringements_file.html'
@@ -104,13 +114,18 @@ def send_due_date_extended_mail(to_address, sanction_outcome, workflow_entry, re
         'sanction_outcome': sanction_outcome,
         'workflow_entry_details': request.data.get('details'),
     }
+    pdf_file_name = 'infringement_notice_{}_{}.pdf'.format(sanction_outcome.lodgement_number, datetime.datetime.now().strftime("%Y%m%d%H%M%S"))
+    document = create_infringement_notice_pdf_bytes(pdf_file_name, sanction_outcome)
+
     msg = email.send(to_address,
                      context=context,
-                     attachments=prepare_attachments(workflow_entry.documents),
+                     # attachments=prepare_attachments(workflow_entry.documents),
+                     attachments=[(pdf_file_name, document._file.path, 'application/pdf')],
                      cc=cc,
                      bcc=bcc)
     sender = request.user if request else settings.DEFAULT_FROM_EMAIL
     email_data = _extract_email_headers(msg, sender=sender)
+
     return email_data
 
 
@@ -124,12 +139,17 @@ def send_remind_1st_period_overdue_mail(to_address, sanction_outcome, cc=None, b
         'sanction_outcome': sanction_outcome,
         'workflow_entry_details': 'This is message body.',
     }
+    pdf_file_name = 'infringement_notice_{}_{}.pdf'.format(sanction_outcome.lodgement_number, datetime.datetime.now().strftime("%Y%m%d%H%M%S"))
+    document = create_infringement_notice_pdf_bytes(pdf_file_name, sanction_outcome)
+
     msg = email.send(to_address,
                      context=context,
+                     attachments=[(pdf_file_name, document._file.path, 'application/pdf')],
                      cc=cc,
                      bcc=bcc)
     sender = settings.DEFAULT_FROM_EMAIL
     email_data = _extract_email_headers(msg, sender=sender)
+
     return email_data
 
 
@@ -145,14 +165,90 @@ def send_unpaid_infringements_file(to_address, cc=None, bcc=None, attachements=[
     }
     msg = email.send(to_address,
                      context=context,
-                     # attachments=[('infringement_notice.pdf', pdf, 'application/pdf')],
                      attachments=attachements,
                      cc=cc,
                      bcc=bcc)
     sender = settings.DEFAULT_FROM_EMAIL
     email_data = _extract_email_headers(msg, sender=sender)
 
+    return email_data
 
+
+def send_remediation_notice(to_address, sanction_outcome, workflow_entry, request, cc=None, bcc=None):
+    email = RemediationNoticeEmail()
+    if request.data.get('email_subject'):
+        email.subject = request.data.get('email_subject')
+    url = request.build_absolute_uri(reverse('external'))
+    context = {
+        'url': url,
+        'sanction_outcome': sanction_outcome,
+        'workflow_entry_details': request.data.get('details'),
+    }
+
+    pdf_file_name = 'remediation_notice_{}_{}.pdf'.format(sanction_outcome.lodgement_number, datetime.datetime.now().strftime("%Y%m%d%H%M%S"))
+    document = create_infringement_notice_pdf_bytes(pdf_file_name, sanction_outcome)
+
+    msg = email.send(to_address,
+                     context=context,
+                     # attachments=prepare_attachments(workflow_entry.documents),
+                     attachments=[(pdf_file_name, document._file.path, 'application/pdf')],
+                     cc=cc,
+                     bcc=bcc,
+                     )
+    sender = request.user if request else settings.DEFAULT_FROM_EMAIL
+    email_data = _extract_email_headers(msg, sender=sender)
+    return email_data
+
+
+def send_caution_notice(to_address, sanction_outcome, workflow_entry, request, cc=None, bcc=None):
+    email = CautionNoticeEmail()
+    if request.data.get('email_subject'):
+        email.subject = request.data.get('email_subject')
+    url = request.build_absolute_uri(reverse('external'))
+    context = {
+        'url': url,
+        'sanction_outcome': sanction_outcome,
+        'workflow_entry_details': request.data.get('details'),
+    }
+
+    pdf_file_name = 'caution_notice_{}_{}.pdf'.format(sanction_outcome.lodgement_number, datetime.datetime.now().strftime("%Y%m%d%H%M%S"))
+    document = create_infringement_notice_pdf_bytes(pdf_file_name, sanction_outcome)
+
+    msg = email.send(to_address,
+                     context=context,
+                     # attachments=prepare_attachments(workflow_entry.documents),
+                     attachments=[(pdf_file_name, document._file.path, 'application/pdf')],
+                     cc=cc,
+                     bcc=bcc,
+                     )
+    sender = request.user if request else settings.DEFAULT_FROM_EMAIL
+    email_data = _extract_email_headers(msg, sender=sender)
+    return email_data
+
+
+def send_letter_of_advice(to_address, sanction_outcome, workflow_entry, request, cc=None, bcc=None):
+    email = LetterOfAdviceEmail()
+    if request.data.get('email_subject'):
+        email.subject = request.data.get('email_subject')
+    url = request.build_absolute_uri(reverse('external'))
+    context = {
+        'url': url,
+        'sanction_outcome': sanction_outcome,
+        'workflow_entry_details': request.data.get('details'),
+    }
+
+    pdf_file_name = 'letter_of_advice_{}_{}.pdf'.format(sanction_outcome.lodgement_number, datetime.datetime.now().strftime("%Y%m%d%H%M%S"))
+    document = create_infringement_notice_pdf_bytes(pdf_file_name, sanction_outcome)
+
+    msg = email.send(to_address,
+                     context=context,
+                     # attachments=prepare_attachments(workflow_entry.documents),
+                     attachments=[(pdf_file_name, document._file.path, 'application/pdf')],
+                     cc=cc,
+                     bcc=bcc,
+                     )
+    sender = request.user if request else settings.DEFAULT_FROM_EMAIL
+    email_data = _extract_email_headers(msg, sender=sender)
     return email_data
 
 
@@ -166,24 +262,19 @@ def send_infringement_notice(to_address, sanction_outcome, workflow_entry, reque
         'sanction_outcome': sanction_outcome,
         'workflow_entry_details': request.data.get('details'),
     }
-    pdf_file_name = 'infringement_notice_{}.pdf'.format(sanction_outcome.lodgement_number)
 
-    pdf = create_infringement_notice_pdf_bytes(pdf_file_name, sanction_outcome)
+    pdf_file_name = 'infringement_notice_{}_{}.pdf'.format(sanction_outcome.lodgement_number, datetime.datetime.now().strftime("%Y%m%d%H%M%S"))
+    document = create_infringement_notice_pdf_bytes(pdf_file_name, sanction_outcome)
+
     msg = email.send(to_address,
                      context=context,
                      # attachments=prepare_attachments(workflow_entry.documents),
-                     attachments=[('infringement_notice.pdf', pdf, 'application/pdf')],
+                     attachments=[(pdf_file_name, document._file.path, 'application/pdf')],
                      cc=cc,
                      bcc=bcc,
                      )
     sender = request.user if request else settings.DEFAULT_FROM_EMAIL
     email_data = _extract_email_headers(msg, sender=sender)
-
-    # Create SanctionOutcomeCommsLogDocument object
-    # so that the link to the infringement notice file can be created in the comms log
-    temp = SanctionOutcomeCommsLogDocument(log_entry=workflow_entry, _file=File(BytesIO()), name=pdf_file_name)
-    temp.save()
-
     return email_data
 
 
@@ -191,7 +282,7 @@ def send_return_to_officer_email(to_address, sanction_outcome, workflow_entry, r
     email = ReturnToOfficerEmail()
     if request.data.get('email_subject'):
         email.subject = request.data.get('email_subject')
-    url = request.build_absolute_uri(reverse('internal-sanction-outcome-detail', kwargs={ 'sanction_outcome_id': sanction_outcome.id }))
+    url = request.build_absolute_uri(reverse('internal-sanction-outcome-detail', kwargs={'sanction_outcome_id': sanction_outcome.id}))
     context = {
         'url': url,
         'sanction_outcome': sanction_outcome,
@@ -208,16 +299,29 @@ def send_return_to_officer_email(to_address, sanction_outcome, workflow_entry, r
     return email_data
 
 
-def email_detais_to_department_of_transport(sanction_outcome):
-    # TODO
-    pass
+def email_detais_to_department_of_transport(to_address, attachments, cc=None, bcc=None):
+    email = SendDetailsToDotEmail()
+    context = {
+        # 'url': url,
+        'workflow_entry_details': 'This is body for dot mail.',
+    }
+    msg = email.send(to_address,
+                     context=context,
+                     attachments=attachments,
+                     cc=cc,
+                     bcc=bcc,
+                     )
+    sender = settings.DEFAULT_FROM_EMAIL
+    email_data = _extract_email_headers(msg, sender=sender)
+
+    return email_data
 
 
 def send_to_manager_email(to_address, sanction_outcome, workflow_entry, request, cc=None, bcc=None):
     email = SendToManagerEmail()
     if request.data.get('email_subject'):
         email.subject = request.data.get('email_subject')
-    url = request.build_absolute_uri(reverse('internal-sanction-outcome-detail', kwargs={ 'sanction_outcome_id': sanction_outcome.id }))
+    url = request.build_absolute_uri(reverse('internal-sanction-outcome-detail', kwargs={'sanction_outcome_id': sanction_outcome.id}))
     context = {
         'url': url,
         'sanction_outcome': sanction_outcome,
@@ -305,7 +409,7 @@ def send_decline_email(to_address, sanction_outcome, workflow_entry, request, cc
     email = SendDeclineEmail()
     if request.data.get('email_subject'):
         email.subject = request.data.get('email_subject')
-    url = request.build_absolute_uri(reverse('internal-sanction-outcome-detail', kwargs={ 'sanction_outcome_id': sanction_outcome.id }))
+    url = request.build_absolute_uri(reverse('internal-sanction-outcome-detail', kwargs={'sanction_outcome_id': sanction_outcome.id }))
     context = {
         'url': url,
         'sanction_outcome': sanction_outcome,

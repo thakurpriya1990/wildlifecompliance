@@ -64,7 +64,6 @@ from oscar.apps.order.models import Order
 
 import logging
 
-from wildlifecompliance.components.sanction_outcome.pdf import create_infringement_notice_pdf_bytes
 from wildlifecompliance.components.wc_payments.context_processors import template_context
 from wildlifecompliance.components.wc_payments.models import InfringementPenalty, InfringementPenaltyInvoice
 from wildlifecompliance.components.wc_payments.utils import set_session_infringement_invoice, create_infringement_lines, \
@@ -238,18 +237,18 @@ class InvoicePDFView(InvoiceOwnerMixin, View):
         return invoice
 
 
-class SanctionOutcomePDFView(SanctionOutcomePdfMixin, View):
-    """
-    Generate infringement notice pdf file dynamically
-    """
-    def get(self, request, *args, **kwargs):
-        so = get_object_or_404(SanctionOutcome, id=self.kwargs['sanction_outcome_id'])
-        if so.date_of_issue:
-            # Sanction outcome pdf should be created only after issued
-            response = HttpResponse(content_type='application/pdf')
-            response.write(create_infringement_notice_pdf_bytes('infringement_notice.pdf', so))
-            return response
-
-    def get_object(self):
-        so = get_object_or_404(SanctionOutcome, id=self.kwargs['sanction_outcome_id'])
-        return so
+# class SanctionOutcomePDFView(SanctionOutcomePdfMixin, View):
+#     """
+#     Generate infringement notice pdf file dynamically
+#     """
+#     def get(self, request, *args, **kwargs):
+#         so = get_object_or_404(SanctionOutcome, id=self.kwargs['sanction_outcome_id'])
+#         if so.date_of_issue:
+#             # Sanction outcome pdf should be created only after issued
+#             response = HttpResponse(content_type='application/pdf')
+#             response.write(create_infringement_notice_pdf_bytes('infringement_notice.pdf', so))
+#             return response
+#
+#     def get_object(self):
+#         so = get_object_or_404(SanctionOutcome, id=self.kwargs['sanction_outcome_id'])
+#         return so

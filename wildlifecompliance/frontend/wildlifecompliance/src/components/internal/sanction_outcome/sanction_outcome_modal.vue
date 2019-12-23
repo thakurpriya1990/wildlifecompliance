@@ -100,6 +100,15 @@
                                 </div>
                             </div></div>
 
+                            <div class="col-sm-12 form-group"><div class="row">
+                                <div class="col-sm-3">
+                                    <label class="control-label pull-left">Registration Number</label>
+                                </div>
+                                <div class="col-sm-7">
+                                    <input :disabled="!is_parking_offence" type="text" class="form-control" name="registration_number" placeholder="" v-model="sanction_outcome.registration_number" >
+                                </div>
+                            </div></div>
+
                             <div class="col-sm-12 form-group">
                                 <div class="row col-sm-12">
                                     <label class="control-label pull-left">Alleged committed offences</label>
@@ -179,7 +188,7 @@
 
                             <div class="col-sm-12 form-group"><div class="row">
                                 <div class="col-sm-12">
-                                    <input type="button" class="btn btn-primary pull-right" value="Add" @click.prevent="addRemediationActionClicked()" />
+                                    <input :disabled="!enableAddActionButton" type="button" class="btn btn-primary pull-right" value="Add" @click.prevent="addRemediationActionClicked()" />
                                 </div>
                             </div></div>
 
@@ -247,7 +256,9 @@
                     </div>
                 </div>
                 <button type="button" v-if="processingDetails" disabled class="btn btn-default" @click="ok"><i class="fa fa-spinner fa-spin"></i> Adding</button>
-                <button type="button" v-else :disabled="!displaySendToManagerButton" class="btn btn-default" @click="ok">Send to Manager</button>
+                <span v-else>
+                    <button type="button" :disabled="!displaySendToManagerButton" class="btn btn-default" @click="ok">Send to Manager</button>
+                </span>
                 <button type="button" class="btn btn-default" @click="cancel">Cancel</button>
             </div>
         </modal>
@@ -272,7 +283,7 @@ export default {
     data: function() {
       let vm = this;
   
-      return {
+    return {
         temporary_document_collection_id: null,
         nTab: "nTab" + vm._uid,
         aTab: "aTab" + vm._uid,
@@ -286,24 +297,28 @@ export default {
         documentActionUrl: null,
         elem_paper_id_notice: null,
         errorResponse: "",
-          offenceReadonly: false,
+        offenceReadonly: false,
+
+        aco_ids_included: [],
+        aco_ids_excluded: [],
+        is_parking_offence: false,
   
         // This is the object to be sent to the server when saving
         sanction_outcome: {
-          type: "",
-          region_id: null,
-          district_id: null,
-          identifier: "",
-          current_offence: {}, // Store an offence to be saved as an attribute of the sanction outcome
-          // The offenders and the alleged_offences under this offence object are used
-          // to construct a dropdown list for the offenders and the alleged offences datatable
-          current_offender: {}, // Store an offender to be saved as an attribute of the sanction outcome
-          issued_on_paper: false,
-          paper_id: "",
-          description: "",
-          date_of_issue: null,
-          time_of_issue: null,
-          remediation_actions: []
+            type: "",
+            region_id: null,
+            district_id: null,
+            identifier: "",
+            current_offence: {}, // Store an offence to be saved as an attribute of the sanction outcome
+            // The offenders and the alleged_offences under this offence object are used
+            // to construct a dropdown list for the offenders and the alleged offences datatable
+            current_offender: {}, // Store an offender to be saved as an attribute of the sanction outcome
+            issued_on_paper: false,
+            paper_id: "",
+            description: "",
+            date_of_issue: null,
+            time_of_issue: null,
+            remediation_actions: []
         },
         current_remediation_action: {
           action: "",
@@ -339,11 +354,6 @@ export default {
             {
               data: "Include",
               mRender: function(data, type, row) {
-                  console.log('data');
-                  console.log(data);
-                  console.log('row');
-                  console.log(row);
-  
                 let ret_line = null;
   
                 if (vm.sanction_outcome.type == 'infringement_notice'){
@@ -413,11 +423,13 @@ export default {
         },
         current_type: {
             handler: function() {
+                console.log('current_type in watch');
                 this.typeChanged();
             }
         },
         current_offence: {
             handler: function() {
+                console.log('current_offence in watch');
                 this.currentOffenceChanged();
             }
         },
@@ -433,125 +445,160 @@ export default {
         },
     },
     computed: {
-      ...mapGetters("offenceStore", {
-        offence: "offence"
-      }),
-      issued_on_paper: function() {
-        return this.sanction_outcome.issued_on_paper;
-      },
-      current_offence: function() {
-        return this.sanction_outcome.current_offence;
-      },
-      current_offender: function() {
-        return this.sanction_outcome.current_offender;
-      },
-      current_region_id: function() {
-        return this.sanction_outcome.region_id;
-      },
-      current_type: function() {
-        return this.sanction_outcome.type;
-      },
-      modalTitle: function() {
-        return "Identify Sanction Outcome";
-      },
-      firstTabTitle: function() {
-        for (let i = 0; i < this.options_for_types.length; i++) {
-          if (this.options_for_types[i]["id"] == this.sanction_outcome.type) {
-            return this.options_for_types[i]["display"];
-          }
-        }
-        return "";
-      },
-      displayTabs: function() {
-        return this.sanction_outcome.type == "" ? false : true;
-      },
-      displaySendToManagerButton: function() {
-          return true;
+        ...mapGetters("offenceStore", {
+          offence: "offence"
+        }),
+        enableAddActionButton: function() {
+            let enabled = false;
+            if(this.current_remediation_action.action && this.current_remediation_action.due_date){
+                enabled = true;
+            }
+            console.log('enableAddActionButton' + enabled);
+            return enabled;
+        },
+        issued_on_paper: function() {
+            return this.sanction_outcome.issued_on_paper;
+        },
+        current_offence: function() {
+            console.log('current_offence in computed');
+            return this.sanction_outcome.current_offence;
+        },
+        current_offender: function() {
+            return this.sanction_outcome.current_offender;
+        },
+        current_region_id: function() {
+            return this.sanction_outcome.region_id;
+        },
+        current_type: function() {
+            return this.sanction_outcome.type;
+        },
+        modalTitle: function() {
+            return "Identify Sanction Outcome";
+        },
+        firstTabTitle: function() {
+            for (let i = 0; i < this.options_for_types.length; i++) {
+                if (this.options_for_types[i]["id"] == this.sanction_outcome.type) {
+                    return this.options_for_types[i]["display"];
+                }
+            }
+            return "";
+        },
+        displayTabs: function() {
+          return this.sanction_outcome.type == "" ? false : true;
+        },
+        displaySendToManagerButton: function() {
+            let retValue = false;
 
-          let retValue = false;
-          if (!this.processingDetails && this.sanction_outcome.type) {
-              if (this.regionDistrictId) {
-                  if ((this.sanction_outcome.issued_on_paper && this.sanction_outcome.date_of_issue) || !this.sanction_outcome.issued_on_paper) {
-                      retValue = true;
-                  }
-              }
+            if (!this.processingDetails && this.sanction_outcome.type) {
+                if (this.regionDistrictId) {
+                    if ((this.sanction_outcome.issued_on_paper && this.sanction_outcome.date_of_issue) || !this.sanction_outcome.issued_on_paper) {
+                        retValue = true;
+                    }
+                }
+            }
+            return retValue;
+        },
+        displayRemediationActions: function() {
+          return this.sanction_outcome.type == "remediation_notice" ? true : false;
+        },
+        regionDistrictId: function() {
+          if (
+            this.sanction_outcome.district_id ||
+            this.sanction_outcome.region_id
+          ) {
+            return this.sanction_outcome.district_id
+              ? this.sanction_outcome.district_id
+              : this.sanction_outcome.region_id;
+          } else {
+            return null;
           }
-          return retValue;
-      },
-      displayRemediationActions: function() {
-        return this.sanction_outcome.type == "remediation_notice" ? true : false;
-      },
-      regionDistrictId: function() {
-        if (
-          this.sanction_outcome.district_id ||
-          this.sanction_outcome.region_id
-        ) {
-          return this.sanction_outcome.district_id
-            ? this.sanction_outcome.district_id
-            : this.sanction_outcome.region_id;
-        } else {
-          return null;
-        }
-      },
-      groupPermission: function() {
-        return "manager"; // Send to manager
-      },
+        },
+        groupPermission: function() {
+          return "manager"; // Send to manager
+        },
     },
     methods: {
-          ...mapActions('offenceStore', {
-              loadOffence: 'loadOffence',
-          }),
-          setTemporaryDocumentCollectionId: function(val) {
-              this.temporary_document_collection_id = val;
-          },
-          ok: async function() {
-              try{
-                  this.processingDetails = true;
-                  let response = await this.sendData();
+        ...mapActions('offenceStore', {
+            loadOffence: 'loadOffence',
+        }),
+        aco_include_clicked: function() {
+            let vm = this;
+            vm.aco_ids_included = [];
+            vm.aco_ids_excluded = [];
+            let checkboxes = $(".alleged_offence_include");
+            for (let i = 0; i < checkboxes.length; i++) {
+                if (checkboxes[i].checked) {
+                    vm.aco_ids_included.push(checkboxes[i].value);
+                } else {
+                    vm.aco_ids_excluded.push(checkboxes[i].value);
+                }
+            }
+            vm.check_if_is_parking_offence();
+        },
+        check_if_is_parking_offence: function() {
+            console.log('check_if_is_parking_offence');
+            this.is_parking_offence = false;
+            if (this.sanction_outcome.type == 'infringement_notice' && this.aco_ids_included.length == 1){
+                for (let i=0; i < this.aco_ids_included.length; i++){
+                    if (this.sanction_outcome.current_offence.alleged_offences[i].id == this.aco_ids_included[0]){
+                        if (this.sanction_outcome.current_offence.alleged_offences[i].section_regulation.is_parking_offence){
+                            this.is_parking_offence = true
+                        }
+                    }
+                }
+            }
+        },
+        setTemporaryDocumentCollectionId: function(val) {
+            this.temporary_document_collection_id = val;
+        },
+        ok: async function() {
+            try{
+                this.processingDetails = true;
+                let response = await this.sendData();
 
-                  if(response.ok){
-                      if (this.$parent.offence && this.offence.id) {
-                          await this.loadOffence({
-                              offence_id: this.offence.id,
-                          });
-                      }
-                  }
+                if(response.ok){
+                    if (this.$parent.offence && this.offence.id) {
+                        await this.loadOffence({
+                            offence_id: this.offence.id,
+                        });
+                    }
+                }
 
-                  this.close();
-                  this.processingDetails = false;
-              } catch(err) {
-                  this.processError(err);
-                  this.processingDetails = false;
-              }
-          },
-          processError: async function(err){
-              let errorText = '';
-              if (err.body.non_field_errors) {
-                  // When non field errors raised
-                  for (let i=0; i<err.body.non_field_errors.length; i++){
-                      errorText += err.body.non_field_errors[i] + '<br />';
-                  }
-              } else if(Array.isArray(err.body)) {
-                  // When general errors raised
-                  for (let i=0; i<err.body.length; i++){
-                      errorText += err.body[i] + '<br />';
-                  }
-              } else {
-                  // When field errors raised
-                  for (let field_name in err.body){
-                      if (err.body.hasOwnProperty(field_name)){
-                          errorText += field_name + ':<br />';
-                          for (let j=0; j<err.body[field_name].length; j++){
-                              errorText += err.body[field_name][j] + '<br />';
-                          }
-                      }
-                  }
-              }
-              this.errorResponse = errorText;
-              //await swal("Error", errorText, "error");
-          },
+                this.close();
+                this.processingDetails = false;
+            } catch(err) {
+                this.processError(err);
+                this.processingDetails = false;
+            }
+        },
+        processError: async function(err){
+            let errorText = '';
+            if (err.body.non_field_errors) {
+                // When non field errors raised
+                for (let i=0; i<err.body.non_field_errors.length; i++){
+                    errorText += err.body.non_field_errors[i] + '<br />';
+                }
+            } else if(Array.isArray(err.body)) {
+                // When general errors raised
+                for (let i=0; i<err.body.length; i++){
+                    errorText += err.body[i] + '<br />';
+                }
+            } else {
+                // When field errors raised
+                for (let field_name in err.body){
+                    if (err.body.hasOwnProperty(field_name)){
+                        errorText += field_name + ':<br />';
+                        for (let j=0; j<err.body[field_name].length; j++){
+                            errorText += err.body[field_name][j] + '<br />';
+                        }
+                    }
+                }
+            }
+            this.errorResponse = errorText;
+            //await swal("Error", errorText, "error");
+        },
         ...mapActions({
-          loadAllocatedGroup: 'loadAllocatedGroup',  // defined in store/modules/user.js
+            loadAllocatedGroup: 'loadAllocatedGroup',  // defined in store/modules/user.js
         }),
         cancel: async function() {
             if(this.$refs.sanction_outcome_file) {
@@ -560,7 +607,9 @@ export default {
             this.close();
         },
           typeChanged: function(){
+              console.log('typeChanged called by watch');
               this.constructAllegedOffencesTable();
+              this.check_if_is_parking_offence();
           },
         makeModalsDraggable: function(){
           this.elem_modal = $('.modal > .modal-dialog');
@@ -573,7 +622,6 @@ export default {
             this.isModalOpen = false;
         },
         loadDefaultData: function() {
-            console.log('loadDefaultData');
             if (this.$parent.call_email) {
                 this.sanction_outcome.region_id = this.$parent.call_email.region_id;
                 this.sanction_outcome.district_id = this.$parent.call_email.district_id;
@@ -615,7 +663,6 @@ export default {
           }
         },
         updateDistricts: function(updateFromUI) {
-          console.log('updateDistricts');
           if (updateFromUI) {
             // We don't want to clear the default district selection when initially loaded, which derived from the call_email
             this.sanction_outcome.district_id = null;
@@ -643,53 +690,51 @@ export default {
           });
         },
         addEventListeners: function() {
-          let vm = this;
-          let el_issue_date = $(vm.$refs.dateOfIssuePicker);
-          let el_due_date = $(vm.$refs.dueDatePicker);
-          let el_issue_time = $(vm.$refs.timeOfIssuePicker);
-  
-          // Issue "Date" field
-          el_issue_date.datetimepicker({
-            format: "DD/MM/YYYY",
-            maxDate: "now",
-            showClear: true
-          });
-          el_issue_date.on("dp.change", function(e) {
-            if (el_issue_date.data("DateTimePicker").date()) {
-              vm.sanction_outcome.date_of_issue = e.date.format("DD/MM/YYYY");
-            } else if (el_issue_date.data("date") === "") {
-              vm.sanction_outcome.date_of_issue = null;
-            }
-          });
-  
-          // Issue "Time" field
-          el_issue_time.datetimepicker({ format: "LT", showClear: true });
-          el_issue_time.on("dp.change", function(e) {
-            if (el_issue_time.data("DateTimePicker").date()) {
-              vm.sanction_outcome.time_of_issue = e.date.format("LT");
-            } else if (el_issue_time.data("date") === "") {
-              vm.sanction_outcome.time_of_issue = null;
-            }
-          });
-  
-          // Due "Date" field
-          el_due_date.datetimepicker({
-            format: "DD/MM/YYYY",
-            showClear: true
-          });
-          el_due_date.on("dp.change", function(e) {
-            if (el_due_date.data("DateTimePicker").date()) {
-              vm.current_remediation_action.due_date = e.date.format("DD/MM/YYYY");
-            } else if (el_due_date.data("date") === "") {
-              vm.current_remediation_action.due_date = null;
-            }
-          });
-  
-          $("#tbl_remediation_actions").on(
-            "click",
-            ".remove_button",
-            vm.removeClicked
-          );
+            let vm = this;
+            let el_issue_date = $(vm.$refs.dateOfIssuePicker);
+            let el_issue_time = $(vm.$refs.timeOfIssuePicker);
+            let el_due_date = $(vm.$refs.dueDatePicker);
+
+            // Issue "Date" field
+            el_issue_date.datetimepicker({
+              format: "DD/MM/YYYY",
+              maxDate: "now",
+              showClear: true
+            });
+            el_issue_date.on("dp.change", function(e) {
+              if (el_issue_date.data("DateTimePicker").date()) {
+                vm.sanction_outcome.date_of_issue = e.date.format("DD/MM/YYYY");
+              } else if (el_issue_date.data("date") === "") {
+                vm.sanction_outcome.date_of_issue = null;
+              }
+            });
+
+            // Issue "Time" field
+            el_issue_time.datetimepicker({ format: "LT", showClear: true });
+            el_issue_time.on("dp.change", function(e) {
+              if (el_issue_time.data("DateTimePicker").date()) {
+                vm.sanction_outcome.time_of_issue = e.date.format("LT");
+              } else if (el_issue_time.data("date") === "") {
+                vm.sanction_outcome.time_of_issue = null;
+              }
+            });
+
+            // Due "Date" field
+            el_due_date.datetimepicker({
+              minDate: moment().millisecond(0).second(0).minute(0).hour(0),
+              format: "DD/MM/YYYY",
+              showClear: true
+            });
+            el_due_date.on("dp.change", function(e) {
+              if (el_due_date.data("DateTimePicker").date()) {
+                vm.current_remediation_action.due_date = e.date.format("DD/MM/YYYY");
+              } else if (el_due_date.data("date") === "") {
+                vm.current_remediation_action.due_date = null;
+              }
+            });
+
+            $("#tbl_remediation_actions").on("click", ".remove_button", vm.removeClicked);
+            $("#tbl_alleged_offence").on("click", ".alleged_offence_include", vm.aco_include_clicked);
         },
         removeClicked: function(e) {
           let vm = this;
@@ -710,7 +755,6 @@ export default {
           });
         },
         offenceSelected: function(e) {
-            console.log('offenceSelected');
           let vm = this;
           let offence_id = parseInt(e.target.value);
           for (let i = 0; i < vm.options_for_offences.length; i++) {
@@ -724,7 +768,6 @@ export default {
           vm.sanction_outcome.current_offence = {};
         },
         offenderSelected: function(e) {
-          console.log('offenderSelected');
           let vm = this;
           let offender_id = parseInt(e.target.value);
           for ( let i = 0; i < vm.sanction_outcome.current_offence.offenders.length; i++) {
@@ -737,9 +780,6 @@ export default {
           }
           // User selected the empty line
           vm.sanction_outcome.current_offender = {};
-        },
-        typeSelected: function(e) {
-          this.sanction_outcome.type = e.target.value;
         },
         constructRegionsAndDistricts: async function() {
           let returned_regions = await cache_helper.getSetCacheList(
@@ -763,6 +803,8 @@ export default {
           Object.assign(this.regionDistricts, returned_region_districts);
         },
         sendData: async function() {
+            console.log('sendData');
+
             let vm = this;
             let alleged_offence_ids_included = [];
             let alleged_offence_ids_excluded = [];
@@ -780,7 +822,10 @@ export default {
             let payload = new Object();
             Object.assign(payload, vm.sanction_outcome);
             if (payload.date_of_issue) {
-                payload.date_of_issue = moment(payload.date_of_issue, "DD/MM/YYYY").format("YYYY-MM-DD");
+                if (moment(payload.date_of_issue, "DD/MM/YYYY").isValid()){
+                    // Format date only when it is not formatted yet.
+                    payload.date_of_issue = moment(payload.date_of_issue, "DD/MM/YYYY").format("YYYY-MM-DD");
+                }
             }
             payload.alleged_offence_ids_included = alleged_offence_ids_included;
             payload.alleged_offence_ids_excluded = alleged_offence_ids_excluded;
@@ -791,18 +836,23 @@ export default {
             let remediation_actions = vm.$refs.tbl_remediation_actions.vmDataTable.rows().data().toArray();
             payload.remediation_actions = remediation_actions;
             for (let i = 0; i < payload.remediation_actions.length; i++) {
-                payload.remediation_actions[i].due_date = moment(payload.remediation_actions[i].due_date, "DD/MM/YYYY").format("YYYY-MM-DD");
+                if (moment(payload.remediation_actions[i].due_date, "DD/MM/YYYY").isValid()){
+                    // Format date only when it is not formatted yet.
+                    payload.remediation_actions[i].due_date = moment(payload.remediation_actions[i].due_date, "DD/MM/YYYY").format("YYYY-MM-DD");
+                }
             }
   
             payload.call_email_id = this.$parent.call_email ? this.$parent.call_email.id : null;
             payload.inspection_id = this.$parent.inspection ? this.$parent.inspection.id : null;
             payload.workflow_type = 'send_to_manager'  // Because this modal is used only when creating new sanction outcome to send to manager
+
+            console.log('payload');
+            console.log(payload);
   
             const savedObj = await Vue.http.post(postUrl, payload);
             return savedObj;
         },
         currentOffenderChanged: function() {
-          console.log("currentOffenderChanged");
         },
         clearTableAllegedOffence: function() {
           this.$refs.tbl_alleged_offence.vmDataTable.rows().remove().draw(); // Clear the table anyway
@@ -811,14 +861,17 @@ export default {
           this.$refs.tbl_remediation_actions.vmDataTable.rows().remove().draw(); // Clear the table anyway
         },
         currentOffenceChanged: function() {
-          this.sanction_outcome.current_offender = {};
+            console.log('currentOffenceChanged called by watch');
+            this.sanction_outcome.current_offender = {};
   
-          // The dropdown list of the offenders are directly linked to the vm.sanction_outcome.offence.offenders.
-          // That's why the dropdown list is updated automatically whenever vm.sanction_outcome.offence is chanaged.
-          this.constructAllegedOffencesTable();
+            // The dropdown list of the offenders are directly linked to the vm.sanction_outcome.offence.offenders.
+            // That's why the dropdown list is updated automatically whenever vm.sanction_outcome.offence is chanaged.
+            this.constructAllegedOffencesTable();
         },
         constructAllegedOffencesTable: function(){
             // Construct the datatable of the alleged offences
+            console.log('constructAllegedOffencesTable');
+
             this.clearTableAllegedOffence();
   
             if (this.sanction_outcome.current_offence && this.sanction_outcome.current_offence.alleged_offences) {
@@ -835,7 +888,6 @@ export default {
             }
         },
         updateOptionsForOffences: async function() {
-            console.log('updateOptionsForOffences');
             let returned = null;
             if (this.$parent.call_email && this.$parent.call_email.id) {
                 returned = await Vue.http.get("/api/offence/filter_by_call_email.json", {

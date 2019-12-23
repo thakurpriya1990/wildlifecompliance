@@ -52,3 +52,5 @@ class SanctionOutcomeDueDate(models.Model):
     def __str__(self):
         return 'ID: {}, Sanction Outcome: {} due_date_1: {} due_date_2: {})'.format(
             self.id, self.sanction_outcome_id, self.due_date_1st, self.due_date_2nd)
+
+

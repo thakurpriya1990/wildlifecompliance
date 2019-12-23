@@ -15,6 +15,7 @@ import InspectionDashTable from '../inspection/inspection_dashboard.vue'
 import LegalCaseDashTable from '../legal_case/legal_case_dashboard.vue'
 import LegalCase from '../legal_case/legal_case.vue'
 import Inspection from '../inspection/inspection.vue'
+import ArtifactDashTable from '../artifact/artifact_dashboard.vue'
 import SanctionOutcomeDashTable from '../sanction_outcome/sanction_outcome_dashboard.vue'
 import SanctionOutcome from '../sanction_outcome/sanction_outcome.vue'
 import OffenceDashTable from '../offence/offence_dashboard.vue'
@@ -80,6 +81,27 @@ export default
                     component: LegalCase,
                     name:"view-legal-case"
                 },
+            ]
+        },
+        {
+            path: 'artifact',
+            component: {
+                render(c)
+                {
+                    return c('router-view')
+                }
+            },
+            children: [
+                {
+                    path: '/',
+                    component: ArtifactDashTable,
+                    name:"internal-artifact-dash"
+                },
+              //  {
+              //      path: ':artifact_id',
+              //      component: LegalCase,
+              //      name:"view-legal-case"
+              //  },
             ]
         },
 

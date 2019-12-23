@@ -20,6 +20,32 @@ from wildlifecompliance.components.sanction_outcome.models import SanctionOutcom
 from wildlifecompliance.components.users.serializers import CompliancePermissionGroupMembersSerializer
 
 
+class RemediationActionSerializer(serializers.ModelSerializer):
+    user_action = serializers.SerializerMethodField()
+
+    class Meta:
+        model = RemediationAction
+        fields = (
+            'id',
+            'action',
+            'due_date',
+            'user_action',
+        )
+
+    def get_user_action(self, obj):
+        url_list = []
+
+        view_url = '<a href=/internal/remediation_action/' + str(obj.id) + '>View</a>'
+        accept_url = '<a href=/internal/remediation_action/' + str(obj.id) + '>Accept</a>'
+        request_amendment_url = '<a href=/internal/remediation_action/' + str(obj.id) + '>Request Amendment</a>'
+        url_list.append(view_url)
+        url_list.append(accept_url)
+        url_list.append(request_amendment_url)
+
+        urls = '<br />'.join(url_list)
+        return urls
+
+
 class AllegedOffenceSerializer(serializers.ModelSerializer):
     offence = OffenceSerializer(read_only=True)
     section_regulation = SectionRegulationSerializer(read_only=True)
@@ -119,6 +145,7 @@ class SanctionOutcomeSerializer(serializers.ModelSerializer):
     is_parking_offence = serializers.ReadOnlyField()
     registration_holder = IndividualSerializer()
     driver = IndividualSerializer()
+    remediation_actions = RemediationActionSerializer(read_only=True, many=True)  # This is related field
 
     class Meta:
         model = SanctionOutcome
@@ -156,6 +183,8 @@ class SanctionOutcomeSerializer(serializers.ModelSerializer):
             'driver',
             'registration_holder_id',
             'driver_id',
+            'registration_number',
+            'remediation_actions',
         )
 
     def get_due_dates(self, obj):
@@ -265,35 +294,17 @@ class SanctionOutcomeDatatableSerializer(serializers.ModelSerializer):
         )
         read_only_fields = ()
 
-    # def get_invoice_reference(self, obj):
-    #      return obj.infringement_penalty_invoice_reference
-
     def get_paper_notices(self, obj):
         url_list = []
 
         if obj.documents.all().count():
             # Paper notices
             for doc in obj.documents.all():
-                url = '<a href="{}">{}</a>'.format(doc._file.url, doc.name)
+                url = '<a href="{}" target="_blank">{}</a>'.format(doc._file.url, doc.name)
                 url_list.append(url)
-        else:
-            # No paper notices
-            if obj.date_of_issue:
-                # date_of_issue can have a value only after issued
-                if obj.type == SanctionOutcome.TYPE_INFRINGEMENT_NOTICE:
-                    url_list.append('<a href="/sanction_outcome/pdf/' + str(obj.id) + '/"><i style="color:red" class="fa fa-file-pdf-o"></i> Infringement Notice</a>')
-                elif obj.type == SanctionOutcome.TYPE_CAUTION_NOTICE:
-                    url_list.append('<a href="#"><i style="color:red" class="fa fa-file-pdf-o"></i> Caution Notice</a>')
-                elif obj.type == SanctionOutcome.TYPE_LETTER_OF_ADVICE:
-                    url_list.append('<a href="#"><i style="color:red" class="fa fa-file-pdf-o"></i> Letter of Advice</a>')
-                elif obj.type == SanctionOutcome.TYPE_REMEDIATION_NOTICE:
-                    url_list.append('<a href="#"><i style="color:red" class="fa fa-file-pdf-o"></i> Remediation Notice</a>')
 
         urls = '<br />'.join(url_list)
         return urls
-
-
-        # return [[r.name, r._file.url] for r in obj.documents.all()]
 
     def get_user_action(self, obj):
         url_list = []
@@ -337,6 +348,7 @@ class SanctionOutcomeDatatableSerializer(serializers.ModelSerializer):
 
         urls = '<br />'.join(url_list)
         return urls
+
 
 class RecordFerCaseNumberSerializer(serializers.ModelSerializer):
 
@@ -385,6 +397,8 @@ class SaveSanctionOutcomeSerializer(serializers.ModelSerializer):
             'time_of_issue',
             'registration_holder_id',
             'driver_id',
+            'registration_number',
+            'status',
         )
 
     def validate(self, data):
@@ -440,6 +454,9 @@ class SaveRemediationActionSerializer(serializers.ModelSerializer):
             'sanction_outcome_id',
         )
 
+    def validate(self, obj):
+        return obj
+
 
 class SanctionOutcomeUserActionSerializer(serializers.ModelSerializer):
     # who = serializers.CharField(source='who.get_full_name')
@@ -475,7 +492,8 @@ class SanctionOutcomeCommsLogEntrySerializer(CommunicationLogEntrySerializer):
             else:
                 if d.name:
                     # If there is d.name but no d._file, we expect that which is infringement notice pdf file
-                    docs.append([d.name, '/sanction_outcome/pdf/' + str(obj.sanction_outcome.id)])
+                    # docs.append([d.name, '/sanction_outcome/pdf/' + str(obj.sanction_outcome.id)])
+                    pass
         return docs
         # return [[d.name, d._file.url] for d in obj.documents.all()]
 

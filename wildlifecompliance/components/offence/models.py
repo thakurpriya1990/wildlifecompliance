@@ -194,6 +194,14 @@ class AllegedOffence(RevisionedMixin):
     def retrieve_penalty_amounts_by_date(self, date_of_issue):
         return self.section_regulation.retrieve_penalty_amounts_by_date(date_of_issue)
 
+    @property
+    def dotag_offence_code(self):
+        return self.section_regulation.dotag_offence_code
+
+    @property
+    def issue_due_date_window(self):
+        return self.section_regulation.issue_due_date_window
+
     class Meta:
         app_label = 'wildlifecompliance'
         verbose_name = 'CM_AllegedOffence'
@@ -246,7 +254,8 @@ class Offender(models.Model):
 class OffenceUserAction(models.Model):
     ACTION_CLOSE = "Close offence: {}"
     ACTION_PENDING_CLOSURE = "Mark offence {} as pending closure"
-    ACTION_CREATE = "Create offence: {}"
+    ACTION_CREATE = "Create Offence: {}"
+    ACTION_UPDATE = "Update Offence {}"
     ACTION_REMOVE_ALLEGED_OFFENCE = "Remove alleged offence: {}, Reason: {}"
     ACTION_REMOVE_OFFENDER = "Remove offender: {}, Reason: {}"
     ACTION_RESTORE_ALLEGED_OFFENCE = "Restore alleged offence: {}"

@@ -11,7 +11,7 @@
                 <div class="row">
                     <div class="panel panel-default">
                         <div class="panel-heading">
-                            Workflow 
+                            Workflow
                         </div>
                         <div class="panel-body panel-collapse">
                             <div class="row">
@@ -31,7 +31,7 @@
                                 <div class="col-sm-12">
                                     <select :disabled="!sanction_outcome.user_in_group" class="form-control" v-model="sanction_outcome.assigned_to_id" @change="updateAssignedToId()">
                                         <option  v-for="option in sanction_outcome.allocated_group" :value="option.id" v-bind:key="option.id">
-                                        {{ option.full_name }} 
+                                        {{ option.full_name }}
                                         </option>
                                     </select>
                                 </div>
@@ -48,7 +48,7 @@
                 <div class="row">
                     <div class="panel panel-default">
                         <div class="panel-heading">
-                            Action 
+                            Action
                         </div>
                         <div class="panel-body panel-collapse">
 
@@ -60,13 +60,7 @@
                                     </a>
                                 </div>
                             </div>
-                            <div v-if="visibilitySendToDotButton" class="row action-button">
-                                <div class="col-sm-12">
-                                    <a @click="addWorkflow('send_to_dot')" class="btn btn-primary btn-block">
-                                        Send to DoT
-                                    </a>
-                                </div>
-                            </div>
+
                             <div v-if="visibilityEscalateForWithdrawalButton" class="row action-button">
                                 <div class="col-sm-12">
                                     <a @click="addWorkflow('escalate_for_withdrawal')" class="btn btn-primary btn-block">
@@ -74,6 +68,15 @@
                                     </a>
                                 </div>
                             </div>
+
+                            <div v-if="visibilitySendParkingInfringementButton" class="row action-button">
+                                <div class="col-sm-12">
+                                    <a @click="sendParkingInfringement()" class="btn btn-primary btn-block">
+                                        Send Parking Infringement
+                                    </a>
+                                </div>
+                            </div>
+
                             <div v-if="visibilityRecordFerCaseNumberButton" class="row action-button">
                                 <div class="col-sm-12">
                                     <a @click="recordFerCaseNumber('')" class="btn btn-primary btn-block">
@@ -142,11 +145,12 @@
                     </div>
                 </div>
             </div>
-            <div class="col-md-9" id="main-column">  
+            <div class="col-md-9" id="main-column">
                 <div class="row">
                     <div class="container-fluid">
                         <ul class="nav nav-pills aho2">
                             <li class="nav-item active"><a data-toggle="tab" :href="'#'+soTab">{{ typeDisplay }}</a></li>
+                            <li class="nav-item" v-show="displayRemediationActions"><a data-toggle="tab" :href="'#'+raTab">Remediation Actions</a></li>
                             <li class="nav-item"><a data-toggle="tab" :href="'#'+deTab">Details</a></li>
                             <li class="nav-item"><a data-toggle="tab" :href="'#'+reTab">Related Items</a></li>
                         </ul>
@@ -182,15 +186,24 @@
                                                     <option value=""></option>
                                                     <option v-for="offender in sanction_outcome.offence.offenders" v-bind:value="offender" v-bind:key="offender.id">
                                                         <span v-if="offender.person">
-                                                            {{ offender.person.first_name + ' ' + offender.person.last_name + ', DOB:' + offender.person.dob }} 
+                                                            {{ offender.person.first_name + ' ' + offender.person.last_name + ', DOB:' + offender.person.dob }}
                                                         </span>
                                                         <span v-else-if="offender.organisation">
-                                                            {{ offender.organisation.name + ', ABN: ' + offender.organisation.abn }} 
+                                                            {{ offender.organisation.name + ', ABN: ' + offender.organisation.abn }}
                                                         </span>
                                                     </option>
                                                 </select>
                                             </div>
 
+                                        </div>
+                                    </div></div>
+
+                                    <div class="form-group"><div class="row">
+                                        <div class="col-sm-3">
+                                            <label>Registration Number</label>
+                                        </div>
+                                        <div class="col-sm-6">
+                                            <input :readonly="readonlyForm" class="form-control" v-model="sanction_outcome.registration_number"/>
                                         </div>
                                     </div></div>
 
@@ -228,7 +241,7 @@
                                                <label class="control-label pull-left">Paper ID</label>
                                            </div>
                                            <div class="col-sm-7">
-                                               <input type="text" :readonly="readonlyForm" class="form-control" name="paper_id" placeholder="" v-model="sanction_outcome.paper_id" :disabled="!sanction_outcome.issued_on_paper" /> 
+                                               <input type="text" :readonly="readonlyForm" class="form-control" name="paper_id" placeholder="" v-model="sanction_outcome.paper_id" :disabled="!sanction_outcome.issued_on_paper" />
                                            </div>
                                        </div></div>
 
@@ -238,11 +251,11 @@
                                            </div>
                                            <div id="paper_id_notice">
                                                <div v-if="sanction_outcome.issued_on_paper" class="col-sm-7">
-                                                   <filefield ref="sanction_outcome_file" 
-                                                              name="sanction-outcome-file" 
-                                                              :documentActionUrl="sanction_outcome.sanctionOutcomeDocumentUrl" 
-                                                              @update-parent="sanctionOutcomeDocumentUploaded" 
-                                                              :isRepeatable="true" 
+                                                   <filefield ref="sanction_outcome_file"
+                                                              name="sanction-outcome-file"
+                                                              :documentActionUrl="sanction_outcome.sanctionOutcomeDocumentUrl"
+                                                              @update-parent="sanctionOutcomeDocumentUploaded"
+                                                              :isRepeatable="true"
                                                               :readonly="readonlyForm" />
                                                </div>
                                            </div>
@@ -251,8 +264,23 @@
                                 </FormSection>
                             </div>
 
+                            <div :id="raTab" class="tab-pane fade in">
+                                <FormSection :formCollapse="false" label="Remediation Actions" Index="2">
+                                    <div class="col-sm-12 form-group">
+                                        <div class="row col-sm-12">
+                                            <label class="control-label pull-left">Remediation Actions</label>
+                                        </div>
+                                        <div class="row">
+                                            <div class="col-sm-12">
+                                                <datatable ref="tbl_remediation_actions" id="tbl_remediation_actions" :dtOptions="dtOptionsRemediationActions" :dtHeaders="dtHeadersRemediationActions" />
+                                            </div>
+                                        </div>
+                                    </div>
+                                </FormSection>
+                            </div>
+
                             <div :id="deTab" class="tab-pane fade in">
-                                <FormSection :formCollapse="false" label="Details" Index="2">
+                                <FormSection :formCollapse="false" label="Details" Index="3">
                                     <div class="form-group"><div class="row">
                                         <div class="col-sm-3">
                                             <label>Description</label>
@@ -302,37 +330,37 @@
                                     </div></div>
                                 </FormSection>
 
-                                <FormSection v-if="visibilityParkingInfringementSection" :formCollapse="false" label="Further Offender Details" Index="3">
+                                <FormSection v-if="visibilityParkingInfringementSection" :formCollapse="false" label="Further Offender Details" Index="4">
                                     <div class="form-group"><div class="row">
                                         <div class="col-sm-3">
                                             <label>Registration Holder:</label>
                                         </div>
                                         <div class="col-sm-9">
-                                            <RegistrationHolder 
-                                                :excludeStaff="true" 
-                                                :personOnly="true" 
-                                                :displayTitle="false" 
-                                                :isEditable="canUserEditParkingDetails" 
+                                            <RegistrationHolder
+                                                :excludeStaff="true"
+                                                :personOnly="true"
+                                                :displayTitle="false"
+                                                :isEditable="canUserEditParkingDetails"
                                                 :parentEntity="registrationHolder"
-                                                classNames="form-control" 
-                                                @entity-selected="registrationHolderSelected" 
+                                                classNames="form-control"
+                                                @entity-selected="registrationHolderSelected"
                                                 showCreateUpdate
                                                 ref="search_registration_holder"
                                                 domIdHelper="registration_holder"
-                                                :key="updateRegistrationHolderBindId" />
+                                                :key="registrationHolderBindId" />
                                         </div>
                                         <div class="col-sm-3">
                                             <label>Driver:</label>
                                         </div>
                                         <div class="col-sm-9">
-                                            <Driver 
-                                                :excludeStaff="true" 
-                                                :personOnly="true" 
-                                                :displayTitle="false" 
-                                                :isEditable="canUserEditParkingDetails" 
+                                            <Driver
+                                                :excludeStaff="true"
+                                                :personOnly="true"
+                                                :displayTitle="false"
+                                                :isEditable="canUserEditParkingDetails"
                                                 :parentEntity="driver"
-                                                classNames="form-control" 
-                                                @entity-selected="driverSelected" 
+                                                classNames="form-control"
+                                                @entity-selected="driverSelected"
                                                 showCreateUpdate
                                                 ref="search_driver"
                                                 domIdHelper="driver"
@@ -341,19 +369,19 @@
                                     </div></div>
                                 </FormSection>
 
-                                <FormSection :formCollapse="false" label="Due Date" Index="4">
+                                <FormSection :formCollapse="false" label="Due Date" Index="5">
                                     <div v-for="item in sanction_outcome.due_dates">
                                         <div class="form-group"><div class="row">
                                             <div class="col-sm-3">
                                                 <label>Payment due date:</label>
                                             </div>
                                             <div class="col-sm-3">
-                                                <span>{{ item.due_date_applied }}</span>
+                                                <span>{{ formatDate(item.due_date_applied) }}</span>
                                             </div>
-                                            <div class="col-sm-3">
+                                            <div class="col-sm-2">
                                                 <label>Reason:</label>
                                             </div>
-                                            <div class="col-sm-3">
+                                            <div class="col-sm-4">
                                                 {{ item.reason_for_extension }}
                                             </div>
                                         </div></div>
@@ -362,7 +390,7 @@
                             </div>
 
                             <div :id="reTab" class="tab-pane fade in">
-                                <FormSection :formCollapse="false" label="Related Items" Index="5">
+                                <FormSection :formCollapse="false" label="Related Items" Index="6">
                                     <div class="col-sm-12 form-group"><div class="row">
                                         <div class="col-sm-12">
                                             <RelatedItems v-bind:key="relatedItemsBindId" :parent_update_related_items="setRelatedItems" :readonlyForm="readonlyForm" />
@@ -370,7 +398,7 @@
                                     </div></div>
                                 </FormSection>
                             </div>
-                                
+
                         </div>
                     </div>
                 </div>
@@ -392,8 +420,15 @@
         <div v-if="workflow_type">
             <SanctionOutcomeWorkflow ref="add_workflow" :workflow_type="workflow_type" v-bind:key="workflowBindId" />
         </div>
-        <ExtendPaymentDueDate ref="extend_payment_due_date" :due_date_1st="last_due_date_1st" :due_date_2nd="last_due_date_2nd" :due_date_max="sanction_outcome.due_date_extended_max" v-bind:key="extendPaymentBindId" />
-        <RecordFerCaseNumber ref="record_fer_case_number" v-bind:key="recordFerCaseNumberBindId" />
+        <ExtendPaymentDueDate ref="extend_payment_due_date" 
+                              :due_date_1st="last_due_date_1st" 
+                              :due_date_2nd="last_due_date_2nd" 
+                              :due_date_max="sanction_outcome.due_date_extended_max" 
+                              :key="extendDueDateBindId" />
+        <RecordFerCaseNumber ref="record_fer_case_number" 
+                             :key="recordFerCaseNumberBindId" />
+        <SendParkingInfringement ref="send_parking_infringement" 
+                                 :key="sendParkingInfringementBindId" />
     </div>
 </template>
 
@@ -409,6 +444,7 @@ import filefield from '@/components/common/compliance_file.vue';
 import SanctionOutcomeWorkflow from './sanction_outcome_workflow';
 import ExtendPaymentDueDate from './extend_payment_due_date.vue';
 import RecordFerCaseNumber from './record_fer_case_number.vue';
+import SendParkingInfringement from './send_parking_infringement.vue';
 import 'bootstrap/dist/css/bootstrap.css';
 import hash from 'object-hash';
 import RelatedItems from "@common-components/related_items.vue";
@@ -424,6 +460,8 @@ export default {
         vm.STATUS_AWAITING_REVIEW = 'awaiting_review';
         vm.STATUS_AWAITING_AMENDMENT = 'awaiting_amendment';
         vm.STATUS_AWAITING_PAYMENT = 'awaiting_payment';
+        vm.STATUS_WITH_DOT = 'with_dot';
+        vm.STATUS_AWAITING_ISSUANCE = 'awaiting_issuance';
         vm.STATUS_DECLINED = 'declined';
         vm.STATUS_OVERDUE = 'overdue';
         vm.STATUS_ESCALATED_FOR_WITHDRAWAL = 'escalated_for_withdrawal';
@@ -434,10 +472,14 @@ export default {
             registrationHolderId: 0,
             driverId: 0,
             bindId: 0,
+            sendParkingInfringementId: 0,
+            ferCaseNumberId: 0,
+            extendDueDateId: 0,
             temporary_document_collection_id: null,
             workflow_type :'',
             workflowBindId :'',
             soTab: 'soTab' + this._uid,
+            raTab: 'raTab' + this._uid,
             deTab: 'deTab' + this._uid,
             reTab: 'reTab' + this._uid,
             objectHash : null,
@@ -451,7 +493,7 @@ export default {
                 'issued_on_paper',
                 'offence',
                 'offender',
-                'paper_id', 
+                'paper_id',
                 'paper_notices',
                 'region_id',
                 'time_of_issue',
@@ -469,6 +511,41 @@ export default {
                 api_endpoints.sanction_outcome,
                 this.$route.params.sanction_outcome_id + "/action_log"
             ),
+            dtHeadersRemediationActions: [
+                "id", 
+                "Due Date", 
+                "Action Desc", 
+                "Action"
+            ],
+            dtOptionsRemediationActions: {
+                columns: [
+                    {
+                        data: 'id',
+                        visible: false,
+                        mRender: function(data, type, row){
+                            return data;
+                        }
+                    },
+                    {
+                        data: 'due_date',
+                        mRender: function(data, type, row) {
+                            return moment(data).format("YYYY/MM/DD");
+                        }
+                    },
+                    {
+                        data: 'action',
+                        mRender: function(data, type, row) {
+                            return data;
+                        }
+                    },
+                    {
+                        data: 'user_action',
+                        mRender: function(data, type, row) {
+                            return data;
+                        }
+                    }
+                ]
+            },
             dtHeadersAllegedOffence: [
                 "id",
                 "Act",
@@ -562,6 +639,7 @@ export default {
         RelatedItems,
         ExtendPaymentDueDate,
         RecordFerCaseNumber,
+        SendParkingInfringement,
         RegistrationHolder,
         Driver,
     },
@@ -570,6 +648,7 @@ export default {
             await this.loadSanctionOutcome({ sanction_outcome_id: this.$route.params.sanction_outcome_id });
             this.createStorageAllegedCommittedOffences();
             this.constructAllegedCommittedOffencesTable();
+            this.constructRemediationActionsTable();
             this.updateObjectHash()
         }
     },
@@ -582,6 +661,12 @@ export default {
         ...mapGetters('sanctionOutcomeStore', {
             sanction_outcome: "sanction_outcome",
         }),
+        displayRemediationActions: function() {
+            if (this.sanction_outcome && this.sanction_outcome.type){
+                return this.sanction_outcome.type.id == "remediation_notice" ? true : false;
+            }
+            return false;
+        },
         registrationHolder: function() {
             let entity = {}
             if (this.sanction_outcome.registration_holder) {
@@ -598,9 +683,9 @@ export default {
             }
             return entity;
         },
-        updateRegistrationHolderBindId: function() {
+        registrationHolderBindId: function() {
             this.registrationHolderId += 1
-            return 'resigtrationHolderBindId' + this.registrationHolderBindId
+            return 'resigtrationHolderBindId' + this.bindId;
         },
         updateDriverBindId: function() {
             this.driverId += 1
@@ -621,14 +706,13 @@ export default {
             return ret_value;
         },
         recordFerCaseNumberBindId: function() {
-            let bind_id = ''
-            bind_id = 'record_fer_case_number_' + parseInt(this.bindId);
-            return bind_id;
+            return 'record_fer_case_number_' + this.ferCaseNumberId;
         },
-        extendPaymentBindId: function() {
-            let bind_id = ''
-            bind_id = 'extend_due_date_' + parseInt(this.bindId);
-            return bind_id;
+        sendParkingInfringementBindId: function() {
+            return 'send_parking_infringement_' + this.sendParkingInfringementId;
+        },
+        extendDueDateBindId: function() {
+            return 'extend_due_date_' + this.extendDueDateId;
         },
         relatedItemsBindId: function() {
             let timeNow = Date.now()
@@ -653,8 +737,12 @@ export default {
         canUserEditParkingDetails: function() {
             let canUserEdit = false;
             if (this.sanction_outcome.can_user_action){
-                if (this.sanction_outcome.status.id === this.STATUS_AWAITING_PAYMENT){
-                    canUserEdit = true;
+                if (this.sanction_outcome.type.id === 'infringement_notice'){
+                    if (this.sanction_outcome.status.id === this.STATUS_WITH_DOT || 
+                        this.sanction_outcome.status.id === this.STATUS_AWAITING_ISSUANCE ||
+                        this.sanction_outcome.status.id === this.STATUS_AWAITING_PAYMENT){
+                        canUserEdit = true;
+                    }
                 }
             }
             return canUserEdit;
@@ -705,6 +793,21 @@ export default {
                 ret = this.sanction_outcome.lodgement_number;
             }
             return ret;
+        },
+        visibilitySendParkingInfringementButton: function() {
+            let visibility = false;
+
+            if (this.sanction_outcome.can_user_action){
+                if (this.sanction_outcome.type.id == 'infringement_notice' && this.sanction_outcome.is_parking_offence){
+                    if (this.sanction_outcome.status.id === this.STATUS_AWAITING_ISSUANCE ||
+                        this.sanction_outcome.status.id === this.STATUS_AWAITING_PAYMENT){
+                        // This is when Infringement Notice Coordinator withdraw
+                        visibility = true;
+                    }
+                }
+            }
+
+            return visibility;
         },
         visibilityReturnToInfringementNoticeCoordinatorButton: function() {
             let visibility = false;
@@ -769,18 +872,18 @@ export default {
             }
             return visibility;
         },
-        visibilitySendToDotButton: function() {
-            let visibility = false;
-            if (this.sanction_outcome.can_user_action){
-                if (this.sanction_outcome.type.id == 'infringement_notice'){
-                    if (this.sanction_outcome.status.id === this.STATUS_AWAITING_PAYMENT && this.sanction_outcome.is_parking_offence){
-                        // This is when Infringement Notice Coordinator sends this IN to Dot
-                        visibility = true;
-                    }
-                }
-            }
-            return visibility;
-        },
+       // visibilitySendToDotButton: function() {
+       //     let visibility = false;
+       //     if (this.sanction_outcome.can_user_action){
+       //         if (this.sanction_outcome.type.id == 'infringement_notice'){
+       //             if (this.sanction_outcome.status.id === this.STATUS_AWAITING_PAYMENT && this.sanction_outcome.is_parking_offence){
+       //                 // This is when Infringement Notice Coordinator sends this IN to Dot
+       //                 visibility = true;
+       //             }
+       //         }
+       //     }
+       //     return visibility;
+       // },
         visibilityParkingInfringementSection: function() {
             let visibility = false;
             if (this.sanction_outcome.is_parking_offence){
@@ -850,13 +953,20 @@ export default {
             setRegistrationHolder: 'setRegistrationHolder',
             setDriver: 'setDriver',
         }),
+        formatDate: function(d){
+            return moment(d).format("DD/MM/YYYY");
+        },
+        sendParkingInfringement: function(){
+            this.sendParkingInfringementId += 1
+            this.$nextTick(() => {
+                this.$refs.send_parking_infringement.isModalOpen = true;
+            });
+        },
         driverSelected: function(data) {
-            console.log('driverSelected');
             console.log(data);
             this.setDriver(data);
         },
         registrationHolderSelected: function(data) {
-            console.log('registrationHolderSelected');
             console.log(data);
             this.setRegistrationHolder(data);
         },
@@ -888,7 +998,7 @@ export default {
         createStorageAllegedCommittedOffences: function() {
             if (this.sanction_outcome && this.sanction_outcome.alleged_committed_offences){
                 for (let i=0; i<this.sanction_outcome.alleged_committed_offences.length; i++){
-                    // We need to know if this alleged commited offence is already included in the sanction outcome 
+                    // We need to know if this alleged commited offence is already included in the sanction outcome
                     // to manage Action column
                     this.sanction_outcome.alleged_committed_offences[i].already_included = this.sanction_outcome.alleged_committed_offences[i].included;
                 }
@@ -896,7 +1006,8 @@ export default {
         },
         save: async function() {
             try {
-                await this.saveSanctionOutcome();
+                let returned_so = await this.saveSanctionOutcome();
+
                 await swal("Saved", "The record has been saved", "success");
 
                 this.constructAllegedCommittedOffencesTable();
@@ -1033,6 +1144,15 @@ export default {
             }
             this.constructAllegedCommittedOffencesTable();
         },
+        constructRemediationActionsTable: function(){
+            this.$refs.tbl_remediation_actions.vmDataTable.clear().draw();
+            if (this.sanction_outcome.remediation_actions) {
+                for(let i=0; i < this.sanction_outcome.remediation_actions.length; i++){
+                    let ra = this.sanction_outcome.remediation_actions[i];
+                    this.addRemediationActionToTable(ra);
+                }
+            }
+        },
         constructAllegedCommittedOffencesTable: function(){
             this.$refs.alleged_committed_offence_table.vmDataTable.clear().draw();
             if (this.sanction_outcome.alleged_committed_offences){
@@ -1040,6 +1160,9 @@ export default {
                     this.addAllegedOffenceToTable(this.sanction_outcome.alleged_committed_offences[i]);
                 }
             }
+        },
+        addRemediationActionToTable: function(remediation_action){
+            this.$refs.tbl_remediation_actions.vmDataTable.row.add(remediation_action).draw();
         },
         addAllegedOffenceToTable: function(allegedCommittedOffence){
             this.$refs.alleged_committed_offence_table.vmDataTable.row.add({
@@ -1058,13 +1181,13 @@ export default {
             });
         },
         recordFerCaseNumber() {
-            this.bindId += 1;
+            this.ferCaseNumberId += 1;
             this.$nextTick(() => {
                 this.$refs.record_fer_case_number.isModalOpen = true;
             });
         },
         extendDueDate() {
-            this.bindId += 1;
+            this.extendDueDateId += 1;
             this.$nextTick(() => {
                 this.$refs.extend_payment_due_date.isModalOpen = true;
             });
@@ -1079,7 +1202,7 @@ export default {
         },
         updateAssignedToId: async function (user) {
             let url = helpers.add_endpoint_join(
-                api_endpoints.sanction_outcome, 
+                api_endpoints.sanction_outcome,
                 this.sanction_outcome.id + '/update_assigned_to_id/'
                 );
             let payload = null;
