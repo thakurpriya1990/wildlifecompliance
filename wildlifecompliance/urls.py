@@ -22,6 +22,7 @@ from wildlifecompliance.components.main.views import (
         )
 from wildlifecompliance.components.applications import views as application_views
 from wildlifecompliance.components.offence.api import OffenceViewSet
+from wildlifecompliance.components.sanction_outcome.api import RemediationActionViewSet
 from wildlifecompliance.components.users import api as users_api
 from wildlifecompliance.components.organisations import api as org_api
 from wildlifecompliance.components.applications import api as application_api
@@ -101,6 +102,7 @@ router.register(r'inspection', inspection_api.InspectionViewSet)
 router.register(r'inspection_paginated', inspection_api.InspectionPaginatedViewSet)
 router.register(r'sanction_outcome', sanction_outcome_api.SanctionOutcomeViewSet)
 router.register(r'sanction_outcome_paginated', sanction_outcome_api.SanctionOutcomePaginatedViewSet)
+router.register(r'remediation_action', sanction_outcome_api.RemediationActionViewSet)
 router.register(r'offence', offence_api.OffenceViewSet)
 router.register(r'offence_paginated', offence_api.OffencePaginatedViewSet)
 router.register(r'temporary_document', main_api.TemporaryDocumentCollectionViewSet)
@@ -174,12 +176,8 @@ urlpatterns = [
     url(r'^$', views.WildlifeComplianceRoutingView.as_view(), name='wc_home'),
     url(r'^internal/', views.InternalView.as_view(), name='internal'),
     url(r'^external/', views.ExternalView.as_view(), name='external'),
-    url(r'^external/application/(?P<application_pk>\d+)/$',
-        views.ExternalApplicationView.as_view(),
-        name='external-application-detail'),
-    url(r'^external/return/(?P<return_pk>\d+)/$',
-        views.ExternalReturnView.as_view(),
-        name='external-return-detail'),
+    url(r'^external/application/(?P<application_pk>\d+)/$', views.ExternalApplicationView.as_view(), name='external-application-detail'),
+    url(r'^external/return/(?P<return_pk>\d+)/$', views.ExternalReturnView.as_view(), name='external-return-detail'),
     url(r'^firsttime/$', views.first_time, name='first_time'),
     url(r'^account/$', views.ExternalView.as_view(), name='manage-account'),
     url(r'^profiles/', views.ExternalView.as_view(), name='manage-profiles'),
@@ -211,11 +209,9 @@ urlpatterns = [
 
     # following url is defined so that to include url path when sending
     # inspection emails to users
-    url(r'^internal/sanction_outcome/(?P<sanction_outcome_id>\d+)/$', views.ApplicationView.as_view(),
-        name='internal-sanction-outcome-detail'),
+    url(r'^internal/sanction_outcome/(?P<sanction_outcome_id>\d+)/$', views.ApplicationView.as_view(), name='internal-sanction-outcome-detail'),
 
-    url(r'^internal/offence/(?P<offence_id>\d+)/$', views.ApplicationView.as_view(),
-        name='internal-offence-detail'),
+    url(r'^internal/offence/(?P<offence_id>\d+)/$', views.ApplicationView.as_view(), name='internal-offence-detail'),
 
     # following url is defined so that to include url path when sending
     # inspection emails to users

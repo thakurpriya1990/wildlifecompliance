@@ -207,8 +207,35 @@ export default {
                     {
                         data: 'remediation_actions',
                         mRender: function (data, type, full) {
-                            console.log(full);
-                            return data;
+                            let html = ''
+
+                            if (full.remediation_actions && full.remediation_actions.length){
+                                let body = ''
+                                let td = '<td col="row">'
+                                let td_close = '</td>'
+                                let th = '<th scope="col">'
+                                let th_close = '</th>'
+
+                                for (let i=0; i<full.remediation_actions.length; i++){
+                                    let ra = full.remediation_actions[i];
+                                    body += '<tr>' +
+                                        td + ra.id + td_close +
+                                        td + moment(ra.due_date).format('DD/MM/YYYY') + td_close + 
+                                        td + ra.status + td_close + 
+                                        td + '<a href="/external/remediation_action/' + ra.id + '">View</a>' + td_close + 
+                                    '</tr>'
+                                }
+
+                                let header = '<thead><tr>' + 
+                                    th + 'Action#' + th_close + 
+                                    th + 'Due Date' + th_close + 
+                                    th + 'Status' + th_close + 
+                                    th + 'Action' + th_close + 
+                                    '</tr></thead>'
+                                html = '<table class="table">' + header + body + '</table>'
+                            }
+
+                            return html
                         }
                     }
                 ],
@@ -324,8 +351,5 @@ export default {
 }
 </script>
 
-<style>
-.remediation_actions {
-    /*border: 1px solid red; */
-}
+<style scoped>
 </style>

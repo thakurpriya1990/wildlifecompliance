@@ -287,7 +287,8 @@ class SanctionOutcomeDatatableSerializer(serializers.ModelSerializer):
     offender = OffenderSerializer(read_only=True,)
     paper_notices = serializers.SerializerMethodField()
     coming_due_date = serializers.ReadOnlyField()
-    remediation_actions = serializers.SerializerMethodField()
+    # remediation_actions = serializers.SerializerMethodField()
+    remediation_actions = RemediationActionSerializer(read_only=True, many=True)  # This is related field
 
     class Meta:
         model = SanctionOutcome
@@ -314,27 +315,6 @@ class SanctionOutcomeDatatableSerializer(serializers.ModelSerializer):
             'remediation_actions',
         )
         read_only_fields = ()
-
-    def get_remediation_actions(self, so):
-        html = ''
-        body = ''
-        if so.type == SanctionOutcome.TYPE_REMEDIATION_NOTICE:
-            for idx, action_req in enumerate(so.remediation_actions.all()):
-                body += '<tr>' \
-                            '<td col="row">' + str(idx+1) + '</td>' \
-                            '<td col="row">' + action_req.due_date.strftime('%d%m%Y') + '</td>' \
-                            '<td col="row">' + action_req.status + '</td>' \
-                            '<td col="row"><a href="">View</a></td>' \
-                        '</tr>'
-            body = '<tbody>' + body + '</tbody>'
-            header = '<thead><tr>' \
-                        '<th scope="col">Action#</th>' \
-                        '<th scope="col">Due Date</th>' \
-                        '<th scope="col">Status</th>' \
-                        '<th scope="col">Action</th>' \
-                     '</tr></thead>'
-            html = '<table class="table">' + header + body + '</table>'
-        return html
 
     def get_paper_notices(self, obj):
         url_list = []
