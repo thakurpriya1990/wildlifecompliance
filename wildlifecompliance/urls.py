@@ -108,6 +108,7 @@ router.register(r'legal_case', legal_case_api.LegalCaseViewSet)
 router.register(r'legal_case_paginated', legal_case_api.LegalCasePaginatedViewSet)
 router.register(r'document_artifact', artifact_api.DocumentArtifactViewSet)
 router.register(r'artifact', artifact_api.ArtifactViewSet)
+router.register(r'artifact_paginated', artifact_api.ArtifactPaginatedViewSet)
 router.register(r'physical_artifact', artifact_api.PhysicalArtifactViewSet)
 router.register(r'physical_artifact_types', artifact_api.PhysicalArtifactTypeViewSet)
 router.register(r'document_artifact_types', artifact_api.DocumentArtifactTypeViewSet)
@@ -231,7 +232,7 @@ urlpatterns = [
     url(r'^infringement_penalty/(?P<sanction_outcome_id>\d+)/$', payment_views.InfringementPenaltyView.as_view(), name='infringement_penalty'),
     url(r'^success/fee/$', payment_views.InfringementPenaltySuccessView.as_view(), name='penalty_success'),
     # url(r'wc/payments/invoice-pdf/(?P<reference>\d+)/$', payment_views.InvoicePDFView.as_view(), name='wc-invoice-pdf'),
-    url(r'^sanction_outcome/pdf/(?P<sanction_outcome_id>\d+)/$', payment_views.SanctionOutcomePDFView.as_view(), name='sanction_outcome_pdf'),
+    # url(r'^sanction_outcome/pdf/(?P<sanction_outcome_id>\d+)/$', payment_views.SanctionOutcomePDFView.as_view(), name='sanction_outcome_pdf'),
 ] + ledger_patterns
 
 if not are_migrations_running():

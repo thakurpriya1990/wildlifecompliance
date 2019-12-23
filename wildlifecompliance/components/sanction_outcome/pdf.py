@@ -2,6 +2,8 @@ import os
 
 from decimal import Decimal as D
 from io import BytesIO
+
+from django.core.files.storage import default_storage
 from oscar.templatetags.currency_filters import currency
 from reportlab.lib import enums
 from reportlab.lib.pagesizes import A4
@@ -204,7 +206,7 @@ def _create_header(canvas, doc, draw_page_number=True):
     sanction_outcome = doc.sanction_outcome
     canvas.setFont(BOLD_FONTNAME, SMALL_FONTSIZE)
     current_x = PAGE_MARGIN + 5
-    canvas.drawString(current_x, current_y - (SMALL_FONTSIZE + HEADER_SMALL_BUFFER), sanction_outcome.offender.person.get_full_name())
+    canvas.drawString(current_x, current_y - (SMALL_FONTSIZE + HEADER_SMALL_BUFFER), sanction_outcome.get_offender().get_full_name())
     # canvas.drawString(current_x, current_y - (SMALL_FONTSIZE + HEADER_SMALL_BUFFER), invoice.owner.get_full_name())
     # canvas.drawString(current_x, current_y - (SMALL_FONTSIZE + HEADER_SMALL_BUFFER) * 2,invoice.owner.username)
     current_x += 452
@@ -325,13 +327,20 @@ def _create_invoice(invoice_buffer, sanction_outcome):
     
     return invoice_buffer
 
+
 def create_infringement_notice_pdf_bytes(filename, sanction_outcome):
-    invoice_buffer = BytesIO()
+    with BytesIO() as invoice_buffer:
+        _create_invoice(invoice_buffer, sanction_outcome)
 
-    _create_invoice(invoice_buffer, sanction_outcome)
+        # Get the value of the BytesIO buffer
+        value = invoice_buffer.getvalue()
 
-    # Get the value of the BytesIO buffer
-    value = invoice_buffer.getvalue()
-    invoice_buffer.close()
+        # START: Save the pdf file to the database
+        document = sanction_outcome.documents.create(name=filename)
+        path = default_storage.save('wildlifecompliance/{}/{}/documents/{}'.format(sanction_outcome._meta.model_name, sanction_outcome.id, filename), invoice_buffer)
+        document._file = path
+        document.save()
+        # END: Save
 
-    return value
+        return document
+        # return value

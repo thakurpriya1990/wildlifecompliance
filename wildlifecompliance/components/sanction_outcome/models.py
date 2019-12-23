@@ -12,10 +12,12 @@ from ledger.accounts.models import EmailUser, RevisionedMixin
 from wildlifecompliance.components.main.models import Document, CommunicationsLogEntry
 from wildlifecompliance.components.main.related_item import can_close_record
 from wildlifecompliance.components.offence.models import Offence, Offender, AllegedOffence
+from wildlifecompliance.components.sanction_outcome.email import email_detais_to_department_of_transport
 from wildlifecompliance.components.sanction_outcome_due.models import SanctionOutcomeDueDateConfiguration
 from wildlifecompliance.components.sanction_outcome_due.serializers import SaveSanctionOutcomeDueDateSerializer
 from wildlifecompliance.components.section_regulation.models import SectionRegulation
 from wildlifecompliance.components.users.models import RegionDistrict, CompliancePermissionGroup
+from wildlifecompliance.management.classes.unpaid_infringement_file import UnpaidInfringementFileBody
 
 
 class SanctionOutcomeActiveManager(models.Manager):
@@ -67,6 +69,8 @@ class SanctionOutcome(models.Model):
     STATUS_OVERDUE = 'overdue'
     STATUS_WITHDRAWN = 'withdrawn'
     STATUS_CLOSED = 'closed'
+    STATUS_WITH_DOT = 'with_dot'
+    STATUS_AWAITING_ISSUANCE = 'awaiting_issuance'
     STATUS_CHOICES_FOR_EXTERNAL = (
         (STATUS_AWAITING_PAYMENT, 'Awaiting Payment'),
         (STATUS_AWAITING_REMEDIATION_ACTIONS, 'Awaiting Remediation Actions'),
@@ -81,7 +85,10 @@ class SanctionOutcome(models.Model):
         (STATUS_AWAITING_ENDORSEMENT, 'Awaiting Endorsement'),
         (STATUS_AWAITING_PAYMENT, 'Awaiting Payment'),  # TODO: implement pending closuer of SanctionOutcome with type RemediationActions
                                                         # This is pending closure status
+        (STATUS_WITH_DOT, 'With Dep. of Transport'),
+        (STATUS_AWAITING_ISSUANCE, 'Awaiting Issuance'),
         (STATUS_AWAITING_REVIEW, 'Awaiting Review'),
+        (STATUS_AWAITING_ISSUANCE, 'Awaiting Issuance'),
         (STATUS_AWAITING_REMEDIATION_ACTIONS, 'Awaiting Remediation Actions'),  # TODO: implement pending closuer of SanctionOutcome with type RemediationActions
                                                                                 # This is pending closure status
                                                                                 # Once all the remediation actions are closed, this status should become closed...
@@ -132,6 +139,7 @@ class SanctionOutcome(models.Model):
     # Updated whenever the sanction outcome is sent to the manager
     responsible_officer = models.ForeignKey(EmailUser, related_name='sanction_outcome_responsible_officer', null=True)
 
+    registration_number = models.CharField(max_length=10, blank=True)
     registration_holder = models.ForeignKey(EmailUser, related_name='sanction_outcome_registration_holder', blank=True, null=True)
     driver = models.ForeignKey(EmailUser, related_name='sanction_outcome_driver', blank=True, null=True)
 
@@ -140,8 +148,8 @@ class SanctionOutcome(models.Model):
     time_of_issue = models.TimeField(null=True, blank=True)
 
     # Following attributes should be determined at the moment of issue
-    penalty_amount_1st =  models.DecimalField(max_digits=8, decimal_places=2, default='0.00')
-    penalty_amount_2nd =  models.DecimalField(max_digits=8, decimal_places=2, default='0.00')
+    penalty_amount_1st = models.DecimalField(max_digits=8, decimal_places=2, default='0.00')
+    penalty_amount_2nd = models.DecimalField(max_digits=8, decimal_places=2, default='0.00')
     due_date_extended_max = models.DateField(null=True, blank=True)
 
     # This field is used once infringement notice gets overdue
@@ -156,15 +164,57 @@ class SanctionOutcome(models.Model):
         is_parking_offence = False
 
         if self.type == SanctionOutcome.TYPE_INFRINGEMENT_NOTICE:
-            qs_allegedCommittedOffences = self.retrieve_alleged_committed_offences()
+            qs_allegedCommittedOffences = AllegedCommittedOffence.objects.filter(sanction_outcome=self)
             for aco in qs_allegedCommittedOffences:
                 if aco.included and aco.alleged_offence.section_regulation.is_parking_offence:
                     is_parking_offence = True
 
         return is_parking_offence
 
+    def get_content_for_uin(self):
+        offender = self.get_offender()
+        uin = UnpaidInfringementFileBody()
+        uin.offenders_surname.set(offender.last_name)
+        uin.offenders_other_names.set(offender.first_name)
+        uin.offenders_date_of_birth.set(offender.dob)
+        uin.offenders_sid.set('')
+        uin.offenders_organisation_name.set(offender.organisation)
+        uin.party_indicator.set('I')
+        uin.offenders_gender.set('U')
+        uin.offenders_address_line_1.set(offender.residential_address.line1)
+        uin.offenders_address_line_2.set(offender.residential_address.line2)
+        uin.offenders_address_line_3.set(offender.residential_address.line3)
+        uin.offenders_address_line_4.set('')
+        uin.offenders_suburb.set(offender.residential_address.locality)
+        uin.offenders_state.set(offender.residential_address.state)
+        uin.offenders_postcode.set(offender.residential_address.postcode)
+        uin.offenders_country.set(offender.residential_address.country.name)
+        uin.date_address_known_to_be_current.set('')
+        uin.acn.set('')
+        uin.infringement_number.set(self.lodgement_number)
+        uin.offence_datetime.set(self.offence_occurrence_datetime)
+        uin.offence_location.set(self.offence.location.__str__())
+        uin.drivers_licence_number.set('')
+        uin.vehicle_registration_number.set('')
+        uin.offence_code.set(self.dotag_offence_code)
+        uin.penalty_amount.set(self.penalty_amount_2nd)
+        uin.infringement_issue_date.set(self.date_of_issue)
+        uin.final_demand_letter_date.set('')
+        uin.zone_speed_limit.set('')
+        uin.speed_reading.set('')
+        uin.first_additional_cost_code.set('')
+        uin.first_additional_amount.set('')
+        uin.second_additional_cost_code.set('')
+        uin.second_additional_amount.set('')
+
+        ret_text = uin.get_content()
+
+        return ret_text
+
     def retrieve_alleged_committed_offences(self):
-        # Check if there is newly aded alleged offence to be added to this sanction outcome
+        # Check if there are new alleged offences added to the offence which this sanction outcome belongs to.
+        # If sanction outcome is in the draft status and new alleged offences have been added to the offence
+        # those alleged offences should be added to the sanction outcome, too.
         if self.status == SanctionOutcome.STATUS_DRAFT:
             ao_ids_already_included = AllegedCommittedOffence.objects.filter(sanction_outcome=self).values_list(
                 'alleged_offence__id', flat=True)
@@ -329,10 +379,21 @@ class SanctionOutcome(models.Model):
         self.log_user_action(SanctionOutcomeUserAction.ACTION_SEND_TO_MANAGER.format(self.lodgement_number), request)
         self.save()
 
-    def retrieve_issue_due_date_window(self):
-        # Expecting this function is called only for an infringement notice which can have only one alleged offence.
-        date_window = self.alleged_committed_offences.first().section_regulation.issue_due_date_window
-        return date_window
+    @property
+    def issue_due_date_window(self):
+        qs_aco = AllegedCommittedOffence.objects.filter(Q(sanction_outcome=self) & Q(included=True))
+        if qs_aco.count() != 1:  # Only infringement notice can have penalty. Infringement notice can have only one alleged offence.
+            raise ValidationError('There are multiple alleged committed offences in this sanction outcome.')
+        else:
+            return qs_aco.first().issue_due_date_window
+
+    @property
+    def dotag_offence_code(self):
+        qs_aco = AllegedCommittedOffence.objects.filter(Q(sanction_outcome=self) & Q(included=True))
+        if qs_aco.count() != 1:  # Only infringement notice can have penalty. Infringement notice can have only one alleged offence.
+            raise ValidationError('There are multiple alleged committed offences in this sanction outcome.')
+        else:
+            return qs_aco.first().dotag_offence_code
 
     @property
     def offence_occurrence_date(self):
@@ -342,24 +403,70 @@ class SanctionOutcome(models.Model):
     def offence_occurrence_datetime(self):
         return self.offence.offence_occurrence_datetime
 
-    def endorse(self, request):
+    def confirm_date_time_issue(self, raise_exception=False):
         current_datetime = datetime.datetime.now()
-        if not self.issued_on_paper:
+        if self.issued_on_paper:
+            if not self.date_of_issue:
+                if raise_exception:
+                    raise ValidationError('Sanction outcome cannot be endorsed without setting date of issue.')
+        else:
             self.date_of_issue = current_datetime.date()
             self.time_of_issue = current_datetime.time()
-        elif not self.date_of_issue:
-            raise ValidationError('Sanction outcome cannot be endorsed without setting date of issue.')
 
-        if self.type == SanctionOutcome.TYPE_INFRINGEMENT_NOTICE:
-            date_window = self.retrieve_issue_due_date_window()
-            issue_due_date = self.offence_occurrence_date + relativedelta(days=date_window)
-            if self.date_of_issue > issue_due_date:
+    def is_issuable(self, raise_exception=False):
+        date_window = self.issue_due_date_window
+        issue_due_date = self.offence_occurrence_date + relativedelta(days=date_window)
+
+        today = datetime.date.today()
+
+        if today > issue_due_date:
+            if raise_exception:
                 raise ValidationError('Infringement notice must be issued before %s' % issue_due_date.strftime("%d-%m-%Y"))
+            else:
+                return False
+        else:
+            return True
 
-            self.status = SanctionOutcome.STATUS_AWAITING_PAYMENT
-            self.payment_status = SanctionOutcome.PAYMENT_STATUS_UNPAID
-            self.set_penalty_amounts()
-            self.create_due_dates()
+    def send_to_dot(self):
+        if self.type == SanctionOutcome.TYPE_INFRINGEMENT_NOTICE:
+            # if self.is_issuable(raise_exception=True):
+            self.status = SanctionOutcome.STATUS_WITH_DOT
+            new_group = SanctionOutcome.get_compliance_permission_group(self.regionDistrictId, SanctionOutcome.WORKFLOW_ENDORSE)
+            self.allocated_group = new_group
+            self.save()
+        else:
+            # Should not reach here
+            pass
+
+    def endorse_parking_infringement(self):
+        if self.type == SanctionOutcome.TYPE_INFRINGEMENT_NOTICE:
+            if not self.issued_on_paper and self.is_issuable(raise_exception=True):
+                self.confirm_date_time_issue(raise_exception=True)
+                self.status = SanctionOutcome.STATUS_AWAITING_PAYMENT
+                self.payment_status = SanctionOutcome.PAYMENT_STATUS_UNPAID
+                self.set_penalty_amounts()
+                if self.due_dates.count():
+                    # Already at least one infringement notice issued
+                    self.create_due_dates(reason_for_extension='Issue infringement notice')
+                else:
+                    # First time to issue the infringement notice
+                    self.create_due_dates(reason_for_extension='original')
+
+        new_group = SanctionOutcome.get_compliance_permission_group(self.regionDistrictId, SanctionOutcome.WORKFLOW_ENDORSE)
+        self.allocated_group = new_group
+        self.save()
+
+    def endorse(self):
+        if self.type == SanctionOutcome.TYPE_INFRINGEMENT_NOTICE:
+            if self.issued_on_paper:
+                pass
+            else:
+                if self.is_issuable(raise_exception=True):
+                    self.confirm_date_time_issue(raise_exception=True)
+                    self.status = SanctionOutcome.STATUS_AWAITING_PAYMENT
+                    self.payment_status = SanctionOutcome.PAYMENT_STATUS_UNPAID
+                    self.set_penalty_amounts()
+                    self.create_due_dates()
 
         elif self.type in (SanctionOutcome.TYPE_CAUTION_NOTICE, SanctionOutcome.TYPE_LETTER_OF_ADVICE):
             self.status = SanctionOutcome.STATUS_CLOSED
@@ -372,7 +479,8 @@ class SanctionOutcome(models.Model):
         self.allocated_group = new_group
         self.save()
 
-        self.log_user_action(SanctionOutcomeUserAction.ACTION_ENDORSE.format(self.lodgement_number), request)
+        # Add action log
+        # self.log_user_action(SanctionOutcomeUserAction.ACTION_ENDORSE.format(self.lodgement_number), request)
 
     def create_due_dates(self, reason_for_extension='original', extended_by_id=None):
         due_date_config = SanctionOutcomeDueDateConfiguration.get_config_by_date(self.date_of_issue)
@@ -556,6 +664,14 @@ class AllegedCommittedOffence(RevisionedMixin):
     def retrieve_penalty_amounts_by_date(self, date_of_issue):
         return self.alleged_offence.retrieve_penalty_amounts_by_date(date_of_issue)
 
+    @property
+    def dotag_offence_code(self):
+        return self.alleged_offence.dotag_offence_code
+
+    @property
+    def issue_due_date_window(self):
+        return self.alleged_offence.issue_due_date_window
+
     class Meta:
         app_label = 'wildlifecompliance'
         verbose_name = 'CM_AllegedCommittedOffence'
@@ -563,9 +679,21 @@ class AllegedCommittedOffence(RevisionedMixin):
 
 
 class RemediationAction(models.Model):
+    STATUS_DUE = 'due'
+    STATUS_OVERDUE = 'overdue'
+    STATUS_SUBMITTED = 'submitted'
+    STATUS_ACCEPTED = 'accepted'
+    STATUS_CHOICES = (
+        (STATUS_DUE, 'Due'),
+        (STATUS_OVERDUE, 'Overdue'),
+        (STATUS_SUBMITTED, 'Submitted'),
+        (STATUS_ACCEPTED, 'Accepted')
+    )
+
     action = models.TextField(blank=True)
     due_date = models.DateField(null=True, blank=True)
-    sanction_outcome = models.ForeignKey(SanctionOutcome, related_name='remediation_action_sanction_outcome', null=True, on_delete=models.SET_NULL,)
+    sanction_outcome = models.ForeignKey(SanctionOutcome, related_name='remediation_actions', null=True, on_delete=models.SET_NULL,)
+    status = models.CharField(max_length=40, choices=STATUS_CHOICES, blank=True)
 
     # validate if the sanction outcome is remediation_notice
     def clean_fields(self, exclude=None):
@@ -613,10 +741,13 @@ class SanctionOutcomeCommsLogEntry(CommunicationsLogEntry):
 
 
 class SanctionOutcomeUserAction(models.Model):
+    ACTION_ISSUE_PARKING_INFRINGEMENT = "Issue Parking Infringement {}"
     ACTION_CREATE = "Create Sanction Outcome {}"
     ACTION_SEND_TO_MANAGER = "Send Sanction Outcome {} to manager"
     ACTION_UPDATE = "Update Sanction Outcome {}"
+    ACTION_ENDORSE_AND_ISSUE = "Endorse and Issue Sanction Outcome {}"
     ACTION_ENDORSE = "Endorse Sanction Outcome {}"
+    ACTION_SEND_TO_DOT = "Send details of Sanction Outcome {} to Dep. of Transport"
     ACTION_DECLINE = "Decline Sanction Outcome {}"
     ACTION_RETURN_TO_OFFICER = "Request amendment for Sanction Outcome {}"
     ACTION_RETURN_TO_INFRINGEMENT_NOTICE_COORDINATOR = "Return Sanction Outcome {} to Infringement Notice Coordinator"
@@ -650,3 +781,39 @@ class SanctionOutcomeUserAction(models.Model):
         )
 
 
+class DotRequestFile(models.Model):
+    contents = models.TextField(blank=True)
+    filename = models.CharField(max_length=100, blank=True)
+    created_at = models.DateTimeField(auto_now_add=True)
+    updated_at = models.DateTimeField(auto_now=True)
+    sanction_outcomes = models.ManyToManyField(SanctionOutcome, related_name='dot_request_files')  # Make this manytomany for now, but it is used as onetomany
+
+    class Meta:
+        app_label = 'wildlifecompliance'
+        verbose_name = 'CM_DotReguestFile'
+        verbose_name_plural = 'CM_DotReguestFiles'
+
+
+
+class UnpaidInfringementFile(models.Model):
+    contents = models.TextField(blank=True)
+    filename = models.CharField(max_length=100, blank=True)
+    created_at = models.DateTimeField(auto_now_add=True)
+    updated_at = models.DateTimeField(auto_now=True)
+
+    def save(self, *args, **kwargs):
+        super(UnpaidInfringementFile, self).save(*args, **kwargs)
+
+        need_save = False
+
+        if not self.filename:
+            self.filename = '{0:05d}'.format(self.pk) + 'UIN.uin'
+            need_save = True
+
+        if need_save:
+            self.save()  # Be careful, this might lead to the infinite loop
+
+    class Meta:
+        app_label = 'wildlifecompliance'
+        verbose_name = 'CM_UnpaidInfringementFile'
+        verbose_name_plural = 'CM_UnpaidInfringementFiles'

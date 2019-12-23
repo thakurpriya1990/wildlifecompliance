@@ -9,6 +9,7 @@ class SectionRegulation(RevisionedMixin):
     name = models.CharField(max_length=50, blank=True, verbose_name='Regulation')
     offence_text = models.CharField(max_length=200, blank=True)
     is_parking_offence = models.BooleanField(default=False)
+    dotag_offence_code = models.CharField(max_length=9, verbose_name='DotAG Offence Code', blank=True)
 
     # Officer can issue an infringement notice within this period after the offence occurrence date
     # If this is null, which means officer can issue the infringement notice anytime.
@@ -30,8 +31,8 @@ class SectionRegulation(RevisionedMixin):
 
 
 class PenaltyAmount(RevisionedMixin):
-    amount =  models.DecimalField(max_digits=8, decimal_places=2, default='0.00')
-    amount_after_due =  models.DecimalField(max_digits=8, decimal_places=2, default='0.00')
+    amount = models.DecimalField(max_digits=8, decimal_places=2, default='0.00')
+    amount_after_due = models.DecimalField(max_digits=8, decimal_places=2, default='0.00')
     date_of_enforcement = models.DateField(blank=True, null=True)
     section_regulation = models.ForeignKey(SectionRegulation, related_name='penalty_amounts')
 

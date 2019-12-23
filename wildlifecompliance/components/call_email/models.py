@@ -135,8 +135,8 @@ class Location(models.Model):
         verbose_name_plural = 'CM_Locations'
 
     def __str__(self):
-        return '{0}, {1}, {2}' \
-            .format(self.street, self.town_suburb, self.state)
+        return '{}, {}, {}, {}' \
+            .format(self.street, self.town_suburb, self.state, self.country)
 
 
 class MapLayer(models.Model):
