@@ -125,6 +125,10 @@ def search_weak_links(request_data):
         entity, created = SanctionOutcome.objects.get_or_create(id=entity_id_int)
     elif entity_type == 'legalcase':
         entity, created = LegalCase.objects.get_or_create(id=entity_id_int)
+    elif entity_type == 'documentartifact':
+        entity, created = DocumentArtifact.objects.get_or_create(id=entity_id_int)
+    elif entity_type == 'physicalartifact':
+        entity, created = PhysicalArtifact.objects.get_or_create(id=entity_id_int)
 
     related_items = get_related_items(entity)
     
@@ -174,6 +178,18 @@ def search_weak_links(request_data):
                 Q(identifier__icontains=search_text) |
                 Q(description__icontains=search_text) 
                 )
+    elif 'document_artifact' in components_selected:
+        qs = DocumentArtifact.objects.filter(
+                Q(number__icontains=search_text) |
+                Q(identifier__icontains=search_text) |
+                Q(description__icontains=search_text) 
+                )
+    elif 'physical_artifact' in components_selected:
+        qs = PhysicalArtifact.objects.filter(
+                Q(number__icontains=search_text) |
+                Q(identifier__icontains=search_text) |
+                Q(description__icontains=search_text) 
+                )
     return_qs = []
 
     # First 10 records only
@@ -209,6 +225,8 @@ approved_related_item_models = [
         'EmailUser',
         'Organisation',
         'Offender',
+        'DocumentArtifact',
+        'PhysicalArtifact',
         ]
 
 pending_closure_related_item_models = [
@@ -237,6 +255,8 @@ def format_model_name(model_name):
                 'emailuser': 'Person',
                 'organisation': 'Organisation',
                 'legalcase': 'Case',
+                'documentartifact': 'Document Artifact',
+                'physicalartifact': 'Physical Artifact',
                 }
         return switcher.get(lower_model_name, '')
 
@@ -252,6 +272,8 @@ def format_url(model_name, obj_id):
                 'legalcase': '<a href=/internal/legal_case/' + obj_id_str + ' target="_blank">View</a>',
                 'emailuser': '<a href=/internal/users/' + obj_id_str + ' target="_blank">View</a>',
                 'organisation': '<a href=/internal/organisations/' + obj_id_str + ' target="_blank">View</a>',
+                'documentartifact': '<a href=/internal/object/' + obj_id_str + ' target="_blank">View</a>',
+                'physicalartifact': '<a href=/internal/object/' + obj_id_str + ' target="_blank">View</a>',
                 }
         return switcher.get(lower_model_name, '')
 
@@ -278,6 +300,7 @@ def get_related_items(entity, pending_closure=False, **kwargs):
         return_list = []
         children = []
         parents = []
+        field_objects = None
         related_item_models = pending_closure_related_item_models if pending_closure else approved_related_item_models
 
         # Strong links
@@ -297,20 +320,21 @@ def get_related_items(entity, pending_closure=False, **kwargs):
                         field_objects = f.related_model.objects.filter(offence_id=entity.id)
                     elif entity._meta.model_name == 'legalcase':
                         field_objects = f.related_model.objects.filter(legal_case_id=entity.id)
-                    for field_object in field_objects:
-                        if pending_closure:
-                            children.append(field_object)
-                        else:
-                            related_item = RelatedItem(
-                                    model_name = format_model_name(f.related_model.__name__),
-                                    identifier = field_object.get_related_items_identifier,
-                                    descriptor = field_object.get_related_items_descriptor,
-                                    action_url = format_url(
-                                            model_name=f.related_model.__name__,
-                                            obj_id=field_object.id
-                                            )
-                                    )
-                            return_list.append(related_item)
+                    if field_objects:
+                        for field_object in field_objects:
+                            if pending_closure:
+                                children.append(field_object)
+                            else:
+                                related_item = RelatedItem(
+                                        model_name = format_model_name(f.related_model.__name__),
+                                        identifier = field_object.get_related_items_identifier,
+                                        descriptor = field_object.get_related_items_descriptor,
+                                        action_url = format_url(
+                                                model_name=f.related_model.__name__,
+                                                obj_id=field_object.id
+                                                )
+                                        )
+                                return_list.append(related_item)
 
                 # foreign keys from entity to EmailUser
                 elif f.is_relation and f.related_model._meta.model_name == 'emailuser':
@@ -327,6 +351,9 @@ def get_related_items(entity, pending_closure=False, **kwargs):
                                         )
                                 )
                         return_list.append(related_item)
+                elif f.is_relation and f.get_internal_type() == 'OneToOneField':
+                    # Inheritance model such as DocumentArtifact's fk to parent (Artifact)
+                    pass
                 # remaining entity foreign keys
                 elif f.is_relation:
                     field_object = None

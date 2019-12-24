@@ -63,16 +63,18 @@ from wildlifecompliance.components.artifact.models import (
         ArtifactUserAction,
         )
 from wildlifecompliance.components.artifact.serializers import (
-    ArtifactSerializer,
-    DocumentArtifactSerializer,
-    SaveDocumentArtifactSerializer,
-    PhysicalArtifactSerializer,
-    DocumentArtifactTypeSerializer,
-    PhysicalArtifactTypeSerializer,
-    PhysicalArtifactDisposalMethodSerializer,
-    ArtifactUserActionSerializer,
-    ArtifactCommsLogEntrySerializer,
-    ArtifactPaginatedSerializer)
+        ArtifactSerializer,
+        DocumentArtifactSerializer,
+        SaveDocumentArtifactSerializer,
+        SavePhysicalArtifactSerializer,
+        PhysicalArtifactSerializer,
+        DocumentArtifactTypeSerializer,
+        PhysicalArtifactTypeSerializer,
+        PhysicalArtifactDisposalMethodSerializer,
+        ArtifactUserActionSerializer,
+        ArtifactCommsLogEntrySerializer,
+        ArtifactPaginatedSerializer,
+        )
 from wildlifecompliance.components.users.models import (
     CompliancePermissionGroup,    
 )
@@ -223,8 +225,163 @@ class DocumentArtifactViewSet(viewsets.ModelViewSet):
         print(request.data)
         try:
             with transaction.atomic():
-                serializer = SaveDocumentArtifactSerializer(
-                        data=request.data, 
+                #request_data = request.data
+                #document_type = request_data.get('document_type')
+                #document_type_id = None
+                #if document_type:
+                #    document_type_id = document_type.get('id')
+                #    request_data['document_type_id'] = document_type_id
+                #serializer = SaveDocumentArtifactSerializer(
+                #        data=request_data, 
+                #        partial=True
+                #        )
+                #serializer.is_valid(raise_exception=True)
+                #if serializer.is_valid():
+                #    print("serializer.validated_data")
+                #    print(serializer.validated_data)
+                #    instance = serializer.save()
+                #    headers = self.get_success_headers(serializer.data)
+                request_data = request.data
+                instance, headers = self.common_save(request, request_data)
+
+                instance.log_user_action(
+                        ArtifactUserAction.ACTION_CREATE_ARTIFACT.format(
+                        instance.number), request)
+                return_serializer = DocumentArtifactSerializer(instance, context={'request': request})
+                return Response(
+                        return_serializer.data,
+                        status=status.HTTP_201_CREATED,
+                        headers=headers
+                        )
+                    # Create comms_log and send mail
+                    #res = self.workflow_action(request, instance, create_legal_case=True)
+                    #if instance.call_email:
+                     #   print("update parent")
+                      #  self.update_parent(request, instance)
+                    #return res
+        except serializers.ValidationError:
+            print(traceback.print_exc())
+            raise
+        except ValidationError as e:
+            if hasattr(e, 'error_dict'):
+                raise serializers.ValidationError(repr(e.error_dict))
+            else:
+                raise serializers.ValidationError(repr(e[0].encode('utf-8')))
+        except Exception as e:
+            print(traceback.print_exc())
+            raise serializers.ValidationError(str(e))
+
+    @renderer_classes((JSONRenderer,))
+    #def inspection_save(self, request, workflow=False, *args, **kwargs):
+    def update(self, request, workflow=False, *args, **kwargs):
+        print(request.data)
+        try:
+            with transaction.atomic():
+                instance = self.get_object()
+                #if request.data.get('renderer_data'):
+                 #   self.form_data(request)
+
+                #serializer = SaveDocumentArtifactSerializer(instance, data=request.data)
+                #serializer.is_valid(raise_exception=True)
+                #if serializer.is_valid():
+                #    serializer.save()
+                request_data = request.data
+                instance, headers = self.common_save(request, request_data, instance)
+                instance.log_user_action(
+                        ArtifactUserAction.ACTION_SAVE_ARTIFACT.format(
+                        instance.number), request)
+                #headers = self.get_success_headers(serializer.data)
+                return_serializer = DocumentArtifactSerializer(instance, context={'request': request})
+                return Response(
+                        return_serializer.data,
+                        status=status.HTTP_201_CREATED,
+                        headers=headers
+                        )
+        except serializers.ValidationError:
+            print(traceback.print_exc())
+            raise
+        except ValidationError as e:
+            print(traceback.print_exc())
+            raise serializers.ValidationError(repr(e.error_dict))
+        except Exception as e:
+            print(traceback.print_exc())
+            raise serializers.ValidationError(str(e))
+
+    def common_save(self, request, request_data, instance=None):
+        try:
+            with transaction.atomic():
+                document_type = request_data.get('document_type')
+                document_type_id = None
+                if document_type:
+                    document_type_id = document_type.get('id')
+                    request_data['document_type_id'] = document_type_id
+                #statement = request_data.get('statement')
+                #statement_id = None
+                #if statement:
+                #    statement_id = statement.get('id')
+                #    request_data['statement_id'] = statement_id
+                if instance:
+                    serializer = SaveDocumentArtifactSerializer(
+                            instance=instance,
+                            data=request_data, 
+                            partial=True
+                            )
+                else:
+                    serializer = SaveDocumentArtifactSerializer(
+                            data=request_data, 
+                            partial=True
+                            )
+                serializer.is_valid(raise_exception=True)
+                if serializer.is_valid():
+                    print("serializer.validated_data")
+                    print(serializer.validated_data)
+                    instance = serializer.save()
+                    headers = self.get_success_headers(serializer.data)
+                    return (instance, headers)
+                    #instance.log_user_action(
+                    #        ArtifactUserAction.ACTION_CREATE_ARTIFACT.format(
+                    #        instance.number), request)
+                    #return_serializer = DocumentArtifactSerializer(instance, context={'request': request})
+                    #return Response(
+                    #        return_serializer.data,
+                    #        status=status.HTTP_201_CREATED,
+                    #        headers=headers
+                    #        )
+        except serializers.ValidationError:
+            print(traceback.print_exc())
+            raise
+        except ValidationError as e:
+            print(traceback.print_exc())
+            raise serializers.ValidationError(repr(e.error_dict))
+        except Exception as e:
+            print(traceback.print_exc())
+            raise serializers.ValidationError(str(e))
+
+
+class PhysicalArtifactViewSet(viewsets.ModelViewSet):
+    queryset = PhysicalArtifact.objects.all()
+    serializer_class = PhysicalArtifactSerializer
+
+    def get_queryset(self):
+        # import ipdb; ipdb.set_trace()
+        user = self.request.user
+        if is_internal(self.request):
+            return PhysicalArtifact.objects.all()
+        return PhysicalArtifact.objects.none()
+
+    def create(self, request, *args, **kwargs):
+        print("create")
+        print(request.data)
+        try:
+            with transaction.atomic():
+                request_data = request.data
+                physical_artifact_type = request_data.get('physical_artifact_type')
+                physical_artifact_type_id = None
+                if physical_artifact_type:
+                    physical_artifact_type_id = physical_artifact_type.get('id')
+                    request_data['physical_artifact_type_id'] = physical_artifact_type_id
+                serializer = SavePhysicalArtifactSerializer(
+                        data=request_data, 
                         partial=True
                         )
                 serializer.is_valid(raise_exception=True)
@@ -236,7 +393,7 @@ class DocumentArtifactViewSet(viewsets.ModelViewSet):
                             ArtifactUserAction.ACTION_CREATE_ARTIFACT.format(
                             instance.number), request)
                     headers = self.get_success_headers(serializer.data)
-                    return_serializer = DocumentArtifactSerializer(instance, context={'request': request})
+                    return_serializer = PhysicalArtifactSerializer(instance, context={'request': request})
                     return Response(
                             return_serializer.data,
                             status=status.HTTP_201_CREATED,
@@ -270,7 +427,7 @@ class DocumentArtifactViewSet(viewsets.ModelViewSet):
                 #if request.data.get('renderer_data'):
                  #   self.form_data(request)
 
-                serializer = SaveDocumentArtifactSerializer(instance, data=request.data)
+                serializer = SavePhysicalArtifactSerializer(instance, data=request.data)
                 serializer.is_valid(raise_exception=True)
                 if serializer.is_valid():
                     serializer.save()
@@ -278,7 +435,7 @@ class DocumentArtifactViewSet(viewsets.ModelViewSet):
                             ArtifactUserAction.ACTION_SAVE_ARTIFACT.format(
                             instance.number), request)
                     headers = self.get_success_headers(serializer.data)
-                    return_serializer = DocumentArtifactSerializer(instance, context={'request': request})
+                    return_serializer = PhysicalArtifactSerializer(instance, context={'request': request})
                     return Response(
                             return_serializer.data,
                             status=status.HTTP_201_CREATED,
@@ -294,17 +451,6 @@ class DocumentArtifactViewSet(viewsets.ModelViewSet):
             print(traceback.print_exc())
             raise serializers.ValidationError(str(e))
 
-
-class PhysicalArtifactViewSet(viewsets.ModelViewSet):
-    queryset = PhysicalArtifact.objects.all()
-    serializer_class = PhysicalArtifactSerializer
-
-    def get_queryset(self):
-        # import ipdb; ipdb.set_trace()
-        user = self.request.user
-        if is_internal(self.request):
-            return PhysicalArtifact.objects.all()
-        return PhysicalArtifact.objects.none()
 
 
 class ArtifactFilterBackend(DatatablesFilterBackend):

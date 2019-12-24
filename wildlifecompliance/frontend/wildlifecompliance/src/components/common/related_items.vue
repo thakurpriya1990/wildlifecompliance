@@ -97,6 +97,12 @@ export default {
       },
   },
   computed: {
+    ...mapGetters('documentArtifactStore', {
+      document_artifact: "document_artifact",
+    }),
+    ...mapGetters('physicalArtifactStore', {
+      physical_artifact: "physical_artifact",
+    }),
     ...mapGetters('callemailStore', {
       call_email: "call_email",
     }),
@@ -117,7 +123,13 @@ export default {
     },
     displayedEntity: function() {
         let displayed_entity = null;
-        if (this.call_email && this.call_email.id) {
+        if (this.physical_artifact && this.physical_artifact.id) {
+            this.displayedEntityType = 'physicalartifact';
+            displayed_entity = this.physical_artifact;
+        } else if (this.document_artifact && this.document_artifact.id) {
+            this.displayedEntityType = 'documentartifact';
+            displayed_entity = this.document_artifact;
+        } else if (this.call_email && this.call_email.id) {
             this.displayedEntityType = 'callemail';
             displayed_entity = this.call_email;
         } else if (this.inspection && this.inspection.id) {

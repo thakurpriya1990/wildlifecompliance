@@ -16,6 +16,7 @@ from wildlifecompliance.components.main.models import (
 from wildlifecompliance.components.main.related_item import can_close_record
 from wildlifecompliance.components.users.models import RegionDistrict, CompliancePermissionGroup
 from wildlifecompliance.components.offence.models import Offence
+from wildlifecompliance.components.legal_case.models import LegalCase
 from django.core.exceptions import ValidationError
 
 logger = logging.getLogger(__name__)
@@ -57,6 +58,14 @@ class Artifact(RevisionedMixin):
     def custodian(self):
         return 'custodian'
 
+    @property
+    def get_related_items_identifier(self):
+        return self.number
+
+    @property
+    def get_related_items_descriptor(self):
+        #return '{0}, {1}'.format(self.title, self.details)
+        return self.identifier
     #def log_user_action(self, action, request):
      #   return ArtifactUserAction.log_action(self, action, request.user)
 
@@ -123,6 +132,11 @@ class DocumentArtifact(Artifact):
     #_file = models.FileField(max_length=255)
     #identifier = models.CharField(max_length=255, blank=True, null=True)
     #description = models.TextField(blank=True, null=True)
+    legal_case = models.ForeignKey(
+            LegalCase,
+            related_name='legal_case_document_artifacts',
+            null=True,
+            )
     statement = models.ForeignKey(
         'self', 
         related_name='document_artifact_statement',
@@ -165,6 +179,7 @@ class DocumentArtifact(Artifact):
     def log_user_action(self, action, request):
         return ArtifactUserAction.log_action(self, action, request.user)
 
+    #def send_to_manager(self, request):
     ## Prefix "DO" char to DocumentArtifact number.
     #def save(self, *args, **kwargs):
     #    
@@ -179,6 +194,11 @@ class PhysicalArtifact(Artifact):
     physical_artifact_type = models.ForeignKey(
             PhysicalArtifactType,
             null=True
+            )
+    legal_case = models.ForeignKey(
+            LegalCase,
+            related_name='legal_case_physical_artifacts',
+            null=True,
             )
     #_file = models.FileField(max_length=255)
     #identifier = models.CharField(max_length=255, blank=True, null=True)
@@ -216,6 +236,10 @@ class PhysicalArtifact(Artifact):
         verbose_name = 'CM_PhysicalArtifact'
         verbose_name_plural = 'CM_PhysicalArtifacts'
 
+    def log_user_action(self, action, request):
+        return ArtifactUserAction.log_action(self, action, request.user)
+
+    #def send_to_manager(self, request):
     ## Prefix "PO" char to DocumentArtifact number.
     #def save(self, *args, **kwargs):
     #    
@@ -314,6 +338,23 @@ class StorageDocument(Document):
     class Meta:
         app_label = 'wildlifecompliance'
 
+
+#class LegalCaseRunningSheetArtifacts(models.Model):
+#    legal_case = models.OneToOneField(
+#            LegalCase,
+#            related_name='running_sheet_artifacts'
+#            )
+#    document_artifacts = models.ManyToManyField(
+#            DocumentArtifact,
+#            related_name='running_sheet_document_artifacts',
+#            )
+#    physical_artifacts = models.ManyToManyField(
+#            PhysicalArtifact,
+#            related_name='running_sheet_physical_artifacts',
+#            )
+#
+#    class Meta:
+#        app_label = 'wildlifecompliance'
 
 #import reversion
 #reversion.register(LegalCaseRunningSheetEntry, follow=['user'])

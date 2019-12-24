@@ -17,9 +17,8 @@
                                           <label>Document Type</label>
                                         </div>
                                         <div class="col-sm-6">
-                                          <!--select :disabled="readonlyForm" class="form-control" v-model="artifact.artifact_id" @change="loadSchema"-->
-                                          <select class="form-control" v-model="document_artifact.document_type_id">
-                                            <option  v-for="option in documentArtifactTypes" :value="option.id" v-bind:key="option.id">
+                                          <select class="form-control" v-model="document_artifact.document_type" ref="setArtifactType">
+                                            <option  v-for="option in documentArtifactTypes" :value="option" v-bind:key="option.id">
                                               {{ option.artifact_type }}
                                             </option>
                                           </select>
@@ -50,6 +49,20 @@
                                         </div>
                                         <div class="col-sm-9">
                                           <input :readonly="readonlyForm" class="form-control" v-model="document_artifact.identifier"/>
+                                        </div>
+                                      </div>
+                                    </div>
+                                    <div v-if="statementVisibility" class="form-group">
+                                      <div class="row">
+                                        <div class="col-sm-3">
+                                          <label>Statement</label>
+                                        </div>
+                                        <div class="col-sm-6">
+                                          <select class="form-control" v-model="document_artifact.statement_id" ref="setStatement">
+                                            <option  v-for="option in legal_case.statement_artifacts" :value="option.id" v-bind:key="option.id">
+                                            {{ option.document_type.artifact_type }}: {{ option.identifier }}
+                                            </option>
+                                          </select>
                                         </div>
                                       </div>
                                     </div>
@@ -147,10 +160,18 @@ export default {
             documentActionUrl: '',
             temporary_document_collection_id: null,
             documentArtifactTypes: [],
-            physicalArtifactTypes: [],
+            departmentStaffList: [],
+            selectedCustodian: {},
             entity: {
                 id: null,
             },
+            statementArtifactTypes: [
+                'Record of Interview',
+                'Witness Statement',
+                'Expert Statement',
+                'Officer Statement',
+                ],
+            statementVisibility: false,
         }
     },
     components: {
@@ -158,11 +179,67 @@ export default {
       filefield,
       SearchPersonOrganisation,
     },
+    watch: {
+        artifactType: {
+            handler: function (){
+                this.setStatementVisibility();
+                /*
+                if (
+                    // legal case exists and Document Type is not a statementArtifactType
+                    (this.legalCaseExists && this.artifactType && !this.statementArtifactTypes.includes(this.artifactType)) ||
+                    // OR document_artifact already has a linked statement
+                    (this.document_artifact && this.document_artifact.statement)
+                    )
+                {
+                    console.log("statementVisibility true")
+                    this.statementVisibility = true;
+                } else {
+                    console.log("statementVisibility false")
+                    this.statementVisibility = false;
+                }
+                */
+            },
+            deep: true,
+        },
+        /*
+        legalCaseId: {
+            handler: async function() {
+                if (this.legal_case && this.legal_case.id) {
+                    await this.setDocumentArtifactLegalId(this.legal_case.id)
+                }
+            },
+        },
+        */
+
+    },
     computed: {
       ...mapGetters('documentArtifactStore', {
         document_artifact: "document_artifact",
       }),
+      ...mapGetters('legalCaseStore', {
+        legal_case: "legal_case",
+      }),
+      legalCaseId: function() {
+          let ret_val = null;
+          if (this.legal_case && this.legal_case.id) {
+              ret_val = this.legal_case.id;
+          }
+          return ret_val;
+      },
+      legalCaseExists: function() {
+          let caseExists = false;
+          if (this.legal_case && this.legal_case.id) {
+              caseExists = true;
+          }
+          return caseExists;
+      },
+        /*
+      legalCaseStatementArtifacts: function() {
+          if (this.legalCaseExists) {
+          */
+
       artifactType: function() {
+          console.log("artifact type")
           let aType = ''
           if (this.document_artifact && this.document_artifact.document_type) {
               aType = this.document_artifact.document_type.artifact_type;
@@ -187,7 +264,26 @@ export default {
             saveDocumentArtifact: 'saveDocumentArtifact',
             loadDocumentArtifact: 'loadDocumentArtifact',
             setDocumentArtifact: 'setDocumentArtifact',
+            //setDocumentArtifactLegalId: 'setDocumentArtifactLegalId',
         }),
+        ...mapActions('legalCaseStore', {
+            loadLegalCase: 'loadLegalCase',
+        }),
+        setStatementVisibility: function() {
+            if (
+                // legal case exists and Document Type is not a statementArtifactType
+                (this.legalCaseExists && this.artifactType && !this.statementArtifactTypes.includes(this.artifactType)) ||
+                // OR document_artifact already has a linked statement
+                (this.document_artifact && this.document_artifact.statement)
+                )
+            {
+                console.log("statementVisibility true")
+                this.statementVisibility = true;
+            } else {
+                console.log("statementVisibility false")
+                this.statementVisibility = false;
+            }
+        },
         setTemporaryDocumentCollectionId: function(val) {
             this.temporary_document_collection_id = val;
         },
@@ -197,9 +293,9 @@ export default {
         },
         save: async function() {
             if (this.document_artifact.id) {
-                await this.saveDocumentArtifact({ create: false, internal: false });
+                await this.saveDocumentArtifact({ create: false, internal: false, legal_case_id: this.legalCaseId });
             } else {
-                await this.saveDocumentArtifact({ create: true, internal: false });
+                await this.saveDocumentArtifact({ create: true, internal: false, legal_case_id: this.legalCaseId });
             }
         },
         parentSave: async function() {
@@ -213,10 +309,13 @@ export default {
             */
             await this.save();
             //this.entity.id = 
-            this.$emit('entity-selected', {
-                id: this.document_artifact.id,
-                data_type: 'document_artifact',
-                artifact_type: this.artifactType,
+            this.$nextTick(() => {
+                this.$emit('entity-selected', {
+                    id: this.document_artifact.id,
+                    data_type: 'document_artifact',
+                    identifier: this.document_artifact.identifier,
+                    artifact_type: this.artifactType,
+                });
             });
             //return documentArtifactEntity;
         },
@@ -251,6 +350,26 @@ export default {
                   vm.document_artifact.artifact_time = "";
                 }
             });
+            /*
+            // artifact type events
+            let artifactEvent = $(vm.$refs.setArtifactType);
+            artifactEvent.on("change", function(e) {
+            let artifactTypeId = e.target.value;
+            });
+            */
+        },
+        compare: function(a, b) {
+            console.log("compare")
+            const nameA = a.name.toLowerCase();
+            const nameB = b.name.toLowerCase();
+
+            let comparison = 0;
+            if (this.bandA > this.bandB) {
+                comparison = 1;
+            } else if (this.bandA < this.bandB) {
+                comparison = -1;
+            }
+            return comparison;
         },
 
       //createDocumentActionUrl: async function(done) {
@@ -268,38 +387,39 @@ export default {
     mounted: function() {
       this.$nextTick(async () => {
           this.addEventListeners();
+          /*
+          if (this.legal_case && this.legal_case.id) {
+              this.setDocumentArtifactLegalId(this.legal_case.id)
+          */
       });
     },
     beforeDestroy: async function() {
         console.log("beforeDestroy")
         await this.setDocumentArtifact({});
     },
-    /*
-    destroyed: function() {
-        console.log("destroyed")
-    },
-    */
     created: async function() {
-      console.log("created")
-      if (this.$route.params.document_artifact_id) {
-          await this.loadDocumentArtifact({ document_artifact_id: this.$route.params.document_artifact_id });
-      }
-      //await this.loadDocumentArtifact({ document_artifact_id: 1 });
-      //console.log(this)
-      // document artifact types
-      let returned_document_artifact_types = await cache_helper.getSetCacheList(
+        console.log("created")
+        if (this.$route.params.document_artifact_id) {
+            await this.loadDocumentArtifact({ document_artifact_id: this.$route.params.document_artifact_id });
+        }
+        // if main obj page, call loadLegalCase if document_artifact.legal_case_id exists
+        if (this.$route.name === 'view-artifact' && this.document_artifact && this.document_artifact.legal_case_id) {
+            await this.loadLegalCase({ legal_case_id: this.document_artifact.legal_case_id });
+        }
+        this.setStatementVisibility();
+        // document artifact types
+        let returned_document_artifact_types = await cache_helper.getSetCacheList(
           'DocumentArtifactTypes',
           api_endpoints.document_artifact_types
           );
-      Object.assign(this.documentArtifactTypes, returned_document_artifact_types);
-      // blank entry allows user to clear selection
-      this.documentArtifactTypes.splice(0, 0,
+        Object.assign(this.documentArtifactTypes, returned_document_artifact_types);
+        // blank entry allows user to clear selection
+        this.documentArtifactTypes.splice(0, 0,
           {
             id: "",
             artifact_type: "",
             description: "",
           });
-
     },
 };
 </script>
