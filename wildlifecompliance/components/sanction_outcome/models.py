@@ -686,7 +686,7 @@ class RemediationActionExternalManager(models.Manager):
         return super(RemediationActionExternalManager, self).get_queryset()
 
 
-class RemediationAction(models.Model):
+class RemediationAction(RevisionedMixin):
     STATUS_DUE = 'due'
     STATUS_OVERDUE = 'overdue'
     STATUS_SUBMITTED = 'submitted'
