@@ -40,15 +40,20 @@
                                             <label>Details of your compliance</label>
                                         </div>
                                         <div class="col-sm-6">
-
+                                            <input :readonly="readonlyForm" class="form-control" v-model="sanction_outcome.identifier"/>
                                         </div>
                                     </div></div>
                                     <div class="form-group"><div class="row">
                                         <div class="col-sm-4">
                                             <label>Any photographic evidence</label>
                                         </div>
-                                        <div class="col-sm-6">
-
+                                        <div class="col-sm-6" v-if="remediation_action">
+                                            <filefield ref="remediation_action_file"
+                                                       name="remediation_action-file"
+                                                       :documentActionUrl="remediation_action.remediationActionDocumentUrl"
+                                                       @update-parent="remediationActionDocumentUploaded"
+                                                       :isRepeatable="true"
+                                                       :readonly="readonlyForm" />
                                         </div>
                                     </div></div>
                                 </FormSection>
@@ -77,7 +82,7 @@ import FormSection from "@/components/forms/section_toggle.vue";
 import { api_endpoints, helpers, cache_helper } from "@/utils/hooks";
 import { mapState, mapGetters, mapActions, mapMutations } from "vuex";
 //import CommsLogs from "@common-components/comms_logs.vue";
-//import filefield from '@/components/common/compliance_file.vue';
+import filefield from '@/components/common/compliance_file.vue';
 import 'bootstrap/dist/css/bootstrap.css';
 
 export default {
@@ -93,7 +98,7 @@ export default {
         FormSection,
         //CommsLogs,
         //datatable,
-        //filefield,
+        filefield,
     },
     created: async function() {
         if (this.$route.params.remediation_action_id) {
@@ -107,7 +112,7 @@ export default {
         ...mapGetters('remediationActionStore', {
             remediation_action: "remediation_action",
         }),
-        readOnlyForm: function(){
+        readonlyForm: function(){
             return false;
         }
     },
@@ -115,6 +120,9 @@ export default {
         ...mapActions('remediationActionStore', {
             loadRemediationAction: 'loadRemediationAction',
         }),
+        remediationActionDocumentUploaded: function() {
+            console.log('remediationActionDocumentUploaded');
+        },
     }
 }
 </script>

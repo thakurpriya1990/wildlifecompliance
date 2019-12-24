@@ -180,6 +180,46 @@ class RemediationActionViewSet(viewsets.ModelViewSet):
         """
         return super(RemediationActionViewSet, self).retrieve(request, *args, **kwargs)
 
+    @detail_route(methods=['POST'])
+    @renderer_classes((JSONRenderer,))
+    def process_default_document(self, request, *args, **kwargs):
+        """
+        Request sent from the immediate file uploader comes here for both saving and canceling.
+        :param request:
+        :param args:
+        :param kwargs:
+        :return:
+        """
+        print("process_default_document")
+        print(request.data)
+        try:
+            instance = self.get_object()
+            # process docs
+            returned_data = process_generic_document(request, instance)
+            # delete Sanction Outcome if user cancels modal
+            action = request.data.get('action')
+            if action == 'cancel' and returned_data:
+                instance.status = 'discarded'
+                instance.save()
+
+            # return response
+            if returned_data:
+                return Response(returned_data)
+            else:
+                return Response()
+
+        except serializers.ValidationError:
+            print(traceback.print_exc())
+            raise
+        except ValidationError as e:
+            if hasattr(e, 'error_dict'):
+                raise serializers.ValidationError(repr(e.error_dict))
+            else:
+                raise serializers.ValidationError(repr(e[0].encode('utf-8')))
+        except Exception as e:
+            print(traceback.print_exc())
+            raise serializers.ValidationError(str(e))
+
 
 class SanctionOutcomeViewSet(viewsets.ModelViewSet):
     queryset = SanctionOutcome.objects.all()

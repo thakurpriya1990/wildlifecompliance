@@ -42,13 +42,13 @@ export const remediationActionStore = {
         async loadRemediationAction({ dispatch, }, { remediation_action_id }) {
             console.log("loadRemediationAction");
             try {
-                console.log("1");
+                console.log('loadRemediationAction 1');
                 const returnedRemediationAction = await Vue.http.get(
                     helpers.add_endpoint_json(
                         api_endpoints.remediation_action, 
                         remediation_action_id)
                     );
-                console.log('loadRemediationAction');
+                console.log('loadRemediationAction 2');
                 console.log(returnedRemediationAction.body);
 
                 await dispatch("setRemediationAction", returnedRemediationAction.body);
