@@ -702,9 +702,9 @@ class RemediationAction(RevisionedMixin):
     due_date = models.DateField(null=True, blank=True)
     sanction_outcome = models.ForeignKey(SanctionOutcome, related_name='remediation_actions', null=True, on_delete=models.SET_NULL,)
     status = models.CharField(max_length=40, choices=STATUS_CHOICES, blank=True)
-
     objects = models.Manager()
     objects_for_external = RemediationActionExternalManager()
+    action_taken = models.TextField(blank=True)
 
     # validate if the sanction outcome is remediation_notice
     def clean_fields(self, exclude=None):
@@ -829,22 +829,11 @@ class UnpaidInfringementFile(models.Model):
         verbose_name_plural = 'CM_UnpaidInfringementFiles'
 
 
-class RemediationActionTaken(Document):
-    remediation_action = models.ForeignKey(RemediationAction, related_name='actions_taken')
-    details = models.TextField(blank=True)
-    created_at = models.DateTimeField(auto_now_add=True)
-
-    class Meta:
-        app_label = 'wildlifecompliance'
-        verbose_name = 'CM_RemediationActionTaken'
-        verbose_name_plural = 'CM_RemediationActionsTaken'
-
-
-class RemediationActionTakenDocument(Document):
-    remediation_action_taken = models.ForeignKey(RemediationActionTaken, related_name='documents')
+class ActionTakenDocument(Document):
+    remediation_action = models.ForeignKey(RemediationAction, related_name='documents')
     _file = models.FileField(max_length=255)
 
     class Meta:
         app_label = 'wildlifecompliance'
-        verbose_name = 'CM_RemediationActionTakenDocument'
-        verbose_name_plural = 'CM_RemediationActionTakenDocuments'
+        verbose_name = 'CM_RemediationActionDocument'
+        verbose_name_plural = 'CM_RemediationActionDocuments'
