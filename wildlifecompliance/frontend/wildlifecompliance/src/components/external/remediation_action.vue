@@ -24,7 +24,7 @@ import Vue from "vue";
 //import datatable from '@vue-utils/datatable.vue'
 //import utils from "@/components/external/utils";
 //import { api_endpoints, helpers, cache_helper } from "@/utils/hooks";
-//import { mapState, mapGetters, mapActions, mapMutations } from "vuex";
+import { mapState, mapGetters, mapActions, mapMutations } from "vuex";
 //import CommsLogs from "@common-components/comms_logs.vue";
 //import filefield from '@/components/common/compliance_file.vue';
 //import 'bootstrap/dist/css/bootstrap.css';
@@ -43,7 +43,9 @@ export default {
         //filefield,
     },
     created: async function() {
-
+        if (this.$route.params.remediation_action_id) {
+            await this.loadRemediationAction({ remediation_action_id: this.$route.params.remediation_action_id });
+        }
     },
     mounted: function() {
 
