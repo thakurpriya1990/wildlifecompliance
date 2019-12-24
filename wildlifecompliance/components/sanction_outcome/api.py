@@ -35,7 +35,8 @@ from wildlifecompliance.components.sanction_outcome.models import SanctionOutcom
 from wildlifecompliance.components.sanction_outcome.serializers import SanctionOutcomeSerializer, \
     SaveSanctionOutcomeSerializer, SaveRemediationActionSerializer, SanctionOutcomeDatatableSerializer, \
     UpdateAssignedToIdSerializer, SanctionOutcomeCommsLogEntrySerializer, SanctionOutcomeUserActionSerializer, \
-    AllegedCommittedOffenceSerializer, AllegedCommittedOffenceCreateSerializer, RecordFerCaseNumberSerializer
+    AllegedCommittedOffenceSerializer, AllegedCommittedOffenceCreateSerializer, RecordFerCaseNumberSerializer, \
+    RemediationActionSerializer
 from wildlifecompliance.components.users.models import CompliancePermissionGroup, RegionDistrict
 from wildlifecompliance.helpers import is_internal
 from wildlifecompliance.components.main.models import TemporaryDocumentCollection
@@ -161,6 +162,23 @@ class SanctionOutcomePaginatedViewSet(viewsets.ModelViewSet):
         serializer = SanctionOutcomeDatatableSerializer(result_page, many=True, context={'request': request})
         ret = self.paginator.get_paginated_response(serializer.data)
         return ret
+
+
+class RemediationActionViewSet(viewsets.ModelViewSet):
+    queryset = RemediationAction.objects.all()
+    serializer_class = RemediationActionSerializer
+
+    def get_queryset(self):
+        if is_internal(self.request):
+            return RemediationAction.objects.all()
+        else:
+            return RemediationAction.objects_for_external.filter(sanction_outcome__offender__person=self.request.user)
+
+    def retrieve(self, request, *args, **kwargs):
+        """
+        Get existing
+        """
+        return super(RemediationActionViewSet, self).retrieve(request, *args, **kwargs)
 
 
 class SanctionOutcomeViewSet(viewsets.ModelViewSet):

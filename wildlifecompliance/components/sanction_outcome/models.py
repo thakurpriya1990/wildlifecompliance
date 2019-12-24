@@ -474,6 +474,9 @@ class SanctionOutcome(models.Model):
 
         elif self.type == SanctionOutcome.TYPE_REMEDIATION_NOTICE:
             self.status = SanctionOutcome.STATUS_AWAITING_REMEDIATION_ACTIONS
+            for remediation_action in self.remediation_actions.all():
+                remediation_action.status = RemediationAction.STATUS_DUE
+                remediation_action.save()
 
         new_group = SanctionOutcome.get_compliance_permission_group(self.regionDistrictId, SanctionOutcome.WORKFLOW_ENDORSE)
         self.allocated_group = new_group
@@ -678,6 +681,11 @@ class AllegedCommittedOffence(RevisionedMixin):
         verbose_name_plural = 'CM_AllegedCommittedOffences'
 
 
+class RemediationActionExternalManager(models.Manager):
+    def get_queryset(self):
+        return super(RemediationActionExternalManager, self).get_queryset()
+
+
 class RemediationAction(models.Model):
     STATUS_DUE = 'due'
     STATUS_OVERDUE = 'overdue'
@@ -694,6 +702,8 @@ class RemediationAction(models.Model):
     due_date = models.DateField(null=True, blank=True)
     sanction_outcome = models.ForeignKey(SanctionOutcome, related_name='remediation_actions', null=True, on_delete=models.SET_NULL,)
     status = models.CharField(max_length=40, choices=STATUS_CHOICES, blank=True)
+    objects = models.Manager()
+    objects_for_external = RemediationActionExternalManager()
 
     # validate if the sanction outcome is remediation_notice
     def clean_fields(self, exclude=None):
@@ -794,7 +804,6 @@ class DotRequestFile(models.Model):
         verbose_name_plural = 'CM_DotReguestFiles'
 
 
-
 class UnpaidInfringementFile(models.Model):
     contents = models.TextField(blank=True)
     filename = models.CharField(max_length=100, blank=True)
@@ -817,3 +826,24 @@ class UnpaidInfringementFile(models.Model):
         app_label = 'wildlifecompliance'
         verbose_name = 'CM_UnpaidInfringementFile'
         verbose_name_plural = 'CM_UnpaidInfringementFiles'
+
+
+class RemediationActionTaken(Document):
+    remediation_action = models.ForeignKey(RemediationAction, related_name='actions_taken')
+    details = models.TextField(blank=True)
+    created_at = models.DateTimeField(auto_now_add=True)
+
+    class Meta:
+        app_label = 'wildlifecompliance'
+        verbose_name = 'CM_RemediationActionTaken'
+        verbose_name_plural = 'CM_RemediationActionsTaken'
+
+
+class RemediationActionTakenDocument(Document):
+    remediation_action_taken = models.ForeignKey(RemediationActionTaken, related_name='documents')
+    _file = models.FileField(max_length=255)
+
+    class Meta:
+        app_label = 'wildlifecompliance'
+        verbose_name = 'CM_RemediationActionTakenDocument'
+        verbose_name_plural = 'CM_RemediationActionTakenDocuments'

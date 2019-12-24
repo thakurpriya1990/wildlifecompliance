@@ -16,11 +16,28 @@ from wildlifecompliance.components.sanction_outcome_due.models import SanctionOu
 from wildlifecompliance.components.sanction_outcome_due.serializers import SanctionOutcomeDueDateSerializer
 from wildlifecompliance.components.section_regulation.serializers import SectionRegulationSerializer
 from wildlifecompliance.components.sanction_outcome.models import SanctionOutcome, RemediationAction, \
-    SanctionOutcomeCommsLogEntry, SanctionOutcomeUserAction, AllegedCommittedOffence
+    SanctionOutcomeCommsLogEntry, SanctionOutcomeUserAction, AllegedCommittedOffence, RemediationActionTaken
 from wildlifecompliance.components.users.serializers import CompliancePermissionGroupMembersSerializer
 
 
+class RemediationActionTakenSerializer(serializers.ModelSerializer):
+    attachments = serializers.SerializerMethodField()
+
+    class Meta:
+        model = RemediationActionTaken
+        fields = (
+            'id',
+            'details',
+            'attachments',
+            'created_at',
+        )
+
+    def get_attachments(self, obj):
+        return [[r.name, r._file.url] for r in obj.documents.all()]
+
+
 class RemediationActionSerializer(serializers.ModelSerializer):
+    actions_taken = RemediationActionTakenSerializer(read_only=True, many=True)
     user_action = serializers.SerializerMethodField()
 
     class Meta:
@@ -28,8 +45,10 @@ class RemediationActionSerializer(serializers.ModelSerializer):
         fields = (
             'id',
             'action',
+            'status',
             'due_date',
             'user_action',
+            'actions_taken',
         )
 
     def get_user_action(self, obj):
@@ -268,6 +287,8 @@ class SanctionOutcomeDatatableSerializer(serializers.ModelSerializer):
     offender = OffenderSerializer(read_only=True,)
     paper_notices = serializers.SerializerMethodField()
     coming_due_date = serializers.ReadOnlyField()
+    # remediation_actions = serializers.SerializerMethodField()
+    remediation_actions = RemediationActionSerializer(read_only=True, many=True)  # This is related field
 
     class Meta:
         model = SanctionOutcome
@@ -291,6 +312,7 @@ class SanctionOutcomeDatatableSerializer(serializers.ModelSerializer):
             'user_action',
             'paper_notices',
             'coming_due_date',
+            'remediation_actions',
         )
         read_only_fields = ()
 
@@ -314,6 +336,7 @@ class SanctionOutcomeDatatableSerializer(serializers.ModelSerializer):
 
         view_url = '<a href=/internal/sanction_outcome/' + str(obj.id) + '>View</a>'
         process_url = '<a href=/internal/sanction_outcome/' + str(obj.id) + '>Process</a>'
+        remediation_url = '<a href=/external/sanction_outcome/' + str(obj.id) + '>Add </a>'
         view_payment_url = '<a href="/ledger/payments/invoice/payment?invoice=' + inv_ref + '">View Payment</a>' if inv_ref else ''
         payment_url = '<a href="#" data-pay-infringement-penalty="' + str(obj.id) + '">Pay</a>'
         record_payment_url = '<a href="/ledger/payments/invoice/payment?invoice=">Record Payment</a>'

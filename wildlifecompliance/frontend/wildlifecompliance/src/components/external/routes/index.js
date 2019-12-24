@@ -7,6 +7,7 @@ import ApplicationApplyLicence from '../application_apply_licence.vue'
 import ApplicationSubmit from '../application_submit.vue'
 import Organisation from '../organisations/manage.vue'
 import Returns from '../returns/return.vue'
+import RemediationAction from '../remediation_action.vue'
 export default
 {
     path: '/external',
@@ -21,12 +22,17 @@ export default
         {
             path: '/',
             component: ExternalDashboard,
-            name: 'external-applications-dash' 
+            name: 'external-applications-dash'
         },
         {
             path: 'sanction_outcome',
             component: ExternalDashboardSanctionOutcome,
             name: 'external-sanction-outcome-dash'
+        },
+        {
+            path: 'remediation_action/:remediation_action_id',
+            component: RemediationAction,
+            name: 'external-remediation-action-detail'
         },
         {
             path: 'organisations/manage/:org_id',
