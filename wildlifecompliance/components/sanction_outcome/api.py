@@ -169,12 +169,10 @@ class RemediationActionViewSet(viewsets.ModelViewSet):
     serializer_class = RemediationActionSerializer
 
     def get_queryset(self):
-        # user = self.request.user
         if is_internal(self.request):
             return RemediationAction.objects.all()
         else:
-            return RemediationAction.objects_for_external.filter(offender__person=self.request.user)
-        return RemediationAction.objects.none()
+            return RemediationAction.objects_for_external.filter(sanction_outcome__offender__person=self.request.user)
 
     def retrieve(self, request, *args, **kwargs):
         """
