@@ -58,8 +58,8 @@
                                           <label>Statement</label>
                                         </div>
                                         <div class="col-sm-6">
-                                          <select class="form-control" v-model="document_artifact.statement" ref="setStatement">
-                                            <option  v-for="option in legal_case.statement_artifacts" :value="option" v-bind:key="option.id">
+                                          <select class="form-control" v-model="document_artifact.statement_id" ref="setStatement">
+                                            <option  v-for="option in legal_case.statement_artifacts" :value="option.id" v-bind:key="option.id">
                                             {{ option.document_type.artifact_type }}: {{ option.identifier }}
                                             </option>
                                           </select>

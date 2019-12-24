@@ -74,7 +74,9 @@
                             <FormSection :formCollapse="false" label="Related Items">
                                 <div class="col-sm-12 form-group"><div class="row">
                                     <div class="col-sm-12" v-if="relatedItemsVisibility">
-                                        <RelatedItems v-bind:key="relatedItemsBindId" :parent_update_related_items="setRelatedItems" :readonlyForm="!canUserAction"/>
+                                        <RelatedItems 
+                                        v-bind:key="relatedItemsBindId" 
+                                        :readonlyForm="!canUserAction"/>
                                     </div>
                                 </div></div>
                             </FormSection>
@@ -187,6 +189,15 @@ export default {
         }
         return returnType;
     },
+    artifactComponent: function() {
+        let component = null;
+        if (this.document_artifact && this.document_artifact.id) {
+            component = this.document_artifact;
+        } else if (this.physical_artifact && this.physical_artifact.id) {
+            component = this.physical_artifact;
+        }
+        return component;
+    },
 
     ...mapGetters({
         current_user: 'current_user'
@@ -245,8 +256,8 @@ export default {
     relatedItemsBindId: function() {
         let timeNow = Date.now()
         let bindId = null;
-        if (this.legal_case && this.legal_case.id) {
-            bindId = 'legal_case_' + this.legal_case.id + '_' + this._uid;
+        if (this.artifactComponent && this.artifactComponent.id) {
+            bindId = 'artifact_' + this.artifactComponent.id + '_' + this._uid;
         } else {
             bindId = timeNow.toString();
         }
@@ -254,7 +265,7 @@ export default {
     },
     relatedItemsVisibility: function() {
         let related_items_visibility = false;
-        if (this.legal_case && this.legal_case.id) {
+        if (this.artifactComponent && this.artifactComponent.id) {
             related_items_visibility = true;
         }
         return related_items_visibility;
@@ -270,15 +281,26 @@ export default {
           saveDocumentArtifact: 'saveDocumentArtifact',
           loadDocumentArtifact: 'loadDocumentArtifact',
           setDocumentArtifact: 'setDocumentArtifact',
+          //setDocumentArtifactRelatedItems: 'setRelatedItems',
       }),
       ...mapActions('physicalArtifactStore', {
           savePhysicalArtifact: 'savePhysicalArtifact',
           loadPhysicalArtifact: 'loadPhysicalArtifact',
           setPhysicalArtifact: 'setPhysicalArtifact',
+          //setPhysicalArtifactRelatedItems: 'setRelatedItems',
       }),
     ...mapActions({
         loadCurrentUser: 'loadCurrentUser',
     }),
+      /*
+    setRelatedItems: async function() {
+        if (this.componentType === 'document') {
+            await this.setDocumentArtifactRelatedItems();
+        } else if (this.componenetType === 'physical') {
+            await this.setPhysicalArtifactRelatedItems();
+        }
+    },
+*/
     /*
     entitySelected: function(entity) {
         console.log(entity);
@@ -305,27 +327,26 @@ export default {
     saveExit: async function() {
         await this.save({ "returnToDash": true })
     },
-    save: async function({ returnToDash=false, createNewRow=false } = {}) {
+    save: async function({ returnToDash=false } = {}) {
       this.showSpinner = true;
       if (returnToDash) {
           this.showExit = true;
-      }      
-      await this.runningSheetTransformWrapper();
-      //if (this.legal_case.id) {
-      if (createNewRow) {
-          //await this.saveLegalCase({ create: false, internal: true, createNewRow: true });
-          await this.saveLegalCase({ internal: true, createNewRow: true });
-      } else {
-          await this.saveLegalCase({ internal: false });
       }
+      // save document or physical component
+      if (this.componentType ==='document') {
+          await this.$refs.document_artifact.parentSave();
+      } else if (this.componentType === 'physical') {
+          await this.$refs.physical_artifact.parentSave();
+      }
+
       if (returnToDash) {
         // remove redundant eventListeners
         window.removeEventListener('beforeunload', this.leaving);
         window.removeEventListener('onblur', this.leaving);
         // return to dash
-        this.$router.push({ name: 'internal-legal-case-dash' });
+        this.$router.push({ name: 'internal-artifact-dash' });
       } else {
-          this.calculateHash();
+          //this.calculateHash();
           this.runningSheetEntriesUpdated = [];
           //this.constructRunningSheetTableWrapper();
       }

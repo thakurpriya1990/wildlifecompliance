@@ -77,6 +77,7 @@ class ArtifactSerializer(serializers.ModelSerializer):
 
         return artifact_object_type
 
+
 class ArtifactPaginatedSerializer(serializers.ModelSerializer):
     type = serializers.SerializerMethodField()
     status = serializers.SerializerMethodField()
@@ -186,6 +187,7 @@ class DocumentArtifactSerializer(ArtifactSerializer):
     interviewer = EmailUserSerializer(read_only=True)
     people_attending = EmailUserSerializer(read_only=True, many=True)
     offence = OffenceSerializer(read_only=True)
+    related_items = serializers.SerializerMethodField()
 
     class Meta:
         model = DocumentArtifact
@@ -201,14 +203,19 @@ class DocumentArtifactSerializer(ArtifactSerializer):
                 'document_type',
                 'document_type_id',
                 'statement',
+                'statement_id',
                 'person_providing_statement',
                 'interviewer',
                 'people_attending',
                 'offence',
+                'related_items',
                 )
         read_only_fields = (
                 'id',
                 )
+
+    def get_related_items(self, obj):
+        return get_related_items(obj)
 
 
 class SaveDocumentArtifactSerializer(ArtifactSerializer):
@@ -245,6 +252,7 @@ class PhysicalArtifactSerializer(ArtifactSerializer):
     physical_artifact_type = PhysicalArtifactTypeSerializer(read_only=True)
     officer = EmailUserSerializer(read_only=True)
     disposal_method = PhysicalArtifactDisposalMethodSerializer(read_only=True)
+    related_items = serializers.SerializerMethodField()
 
     class Meta:
         model = PhysicalArtifact
@@ -266,10 +274,14 @@ class PhysicalArtifactSerializer(ArtifactSerializer):
                 'disposal_date',
                 'disposal_details',
                 'disposal_method',
+                'related_items',
                 )
         read_only_fields = (
                 'id',
                 )
+
+    def get_related_items(self, obj):
+        return get_related_items(obj)
 
 
 class SavePhysicalArtifactSerializer(ArtifactSerializer):

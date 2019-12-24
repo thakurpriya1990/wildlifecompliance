@@ -58,6 +58,14 @@ class Artifact(RevisionedMixin):
     def custodian(self):
         return 'custodian'
 
+    @property
+    def get_related_items_identifier(self):
+        return self.number
+
+    @property
+    def get_related_items_descriptor(self):
+        #return '{0}, {1}'.format(self.title, self.details)
+        return self.identifier
     #def log_user_action(self, action, request):
      #   return ArtifactUserAction.log_action(self, action, request.user)
 
@@ -171,6 +179,7 @@ class DocumentArtifact(Artifact):
     def log_user_action(self, action, request):
         return ArtifactUserAction.log_action(self, action, request.user)
 
+    #def send_to_manager(self, request):
     ## Prefix "DO" char to DocumentArtifact number.
     #def save(self, *args, **kwargs):
     #    
@@ -230,6 +239,7 @@ class PhysicalArtifact(Artifact):
     def log_user_action(self, action, request):
         return ArtifactUserAction.log_action(self, action, request.user)
 
+    #def send_to_manager(self, request):
     ## Prefix "PO" char to DocumentArtifact number.
     #def save(self, *args, **kwargs):
     #    

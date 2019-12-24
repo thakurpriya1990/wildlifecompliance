@@ -290,7 +290,7 @@ class DocumentArtifactViewSet(viewsets.ModelViewSet):
                 instance.log_user_action(
                         ArtifactUserAction.ACTION_SAVE_ARTIFACT.format(
                         instance.number), request)
-                headers = self.get_success_headers(serializer.data)
+                #headers = self.get_success_headers(serializer.data)
                 return_serializer = DocumentArtifactSerializer(instance, context={'request': request})
                 return Response(
                         return_serializer.data,
@@ -315,11 +315,11 @@ class DocumentArtifactViewSet(viewsets.ModelViewSet):
                 if document_type:
                     document_type_id = document_type.get('id')
                     request_data['document_type_id'] = document_type_id
-                statement = request_data.get('statement')
-                statement_id = None
-                if statement:
-                    statement_id = statement.get('id')
-                    request_data['statement_id'] = statement_id
+                #statement = request_data.get('statement')
+                #statement_id = None
+                #if statement:
+                #    statement_id = statement.get('id')
+                #    request_data['statement_id'] = statement_id
                 if instance:
                     serializer = SaveDocumentArtifactSerializer(
                             instance=instance,
