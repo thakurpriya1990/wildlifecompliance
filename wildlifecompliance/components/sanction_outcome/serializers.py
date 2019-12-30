@@ -21,8 +21,8 @@ from wildlifecompliance.components.users.serializers import CompliancePermission
 
 
 class RemediationActionSerializer(serializers.ModelSerializer):
-    # actions_taken = RemediationActionTakenSerializer(read_only=True, many=True)
     user_action = serializers.SerializerMethodField()
+    documents = serializers.SerializerMethodField()
 
     class Meta:
         model = RemediationAction
@@ -32,7 +32,8 @@ class RemediationActionSerializer(serializers.ModelSerializer):
             'status',
             'due_date',
             'user_action',
-            # 'actions_taken',
+            'action_taken',
+            'documents',
         )
 
     def get_user_action(self, obj):
@@ -47,6 +48,9 @@ class RemediationActionSerializer(serializers.ModelSerializer):
 
         urls = '<br />'.join(url_list)
         return urls
+
+    def get_documents(self, obj):
+        return [[r.name, r._file.url] for r in obj.documents.all()]
 
 
 class AllegedOffenceSerializer(serializers.ModelSerializer):
@@ -458,6 +462,7 @@ class SaveRemediationActionSerializer(serializers.ModelSerializer):
             'id',
             'action',
             'due_date',
+            'action_taken',
             'sanction_outcome_id',
         )
 

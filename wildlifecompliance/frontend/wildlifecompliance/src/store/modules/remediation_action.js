@@ -15,6 +15,7 @@ export const remediationActionStore = {
     },
     mutations: {
         updateRemediationAction(state, remediation_action) {
+            console.log('updateRemediationAction');
             Vue.set(state, 'remediation_action', {
                 ...remediation_action
             });
@@ -26,6 +27,7 @@ export const remediationActionStore = {
                 api_endpoints.remediation_action,
                 state.remediation_action.id + "/process_default_document/"
                 )
+            console.log(remediationActionDocumentUrl);
             Vue.set(state.remediation_action, 'remediationActionDocumentUrl', remediationActionDocumentUrl); 
 
             let commsLogsDocumentUrl = helpers.add_endpoint_join(
@@ -57,30 +59,18 @@ export const remediationActionStore = {
             }
         },
         async saveRemediationAction({ dispatch, state }) {
-            console.log('saveRemediationAction');
+            console.log('saveRemediationAction1');
             // Construct url endpoint
             let putUrl = helpers.add_endpoint_join(api_endpoints.remediation_action, state.remediation_action.id + '/');
 
+            console.log('saveRemediationAction2');
             // Construct payload to store data to be sent
             let payload = {};
             Object.assign(payload, state.remediation_action);
+            console.log('saveRemediationAction3');
 
-            if(payload.date_of_issue){
-                payload.date_of_issue = moment(payload.date_of_issue, "DD/MM/YYYY").format("YYYY-MM-DD");
-            }
-
-            // format 'type'
-            payload.type = payload.type.id;
-
-            console.log('payload');
             console.log(payload);
             let savedRemediationAction = await Vue.http.put(putUrl, payload);
-
-            // Update sanction outcome in the vuex store
-            await dispatch("setRemediationAction", savedRemediationAction.body);
-
-            // Return the saved data just in case needed
-            return savedRemediationAction;
         },
         setRemediationAction({ commit, }, remediation_action) {
             commit("updateRemediationAction", remediation_action);

@@ -180,6 +180,40 @@ class RemediationActionViewSet(viewsets.ModelViewSet):
         """
         return super(RemediationActionViewSet, self).retrieve(request, *args, **kwargs)
 
+    def update(self, request, *args, **kwargs):
+        try:
+            with transaction.atomic():
+                instance = self.get_object()
+                request_data = request.data
+
+                due_date = request.data.get('due_date')
+                due_date = datetime.strptime(due_date, '%d/%m/%Y')
+                request_data['due_date'] = due_date.strftime('%Y-%m-%d')
+
+                serializer = SaveRemediationActionSerializer(instance, data=request_data, partial=True,)
+                serializer.is_valid(raise_exception=True)
+                instance = serializer.save()
+
+                headers = self.get_success_headers(serializer.data)
+                return Response(
+                    {},
+                    status=status.HTTP_200_OK,
+                    headers=headers
+                )
+
+        except serializers.ValidationError:
+            print(traceback.print_exc())
+            raise
+        except ValidationError as e:
+            print(traceback.print_exc())
+            if hasattr(e, 'error_dict'):
+                raise serializers.ValidationError(repr(e.error_dict))
+            else:
+                raise serializers.ValidationError(repr(e[0].encode('utf-8')))
+        except Exception as e:
+            print(traceback.print_exc())
+            raise serializers.ValidationError(str(e))
+
     @detail_route(methods=['POST'])
     @renderer_classes((JSONRenderer,))
     def process_default_document(self, request, *args, **kwargs):

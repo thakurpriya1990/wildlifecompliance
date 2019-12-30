@@ -40,7 +40,7 @@
                                             <label>Details of your compliance</label>
                                         </div>
                                         <div class="col-sm-6">
-                                            <input :readonly="readonlyForm" class="form-control" v-model="sanction_outcome.identifier"/>
+                                            <textarea :readonly="readonlyForm" class="form-control" v-model="remediation_action.action_taken"/>
                                         </div>
                                     </div></div>
                                     <div class="form-group"><div class="row">
@@ -48,7 +48,8 @@
                                             <label>Any photographic evidence</label>
                                         </div>
                                         <div class="col-sm-6" v-if="remediation_action">
-                                            <filefield ref="remediation_action_file"
+                                            <filefield v-if="remediation_action.remediationActionDocumentUrl"
+                                                       ref="remediation_action_file"
                                                        name="remediation_action-file"
                                                        :documentActionUrl="remediation_action.remediationActionDocumentUrl"
                                                        @update-parent="remediationActionDocumentUploaded"
@@ -66,6 +67,9 @@
                             </div>
 
                         </div>
+                        <input type="button" @click.prevent="submit" class="btn btn-primary pull-right button-gap" value="Submit"/>
+                        <input type="button" @click.prevent="save" class="btn btn-primary pull-right button-gap" value="Save and Continue"/>
+                        <input type="button" @click.prevent="saveExit" class="btn btn-primary pull-right button-gap" value="Save and Exit"/>
                     </div>
                 </div>
             </div>
@@ -114,19 +118,68 @@ export default {
         }),
         readonlyForm: function(){
             return false;
+        },
+        docUrl: function() {
+            console.log('docUrl');
+            console.log(this.remediation_action.remediationActionDocumentUrl);
+            return this.remediation_action.remediationActionDocumentUrl;
         }
     },
     methods: {
         ...mapActions('remediationActionStore', {
             loadRemediationAction: 'loadRemediationAction',
+            saveRemediationAction: 'saveRemediationAction',
         }),
         remediationActionDocumentUploaded: function() {
             console.log('remediationActionDocumentUploaded');
+        },
+        saveExit: function() {
+
+        },
+        save: async function() {
+            try {
+                let returned_so = await this.saveRemediationAction();
+                await swal("Saved", "The record has been saved", "success");
+            } catch (err) {
+                console.log(err);
+                this.processError(err);
+            }
+        },
+        submit: function() {
+
+        },
+        processError: async function(err){
+            let errorText = '';
+            if (err.body.non_field_errors) {
+                // When non field errors raised
+                for (let i=0; i<err.body.non_field_errors.length; i++){
+                    errorText += err.body.non_field_errors[i] + '<br />';
+                }
+            } else if(Array.isArray(err.body)) {
+                // When general errors raised
+                for (let i=0; i<err.body.length; i++){
+                    errorText += err.body[i] + '<br />';
+                }
+            } else {
+                // When field errors raised
+                for (let field_name in err.body){
+                    if (err.body.hasOwnProperty(field_name)){
+                        errorText += field_name + ':<br />';
+                        for (let j=0; j<err.body[field_name].length; j++){
+                            errorText += err.body[field_name][j] + '<br />';
+                        }
+                    }
+                }
+            }
+            await swal("Error", errorText, "error");
         },
     }
 }
 </script>
 
 <style>
+.button-gap {
+    margin: 0 0 0 1em;
+}
 
 </style>
