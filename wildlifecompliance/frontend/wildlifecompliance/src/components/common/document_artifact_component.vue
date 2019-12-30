@@ -3,10 +3,14 @@
         <div class="col-sm-12 child-artifact-component">
             <div class="form-group">
                 <div class="row">
-                    <ul class="nav nav-pills">
-                        <li class="nav-item active"><a data-toggle="tab" :href="'#'+newTab">New</a></li>
-                        <li class="nav-item"><a data-toggle="tab" :href="'#'+existingTab" >Existing</a></li>
-                    </ul>
+                    <div v-if="documentArtifactId">
+                    </div>
+                    <div v-else>
+                        <ul class="nav nav-pills">
+                            <li class="nav-item active"><a data-toggle="tab" :href="'#'+newTab">New</a></li>
+                            <li class="nav-item"><a data-toggle="tab" :href="'#'+existingTab" >Existing</a></li>
+                        </ul>
+                    </div>
                     <div class="tab-content">
                         <div :id="newTab" class="tab-pane fade in active">
                             <div :id="objectTab" class="tab-pane fade in active li-top-buffer">
@@ -233,6 +237,14 @@ export default {
           }
           return caseExists;
       },
+      documentArtifactId: function() {
+          let id = null;
+          if (this.document_artifact && this.document_artifact.id) {
+              id = this.document_artifact.id;
+          }
+          return id;
+      },
+
         /*
       legalCaseStatementArtifacts: function() {
           if (this.legalCaseExists) {

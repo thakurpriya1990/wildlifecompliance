@@ -606,10 +606,11 @@ export default {
     },
     */
     insertArtifactModalUrl: function({"entity": entity, "recordNumberElement": recordNumberElement}) {
-        let replacementVal = ''
-        if (entity.artifact_type) {
-            // TODO: replace with correct artifact url
-            replacementVal = `<a contenteditable="false" target="_blank" href="/internal/object/${entity.id}">${entity.artifact_type}</a>`
+        let replacementVal = '';
+        let urlDescription = entity.identifier ? entity.identifier : entity.artifact_type;
+
+        if (urlDescription) {
+            replacementVal = `<a contenteditable="false" target="_blank" href="/internal/object/${entity.id}">${urlDescription}</a>`
             // add to runningSheetArtifactList
             /*
             if (this.legal_case && !this.legal_case.runningSheetArtifactList) {
