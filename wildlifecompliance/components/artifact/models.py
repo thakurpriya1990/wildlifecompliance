@@ -179,6 +179,25 @@ class DocumentArtifact(Artifact):
     def log_user_action(self, action, request):
         return ArtifactUserAction.log_action(self, action, request.user)
 
+    def close(self, request):
+        close_record, parents = can_close_record(self, request)
+        if close_record:
+            self.status = self.STATUS_CLOSED
+            self.log_user_action(
+                    ArtifactUserAction.ACTION_CLOSE.format(self.number), 
+                    request)
+        else:
+            self.status = self.STATUS_PENDING_CLOSURE
+            self.log_user_action(
+                    ArtifactUserAction.ACTION_PENDING_CLOSURE.format(self.number), 
+                    request)
+        self.save()
+        # Call close() on any parent with pending_closure status
+        if parents and self.status == 'closed':
+            for parent in parents:
+                if parent.status == 'pending_closure':
+                    parent.close(request)
+
     #def send_to_manager(self, request):
     ## Prefix "DO" char to DocumentArtifact number.
     #def save(self, *args, **kwargs):

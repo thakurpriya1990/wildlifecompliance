@@ -49,7 +49,19 @@
           <div class="col-md-9" id="main-column">
             <div class="row">
 
-                <div class="container-fluid">
+                <div v-if="showDocumentArtifactComponent" class="row">
+                    <DocumentArtifact 
+                    ref="document_artifact"
+                    v-bind:key="updateDocumentArtifactBindId"
+                    />
+                </div>
+                <div v-if="showPhysicalArtifactComponent" class="row">
+                    <PhysicalArtifact 
+                    ref="physical_artifact"
+                    v-bind:key="updatePhysicalArtifactBindId"
+                    />
+                </div>
+                <!--div class="container-fluid">
                     <ul class="nav nav-pills aho2">
                         <li class="nav-item active"><a data-toggle="tab" :href="'#'+oTab">Object</a></li>
                         <li class="nav-item"><a data-toggle="tab" :href="'#'+rTab">Related Items</a></li>
@@ -82,7 +94,7 @@
                             </FormSection>
                         </div>
                     </div>
-                </div>
+                </div-->
             </div>
           </div>
 

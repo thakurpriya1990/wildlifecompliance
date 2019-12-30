@@ -227,6 +227,10 @@
             v-bind:key="runningSheetHistoryEntryBindId"
             />
         </div>
+        <LegalCaseWorkflow 
+        ref="legal_case_workflow"
+        :workflow_type="workflow_type"
+        />
     </div>
 </template>
 <script>
@@ -253,6 +257,7 @@ import Magic from './magic';
 import PersonOrArtifactModal from '@/components/common/person_or_artifact_modal';
 import _ from 'lodash';
 import RunningSheetHistory from './running_sheet_history'
+import LegalCaseWorkflow from './legal_case_workflow'
 
 
 export default {
@@ -408,6 +413,7 @@ export default {
     Magic,
     PersonOrArtifactModal,
     RunningSheetHistory,
+    LegalCaseWorkflow,
   },
   computed: {
     ...mapGetters('legalCaseStore', {
