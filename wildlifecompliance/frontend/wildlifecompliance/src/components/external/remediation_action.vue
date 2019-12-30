@@ -133,20 +133,24 @@ export default {
         remediationActionDocumentUploaded: function() {
             console.log('remediationActionDocumentUploaded');
         },
-        saveExit: function() {
-
-        },
-        save: async function() {
+        saveExit: async function() {
             try {
-                let returned_so = await this.saveRemediationAction();
+                await this.saveRemediationAction();
                 await swal("Saved", "The record has been saved", "success");
+                this.$router.push({ name: 'external-sanction-outcome-dash' });
             } catch (err) {
-                console.log(err);
                 this.processError(err);
             }
         },
-        submit: function() {
-
+        save: async function() {
+            try {
+                await this.saveRemediationAction();
+                await swal("Saved", "The record has been saved", "success");
+            } catch (err) {
+                this.processError(err);
+            }
+        },
+        submit: async function() {
         },
         processError: async function(err){
             let errorText = '';

@@ -475,7 +475,7 @@ class SanctionOutcome(models.Model):
         elif self.type == SanctionOutcome.TYPE_REMEDIATION_NOTICE:
             self.status = SanctionOutcome.STATUS_AWAITING_REMEDIATION_ACTIONS
             for remediation_action in self.remediation_actions.all():
-                remediation_action.status = RemediationAction.STATUS_DUE
+                remediation_action.status = RemediationAction.STATUS_OPEN
                 remediation_action.save()
 
         new_group = SanctionOutcome.get_compliance_permission_group(self.regionDistrictId, SanctionOutcome.WORKFLOW_ENDORSE)
@@ -687,12 +687,12 @@ class RemediationActionExternalManager(models.Manager):
 
 
 class RemediationAction(RevisionedMixin):
-    STATUS_DUE = 'due'
+    STATUS_OPEN = 'open'
     STATUS_OVERDUE = 'overdue'
     STATUS_SUBMITTED = 'submitted'
     STATUS_ACCEPTED = 'accepted'
     STATUS_CHOICES = (
-        (STATUS_DUE, 'Due'),
+        (STATUS_OPEN, 'Open'),
         (STATUS_OVERDUE, 'Overdue'),
         (STATUS_SUBMITTED, 'Submitted'),
         (STATUS_ACCEPTED, 'Accepted')
