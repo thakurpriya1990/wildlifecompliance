@@ -18,7 +18,7 @@
                                 <li :class="detailsTabListClass"><a data-toggle="tab" @click="updateTabSelected('detailsTab')" :href="'#'+detailsTab" >Details</a></li>
                                 <li :class="storageTabListClass"><a data-toggle="tab" @click="updateTabSelected('storageTab')" :href="'#'+storageTab" >Storage</a></li>
                                 <li :class="disposalTabListClass"><a data-toggle="tab" @click="updateTabSelected('disposalTab')" :href="'#'+disposalTab" >Disposal</a></li>
-                                <li :class="relatedItemsTabListClass"><a data-toggle="tab" @click="updateTabSelected('relatedItemsTab')" :href="'#'+relatedItemsTab" >Related Items</a></li>
+                                <li v-if="physicalArtifactId" :class="relatedItemsTabListClass"><a data-toggle="tab" @click="updateTabSelected('relatedItemsTab')" :href="'#'+relatedItemsTab" >Related Items</a></li>
                             </ul>
                             <div class="tab-content">
                                     <div :id="objectTab" :class="objectTabClass">
@@ -147,13 +147,16 @@
                                     <div :id="disposalTab" :class="disposalTabClass">
                                         disposal
                                     </div>
-                                    <div :id="relatedItemsTab" class="tab-pane fade in">
+                                    <!--div :id="relatedItemsTab" class="tab-pane fade in"-->
+                                    <div v-if="documentArtifactId" :id="relatedItemsTab" :class="relatedItemsTabClass">
                                         <FormSection :formCollapse="false" label="Related Items">
                                             <div class="col-sm-12 form-group"><div class="row">
                                                 <div class="col-sm-12" v-if="relatedItemsVisibility">
                                                     <RelatedItems 
+                                                    :parent_update_related_items="setRelatedItems" 
                                                     v-bind:key="relatedItemsBindId" 
                                                     :readonlyForm="!canUserAction"
+                                                    parentComponentName="physical_artifact"
                                                     />
                                                 </div>
                                             </div></div>
@@ -239,6 +242,20 @@ export default {
         ...mapGetters('legalCaseStore', {
             legal_case: "legal_case",
         }),
+        legalCaseId: function() {
+          let ret_val = null;
+          if (this.legal_case && this.legal_case.id) {
+              ret_val = this.legal_case.id;
+          }
+          return ret_val;
+        },
+        legalCaseExists: function() {
+          let caseExists = false;
+          if (this.legal_case && this.legal_case.id) {
+              caseExists = true;
+          }
+          return caseExists;
+        },
         canUserAction: function() {
             return true;
         },
@@ -379,7 +396,8 @@ export default {
             let timeNow = Date.now()
             let bindId = null;
             if (this.physical_artifact && this.physical_artifact.id) {
-                bindId = 'artifact_' + this.physical_artifact.id + '_' + this._uid;
+                //bindId = 'physical_artifact_' + this.physical_artifact.id + '_' + this.uuid;
+                bindId = 'physical_artifact_' + this.physical_artifact.id + '_' + timeNow.toString();
             } else {
                 bindId = timeNow.toString();
             }
@@ -403,6 +421,7 @@ export default {
             savePhysicalArtifact: 'savePhysicalArtifact',
             loadPhysicalArtifact: 'loadPhysicalArtifact',
             setPhysicalArtifact: 'setPhysicalArtifact',
+            setRelatedItems: 'setRelatedItems',
         }),
         updateTabSelected: function(tabValue) {
             this.tabSelected = tabValue;
@@ -416,9 +435,9 @@ export default {
         },
         save: async function() {
             if (this.physical_artifact.id) {
-                await this.savePhysicalArtifact({ create: false, internal: false });
+                await this.savePhysicalArtifact({ create: false, internal: false, legal_case_id: this.legalCaseId });
             } else {
-                await this.savePhysicalArtifact({ create: true, internal: false });
+                await this.savePhysicalArtifact({ create: true, internal: false, legal_case_id: this.legalCaseId });
             }
         },
         parentSave: async function() {

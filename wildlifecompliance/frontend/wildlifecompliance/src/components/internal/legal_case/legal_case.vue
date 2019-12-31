@@ -161,7 +161,12 @@
                             <FormSection :formCollapse="false" label="Related Items">
                                 <div class="col-sm-12 form-group"><div class="row">
                                     <div class="col-sm-12" v-if="relatedItemsVisibility">
-                                        <RelatedItems v-bind:key="relatedItemsBindId" :parent_update_related_items="setRelatedItems" :readonlyForm="!canUserAction"/>
+                                        <RelatedItems 
+                                        v-bind:key="relatedItemsBindId" 
+                                        :parent_update_related_items="setRelatedItems" 
+                                        :readonlyForm="!canUserAction"
+                                        parentComponentName="legal_case"
+                                        />
                                     </div>
                                 </div></div>
                             </FormSection>
@@ -472,7 +477,7 @@ export default {
         let timeNow = Date.now()
         let bindId = null;
         if (this.legal_case && this.legal_case.id) {
-            bindId = 'legal_case_' + this.legal_case.id + '_' + this._uid;
+            bindId = 'legal_case_' + this.legal_case.id + '_' + this.uuid;
         } else {
             bindId = timeNow.toString();
         }

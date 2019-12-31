@@ -36,6 +36,9 @@ export default {
               type: Boolean,
               default: false,
           },
+          parentComponentName: {
+              type: String,
+          },
     },
 
     data: function() {
@@ -91,7 +94,9 @@ export default {
   watch: {
       displayedEntityRelatedItems: {
           handler: function (){
-              this.constructRelatedItemsTable();
+              this.$nextTick(() => {
+                  this.constructRelatedItemsTable();
+              });
           },
           deep: true
       },
@@ -123,13 +128,7 @@ export default {
     },
     displayedEntity: function() {
         let displayed_entity = null;
-        if (this.physical_artifact && this.physical_artifact.id) {
-            this.displayedEntityType = 'physicalartifact';
-            displayed_entity = this.physical_artifact;
-        } else if (this.document_artifact && this.document_artifact.id) {
-            this.displayedEntityType = 'documentartifact';
-            displayed_entity = this.document_artifact;
-        } else if (this.call_email && this.call_email.id) {
+        if (this.call_email && this.call_email.id) {
             this.displayedEntityType = 'callemail';
             displayed_entity = this.call_email;
         } else if (this.inspection && this.inspection.id) {
@@ -141,9 +140,15 @@ export default {
         } else if (this.sanction_outcome && this.sanction_outcome.id) {
             this.displayedEntityType = 'sanctionoutcome';
             displayed_entity = this.sanction_outcome;
-        } else if (this.legal_case && this.legal_case.id) {
+        } else if (this.legal_case && this.legal_case.id && this.parentComponentName === 'legal_case') {
             this.displayedEntityType = 'legalcase';
             displayed_entity = this.legal_case;
+        } else if (this.physical_artifact && this.physical_artifact.id && this.parentComponentName === 'physical_artifact') {
+            this.displayedEntityType = 'physicalartifact';
+            displayed_entity = this.physical_artifact;
+        } else if (this.document_artifact && this.document_artifact.id && this.parentComponentName === 'document_artifact') {
+            this.displayedEntityType = 'documentartifact';
+            displayed_entity = this.document_artifact;
         }
         return displayed_entity;
     },
@@ -203,6 +208,7 @@ export default {
 
     constructRelatedItemsTable: function() {
         console.log('constructRelatedItemsTable');
+        console.log(this.displayedEntity);
         this.$refs.related_items_table.vmDataTable.clear().draw();
 
         if(this.displayedEntity && this.displayedEntity.related_items){

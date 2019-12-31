@@ -124,7 +124,7 @@ import { mapState, mapGetters, mapActions, mapMutations } from "vuex";
 import moment from 'moment';
 import 'bootstrap/dist/css/bootstrap.css';
 import 'eonasdan-bootstrap-datetimepicker';
-import RelatedItems from "@common-components/related_items.vue";
+//import RelatedItems from "@common-components/related_items.vue";
 require("select2/dist/css/select2.min.css");
 require("select2-bootstrap-theme/dist/select2-bootstrap.min.css");
 import hash from 'object-hash';
@@ -181,7 +181,6 @@ export default {
   components: {
     CommsLogs,
     FormSection,
-    RelatedItems,
     DocumentArtifact,
     PhysicalArtifact,
   },

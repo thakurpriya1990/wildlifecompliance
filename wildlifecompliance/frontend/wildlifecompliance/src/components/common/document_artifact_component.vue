@@ -135,13 +135,16 @@
                         </div>
                         <div :id="existingTab" class="tab-pane fade in li-top-buffer">
                         </div>
-                        <div :id="rTab" class="tab-pane fade in">
+                        <div v-if="documentArtifactId" :id="rTab" class="tab-pane fade in">
                             <FormSection :formCollapse="false" label="Related Items">
                                 <div class="col-sm-12 form-group"><div class="row">
                                     <div class="col-sm-12" v-if="relatedItemsVisibility">
                                         <RelatedItems 
+                                        :parent_update_related_items="setRelatedItems" 
                                         v-bind:key="relatedItemsBindId" 
-                                        :readonlyForm="!canUserAction"/>
+                                        :readonlyForm="!canUserAction"
+                                        parentComponentName="document_artifact"
+                                        />
                                     </div>
                                 </div></div>
                             </FormSection>
@@ -294,8 +297,9 @@ export default {
         relatedItemsBindId: function() {
             let timeNow = Date.now()
             let bindId = null;
-            if (this.artifactComponent && this.artifactComponent.id) {
-                bindId = 'artifact_' + this.artifactComponent.id + '_' + this._uid;
+            if (this.document_artifact && this.document_artifact.id) {
+                //bindId = 'document_artifact_' + this.document_artifact.id + '_' + this.uuid;
+                bindId = 'document_artifact_' + this.document_artifact.id + '_' + timeNow.toString();
             } else {
                 bindId = timeNow.toString();
             }
@@ -303,7 +307,7 @@ export default {
         },
         relatedItemsVisibility: function() {
             let related_items_visibility = false;
-            if (this.artifactComponent && this.artifactComponent.id) {
+            if (this.document_artifact && this.document_artifact.id) {
                 related_items_visibility = true;
             }
             return related_items_visibility;
@@ -319,6 +323,7 @@ export default {
             saveDocumentArtifact: 'saveDocumentArtifact',
             loadDocumentArtifact: 'loadDocumentArtifact',
             setDocumentArtifact: 'setDocumentArtifact',
+            setRelatedItems: 'setRelatedItems',
             //setDocumentArtifactLegalId: 'setDocumentArtifactLegalId',
         }),
         ...mapActions('legalCaseStore', {
