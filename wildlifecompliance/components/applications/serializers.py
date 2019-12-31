@@ -448,6 +448,7 @@ class BaseApplicationSerializer(serializers.ModelSerializer):
             'processed',
             'application_type',
             'invoice_url',
+            'total_paid_amount',
         )
         read_only_fields = ('documents',)
 

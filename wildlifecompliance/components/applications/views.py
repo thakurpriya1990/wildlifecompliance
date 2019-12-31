@@ -8,6 +8,7 @@ from wildlifecompliance.components.applications.utils import SchemaParser
 from wildlifecompliance.components.applications.models import (
     Application,
     ActivityInvoice,
+    ActivityInvoiceLine,
     ApplicationSelectedActivity
 )
 from wildlifecompliance.components.applications.email import (
@@ -116,9 +117,15 @@ class LicenceFeeSuccessView(TemplateView):
             i = 1
             for activity in activities:
 
-                ActivityInvoice.objects.get_or_create(
-                    activity=session_activity,
+                invoice = ActivityInvoice.objects.get_or_create(
+                    activity=activity,
                     invoice_reference=invoice_ref
+                )
+
+                line = ActivityInvoiceLine.objects.get_or_create(
+                    invoice=invoice,
+                    licence_activity=activity.licence_activity,
+                    amount=activity.licence_fee
                 )
                 # if not activity.licence_fee_paid:
                 #    raise Exception("Licence fee payment failed!")

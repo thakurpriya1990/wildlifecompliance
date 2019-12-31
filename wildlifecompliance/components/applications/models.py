@@ -41,6 +41,7 @@ from wildlifecompliance.components.applications.email import (
     send_application_return_to_officer_conditions_notification,
     send_activity_invoice_email_notification,
     send_activity_invoice_issue_notification,
+    send_amendment_refund_email_notification,
 )
 from wildlifecompliance.components.main.utils import get_choice_value
 from wildlifecompliance.ordered_model import OrderedModel
@@ -509,6 +510,19 @@ class Application(RevisionedMixin):
         return latest_invoice
 
     @property
+    def total_paid_amount(self):
+        """
+        Property defining the total amount already paid for the Application.
+        """
+        amount = 0
+        if self.invoices.count() > 0:
+            invoices = ApplicationInvoice.objects.filter(application_id=self.id)
+            for invoice in invoices:
+                detail = Invoice.objects.get(reference=invoice.invoice_reference)
+                amount += detail.amount
+        return amount
+
+    @property
     def regions_list(self):
         return self.region.split(',') if self.region else []
 
@@ -845,8 +859,10 @@ class Application(RevisionedMixin):
                 Application.APPLICATION_TYPE_REISSUE,
             ]:
                 selected_activity.licence_fee = Decimal(0)
+                selected_activity.application_fee = Decimal(0)
             else:
                 selected_activity.licence_fee = fees['licence']
+                selected_activity.application_fee = fees['application']
             for field, value in field_data.items():
                 setattr(selected_activity, field, value)
                 selected_activity.save()
@@ -1015,8 +1031,13 @@ class Application(RevisionedMixin):
                     self.log_user_action(
                         ApplicationUserAction.ACTION_ID_REQUEST_AMENDMENTS_SUBMIT.format(
                             self.id), request)
-                    send_amendment_submit_email_notification(
-                        group_users, self, request)
+                    if self.requires_refund:
+                        send_amendment_refund_email_notification(
+                            group_users, self, request)
+                    else:
+                        send_amendment_submit_email_notification(
+                            group_users, self, request)
+
                 else:
                     # Create a log entry for the application
                     self.log_user_action(
@@ -1442,6 +1463,60 @@ class Application(RevisionedMixin):
     def active_amendment_requests(self):
         activity_ids = self.activities.values_list('licence_activity_id', flat=True)
         return self.amendment_requests.filter(licence_activity_id__in=activity_ids)
+
+    @property
+    def has_amended_fees(self):
+        """
+        Check on previous invoice amounts for difference in application fee.
+        """
+        fees_amended = False
+        if self.total_paid_amount <= self.application_fee:
+            fees_amended = True
+
+        return fees_amended
+
+    @property
+    def amended_activities(self):
+        """
+        Sets the application fee for each activity with a new amended amount
+        based on the difference already paid.
+        """
+        amended = []
+        latest_inv = self.latest_invoice
+        app_inv = ApplicationInvoice.objects.filter(
+            invoice_reference=latest_inv.reference).first()
+        for activity in self.activities:
+            invoice_line = ApplicationInvoiceLine.objects.filter(
+                invoice=app_inv,
+                licence_activity=activity.licence_activity).first()
+            inv_amount = self.activity_invoice_amount(activity)
+            # inv_amount = invoice_line.amount
+            if (invoice_line and activity.application_fee > inv_amount):
+                difference = activity.application_fee - inv_amount
+                activity.application_fee = difference
+                amended.append(activity)
+
+        return amended
+
+    def activity_invoice_amount(self, activity):
+        """
+        Gets the total amount paid for an activity across multiple invoices.
+        """
+        amount = 0
+        invoices = ApplicationInvoice.objects.filter(application_id=self.id)
+        for invoice in invoices:
+            line = ApplicationInvoiceLine.objects.filter(
+                invoice=invoice,
+                licence_activity=activity.licence_activity).first()
+            amount += line.amount if line else 0
+
+        return amount
+
+    def requires_refund(self):
+        """
+        Check on the last invoice amount against application fee.
+        """
+        return True if self.total_paid_amount > self.application_fee else False
 
     @property
     def assessments(self):
@@ -2138,6 +2213,7 @@ class ApplicationInvoice(models.Model):
     application = models.ForeignKey(Application, related_name='invoices')
     invoice_reference = models.CharField(
         max_length=50, null=True, blank=True, default='')
+    invoice_datetime = models.DateTimeField(auto_now=True)
 
     class Meta:
         app_label = 'wildlifecompliance'
@@ -2157,6 +2233,19 @@ class ApplicationInvoice(models.Model):
             pass
         return False
 
+class ApplicationInvoiceLine(models.Model):
+    invoice = models.ForeignKey(
+        ApplicationInvoice, related_name='application_activity_lines')
+    licence_activity = models.ForeignKey(
+        'wildlifecompliance.LicenceActivity', null=True)
+    amount = models.DecimalField(max_digits=8, decimal_places=2, default='0')
+
+    class Meta:
+        app_label = 'wildlifecompliance'
+
+    def __str__(self):
+        return 'Invoice #{} - Activity {} : Amount {}'.format(
+            self.invoice, self.licence_activity, self.amount)
 
 class ApplicationLogDocument(Document):
     log_entry = models.ForeignKey(
@@ -2765,14 +2854,19 @@ class ApplicationSelectedActivity(models.Model):
             '''
             invoice_ref = request.session['checkout_invoice']
             created_invoice = Invoice.objects.filter(reference=invoice_ref).first()
-            if (created_invoice.text!=application_submission): # text on invoice does not match this payment submission.
+            if (created_invoice.text != application_submission):  # text on invoice does not match this payment submission.
                 raise KeyError
         except KeyError:
             logger.error("No invoice reference generated for Activity ID: %s" % self.licence_activity_id)
             return False
-        ActivityInvoice.objects.get_or_create(
+        invoice = ActivityInvoice.objects.get_or_create(
             activity=self,
             invoice_reference=invoice_ref
+        )
+        line = ActivityInvoiceLine.object.get_or_create(
+            invoice=invoice,
+            licence_activity=self.licence_activity,
+            amount=self.licence_fee
         )
         delete_session_application(request.session)
         flush_checkout_session(request.session)
@@ -2821,6 +2915,7 @@ class ActivityInvoice(models.Model):
     activity = models.ForeignKey(ApplicationSelectedActivity, related_name='invoices')
     invoice_reference = models.CharField(
         max_length=50, null=True, blank=True, default='')
+    invoice_datetime = models.DateTimeField(auto_now=True)
 
     class Meta:
         app_label = 'wildlifecompliance'
@@ -2840,6 +2935,21 @@ class ActivityInvoice(models.Model):
         except Invoice.DoesNotExist:
             pass
         return False
+
+
+class ActivityInvoiceLine(models.Model):
+    invoice = models.ForeignKey(
+        ActivityInvoice, related_name='licence_activity_lines')
+    licence_activity = models.ForeignKey(
+        'wildlifecompliance.LicenceActivity', null=True)
+    amount = models.DecimalField(max_digits=8, decimal_places=2, default='0')
+
+    class Meta:
+        app_label = 'wildlifecompliance'
+
+    def __str__(self):
+        return 'Invoice #{} - Activity {} : Amount {}'.format(
+            self.invoice, self.licence_activity, self.amount)
 
 
 @python_2_unicode_compatible

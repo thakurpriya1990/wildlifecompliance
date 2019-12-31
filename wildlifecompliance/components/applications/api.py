@@ -620,13 +620,17 @@ class ApplicationViewSet(viewsets.ModelViewSet):
             application_submission = u'Application fee for {}'.format(
                 instance.lodgement_number)
             set_session_application(request.session, instance)
-            product_lines.append({
-                'ledger_description': '{}'.format(instance.licence_type_name),
-                'quantity': 1,
-                'price_incl_tax': str(instance.application_fee),
-                'price_excl_tax': str(calculate_excl_gst(instance.application_fee)),
-                'oracle_code': ''
-            })
+            # check activities consist of amended fees.
+            activities = instance.activities if not instance.has_amended_fees\
+                else instance.amended_activities
+            for activity in activities:
+                product_lines.append({
+                    'ledger_description': '{}'.format(activity.licence_activity.name),
+                    'quantity': 1,
+                    'price_incl_tax': str(activity.application_fee),
+                    'price_excl_tax': str(calculate_excl_gst(activity.application_fee)),
+                    'oracle_code': ''
+                })
             checkout_result = checkout(request, instance, lines=product_lines,
                                        invoice_text=application_submission)
             return checkout_result
@@ -1165,7 +1169,7 @@ class ApplicationViewSet(viewsets.ModelViewSet):
                 request,
                 instance,
                 request.data,
-                action=ApplicationFormDataRecord.ACTION_TYPE_ASSIGN_VALUE
+                action=ApplicationFormDataRecord.ACTION_TYPE_ASSIGN_VALUE  # FIXME: throws integrity error
             )
             # Render any Application Standard Conditions triggered from Form.
             ApplicationFormDataRecord.render_defined_conditions(instance, request.data)
