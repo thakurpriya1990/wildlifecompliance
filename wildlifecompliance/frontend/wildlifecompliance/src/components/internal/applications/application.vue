@@ -1023,21 +1023,22 @@ export default {
         save: function(props = { showNotification: true }) {
             const { showNotification } = props;
             this.saveFormData({ url: this.form_data_comments_url }).then(response => {
-                // no notification.
-            }, error => {
-                console.log('Failed to save comments: ', error);
-                swal(
-                    'Application Error',
-                    helpers.apiVueResourceError(error),
-                    'error'
-                )
-            });
-            this.saveFormData({ url: this.form_data_application_url }).then(response => {
-                showNotification && swal(
-                    'Saved',
-                    'Your application has been saved',
-                    'success'
-                )
+
+                this.saveFormData({ url: this.form_data_application_url }).then(response => {   
+                    showNotification && swal(
+                        'Saved',
+                        'Your application has been saved',
+                        'success'
+                    )     
+                }, error => {
+                    console.log('Failed to save Application: ', error);
+                    swal(
+                        'Application Error',
+                        helpers.apiVueResourceError(error),
+                        'error'
+                    )
+                });
+
             }, error => {
                 console.log('Failed to save comments: ', error);
                 swal(

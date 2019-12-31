@@ -1169,7 +1169,7 @@ class ApplicationViewSet(viewsets.ModelViewSet):
                 request,
                 instance,
                 request.data,
-                action=ApplicationFormDataRecord.ACTION_TYPE_ASSIGN_VALUE  # FIXME: throws integrity error
+                action=ApplicationFormDataRecord.ACTION_TYPE_ASSIGN_VALUE
             )
             # Render any Application Standard Conditions triggered from Form.
             ApplicationFormDataRecord.render_defined_conditions(instance, request.data)
