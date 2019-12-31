@@ -44,6 +44,12 @@ class ApplicationSubmitNotificationEmail(TemplateEmailBase):
     txt_template = 'wildlifecompliance/emails/send_application_submit_notification.txt'
 
 
+class ApplicationRefundNotificationEmail(TemplateEmailBase):
+    subject = 'An application requiring a refund has been submitted'
+    html_template = 'wildlifecompliance/emails/send_application_refund_notification.html'
+    txt_template = 'wildlifecompliance/emails/send_application_refund_notification.txt'
+
+
 class AmendmentSubmitNotificationEmail(TemplateEmailBase):
     subject = 'An amendment has been submitted'
     html_template = 'wildlifecompliance/emails/send_amendment_submit_notification.html'
@@ -259,6 +265,33 @@ def send_application_submitter_email_notification(application, request):
     }
     recipients = [application.submitter.email]
     msg = email.send(recipients, context=context)
+    sender = request.user if request else settings.DEFAULT_FROM_EMAIL
+    _log_application_email(msg, application, sender=sender)
+
+
+def send_amendment_refund_email_notification(
+        group_email, application, request):
+    # An email to internal users notifying about required refund.
+    email = ApplicationRefundNotificationEmail()
+    url = request.build_absolute_uri(
+        reverse(
+            'internal-application-detail',
+            kwargs={
+                'application_pk': application.id}))
+
+    if '-internal' not in url:
+        url = "{0}://{1}{2}.{3}{4}".format(request.scheme,
+                                           settings.SITE_PREFIX,
+                                           '-internal',
+                                           settings.SITE_DOMAIN,
+                                           url.split(request.get_host())[1])
+
+    context = {
+        'application': application,
+        'url': url
+    }
+    email_group = [item.email for item in group_email]
+    msg = email.send(email_group, context=context)
     sender = request.user if request else settings.DEFAULT_FROM_EMAIL
     _log_application_email(msg, application, sender=sender)
 
