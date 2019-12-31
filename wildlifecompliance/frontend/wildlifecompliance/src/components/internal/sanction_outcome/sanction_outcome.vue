@@ -515,7 +515,8 @@ export default {
                 "id", 
                 "Due Date", 
                 "Action Desc", 
-                "Action"
+                "Action",
+                "Action Taken",
             ],
             dtOptionsRemediationActions: {
                 columns: [
@@ -543,7 +544,32 @@ export default {
                         mRender: function(data, type, row) {
                             return data;
                         }
-                    }
+                    },
+                    {
+                        data: 'action_taken',
+                        mRender: function(data, type, ra) {
+                            let html = ''
+
+                            let body = ''
+                            let td = '<td col="row">'
+                            let td_close = '</td>'
+                            let th = '<th scope="col">'
+                            let th_close = '</th>'
+
+                            body += '<tr>' +
+                                td + ra.action_taken + td_close +
+                                td + ra.documents + td_close + 
+                            '</tr>'
+
+                            let header = '<thead><tr>' + 
+                                th + 'Action Taken' + th_close + 
+                                th + 'Attachment' + th_close + 
+                                '</tr></thead>'
+                            html = '<table class="table">' + header + body + '</table>'
+
+                            return html
+                        }
+                    },
                 ]
             },
             dtHeadersAllegedOffence: [
@@ -1089,9 +1115,23 @@ export default {
             $("#alleged-committed-offence-table").on("click", ".remove_alleged_committed_offence", this.removeAllegedOffenceClicked);
             $("#alleged-committed-offence-table").on("click", ".restore_alleged_committed_offence", this.restoreAllegedOffenceClicked);
             $("#alleged-committed-offence-table").on("click", ".include_alleged_committed_offence", this.includeAllegedOffenceClicked);
+            $("#tbl_remediation_actions").on("click", ".accept_remediation_action", this.acceptRemediationActionClicked);
+            $("#tbl_remediation_actions").on("click", ".request_amendment_remediation_action", this.requestAmendmentRemediationActionClicked);
 
             window.addEventListener('beforeunload', this.leaving);
             window.addEventListener('onblur', this.leaving);
+        },
+        acceptRemediationActionClicked: function(e){
+            console.log('accept');
+            let remediationActionId = parseInt(e.target.getAttribute("data-id"));
+            console.log(remediationActionId);
+
+        },
+        requestAmendmentRemediationActionClicked: function(e){
+            console.log('request');
+            let remediationActionId = parseInt(e.target.getAttribute("data-id"));
+            console.log(remediationActionId);
+
         },
         leaving: function(e) {
             console.log('leaving');

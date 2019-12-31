@@ -36,7 +36,7 @@ from wildlifecompliance.components.sanction_outcome.serializers import SanctionO
     SaveSanctionOutcomeSerializer, SaveRemediationActionSerializer, SanctionOutcomeDatatableSerializer, \
     UpdateAssignedToIdSerializer, SanctionOutcomeCommsLogEntrySerializer, SanctionOutcomeUserActionSerializer, \
     AllegedCommittedOffenceSerializer, AllegedCommittedOffenceCreateSerializer, RecordFerCaseNumberSerializer, \
-    RemediationActionSerializer
+    RemediationActionSerializer, RemediationActionUpdateStatusSerializer
 from wildlifecompliance.components.users.models import CompliancePermissionGroup, RegionDistrict
 from wildlifecompliance.helpers import is_internal
 from wildlifecompliance.components.main.models import TemporaryDocumentCollection
@@ -168,6 +168,68 @@ class RemediationActionViewSet(viewsets.ModelViewSet):
     queryset = RemediationAction.objects.all()
     serializer_class = RemediationActionSerializer
 
+    @detail_route(methods=['GET'])
+    @renderer_classes((JSONRenderer,))
+    def accept(self, request, *args, **kwargs):
+        try:
+            with transaction.atomic():
+                instance = self.get_object()
+                serializer = RemediationActionUpdateStatusSerializer(instance, data={'status': RemediationAction.STATUS_ACCEPTED}, context={'request': request})
+                serializer.is_valid(raise_exception=True)
+                serializer.save()
+
+                headers = self.get_success_headers(serializer.data)
+                return Response(
+                    {},
+                    status=status.HTTP_200_OK,
+                    headers=headers
+                )
+
+        except serializers.ValidationError:
+            print(traceback.print_exc())
+            raise
+        except ValidationError as e:
+            print(traceback.print_exc())
+            if hasattr(e, 'error_dict'):
+                raise serializers.ValidationError(repr(e.error_dict))
+            else:
+                raise serializers.ValidationError(repr(e[0].encode('utf-8')))
+        except Exception as e:
+            print(traceback.print_exc())
+            raise serializers.ValidationError(str(e))
+
+    @detail_route(methods=['POST'])
+    @renderer_classes((JSONRenderer,))
+    def submit(self, request, *args, **kwargs):
+        try:
+            with transaction.atomic():
+                serializer = self._update_instance(request)
+
+                # Update status
+                serializer = RemediationActionUpdateStatusSerializer(serializer.instance, data={'status': RemediationAction.STATUS_SUBMITTED}, context={'request': request})
+                serializer.is_valid(raise_exception=True)
+                serializer.save()
+
+                headers = self.get_success_headers(serializer.data)
+                return Response(
+                    {},
+                    status=status.HTTP_200_OK,
+                    headers=headers
+                )
+
+        except serializers.ValidationError:
+            print(traceback.print_exc())
+            raise
+        except ValidationError as e:
+            print(traceback.print_exc())
+            if hasattr(e, 'error_dict'):
+                raise serializers.ValidationError(repr(e.error_dict))
+            else:
+                raise serializers.ValidationError(repr(e[0].encode('utf-8')))
+        except Exception as e:
+            print(traceback.print_exc())
+            raise serializers.ValidationError(str(e))
+
     def get_queryset(self):
         if is_internal(self.request):
             return RemediationAction.objects.all()
@@ -180,19 +242,24 @@ class RemediationActionViewSet(viewsets.ModelViewSet):
         """
         return super(RemediationActionViewSet, self).retrieve(request, *args, **kwargs)
 
+    def _update_instance(self, request):
+        instance = self.get_object()
+        request_data = request.data
+
+        due_date = request.data.get('due_date')
+        due_date = datetime.strptime(due_date, '%d/%m/%Y')
+        request_data['due_date'] = due_date.strftime('%Y-%m-%d')
+
+        serializer = SaveRemediationActionSerializer(instance, data=request_data, partial=True, )
+        serializer.is_valid(raise_exception=True)
+        serializer.save()
+
+        return serializer
+
     def update(self, request, *args, **kwargs):
         try:
             with transaction.atomic():
-                instance = self.get_object()
-                request_data = request.data
-
-                due_date = request.data.get('due_date')
-                due_date = datetime.strptime(due_date, '%d/%m/%Y')
-                request_data['due_date'] = due_date.strftime('%Y-%m-%d')
-
-                serializer = SaveRemediationActionSerializer(instance, data=request_data, partial=True,)
-                serializer.is_valid(raise_exception=True)
-                instance = serializer.save()
+                serializer = self._update_instance(request)
 
                 headers = self.get_success_headers(serializer.data)
                 return Response(

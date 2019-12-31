@@ -701,7 +701,7 @@ class RemediationAction(RevisionedMixin):
     action = models.TextField(blank=True)
     due_date = models.DateField(null=True, blank=True)
     sanction_outcome = models.ForeignKey(SanctionOutcome, related_name='remediation_actions', null=True, on_delete=models.SET_NULL,)
-    status = models.CharField(max_length=40, choices=STATUS_CHOICES, blank=True)
+    status = models.CharField(max_length=40, choices=STATUS_CHOICES, blank=True, default=STATUS_OPEN)
     objects = models.Manager()
     objects_for_external = RemediationActionExternalManager()
     action_taken = models.TextField(blank=True)

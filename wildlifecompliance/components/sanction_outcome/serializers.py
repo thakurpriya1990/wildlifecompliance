@@ -18,10 +18,54 @@ from wildlifecompliance.components.section_regulation.serializers import Section
 from wildlifecompliance.components.sanction_outcome.models import SanctionOutcome, RemediationAction, \
     SanctionOutcomeCommsLogEntry, SanctionOutcomeUserAction, AllegedCommittedOffence
 from wildlifecompliance.components.users.serializers import CompliancePermissionGroupMembersSerializer
+from wildlifecompliance.helpers import is_internal
+
+
+def can_user_approve(obj, user):
+    # User can have action buttons
+    # when user is assigned to the target object or
+    # when user is a member of the allocated group and no one is assigned to the target object
+
+    # user = self.context.get('request', {}).user
+    offence = obj.sanction_outcome.offence
+    if user.id == offence.assigned_to_id:
+        return True
+    elif offence.allocated_group and not offence.assigned_to_id:
+        if user.id in [member.id for member in offence.allocated_group.members]:
+            return True
+    return False
+
+
+class RemediationActionUpdateStatusSerializer(serializers.ModelSerializer):
+
+    class Meta:
+        model = RemediationAction
+        fields = ('status',)
+
+    def validate(self, data):
+        new_status = data.get('status')
+        req = self.context.get('request', {})
+        obj = self.instance
+
+        if new_status == RemediationAction.STATUS_ACCEPTED:
+            if can_user_approve(self.instance, req.user):
+                # Only a certain person can approve a remediation action
+                return data
+            else:
+                raise serializers.ValidationError('You don\'t have permission')
+        elif new_status == RemediationAction.STATUS_SUBMITTED:
+            if req.user == obj.sanction_outcome.offender.person:
+                # Only the offender of the remediation action can submit it
+                return data
+            else:
+                raise serializers.ValidationError('You don\'t have permission')
+
+        return data
 
 
 class RemediationActionSerializer(serializers.ModelSerializer):
     user_action = serializers.SerializerMethodField()
+    action_taken_editable = serializers.SerializerMethodField()
     documents = serializers.SerializerMethodField()
 
     class Meta:
@@ -34,23 +78,58 @@ class RemediationActionSerializer(serializers.ModelSerializer):
             'user_action',
             'action_taken',
             'documents',
+            'action_taken_editable',
         )
 
+    def can_user_approve(self, obj, user):
+        return can_user_approve(obj, user)
+
+    def get_action_taken_editable(self, obj):
+        req = self.context.get('request', {})
+
+        if req.user == obj.sanction_outcome.offender.person and obj.status in (RemediationAction.STATUS_OPEN):
+            # if user is the offender
+            # then editable
+            return True
+        return False
+
     def get_user_action(self, obj):
+        req = self.context.get('request', {})
+
+        view_url = '<a href="/external/remediation_action/' + str(obj.id) + '">View</a>'
+        # accept_url = '<a href="/api/remediation_action/' + str(obj.id) + '/accept">Accept</a>'
+        # request_amendment_url = '<a href="/api/remediation_action/' + str(obj.id) + '/request_amendment">Request Amendment</a>'
+        accept_url = '<span data-id="{}" data-action="{}" class="accept_remediation_action">Accept</span>'.format(str(obj.id), 'accept')
+        request_amendment_url = '<span data-id="{}" data-action="{}" class="request_amendment_remediation_action">Request Amendment</span>'.format(str(obj.id), 'request_amendment')
+
         url_list = []
 
-        view_url = '<a href=/internal/remediation_action/' + str(obj.id) + '>View</a>'
-        accept_url = '<a href=/internal/remediation_action/' + str(obj.id) + '>Accept</a>'
-        request_amendment_url = '<a href=/internal/remediation_action/' + str(obj.id) + '>Request Amendment</a>'
-        url_list.append(view_url)
-        url_list.append(accept_url)
-        url_list.append(request_amendment_url)
+        if is_internal(req):
+            if self.can_user_approve(obj, req.user) and obj.status == RemediationAction.STATUS_SUBMITTED:
+                # If User is one of the officers of the obj.sanction_outcome and if obj.status is submitted
+                # then 'accept' and 'request amendment'
+                url_list.append(accept_url)
+                url_list.append(request_amendment_url)
+        else:
+            if req.user == obj.sanction_outcome.offender.person:
+                # If user if the offender
+                # then 'view'
+                url_list.append(view_url)
 
         urls = '<br />'.join(url_list)
         return urls
 
     def get_documents(self, obj):
-        return [[r.name, r._file.url] for r in obj.documents.all()]
+        url_list = []
+
+        if obj.documents.all().count():
+            # Paper notices
+            for doc in obj.documents.all():
+                url = '<a href="{}" target="_blank">{}</a>'.format(doc._file.url, doc.name)
+                url_list.append(url)
+
+        urls = '<br />'.join(url_list)
+        return urls
 
 
 class AllegedOffenceSerializer(serializers.ModelSerializer):

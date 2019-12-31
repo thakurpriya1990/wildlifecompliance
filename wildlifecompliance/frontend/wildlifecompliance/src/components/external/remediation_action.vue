@@ -14,7 +14,7 @@
                     <div class="container-fluid">
                         <ul class="nav nav-pills aho2">
                             <li class="nav-item active"><a data-toggle="tab" :href="'#'+reTab">Remediation Action</a></li>
-                            <li class="nav-item"><a data-toggle="tab" :href="'#'+coTab">Conformation</a></li>
+                            <li class="nav-item"><a data-toggle="tab" :href="'#'+coTab">Confirmation</a></li>
                         </ul>
                         <div class="tab-content">
                             <div :id="reTab" class="tab-pane fade in active">
@@ -61,7 +61,7 @@
                             </div>
 
                             <div :id="coTab" class="tab-pane fade in">
-                                <FormSection :formCollapse="false" label="Conformation" Index="2">
+                                <FormSection :formCollapse="false" label="Confirmation" Index="2">
 
                                 </FormSection>
                             </div>
@@ -105,8 +105,12 @@ export default {
         filefield,
     },
     created: async function() {
-        if (this.$route.params.remediation_action_id) {
-            await this.loadRemediationAction({ remediation_action_id: this.$route.params.remediation_action_id });
+        try {
+            if (this.$route.params.remediation_action_id) {
+                await this.loadRemediationAction({ remediation_action_id: this.$route.params.remediation_action_id });
+            }
+        } catch (err) {
+            this.processError(err);
         }
     },
     mounted: function() {
@@ -117,18 +121,14 @@ export default {
             remediation_action: "remediation_action",
         }),
         readonlyForm: function(){
-            return false;
+            return !this.remediation_action.action_taken_editable;
         },
-        docUrl: function() {
-            console.log('docUrl');
-            console.log(this.remediation_action.remediationActionDocumentUrl);
-            return this.remediation_action.remediationActionDocumentUrl;
-        }
     },
     methods: {
         ...mapActions('remediationActionStore', {
             loadRemediationAction: 'loadRemediationAction',
             saveRemediationAction: 'saveRemediationAction',
+            submitRemediationAction: 'submitRemediationAction',
         }),
         remediationActionDocumentUploaded: function() {
             console.log('remediationActionDocumentUploaded');
@@ -151,6 +151,9 @@ export default {
             }
         },
         submit: async function() {
+                await this.submitRemediationAction();
+                await swal("Submitted", "The record has been submitted", "success");
+                this.$router.push({ name: 'external-sanction-outcome-dash' });
         },
         processError: async function(err){
             let errorText = '';
