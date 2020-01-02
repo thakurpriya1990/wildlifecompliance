@@ -3,7 +3,7 @@
         <div class="col-sm-12 child-artifact-component">
             <div class="form-group">
                 <div class="row">
-                    <div v-if="physicalArtifactId">
+                    <div v-if="!parentModal">
                     </div>
                     <div v-else>
                         <ul class="nav nav-pills">
@@ -18,7 +18,7 @@
                                 <li :class="detailsTabListClass"><a data-toggle="tab" @click="updateTabSelected('detailsTab')" :href="'#'+detailsTab" >Details</a></li>
                                 <li :class="storageTabListClass"><a data-toggle="tab" @click="updateTabSelected('storageTab')" :href="'#'+storageTab" >Storage</a></li>
                                 <li :class="disposalTabListClass"><a data-toggle="tab" @click="updateTabSelected('disposalTab')" :href="'#'+disposalTab" >Disposal</a></li>
-                                <li v-if="physicalArtifactId" :class="relatedItemsTabListClass"><a data-toggle="tab" @click="updateTabSelected('relatedItemsTab')" :href="'#'+relatedItemsTab" >Related Items</a></li>
+                                <li v-if="!parentModal" :class="relatedItemsTabListClass"><a data-toggle="tab" @click="updateTabSelected('relatedItemsTab')" :href="'#'+relatedItemsTab" >Related Items</a></li>
                             </ul>
                             <div class="tab-content">
                                     <div :id="objectTab" :class="objectTabClass">
@@ -148,7 +148,7 @@
                                         disposal
                                     </div>
                                     <!--div :id="relatedItemsTab" class="tab-pane fade in"-->
-                                    <div v-if="documentArtifactId" :id="relatedItemsTab" :class="relatedItemsTabClass">
+                                    <div v-if="!parentModal" :id="relatedItemsTab" :class="relatedItemsTabClass">
                                         <FormSection :formCollapse="false" label="Related Items">
                                             <div class="col-sm-12 form-group"><div class="row">
                                                 <div class="col-sm-12" v-if="relatedItemsVisibility">
@@ -221,6 +221,13 @@ export default {
       SearchPersonOrganisation,
       FormSection,
       RelatedItems,
+    },
+    props: {
+        parentModal: {
+            type: Boolean,
+            required: false,
+            default: false,
+        },
     },
     watch: {
         artifactType: {
@@ -440,7 +447,7 @@ export default {
                 await this.savePhysicalArtifact({ create: true, internal: false, legal_case_id: this.legalCaseId });
             }
         },
-        parentSave: async function() {
+        create: async function() {
             //let physicalArtifactEntity = null;
             /*
             if (this.saveButtonEnabled) {
@@ -449,7 +456,7 @@ export default {
                 savedEmailUser = {'ok': true};
             }
             */
-            await this.save();
+            await this.savePhysicalArtifact({ create: true, internal: true, legal_case_id: this.legalCaseId });
             //this.entity.id = 
             this.$nextTick(() => {
                 this.$emit('entity-selected', {

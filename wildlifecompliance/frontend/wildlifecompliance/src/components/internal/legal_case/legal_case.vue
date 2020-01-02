@@ -566,6 +566,8 @@ export default {
         "entity": entity, 
         "action": action
     }) {
+        // destroy modal
+        this.personOrArtifactInitialised = false;
         console.log(row_number_selected);
         console.log(entity);
         console.log(action);

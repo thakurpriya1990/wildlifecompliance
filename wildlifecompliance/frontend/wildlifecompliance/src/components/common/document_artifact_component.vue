@@ -3,7 +3,7 @@
         <div class="col-sm-12 child-artifact-component">
             <div class="form-group">
                 <div class="row">
-                    <div v-if="documentArtifactId">
+                    <div v-if="!parentModal">
                         <ul class="nav nav-pills">
                             <li class="nav-item active"><a data-toggle="tab" :href="'#'+newTab">Object</a></li>
                             <li class="nav-item"><a data-toggle="tab" :href="'#'+rTab">Related Items</a></li>
@@ -135,7 +135,7 @@
                         </div>
                         <div :id="existingTab" class="tab-pane fade in li-top-buffer">
                         </div>
-                        <div v-if="documentArtifactId" :id="rTab" class="tab-pane fade in">
+                        <div v-if="!parentModal" :id="rTab" class="tab-pane fade in">
                             <FormSection :formCollapse="false" label="Related Items">
                                 <div class="col-sm-12 form-group"><div class="row">
                                     <div class="col-sm-12" v-if="relatedItemsVisibility">
@@ -207,6 +207,13 @@ export default {
       SearchPersonOrganisation,
       FormSection,
       RelatedItems,
+    },
+    props: {
+        parentModal: {
+            type: Boolean,
+            required: false,
+            default: false,
+        },
     },
     watch: {
         artifactType: {
@@ -358,7 +365,7 @@ export default {
                 await this.saveDocumentArtifact({ create: true, internal: false, legal_case_id: this.legalCaseId });
             }
         },
-        parentSave: async function() {
+        create: async function() {
             //let documentArtifactEntity = null;
             /*
             if (this.saveButtonEnabled) {
@@ -367,7 +374,7 @@ export default {
                 savedEmailUser = {'ok': true};
             }
             */
-            await this.save();
+            await this.saveDocumentArtifact({ create: true, internal: true, legal_case_id: this.legalCaseId });
             //this.entity.id = 
             this.$nextTick(() => {
                 this.$emit('entity-selected', {

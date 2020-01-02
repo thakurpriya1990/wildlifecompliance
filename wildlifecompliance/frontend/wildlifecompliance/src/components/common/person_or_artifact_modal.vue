@@ -45,6 +45,7 @@
                             <DocumentArtifact 
                             ref="document_artifact"
                             @entity-selected="entitySelected"
+                            parentModal
                             v-bind:key="updateDocumentArtifactBindId"
                             />
                         </div>
@@ -52,6 +53,7 @@
                             <PhysicalArtifact 
                             ref="physical_artifact"
                             @entity-selected="entitySelected"
+                            parentModal
                             v-bind:key="updatePhysicalArtifactBindId"
                             />
                         </div>
@@ -253,14 +255,15 @@ export default {
                 row_number_selected: this.rowNumberSelected,
                 action: 'cancel',
             });
-            this.isModalOpen = false;
+            //this.isModalOpen = false;
+            this.close();
         },
         ok: async function() {
             if (this.artifactTabSelected) {
                 if (this.showDocumentArtifactComponent) {
-                    await this.$refs.document_artifact.parentSave();
+                    await this.$refs.document_artifact.create();
                 } else if (this.showPhysicalArtifactComponent) {
-                    await this.$refs.physical_artifact.parentSave();
+                    await this.$refs.physical_artifact.create();
                 }
             }
             if (this.urlTabSelected && this.urlText) {
@@ -276,7 +279,8 @@ export default {
                 } else {
                     this.cancel();
                 }
-                this.isModalOpen = false;
+                //this.isModalOpen = false;
+                this.close();
             });
         },
         close: function () {
