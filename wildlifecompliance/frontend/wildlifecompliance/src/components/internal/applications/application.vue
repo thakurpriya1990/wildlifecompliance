@@ -731,8 +731,7 @@ export default {
             })
         },
         canIssueDecline: function(){
-
-            if (this.selectedActivity.processing_status=='awaiting_payment') {
+            if (this.selectedActivity.processing_status.id=='awaiting_licence_fee_payment') {
                 return false;
             }
             // check user is authorised to issue/allocate for selected activity.
@@ -841,6 +840,10 @@ export default {
                 && (this.hasRole('licensing_officer') || this.hasRole('issuing_officer'))
         },
         showFinalDecision: function() {
+            if (['awaiting_payment'].includes(this.application.processing_status.id)) { // prevent processing for outstanding payments.
+                this.toggleApplication({show: false})
+                this.isSendingToAssessor=false
+            }
             return (!this.showingApplication || !this.unfinishedActivities.length) && !this.isSendingToAssessor && !this.canIssueDecline
         },
     },

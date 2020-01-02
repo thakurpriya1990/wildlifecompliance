@@ -499,6 +499,7 @@ class BaseApplicationSerializer(serializers.ModelSerializer):
             ApplicationSelectedActivity.PROCESSING_STATUS_DRAFT,
             ApplicationSelectedActivity.PROCESSING_STATUS_DECLINED,
             ApplicationSelectedActivity.PROCESSING_STATUS_ACCEPTED,
+            ApplicationSelectedActivity.PROCESSING_STATUS_AWAITING_LICENCE_FEE_PAYMENT,
         ]).exists()
 
     def get_processed(self, obj):
