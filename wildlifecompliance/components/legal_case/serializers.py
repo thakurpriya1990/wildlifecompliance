@@ -31,6 +31,7 @@ from wildlifecompliance.components.users.serializers import (
 from wildlifecompliance.components.artifact.serializers import (
         #LegalCaseRunningSheetArtifactsSerializer,
         DocumentArtifactSerializer,
+        PhysicalArtifactSerializer,
         )
 #from wildlifecompliance.components.offence.serializers import OrganisationSerializer
 #from django.contrib.auth.models import Permission, ContentType

@@ -132,10 +132,9 @@ class DocumentArtifact(Artifact):
     #_file = models.FileField(max_length=255)
     #identifier = models.CharField(max_length=255, blank=True, null=True)
     #description = models.TextField(blank=True, null=True)
-    legal_case = models.ForeignKey(
+    legal_case = models.ManyToManyField(
             LegalCase,
             related_name='legal_case_document_artifacts',
-            null=True,
             )
     statement = models.ForeignKey(
         'self', 
@@ -179,26 +178,44 @@ class DocumentArtifact(Artifact):
     def log_user_action(self, action, request):
         return ArtifactUserAction.log_action(self, action, request.user)
 
-    #def send_to_manager(self, request):
-    ## Prefix "DO" char to DocumentArtifact number.
-    #def save(self, *args, **kwargs):
-    #    
-    #    super(DocumentArtifact, self).save(*args,**kwargs)
-    #    if self.number is None:
-    #        new_number_id = 'DO{0:06d}'.format(self.pk)
-    #        self.number = new_number_id
-    #        self.save()
-        
+    def close(self, request):
+        close_record, parents = can_close_record(self, request)
+        if close_record:
+            self.status = self.STATUS_CLOSED
+            self.log_user_action(
+                    ArtifactUserAction.ACTION_CLOSE.format(self.number), 
+                    request)
+        else:
+            self.status = self.STATUS_PENDING_CLOSURE
+            self.log_user_action(
+                    ArtifactUserAction.ACTION_PENDING_CLOSURE.format(self.number), 
+                    request)
+        self.save()
+        # Call close() on any parent with pending_closure status
+        if parents and self.status == 'closed':
+            for parent in parents:
+                if parent.status == 'pending_closure':
+                    parent.close(request)
+
+    def add_legal_case(self, legal_case_id):
+        #legal_case_id = request.data.get('legal_case_id')
+        try:
+            legal_case_id_int = int(legal_case_id)
+        except Exception as e:
+            raise e
+        legal_case = LegalCase.objects.get(id=legal_case_id_int)
+        if legal_case:
+            self.legal_case.add(legal_case)
+
 
 class PhysicalArtifact(Artifact):
     physical_artifact_type = models.ForeignKey(
             PhysicalArtifactType,
             null=True
             )
-    legal_case = models.ForeignKey(
+    legal_case = models.ManyToManyField(
             LegalCase,
             related_name='legal_case_physical_artifacts',
-            null=True,
             )
     #_file = models.FileField(max_length=255)
     #identifier = models.CharField(max_length=255, blank=True, null=True)
@@ -239,15 +256,15 @@ class PhysicalArtifact(Artifact):
     def log_user_action(self, action, request):
         return ArtifactUserAction.log_action(self, action, request.user)
 
-    #def send_to_manager(self, request):
-    ## Prefix "PO" char to DocumentArtifact number.
-    #def save(self, *args, **kwargs):
-    #    
-    #    super(PhysicalArtifact, self).save(*args,**kwargs)
-    #    if self.number is None:
-    #        new_number_id = 'PO{0:06d}'.format(self.pk)
-    #        self.number = new_number_id
-    #        self.save()
+    def add_legal_case(self, legal_case_id):
+        #legal_case_id = request.data.get('legal_case_id')
+        try:
+            legal_case_id_int = int(legal_case_id)
+        except Exception as e:
+            raise e
+        legal_case = LegalCase.objects.get(id=legal_case_id_int)
+        if legal_case:
+            self.legal_case.add(legal_case)
 
 
 class ArtifactCommsLogEntry(CommunicationsLogEntry):

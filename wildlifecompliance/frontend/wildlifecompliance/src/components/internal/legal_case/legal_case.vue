@@ -161,7 +161,12 @@
                             <FormSection :formCollapse="false" label="Related Items">
                                 <div class="col-sm-12 form-group"><div class="row">
                                     <div class="col-sm-12" v-if="relatedItemsVisibility">
-                                        <RelatedItems v-bind:key="relatedItemsBindId" :parent_update_related_items="setRelatedItems" :readonlyForm="!canUserAction"/>
+                                        <RelatedItems 
+                                        v-bind:key="relatedItemsBindId" 
+                                        :parent_update_related_items="setRelatedItems" 
+                                        :readonlyForm="!canUserAction"
+                                        parentComponentName="legal_case"
+                                        />
                                     </div>
                                 </div></div>
                             </FormSection>
@@ -227,6 +232,10 @@
             v-bind:key="runningSheetHistoryEntryBindId"
             />
         </div>
+        <LegalCaseWorkflow 
+        ref="legal_case_workflow"
+        :workflow_type="workflow_type"
+        />
     </div>
 </template>
 <script>
@@ -253,6 +262,7 @@ import Magic from './magic';
 import PersonOrArtifactModal from '@/components/common/person_or_artifact_modal';
 import _ from 'lodash';
 import RunningSheetHistory from './running_sheet_history'
+import LegalCaseWorkflow from './legal_case_workflow'
 
 
 export default {
@@ -408,6 +418,7 @@ export default {
     Magic,
     PersonOrArtifactModal,
     RunningSheetHistory,
+    LegalCaseWorkflow,
   },
   computed: {
     ...mapGetters('legalCaseStore', {
@@ -466,7 +477,7 @@ export default {
         let timeNow = Date.now()
         let bindId = null;
         if (this.legal_case && this.legal_case.id) {
-            bindId = 'legal_case_' + this.legal_case.id + '_' + this._uid;
+            bindId = 'legal_case_' + this.legal_case.id + '_' + this.uuid;
         } else {
             bindId = timeNow.toString();
         }
@@ -555,6 +566,8 @@ export default {
         "entity": entity, 
         "action": action
     }) {
+        // destroy modal
+        this.personOrArtifactInitialised = false;
         console.log(row_number_selected);
         console.log(entity);
         console.log(action);
@@ -606,10 +619,11 @@ export default {
     },
     */
     insertArtifactModalUrl: function({"entity": entity, "recordNumberElement": recordNumberElement}) {
-        let replacementVal = ''
-        if (entity.artifact_type) {
-            // TODO: replace with correct artifact url
-            replacementVal = `<a contenteditable="false" target="_blank" href="/internal/object/${entity.id}">${entity.artifact_type}</a>`
+        let replacementVal = '';
+        let urlDescription = entity.identifier ? entity.identifier : entity.artifact_type;
+
+        if (urlDescription) {
+            replacementVal = `<a contenteditable="false" target="_blank" href="/internal/object/${entity.id}">${urlDescription}</a>`
             // add to runningSheetArtifactList
             /*
             if (this.legal_case && !this.legal_case.runningSheetArtifactList) {

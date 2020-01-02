@@ -3,10 +3,14 @@
         <div class="col-sm-12 child-artifact-component">
             <div class="form-group">
                 <div class="row">
-                    <ul class="nav nav-pills">
-                        <li class="nav-item active"><a data-toggle="tab" @click="updateTabSelected('objectTab')" :href="'#'+newTab">New</a></li>
-                        <li class="nav-item"><a data-toggle="tab" :href="'#'+existingTab" >Existing</a></li>
-                    </ul>
+                    <div v-if="!parentModal">
+                    </div>
+                    <div v-else>
+                        <ul class="nav nav-pills">
+                            <li class="nav-item active"><a data-toggle="tab" @click="updateTabSelected('objectTab')" :href="'#'+newTab">New</a></li>
+                            <li class="nav-item"><a data-toggle="tab" :href="'#'+existingTab" >Existing</a></li>
+                        </ul>
+                    </div>
                     <div class="tab-content">
                         <div :id="newTab" class="tab-pane fade in active">
                             <ul class="nav nav-pills">
@@ -14,9 +18,11 @@
                                 <li :class="detailsTabListClass"><a data-toggle="tab" @click="updateTabSelected('detailsTab')" :href="'#'+detailsTab" >Details</a></li>
                                 <li :class="storageTabListClass"><a data-toggle="tab" @click="updateTabSelected('storageTab')" :href="'#'+storageTab" >Storage</a></li>
                                 <li :class="disposalTabListClass"><a data-toggle="tab" @click="updateTabSelected('disposalTab')" :href="'#'+disposalTab" >Disposal</a></li>
+                                <li v-if="!parentModal" :class="relatedItemsTabListClass"><a data-toggle="tab" @click="updateTabSelected('relatedItemsTab')" :href="'#'+relatedItemsTab" >Related Items</a></li>
                             </ul>
                             <div class="tab-content">
                                     <div :id="objectTab" :class="objectTabClass">
+                                    <FormSection :formCollapse="false" :label="artifactType" Index="0" :hideHeader="!physicalArtifactIdExists">
                                         <div class="col-sm-12">
                                             <div class="form-group">
                                               <div class="row">
@@ -121,6 +127,7 @@
                                                 </div>
                                             </div>
                                         </div>
+                                    </FormSection>
                                     </div>
                                     <!--div :id="detailsTab" class="tab-pane fade in li-top-buffer">
                                         details
@@ -139,6 +146,21 @@
                                     </div>
                                     <div :id="disposalTab" :class="disposalTabClass">
                                         disposal
+                                    </div>
+                                    <!--div :id="relatedItemsTab" class="tab-pane fade in"-->
+                                    <div v-if="!parentModal" :id="relatedItemsTab" :class="relatedItemsTabClass">
+                                        <FormSection :formCollapse="false" label="Related Items">
+                                            <div class="col-sm-12 form-group"><div class="row">
+                                                <div class="col-sm-12" v-if="relatedItemsVisibility">
+                                                    <RelatedItems 
+                                                    :parent_update_related_items="setRelatedItems" 
+                                                    v-bind:key="relatedItemsBindId" 
+                                                    :readonlyForm="!canUserAction"
+                                                    parentComponentName="physical_artifact"
+                                                    />
+                                                </div>
+                                            </div></div>
+                                        </FormSection>
                                     </div>
                             </div>
                         </div>
@@ -165,12 +187,15 @@ import moment from 'moment';
 import SearchPersonOrganisation from './search_person_or_organisation'
 //require("select2/dist/css/select2.min.css");
 //require("select2-bootstrap-theme/dist/select2-bootstrap.min.css");
+import FormSection from "@/components/forms/section_toggle.vue";
+import RelatedItems from "@common-components/related_items.vue";
 
 export default {
     name: "PhysicalArtifactComponent",
     data: function() {
         return {
             uuid: 0,
+            relatedItemsTab: 'rTab'+this._uid,
             newTab: 'newTab'+this._uid,
             existingTab: 'existingTab'+this._uid,
             objectTab: 'objectTab'+this._uid,
@@ -194,6 +219,15 @@ export default {
       //modal,
       filefield,
       SearchPersonOrganisation,
+      FormSection,
+      RelatedItems,
+    },
+    props: {
+        parentModal: {
+            type: Boolean,
+            required: false,
+            default: false,
+        },
     },
     watch: {
         artifactType: {
@@ -215,6 +249,37 @@ export default {
         ...mapGetters('legalCaseStore', {
             legal_case: "legal_case",
         }),
+        legalCaseId: function() {
+          let ret_val = null;
+          if (this.legal_case && this.legal_case.id) {
+              ret_val = this.legal_case.id;
+          }
+          return ret_val;
+        },
+        legalCaseExists: function() {
+          let caseExists = false;
+          if (this.legal_case && this.legal_case.id) {
+              caseExists = true;
+          }
+          return caseExists;
+        },
+        canUserAction: function() {
+            return true;
+        },
+        physicalArtifactId: function() {
+            let id = null;
+            if (this.physical_artifact && this.physical_artifact.id) {
+                id = this.physical_artifact.id;
+            }
+            return id;
+        },
+        physicalArtifactIdExists: function() {
+            let recordExists = false;
+            if (this.physical_artifact && this.physical_artifact.id) {
+                recordExists = true;
+            }
+            return recordExists;
+        },
         artifactType: function() {
             let aType = ''
             if (this.physical_artifact && this.physical_artifact.physical_artifact_type) {
@@ -253,6 +318,13 @@ export default {
         disposalTabSelected: function() {
             let isTab = false;
             if (this.tabSelected === 'disposalTab') {
+                isTab = true;
+            }
+            return isTab;
+        },
+        relatedItemsTabSelected: function() {
+            let isTab = false;
+            if (this.tabSelected === 'relatedItemsTab') {
                 isTab = true;
             }
             return isTab;
@@ -313,6 +385,38 @@ export default {
             }
             return tabClass;
         },
+        relatedItemsTabListClass: function() {
+            let tabClass = 'nav-item';
+            if (this.relatedItemsTabSelected) {
+                tabClass += ' active';
+            }
+            return tabClass;
+        },
+        relatedItemsTabClass: function() {
+            let tabClass = 'li-top-buffer tab-pane fade in';
+            if (this.relatedItemsTabSelected) {
+                tabClass += ' active';
+            }
+            return tabClass;
+        },
+        relatedItemsBindId: function() {
+            let timeNow = Date.now()
+            let bindId = null;
+            if (this.physical_artifact && this.physical_artifact.id) {
+                //bindId = 'physical_artifact_' + this.physical_artifact.id + '_' + this.uuid;
+                bindId = 'physical_artifact_' + this.physical_artifact.id + '_' + timeNow.toString();
+            } else {
+                bindId = timeNow.toString();
+            }
+            return bindId;
+        },
+        relatedItemsVisibility: function() {
+            let related_items_visibility = false;
+            if (this.physical_artifact && this.physical_artifact.id) {
+                related_items_visibility = true;
+            }
+            return related_items_visibility;
+        },
     },
     filters: {
       formatDate: function(data) {
@@ -324,6 +428,7 @@ export default {
             savePhysicalArtifact: 'savePhysicalArtifact',
             loadPhysicalArtifact: 'loadPhysicalArtifact',
             setPhysicalArtifact: 'setPhysicalArtifact',
+            setRelatedItems: 'setRelatedItems',
         }),
         updateTabSelected: function(tabValue) {
             this.tabSelected = tabValue;
@@ -337,12 +442,12 @@ export default {
         },
         save: async function() {
             if (this.physical_artifact.id) {
-                await this.savePhysicalArtifact({ create: false, internal: false });
+                await this.savePhysicalArtifact({ create: false, internal: false, legal_case_id: this.legalCaseId });
             } else {
-                await this.savePhysicalArtifact({ create: true, internal: false });
+                await this.savePhysicalArtifact({ create: true, internal: false, legal_case_id: this.legalCaseId });
             }
         },
-        parentSave: async function() {
+        create: async function() {
             //let physicalArtifactEntity = null;
             /*
             if (this.saveButtonEnabled) {
@@ -351,7 +456,7 @@ export default {
                 savedEmailUser = {'ok': true};
             }
             */
-            await this.save();
+            await this.savePhysicalArtifact({ create: true, internal: true, legal_case_id: this.legalCaseId });
             //this.entity.id = 
             this.$nextTick(() => {
                 this.$emit('entity-selected', {

@@ -70,7 +70,7 @@ export const physicalArtifactStore = {
                 console.log(err);
             }
         },
-        async savePhysicalArtifact({ dispatch, state, rootGetters }, { create, internal }) {
+        async savePhysicalArtifact({ dispatch, state, rootGetters }, { create, internal, legal_case_id }) {
             let physicalArtifactId = null;
             let savedPhysicalArtifact = null;
             try {
@@ -81,6 +81,9 @@ export const physicalArtifactStore = {
                     payload.artifact_date = moment(payload.artifact_date, 'DD/MM/YYYY').format('YYYY-MM-DD');
                 } else if (payload.artifact_date === '') {
                     payload.artifact_date = null;
+                }
+                if (legal_case_id) {
+                    payload.legal_case_id = legal_case_id;
                 }
 
                 let fetchUrl = null;

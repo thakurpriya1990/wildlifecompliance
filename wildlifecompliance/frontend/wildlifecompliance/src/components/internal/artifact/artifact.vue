@@ -49,7 +49,19 @@
           <div class="col-md-9" id="main-column">
             <div class="row">
 
-                <div class="container-fluid">
+                <div v-if="showDocumentArtifactComponent" class="row">
+                    <DocumentArtifact 
+                    ref="document_artifact"
+                    v-bind:key="updateDocumentArtifactBindId"
+                    />
+                </div>
+                <div v-if="showPhysicalArtifactComponent" class="row">
+                    <PhysicalArtifact 
+                    ref="physical_artifact"
+                    v-bind:key="updatePhysicalArtifactBindId"
+                    />
+                </div>
+                <!--div class="container-fluid">
                     <ul class="nav nav-pills aho2">
                         <li class="nav-item active"><a data-toggle="tab" :href="'#'+oTab">Object</a></li>
                         <li class="nav-item"><a data-toggle="tab" :href="'#'+rTab">Related Items</a></li>
@@ -82,7 +94,7 @@
                             </FormSection>
                         </div>
                     </div>
-                </div>
+                </div-->
             </div>
           </div>
 
@@ -112,7 +124,7 @@ import { mapState, mapGetters, mapActions, mapMutations } from "vuex";
 import moment from 'moment';
 import 'bootstrap/dist/css/bootstrap.css';
 import 'eonasdan-bootstrap-datetimepicker';
-import RelatedItems from "@common-components/related_items.vue";
+//import RelatedItems from "@common-components/related_items.vue";
 require("select2/dist/css/select2.min.css");
 require("select2-bootstrap-theme/dist/select2-bootstrap.min.css");
 import hash from 'object-hash';
@@ -169,7 +181,6 @@ export default {
   components: {
     CommsLogs,
     FormSection,
-    RelatedItems,
     DocumentArtifact,
     PhysicalArtifact,
   },

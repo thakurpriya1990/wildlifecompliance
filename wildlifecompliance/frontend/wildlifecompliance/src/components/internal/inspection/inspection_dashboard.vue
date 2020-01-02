@@ -309,16 +309,21 @@
                 let vm = this;
                 // Initialise Planned Date Filters
                 $(vm.$refs.plannedDateToPicker).datetimepicker(vm.datepickerOptions);
+                $(vm.$refs.plannedDateFromPicker).datetimepicker(vm.datepickerOptions);
+                // Add Date Filter events
                 $(vm.$refs.plannedDateToPicker).on('dp.change', function (e) {
                     if ($(vm.$refs.plannedDateToPicker).data('DateTimePicker').date()) {
+                        // if From Date set, disable dates earlier than the from date
+                        $(vm.$refs.plannedDateFromPicker).data("DateTimePicker").maxDate(e.date)
                         vm.filterPlannedTo = e.date.format('DD/MM/YYYY');
                     } else if ($(vm.$refs.plannedDateToPicker).data('date') === "") {
-                        vm.filterLodgedTo = "";
+                        vm.filterPlannedTo = "";
                     }
                 });
-                $(vm.$refs.plannedDateFromPicker).datetimepicker(vm.datepickerOptions);
                 $(vm.$refs.plannedDateFromPicker).on('dp.change', function (e) {
                     if ($(vm.$refs.plannedDateFromPicker).data('DateTimePicker').date()) {
+                        // if To Date set, disable dates later than the To date
+                        $(vm.$refs.plannedDateToPicker).data("DateTimePicker").minDate(e.date)
                         vm.filterPlannedFrom = e.date.format('DD/MM/YYYY');
                     } else if ($(vm.$refs.plannedDateFromPicker).data('date') === "") {
                         vm.filterPlannedFrom = "";

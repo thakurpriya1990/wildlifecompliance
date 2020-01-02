@@ -235,6 +235,8 @@ pending_closure_related_item_models = [
         'Inspection',
         'SanctionOutcome',
         'LegalCase',
+        'DocumentArtifact',
+        'PhysicalArtifact',
         ]
 
 approved_email_user_related_items = [
@@ -320,6 +322,27 @@ def get_related_items(entity, pending_closure=False, **kwargs):
                         field_objects = f.related_model.objects.filter(offence_id=entity.id)
                     elif entity._meta.model_name == 'legalcase':
                         field_objects = f.related_model.objects.filter(legal_case_id=entity.id)
+                    if field_objects:
+                        for field_object in field_objects:
+                            if pending_closure:
+                                children.append(field_object)
+                            else:
+                                related_item = RelatedItem(
+                                        model_name = format_model_name(f.related_model.__name__),
+                                        identifier = field_object.get_related_items_identifier,
+                                        descriptor = field_object.get_related_items_descriptor,
+                                        action_url = format_url(
+                                                model_name=f.related_model.__name__,
+                                                obj_id=field_object.id
+                                                )
+                                        )
+                                return_list.append(related_item)
+                # legal case artifacts
+                elif entity._meta.model_name == 'legalcase' and f.is_relation and f.many_to_many:
+                    print("many to many")
+                    print(f.__dict__)
+                    field_objects = f.related_model.objects.filter(legal_case=entity)
+                    # TODO: Refactor repeated code
                     if field_objects:
                         for field_object in field_objects:
                             if pending_closure:

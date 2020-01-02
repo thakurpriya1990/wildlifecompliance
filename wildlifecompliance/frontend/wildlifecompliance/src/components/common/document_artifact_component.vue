@@ -3,12 +3,21 @@
         <div class="col-sm-12 child-artifact-component">
             <div class="form-group">
                 <div class="row">
-                    <ul class="nav nav-pills">
-                        <li class="nav-item active"><a data-toggle="tab" :href="'#'+newTab">New</a></li>
-                        <li class="nav-item"><a data-toggle="tab" :href="'#'+existingTab" >Existing</a></li>
-                    </ul>
+                    <div v-if="!parentModal">
+                        <ul class="nav nav-pills">
+                            <li class="nav-item active"><a data-toggle="tab" :href="'#'+newTab">Object</a></li>
+                            <li class="nav-item"><a data-toggle="tab" :href="'#'+rTab">Related Items</a></li>
+                        </ul>
+                    </div>
+                    <div v-else>
+                        <ul class="nav nav-pills">
+                            <li class="nav-item active"><a data-toggle="tab" :href="'#'+newTab">New</a></li>
+                            <li class="nav-item"><a data-toggle="tab" :href="'#'+existingTab" >Existing</a></li>
+                        </ul>
+                    </div>
                     <div class="tab-content">
                         <div :id="newTab" class="tab-pane fade in active">
+                        <FormSection :formCollapse="false" :label="artifactType" Index="0" :hideHeader="!documentArtifactIdExists">
                             <div :id="objectTab" class="tab-pane fade in active li-top-buffer">
                                 <div class="col-sm-12">
                                     <div class="form-group">
@@ -122,8 +131,23 @@
                                     </div>
                                 </div>
                             </div>
+                        </FormSection>
                         </div>
                         <div :id="existingTab" class="tab-pane fade in li-top-buffer">
+                        </div>
+                        <div v-if="!parentModal" :id="rTab" class="tab-pane fade in">
+                            <FormSection :formCollapse="false" label="Related Items">
+                                <div class="col-sm-12 form-group"><div class="row">
+                                    <div class="col-sm-12" v-if="relatedItemsVisibility">
+                                        <RelatedItems 
+                                        :parent_update_related_items="setRelatedItems" 
+                                        v-bind:key="relatedItemsBindId" 
+                                        :readonlyForm="!canUserAction"
+                                        parentComponentName="document_artifact"
+                                        />
+                                    </div>
+                                </div></div>
+                            </FormSection>
                         </div>
                     </div>
                 </div>
@@ -143,6 +167,8 @@ import 'bootstrap/dist/css/bootstrap.css';
 import 'eonasdan-bootstrap-datetimepicker';
 import moment from 'moment';
 import SearchPersonOrganisation from './search_person_or_organisation'
+import FormSection from "@/components/forms/section_toggle.vue";
+import RelatedItems from "@common-components/related_items.vue";
 
 export default {
     name: "DocumentArtifactComponent",
@@ -155,6 +181,7 @@ export default {
             detailsTab: 'detailsTab'+this._uid,
             storageTab: 'storageTab'+this._uid,
             disposalTab: 'disposalTab'+this._uid,
+            rTab: 'rTab'+this._uid,
             isModalOpen: false,
             processingDetails: false,
             documentActionUrl: '',
@@ -178,6 +205,15 @@ export default {
       //modal,
       filefield,
       SearchPersonOrganisation,
+      FormSection,
+      RelatedItems,
+    },
+    props: {
+        parentModal: {
+            type: Boolean,
+            required: false,
+            default: false,
+        },
     },
     watch: {
         artifactType: {
@@ -213,46 +249,76 @@ export default {
 
     },
     computed: {
-      ...mapGetters('documentArtifactStore', {
-        document_artifact: "document_artifact",
-      }),
-      ...mapGetters('legalCaseStore', {
-        legal_case: "legal_case",
-      }),
-      legalCaseId: function() {
+        ...mapGetters('documentArtifactStore', {
+            document_artifact: "document_artifact",
+        }),
+        ...mapGetters('legalCaseStore', {
+            legal_case: "legal_case",
+        }),
+        canUserAction: function() {
+            return true;
+        },
+        legalCaseId: function() {
           let ret_val = null;
           if (this.legal_case && this.legal_case.id) {
               ret_val = this.legal_case.id;
           }
           return ret_val;
-      },
-      legalCaseExists: function() {
+        },
+        legalCaseExists: function() {
           let caseExists = false;
           if (this.legal_case && this.legal_case.id) {
               caseExists = true;
           }
           return caseExists;
-      },
-        /*
-      legalCaseStatementArtifacts: function() {
-          if (this.legalCaseExists) {
-          */
-
-      artifactType: function() {
+        },
+        documentArtifactId: function() {
+          let id = null;
+          if (this.document_artifact && this.document_artifact.id) {
+              id = this.document_artifact.id;
+          }
+          return id;
+        },
+        documentArtifactIdExists: function() {
+          let recordExists = false;
+          if (this.document_artifact && this.document_artifact.id) {
+              recordExists = true;
+          }
+          return recordExists;
+        },
+        artifactType: function() {
           console.log("artifact type")
           let aType = ''
           if (this.document_artifact && this.document_artifact.document_type) {
               aType = this.document_artifact.document_type.artifact_type;
           }
           return aType;
-      },
-      readonlyForm: function() {
+        },
+        readonlyForm: function() {
           return false;
-      },
-      updateSearchPersonOrganisationBindId: function() {
+        },
+        updateSearchPersonOrganisationBindId: function() {
           this.uuid += 1
           return "DocumentArtifact_SearchPerson_" + this.uuid.toString();
-      },
+        },
+        relatedItemsBindId: function() {
+            let timeNow = Date.now()
+            let bindId = null;
+            if (this.document_artifact && this.document_artifact.id) {
+                //bindId = 'document_artifact_' + this.document_artifact.id + '_' + this.uuid;
+                bindId = 'document_artifact_' + this.document_artifact.id + '_' + timeNow.toString();
+            } else {
+                bindId = timeNow.toString();
+            }
+            return bindId;
+        },
+        relatedItemsVisibility: function() {
+            let related_items_visibility = false;
+            if (this.document_artifact && this.document_artifact.id) {
+                related_items_visibility = true;
+            }
+            return related_items_visibility;
+        },
     },
     filters: {
       formatDate: function(data) {
@@ -264,6 +330,7 @@ export default {
             saveDocumentArtifact: 'saveDocumentArtifact',
             loadDocumentArtifact: 'loadDocumentArtifact',
             setDocumentArtifact: 'setDocumentArtifact',
+            setRelatedItems: 'setRelatedItems',
             //setDocumentArtifactLegalId: 'setDocumentArtifactLegalId',
         }),
         ...mapActions('legalCaseStore', {
@@ -298,7 +365,7 @@ export default {
                 await this.saveDocumentArtifact({ create: true, internal: false, legal_case_id: this.legalCaseId });
             }
         },
-        parentSave: async function() {
+        create: async function() {
             //let documentArtifactEntity = null;
             /*
             if (this.saveButtonEnabled) {
@@ -307,7 +374,7 @@ export default {
                 savedEmailUser = {'ok': true};
             }
             */
-            await this.save();
+            await this.saveDocumentArtifact({ create: true, internal: true, legal_case_id: this.legalCaseId });
             //this.entity.id = 
             this.$nextTick(() => {
                 this.$emit('entity-selected', {
