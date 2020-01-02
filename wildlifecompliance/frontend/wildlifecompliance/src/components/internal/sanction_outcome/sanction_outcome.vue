@@ -429,6 +429,9 @@
                              :key="recordFerCaseNumberBindId" />
         <SendParkingInfringement ref="send_parking_infringement" 
                                  :key="sendParkingInfringementBindId" />
+        <AcceptRemediationAction ref="accept_remediation_action"
+                                 :remediation_action_id="remediation_action_id"
+                                 :key="acceptRemediationActionBindId" />
     </div>
 </template>
 
@@ -441,10 +444,11 @@ import { api_endpoints, helpers, cache_helper } from "@/utils/hooks";
 import { mapState, mapGetters, mapActions, mapMutations } from "vuex";
 import CommsLogs from "@common-components/comms_logs.vue";
 import filefield from '@/components/common/compliance_file.vue';
-import SanctionOutcomeWorkflow from './sanction_outcome_workflow';
-import ExtendPaymentDueDate from './extend_payment_due_date.vue';
-import RecordFerCaseNumber from './record_fer_case_number.vue';
-import SendParkingInfringement from './send_parking_infringement.vue';
+import SanctionOutcomeWorkflow from '@/components/internal/sanction_outcome/sanction_outcome_workflow';
+import ExtendPaymentDueDate from '@/components/internal/sanction_outcome/extend_payment_due_date.vue';
+import RecordFerCaseNumber from '@/components/internal/sanction_outcome/record_fer_case_number.vue';
+import SendParkingInfringement from '@/components/internal/sanction_outcome/send_parking_infringement.vue';
+import AcceptRemediationAction from '@/components/internal/sanction_outcome/accept_remediation_action.vue';
 import 'bootstrap/dist/css/bootstrap.css';
 import hash from 'object-hash';
 import RelatedItems from "@common-components/related_items.vue";
@@ -478,6 +482,7 @@ export default {
             temporary_document_collection_id: null,
             workflow_type :'',
             workflowBindId :'',
+            remediation_action_id: 0,
             soTab: 'soTab' + this._uid,
             raTab: 'raTab' + this._uid,
             deTab: 'deTab' + this._uid,
@@ -667,6 +672,7 @@ export default {
         RecordFerCaseNumber,
         SendParkingInfringement,
         RegistrationHolder,
+        AcceptRemediationAction,
         Driver,
     },
     created: async function() {
@@ -687,6 +693,9 @@ export default {
         ...mapGetters('sanctionOutcomeStore', {
             sanction_outcome: "sanction_outcome",
         }),
+        acceptRemediationActionBindId: function() {
+            return 'acceptRemediationActionBindId' + this.bindId
+        },
         displayRemediationActions: function() {
             if (this.sanction_outcome && this.sanction_outcome.type){
                 return this.sanction_outcome.type.id == "remediation_notice" ? true : false;
@@ -711,7 +720,7 @@ export default {
         },
         registrationHolderBindId: function() {
             this.registrationHolderId += 1
-            return 'resigtrationHolderBindId' + this.bindId;
+            return 'resigtrationHolderBindId' + this.registrationHolderId;
         },
         updateDriverBindId: function() {
             this.driverId += 1
@@ -1123,8 +1132,16 @@ export default {
         },
         acceptRemediationActionClicked: function(e){
             console.log('accept');
+
             let remediationActionId = parseInt(e.target.getAttribute("data-id"));
+
             console.log(remediationActionId);
+
+            this.remediation_action_id = remediationActionId;
+            this.bindId += 1
+            this.$nextTick(() => {
+                this.$refs.accept_remediation_action.isModalOpen = true;
+            });
 
         },
         requestAmendmentRemediationActionClicked: function(e){
