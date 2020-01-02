@@ -449,6 +449,7 @@ class BaseApplicationSerializer(serializers.ModelSerializer):
             'application_type',
             'invoice_url',
             'total_paid_amount',
+            'has_amended_fees',
         )
         read_only_fields = ('documents',)
 

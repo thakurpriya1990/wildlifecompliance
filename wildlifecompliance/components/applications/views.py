@@ -123,7 +123,7 @@ class LicenceFeeSuccessView(TemplateView):
                 )
 
                 line = ActivityInvoiceLine.objects.get_or_create(
-                    invoice=invoice,
+                    invoice=invoice[0],
                     licence_activity=activity.licence_activity,
                     amount=activity.licence_fee
                 )

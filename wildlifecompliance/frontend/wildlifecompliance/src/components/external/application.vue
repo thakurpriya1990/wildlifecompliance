@@ -21,7 +21,7 @@
                             <div class="container">
                                 <p class="pull-right" style="margin-top:5px;">
                                     <span v-if="requiresCheckout" style="margin-right: 5px; font-size: 18px; display: block;">
-                                        <strong>Estimated application fee: {{application.application_fee | toCurrency}}</strong>
+                                        <strong>Estimated application fee: {{adjusted_application_fee | toCurrency}}</strong>
                                         <strong>Estimated licence fee: {{application.licence_fee | toCurrency}}</strong>
                                     </span>
                                     <input v-if="!isProcessing && canDiscardActivity" type="button" @click.prevent="discardActivity" class="btn btn-danger" value="Discard Activity"/>
@@ -67,7 +67,8 @@ export default {
       isProcessing: false,
       tabSelected: false,
       application_customer_status_onload: {},
- 	    missing_fields: [],
+      missing_fields: [],
+      adjusted_application_fee: 0,
     }
   },
   components: {
@@ -96,9 +97,9 @@ export default {
       return (this.application) ? `/api/application/${this.application.id}/form_data.json` : '';
     },
     requiresCheckout: function() {
-      return (this.application.application_fee > 0 && [
-        'draft', 'awaiting_payment',
-      ].includes(this.application_customer_status_onload.id)) || this.application.total_paid_amount > 0
+      return (this.adjusted_application_fee > 0 && [
+        'draft', 'awaiting_payment', 'amendment_required'
+      ].includes(this.application_customer_status_onload.id))
     },
     canDiscardActivity: function() {
       return this.application.activities.find(
@@ -259,7 +260,7 @@ export default {
                 this.saveFormData({ url: this.application_form_data_url }).then(res=>{
                     vm.$http.post(helpers.add_endpoint_json(api_endpoints.applications,vm.application.id+'/submit'),{}).then(res=>{
                       this.setApplication(res.body);
-                      if (this.application.application_fee>this.application.total_paid_amount) { //refund not required.
+                      if (this.adjusted_application_fee > 0) { //refund not required.
                           vm.$http.post(helpers.add_endpoint_join(api_endpoints.applications,vm.application.id+'/application_fee_checkout/'), {}).then(res=>{
                               window.location.href = "/ledger/checkout/checkout/payment-details/";
                           },err=>{
@@ -322,6 +323,11 @@ export default {
     this.$nextTick(() => {
         vm.eventListeners();
     });
+    if (this.application.has_amended_fees){ // fees can be adjusted from selected components.
+      this.adjusted_application_fee = this.application.application_fee - this.application.total_paid_amount
+    } else {
+      this.adjusted_application_fee = this.application.application_fee
+    }
   },
 }
 </script>

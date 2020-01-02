@@ -1470,7 +1470,8 @@ class Application(RevisionedMixin):
         Check on previous invoice amounts for difference in application fee.
         """
         fees_amended = False
-        if self.total_paid_amount <= self.application_fee:
+        if self.total_paid_amount > 0 and \
+           self.total_paid_amount <= self.application_fee:
             fees_amended = True
 
         return fees_amended
@@ -1482,6 +1483,8 @@ class Application(RevisionedMixin):
         based on the difference already paid.
         """
         amended = []
+        if not self.latest_invoice:
+            return amended
         latest_inv = self.latest_invoice
         app_inv = ApplicationInvoice.objects.filter(
             invoice_reference=latest_inv.reference).first()
@@ -2573,7 +2576,6 @@ class ApplicationSelectedActivity(models.Model):
     is_inspection_required = models.BooleanField(default=False)
     licence_fee = models.DecimalField(
         max_digits=8, decimal_places=2, default='0')
-    # TODO: application_fee on activity may not be required.
     application_fee = models.DecimalField(
         max_digits=8, decimal_places=2, default='0')
     assigned_approver = models.ForeignKey(
@@ -2864,7 +2866,7 @@ class ApplicationSelectedActivity(models.Model):
             invoice_reference=invoice_ref
         )
         line = ActivityInvoiceLine.object.get_or_create(
-            invoice=invoice,
+            invoice=invoice[0],
             licence_activity=self.licence_activity,
             amount=self.licence_fee
         )
