@@ -79,6 +79,7 @@ import {
     api_endpoints,
     helpers
 }from '@/utils/hooks'
+import '@/scss/dashboards/licence.scss';
 export default {
     name: 'LicenceTableDash',
     props: {
@@ -149,7 +150,8 @@ export default {
                 },
                 columns: [
                     {
-                        data: "licence_number"
+                        data: "licence_number",
+                        className: "licence-row-icon",
                     },
                     {
                         data: "current_application.category_name",
