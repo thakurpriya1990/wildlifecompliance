@@ -85,17 +85,18 @@
                                         </div>
                                       </div>
                                     </div>
-                                    <div class="form-group">
+                                    <div v-if="personProvidingStatementVisibility" class="form-group">
                                         <div class="row">
                                             <div class="col-sm-3">
-                                                <label>Witness</label>
+                                                <label>{{ personProvidingStatementLabel }}</label>
                                             </div>
                                             <div class="col-sm-9">
                                                 <SearchPersonOrganisation 
+                                                :parentEntity="personProvidingStatementEntity"
                                                 personOnly
                                                 :isEditable="!readonlyForm" 
                                                 classNames="form-control" 
-                                                @entity-selected="entitySelected"
+                                                @entity-selected="setPersonProvidingStatement"
                                                 showCreateUpdate
                                                 ref="document_artifact_search_person_organisation"
                                                 v-bind:key="updateSearchPersonOrganisationBindId"
@@ -104,6 +105,20 @@
                                                 domIdHelper="document_artifact"
                                                 departmentalStaff
                                                 />
+                                            </div>
+                                        </div>
+                                    </div>
+                                    <div v-if="interviewerVisibility" class="form-group">
+                                        <div class="row">
+                                            <div class="col-sm-3">
+                                                <label >{{ interviewerLabel }}</label>
+                                            </div>
+                                            <div class="col-sm-9">
+                                                <select ref="department_users" class="form-control" v-model="document_artifact.interviewer_email">
+                                                    <option  v-for="option in departmentStaffList" :value="option.email" v-bind:key="option.pk">
+                                                    {{ option.name }} 
+                                                    </option>
+                                                </select>
                                             </div>
                                         </div>
                                     </div>
@@ -199,6 +214,9 @@ export default {
                 'Officer Statement',
                 ],
             statementVisibility: false,
+            //departmentStaffList: [],
+            //personProvidingStatementLabel: '',
+            //interviewerLabel: '',
         }
     },
     components: {
@@ -219,6 +237,8 @@ export default {
         artifactType: {
             handler: function (){
                 this.setStatementVisibility();
+                //this.setPersonProvidingStatementLabel();
+                //this.setInterviewerLabel();
                 /*
                 if (
                     // legal case exists and Document Type is not a statementArtifactType
@@ -258,6 +278,14 @@ export default {
         canUserAction: function() {
             return true;
         },
+        personProvidingStatementEntity: function() {
+            let entity = {}
+            if (this.document_artifact && this.document_artifact.person_providing_statement) {
+                entity.id = this.document_artifact.person_providing_statement.id;
+                entity.data_type = 'individual';
+            }
+            return entity;
+        },
         legalCaseId: function() {
           let ret_val = null;
           if (this.legal_case && this.legal_case.id) {
@@ -293,6 +321,40 @@ export default {
               aType = this.document_artifact.document_type.artifact_type;
           }
           return aType;
+        },
+        personProvidingStatementLabel: function() {
+            let label = '';
+            if (this.artifactType === 'Witness Statement') {
+                label = 'Witness';
+            } else if (this.artifactType === 'Expert Statement') {
+                label = 'Expert';
+            }
+            return label;
+        },
+        interviewerLabel: function() {
+            let label = '';
+            if (this.artifactType === 'Witness Statement') {
+                label = 'Officer taking statement'
+            } else if (this.artifactType === 'Record of Interview') {
+                label = 'Interviewer';
+            } else if (this.artifactType === 'Officer Statement') {
+                label = 'Officer';
+            }
+            return label
+        },
+        personProvidingStatementVisibility: function() {
+            let visibility = false;
+            if (this.artifactType === 'Expert Statement' || this.artifactType === 'Witness Statement') {
+                visibility = true;
+            }
+            return visibility;
+        },
+        interviewerVisibility: function() {
+            let visibility = false;
+            if (this.artifactType !== 'Expert Statement' && this.statementArtifactTypes.includes(this.artifactType)) {
+                visibility = true;
+            }
+            return visibility;
         },
         readonlyForm: function() {
           return false;
@@ -331,6 +393,8 @@ export default {
             loadDocumentArtifact: 'loadDocumentArtifact',
             setDocumentArtifact: 'setDocumentArtifact',
             setRelatedItems: 'setRelatedItems',
+            setPersonProvidingStatementId: 'setPersonProvidingStatementId',
+            setInterviewerId: 'setInterviewerId',
             //setDocumentArtifactLegalId: 'setDocumentArtifactLegalId',
         }),
         ...mapActions('legalCaseStore', {
@@ -354,9 +418,10 @@ export default {
         setTemporaryDocumentCollectionId: function(val) {
             this.temporary_document_collection_id = val;
         },
-        entitySelected: function(entity) {
+        setPersonProvidingStatement: function(entity) {
             console.log(entity);
-            Object.assign(this.entity, entity)
+            //Object.assign(this.entity, entity)
+            this.setPersonProvidingStatementId(entity.id);
         },
         save: async function() {
             if (this.document_artifact.id) {
@@ -486,6 +551,14 @@ export default {
             id: "",
             artifact_type: "",
             description: "",
+          });
+        // retrieve department_users from backend cache
+        let returned_department_users = await this.$http.get(api_endpoints.department_users)
+        Object.assign(this.departmentStaffList, returned_department_users.body)
+        this.departmentStaffList.splice(0, 0,
+          {
+            pk: "",
+            name: "",
           });
     },
 };

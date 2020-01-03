@@ -190,6 +190,7 @@ class DocumentArtifactSerializer(ArtifactSerializer):
     #legal_case = LegalCaseSerializer(read_only=True, many=True)
     legal_case_id_list = serializers.SerializerMethodField()
     offence = OffenceSerializer(read_only=True)
+    offender = OffenderSerializer(read_only=True)
     related_items = serializers.SerializerMethodField()
 
     class Meta:
@@ -211,7 +212,9 @@ class DocumentArtifactSerializer(ArtifactSerializer):
                 'people_attending',
                 'legal_case_id_list',
                 'offence',
+                'offender',
                 'related_items',
+                'interviewer_email',
                 )
         read_only_fields = (
                 'id',
@@ -234,8 +237,14 @@ class SaveDocumentArtifactSerializer(ArtifactSerializer):
         required=False, write_only=True, allow_null=True)
     statement_id = serializers.IntegerField(
         required=False, write_only=True, allow_null=True)
-    #legal_case_id = serializers.IntegerField(
-     #   required=False, write_only=True, allow_null=True)
+    person_providing_statement_id = serializers.IntegerField(
+        required=False, write_only=True, allow_null=True)
+    interviewer_id = serializers.IntegerField(
+        required=False, write_only=True, allow_null=True)
+    offence_id = serializers.IntegerField(
+        required=False, write_only=True, allow_null=True)
+    offender_id = serializers.IntegerField(
+        required=False, write_only=True, allow_null=True)
 
     class Meta:
         model = DocumentArtifact
@@ -249,6 +258,11 @@ class SaveDocumentArtifactSerializer(ArtifactSerializer):
                 'artifact_date',
                 'artifact_time',
                 'document_type_id',
+                'person_providing_statement_id',
+                'interviewer_id',
+                'offence_id',
+                'offender_id',
+                'interviewer_email',
                 )
         read_only_fields = (
                 'id',
@@ -284,6 +298,7 @@ class PhysicalArtifactSerializer(ArtifactSerializer):
                 'disposal_method',
                 'related_items',
                 'legal_case_id_list',
+                'officer_email',
                 )
         read_only_fields = (
                 'id',
@@ -319,6 +334,7 @@ class SavePhysicalArtifactSerializer(ArtifactSerializer):
                 'artifact_date',
                 'artifact_time',
                 'physical_artifact_type_id',
+                'officer_email',
                 )
         read_only_fields = (
                 'id',

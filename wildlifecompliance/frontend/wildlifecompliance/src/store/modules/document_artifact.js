@@ -48,6 +48,9 @@ export const documentArtifactStore = {
         updateRelatedItems(state, related_items) {
             Vue.set(state.document_artifact, 'related_items', related_items);
         },
+        updatePersonProvidingStatementId(state, person_providing_statement_id) {
+            Vue.set(state.document_artifact, 'person_providing_statement_id', person_providing_statement_id);
+        },
         /*
         updateDocumentArtifactLegalId(state, legal_case_id) {
             console.log(legal_case_id)
@@ -130,6 +133,9 @@ export const documentArtifactStore = {
         */
         setRelatedItems({ commit }, related_items ) {
             commit("updateRelatedItems", related_items);
+        },
+        setPersonProvidingStatementId({ commit }, person_providing_statement_id ) {
+            commit("updatePersonProvidingStatementId", person_providing_statement_id);
         },
     },
 };

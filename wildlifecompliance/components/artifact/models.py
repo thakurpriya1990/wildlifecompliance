@@ -15,7 +15,7 @@ from wildlifecompliance.components.main.models import (
         )
 from wildlifecompliance.components.main.related_item import can_close_record
 from wildlifecompliance.components.users.models import RegionDistrict, CompliancePermissionGroup
-from wildlifecompliance.components.offence.models import Offence
+from wildlifecompliance.components.offence.models import Offence, Offender
 from wildlifecompliance.components.legal_case.models import LegalCase
 from django.core.exceptions import ValidationError
 
@@ -155,6 +155,7 @@ class DocumentArtifact(Artifact):
             related_name='document_artifact_person_providing_statement',
             null=True,
             )
+    interviewer_email = models.CharField(max_length=255, blank=True, null=True)
     interviewer = models.ForeignKey(
             EmailUser,
             related_name='document_artifact_interviewer',
@@ -167,6 +168,11 @@ class DocumentArtifact(Artifact):
     offence = models.ForeignKey(
             Offence,
             related_name='document_artifact_offence',
+            null=True,
+            )
+    offender = models.ForeignKey(
+            Offender,
+            related_name='document_artifact_offender',
             null=True,
             )
     
@@ -222,6 +228,7 @@ class PhysicalArtifact(Artifact):
     #description = models.TextField(blank=True, null=True)
     used_within_case = models.BooleanField(default=False)
     sensitive_non_disclosable = models.BooleanField(default=False)
+    officer_email = models.CharField(max_length=255, blank=True, null=True)
     officer = models.ForeignKey(
             EmailUser,
             related_name='physical_artifact_officer',
