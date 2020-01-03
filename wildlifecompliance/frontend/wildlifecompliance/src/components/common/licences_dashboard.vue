@@ -828,6 +828,18 @@ export default {
                     });
                     // Generate html for child row
                     child_row += `
+                        <table class="table table-bordered child-row-table">
+                            `;
+
+                    child_row += `
+                            ${row.data()['invoice_url'] ?
+                            `<tr>
+                                <td class="width_15pc"><strong>Invoice:&nbsp;</strong></td>
+                                <td><a href="${row.data()['invoice_url']}'" target="_blank"><i style="color:red" class="fa fa-file-pdf-o"></i></a></td>
+                            </tr>` : ' ' } `;
+
+                    child_row += `</table>`
+                    child_row += `
                         <table class="table table-striped table-bordered child-row-table">
                             <tr>
                                 <th>Activity</th>
