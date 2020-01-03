@@ -837,3 +837,34 @@ class ActionTakenDocument(Document):
         app_label = 'wildlifecompliance'
         verbose_name = 'CM_RemediationActionDocument'
         verbose_name_plural = 'CM_RemediationActionDocuments'
+
+
+class AmendmentRequestReason(models.Model):
+    reason = models.CharField(max_length=100, blank=True)
+    created_at = models.DateTimeField(auto_now_add=True)
+    updated_at = models.DateTimeField(auto_now=True)
+
+    class Meta:
+        app_label = 'wildlifecompliance'
+        verbose_name = 'CM_AmendmentRequestReason'
+        verbose_name_plural = 'CM_AmendmentRequestReasons'
+
+    def __str__(self):
+        return self.reason
+
+
+class AmendmentRequestForRemediationAction(models.Model):
+    remediation_action = models.ForeignKey(RemediationAction, related_name='amendment_requests')
+    # The value of this field is copied from the selection of AmendmentRequestReason
+    reason = models.CharField(max_length=100, blank=True)
+    details = models.TextField(blank=True)
+    created_at = models.DateTimeField(auto_now_add=True)
+    updated_at = models.DateTimeField(auto_now=True)
+
+    def __str__(self):
+        return self.reason
+
+    class Meta:
+        app_label = 'wildlifecompliance'
+        verbose_name = 'CM_AmendmentRequest'
+        verbose_name_plural = 'CM_AmendmentRequests'

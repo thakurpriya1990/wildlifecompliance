@@ -5,8 +5,24 @@
                 <div class="row col-sm-12">
 
                     <div class="form-group"><div class="row">
-                        <div class="col-sm-10">
-                            Are you sure you want to accept the remediation action?
+                        <div class="col-sm-3">
+                            <label class="control-label pull-left">Reason</label>
+                        </div>
+                        <div class="col-sm-7">
+                            <select v-if="amendment_request_reasons" class="form-control" v-model="amendment_request_reason">
+                                <option v-for="item in amendment_request_reasons" :value="item.reason" :key="item.id">
+                                    {{ item.reason }}
+                                </option>
+                            </select>
+                        </div>
+                    </div></div>
+
+                    <div class="form-group"><div class="row">
+                        <div class="col-sm-3">
+                            <label class="control-label pull-left">Details</label>
+                        </div>
+                        <div class="col-sm-7">
+                            <textarea class="form-control" placeholder="add reason" id="reason" v-model="details"/>
                         </div>
                     </div></div>
 
@@ -41,15 +57,15 @@ require("select2/dist/css/select2.min.css");
 require("select2-bootstrap-theme/dist/select2-bootstrap.min.css");
 
 export default {
-    name: "AcceptRemediationAction",
+    name: "AmendmentRequestRemediationAction",
     data: function() {
         return {
             processingDetails: false,
             isModalOpen: false,
             errorResponse: '',
-
-            allocatedGroup: [],
-            allocated_group_id: null,
+            amendment_request_reason: '',
+            amendment_request_reasons: [],
+            details: '',
         }
     },
     components: {
@@ -66,7 +82,7 @@ export default {
        //     sanction_outcome: "sanction_outcome",
        // }),
         modalTitle: function() {
-            return 'Accept Remediation Action'
+            return 'Request Amendment'
         },
         fieldsFilled: function() {
             let filled = true;
@@ -79,6 +95,9 @@ export default {
             this.addEventListeners();
         });
     },
+    created: async function() {
+        this.constructOptionsReasons();
+    },
     methods: {
         ...mapActions({
             loadAllocatedGroup: 'loadAllocatedGroup',  // defined in store/modules/user.js
@@ -86,10 +105,19 @@ export default {
         addEventListeners: function () {
 
         },
+        constructOptionsReasons: async function() {
+            let get_url = '/api/sanction_outcome/reasons/'
+            let res = await Vue.http.get(get_url, {});
+            console.log('res.body');
+            console.log(res.body);
+            this.amendment_request_reasons = res.body;
+        },
         ok: async function () {
             try {
+                console.log('ok');
                 this.processingDetails = true;
-                const response = await this.sendData();
+                const res = await this.sendData();
+                this.$emit('remediation_action_updated', res.body);
                 this.close();
             } catch (err){
                 this.processError(err);
@@ -131,8 +159,15 @@ export default {
             this.isModalOpen = false;
         },
         sendData: async function () {
-            let get_url = '/api/remediation_action/' + this.remediation_action_id + '/accept/'
-            let res = await Vue.http.get(get_url, {});
+            console.log('sendData');
+            let get_url = '/api/remediation_action/' + this.remediation_action_id + '/request_amendment/'
+            let payload = {
+                'reason': this.amendment_request_reason,
+                'details': this.details,
+                'remediation_action_id': this.remediation_action_id
+            }
+            console.log(payload);
+            let res = await Vue.http.post(get_url, payload);
             return res
         },
     },
