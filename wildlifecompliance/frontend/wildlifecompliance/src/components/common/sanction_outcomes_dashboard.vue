@@ -119,7 +119,7 @@ export default {
                 keepInvalid:true,
                 allowInputToggle:true
             },
-            table_headers:["id", "Number", "Type", "Identifier", "Date", "Status", "Payment Status", "Sanction Outcome", "Action"],
+            table_headers:["id", "Number", "Type", "Identifier", "Date", "Status", "Payment Status", "Sanction Outcome", "Action", ""],
             table_options:{
                 serverSide: true,
                 searchDelay: 1000,
@@ -198,12 +198,46 @@ export default {
                     {
                         mRender: function (data, type, full) {
                             if (full.status.id === 'awaiting_payment'){
-                                //return '<a>Pay</a>';
                                 return `<a href='#${full.id}' data-pay-infringement-penalty='${full.id}'>Pay</a><br/>`;
                             }
                             return '';
                         }
                     },
+                    // Remediation Actions
+                    {
+                        data: 'remediation_actions',
+                        mRender: function (data, type, full) {
+                            let html = ''
+
+                            if (full.remediation_actions && full.remediation_actions.length){
+                                let body = ''
+                                let td = '<td col="row">'
+                                let td_close = '</td>'
+                                let th = '<th scope="col">'
+                                let th_close = '</th>'
+
+                                for (let i=0; i<full.remediation_actions.length; i++){
+                                    let ra = full.remediation_actions[i];
+                                    body += '<tr>' +
+                                        td + ra.id + td_close +
+                                        td + moment(ra.due_date).format('DD/MM/YYYY') + td_close + 
+                                        td + ra.status + td_close + 
+                                        td + '<a href="/external/remediation_action/' + ra.id + '">View</a>' + td_close + 
+                                    '</tr>'
+                                }
+
+                                let header = '<thead><tr>' + 
+                                    th + 'Action#' + th_close + 
+                                    th + 'Due Date' + th_close + 
+                                    th + 'Status' + th_close + 
+                                    th + 'Action' + th_close + 
+                                    '</tr></thead>'
+                                html = '<table class="table">' + header + body + '</table>'
+                            }
+
+                            return html
+                        }
+                    }
                 ],
             }
         }
@@ -306,69 +340,6 @@ export default {
             Object.assign(this.sanction_outcome_payment_statuses, returned);
             this.sanction_outcome_payment_statuses.splice(0, 0, {id: 'all', display: 'All'});
         },
-      //  addEventListeners: function(){
-      //      let vm = this;
-      //      // Initialise Application Date Filters
-      //       $(vm.$refs.dueDateToPicker).datetimepicker(vm.datepickerOptions);
-      //       $(vm.$refs.dueDateToPicker).on('dp.change', function(e){
-      //           if ($(vm.$refs.dueDateToPicker).data('DateTimePicker').date()) {
-      //               vm.filterDueDateTo =  e.date.format('DD/MM/YYYY');
-      //           }
-      //           else if ($(vm.$refs.dueDateToPicker).data('date') === "") {
-      //               vm.filterDueDateTo = "";
-      //           }
-      //        });
-      //       $(vm.$refs.dueDateFromPicker).datetimepicker(vm.datepickerOptions);
-      //       $(vm.$refs.dueDateFromPicker).on('dp.change',function (e) {
-      //           if ($(vm.$refs.dueDateFromPicker).data('DateTimePicker').date()) {
-      //               vm.filterDueDateFrom = e.date.format('DD/MM/YYYY');
-      //               $(vm.$refs.dueDateToPicker).data("DateTimePicker").minDate(e.date);
-      //           }
-      //           else if ($(vm.$refs.dueDateFromPicker).data('date') === "") {
-      //               vm.filterDueDateFrom = "";
-      //           }
-      //       });
-      //       // End of Due Date Filters
-      //  },
-      //  initialiseSearch:function(){
-      //      this.dateSearch();
-      //  },
-      //  dateSearch:function(){
-      //      let vm = this;
-      //      vm.$refs.return_datatable.table.dataTableExt.afnFiltering.push(
-      //           function(settings,data,dataIndex,original){
-      //               let from = vm.filterDateFrom;
-      //               let to = vm.filterDateTo;
-      //               let val = original.due_date;
-
-      //               if ( from == '' && to == ''){
-      //                   return true;
-      //               }
-      //               else if (from != '' && to != ''){
-      //                   return val != null && val != '' ? moment().range(moment(from,vm.dateFormat),moment(to,vm.dateFormat)).contains(moment(val)) :false;
-      //               }
-      //               else if(from == '' && to != ''){
-      //                   if (val != null && val != ''){
-      //                       return moment(to,vm.dateFormat).diff(moment(val)) >= 0 ? true : false;
-      //                   }
-      //                   else{
-      //                       return false;
-      //                   }
-      //               }
-      //               else if (to == '' && from != ''){
-      //                   if (val != null && val != ''){
-      //                      return moment(val).diff(moment(from,vm.dateFormat)) >= 0 ? true : false;
-      //                   }
-      //                   else{
-      //                       return false;
-      //                   }
-      //               }
-      //               else{
-      //                   return false;
-      //               }
-      //           }
-      //      );
-      //  }
     },
     mounted: function(){
         let vm = this;
@@ -379,5 +350,6 @@ export default {
     }
 }
 </script>
+
 <style scoped>
 </style>

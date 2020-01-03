@@ -474,6 +474,9 @@ class SanctionOutcome(models.Model):
 
         elif self.type == SanctionOutcome.TYPE_REMEDIATION_NOTICE:
             self.status = SanctionOutcome.STATUS_AWAITING_REMEDIATION_ACTIONS
+            for remediation_action in self.remediation_actions.all():
+                remediation_action.status = RemediationAction.STATUS_OPEN
+                remediation_action.save()
 
         new_group = SanctionOutcome.get_compliance_permission_group(self.regionDistrictId, SanctionOutcome.WORKFLOW_ENDORSE)
         self.allocated_group = new_group
@@ -678,13 +681,18 @@ class AllegedCommittedOffence(RevisionedMixin):
         verbose_name_plural = 'CM_AllegedCommittedOffences'
 
 
-class RemediationAction(models.Model):
-    STATUS_DUE = 'due'
+class RemediationActionExternalManager(models.Manager):
+    def get_queryset(self):
+        return super(RemediationActionExternalManager, self).get_queryset()
+
+
+class RemediationAction(RevisionedMixin):
+    STATUS_OPEN = 'open'
     STATUS_OVERDUE = 'overdue'
     STATUS_SUBMITTED = 'submitted'
     STATUS_ACCEPTED = 'accepted'
     STATUS_CHOICES = (
-        (STATUS_DUE, 'Due'),
+        (STATUS_OPEN, 'Open'),
         (STATUS_OVERDUE, 'Overdue'),
         (STATUS_SUBMITTED, 'Submitted'),
         (STATUS_ACCEPTED, 'Accepted')
@@ -693,7 +701,10 @@ class RemediationAction(models.Model):
     action = models.TextField(blank=True)
     due_date = models.DateField(null=True, blank=True)
     sanction_outcome = models.ForeignKey(SanctionOutcome, related_name='remediation_actions', null=True, on_delete=models.SET_NULL,)
-    status = models.CharField(max_length=40, choices=STATUS_CHOICES, blank=True)
+    status = models.CharField(max_length=40, choices=STATUS_CHOICES, blank=True, default=STATUS_OPEN)
+    objects = models.Manager()
+    objects_for_external = RemediationActionExternalManager()
+    action_taken = models.TextField(blank=True)
 
     # validate if the sanction outcome is remediation_notice
     def clean_fields(self, exclude=None):
@@ -794,7 +805,6 @@ class DotRequestFile(models.Model):
         verbose_name_plural = 'CM_DotReguestFiles'
 
 
-
 class UnpaidInfringementFile(models.Model):
     contents = models.TextField(blank=True)
     filename = models.CharField(max_length=100, blank=True)
@@ -817,3 +827,44 @@ class UnpaidInfringementFile(models.Model):
         app_label = 'wildlifecompliance'
         verbose_name = 'CM_UnpaidInfringementFile'
         verbose_name_plural = 'CM_UnpaidInfringementFiles'
+
+
+class ActionTakenDocument(Document):
+    remediation_action = models.ForeignKey(RemediationAction, related_name='documents')
+    _file = models.FileField(max_length=255)
+
+    class Meta:
+        app_label = 'wildlifecompliance'
+        verbose_name = 'CM_RemediationActionDocument'
+        verbose_name_plural = 'CM_RemediationActionDocuments'
+
+
+class AmendmentRequestReason(models.Model):
+    reason = models.CharField(max_length=100, blank=True)
+    created_at = models.DateTimeField(auto_now_add=True)
+    updated_at = models.DateTimeField(auto_now=True)
+
+    class Meta:
+        app_label = 'wildlifecompliance'
+        verbose_name = 'CM_AmendmentRequestReason'
+        verbose_name_plural = 'CM_AmendmentRequestReasons'
+
+    def __str__(self):
+        return self.reason
+
+
+class AmendmentRequestForRemediationAction(models.Model):
+    remediation_action = models.ForeignKey(RemediationAction, related_name='amendment_requests')
+    # The value of this field is copied from the selection of AmendmentRequestReason
+    reason = models.CharField(max_length=100, blank=True)
+    details = models.TextField(blank=True)
+    created_at = models.DateTimeField(auto_now_add=True)
+    updated_at = models.DateTimeField(auto_now=True)
+
+    def __str__(self):
+        return self.reason
+
+    class Meta:
+        app_label = 'wildlifecompliance'
+        verbose_name = 'CM_AmendmentRequest'
+        verbose_name_plural = 'CM_AmendmentRequests'
