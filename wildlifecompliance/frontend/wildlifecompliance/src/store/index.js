@@ -29,6 +29,9 @@ import {
 	sanctionOutcomeStore
 } from './modules/sanction_outcome';
 import {
+	remediationActionStore
+} from './modules/remediation_action';
+import {
 	legalCaseStore
 } from './modules/legal_case';
 import {
@@ -54,6 +57,7 @@ export default new Vuex.Store({
 		offenceStore: offenceStore,
 		inspectionStore: inspectionStore,
 		sanctionOutcomeStore: sanctionOutcomeStore,
+		remediationActionStore: remediationActionStore,
 		legalCaseStore: legalCaseStore,
 		documentArtifactStore: documentArtifactStore,
 		physicalArtifactStore: physicalArtifactStore,

@@ -16,31 +16,119 @@ from wildlifecompliance.components.sanction_outcome_due.models import SanctionOu
 from wildlifecompliance.components.sanction_outcome_due.serializers import SanctionOutcomeDueDateSerializer
 from wildlifecompliance.components.section_regulation.serializers import SectionRegulationSerializer
 from wildlifecompliance.components.sanction_outcome.models import SanctionOutcome, RemediationAction, \
-    SanctionOutcomeCommsLogEntry, SanctionOutcomeUserAction, AllegedCommittedOffence
+    SanctionOutcomeCommsLogEntry, SanctionOutcomeUserAction, AllegedCommittedOffence, AmendmentRequestReason, \
+    AmendmentRequestForRemediationAction
 from wildlifecompliance.components.users.serializers import CompliancePermissionGroupMembersSerializer
+from wildlifecompliance.helpers import is_internal
+
+
+def can_user_approve(obj, user):
+    # User can have action buttons
+    # when user is assigned to the target object or
+    # when user is a member of the allocated group and no one is assigned to the target object
+
+    # user = self.context.get('request', {}).user
+    offence = obj.sanction_outcome.offence
+    if user.id == offence.assigned_to_id:
+        return True
+    elif offence.allocated_group and not offence.assigned_to_id:
+        if user.id in [member.id for member in offence.allocated_group.members]:
+            return True
+    return False
+
+
+class RemediationActionUpdateStatusSerializer(serializers.ModelSerializer):
+
+    class Meta:
+        model = RemediationAction
+        fields = ('status',)
+
+    def validate(self, data):
+        new_status = data.get('status')
+        req = self.context.get('request', {})
+        obj = self.instance
+
+        if new_status == RemediationAction.STATUS_ACCEPTED:
+            if can_user_approve(self.instance, req.user):
+                # Only a certain person can approve a remediation action
+                return data
+            else:
+                raise serializers.ValidationError('You don\'t have permission')
+        elif new_status == RemediationAction.STATUS_SUBMITTED:
+            if req.user == obj.sanction_outcome.offender.person:
+                # Only the offender of the remediation action can submit it
+                return data
+            else:
+                raise serializers.ValidationError('You don\'t have permission')
+
+        return data
 
 
 class RemediationActionSerializer(serializers.ModelSerializer):
     user_action = serializers.SerializerMethodField()
+    action_taken_editable = serializers.SerializerMethodField()
+    documents = serializers.SerializerMethodField()
+    status = CustomChoiceField(read_only=True)
 
     class Meta:
         model = RemediationAction
         fields = (
             'id',
             'action',
+            'status',
             'due_date',
             'user_action',
+            'action_taken',
+            'documents',
+            'action_taken_editable',
         )
 
+    def can_user_approve(self, obj, user):
+        return can_user_approve(obj, user)
+
+    def get_action_taken_editable(self, obj):
+        req = self.context.get('request', {})
+
+        if req.user == obj.sanction_outcome.offender.person and obj.status in (RemediationAction.STATUS_OPEN):
+            # if user is the offender
+            # then editable
+            return True
+        return False
+
     def get_user_action(self, obj):
+        req = self.context.get('request', {})
+
+        view_url = '<a href="/external/remediation_action/' + str(obj.id) + '">View</a>'
+        # accept_url = '<a href="/api/remediation_action/' + str(obj.id) + '/accept">Accept</a>'
+        # request_amendment_url = '<a href="/api/remediation_action/' + str(obj.id) + '/request_amendment">Request Amendment</a>'
+        accept_url = '<span data-id="{}" data-action="{}" class="accept_remediation_action btn btn-primary btn-block">Accept</span>'.format(str(obj.id), 'accept')
+        request_amendment_url = '<span data-id="{}" data-action="{}" class="request_amendment_remediation_action btn btn-primary btn-block">Request Amendment</span>'.format(str(obj.id), 'request_amendment')
+
         url_list = []
 
-        view_url = '<a href=/internal/remediation_action/' + str(obj.id) + '>View</a>'
-        accept_url = '<a href=/internal/remediation_action/' + str(obj.id) + '>Accept</a>'
-        request_amendment_url = '<a href=/internal/remediation_action/' + str(obj.id) + '>Request Amendment</a>'
-        url_list.append(view_url)
-        url_list.append(accept_url)
-        url_list.append(request_amendment_url)
+        if is_internal(req):
+            if self.can_user_approve(obj, req.user) and obj.status == RemediationAction.STATUS_SUBMITTED:
+                # If User is one of the officers of the obj.sanction_outcome and if obj.status is submitted
+                # then 'accept' and 'request amendment'
+                url_list.append(accept_url)
+                url_list.append(request_amendment_url)
+        else:
+            if req.user == obj.sanction_outcome.offender.person:
+                # If user if the offender
+                # then 'view'
+                url_list.append(view_url)
+
+        urls = '<br />'.join(url_list)
+        return urls
+
+    def get_documents(self, obj):
+        url_list = []
+
+        if obj.documents.all().count():
+            # Paper notices
+            for doc in obj.documents.all():
+                url = '<a href="{}" target="_blank">{}</a>'.format(doc._file.url, doc.name)
+                url_list.append(url)
 
         urls = '<br />'.join(url_list)
         return urls
@@ -268,6 +356,8 @@ class SanctionOutcomeDatatableSerializer(serializers.ModelSerializer):
     offender = OffenderSerializer(read_only=True,)
     paper_notices = serializers.SerializerMethodField()
     coming_due_date = serializers.ReadOnlyField()
+    # remediation_actions = serializers.SerializerMethodField()
+    remediation_actions = RemediationActionSerializer(read_only=True, many=True)  # This is related field
 
     class Meta:
         model = SanctionOutcome
@@ -291,6 +381,7 @@ class SanctionOutcomeDatatableSerializer(serializers.ModelSerializer):
             'user_action',
             'paper_notices',
             'coming_due_date',
+            'remediation_actions',
         )
         read_only_fields = ()
 
@@ -314,6 +405,7 @@ class SanctionOutcomeDatatableSerializer(serializers.ModelSerializer):
 
         view_url = '<a href=/internal/sanction_outcome/' + str(obj.id) + '>View</a>'
         process_url = '<a href=/internal/sanction_outcome/' + str(obj.id) + '>Process</a>'
+        remediation_url = '<a href=/external/sanction_outcome/' + str(obj.id) + '>Add </a>'
         view_payment_url = '<a href="/ledger/payments/invoice/payment?invoice=' + inv_ref + '">View Payment</a>' if inv_ref else ''
         payment_url = '<a href="#" data-pay-infringement-penalty="' + str(obj.id) + '">Pay</a>'
         record_payment_url = '<a href="/ledger/payments/invoice/payment?invoice=">Record Payment</a>'
@@ -451,6 +543,7 @@ class SaveRemediationActionSerializer(serializers.ModelSerializer):
             'id',
             'action',
             'due_date',
+            'action_taken',
             'sanction_outcome_id',
         )
 
@@ -497,3 +590,36 @@ class SanctionOutcomeCommsLogEntrySerializer(CommunicationLogEntrySerializer):
         return docs
         # return [[d.name, d._file.url] for d in obj.documents.all()]
 
+
+class AmendmentRequestReasonSerializer(serializers.ModelSerializer):
+
+    class Meta:
+        model = AmendmentRequestReason
+        fields = '__all__'
+
+
+class SaveAmendmentRequestForRemediationAction(serializers.ModelSerializer):
+    remediation_action_id = serializers.IntegerField(write_only=True,)
+
+    class Meta:
+        model = AmendmentRequestForRemediationAction
+        fields = ('reason',
+                  'details',
+                  'remediation_action_id')
+
+    def validate(self, data):
+        field_errors = {}
+        non_field_errors = []
+
+        if not data.get('reason'):
+            field_errors['Reason'] = ['Please select a reason',]
+        if not data.get('details'):
+            field_errors['Details'] = ['Please enter details.',]
+        if not data.get('remediation_action_id'):
+            non_field_errors.append('Something wrong...')
+
+        if field_errors:
+            raise serializers.ValidationError(field_errors)
+        if non_field_errors:
+            raise serializers.ValidationError(non_field_errors)
+        return data
