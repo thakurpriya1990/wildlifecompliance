@@ -345,9 +345,9 @@ export default {
       }
       // save document or physical component
       if (this.componentType ==='document') {
-          await this.$refs.document_artifact.parentSave();
+          await this.$refs.document_artifact.save();
       } else if (this.componentType === 'physical') {
-          await this.$refs.physical_artifact.parentSave();
+          await this.$refs.physical_artifact.save();
       }
 
       if (returnToDash) {

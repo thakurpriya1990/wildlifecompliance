@@ -108,13 +108,13 @@
                                             </div>
                                         </div>
                                     </div>
-                                    <div v-if="interviewerVisibility" class="form-group">
+                                    <div v-show="interviewerVisibility" class="form-group">
                                         <div class="row">
                                             <div class="col-sm-3">
                                                 <label >{{ interviewerLabel }}</label>
                                             </div>
                                             <div class="col-sm-9">
-                                                <select ref="department_users" class="form-control" v-model="document_artifact.interviewer_email">
+                                                <select ref="document_artifact_department_users" class="form-control" v-model="document_artifact.interviewer_email">
                                                     <option  v-for="option in departmentStaffList" :value="option.email" v-bind:key="option.pk">
                                                     {{ option.name }} 
                                                     </option>
@@ -395,6 +395,7 @@ export default {
             setRelatedItems: 'setRelatedItems',
             setPersonProvidingStatementId: 'setPersonProvidingStatementId',
             setInterviewerId: 'setInterviewerId',
+            setInterviewerEmail: 'setInterviewerEmail',
             //setDocumentArtifactLegalId: 'setDocumentArtifactLegalId',
         }),
         ...mapActions('legalCaseStore', {
@@ -482,6 +483,28 @@ export default {
                   vm.document_artifact.artifact_time = "";
                 }
             });
+            // department_users
+            $(vm.$refs.document_artifact_department_users).select2({
+                    "theme": "bootstrap",
+                    allowClear: true,
+                    placeholder:""
+                }).
+                on("select2:select",function (e) {
+                    console.log(e)
+                    let selected = $(e.currentTarget);
+                    let selectedData = selected.val();
+                    vm.setInterviewerEmail(selectedData);
+                    //vm.setSelectedCustodian(selectedData);
+                    //let custodianData = e.params.data
+                    //console.log(custodianData)
+                    //Object.assign(vm.selectedCustodian, custodianData);
+                }).
+                on("select2:unselect",function (e) {
+                    var selected = $(e.currentTarget);
+                    vm.setInterviewerEmail('');
+                    //vm.selectedCustodian = {}
+                });
+            
             /*
             // artifact type events
             let artifactEvent = $(vm.$refs.setArtifactType);
