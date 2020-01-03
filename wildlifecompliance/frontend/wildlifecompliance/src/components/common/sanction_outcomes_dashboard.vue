@@ -221,7 +221,7 @@ export default {
                                     body += '<tr>' +
                                         td + ra.id + td_close +
                                         td + moment(ra.due_date).format('DD/MM/YYYY') + td_close + 
-                                        td + ra.status + td_close + 
+                                        td + ra.status.name + td_close + 
                                         td + '<a href="/external/remediation_action/' + ra.id + '">View</a>' + td_close + 
                                     '</tr>'
                                 }

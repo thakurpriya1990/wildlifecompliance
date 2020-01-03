@@ -101,8 +101,8 @@ class RemediationActionSerializer(serializers.ModelSerializer):
         view_url = '<a href="/external/remediation_action/' + str(obj.id) + '">View</a>'
         # accept_url = '<a href="/api/remediation_action/' + str(obj.id) + '/accept">Accept</a>'
         # request_amendment_url = '<a href="/api/remediation_action/' + str(obj.id) + '/request_amendment">Request Amendment</a>'
-        accept_url = '<span data-id="{}" data-action="{}" class="accept_remediation_action btn btn-primary btn-block">Accept</span>'.format(str(obj.id), 'accept')
-        request_amendment_url = '<span data-id="{}" data-action="{}" class="request_amendment_remediation_action btn btn-primary btn-block">Request Amendment</span>'.format(str(obj.id), 'request_amendment')
+        accept_url = '<a data-id="{}" data-action="{}" class="accept_remediation_action">Accept</a>'.format(str(obj.id), 'accept')
+        request_amendment_url = '<a data-id="{}" data-action="{}" class="request_amendment_remediation_action">Request Amendment</a>'.format(str(obj.id), 'request_amendment')
 
         url_list = []
 
