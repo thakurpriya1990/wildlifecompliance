@@ -103,12 +103,10 @@ class DocumentArtifactViewSet(viewsets.ModelViewSet):
         return DocumentArtifact.objects.none()
 
     def create(self, request, *args, **kwargs):
-        print("create")
-        print(request.data)
         try:
             with transaction.atomic():
                 request_data = request.data
-                instance, headers = self.common_save(request, request_data)
+                instance, headers = self.common_save(request_data)
 
                 instance.log_user_action(
                         ArtifactUserAction.ACTION_CREATE_ARTIFACT.format(
@@ -134,12 +132,11 @@ class DocumentArtifactViewSet(viewsets.ModelViewSet):
     @renderer_classes((JSONRenderer,))
     #def inspection_save(self, request, workflow=False, *args, **kwargs):
     def update(self, request, workflow=False, *args, **kwargs):
-        print(request.data)
         try:
             with transaction.atomic():
                 instance = self.get_object()
                 request_data = request.data
-                instance, headers = self.common_save(request, request_data, instance)
+                instance, headers = self.common_save(request_data, instance)
                 instance.log_user_action(
                         ArtifactUserAction.ACTION_SAVE_ARTIFACT.format(
                         instance.number), request)
@@ -159,7 +156,9 @@ class DocumentArtifactViewSet(viewsets.ModelViewSet):
             print(traceback.print_exc())
             raise serializers.ValidationError(str(e))
 
-    def common_save(self, request, request_data, instance=None):
+    def common_save(self, request_data, instance=None):
+        print("common save")
+        print(request_data)
         try:
             with transaction.atomic():
                 document_type = request_data.get('document_type')
@@ -220,7 +219,7 @@ class PhysicalArtifactViewSet(viewsets.ModelViewSet):
         try:
             with transaction.atomic():
                 request_data = request.data
-                instance, headers = self.common_save(request, request_data)
+                instance, headers = self.common_save(request_data)
 
                 instance.log_user_action(
                         ArtifactUserAction.ACTION_CREATE_ARTIFACT.format(
@@ -251,7 +250,7 @@ class PhysicalArtifactViewSet(viewsets.ModelViewSet):
             with transaction.atomic():
                 instance = self.get_object()
                 request_data = request.data
-                instance, headers = self.common_save(request, request_data, instance)
+                instance, headers = self.common_save(request_data, instance)
                 instance.log_user_action(
                         ArtifactUserAction.ACTION_SAVE_ARTIFACT.format(
                         instance.number), request)
@@ -271,7 +270,7 @@ class PhysicalArtifactViewSet(viewsets.ModelViewSet):
             print(traceback.print_exc())
             raise serializers.ValidationError(str(e))
 
-    def common_save(self, request, request_data, instance=None):
+    def common_save(self, request_data, instance=None):
         try:
             with transaction.atomic():
                 physical_artifact_type = request_data.get('physical_artifact_type')

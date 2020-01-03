@@ -87,21 +87,6 @@
                                                             </option>
                                                         </select>
                                                     </div>
-                                                    <!--div class="col-sm-9">
-                                                        <SearchPersonOrganisation 
-                                                        personOnly
-                                                        :isEditable="!readonlyForm" 
-                                                        classNames="form-control" 
-                                                        @entity-selected="entitySelected"
-                                                        showCreateUpdate
-                                                        ref="physical_artifact_search_person_organisation"
-                                                        v-bind:key="updateSearchPersonOrganisationBindId"
-                                                        addFullName
-                                                        :displayTitle="false"
-                                                        domIdHelper="physical_artifact"
-                                                        departmentalStaff
-                                                        />
-                                                    </div-->
                                                 </div>
                                             </div>
                                             <div class="form-group">
