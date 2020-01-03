@@ -849,6 +849,9 @@ class AmendmentRequestReason(models.Model):
         verbose_name = 'CM_AmendmentRequestReason'
         verbose_name_plural = 'CM_AmendmentRequestReasons'
 
+    def __str__(self):
+        return self.reason
+
 
 class AmendmentRequestForRemediationAction(models.Model):
     remediation_action = models.ForeignKey(RemediationAction, related_name='amendment_requests')
@@ -857,6 +860,9 @@ class AmendmentRequestForRemediationAction(models.Model):
     details = models.TextField(blank=True)
     created_at = models.DateTimeField(auto_now_add=True)
     updated_at = models.DateTimeField(auto_now=True)
+
+    def __str__(self):
+        return self.reason
 
     class Meta:
         app_label = 'wildlifecompliance'

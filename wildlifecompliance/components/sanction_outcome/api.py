@@ -31,12 +31,14 @@ from wildlifecompliance.components.sanction_outcome.email import send_infringeme
     send_escalate_for_withdrawal_email, email_detais_to_department_of_transport, send_remediation_notice, \
     send_caution_notice, send_letter_of_advice
 from wildlifecompliance.components.sanction_outcome.models import SanctionOutcome, RemediationAction, \
-    SanctionOutcomeCommsLogEntry, AllegedCommittedOffence, SanctionOutcomeUserAction, SanctionOutcomeCommsLogDocument
+    SanctionOutcomeCommsLogEntry, AllegedCommittedOffence, SanctionOutcomeUserAction, SanctionOutcomeCommsLogDocument, \
+    AmendmentRequestReason
 from wildlifecompliance.components.sanction_outcome.serializers import SanctionOutcomeSerializer, \
     SaveSanctionOutcomeSerializer, SaveRemediationActionSerializer, SanctionOutcomeDatatableSerializer, \
     UpdateAssignedToIdSerializer, SanctionOutcomeCommsLogEntrySerializer, SanctionOutcomeUserActionSerializer, \
     AllegedCommittedOffenceSerializer, AllegedCommittedOffenceCreateSerializer, RecordFerCaseNumberSerializer, \
-    RemediationActionSerializer, RemediationActionUpdateStatusSerializer
+    RemediationActionSerializer, RemediationActionUpdateStatusSerializer, AmendmentRequestReasonSerializer, \
+    SaveAmendmentRequestForRemediationAction
 from wildlifecompliance.components.users.models import CompliancePermissionGroup, RegionDistrict
 from wildlifecompliance.helpers import is_internal
 from wildlifecompliance.components.main.models import TemporaryDocumentCollection
@@ -164,9 +166,68 @@ class SanctionOutcomePaginatedViewSet(viewsets.ModelViewSet):
         return ret
 
 
+# class AmendmentRequestReasonViewSet(viewsets.ModelViewSet):
+#     queryset = AmendmentRequestReason.objects.all()
+#     serializer_class = AmendmentRequestReasonSerializer
+#
+#     @list_route(methods=['GET', ])
+#     def reasons(self, request, *args, **kwargs):
+#         try:
+#             qs = self.get_queryset()
+#             serializer = AmendmentRequestReasonSerializer(qs, many=True, context={'request': request})
+#             return Response(serializer.data)
+#
+#         except serializers.ValidationError:
+#             print(traceback.print_exc())
+#             raise
+#         except ValidationError as e:
+#             print(traceback.print_exc())
+#             if hasattr(e, 'error_dict'):
+#                 raise serializers.ValidationError(repr(e.error_dict))
+#             else:
+#                 raise serializers.ValidationError(repr(e[0].encode('utf-8')))
+#         except Exception as e:
+#             print(traceback.print_exc())
+#             raise serializers.ValidationError(str(e))
+
+
 class RemediationActionViewSet(viewsets.ModelViewSet):
     queryset = RemediationAction.objects.all()
     serializer_class = RemediationActionSerializer
+
+    @detail_route(methods=['POST'])
+    @renderer_classes((JSONRenderer,))
+    def request_amendment(self, request, *args, **kwargs):
+        try:
+            with transaction.atomic():
+                serializer = SaveAmendmentRequestForRemediationAction(data=request.data)
+                serializer.is_valid(raise_exception=True)
+                serializer.save()
+
+                instance = self.get_object()
+                serializer = RemediationActionUpdateStatusSerializer(instance, data={'status': RemediationAction.STATUS_OPEN}, context={'request': request})
+                serializer.is_valid(raise_exception=True)
+                serializer.save()
+
+                serializer = RemediationActionSerializer(instance, context={'request': request})
+
+                return Response(
+                    serializer.data,
+                    status=status.HTTP_201_CREATED
+                )
+
+        except serializers.ValidationError:
+            print(traceback.print_exc())
+            raise
+        except ValidationError as e:
+            print(traceback.print_exc())
+            if hasattr(e, 'error_dict'):
+                raise serializers.ValidationError(repr(e.error_dict))
+            else:
+                raise serializers.ValidationError(repr(e[0].encode('utf-8')))
+        except Exception as e:
+            print(traceback.print_exc())
+            raise serializers.ValidationError(str(e))
 
     @detail_route(methods=['GET'])
     @renderer_classes((JSONRenderer,))
@@ -325,6 +386,12 @@ class RemediationActionViewSet(viewsets.ModelViewSet):
 class SanctionOutcomeViewSet(viewsets.ModelViewSet):
     queryset = SanctionOutcome.objects.all()
     serializer_class = SanctionOutcomeSerializer
+
+    @list_route(methods=['GET', ])
+    def reasons(self, request, *args, **kwargs):
+        qs = AmendmentRequestReason.objects.all()
+        serializer = AmendmentRequestReasonSerializer(qs, many=True, context={'request': request})
+        return Response(serializer.data)
 
     def get_queryset(self):
         # user = self.request.user
@@ -769,6 +836,7 @@ class SanctionOutcomeViewSet(viewsets.ModelViewSet):
             qs = self.get_queryset()
             serializer = SanctionOutcomeSerializer(qs, many=True, context={'request': request})
             return Response({ 'tableData': serializer.data })
+
         except serializers.ValidationError:
             print(traceback.print_exc())
             raise

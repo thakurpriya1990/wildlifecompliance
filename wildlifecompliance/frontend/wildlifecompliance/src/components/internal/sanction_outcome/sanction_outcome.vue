@@ -432,6 +432,10 @@
         <AcceptRemediationAction ref="accept_remediation_action"
                                  :remediation_action_id="remediation_action_id"
                                  :key="acceptRemediationActionBindId" />
+        <RequestAmendmentRemediationAction ref="request_amendment_remediation_action"
+                                           @remediation_action_updated="onRemediationActionUpdated"
+                                           :remediation_action_id="remediation_action_id"
+                                           :key="requestAmendmentRemediationActionBindId" />
     </div>
 </template>
 
@@ -449,6 +453,7 @@ import ExtendPaymentDueDate from '@/components/internal/sanction_outcome/extend_
 import RecordFerCaseNumber from '@/components/internal/sanction_outcome/record_fer_case_number.vue';
 import SendParkingInfringement from '@/components/internal/sanction_outcome/send_parking_infringement.vue';
 import AcceptRemediationAction from '@/components/internal/sanction_outcome/accept_remediation_action.vue';
+import RequestAmendmentRemediationAction from '@/components/internal/sanction_outcome/request_amendment_remediation_action.vue';
 import 'bootstrap/dist/css/bootstrap.css';
 import hash from 'object-hash';
 import RelatedItems from "@common-components/related_items.vue";
@@ -520,6 +525,7 @@ export default {
                 "id", 
                 "Due Date", 
                 "Action Desc", 
+                "Status",
                 "Action",
                 "Action Taken",
             ],
@@ -543,6 +549,9 @@ export default {
                         mRender: function(data, type, row) {
                             return data;
                         }
+                    },
+                    {
+                        data: 'status.name',
                     },
                     {
                         data: 'user_action',
@@ -673,6 +682,7 @@ export default {
         SendParkingInfringement,
         RegistrationHolder,
         AcceptRemediationAction,
+        RequestAmendmentRemediationAction,
         Driver,
     },
     created: async function() {
@@ -695,6 +705,9 @@ export default {
         }),
         acceptRemediationActionBindId: function() {
             return 'acceptRemediationActionBindId' + this.bindId
+        },
+        requestAmendmentRemediationActionBindId: function() {
+            return 'requestAmendmentRemediationActionBindId' + this.bindId
         },
         displayRemediationActions: function() {
             if (this.sanction_outcome && this.sanction_outcome.type){
@@ -988,6 +1001,11 @@ export default {
             setRegistrationHolder: 'setRegistrationHolder',
             setDriver: 'setDriver',
         }),
+        onRemediationActionUpdated: function(ra_updated){_
+            console.log(ra_updated);
+
+            // TODO: update this remediation_action
+        },
         formatDate: function(d){
             return moment(d).format("DD/MM/YYYY");
         },
@@ -1131,24 +1149,20 @@ export default {
             window.addEventListener('onblur', this.leaving);
         },
         acceptRemediationActionClicked: function(e){
-            console.log('accept');
-
             let remediationActionId = parseInt(e.target.getAttribute("data-id"));
-
-            console.log(remediationActionId);
-
             this.remediation_action_id = remediationActionId;
             this.bindId += 1
             this.$nextTick(() => {
                 this.$refs.accept_remediation_action.isModalOpen = true;
             });
-
         },
         requestAmendmentRemediationActionClicked: function(e){
-            console.log('request');
             let remediationActionId = parseInt(e.target.getAttribute("data-id"));
-            console.log(remediationActionId);
-
+            this.remediation_action_id = remediationActionId;
+            this.bindId += 1
+            this.$nextTick(() => {
+                this.$refs.request_amendment_remediation_action.isModalOpen = true;
+            });
         },
         leaving: function(e) {
             console.log('leaving');

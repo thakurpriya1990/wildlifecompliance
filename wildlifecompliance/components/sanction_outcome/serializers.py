@@ -16,7 +16,8 @@ from wildlifecompliance.components.sanction_outcome_due.models import SanctionOu
 from wildlifecompliance.components.sanction_outcome_due.serializers import SanctionOutcomeDueDateSerializer
 from wildlifecompliance.components.section_regulation.serializers import SectionRegulationSerializer
 from wildlifecompliance.components.sanction_outcome.models import SanctionOutcome, RemediationAction, \
-    SanctionOutcomeCommsLogEntry, SanctionOutcomeUserAction, AllegedCommittedOffence
+    SanctionOutcomeCommsLogEntry, SanctionOutcomeUserAction, AllegedCommittedOffence, AmendmentRequestReason, \
+    AmendmentRequestForRemediationAction
 from wildlifecompliance.components.users.serializers import CompliancePermissionGroupMembersSerializer
 from wildlifecompliance.helpers import is_internal
 
@@ -67,6 +68,7 @@ class RemediationActionSerializer(serializers.ModelSerializer):
     user_action = serializers.SerializerMethodField()
     action_taken_editable = serializers.SerializerMethodField()
     documents = serializers.SerializerMethodField()
+    status = CustomChoiceField(read_only=True)
 
     class Meta:
         model = RemediationAction
@@ -99,8 +101,8 @@ class RemediationActionSerializer(serializers.ModelSerializer):
         view_url = '<a href="/external/remediation_action/' + str(obj.id) + '">View</a>'
         # accept_url = '<a href="/api/remediation_action/' + str(obj.id) + '/accept">Accept</a>'
         # request_amendment_url = '<a href="/api/remediation_action/' + str(obj.id) + '/request_amendment">Request Amendment</a>'
-        accept_url = '<span data-id="{}" data-action="{}" class="accept_remediation_action">Accept</span>'.format(str(obj.id), 'accept')
-        request_amendment_url = '<span data-id="{}" data-action="{}" class="request_amendment_remediation_action">Request Amendment</span>'.format(str(obj.id), 'request_amendment')
+        accept_url = '<span data-id="{}" data-action="{}" class="accept_remediation_action btn btn-primary btn-block">Accept</span>'.format(str(obj.id), 'accept')
+        request_amendment_url = '<span data-id="{}" data-action="{}" class="request_amendment_remediation_action btn btn-primary btn-block">Request Amendment</span>'.format(str(obj.id), 'request_amendment')
 
         url_list = []
 
@@ -588,3 +590,36 @@ class SanctionOutcomeCommsLogEntrySerializer(CommunicationLogEntrySerializer):
         return docs
         # return [[d.name, d._file.url] for d in obj.documents.all()]
 
+
+class AmendmentRequestReasonSerializer(serializers.ModelSerializer):
+
+    class Meta:
+        model = AmendmentRequestReason
+        fields = '__all__'
+
+
+class SaveAmendmentRequestForRemediationAction(serializers.ModelSerializer):
+    remediation_action_id = serializers.IntegerField(write_only=True,)
+
+    class Meta:
+        model = AmendmentRequestForRemediationAction
+        fields = ('reason',
+                  'details',
+                  'remediation_action_id')
+
+    def validate(self, data):
+        field_errors = {}
+        non_field_errors = []
+
+        if not data.get('reason'):
+            field_errors['Reason'] = ['Please select a reason',]
+        if not data.get('details'):
+            field_errors['Details'] = ['Please enter details.',]
+        if not data.get('remediation_action_id'):
+            non_field_errors.append('Something wrong...')
+
+        if field_errors:
+            raise serializers.ValidationError(field_errors)
+        if non_field_errors:
+            raise serializers.ValidationError(non_field_errors)
+        return data
