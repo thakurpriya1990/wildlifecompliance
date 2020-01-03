@@ -429,6 +429,13 @@
                              :key="recordFerCaseNumberBindId" />
         <SendParkingInfringement ref="send_parking_infringement" 
                                  :key="sendParkingInfringementBindId" />
+        <AcceptRemediationAction ref="accept_remediation_action"
+                                 :remediation_action_id="remediation_action_id"
+                                 :key="acceptRemediationActionBindId" />
+        <RequestAmendmentRemediationAction ref="request_amendment_remediation_action"
+                                           @remediation_action_updated="onRemediationActionUpdated"
+                                           :remediation_action_id="remediation_action_id"
+                                           :key="requestAmendmentRemediationActionBindId" />
     </div>
 </template>
 
@@ -441,10 +448,12 @@ import { api_endpoints, helpers, cache_helper } from "@/utils/hooks";
 import { mapState, mapGetters, mapActions, mapMutations } from "vuex";
 import CommsLogs from "@common-components/comms_logs.vue";
 import filefield from '@/components/common/compliance_file.vue';
-import SanctionOutcomeWorkflow from './sanction_outcome_workflow';
-import ExtendPaymentDueDate from './extend_payment_due_date.vue';
-import RecordFerCaseNumber from './record_fer_case_number.vue';
-import SendParkingInfringement from './send_parking_infringement.vue';
+import SanctionOutcomeWorkflow from '@/components/internal/sanction_outcome/sanction_outcome_workflow';
+import ExtendPaymentDueDate from '@/components/internal/sanction_outcome/extend_payment_due_date.vue';
+import RecordFerCaseNumber from '@/components/internal/sanction_outcome/record_fer_case_number.vue';
+import SendParkingInfringement from '@/components/internal/sanction_outcome/send_parking_infringement.vue';
+import AcceptRemediationAction from '@/components/internal/sanction_outcome/accept_remediation_action.vue';
+import RequestAmendmentRemediationAction from '@/components/internal/sanction_outcome/request_amendment_remediation_action.vue';
 import 'bootstrap/dist/css/bootstrap.css';
 import hash from 'object-hash';
 import RelatedItems from "@common-components/related_items.vue";
@@ -478,6 +487,7 @@ export default {
             temporary_document_collection_id: null,
             workflow_type :'',
             workflowBindId :'',
+            remediation_action_id: 0,
             soTab: 'soTab' + this._uid,
             raTab: 'raTab' + this._uid,
             deTab: 'deTab' + this._uid,
@@ -515,7 +525,9 @@ export default {
                 "id", 
                 "Due Date", 
                 "Action Desc", 
-                "Action"
+                "Status",
+                "Action",
+                "Action Taken",
             ],
             dtOptionsRemediationActions: {
                 columns: [
@@ -539,11 +551,39 @@ export default {
                         }
                     },
                     {
+                        data: 'status.name',
+                    },
+                    {
                         data: 'user_action',
                         mRender: function(data, type, row) {
                             return data;
                         }
-                    }
+                    },
+                    {
+                        data: 'action_taken',
+                        mRender: function(data, type, ra) {
+                            let html = ''
+
+                            let body = ''
+                            let td = '<td col="row">'
+                            let td_close = '</td>'
+                            let th = '<th scope="col">'
+                            let th_close = '</th>'
+
+                            body += '<tr>' +
+                                td + ra.action_taken + td_close +
+                                td + ra.documents + td_close + 
+                            '</tr>'
+
+                            let header = '<thead><tr>' + 
+                                th + 'Action Taken' + th_close + 
+                                th + 'Attachment' + th_close + 
+                                '</tr></thead>'
+                            html = '<table class="table">' + header + body + '</table>'
+
+                            return html
+                        }
+                    },
                 ]
             },
             dtHeadersAllegedOffence: [
@@ -641,6 +681,8 @@ export default {
         RecordFerCaseNumber,
         SendParkingInfringement,
         RegistrationHolder,
+        AcceptRemediationAction,
+        RequestAmendmentRemediationAction,
         Driver,
     },
     created: async function() {
@@ -661,6 +703,12 @@ export default {
         ...mapGetters('sanctionOutcomeStore', {
             sanction_outcome: "sanction_outcome",
         }),
+        acceptRemediationActionBindId: function() {
+            return 'acceptRemediationActionBindId' + this.bindId
+        },
+        requestAmendmentRemediationActionBindId: function() {
+            return 'requestAmendmentRemediationActionBindId' + this.bindId
+        },
         displayRemediationActions: function() {
             if (this.sanction_outcome && this.sanction_outcome.type){
                 return this.sanction_outcome.type.id == "remediation_notice" ? true : false;
@@ -685,7 +733,7 @@ export default {
         },
         registrationHolderBindId: function() {
             this.registrationHolderId += 1
-            return 'resigtrationHolderBindId' + this.bindId;
+            return 'resigtrationHolderBindId' + this.registrationHolderId;
         },
         updateDriverBindId: function() {
             this.driverId += 1
@@ -953,6 +1001,11 @@ export default {
             setRegistrationHolder: 'setRegistrationHolder',
             setDriver: 'setDriver',
         }),
+        onRemediationActionUpdated: function(ra_updated){_
+            console.log(ra_updated);
+
+            // TODO: update this remediation_action
+        },
         formatDate: function(d){
             return moment(d).format("DD/MM/YYYY");
         },
@@ -1089,9 +1142,27 @@ export default {
             $("#alleged-committed-offence-table").on("click", ".remove_alleged_committed_offence", this.removeAllegedOffenceClicked);
             $("#alleged-committed-offence-table").on("click", ".restore_alleged_committed_offence", this.restoreAllegedOffenceClicked);
             $("#alleged-committed-offence-table").on("click", ".include_alleged_committed_offence", this.includeAllegedOffenceClicked);
+            $("#tbl_remediation_actions").on("click", ".accept_remediation_action", this.acceptRemediationActionClicked);
+            $("#tbl_remediation_actions").on("click", ".request_amendment_remediation_action", this.requestAmendmentRemediationActionClicked);
 
             window.addEventListener('beforeunload', this.leaving);
             window.addEventListener('onblur', this.leaving);
+        },
+        acceptRemediationActionClicked: function(e){
+            let remediationActionId = parseInt(e.target.getAttribute("data-id"));
+            this.remediation_action_id = remediationActionId;
+            this.bindId += 1
+            this.$nextTick(() => {
+                this.$refs.accept_remediation_action.isModalOpen = true;
+            });
+        },
+        requestAmendmentRemediationActionClicked: function(e){
+            let remediationActionId = parseInt(e.target.getAttribute("data-id"));
+            this.remediation_action_id = remediationActionId;
+            this.bindId += 1
+            this.$nextTick(() => {
+                this.$refs.request_amendment_remediation_action.isModalOpen = true;
+            });
         },
         leaving: function(e) {
             console.log('leaving');
