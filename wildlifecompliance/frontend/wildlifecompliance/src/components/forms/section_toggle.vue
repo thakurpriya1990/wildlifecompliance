@@ -1,6 +1,6 @@
 <template lang="html">
     <div class="panel panel-default" >
-      <div class="panel-heading">
+      <div v-if="!hideHeader" class="panel-heading">
         <h3 class="panel-title">{{label}} 
             <a :href="'#'+section_id" class="panelClicker" data-toggle="collapse" expanded="true" :aria-controls="section_id">
                 <span :class="panel_chevron_class"></span>
@@ -16,7 +16,7 @@
 <script>
 export default {
     name:"FormSection",
-    props:["label", "Index", "formCollapse"],
+    props:["label", "Index", "formCollapse", "hideHeader"],
     data:function () {
         return {
             title:"Section title",

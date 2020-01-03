@@ -45,7 +45,16 @@
                             <DocumentArtifact 
                             ref="document_artifact"
                             @entity-selected="entitySelected"
+                            parentModal
                             v-bind:key="updateDocumentArtifactBindId"
+                            />
+                        </div>
+                        <div v-if="showPhysicalArtifactComponent" class="row">
+                            <PhysicalArtifact 
+                            ref="physical_artifact"
+                            @entity-selected="entitySelected"
+                            parentModal
+                            v-bind:key="updatePhysicalArtifactBindId"
                             />
                         </div>
                         <!--Artifact 
@@ -76,6 +85,8 @@ import Vue from "vue";
 import modal from '@vue-utils/bootstrap-modal.vue';
 import SearchPersonOrganisation from './search_person_or_organisation'
 import DocumentArtifact from './document_artifact_component'
+import PhysicalArtifact from './physical_artifact_component'
+import { mapState, mapGetters, mapActions, mapMutations } from "vuex";
 
 export default {
     name: "PersonOrArtifactModal",
@@ -118,6 +129,7 @@ export default {
       modal,
       SearchPersonOrganisation,
       DocumentArtifact,
+      PhysicalArtifact,
     },
     watch: {
         tabSelected: {
@@ -130,6 +142,9 @@ export default {
         }
     },
     computed: {
+        ...mapGetters('legalCaseStore', {
+          legal_case: "legal_case",
+        }),
         showDocumentArtifactComponent: function() {
             let showComponent = false;
             if (this.componentType === 'document') {
@@ -149,6 +164,9 @@ export default {
         },
         updateDocumentArtifactBindId: function() {
             return "PersonOrArtifact_DocumentArtifact_" + this.uuid.toString();
+        },
+        updatePhysicalArtifactBindId: function() {
+            return "PersonOrArtifact_PhysicalArtifact_" + this.uuid.toString();
         },
         updateURLBindId: function() {
             return "PersonOrArtifact_URL_" + this.uuid.toString();
@@ -237,14 +255,15 @@ export default {
                 row_number_selected: this.rowNumberSelected,
                 action: 'cancel',
             });
-            this.isModalOpen = false;
+            //this.isModalOpen = false;
+            this.close();
         },
         ok: async function() {
             if (this.artifactTabSelected) {
                 if (this.showDocumentArtifactComponent) {
-                    await this.$refs.document_artifact.parentSave();
+                    await this.$refs.document_artifact.create();
                 } else if (this.showPhysicalArtifactComponent) {
-                    await this.$refs.physical_artifact.parentSave();
+                    await this.$refs.physical_artifact.create();
                 }
             }
             if (this.urlTabSelected && this.urlText) {
@@ -260,7 +279,8 @@ export default {
                 } else {
                     this.cancel();
                 }
-                this.isModalOpen = false;
+                //this.isModalOpen = false;
+                this.close();
             });
         },
         close: function () {

@@ -161,7 +161,12 @@
                             <FormSection :formCollapse="false" label="Related Items">
                                 <div class="col-sm-12 form-group"><div class="row">
                                     <div class="col-sm-12" v-if="relatedItemsVisibility">
-                                        <RelatedItems v-bind:key="relatedItemsBindId" :parent_update_related_items="setRelatedItems" :readonlyForm="!canUserAction"/>
+                                        <RelatedItems 
+                                        v-bind:key="relatedItemsBindId" 
+                                        :parent_update_related_items="setRelatedItems" 
+                                        :readonlyForm="!canUserAction"
+                                        parentComponentName="legal_case"
+                                        />
                                     </div>
                                 </div></div>
                             </FormSection>
@@ -227,6 +232,10 @@
             v-bind:key="runningSheetHistoryEntryBindId"
             />
         </div>
+        <LegalCaseWorkflow 
+        ref="legal_case_workflow"
+        :workflow_type="workflow_type"
+        />
     </div>
 </template>
 <script>
@@ -253,6 +262,7 @@ import Magic from './magic';
 import PersonOrArtifactModal from '@/components/common/person_or_artifact_modal';
 import _ from 'lodash';
 import RunningSheetHistory from './running_sheet_history'
+import LegalCaseWorkflow from './legal_case_workflow'
 
 
 export default {
@@ -268,6 +278,8 @@ export default {
             runningSheetEntriesUpdated: [],
             runningSheetHistoryEntryBindId: '',
             runningSheetHistoryEntryInstance: '',
+            //runningSheetArtifactList: [],
+            //runningSheetPersonList: [],
             objectHash: null,
             runTab: 'runTab'+this._uid,
             rTab: 'rTab'+this._uid,
@@ -406,6 +418,7 @@ export default {
     Magic,
     PersonOrArtifactModal,
     RunningSheetHistory,
+    LegalCaseWorkflow,
   },
   computed: {
     ...mapGetters('legalCaseStore', {
@@ -464,7 +477,7 @@ export default {
         let timeNow = Date.now()
         let bindId = null;
         if (this.legal_case && this.legal_case.id) {
-            bindId = 'legal_case_' + this.legal_case.id + '_' + this._uid;
+            bindId = 'legal_case_' + this.legal_case.id + '_' + this.uuid;
         } else {
             bindId = timeNow.toString();
         }
@@ -553,6 +566,8 @@ export default {
         "entity": entity, 
         "action": action
     }) {
+        // destroy modal
+        this.personOrArtifactInitialised = false;
         console.log(row_number_selected);
         console.log(entity);
         console.log(action);
@@ -563,7 +578,7 @@ export default {
             recordDescriptionHtml = this.cancelModalUrl(recordNumberElement)
         } else if (entity && entity.data_type === 'individual' && action === 'ok') {
             recordDescriptionHtml = this.insertPersonModalUrl({"entity": entity, "recordNumberElement": recordNumberElement})
-        } else if (entity && entity.data_type === 'document_artifact' && action === 'ok') {
+        } else if (entity && entity.artifact_type && action === 'ok') {
             recordDescriptionHtml = this.insertArtifactModalUrl({"entity": entity, "recordNumberElement": recordNumberElement})
         } else if (entity && entity.data_type === 'url' && action === 'ok') {
             recordDescriptionHtml = this.insertModalUrl({"entity": entity, "recordNumberElement": recordNumberElement})
@@ -590,6 +605,8 @@ export default {
         let replacementVal = ''
         if (entity.full_name) {
             replacementVal = `<a contenteditable="false" target="_blank" href="/internal/users/${entity.id}">${entity.full_name}</a>`
+            // add to runningSheetPersonList
+            this.legal_case.runningSheetPersonList.push(entity)
         }
         let recordDescriptionHtml = recordNumberElement[0].innerHTML.replace(this.tabSelectedKeyCombination, replacementVal).replace(/&nbsp\;/g, ' ');
         return recordDescriptionHtml;
@@ -602,10 +619,18 @@ export default {
     },
     */
     insertArtifactModalUrl: function({"entity": entity, "recordNumberElement": recordNumberElement}) {
-        let replacementVal = ''
-        // TODO: replace with correct artifact url
-        if (entity.artifact_type) {
-            replacementVal = `<a contenteditable="false" target="_blank" href="/internal/users/${entity.id}">${entity.artifact_type}</a>`
+        let replacementVal = '';
+        let urlDescription = entity.identifier ? entity.identifier : entity.artifact_type;
+
+        if (urlDescription) {
+            replacementVal = `<a contenteditable="false" target="_blank" href="/internal/object/${entity.id}">${urlDescription}</a>`
+            // add to runningSheetArtifactList
+            /*
+            if (this.legal_case && !this.legal_case.runningSheetArtifactList) {
+                this.legal_case.runningSheetArtifactList = []
+            }
+            this.legal_case.runningSheetArtifactList.push(entity)
+            */
         }
         let recordDescriptionHtml = recordNumberElement[0].innerHTML.replace(this.tabSelectedKeyCombination, replacementVal).replace(/&nbsp\;/g, ' ');
         console.log(recordDescriptionHtml);
@@ -928,20 +953,24 @@ export default {
         let parsedText = description;
         const personTokenRegex = /\{\{ \"person\_id\"\: \"\d+\"\, \"full\_name\"\: \"\w+(\s\w+)*\" \}\}/g;
         const personIdRegex = /\{\{ \"person\_id\"\: \"\d+/g;
-        const personNameRegex = /\"full\_name\"\: \"\w+ \w+/g;
+        // const personNameRegex = /\"full\_name\"\: \"\w+ \w+/g;
+        const personNameRegex = /\"full\_name\"\: \"\w+/g;
         let personTokenArray = [...description.matchAll(personTokenRegex)];
         for (let personToken of personTokenArray) {
             let idArray = [...personToken[0].matchAll(personIdRegex)];
             let idStr = idArray[0][0]
             let id = idStr.substring(17)
             let nameArray = [...personToken[0].matchAll(personNameRegex)];
-            let nameStr = nameArray[0][0]
-            let fullName = nameStr.substring(14)
-            parsedText = parsedText.replace(
-                personToken[0],
-                `<a contenteditable="false" target="_blank" href="/internal/users/${id}">${fullName}</a>`
-            );
+            if (nameArray && nameArray.length > 0) {
+                let nameStr = nameArray[0][0]
+                let fullName = nameStr.substring(14)
+                parsedText = parsedText.replace(
+                    personToken[0],
+                    `<a contenteditable="false" target="_blank" href="/internal/users/${id}">${fullName}</a>`
+                );
+            }
         }
+        // TODO: add artifact url parsing here
         return parsedText
     },
     addEventListeners: function() {

@@ -73,7 +73,7 @@ export default {
             showCreateNewOrganisation: false,
             creatingPerson: false,
             creatingOrganisation: false,
-            departmentalStaffList: [],
+            //departmentalStaffList: [],
         }
     },
     components: {
@@ -441,6 +441,7 @@ export default {
             this.initAwesomplete();
         });
         this.object_hash = hash(this.entity);
+        /*
         if (this.departmentalStaff) {
             let returned_departmental_staff = await cache_helper.getSetCacheList(
               'DepartmentalStaff',
@@ -456,6 +457,7 @@ export default {
                 //description: "",
               });
         }
+    */
     },
 }
 </script>

@@ -58,6 +58,11 @@ from wildlifecompliance.components.legal_case.models import (
         LegalCasePriority,
         LegalCaseRunningSheetEntry,
 )
+#from wildlifecompliance.components.artifact.models import (
+#        DocumentArtifact,
+#        PhysicalArtifact,
+#        LegalCaseRunningSheetArtifacts
+#        )
 
 from wildlifecompliance.components.call_email.models import (
         CallEmailUserAction,
@@ -377,6 +382,25 @@ class LegalCaseViewSet(viewsets.ModelViewSet):
                         running_sheet_entry_serializer.is_valid(raise_exception=True)
                         if running_sheet_entry_serializer.is_valid():
                             running_sheet_entry_serializer.save()
+
+                #new_running_sheet_artifacts = request.data.get('runningSheetArtifactList')
+                #if new_running_sheet_artifacts and len(new_running_sheet_artifacts) > 0:
+                #    # Create LegalCaseRunningSheetArtifacts instance if it does not exist
+                #    running_sheet_artifacts, created = LegalCaseRunningSheetArtifacts.objects.get_or_create(
+                #            legal_case_id=instance.id
+                #            )
+                #    for artifact in new_running_sheet_artifacts:
+                #        artifact_id = artifact.get('id')
+                #        artifact_data_type = artifact.get('data_type')
+                #        if artifact_id and artifact_data_type == 'document_artifact':
+                #            document_artifact, created = DocumentArtifact.objects.get_or_create(id=artifact_id)
+                #            if document_artifact not in running_sheet_artifacts.document_artifacts.all():
+                #                running_sheet_artifacts.document_artifacts.add(document_artifact)
+                #        elif artifact_id and artifact_data_type == 'physical_artifact':
+                #            physical_artifact, created = PhysicalArtifact.objects.get_or_create(id=artifact_id)
+                #            if physical_artifact not in running_sheet_artifacts.physical_artifacts.all():
+                #                running_sheet_artifacts.physical_artifacts.add(physical_artifact)
+                #    running_sheet_artifacts.save()
 
                 serializer = SaveLegalCaseSerializer(instance, data=request.data)
                 serializer.is_valid(raise_exception=True)
