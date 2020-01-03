@@ -48,6 +48,15 @@ export const documentArtifactStore = {
         updateRelatedItems(state, related_items) {
             Vue.set(state.document_artifact, 'related_items', related_items);
         },
+        updatePersonProvidingStatementId(state, person_providing_statement_id) {
+            Vue.set(state.document_artifact, 'person_providing_statement_id', person_providing_statement_id);
+        },
+        /*
+        updateDocumentArtifactLegalId(state, legal_case_id) {
+            console.log(legal_case_id)
+            Vue.set(state.document_artifact, 'legal_case_id', legal_case_id);
+        },
+        */
     },
     actions: {
         async loadDocumentArtifact({ dispatch, commit }, { document_artifact_id }) {
@@ -65,7 +74,7 @@ export const documentArtifactStore = {
                 console.log(err);
             }
         },
-        async saveDocumentArtifact({ dispatch, state, rootGetters }, { create, internal }) {
+        async saveDocumentArtifact({ dispatch, state, rootGetters }, { create, internal, legal_case_id }) {
             let documentArtifactId = null;
             let savedDocumentArtifact = null;
             try {
@@ -76,6 +85,9 @@ export const documentArtifactStore = {
                     payload.artifact_date = moment(payload.artifact_date, 'DD/MM/YYYY').format('YYYY-MM-DD');
                 } else if (payload.artifact_date === '') {
                     payload.artifact_date = null;
+                }
+                if (legal_case_id) {
+                    payload.legal_case_id = legal_case_id;
                 }
 
                 let fetchUrl = null;
@@ -114,8 +126,16 @@ export const documentArtifactStore = {
         setDocumentArtifact({ commit, }, document_artifact) {
             commit("updateDocumentArtifact", document_artifact);
         },
+        /*
+        setDocumentArtifactLegalId({ commit, }, legal_case_id) {
+            commit("updateDocumentArtifactLegalId", legal_case_id)
+        },
+        */
         setRelatedItems({ commit }, related_items ) {
             commit("updateRelatedItems", related_items);
+        },
+        setPersonProvidingStatementId({ commit }, person_providing_statement_id ) {
+            commit("updatePersonProvidingStatementId", person_providing_statement_id);
         },
     },
 };

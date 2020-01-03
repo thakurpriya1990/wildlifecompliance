@@ -15,7 +15,8 @@ from wildlifecompliance.components.main.models import (
         )
 from wildlifecompliance.components.main.related_item import can_close_record
 from wildlifecompliance.components.users.models import RegionDistrict, CompliancePermissionGroup
-from wildlifecompliance.components.offence.models import Offence
+from wildlifecompliance.components.offence.models import Offence, Offender
+from wildlifecompliance.components.legal_case.models import LegalCase
 from django.core.exceptions import ValidationError
 
 logger = logging.getLogger(__name__)
@@ -57,6 +58,14 @@ class Artifact(RevisionedMixin):
     def custodian(self):
         return 'custodian'
 
+    @property
+    def get_related_items_identifier(self):
+        return self.number
+
+    @property
+    def get_related_items_descriptor(self):
+        #return '{0}, {1}'.format(self.title, self.details)
+        return self.identifier
     #def log_user_action(self, action, request):
      #   return ArtifactUserAction.log_action(self, action, request.user)
 
@@ -123,6 +132,10 @@ class DocumentArtifact(Artifact):
     #_file = models.FileField(max_length=255)
     #identifier = models.CharField(max_length=255, blank=True, null=True)
     #description = models.TextField(blank=True, null=True)
+    legal_case = models.ManyToManyField(
+            LegalCase,
+            related_name='legal_case_document_artifacts',
+            )
     statement = models.ForeignKey(
         'self', 
         related_name='document_artifact_statement',
@@ -142,6 +155,7 @@ class DocumentArtifact(Artifact):
             related_name='document_artifact_person_providing_statement',
             null=True,
             )
+    interviewer_email = models.CharField(max_length=255, blank=True, null=True)
     interviewer = models.ForeignKey(
             EmailUser,
             related_name='document_artifact_interviewer',
@@ -156,6 +170,11 @@ class DocumentArtifact(Artifact):
             related_name='document_artifact_offence',
             null=True,
             )
+    offender = models.ForeignKey(
+            Offender,
+            related_name='document_artifact_offender',
+            null=True,
+            )
     
     class Meta:
         app_label = 'wildlifecompliance'
@@ -165,26 +184,51 @@ class DocumentArtifact(Artifact):
     def log_user_action(self, action, request):
         return ArtifactUserAction.log_action(self, action, request.user)
 
-    ## Prefix "DO" char to DocumentArtifact number.
-    #def save(self, *args, **kwargs):
-    #    
-    #    super(DocumentArtifact, self).save(*args,**kwargs)
-    #    if self.number is None:
-    #        new_number_id = 'DO{0:06d}'.format(self.pk)
-    #        self.number = new_number_id
-    #        self.save()
-        
+    def close(self, request):
+        close_record, parents = can_close_record(self, request)
+        if close_record:
+            self.status = self.STATUS_CLOSED
+            self.log_user_action(
+                    ArtifactUserAction.ACTION_CLOSE.format(self.number), 
+                    request)
+        else:
+            self.status = self.STATUS_PENDING_CLOSURE
+            self.log_user_action(
+                    ArtifactUserAction.ACTION_PENDING_CLOSURE.format(self.number), 
+                    request)
+        self.save()
+        # Call close() on any parent with pending_closure status
+        if parents and self.status == 'closed':
+            for parent in parents:
+                if parent.status == 'pending_closure':
+                    parent.close(request)
+
+    def add_legal_case(self, legal_case_id):
+        #legal_case_id = request.data.get('legal_case_id')
+        try:
+            legal_case_id_int = int(legal_case_id)
+        except Exception as e:
+            raise e
+        legal_case = LegalCase.objects.get(id=legal_case_id_int)
+        if legal_case:
+            self.legal_case.add(legal_case)
+
 
 class PhysicalArtifact(Artifact):
     physical_artifact_type = models.ForeignKey(
             PhysicalArtifactType,
             null=True
             )
+    legal_case = models.ManyToManyField(
+            LegalCase,
+            related_name='legal_case_physical_artifacts',
+            )
     #_file = models.FileField(max_length=255)
     #identifier = models.CharField(max_length=255, blank=True, null=True)
     #description = models.TextField(blank=True, null=True)
     used_within_case = models.BooleanField(default=False)
     sensitive_non_disclosable = models.BooleanField(default=False)
+    officer_email = models.CharField(max_length=255, blank=True, null=True)
     officer = models.ForeignKey(
             EmailUser,
             related_name='physical_artifact_officer',
@@ -216,14 +260,18 @@ class PhysicalArtifact(Artifact):
         verbose_name = 'CM_PhysicalArtifact'
         verbose_name_plural = 'CM_PhysicalArtifacts'
 
-    ## Prefix "PO" char to DocumentArtifact number.
-    #def save(self, *args, **kwargs):
-    #    
-    #    super(PhysicalArtifact, self).save(*args,**kwargs)
-    #    if self.number is None:
-    #        new_number_id = 'PO{0:06d}'.format(self.pk)
-    #        self.number = new_number_id
-    #        self.save()
+    def log_user_action(self, action, request):
+        return ArtifactUserAction.log_action(self, action, request.user)
+
+    def add_legal_case(self, legal_case_id):
+        #legal_case_id = request.data.get('legal_case_id')
+        try:
+            legal_case_id_int = int(legal_case_id)
+        except Exception as e:
+            raise e
+        legal_case = LegalCase.objects.get(id=legal_case_id_int)
+        if legal_case:
+            self.legal_case.add(legal_case)
 
 
 class ArtifactCommsLogEntry(CommunicationsLogEntry):
@@ -314,6 +362,23 @@ class StorageDocument(Document):
     class Meta:
         app_label = 'wildlifecompliance'
 
+
+#class LegalCaseRunningSheetArtifacts(models.Model):
+#    legal_case = models.OneToOneField(
+#            LegalCase,
+#            related_name='running_sheet_artifacts'
+#            )
+#    document_artifacts = models.ManyToManyField(
+#            DocumentArtifact,
+#            related_name='running_sheet_document_artifacts',
+#            )
+#    physical_artifacts = models.ManyToManyField(
+#            PhysicalArtifact,
+#            related_name='running_sheet_physical_artifacts',
+#            )
+#
+#    class Meta:
+#        app_label = 'wildlifecompliance'
 
 #import reversion
 #reversion.register(LegalCaseRunningSheetEntry, follow=['user'])

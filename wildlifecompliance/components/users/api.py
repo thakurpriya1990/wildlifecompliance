@@ -59,6 +59,8 @@ from rest_framework.decorators import (
     parser_classes,
     api_view
 )
+from django.core.cache import cache
+from wildlifecompliance.components.main.utils import retrieve_department_users
 
 
 def generate_dummy_email(first_name, last_name):
@@ -68,6 +70,17 @@ def generate_dummy_email(first_name, last_name):
     email_address = re.sub(r'\s+', '_', email_address)
     return email_address
 
+
+class DepartmentUserList(views.APIView):
+    renderer_classes = [JSONRenderer,]
+    def get(self, request, format=None):
+        data = cache.get('department_users')
+        if not data:
+            retrieve_department_users()
+            data = cache.get('department_users')
+        return Response(data)
+
+        #serializer  = UserSerializer(request.user)
 
 
 class GetMyUserDetails(views.APIView):

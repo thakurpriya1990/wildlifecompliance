@@ -2,13 +2,7 @@
     <div>
         <div class="col-sm-12 form-group"><div class="row">
             <div class="col-sm-12">
-                <datatable parentStyle=" " ref="related_items_table" id="related-items-table" :dtOptions="dtOptionsRelatedItems" :dtHeaders="dtHeadersRelatedItems" />
-            </div>
-        </div></div>
-        <div class="col-sm-12 form-group"><div class="row">
-            <div class="col-sm-12">
-            <!--WeakLinks @weak-link-selected="createWeakLink"/-->
-                <WeakLinks ref="weak_links_lookup" :readonlyForm="readonlyForm" :displayedEntityType="displayedEntityType" :displayedEntityId="displayedEntityId"/>
+                <datatable parentStyle=" " ref="existing_artifacts_table" id="existing-artifacts-table" :dtOptions="dtOptionsExistingArtifacts" :dtHeaders="dtHeadersExistingArtifacts" />
             </div>
         </div></div>
     </div>
@@ -24,37 +18,35 @@ import 'bootstrap/dist/css/bootstrap.css';
 import 'eonasdan-bootstrap-datetimepicker';
 require("select2/dist/css/select2.min.css");
 require("select2-bootstrap-theme/dist/select2-bootstrap.min.css");
-import WeakLinks from '@/components/common/weak_links.vue';
 
 export default {
-    name: "RelatedItems",
+    name: "ExistingArtifacts",
     props: {
-          parent_update_related_items: {
-              type: Function,
+          legal_case_id: {
+              type: Number,
           },
+        /*
           readonlyForm: {
               type: Boolean,
               default: false,
           },
-          parentComponentName: {
-              type: String,
-          },
+          */
     },
 
     data: function() {
     return {
       displayedEntityType: null,
-      dtHeadersRelatedItems: [
+      dtHeadersExistingArtifacts: [
           'Number',
-          'Type',
-          'Description',
-          'Comment',
+          'Document Type',
+          'Identifier',
+          'Document',
           'Action',
       ],
-      dtOptionsRelatedItems: {
+      dtOptionsExistingArtifacts: {
           columns: [
               {
-                  data: 'identifier',
+                  data: 'number',
               },
               {
                   data: 'model_name',
@@ -89,17 +81,8 @@ export default {
   },
   components: {
     datatable,
-    WeakLinks,
   },
   watch: {
-      displayedEntityRelatedItems: {
-          handler: function (){
-              this.$nextTick(() => {
-                  this.constructRelatedItemsTable();
-              });
-          },
-          deep: true
-      },
   },
   computed: {
     ...mapGetters('documentArtifactStore', {
@@ -108,27 +91,22 @@ export default {
     ...mapGetters('physicalArtifactStore', {
       physical_artifact: "physical_artifact",
     }),
-    ...mapGetters('callemailStore', {
-      call_email: "call_email",
-    }),
-    ...mapGetters('inspectionStore', {
-      inspection: "inspection",
-    }),
-    ...mapGetters('offenceStore', {
-      offence: "offence",
-    }),
-    ...mapGetters('sanctionOutcomeStore', {
-      sanction_outcome: "sanction_outcome",
-    }),
     ...mapGetters('legalCaseStore', {
       legal_case: "legal_case",
     }),
     csrf_token: function() {
       return helpers.getCookie("csrftoken");
     },
+      /*
     displayedEntity: function() {
         let displayed_entity = null;
-        if (this.call_email && this.call_email.id) {
+        if (this.physical_artifact && this.physical_artifact.id) {
+            this.displayedEntityType = 'physicalartifact';
+            displayed_entity = this.physical_artifact;
+        } else if (this.document_artifact && this.document_artifact.id) {
+            this.displayedEntityType = 'documentartifact';
+            displayed_entity = this.document_artifact;
+        } else if (this.call_email && this.call_email.id) {
             this.displayedEntityType = 'callemail';
             displayed_entity = this.call_email;
         } else if (this.inspection && this.inspection.id) {
@@ -140,15 +118,9 @@ export default {
         } else if (this.sanction_outcome && this.sanction_outcome.id) {
             this.displayedEntityType = 'sanctionoutcome';
             displayed_entity = this.sanction_outcome;
-        } else if (this.legal_case && this.legal_case.id && this.parentComponentName === 'legal_case') {
+        } else if (this.legal_case && this.legal_case.id) {
             this.displayedEntityType = 'legalcase';
             displayed_entity = this.legal_case;
-        } else if (this.physical_artifact && this.physical_artifact.id && this.parentComponentName === 'physical_artifact') {
-            this.displayedEntityType = 'physicalartifact';
-            displayed_entity = this.physical_artifact;
-        } else if (this.document_artifact && this.document_artifact.id && this.parentComponentName === 'document_artifact') {
-            this.displayedEntityType = 'documentartifact';
-            displayed_entity = this.document_artifact;
         }
         return displayed_entity;
     },
@@ -166,49 +138,11 @@ export default {
         }
         return retVal
     },
-
+*/
   },
   methods: {
-    createWeakLink: async function() {
-        let url = '/api/create_weak_link/'
-        let payload = {
-            'can_user_action': this.displayedEntity.can_user_action,
-            'first_content_type': this.displayedEntityType,
-            'first_object_id': this.displayedEntity.id,
-            'second_content_type': this.$refs.weak_links_lookup.second_content_type,
-            'second_object_id': this.$refs.weak_links_lookup.second_object_id,
-            'comment': this.$refs.weak_links_lookup.comment,
-        }
-        // post payload to url, then
-        let relatedItems = await Vue.http.post(url, payload);
-        if (relatedItems.ok) {
-            await this.parent_update_related_items(relatedItems.body);
-            return relatedItems
-        }
-
-    },
-    removeWeakLink: async function(e) {
-        let secondContentType = e.target.getAttribute("second-content-type");
-        let secondObjectId = e.target.getAttribute("second-object-id");
-        let url = '/api/remove_weak_link/'
-        let payload = {
-            'can_user_action': this.displayedEntity.can_user_action,
-            'first_content_type': this.displayedEntityType,
-            'first_object_id': this.displayedEntity.id,
-            'second_content_type': secondContentType,
-            'second_object_id': secondObjectId,
-        }
-        // post payload to url, then
-        let relatedItems = await Vue.http.post(url, payload);
-        console.log(relatedItems)
-        if (relatedItems.ok) {
-            await this.parent_update_related_items(relatedItems.body);
-        }
-    },
-
-    constructRelatedItemsTable: function() {
-        console.log('constructRelatedItemsTable');
-        console.log(this.displayedEntity);
+    constructExistingArtifactsTable: function() {
+        console.log('constructExistingArtifactsTable');
         this.$refs.related_items_table.vmDataTable.clear().draw();
 
         if(this.displayedEntity && this.displayedEntity.related_items){
@@ -232,6 +166,7 @@ export default {
           }
         }
     },
+      /*
     addEventListeners: function() {
       $('#related-items-table').on(
           'click',
@@ -239,13 +174,14 @@ export default {
           this.removeWeakLink,
           );
     }
+    */
   },
   created: async function() {
   },
   mounted: function() {
       this.$nextTick(() => {
-          this.addEventListeners();
-          this.constructRelatedItemsTable();
+          //this.addEventListeners();
+          this.constructExistingArtifactsTable();
 
       });
   }
