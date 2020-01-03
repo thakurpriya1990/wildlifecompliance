@@ -403,6 +403,7 @@ class BaseApplicationSerializer(serializers.ModelSerializer):
     application_type = CustomChoiceField(read_only=True)
     invoice_url = serializers.SerializerMethodField(read_only=True)
     can_user_view = serializers.SerializerMethodField(read_only=True)
+    payment_url = serializers.SerializerMethodField(read_only=True)
 
     class Meta:
         model = Application
@@ -450,6 +451,7 @@ class BaseApplicationSerializer(serializers.ModelSerializer):
             'invoice_url',
             'total_paid_amount',
             'has_amended_fees',
+            'payment_url',
         )
         read_only_fields = ('documents',)
 
@@ -547,6 +549,12 @@ class BaseApplicationSerializer(serializers.ModelSerializer):
 
         return url
 
+    def get_payment_url(self, obj):
+        url = None
+        if obj.latest_invoice:
+            url = '{}?invoice={}'.format(reverse('payments:invoice-payment'), obj.latest_invoice.reference)
+        return url
+
 class DTInternalApplicationSerializer(BaseApplicationSerializer):
     submitter = EmailUserSerializer()
     applicant = serializers.CharField(read_only=True)
@@ -560,6 +568,7 @@ class DTInternalApplicationSerializer(BaseApplicationSerializer):
     user_in_officers = serializers.SerializerMethodField(read_only=True)
     application_type = CustomChoiceField(read_only=True)
     activities = ApplicationSelectedActivitySerializer(many=True, read_only=True)
+    payment_url = serializers.SerializerMethodField(read_only=True)
 
     class Meta:
         model = Application
@@ -586,6 +595,7 @@ class DTInternalApplicationSerializer(BaseApplicationSerializer):
             'application_type',
             'activities',
             'invoice_url',
+            'payment_url',
         )
         # the serverSide functionality of datatables is such that only columns that have field 'data'
         # defined are requested from the serializer. Use datatables_always_serialize to force render
@@ -612,6 +622,7 @@ class DTExternalApplicationSerializer(BaseApplicationSerializer):
     application_type = CustomChoiceField(read_only=True)
     activities = ExternalApplicationSelectedActivitySerializer(many=True, read_only=True)
     invoice_url = serializers.SerializerMethodField(read_only=True)
+    payment_url = serializers.SerializerMethodField(read_only=True)
 
     class Meta:
         model = Application
@@ -636,6 +647,7 @@ class DTExternalApplicationSerializer(BaseApplicationSerializer):
             'application_type',
             'activities',
             'invoice_url',
+            'payment_url',
         )
         # the serverSide functionality of datatables is such that only columns that have field 'data'
         # defined are requested from the serializer. Use datatables_always_serialize to force render

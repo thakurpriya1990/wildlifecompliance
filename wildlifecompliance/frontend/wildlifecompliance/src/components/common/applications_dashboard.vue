@@ -186,6 +186,9 @@ export default {
                             `<a href='/internal/application/${full.id}'>Process</a><br/>` :
                             `<a href='/${finalised ? 'internal' : 'external'}/application/${full.id}'>View</a><br/>`;
                     }
+                    if (!vm.is_external && full.payment_status == 'paid'){
+                        links +=  `<a href='${full.payment_url}' target='_blank' >Record Payment</a><br/>`;
+                    }
                     if (vm.is_external){
                         if (full.can_current_user_edit) {
                             links +=  `<a href='/external/application/${full.id}'>Continue</a><br/>`;
@@ -287,6 +290,9 @@ export default {
                         }
                         if (full.payment_status == 'unpaid'){
                             links +=  `<a href='#${full.id}' data-pay-application-fee='${full.id}'>Pay Application Fee</a><br/>`;
+                        }
+                        if (full.payment_status == 'paid'){
+                              links +=  `<a href='${full.payment_url}' target='_blank' >Record Payment</a><br/>`;
                         }
                         if (['awaiting_payment'].includes(full.customer_status.id) && full.payment_status == 'paid'){
                             let activity = full.activities.find(activity => activity.can_pay_licence_fee=true)
