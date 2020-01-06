@@ -475,7 +475,7 @@ export default {
             // "From" field
             el_fr_date.datetimepicker({
             format: "DD/MM/YYYY",
-            minDate: "now",
+            maxDate: "now",
             showClear: true
             });
             el_fr_date.on("dp.change", function(e) {

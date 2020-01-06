@@ -338,9 +338,8 @@ def get_related_items(entity, pending_closure=False, **kwargs):
                                         )
                                 return_list.append(related_item)
                 # legal case artifacts
-                elif entity._meta.model_name == 'legalcase' and f.is_relation and f.many_to_many:
-                    print("many to many")
-                    print(f.__dict__)
+                elif entity._meta.model_name == 'legalcase' and f.is_relation and f.many_to_many \
+                        and f.name in ('legal_case_document_artifacts', 'legal_case_physical_artifacts'):
                     field_objects = f.related_model.objects.filter(legal_case=entity)
                     # TODO: Refactor repeated code
                     if field_objects:
@@ -358,6 +357,23 @@ def get_related_items(entity, pending_closure=False, **kwargs):
                                                 )
                                         )
                                 return_list.append(related_item)
+
+                # legal case associated_persons
+                elif entity._meta.model_name == 'legalcase' and f.is_relation and f.many_to_many \
+                    and f.name == 'associated_persons':
+                    field_objects = entity.associated_persons.all()
+                    if field_objects:
+                        for field_object in field_objects:
+                            related_item = RelatedItem(
+                                    model_name = format_model_name(f.related_model.__name__),
+                                    identifier = field_object.get_related_items_identifier,
+                                    descriptor = field_object.get_related_items_descriptor,
+                                    action_url = format_url(
+                                            model_name=f.related_model.__name__,
+                                            obj_id=field_object.id
+                                            )
+                                    )
+                            return_list.append(related_item)
 
                 # foreign keys from entity to EmailUser
                 elif f.is_relation and f.related_model._meta.model_name == 'emailuser':

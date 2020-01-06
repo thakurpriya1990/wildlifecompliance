@@ -103,6 +103,10 @@ class LegalCase(RevisionedMixin):
             LegalCasePriority,
             null=True
             )
+    associated_persons = models.ManyToManyField(
+            EmailUser,
+            related_name='legal_case_associated_persons',
+            )
 
     class Meta:
         app_label = 'wildlifecompliance'
@@ -166,6 +170,11 @@ class LegalCasePerson(EmailUser):
     class Meta:
         app_label = 'wildlifecompliance'
 
+    def __str__(self):
+        return "id:{}, legal_case_id:{}".format(
+                self.id,
+                self.legal_case_id,
+                )
 
 class LegalCaseRunningSheetEntryManager(models.Manager):
     #def create_running_sheet_entry(self, legal_case_id, user_id, description=None):

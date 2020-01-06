@@ -461,11 +461,18 @@ export default {
             await this.saveDocumentArtifact({ create: true, internal: true, legal_case_id: this.legalCaseId });
             //this.entity.id = 
             this.$nextTick(() => {
+                let artifactTypeDisplay = '';
+                for (let artifactType of this.documentArtifactTypes) {
+                    if (artifactType.id === this.artifactType) {
+                        artifactTypeDisplay = artifactType.display;
+                    }
+                }
                 this.$emit('entity-selected', {
                     id: this.document_artifact.id,
                     data_type: 'document_artifact',
                     identifier: this.document_artifact.identifier,
                     artifact_type: this.artifactType,
+                    display: artifactTypeDisplay,
                 });
             });
             //return documentArtifactEntity;
@@ -481,7 +488,7 @@ export default {
             // "From" field
             el_fr_date.datetimepicker({
             format: "DD/MM/YYYY",
-            minDate: "now",
+            maxDate: "now",
             showClear: true
             });
             el_fr_date.on("dp.change", function(e) {

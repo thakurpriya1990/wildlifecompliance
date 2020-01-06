@@ -13,6 +13,7 @@ from wildlifecompliance.components.legal_case.models import (
     LegalCaseRunningSheetEntry,
     LegalCasePerson,
     )
+from wildlifecompliance.components.call_email.serializers import EmailUserSerializer
 from wildlifecompliance.components.main.related_item import get_related_items
 from wildlifecompliance.components.main.serializers import CommunicationLogEntrySerializer
 from wildlifecompliance.components.users.serializers import (
@@ -54,7 +55,22 @@ class LegalCasePersonSerializer(serializers.ModelSerializer):
         model = LegalCasePerson
         fields = (
                 'id',
-                'full_name',
+                'legal_case_id',
+                )
+        read_only_fields = (
+                'id',
+                'legal_case_id',
+                )
+
+
+class CreateLegalCasePersonSerializer(serializers.ModelSerializer):
+    legal_case_id = serializers.IntegerField(
+        required=False, write_only=True, allow_null=True)
+    class Meta:
+        model = LegalCasePerson
+        fields = (
+                'id',
+                'legal_case_id',
                 )
         read_only_fields = (
                 'id',
@@ -307,6 +323,7 @@ class LegalCaseRunningSheetSerializer(serializers.ModelSerializer):
 
 class LegalCaseSerializer(serializers.ModelSerializer):
     running_sheet_entries = LegalCaseRunningSheetEntrySerializer(many=True)
+    legal_case_person = EmailUserSerializer(many=True)
     #running_sheet_entries = serializers.SerializerMethodField()
     allocated_group = serializers.SerializerMethodField()
     #all_officers = serializers.SerializerMethodField()
@@ -346,12 +363,12 @@ class LegalCaseSerializer(serializers.ModelSerializer):
                 'legal_case_priority_id',
                 'running_sheet_entries',
                 'statement_artifacts',
+                'legal_case_person',
                 #'running_sheet_artifacts',
                 )
         read_only_fields = (
                 'id',
                 )
-
 
     def get_statement_artifacts(self, obj):
         artifact_list = []
