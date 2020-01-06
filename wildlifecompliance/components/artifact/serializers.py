@@ -186,7 +186,7 @@ class DocumentArtifactStatementSerializer(ArtifactSerializer):
 class DocumentArtifactSerializer(ArtifactSerializer):
     statement = DocumentArtifactStatementSerializer(read_only=True)
     #document_type = DocumentArtifactTypeSerializer(read_only=True)
-    document_type = CustomChoiceField(read_only=True)
+    #document_type = CustomChoiceField(read_only=True)
     person_providing_statement = EmailUserSerializer(read_only=True)
     interviewer = EmailUserSerializer(read_only=True)
     people_attending = EmailUserSerializer(read_only=True, many=True)

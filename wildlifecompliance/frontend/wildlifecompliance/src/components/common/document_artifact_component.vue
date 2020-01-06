@@ -26,7 +26,7 @@
                                           <label>Document Type</label>
                                         </div>
                                         <div class="col-sm-6">
-                                          <select class="form-control" v-model="document_artifact.document_type.id" ref="setArtifactType">
+                                          <select class="form-control" v-model="document_artifact.document_type" ref="setArtifactType">
                                             <option  v-for="option in documentArtifactTypes" :value="option.id" v-bind:key="option.id">
                                               {{ option.display }}
                                             </option>
