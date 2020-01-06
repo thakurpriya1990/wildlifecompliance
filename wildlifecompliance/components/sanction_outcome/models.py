@@ -698,6 +698,7 @@ class RemediationAction(RevisionedMixin):
         (STATUS_ACCEPTED, 'Accepted')
     )
 
+    remediation_action_id = models.CharField(max_length=20, blank=True)
     action = models.TextField(blank=True)
     due_date = models.DateField(null=True, blank=True)
     sanction_outcome = models.ForeignKey(SanctionOutcome, related_name='remediation_actions', null=True, on_delete=models.SET_NULL,)
