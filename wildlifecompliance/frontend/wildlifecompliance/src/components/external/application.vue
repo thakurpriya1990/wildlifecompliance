@@ -323,8 +323,9 @@ export default {
     this.$nextTick(() => {
         vm.eventListeners();
     });
-    if (this.application.has_amended_fees){ // fees can be adjusted from selected components.
-      this.adjusted_application_fee = this.application.application_fee - this.application.total_paid_amount
+    if (this.application.application_type.id=='amend_activity' || this.application.customer_status.id=='amendment_required'){ 
+      // fees can be adjusted from selected components for amendments.
+      this.adjusted_application_fee = this.application.has_amended_fees ? this.application.application_fee - this.application.total_paid_amount : 0
     } else {
       this.adjusted_application_fee = this.application.application_fee
     }
