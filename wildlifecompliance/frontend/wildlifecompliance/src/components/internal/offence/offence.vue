@@ -367,23 +367,6 @@ export default {
                     ,],
                 'region_id': '__all__',
             },
-            hashAttributeWhitelist: [
-                'alleged_offences',
-                'allocated_group_id',
-                'date_of_issue',
-                'details',
-                'district_id',
-                'identifier',
-                'location',
-                'lodgement_number',
-                'occurrence_date_from',
-                'occurrence_date_to',
-                'occurrence_time_from',
-                'occurrence_time_to',
-                'occurrence_from_to',
-                'offenders',
-                'region_id',
-            ],
 
             current_alleged_offence: {  // Store the alleged offence temporarily once selected in awesomplete. Cleared when clicking on the "Add" button.
                 id: null,
@@ -818,11 +801,19 @@ export default {
             this.constructAllegedOffencesTable();
             this.updateObjectHash();
         },
-        openSanctionOutcome: function() {
-          this.sanctionOutcomeInitialised = true;
-          this.$nextTick(() => {
-              this.$refs.sanction_outcome.isModalOpen = true;
-          });
+        openSanctionOutcome: async function() {
+            try {
+                if (this.formChanged()){
+                    // Save changes implicitly
+                    await this.saveOffence();
+                }
+                this.sanctionOutcomeInitialised = true;
+                this.$nextTick(() => {
+                    this.$refs.sanction_outcome.isModalOpen = true;
+                });
+            } catch (err) {
+                this.processError(err);
+            }
         },
         updateWorkflowBindId: function() {
             let timeNow = Date.now()
@@ -833,11 +824,19 @@ export default {
             }
         },
         addWorkflow: function(workflow_type) {
-            this.workflow_type = workflow_type;
-            this.updateWorkflowBindId();
-            this.$nextTick(() => {
-                this.$refs.add_workflow.isModalOpen = true;
-            });
+            try {
+                if (this.formChanged()){
+                    // Save changes implicitly
+                    await this.saveOffence();
+                }
+                this.workflow_type = workflow_type;
+                this.updateWorkflowBindId();
+                this.$nextTick(() => {
+                    this.$refs.add_workflow.isModalOpen = true;
+                });
+            } catch (err) {
+                this.processError(err);
+            }
         },
         showHideAddressDetailsFields: function(showAddressFields, showDetailsFields) {
           if (showAddressFields) {
