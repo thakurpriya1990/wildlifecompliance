@@ -806,6 +806,7 @@ export default {
                 if (this.formChanged()){
                     // Save changes implicitly
                     await this.saveOffence();
+                    this.updateObjectHash();
                 }
                 this.sanctionOutcomeInitialised = true;
                 this.$nextTick(() => {
@@ -828,6 +829,7 @@ export default {
                 if (this.formChanged()){
                     // Save changes implicitly
                     await this.saveOffence();
+                    this.updateObjectHash();
                 }
                 this.workflow_type = workflow_type;
                 this.updateWorkflowBindId();
