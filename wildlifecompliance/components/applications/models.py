@@ -732,12 +732,23 @@ class Application(RevisionedMixin):
         return self.get_dynamic_schema_attributes(data_source)['fees']
 
     def get_dynamic_schema_attributes(self, data_source):
-        dynamic_attributes = {
-            'fees': Application.calculate_base_fees(
-                self.licence_purposes.values_list('id', flat=True)
-            ),
-            'activity_attributes': {},
-        }
+
+        if self.application_type == Application.APPLICATION_TYPE_AMENDMENT:
+            # Application amendments require an new application without fees.
+            dynamic_attributes = {
+                'fees': {
+                    'application': Decimal(0.0),
+                    'licence': Decimal(0.0),
+                },          
+                'activity_attributes': {},
+            }
+        else:
+            dynamic_attributes = {
+                'fees': Application.calculate_base_fees(
+                    self.licence_purposes.values_list('id', flat=True)
+                ),
+                'activity_attributes': {},
+            }
 
         def parse_modifiers(dynamic_attributes, component, schema_name, adjusted_by_fields, activity):
             def increase_fee(fees, field, amount):
@@ -1059,8 +1070,13 @@ class Application(RevisionedMixin):
                                 self.id), request)
 
                     # notify linked officer groups of submission.
-                    send_application_submit_email_notification(
-                        group_users, self, request)
+                    if self.requires_refund:  # Refund for amended application.
+
+                        send_amendment_refund_email_notification(
+                            group_users, self, request)
+                    else:
+                        send_application_submit_email_notification(
+                            group_users, self, request)
 
                     self.documents.all().update(can_delete=False)
 
@@ -1470,8 +1486,10 @@ class Application(RevisionedMixin):
         Check on previous invoice amounts for difference in application fee.
         """
         fees_amended = False
-        if self.total_paid_amount > 0 and \
-           self.total_paid_amount <= self.application_fee:
+        # Application amendments requires a new submission and applies the
+        # previous paid for adjustments.
+        paid = self.total_paid_amount + self.previous_paid_amount
+        if paid > 0 and paid <= self.application_fee:
             fees_amended = True
 
         return fees_amended
@@ -1519,7 +1537,23 @@ class Application(RevisionedMixin):
         """
         Check on the last invoice amount against application fee.
         """
-        return True if self.total_paid_amount > self.application_fee else False
+        # Application amendments requires a new submission and applies the
+        # previous paid for adjustments.
+        paid = self.total_paid_amount + self.previous_paid_amount
+
+        return True if paid > self.application_fee else False
+
+    def previous_paid_amount(self):
+        """
+        Gets the paid amount from the previous application for application
+        amendments which require a new submission.
+        """
+        previous_paid = 0
+        if self.application_type == Application.APPLICATION_TYPE_AMENDMENT:
+            previous = Application.objects.get(id=self.previous_application.id)
+            previous_paid += previous.total_paid_amount
+
+        return previous_paid
 
     @property
     def assessments(self):

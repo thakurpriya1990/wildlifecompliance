@@ -323,12 +323,17 @@ export default {
     this.$nextTick(() => {
         vm.eventListeners();
     });
-    if (this.application.application_type.id=='amend_activity' || this.application.customer_status.id=='amendment_required'){ 
-      // fees can be adjusted from selected components for amendments.
-      this.adjusted_application_fee = this.application.has_amended_fees ? this.application.application_fee - this.application.total_paid_amount : 0
+    if (this.application.application_type.id=='amend_activity'){ 
+      // fees can be adjusted from selected components for requested amendments.
+      this.adjusted_application_fee = this.application.application_fee - this.application.total_paid_amount
     } else {
+      // fees already adjusted for application amendments and new applications.
       this.adjusted_application_fee = this.application.application_fee
     }
+    console.log(this.adjusted_application_fee)
+    console.log(this.application.application_fee)
+    console.log(this.application.total_paid_amount)
+    console.log(this.application.has_amended_fee)
   },
 }
 </script>

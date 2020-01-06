@@ -552,7 +552,17 @@ class BaseApplicationSerializer(serializers.ModelSerializer):
     def get_payment_url(self, obj):
         url = None
         if obj.latest_invoice:
-            url = '{}?invoice={}'.format(reverse('payments:invoice-payment'), obj.latest_invoice.reference)
+            url = '{}?invoice={}'.format(
+                reverse('payments:invoice-payment'),
+                obj.latest_invoice.reference)
+
+        if obj.application_type == Application.APPLICATION_TYPE_AMENDMENT\
+                and obj.requires_refund:
+            previous = Application.objects.get(id=obj.previous_application.id)
+            url = '{}?invoice={}'.format(
+                reverse('payments:invoice-payment'),
+                previous.latest_invoice.reference)
+
         return url
 
 class DTInternalApplicationSerializer(BaseApplicationSerializer):
