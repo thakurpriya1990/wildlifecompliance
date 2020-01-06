@@ -823,7 +823,7 @@ export default {
                 this.workflowBindId = timeNow.toString();
             }
         },
-        addWorkflow: function(workflow_type) {
+        addWorkflow: async function(workflow_type) {
             try {
                 if (this.formChanged()){
                     // Save changes implicitly
