@@ -99,6 +99,7 @@ class RemediationActionSerializer(serializers.ModelSerializer):
         req = self.context.get('request', {})
 
         view_url = '<a href="/external/remediation_action/' + str(obj.id) + '">View</a>'
+        submit_url = '<a href="/external/remediation_action/' + str(obj.id) + '">Submit</a>'
         # accept_url = '<a href="/api/remediation_action/' + str(obj.id) + '/accept">Accept</a>'
         # request_amendment_url = '<a href="/api/remediation_action/' + str(obj.id) + '/request_amendment">Request Amendment</a>'
         accept_url = '<a data-id="{}" data-action="{}" class="accept_remediation_action">Accept</a>'.format(str(obj.id), 'accept')
@@ -114,9 +115,10 @@ class RemediationActionSerializer(serializers.ModelSerializer):
                 url_list.append(request_amendment_url)
         else:
             if req.user == obj.sanction_outcome.offender.person:
-                # If user if the offender
-                # then 'view'
-                url_list.append(view_url)
+                if obj.status == RemediationAction.STATUS_OPEN:
+                    url_list.append(submit_url)
+                else:
+                    url_list.append(view_url)
 
         urls = '<br />'.join(url_list)
         return urls

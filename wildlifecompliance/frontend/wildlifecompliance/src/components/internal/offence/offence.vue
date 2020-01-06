@@ -717,7 +717,7 @@ export default {
                         }
                         else {
                             for (let i=0; i<attributes.length; i++){
-                                copiedObject[val + i.toString()] = target[attributes[i]];
+                                copiedObject[val + i.toString()] = target_obj[attributes[i]];
                             }
                         }
                     }

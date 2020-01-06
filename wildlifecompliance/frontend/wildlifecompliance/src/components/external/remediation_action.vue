@@ -67,9 +67,11 @@
                             </div>
 
                         </div>
-                        <input type="button" @click.prevent="submit" class="btn btn-primary pull-right button-gap" value="Submit"/>
-                        <input type="button" @click.prevent="save" class="btn btn-primary pull-right button-gap" value="Save and Continue"/>
-                        <input type="button" @click.prevent="saveExit" class="btn btn-primary pull-right button-gap" value="Save and Exit"/>
+                        <div v-if="canSaveSubmit">
+                            <input type="button" @click.prevent="submit" class="btn btn-primary pull-right button-gap" value="Submit"/>
+                            <input type="button" @click.prevent="save" class="btn btn-primary pull-right button-gap" value="Save and Continue"/>
+                            <input type="button" @click.prevent="saveExit" class="btn btn-primary pull-right button-gap" value="Save and Exit"/>
+                        </div>
                     </div>
                 </div>
             </div>
@@ -123,6 +125,9 @@ export default {
         readonlyForm: function(){
             return !this.remediation_action.action_taken_editable;
         },
+        canSaveSubmit: function() {
+            return this.remediation_action.action_taken_editable;
+        }
     },
     methods: {
         ...mapActions('remediationActionStore', {
