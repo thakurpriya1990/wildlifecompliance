@@ -474,9 +474,12 @@ class SanctionOutcome(models.Model):
 
         elif self.type == SanctionOutcome.TYPE_REMEDIATION_NOTICE:
             self.status = SanctionOutcome.STATUS_AWAITING_REMEDIATION_ACTIONS
+            id_suffix = 1
             for remediation_action in self.remediation_actions.all():
                 remediation_action.status = RemediationAction.STATUS_OPEN
+                remediation_action.remediation_action_id = self.lodgement_number + '-' + str(id_suffix)
                 remediation_action.save()
+                id_suffix += 1
 
         new_group = SanctionOutcome.get_compliance_permission_group(self.regionDistrictId, SanctionOutcome.WORKFLOW_ENDORSE)
         self.allocated_group = new_group
@@ -702,7 +705,7 @@ class RemediationAction(RevisionedMixin):
     action = models.TextField(blank=True)
     due_date = models.DateField(null=True, blank=True)
     sanction_outcome = models.ForeignKey(SanctionOutcome, related_name='remediation_actions', null=True, on_delete=models.SET_NULL,)
-    status = models.CharField(max_length=40, choices=STATUS_CHOICES, blank=True, default=STATUS_OPEN)
+    status = models.CharField(max_length=40, choices=STATUS_CHOICES, blank=True,)
     objects = models.Manager()
     objects_for_external = RemediationActionExternalManager()
     action_taken = models.TextField(blank=True)

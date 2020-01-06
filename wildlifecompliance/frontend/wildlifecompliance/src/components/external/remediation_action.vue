@@ -1,8 +1,8 @@
 <template lang="html">
     <div class="container">
         <div class="row">
-            <div class="col-md-3">
-                <h3>Remediation Action: ---</h3>
+            <div class="col-md-5">
+                <h3>Remediation Action: {{ remediation_action.remediation_action_id }}</h3>
             </div>
         </div>
         <div>

@@ -81,6 +81,7 @@ class RemediationActionSerializer(serializers.ModelSerializer):
             'action_taken',
             'documents',
             'action_taken_editable',
+            'remediation_action_id',
         )
 
     def can_user_approve(self, obj, user):
