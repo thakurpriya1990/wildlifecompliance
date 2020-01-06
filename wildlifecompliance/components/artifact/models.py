@@ -69,6 +69,7 @@ class Artifact(RevisionedMixin):
     #def log_user_action(self, action, request):
      #   return ArtifactUserAction.log_action(self, action, request.user)
 
+# TODO - no longer required
 class DocumentArtifactType(models.Model):
     artifact_type = models.CharField(max_length=50)
     #schema = JSONField(null=True)
@@ -125,10 +126,33 @@ class PhysicalArtifactDisposalMethod(models.Model):
 
 
 class DocumentArtifact(Artifact):
-    document_type = models.ForeignKey(
-            DocumentArtifactType,
-            null=True
+    WITNESS_STATEMENT = 'witness_statement'
+    RECORD_OF_INTERVIEW = 'record_of_interview'
+    OFFICER_STATEMENT = 'officer_statement'
+    EXPERT_STATEMENT = 'expert_statement'
+    PHOTOGRAPH = 'photograph'
+    VIDEO = 'video'
+    SOUND = 'sound'
+    OTHER = 'other'
+    DOCUMENT_TYPE_CHOICES = (
+            (WITNESS_STATEMENT, 'Witness Statement'),
+            (RECORD_OF_INTERVIEW, 'Record of Interview'),
+            (OFFICER_STATEMENT, 'Officer Statement'),
+            (EXPERT_STATEMENT, 'Expert Statement'),
+            (PHOTOGRAPH, 'Photograph'),
+            (VIDEO, 'Video'),
+            (SOUND, 'Sound'),
+            (OTHER, 'Other')
             )
+    document_type = models.CharField(
+            max_length=30,
+            choices=DOCUMENT_TYPE_CHOICES,
+            #default='individual'
+            )
+    #document_type = models.ForeignKey(
+    #        DocumentArtifactType,
+    #        null=True
+    #        )
     #_file = models.FileField(max_length=255)
     #identifier = models.CharField(max_length=255, blank=True, null=True)
     #description = models.TextField(blank=True, null=True)
@@ -150,12 +174,14 @@ class DocumentArtifact(Artifact):
     #        )
     #document_created_date = models.DateField(null=True)
     #document_created_time = models.TimeField(blank=True, null=True)
+    # can be witness, expert, etc
     person_providing_statement = models.ForeignKey(
             EmailUser,
             related_name='document_artifact_person_providing_statement',
             null=True,
             )
     interviewer_email = models.CharField(max_length=255, blank=True, null=True)
+    # TODO - no longer required?
     interviewer = models.ForeignKey(
             EmailUser,
             related_name='document_artifact_interviewer',

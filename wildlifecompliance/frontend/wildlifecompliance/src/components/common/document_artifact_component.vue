@@ -26,9 +26,9 @@
                                           <label>Document Type</label>
                                         </div>
                                         <div class="col-sm-6">
-                                          <select class="form-control" v-model="document_artifact.document_type" ref="setArtifactType">
-                                            <option  v-for="option in documentArtifactTypes" :value="option" v-bind:key="option.id">
-                                              {{ option.artifact_type }}
+                                          <select class="form-control" v-model="document_artifact.document_type.id" ref="setArtifactType">
+                                            <option  v-for="option in documentArtifactTypes" :value="option.id" v-bind:key="option.id">
+                                              {{ option.display }}
                                             </option>
                                           </select>
                                         </div>
@@ -69,7 +69,7 @@
                                         <div class="col-sm-6">
                                           <select class="form-control" v-model="document_artifact.statement_id" ref="setStatement">
                                             <option  v-for="option in legal_case.statement_artifacts" :value="option.id" v-bind:key="option.id">
-                                            {{ option.document_type.artifact_type }}: {{ option.identifier }}
+                                            {{ option.document_type }}: {{ option.identifier }}
                                             </option>
                                           </select>
                                         </div>
@@ -207,11 +207,19 @@ export default {
             entity: {
                 id: null,
             },
+            /*
             statementArtifactTypes: [
                 'Record of Interview',
                 'Witness Statement',
                 'Expert Statement',
                 'Officer Statement',
+                ],
+                */
+            statementArtifactTypes: [
+                'record_of_interview',
+                'witness_statement',
+                'expert_statement',
+                'officer_statement',
                 ],
             statementVisibility: false,
             //departmentStaffList: [],
@@ -314,6 +322,7 @@ export default {
           }
           return recordExists;
         },
+        /*
         artifactType: function() {
           console.log("artifact type")
           let aType = ''
@@ -322,36 +331,45 @@ export default {
           }
           return aType;
         },
+        */
+        artifactType: function() {
+          console.log("artifact type")
+          let aType = ''
+          if (this.document_artifact) {
+              aType = this.document_artifact.document_type;
+          }
+          return aType;
+        },
         personProvidingStatementLabel: function() {
             let label = '';
-            if (this.artifactType === 'Witness Statement') {
+            if (this.artifactType === 'witness_statement') {
                 label = 'Witness';
-            } else if (this.artifactType === 'Expert Statement') {
+            } else if (this.artifactType === 'expert_statement') {
                 label = 'Expert';
             }
             return label;
         },
         interviewerLabel: function() {
             let label = '';
-            if (this.artifactType === 'Witness Statement') {
+            if (this.artifactType === 'witness_statement') {
                 label = 'Officer taking statement'
-            } else if (this.artifactType === 'Record of Interview') {
+            } else if (this.artifactType === 'record_of_interview') {
                 label = 'Interviewer';
-            } else if (this.artifactType === 'Officer Statement') {
+            } else if (this.artifactType === 'officer_statement') {
                 label = 'Officer';
             }
             return label
         },
         personProvidingStatementVisibility: function() {
             let visibility = false;
-            if (this.artifactType === 'Expert Statement' || this.artifactType === 'Witness Statement') {
+            if (this.artifactType === 'expert_statement' || this.artifactType === 'witness_statement') {
                 visibility = true;
             }
             return visibility;
         },
         interviewerVisibility: function() {
             let visibility = false;
-            if (this.artifactType !== 'Expert Statement' && this.statementArtifactTypes.includes(this.artifactType)) {
+            if (this.artifactType !== 'expert_statement' && this.statementArtifactTypes.includes(this.artifactType)) {
                 visibility = true;
             }
             return visibility;

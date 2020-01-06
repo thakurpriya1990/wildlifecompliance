@@ -275,16 +275,30 @@ class LegalCaseStatementArtifactsSerializer(serializers.ModelSerializer):
                 'id',
                 )
 
+    #def get_statement_artifacts(self, obj):
+    #    artifact_list = []
+    #    for artifact in obj.legal_case_document_artifacts.all():
+    #        if artifact.document_type \
+    #        and artifact.document_type.artifact_type in \
+    #        [
+    #            'Record of Interview',
+    #            'Witness Statement',
+    #            'Expert Statement',
+    #            'Officer Statement'
+    #        ]:
+    #            serialized_artifact = DocumentArtifactSerializer(artifact)
+    #            artifact_list.append(serialized_artifact)
+    #    return artifact_list
+
     def get_statement_artifacts(self, obj):
         artifact_list = []
         for artifact in obj.legal_case_document_artifacts.all():
-            if artifact.document_type \
-            and artifact.document_type.artifact_type in \
+            if artifact.document_type and artifact.document_type in \
             [
-                'Record of Interview',
-                'Witness Statement',
-                'Expert Statement',
-                'Officer Statement'
+                'record_of_interview',
+                'witness_statement',
+                'expert_statement',
+                'officer_statement'
             ]:
                 serialized_artifact = DocumentArtifactSerializer(artifact)
                 artifact_list.append(serialized_artifact)
@@ -338,19 +352,33 @@ class LegalCaseSerializer(serializers.ModelSerializer):
                 'id',
                 )
 
+    #def get_statement_artifacts(self, obj):
+    #    artifact_list = []
+    #    for artifact in obj.legal_case_document_artifacts.all():
+    #        if artifact.document_type \
+    #        and artifact.document_type.artifact_type in \
+    #        [
+    #            'Record of Interview',
+    #            'Witness Statement',
+    #            'Expert Statement',
+    #            'Officer Statement'
+    #        ]:
+    #            serialized_artifact = DocumentArtifactSerializer(artifact)
+    #            artifact_list.append(serialized_artifact.data)
+    #    return artifact_list
+
     def get_statement_artifacts(self, obj):
         artifact_list = []
         for artifact in obj.legal_case_document_artifacts.all():
-            if artifact.document_type \
-            and artifact.document_type.artifact_type in \
+            if artifact.document_type and artifact.document_type in \
             [
-                'Record of Interview',
-                'Witness Statement',
-                'Expert Statement',
-                'Officer Statement'
+                'record_of_interview',
+                'witness_statement',
+                'expert_statement',
+                'officer_statement'
             ]:
                 serialized_artifact = DocumentArtifactSerializer(artifact)
-                artifact_list.append(serialized_artifact.data)
+                artifact_list.append(serialized_artifact)
         return artifact_list
 
     def get_related_items(self, obj):

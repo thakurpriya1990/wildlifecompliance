@@ -68,7 +68,7 @@ from wildlifecompliance.components.artifact.serializers import (
         SaveDocumentArtifactSerializer,
         SavePhysicalArtifactSerializer,
         PhysicalArtifactSerializer,
-        DocumentArtifactTypeSerializer,
+        #DocumentArtifactTypeSerializer,
         PhysicalArtifactTypeSerializer,
         PhysicalArtifactDisposalMethodSerializer,
         ArtifactUserActionSerializer,
@@ -129,6 +129,14 @@ class DocumentArtifactViewSet(viewsets.ModelViewSet):
             print(traceback.print_exc())
             raise serializers.ValidationError(str(e))
 
+    @list_route(methods=['GET', ])    
+    def document_type_choices(self, request, *args, **kwargs):
+        res_obj = [] 
+        for choice in DocumentArtifact.DOCUMENT_TYPE_CHOICES:
+            res_obj.append({'id': choice[0], 'display': choice[1]});
+        res_json = json.dumps(res_obj)
+        return HttpResponse(res_json, content_type='application/json')
+    
     @renderer_classes((JSONRenderer,))
     #def inspection_save(self, request, workflow=False, *args, **kwargs):
     def update(self, request, workflow=False, *args, **kwargs):
@@ -161,11 +169,11 @@ class DocumentArtifactViewSet(viewsets.ModelViewSet):
         print(request_data)
         try:
             with transaction.atomic():
-                document_type = request_data.get('document_type')
-                document_type_id = None
-                if document_type:
-                    document_type_id = document_type.get('id')
-                    request_data['document_type_id'] = document_type_id
+                #document_type = request_data.get('document_type')
+                #document_type_id = None
+                #if document_type:
+                #    document_type_id = document_type.get('id')
+                #    request_data['document_type_id'] = document_type_id
 
                 if instance:
                     serializer = SaveDocumentArtifactSerializer(
@@ -634,15 +642,15 @@ class ArtifactViewSet(viewsets.ModelViewSet):
    #        print(traceback.print_exc())
    #        raise serializers.ValidationError(str(e))
 
-class DocumentArtifactTypeViewSet(viewsets.ModelViewSet):
-   queryset = DocumentArtifactType.objects.all()
-   serializer_class = DocumentArtifactTypeSerializer
-
-   def get_queryset(self):
-       # user = self.request.user
-       if is_internal(self.request):
-           return DocumentArtifactType.objects.all()
-       return DocumentArtifactType.objects.none()
+#class DocumentArtifactTypeViewSet(viewsets.ModelViewSet):
+#   queryset = DocumentArtifactType.objects.all()
+#   serializer_class = DocumentArtifactTypeSerializer
+#
+#   def get_queryset(self):
+#       # user = self.request.user
+#       if is_internal(self.request):
+#           return DocumentArtifactType.objects.all()
+#       return DocumentArtifactType.objects.none()
 
    #@detail_route(methods=['GET',])
    #@renderer_classes((JSONRenderer,))

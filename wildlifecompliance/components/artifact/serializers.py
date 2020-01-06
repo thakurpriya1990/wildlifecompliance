@@ -103,8 +103,10 @@ class ArtifactPaginatedSerializer(serializers.ModelSerializer):
             return pa.first().physical_artifact_type.artifact_type
 
         da = DocumentArtifact.objects.filter(artifact_ptr_id=artifact_obj.id)
-        if da and da.first().document_type and da.first().document_type.artifact_type:
-            return da.first().document_type.artifact_type
+        #if da and da.first().document_type and da.first().document_type.artifact_type:
+         #   return da.first().document_type.artifact_type
+        if da and da.first().document_type:
+            return da.first().document_type
 
         return '---'
 
@@ -120,20 +122,20 @@ class ArtifactPaginatedSerializer(serializers.ModelSerializer):
         return urls
 
 
-class DocumentArtifactTypeSerializer(serializers.ModelSerializer):
-    class Meta:
-        model = DocumentArtifactType
-        fields = (
-                'id',
-                'artifact_type',
-                'version',
-                'description',
-                'date_created',
-
-                )
-        read_only_fields = (
-                'id',
-                )
+#class DocumentArtifactTypeSerializer(serializers.ModelSerializer):
+#    class Meta:
+#        model = DocumentArtifactType
+#        fields = (
+#                'id',
+#                'artifact_type',
+#                'version',
+#                'description',
+#                'date_created',
+#
+#                )
+#        read_only_fields = (
+#                'id',
+#                )
 
 
 class PhysicalArtifactTypeSerializer(serializers.ModelSerializer):
@@ -183,7 +185,8 @@ class DocumentArtifactStatementSerializer(ArtifactSerializer):
 
 class DocumentArtifactSerializer(ArtifactSerializer):
     statement = DocumentArtifactStatementSerializer(read_only=True)
-    document_type = DocumentArtifactTypeSerializer(read_only=True)
+    #document_type = DocumentArtifactTypeSerializer(read_only=True)
+    document_type = CustomChoiceField(read_only=True)
     person_providing_statement = EmailUserSerializer(read_only=True)
     interviewer = EmailUserSerializer(read_only=True)
     people_attending = EmailUserSerializer(read_only=True, many=True)
@@ -204,7 +207,7 @@ class DocumentArtifactSerializer(ArtifactSerializer):
                 'artifact_date',
                 'artifact_time',
                 'document_type',
-                'document_type_id',
+                #'document_type_id',
                 'statement',
                 'statement_id',
                 'person_providing_statement',
@@ -231,8 +234,8 @@ class DocumentArtifactSerializer(ArtifactSerializer):
 
 
 class SaveDocumentArtifactSerializer(ArtifactSerializer):
-    document_type_id = serializers.IntegerField(
-        required=False, write_only=True, allow_null=True)
+    #document_type_id = serializers.IntegerField(
+     #   required=False, write_only=True, allow_null=True)
     custodian_id = serializers.IntegerField(
         required=False, write_only=True, allow_null=True)
     statement_id = serializers.IntegerField(
@@ -257,7 +260,8 @@ class SaveDocumentArtifactSerializer(ArtifactSerializer):
                 'statement_id',
                 'artifact_date',
                 'artifact_time',
-                'document_type_id',
+                #'document_type_id',
+                'document_type',
                 'person_providing_statement_id',
                 'interviewer_id',
                 'offence_id',
