@@ -17,7 +17,7 @@
                     </div>
                     <div class="tab-content">
                         <div :id="newTab" class="tab-pane fade in active">
-                        <FormSection :formCollapse="false" :label="artifactType" Index="0" :hideHeader="!documentArtifactIdExists">
+                        <FormSection :formCollapse="false" :label="artifactTypeDisplay" Index="0" :hideHeader="!documentArtifactIdExists">
                             <div :id="objectTab" class="tab-pane fade in active li-top-buffer">
                                 <div class="col-sm-12">
                                     <div class="form-group">
@@ -340,6 +340,18 @@ export default {
           }
           return aType;
         },
+        artifactTypeDisplay: function() {
+            let display = '';
+            if (this.artifactType) {
+                for (let documentArtifactType of this.documentArtifactTypes) {
+                    //if (this.artifactType && this.artifactType.id === this.artifactType) {
+                    if (documentArtifactType.id === this.artifactType) {
+                        display = documentArtifactType.display;
+                    }
+                }
+            }
+            return display;
+        },
         personProvidingStatementLabel: function() {
             let label = '';
             if (this.artifactType === 'witness_statement') {
@@ -461,18 +473,20 @@ export default {
             await this.saveDocumentArtifact({ create: true, internal: true, legal_case_id: this.legalCaseId });
             //this.entity.id = 
             this.$nextTick(() => {
+                /*
                 let artifactTypeDisplay = '';
                 for (let artifactType of this.documentArtifactTypes) {
                     if (artifactType.id === this.artifactType) {
                         artifactTypeDisplay = artifactType.display;
                     }
                 }
+                */
                 this.$emit('entity-selected', {
                     id: this.document_artifact.id,
                     data_type: 'document_artifact',
                     identifier: this.document_artifact.identifier,
                     artifact_type: this.artifactType,
-                    display: artifactTypeDisplay,
+                    display: this.artifactTypeDisplay,
                 });
             });
             //return documentArtifactEntity;
