@@ -54,6 +54,7 @@
                             <PhysicalArtifact 
                             ref="physical_artifact"
                             @entity-selected="entitySelected"
+                            @existing-entity-selected="existingEntitySelected"
                             parentModal
                             v-bind:key="updatePhysicalArtifactBindId"
                             />

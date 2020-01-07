@@ -692,8 +692,10 @@ export default {
             console.log("constructRunningSheetTableEntry");
             this.$refs.running_sheet_table.vmDataTable.rows().every((rowIdx, tableLoop, rowLoop) => {
                 let rowData = this.$refs.running_sheet_table.vmDataTable.row(rowIdx).data()
+                /*
                 console.log(rowIdx)
                 console.log(rowData)
+                */
                 if (rowData.number === rowNumber) {
                     let i = 0;
                     for (let r of this.runningSheetUrl) {

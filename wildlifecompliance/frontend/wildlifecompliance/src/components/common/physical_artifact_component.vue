@@ -45,13 +45,22 @@
                                                     <div class="col-sm-3">
                                                         <label class="control-label pull-left" for="Name">Seizure Notice</label>
                                                     </div>
-                                                    <div class="col-sm-9">
+                                                    <div v-if="parentModal" class="col-sm-9">
                                                         <filefield
                                                         ref="default_document"
                                                         name="default-document"
                                                         :isRepeatable="true"
                                                         documentActionUrl="temporary_document"
                                                         @update-temp-doc-coll-id="setTemporaryDocumentCollectionId"/>
+                                                    </div>
+                                                    <div v-else class="col-sm-9">
+                                                        <filefield 
+                                                        ref="physical_artifact_documents" 
+                                                        name="physical-artifact-documents" 
+                                                        :isRepeatable="true" 
+                                                        :documentActionUrl="physical_artifact.defaultDocumentUrl" 
+                                                        :readonly="readonlyForm"
+                                                        />
                                                     </div>
                                                 </div>
                                             </div>
@@ -282,6 +291,20 @@ export default {
             }
             return aType;
         },
+        /*
+        artifactTypeDisplay: function() {
+            let display = '';
+            if (this.artifactType) {
+                for (let physicalArtifactType of this.physicalArtifactTypes) {
+                    //if (this.artifactType && this.artifactType.id === this.artifactType) {
+                    if (physicalArtifactType.id === this.artifactType) {
+                        display = physicalArtifactType.artifact_type;
+                    }
+                }
+            }
+            return display;
+        },
+        */
         readonlyForm: function() {
             return false;
         },
@@ -425,13 +448,16 @@ export default {
             setPhysicalArtifact: 'setPhysicalArtifact',
             setRelatedItems: 'setRelatedItems',
             setOfficerEmail: 'setOfficerEmail',
+            setTemporaryDocumentCollectionId: 'setTemporaryDocumentCollectionId',
         }),
         updateTabSelected: function(tabValue) {
             this.tabSelected = tabValue;
         },
+        /*
         setTemporaryDocumentCollectionId: function(val) {
             this.temporary_document_collection_id = val;
         },
+        */
         entitySelected: function(entity) {
             console.log(entity);
             Object.assign(this.entity, entity)
@@ -460,9 +486,26 @@ export default {
                     data_type: 'physical_artifact',
                     identifier: this.physical_artifact.identifier,
                     artifact_type: this.artifactType,
+                    display: this.artifactType,
                 });
             });
             //return physicalArtifactEntity;
+        },
+        emitDocumentArtifact: async function(e) {
+            console.log(e)
+            let physicalArtifactId = e.target.dataset.id;
+            let physicalArtifactType = e.target.dataset.artifactType.replace(/~/g, ' ');
+            let physicalArtifactIdentifier = e.target.dataset.identifier.replace(/~/g, ' ');
+            this.$nextTick(() => {
+                this.$emit('existing-entity-selected', {
+                        id: physicalArtifactId,
+                        data_type: 'physical_artifact',
+                        identifier: physicalArtifactIdentifier,
+                        artifact_type: physicalArtifactType,
+                        display: physicalArtifactType,
+                    });
+            });
+            //this.$parent.$parent.ok();
         },
         cancel: async function() {
             await this.$refs.default_document.cancel();
