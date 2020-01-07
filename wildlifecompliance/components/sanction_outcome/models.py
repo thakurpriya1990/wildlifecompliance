@@ -427,7 +427,7 @@ class SanctionOutcome(models.Model):
         else:
             return True
 
-    def send_to_dot(self):
+    def send_to_inc(self):
         if self.type == SanctionOutcome.TYPE_INFRINGEMENT_NOTICE:
             # if self.is_issuable(raise_exception=True):
             self.status = SanctionOutcome.STATUS_WITH_DOT
@@ -756,7 +756,7 @@ class SanctionOutcomeCommsLogEntry(CommunicationsLogEntry):
 
 
 class SanctionOutcomeUserAction(models.Model):
-    ACTION_ISSUE_PARKING_INFRINGEMENT = "Issue Parking Infringement {}"
+    ACTION_ISSUE_PARKING_INFRINGEMENT = "Issue Parking Infringement {} to {}"
     ACTION_CREATE = "Create Sanction Outcome {}"
     ACTION_SEND_TO_MANAGER = "Send Sanction Outcome {} to manager"
     ACTION_UPDATE = "Update Sanction Outcome {}"
