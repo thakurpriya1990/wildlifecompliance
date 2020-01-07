@@ -54,6 +54,10 @@ export const documentArtifactStore = {
         updateInterviewerEmail(state, email) {
             Vue.set(state.document_artifact, 'interviewer_email', email);
         },
+        updateTemporaryDocumentCollectionId(state, temp_doc_id) {
+            console.log("updateTemporaryDocID")
+            Vue.set(state.document_artifact, 'temporary_document_collection_id', temp_doc_id);
+        },
         /*
         updateDocumentArtifactLegalId(state, legal_case_id) {
             console.log(legal_case_id)
@@ -142,6 +146,9 @@ export const documentArtifactStore = {
         },
         setInterviewerEmail({ commit }, email ) {
             commit("updateInterviewerEmail", email);
+        },
+        setTemporaryDocumentCollectionId({ commit }, temp_doc_id) {
+            commit("updateTemporaryDocumentCollectionId", temp_doc_id);
         },
     },
 };

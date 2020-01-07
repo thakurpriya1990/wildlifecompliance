@@ -196,6 +196,9 @@ class DocumentArtifactViewSet(viewsets.ModelViewSet):
                     legal_case_id = request_data.get('legal_case_id')
                     if legal_case_id:
                         instance.add_legal_case(legal_case_id)
+                    # save temp doc if exists
+                    if request_data.get('temporary_document_collection_id'):
+                        self.handle_document(request_data, instance)
                     # TODO add people attending
 
                     return (instance, headers)
@@ -208,6 +211,49 @@ class DocumentArtifactViewSet(viewsets.ModelViewSet):
         except Exception as e:
             print(traceback.print_exc())
             raise serializers.ValidationError(str(e))
+
+    def handle_document(self, request_data, instance=None, *args, **kwargs):
+        print("handle document")
+        try:
+            if not instance:
+                instance = self.get_object()
+            temporary_document_collection_id = request_data.get('temporary_document_collection_id')
+            if temporary_document_collection_id:
+                temp_doc_collection, created = TemporaryDocumentCollection.objects.get_or_create(
+                        id=temporary_document_collection_id)
+                if temp_doc_collection:
+                    for doc in temp_doc_collection.documents.all():
+                        save_default_document_obj(instance, doc)
+                    temp_doc_collection.delete()
+        except ValidationError as e:
+            print(traceback.print_exc())
+            raise serializers.ValidationError(repr(e.error_dict))
+        except Exception as e:
+            print(traceback.print_exc())
+            raise serializers.ValidationError(str(e))
+
+    #@detail_route(methods=['POST'])
+    #@renderer_classes((JSONRenderer,))
+    #def process_default_document(self, request, *args, **kwargs):
+    #    try:
+    #        instance = self.get_object()
+    #        returned_data = process_generic_document(request, instance)
+    #        if returned_data:
+    #            return Response(returned_data)
+    #        else:
+    #            return Response()
+
+    #    except serializers.ValidationError:
+    #        print(traceback.print_exc())
+    #        raise
+    #    except ValidationError as e:
+    #        if hasattr(e, 'error_dict'):
+    #            raise serializers.ValidationError(repr(e.error_dict))
+    #        else:
+    #            raise serializers.ValidationError(repr(e[0].encode('utf-8')))
+    #    except Exception as e:
+    #        print(traceback.print_exc())
+    #        raise serializers.ValidationError(str(e))
 
 
 class PhysicalArtifactViewSet(viewsets.ModelViewSet):
@@ -425,6 +471,29 @@ class ArtifactViewSet(viewsets.ModelViewSet):
         if is_internal(self.request):
             return Artifact.objects.all()
         return Artifact.objects.none()
+
+    @detail_route(methods=['POST'])
+    @renderer_classes((JSONRenderer,))
+    def process_default_document(self, request, *args, **kwargs):
+        try:
+            instance = self.get_object()
+            returned_data = process_generic_document(request, instance)
+            if returned_data:
+                return Response(returned_data)
+            else:
+                return Response()
+
+        except serializers.ValidationError:
+            print(traceback.print_exc())
+            raise
+        except ValidationError as e:
+            if hasattr(e, 'error_dict'):
+                raise serializers.ValidationError(repr(e.error_dict))
+            else:
+                raise serializers.ValidationError(repr(e[0].encode('utf-8')))
+        except Exception as e:
+            print(traceback.print_exc())
+            raise serializers.ValidationError(str(e))
 
     @detail_route(methods=['GET', ])
     def action_log(self, request, *args, **kwargs):

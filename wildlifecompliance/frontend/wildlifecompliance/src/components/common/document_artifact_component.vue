@@ -41,13 +41,22 @@
                                             <div class="col-sm-3">
                                                 <label class="control-label pull-left" for="Name">Document</label>
                                             </div>
-                                            <div class="col-sm-9">
+                                            <div v-if="parentModal" class="col-sm-9">
                                                 <filefield
                                                 ref="default_document"
                                                 name="default-document"
                                                 :isRepeatable="true"
                                                 documentActionUrl="temporary_document"
                                                 @update-temp-doc-coll-id="setTemporaryDocumentCollectionId"/>
+                                            </div>
+                                            <div v-else class="col-sm-9">
+                                                <filefield 
+                                                ref="document_artifact_documents" 
+                                                name="document-artifact-documents" 
+                                                :isRepeatable="true" 
+                                                :documentActionUrl="document_artifact.defaultDocumentUrl" 
+                                                :readonly="readonlyForm"
+                                                />
                                             </div>
                                         </div>
                                     </div>
@@ -521,6 +530,7 @@ export default {
             setPersonProvidingStatementId: 'setPersonProvidingStatementId',
             setInterviewerId: 'setInterviewerId',
             setInterviewerEmail: 'setInterviewerEmail',
+            setTemporaryDocumentCollectionId: 'setTemporaryDocumentCollectionId',
             //setDocumentArtifactLegalId: 'setDocumentArtifactLegalId',
         }),
         ...mapActions('legalCaseStore', {
@@ -541,9 +551,11 @@ export default {
                 this.statementVisibility = false;
             }
         },
+        /*
         setTemporaryDocumentCollectionId: function(val) {
             this.temporary_document_collection_id = val;
         },
+        */
         setPersonProvidingStatement: function(entity) {
             console.log(entity);
             //Object.assign(this.entity, entity)

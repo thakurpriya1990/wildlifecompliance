@@ -23,13 +23,27 @@ logger = logging.getLogger(__name__)
 
 
 class Artifact(RevisionedMixin):
+    STATUS_ACTIVE = 'active'
+    STATUS_WAITING_FOR_DISPOSAL = 'waiting_for_disposal'
+    STATUS_CLOSED = 'closed'
+    STATUS_CHOICES = (
+            (STATUS_ACTIVE, 'Open'),
+            (STATUS_WAITING_FOR_DISPOSAL, 'Waiting For Disposal'),
+            (STATUS_CLOSED,  'Closed'),
+            )
     # _file - document or seizure notice
     #_file = models.FileField(max_length=255, null=True)
     identifier = models.CharField(max_length=255, blank=True, null=True)
     description = models.TextField(blank=True, null=True)
+    created = models.DateTimeField(auto_now_add=True, null=False, blank=False)
     artifact_date = models.DateField(null=True)
     artifact_time = models.TimeField(blank=True, null=True)
     number = models.CharField(max_length=50, blank=True, null=True)
+    status = models.CharField(
+            max_length=100,
+            choices=STATUS_CHOICES,
+            default='active'
+            )
 
     class Meta:
         app_label = 'wildlifecompliance'
