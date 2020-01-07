@@ -138,4 +138,3 @@ ALLOW_EMAIL_ADMINS = env('ALLOW_EMAIL_ADMINS', False)  # Allows internal pages t
 SYSTEM_APP_LABEL = env('SYSTEM_APP_LABEL', 'wildlifecompliance')  # global app_label for group permissions filtering
 RENEWAL_PERIOD_DAYS = env('RENEWAL_PERIOD_DAYS', 30)
 
-EMAIL_BACKEND='django.core.mail.backends.console.EmailBackend'
