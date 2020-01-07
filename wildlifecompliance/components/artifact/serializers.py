@@ -80,35 +80,41 @@ class ArtifactSerializer(serializers.ModelSerializer):
 
 
 class ArtifactPaginatedSerializer(serializers.ModelSerializer):
-    type = serializers.SerializerMethodField()
+    #artifact_type = serializers.SerializerMethodField()
     status = serializers.SerializerMethodField()
     user_action = serializers.SerializerMethodField()
+    entity = serializers.SerializerMethodField()
 
     class Meta:
         model = Artifact
         fields = (
             'id',
             'number',
-            'type',
+            'artifact_type',
             'status',
             'user_action',
             'artifact_date',
             'identifier',
             'description',
+            'entity',
         )
 
-    def get_type(self, artifact_obj):
-        pa = PhysicalArtifact.objects.filter(artifact_ptr_id=artifact_obj.id)
-        if pa and pa.first().physical_artifact_type and pa.first().physical_artifact_type.artifact_type:
-            return pa.first().physical_artifact_type.artifact_type
+    #def get_artifact_type(self, artifact_obj):
+    #    pa = PhysicalArtifact.objects.filter(artifact_ptr_id=artifact_obj.id)
+    #    if pa and pa.first().physical_artifact_type and pa.first().physical_artifact_type.artifact_type:
+    #        return pa.first().physical_artifact_type.artifact_type
 
-        da = DocumentArtifact.objects.filter(artifact_ptr_id=artifact_obj.id)
-        #if da and da.first().document_type and da.first().document_type.artifact_type:
-         #   return da.first().document_type.artifact_type
-        if da and da.first().document_type:
-            return da.first().document_type
-
-        return '---'
+    #    da = DocumentArtifact.objects.filter(artifact_ptr_id=artifact_obj.id)
+    #    #if da and da.first().document_type and da.first().document_type.artifact_type:
+    #     #   return da.first().document_type.artifact_type
+    #    if da and da.first().document_type:
+    #        document_type = da.first().document_type
+    #        display_name = ''
+    #        for choice in DocumentArtifact.DOCUMENT_TYPE_CHOICES:
+    #            if document_type == choice[0]:
+    #                display_name = choice[1]
+    #        return display_name
+    #    return '---'
 
     def get_status(self, obj):
         return 'not implemented yet'
@@ -120,6 +126,16 @@ class ArtifactPaginatedSerializer(serializers.ModelSerializer):
 
         urls = '<br />'.join(url_list)
         return urls
+
+    def get_entity(self, obj):
+        entity = {
+                'id': obj.id,
+                'data_type': obj.object_type,
+                'identifier': obj.identifier,
+                'artifact_type': obj.artifact_type,
+                'display': obj.artifact_type,
+                }
+        return entity
 
 
 #class DocumentArtifactTypeSerializer(serializers.ModelSerializer):
@@ -187,6 +203,7 @@ class DocumentArtifactSerializer(ArtifactSerializer):
     statement = DocumentArtifactStatementSerializer(read_only=True)
     #document_type = DocumentArtifactTypeSerializer(read_only=True)
     #document_type = CustomChoiceField(read_only=True)
+    document_type_display = serializers.SerializerMethodField()
     person_providing_statement = EmailUserSerializer(read_only=True)
     interviewer = EmailUserSerializer(read_only=True)
     people_attending = EmailUserSerializer(read_only=True, many=True)
@@ -218,6 +235,7 @@ class DocumentArtifactSerializer(ArtifactSerializer):
                 'offender',
                 'related_items',
                 'interviewer_email',
+                'document_type_display',
                 )
         read_only_fields = (
                 'id',
@@ -231,6 +249,15 @@ class DocumentArtifactSerializer(ArtifactSerializer):
         for legal_case in obj.legal_case.all():
             legal_case_id_list.append(legal_case.id)
         return legal_case_id_list
+
+    def get_document_type_display(self, obj):
+        display_name = ''
+        for choice in DocumentArtifact.DOCUMENT_TYPE_CHOICES:
+            if obj.document_type == choice[0]:
+                display_name = choice[1]
+            #res_obj.append({'id': choice[0], 'display': choice[1]});
+        #res_json = json.dumps(res_obj)
+        return display_name
 
 
 class SaveDocumentArtifactSerializer(ArtifactSerializer):

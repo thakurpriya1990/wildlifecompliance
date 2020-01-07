@@ -45,6 +45,7 @@
                             <DocumentArtifact 
                             ref="document_artifact"
                             @entity-selected="entitySelected"
+                            @existing-entity-selected="existingEntitySelected"
                             parentModal
                             v-bind:key="updateDocumentArtifactBindId"
                             />
@@ -258,17 +259,7 @@ export default {
             //this.isModalOpen = false;
             this.close();
         },
-        ok: async function() {
-            if (this.artifactTabSelected) {
-                if (this.showDocumentArtifactComponent) {
-                    await this.$refs.document_artifact.create();
-                } else if (this.showPhysicalArtifactComponent) {
-                    await this.$refs.physical_artifact.create();
-                }
-            }
-            if (this.urlTabSelected && this.urlText) {
-                this.submitUrl();
-            }
+        emitModalAction: function() {
             this.$nextTick(() => {
                 if (this.entity.id || this.urlTabSelected && this.urlText) {
                     this.$emit('modal-action', {
@@ -283,12 +274,45 @@ export default {
                 this.close();
             });
         },
+        ok: async function() {
+            if (this.artifactTabSelected) {
+                if (this.showDocumentArtifactComponent) {
+                    await this.$refs.document_artifact.create();
+                } else if (this.showPhysicalArtifactComponent) {
+                    await this.$refs.physical_artifact.create();
+                }
+            }
+            if (this.urlTabSelected && this.urlText) {
+                this.submitUrl();
+            }
+            this.emitModalAction();
+            /*
+            this.$nextTick(() => {
+                if (this.entity.id || this.urlTabSelected && this.urlText) {
+                    this.$emit('modal-action', {
+                        entity: this.entity,
+                        row_number_selected: this.rowNumberSelected,
+                        action: 'ok',
+                    });
+                } else {
+                    this.cancel();
+                }
+                //this.isModalOpen = false;
+                this.close();
+            });
+            */
+        },
         close: function () {
             this.isModalOpen = false;
         },
         entitySelected: function(entity) {
             console.log(entity);
             Object.assign(this.entity, entity)
+        },
+        existingEntitySelected: function(entity) {
+            console.log(entity);
+            Object.assign(this.entity, entity)
+            this.emitModalAction();
         },
         submitUrl: function() {
             console.log(this.urlText);

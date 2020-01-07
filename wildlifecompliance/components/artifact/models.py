@@ -30,11 +30,6 @@ class Artifact(RevisionedMixin):
     artifact_date = models.DateField(null=True)
     artifact_time = models.TimeField(blank=True, null=True)
     number = models.CharField(max_length=50, blank=True, null=True)
-    #custodian = models.ForeignKey(
-    #        EmailUser,
-    #        related_name='artifact_custodian',
-    #        null=True,
-    #        )
 
     class Meta:
         app_label = 'wildlifecompliance'
@@ -52,11 +47,32 @@ class Artifact(RevisionedMixin):
 
     @property
     def object_type(self):
-        return 'object_type'
+        object_type = None
+        pa = PhysicalArtifact.objects.filter(artifact_ptr_id=self.id)
+        da = DocumentArtifact.objects.filter(artifact_ptr_id=self.id)
+        if pa:
+            object_type = 'document_artifact'
+        elif da:
+            object_type = 'physical_artifact'
+        return object_type
 
     @property
-    def custodian(self):
-        return 'custodian'
+    def artifact_type(self):
+        pa = PhysicalArtifact.objects.filter(artifact_ptr_id=self.id)
+        if pa and pa.first().physical_artifact_type and pa.first().physical_artifact_type.artifact_type:
+            return pa.first().physical_artifact_type.artifact_type
+
+        da = DocumentArtifact.objects.filter(artifact_ptr_id=self.id)
+        #if da and da.first().document_type and da.first().document_type.artifact_type:
+         #   return da.first().document_type.artifact_type
+        if da and da.first().document_type:
+            document_type = da.first().document_type
+            display_name = ''
+            for choice in DocumentArtifact.DOCUMENT_TYPE_CHOICES:
+                if document_type == choice[0]:
+                    display_name = choice[1]
+            return display_name
+        return '---'
 
     @property
     def get_related_items_identifier(self):

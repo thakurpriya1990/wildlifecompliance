@@ -69,7 +69,7 @@
                                         <div class="col-sm-6">
                                           <select class="form-control" v-model="document_artifact.statement_id" ref="setStatement">
                                             <option  v-for="option in legal_case.statement_artifacts" :value="option.id" v-bind:key="option.id">
-                                            {{ option.document_type }}: {{ option.identifier }}
+                                            {{ option.document_type_display }}: {{ option.identifier }}
                                             </option>
                                           </select>
                                         </div>
@@ -148,7 +148,12 @@
                             </div>
                         </FormSection>
                         </div>
-                        <div :id="existingTab" class="tab-pane fade in li-top-buffer">
+                        <div v-if="parentModal" :id="existingTab" class="tab-pane fade in li-top-buffer">
+                            <div class="row">
+                                <div class="col-lg-12">
+                                    <datatable ref="existing_artifact_table" id="existing-artifact-table" :dtOptions="dtOptions" :dtHeaders="dtHeaders" />
+                                </div>
+                            </div>
                         </div>
                         <div v-if="!parentModal" :id="rTab" class="tab-pane fade in">
                             <FormSection :formCollapse="false" label="Related Items">
@@ -184,6 +189,7 @@ import moment from 'moment';
 import SearchPersonOrganisation from './search_person_or_organisation'
 import FormSection from "@/components/forms/section_toggle.vue";
 import RelatedItems from "@common-components/related_items.vue";
+import datatable from '@vue-utils/datatable.vue'
 
 export default {
     name: "DocumentArtifactComponent",
@@ -225,6 +231,94 @@ export default {
             //departmentStaffList: [],
             //personProvidingStatementLabel: '',
             //interviewerLabel: '',
+            dtOptions: {
+                serverSide: true,
+                searchDelay: 1000,
+                lengthMenu: [ [10, 25, 50, 100, -1], [10, 25, 50, 100, "All"] ],
+                order: [
+                    [0, 'desc']
+                ],
+                language: {
+                    processing: "<i class='fa fa-4x fa-spinner fa-spin'></i>"
+                },
+                responsive: true,
+                processing: true,
+                ajax: {
+                    url: '/api/artifact_paginated/get_paginated_datatable/?format=datatables',
+                    dataSrc: 'data',
+                    data: function(d) {
+                        /*
+                        d.type = vm.filterType;
+                        d.status = vm.filterStatus;
+                        d.date_from = vm.filterDateFromPicker;
+                        d.date_to = vm.filterDateToPicker;
+                        */
+                    }
+                },
+                columns: [
+                    {
+                        data: 'number',
+                        searchable: true,
+                        orderable: true,
+                    },
+                    {
+                        data: 'artifact_type',
+                        searchable: true,
+                        orderable: false,
+                    },
+                    {
+                        data: 'identifier',
+                        searchable: true,
+                        orderable: true
+                    },
+                    /*
+                    {
+                        data: 'artifact_date',
+                        searchable: false,
+                        orderable: true,
+                        mRender: function (data, type, full) {
+                            return data != '' && data != null ? moment(data).format('DD/MM/YYYY') : '';
+                        }
+                    },
+                    {
+                        searchable: false,
+                        orderable: false,
+                        mRender: function (data, type,full){
+                            return '---';
+                        }
+                    },
+                    {
+                        searchable: false,
+                        orderable: false,
+                        data: 'status'
+                    },
+                    */
+                    {
+                        searchable: false,
+                        orderable: false,
+                        data: 'entity',
+                        mRender: function (data, type,full){
+                            let documentArtifactId = data.id;
+                            let documentArtifactType = data.artifact_type ? data.artifact_type.replace(/\s/g, '~') : null;
+                            let documentArtifactIdentifier = data.identifier ? data.identifier.replace(/\s/g, '~') : null;
+                            return `<a data-id=${documentArtifactId} data-artifact-type=${documentArtifactType} data-data-type="document_artifact" data-identifier=${documentArtifactIdentifier} class="row_insert" href="#">Insert</a><br/>`
+                            //return `<a class="row_insert" href="#">Insert</a><br/>`
+                        }
+                    }
+                ],
+            },
+            dtHeaders: [
+                'Number',
+                'Document Type',
+                'Identifier',
+                /*
+                'Date',
+                'Custodian',
+                'Status',
+                */
+                'Action',
+            ],
+
         }
     },
     components: {
@@ -233,6 +327,7 @@ export default {
       SearchPersonOrganisation,
       FormSection,
       RelatedItems,
+      datatable,
     },
     props: {
         parentModal: {
@@ -494,6 +589,25 @@ export default {
         cancel: async function() {
             await this.$refs.default_document.cancel();
         },
+        emitDocumentArtifact: async function(e) {
+            console.log(e)
+            //let documentNumber = e.target.id;
+            //let documentId = null;
+            //await this.loadDocumentArtifact({ document_artifact_id: e.target.id });
+            let documentArtifactId = e.target.dataset.id;
+            let documentArtifactType = e.target.dataset.artifactType.replace(/~/g, ' ');
+            let documentArtifactIdentifier = e.target.dataset.identifier.replace(/~/g, ' ');
+            this.$nextTick(() => {
+                this.$emit('existing-entity-selected', {
+                        id: documentArtifactId,
+                        data_type: 'document_artifact',
+                        identifier: documentArtifactIdentifier,
+                        artifact_type: documentArtifactType,
+                        display: documentArtifactType,
+                    });
+            });
+            //this.$parent.$parent.ok();
+        },
         addEventListeners: function() {
             let vm = this;
             let el_fr_date = $(vm.$refs.artifactDatePicker);
@@ -542,6 +656,16 @@ export default {
                     var selected = $(e.currentTarget);
                     vm.setInterviewerEmail('');
                     //vm.selectedCustodian = {}
+                });
+            let existingArtifactTable = $('#existing-artifact-table');
+            existingArtifactTable.on(
+                'click',
+                '.row_insert',
+                (e) => {
+                    this.emitDocumentArtifact(e);
+                    //console.log(e.target)
+                    //this.$emit('entity-selected', {
+                    //this.insertrunningSheetKeydown(e);
                 });
             
             /*

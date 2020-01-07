@@ -605,7 +605,7 @@ export default {
         console.log(recordNumberElement);
         let replacementVal = ''
         if (entity.full_name) {
-            replacementVal = `<a contenteditable="false" target="_blank" href="/internal/users/${entity.id}">${entity.full_name}</a>`
+            replacementVal = `<a contenteditable="false" target="_blank" href="/internal/users/${entity.id}">${entity.full_name}</a>`;
             // add to runningSheetPersonList
             this.addToRunningSheetPersonList(entity)
             //this.legal_case.runningSheetPersonList.push(entity)
@@ -625,7 +625,7 @@ export default {
         let urlDescription = entity.identifier ? entity.identifier : entity.display;
 
         if (urlDescription) {
-            replacementVal = `<a contenteditable="false" target="_blank" href="/internal/object/${entity.id}">${urlDescription}</a>`
+            replacementVal = `<a contenteditable="false" target="_blank" href="/internal/object/${entity.id}">${urlDescription}</a>`;
             // add to runningSheetArtifactList
             /*
             if (this.legal_case && !this.legal_case.runningSheetArtifactList) {
@@ -964,11 +964,9 @@ export default {
             let idStr = idArray[0][0]
             let id = idStr.substring(17)
             let nameArray = [...personToken[0].matchAll(personNameRegex)];
-            console.log(nameArray)
             if (nameArray && nameArray.length > 0) {
                 let nameStr = nameArray[0][0]
                 let fullName = nameStr.substring(14)
-                console.log(fullName)
                 parsedText = parsedText.replace(
                     personToken[0],
                     `<a contenteditable="false" target="_blank" href="/internal/users/${id}">${fullName}</a>`

@@ -98,7 +98,7 @@ export default {
                         orderable: true,
                     },
                     {
-                        data: 'type',
+                        data: 'artifact_type',
                         searchable: true,
                         orderable: false,
                     },
