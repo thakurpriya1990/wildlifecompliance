@@ -5,6 +5,7 @@ from rest_framework import serializers
 from rest_framework.validators import UniqueTogetherValidator
 
 from ledger.payments.helpers import is_payment_admin
+from wildlifecompliance.components.call_email.serializers import EmailUserSerializer
 from wildlifecompliance.components.inspection.serializers import IndividualSerializer
 from wildlifecompliance.components.main.fields import CustomChoiceField
 from wildlifecompliance.components.main.related_item import get_related_items
@@ -356,7 +357,8 @@ class SanctionOutcomeDatatableSerializer(serializers.ModelSerializer):
     payment_status = CustomChoiceField(read_only=True)
     type = CustomChoiceField(read_only=True)
     user_action = serializers.SerializerMethodField()
-    offender = OffenderSerializer(read_only=True,)
+    # offender = OffenderSerializer(read_only=True,)
+    offender = serializers.SerializerMethodField()
     paper_notices = serializers.SerializerMethodField()
     coming_due_date = serializers.ReadOnlyField()
     # remediation_actions = serializers.SerializerMethodField()
@@ -387,6 +389,19 @@ class SanctionOutcomeDatatableSerializer(serializers.ModelSerializer):
             'remediation_actions',
         )
         read_only_fields = ()
+
+    def get_offender(self, obj):
+        if obj.driver:
+            serializer = EmailUserSerializer(obj.driver)
+            return serializer.data
+        elif obj.registration_holder:
+            serializer = EmailUserSerializer(obj.registration_holder)
+            return serializer.data
+        elif obj.offender:
+            serializer = OffenderSerializer(obj.offender)
+            return serializer.data
+        else:
+            return ''
 
     def get_paper_notices(self, obj):
         url_list = []

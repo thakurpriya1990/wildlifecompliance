@@ -64,6 +64,12 @@ class SanctionOutcomeFilterBackend(DatatablesFilterBackend):
                          Q(offender__person__first_name__icontains=search_text) | \
                          Q(offender__person__last_name__icontains=search_text) | \
                          Q(offender__person__email__icontains=search_text) | \
+                         Q(driver__first_name__icontains=search_text) | \
+                         Q(driver__last_name__icontains=search_text) | \
+                         Q(driver__email__icontains=search_text) | \
+                         Q(registration_holder__first_name__icontains=search_text) | \
+                         Q(registration_holder__last_name__icontains=search_text) | \
+                         Q(registration_holder__email__icontains=search_text) | \
                          Q(offender__organisation__organisation__name__icontains=search_text) | \
                          Q(offender__organisation__organisation__abn__icontains=search_text) | \
                          Q(offender__organisation__organisation__trading_name__icontains=search_text)
@@ -149,7 +155,8 @@ class SanctionOutcomePaginatedViewSet(viewsets.ModelViewSet):
         self.paginator.page_size = queryset.count()
         result_page = self.paginator.paginate_queryset(queryset, request)
         serializer = SanctionOutcomeDatatableSerializer(result_page, many=True, context={'request': request})
-        ret = self.paginator.get_paginated_response(serializer.data)
+        s_data = serializer.data
+        ret = self.paginator.get_paginated_response(s_data)
         return ret
 
     @list_route(methods=['GET', ])
