@@ -19,8 +19,8 @@
                                     </div>
                                     <div class="col-sm-9" v-if="condition.standard">
                                         <div style="width:70% !important">
-                                            <select class="form-control" ref="standard_req" name="standard_condition" v-model="condition.standard_condition">
-                                                <option v-for="r in conditions" :value="r.id">{{r.code}} {{r.text}}</option>
+                                            <select class="form-control" ref="standard_req" name="standard_condition" v-model="condition.standard_condition" v-on:change="setShowDueDate($event.target.value)">
+                                                <option v-for="r in conditions" :value="r.id" >{{r.code}} {{r.text}}</option>
                                             </select>
                                         </div>
                                     </div>
@@ -29,8 +29,22 @@
                                     </div>
                                 </div>
                             </div>
-                            <div class="form-group">
+                            <div class="form-group" v-if="!condition.standard">
                                 <div class="row">
+                                    <div class="col-sm-3">
+                                        <label class="control-label pull-left"  for="Name">Return Type</label>
+                                    </div>
+                                    <div class="col-sm-9">
+                                        <div style="width:70% !important">
+                                            <select class="form-control" ref="return_types_select" name="return_type" v-model="condition.return_type">
+                                                <option v-for="r in return_types" :value="r.id">{{r.name}}</option>
+                                            </select>
+                                        </div>
+                                    </div>
+                                </div>
+                            </div>
+                            <div class="form-group">
+                                <div class="row" v-if="!condition.standard || showDueDate">
                                     <div class="col-sm-3">
                                         <label class="control-label pull-left"  for="Name">Due Date</label>
                                     </div>
@@ -62,9 +76,9 @@
                                                 <label class="control-label pull-left"  for="Name">Recurrence pattern</label>
                                             </div>
                                             <div class="col-sm-9">
-                                                <label class="radio-inline control-label"><input type="radio" name="recurrenceSchedule" value="1" v-model="condition.recurrence_pattern">Weekly</label>
-                                                <label class="radio-inline control-label"><input type="radio" name="recurrenceSchedule" value="2" v-model="condition.recurrence_pattern">Monthly</label>
-                                                <label class="radio-inline control-label"><input type="radio" name="recurrenceSchedule" value="3" v-model="condition.recurrence_pattern">Yearly</label>
+                                                <label class="radio-inline control-label"><input type="radio" name="recurrenceSchedule" value="weekly" v-model="condition.recurrence_pattern">Weekly</label>
+                                                <label class="radio-inline control-label"><input type="radio" name="recurrenceSchedule" value="monthly" v-model="condition.recurrence_pattern">Monthly</label>
+                                                <label class="radio-inline control-label"><input type="radio" name="recurrenceSchedule" value="yearly" v-model="condition.recurrence_pattern">Yearly</label>
                                             </div>
                                         </div>
                                     </div>
@@ -74,9 +88,9 @@
                                                 <label class="control-label"  for="Name">
                                                     <strong class="pull-left">Recur every</strong> 
                                                     <input class="pull-left" style="width:10%; margin-left:10px;" type="number" name="schedule" v-model="condition.recurrence_schedule"/> 
-                                                    <strong v-if="condition.recurrence_pattern == '1'" class="pull-left" style="margin-left:10px;">week(s)</strong>
-                                                    <strong v-else-if="condition.recurrence_pattern == '2'" class="pull-left" style="margin-left:10px;">month(s)</strong>
-                                                    <strong v-else-if="condition.recurrence_pattern == '3'" class="pull-left" style="margin-left:10px;">year(s)</strong>
+                                                    <strong v-if="condition.recurrence_pattern == 'weekly'" class="pull-left" style="margin-left:10px;">week(s)</strong>
+                                                    <strong v-else-if="condition.recurrence_pattern == 'monthly'" class="pull-left" style="margin-left:10px;">month(s)</strong>
+                                                    <strong v-else-if="condition.recurrence_pattern == 'yearly'" class="pull-left" style="margin-left:10px;">year(s)</strong>
                                                 </label>
                                             </div>
                                         </div>
@@ -118,11 +132,15 @@ export default {
                 type:Number,
                 required: true
             },
+            condition: {
+                type: Object,
+                required: true
+            },
             conditions: {
                 type: Array,
                 required: true
             },
-            licence_activity_type_tab:{
+            licence_activity_tab:{
                 type:Number,
                 required:true
             }
@@ -132,14 +150,7 @@ export default {
         return {
             isModalOpen:false,
             form:null,
-            condition: {
-                due_date: '',
-                standard: true,
-                recurrence: false,
-                recurrence_pattern: '1',
-                application: vm.application_id,
-                licence_activity_type:null
-            },
+            return_types: [],
             addingCondition: false,
             updatingCondition: false,
             validation_form: null,
@@ -155,7 +166,8 @@ export default {
                 keepInvalid:true,
                 allowInputToggle:true
             },
-            validDate: false
+            validDate: false,
+            showDueDate: false
         }
     },
     computed: {
@@ -166,7 +178,7 @@ export default {
         due_date: {
             cache: false,
             get(){
-                if (this.condition.due_date == undefined  || this.condition.due_date == '' || this.condition.due_date ==  null){
+                if (this.condition.due_date == null){
                     return '';
                 }
                 else{
@@ -181,38 +193,30 @@ export default {
         },
     },
     methods:{
-        initialiseCondition: function(){
-            this.condition = {
-                due_date: '',
-                standard: true,
-                recurrence: false,
-                recurrence_pattern: '1',
-                application: vm.application_id
-            }
-        },
         ok:function () {
             let vm =this;
             if($(vm.form).valid()){
                 vm.sendData();
             }
         },
+        setShowDueDate: function(val) {
+            //Only show the Due Date field for Conditions which require a return.         
+            let condition = this.conditions.filter(function(e) {return e.id == val})
+            this.showDueDate=condition[0].require_return
+        },       
         cancel:function () {
             this.close()
         },
         close:function () {
             this.isModalOpen = false;
             $(this.$refs.standard_req).val(null).trigger('change');
-            this.condition = {
-                standard: true,
-                recurrence: false,
-                due_date: '',
-                recurrence_pattern: '1',
-                application: this.application_id
-            };
             this.errors = false;
             $('.has-error').removeClass('has-error');
-            $(this.$refs.due_date).data('DateTimePicker').clear();
-            //$(this.$refs.due_date).clear();
+            const datePicker = $(this.$refs.due_date).data('DateTimePicker');
+            if(datePicker) {
+                datePicker.clear();
+            }
+            this.showDueDate = false;
             this.validation_form.resetForm();
         },
         fetchContact: function(id){
@@ -223,10 +227,17 @@ export default {
                 console.log(error);
             } );
         },
+        fetchReturnTypes() {
+            this.$http.get(api_endpoints.return_types).then((response) => {
+                this.return_types = response.body;
+            },(error) => {
+                console.log(error);
+            })
+        },
         sendData:function(){
             let vm = this;
             vm.errors = false;
-            vm.condition.licence_activity_type=vm.licence_activity_type_tab
+            vm.condition.licence_activity=vm.licence_activity_tab;
             let condition = JSON.parse(JSON.stringify(vm.condition));
             if (condition.standard){
                 condition.free_condition = '';
@@ -243,9 +254,6 @@ export default {
             }
             if (vm.condition.id){
                 vm.updatingCondition = true;
-                
-                console.log('adding condition')
-                console.log(JSON.stringify(condition))
                 vm.$http.put(helpers.add_endpoint_json(api_endpoints.application_conditions,condition.id),JSON.stringify(condition),{
                         emulateJSON:true,
                     }).then((response)=>{
@@ -259,8 +267,6 @@ export default {
                     });
             } else {
                 vm.addingCondition = true;
-                console.log('adding condition')
-                console.log(JSON.stringify(condition))
                 vm.$http.post(api_endpoints.application_conditions,JSON.stringify(condition),{
                         emulateJSON:true,
                     }).then((response)=>{
@@ -329,17 +335,6 @@ export default {
        },
        eventListeners:function () {
             let vm = this;
-            // Initialise Date Picker
-            $(vm.$refs.due_date).datetimepicker(vm.datepickerOptions);
-            $(vm.$refs.due_date).on('dp.change', function(e){
-                if ($(vm.$refs.due_date).data('DateTimePicker').date()) {
-                    vm.condition.due_date =  e.date.format('DD/MM/YYYY');
-                }
-                else if ($(vm.$refs.due_date).data('date') === "") {
-                    vm.condition.due_date = "";
-                }
-             });
-
             // Intialise select2
             $(vm.$refs.standard_req).select2({
                 "theme": "bootstrap",
@@ -357,10 +352,26 @@ export default {
             });
        }
    },
+   updated:function () {
+       let vm = this;
+       // Initialise Date Picker
+       if (!vm.condition.standard || vm.showDueDate) {
+            $(vm.$refs.due_date).datetimepicker(vm.datepickerOptions);
+            $(vm.$refs.due_date).on('dp.change', function(e){
+                if ($(vm.$refs.due_date).data('DateTimePicker').date()) {
+                    vm.condition.due_date =  e.date.format('DD/MM/YYYY');
+                }
+                else if ($(vm.$refs.due_date).data('date') === "") {
+                    vm.condition.due_date = "";
+                }
+            });       
+       }
+   },
    mounted:function () {
         let vm =this;
         vm.form = document.forms.conditionForm;
         vm.addFormValidations();
+        vm.fetchReturnTypes();
         this.$nextTick(()=>{
             vm.eventListeners();
         });

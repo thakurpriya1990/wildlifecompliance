@@ -1,12 +1,12 @@
 <template>
 <div class="container" id="internalDash">
     <ApplicationDashTable level="internal" :url="applications_url"/>
-    <AssessmentDashTable v-if="wc_version != 1.0" />
+    <AssessmentDashTable />
 </div>
 </template>
 <script>
-import ApplicationDashTable from '@common-utils/applications_dashboard.vue'
-import AssessmentDashTable from '@common-utils/assessments_dashboard.vue'
+import ApplicationDashTable from '@common-components/applications_dashboard.vue'
+import AssessmentDashTable from '@common-components/assessments_dashboard.vue'
 import {
   api_endpoints,
   helpers
@@ -17,19 +17,16 @@ export default {
     data() {
         let vm = this;
         return {
-            applications_url: helpers.add_endpoint_json(api_endpoints.applications,'internal_datatable_list'),
+            applications_url: helpers.add_endpoint_join(api_endpoints.applications_paginated,'internal_datatable_list/?format=datatables'),
         }
     
     },
     watch: {},
     components: {
         ApplicationDashTable,
-        AssessmentDashTable
+        AssessmentDashTable,
     },
     computed: {
-        wc_version: function (){
-            return this.$root.wc_version;
-        }
     },
     methods: {},
     mounted: function () {

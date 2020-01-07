@@ -24,7 +24,6 @@ eggs/
 .eggs/
 lib/
 lib64/
-parts/
 sdist/
 var/
 *.egg-info/
@@ -76,6 +75,9 @@ target/
 /.pydevproject
 /.project
 
+# VS Code settings
+.vscode/
+
 **/local/
 *.map
 
@@ -99,15 +101,15 @@ uwsgi*.ini
 # wildlifecompliance build static files
 wildlifecompliance/static/wildlifecompliance_vue/static/*
 
-
 # npm locks
-#*-lock.json
+*-lock.json
 
 commercialoperator/static/commercialoperator_vue/static/css/app.css
 commercialoperator/static/commercialoperator_vue/static/js/app.js
 commercialoperator/static/commercialoperator_vue/static/js/manifest.js
 commercialoperator/static/commercialoperator_vue/static/js/vendor.js
 commercialoperator/static/commercialoperator_vue/static/js/babel-polyfill.js
+<<<<<<< HEAD
 commercialoperator/static/commercialoperator_vue/static/fonts/*
 commercialoperator/static/commercialoperator_vue/static/img/*
 
@@ -117,3 +119,5 @@ disturbance/static/disturbance_vue/static/js/manifest.js
 disturbance/static/disturbance_vue/static/js/vendor.js
 disturbance/static/disturbance_vue/static/js/babel-polyfill.js
 
+=======
+>>>>>>> f9a819def14f3956dd7cc4236331c382161051f7

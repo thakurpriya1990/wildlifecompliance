@@ -1,13 +1,16 @@
 import InternalDashboard from '../dashboard.vue'
 import Search from '../search.vue'
-import OrgAccessTable from '../organisations/dashboard.vue'
+import OrgAccessTable from '../organisations/access_dashboard.vue'
 import OrgAccess from '../organisations/access.vue'
 import Organisation from '../organisations/manage.vue'
 import UserDashTable from '../users/dashboard.vue'
 import User from '../users/manage.vue'
 import Application from '../applications/application.vue'
+import CompleteAssessment from '../applications/complete_assessment.vue'
 import LicenceDashTable from '../licences/dashboard.vue'
 import ReturnDashTable from '../returns/dashboard.vue'
+import Returns from '../returns/return.vue'
+
 export default
 {
     path: '/internal',
@@ -21,7 +24,8 @@ export default
     children: [
         {
             path: '/',
-            component: InternalDashboard
+            component: InternalDashboard,
+            name: 'internal-dash'
         },
         {
             path: 'licences',
@@ -37,6 +41,10 @@ export default
             path: 'search',
             component: Search,
             name:"internal-search"
+        },
+        {
+            path: 'return/:return_id',
+            component: Returns
         },
         {
             path: 'users',
@@ -111,6 +119,11 @@ export default
                         },
                         
                     ]
+                },
+                {
+                    path: 'assessment/:application_id',
+                    component: CompleteAssessment,
+                    name:"complete-assessment"
                 },
  
             ]

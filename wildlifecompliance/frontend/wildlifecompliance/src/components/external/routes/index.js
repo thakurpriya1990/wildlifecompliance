@@ -5,7 +5,7 @@ import ApplicationApplyOrganisation from '../application_apply_organisation.vue'
 import ApplicationApplyLicence from '../application_apply_licence.vue'
 import ApplicationSubmit from '../application_submit.vue'
 import Organisation from '../organisations/manage.vue'
-import Returns from '../returns/enter_return.vue'
+import Returns from '../returns/return.vue'
 export default
 {
     path: '/external',
@@ -28,8 +28,7 @@ export default
         },
         {
             path: 'return/:return_id',
-            component: Returns,
-            name:'enter_return'
+            component: Returns
         },
         {
             path: 'application',
