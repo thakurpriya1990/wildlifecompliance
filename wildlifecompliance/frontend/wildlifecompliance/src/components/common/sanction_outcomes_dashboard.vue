@@ -219,18 +219,18 @@ export default {
                                 for (let i=0; i<full.remediation_actions.length; i++){
                                     let ra = full.remediation_actions[i];
                                     body += '<tr>' +
-                                        td + ra.id + td_close +
-                                        td + moment(ra.due_date).format('DD/MM/YYYY') + td_close + 
-                                        td + ra.status + td_close + 
-                                        td + '<a href="/external/remediation_action/' + ra.id + '">View</a>' + td_close + 
+                                        td + ra.remediation_action_id + td_close +
+                                        td + moment(ra.due_date).format('DD/MM/YYYY') + td_close +
+                                        td + ra.status.name + td_close +
+                                        td + ra.user_action + td_close
                                     '</tr>'
                                 }
 
-                                let header = '<thead><tr>' + 
-                                    th + 'Action#' + th_close + 
-                                    th + 'Due Date' + th_close + 
-                                    th + 'Status' + th_close + 
-                                    th + 'Action' + th_close + 
+                                let header = '<thead><tr>' +
+                                    th + 'Action#' + th_close +
+                                    th + 'Due Date' + th_close +
+                                    th + 'Status' + th_close +
+                                    th + 'Action' + th_close +
                                     '</tr></thead>'
                                 html = '<table class="table">' + header + body + '</table>'
                             }

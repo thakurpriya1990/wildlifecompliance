@@ -183,6 +183,8 @@ export default {
                                 name = data.person.first_name + ' ' + data.person.last_name;
                             } else if (data && data.organisation) {
                                 name = data.organisation.name;
+                            } else if (data){
+                                name = data.first_name + ' ' + data.last_name;
                             }
 
                             let shortText = (name.length > num_chars) ?

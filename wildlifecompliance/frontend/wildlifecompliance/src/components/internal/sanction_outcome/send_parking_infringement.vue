@@ -13,6 +13,15 @@
                         </div>
                     </div></div>
 
+                    <div class="form-group"><div class="row">
+                        <div class="col-sm-3">
+                            <label class="control-label pull-left"  for="Name">Attachments</label>
+                        </div>
+                        <div class="col-sm-9">
+                            <filefield ref="comms_log_file" name="comms-log-file" :isRepeatable="true" :documentActionUrl="sanction_outcome.commsLogsDocumentUrl" />
+                        </div>
+                    </div></div>
+
                 </div>
 
             </div>
@@ -38,6 +47,7 @@
 <script>
 import Vue from "vue";
 import modal from '@vue-utils/bootstrap-modal.vue';
+import filefield from '@/components/common/compliance_file.vue';
 import { mapState, mapGetters, mapActions, mapMutations } from "vuex";
 import { api_endpoints, helpers, cache_helper } from "@/utils/hooks";
 require("select2/dist/css/select2.min.css");
@@ -57,7 +67,8 @@ export default {
         }
     },
     components: {
-      modal,
+        modal,
+        filefield,
     },
     computed: {
         ...mapGetters('sanctionOutcomeStore', {
@@ -122,6 +133,7 @@ export default {
             this.errorResponse = errorText;
         },
         cancel: async function() {
+            await this.$refs.comms_log_file.cancel();
             this.isModalOpen = false;
             this.close();
         },
@@ -133,6 +145,7 @@ export default {
             let post_url = '/api/sanction_outcome/' + this.sanction_outcome.id + '/send_parking_infringement/'
             let payload = new FormData();
             payload.append('details', this.details);
+            this.$refs.comms_log_file.commsLogId ? payload.append('comms_log_id', this.$refs.comms_log_file.commsLogId) : null;
             let res = await Vue.http.post(post_url, payload);
             return res
         },

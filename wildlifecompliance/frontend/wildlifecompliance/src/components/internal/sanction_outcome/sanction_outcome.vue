@@ -526,8 +526,8 @@ export default {
                 "Due Date", 
                 "Action Desc", 
                 "Status",
-                "Action",
                 "Action Taken",
+                "Action",
             ],
             dtOptionsRemediationActions: {
                 columns: [
@@ -554,12 +554,6 @@ export default {
                         data: 'status.name',
                     },
                     {
-                        data: 'user_action',
-                        mRender: function(data, type, row) {
-                            return data;
-                        }
-                    },
-                    {
                         data: 'action_taken',
                         mRender: function(data, type, ra) {
                             let html = ''
@@ -582,6 +576,12 @@ export default {
                             html = '<table class="table">' + header + body + '</table>'
 
                             return html
+                        }
+                    },
+                    {
+                        data: 'user_action',
+                        mRender: function(data, type, row) {
+                            return data;
                         }
                     },
                 ]
