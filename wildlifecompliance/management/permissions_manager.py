@@ -3,10 +3,12 @@ import logging
 from django.conf import settings
 from django.core.exceptions import ObjectDoesNotExist
 from django.contrib.auth.models import Group, ContentType, Permission
-from django.db import transaction
+from django.db import transaction, models
 # from ledger.accounts.utils import get_app_label
 from wildlifecompliance.components.licences.models import LicenceActivity
 from wildlifecompliance.components.applications.models import ActivityPermissionGroup
+
+from ledger.accounts.models import EmailUser
 
 logger = logging.getLogger(__name__)
 
@@ -201,3 +203,69 @@ class CollectorManager(object):
             logger.info("Verifying presence of custom groups in the database...")
             CustomGroupCollector().get_or_create_models()
             logger.info("Finished collecting custom groups and permissions.")
+
+class PermissionUser(object):
+    def __init__(self, a_user):
+        self._user = a_user
+
+    def has_wildlifelicenceactivity_perm(self, permission_codename, licence_activity_id):
+        app_label = get_app_label()
+        group_queryset = self._user.groups.filter(
+            permissions__codename__in=permission_codename if isinstance(
+                permission_codename, (list, models.query.QuerySet)
+            ) else [permission_codename],
+            activitypermissiongroup__licence_activities__id__in=licence_activity_id if isinstance(
+                licence_activity_id, (list, models.query.QuerySet)
+            ) else [licence_activity_id]
+        )
+        if app_label:
+            group_queryset = group_queryset.filter(permissions__content_type__app_label=app_label)
+        return group_queryset.count()
+
+    def get_wildlifelicence_permission_group(self, permission_codename, activity_id=None, first=True):
+        app_label = get_app_label()
+        qs = self._user.groups.filter(
+            permissions__codename=permission_codename
+        )
+        if activity_id is not None:
+            qs = qs.filter(
+                activitypermissiongroup__licence_activities__id__in=activity_id if isinstance(
+                    activity_id, (list, models.query.QuerySet)
+                ) else [activity_id]
+            )
+        if app_label:
+            qs = qs.filter(permissions__content_type__app_label=app_label)
+        return qs.first() if first else qs
+
+    def get_wildlifecompliance_proxy_details(self, request):
+        proxy_id = request.data.get(
+            "proxy_id",
+            request.GET.get("proxy_id")
+        )
+        organisation_id = request.data.get(
+            "organisation_id",
+            request.GET.get("organisation_id")
+        )
+        return self.validate_wildlifecompliance_proxy_details(proxy_id, organisation_id)
+
+    def validate_wildlifecompliance_proxy_details(self, proxy_id, organisation_id):
+        proxy_details = {
+            'proxy_id': proxy_id,
+            'organisation_id': organisation_id,
+        }
+
+        if not proxy_id and not organisation_id:
+            return proxy_details
+
+        # Only licensing officers can apply as a proxy
+        if not self.get_wildlifelicence_permission_group(
+            permission_codename='licensing_officer',
+            first=True
+        ):
+            proxy_details['proxy_id'] = None
+
+        user = EmailUser.objects.get(pk=proxy_id) if proxy_details['proxy_id'] else self
+        if organisation_id and not user.wildlifecompliance_organisations.filter(pk=organisation_id):
+            proxy_details['organisation_id'] = None
+
+        return proxy_details

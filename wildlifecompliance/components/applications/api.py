@@ -68,6 +68,8 @@ from rest_framework_datatables.pagination import DatatablesPageNumberPagination
 from rest_framework_datatables.filters import DatatablesFilterBackend
 from rest_framework_datatables.renderers import DatatablesRenderer
 
+from wildlifecompliance.management.permissions_manager import PermissionUser
+
 
 class GetEmptyList(views.APIView):
     renderer_classes = [JSONRenderer, ]
@@ -1504,7 +1506,8 @@ class AssessmentPaginatedViewSet(viewsets.ModelViewSet):
         self.serializer_class = DTAssessmentSerializer
 
         # Get the assessor groups the current user is member of
-        assessor_groups = request.user.get_wildlifelicence_permission_group(
+        perm_user = PermissionUser(request.user)
+        assessor_groups = perm_user.get_wildlifelicence_permission_group(
             'assessor', first=False)
 
         # For each assessor groups get the assessments
@@ -1551,7 +1554,8 @@ class AssessmentViewSet(viewsets.ModelViewSet):
     @list_route(methods=['GET', ])
     def user_list(self, request, *args, **kwargs):
         # Get the assessor groups the current user is member of
-        assessor_groups = request.user.get_wildlifelicence_permission_group('assessor', first=False)
+        perm_user = PermissionUser(request.user)
+        assessor_groups = perm_user.get_wildlifelicence_permission_group('assessor', first=False)
 
         # For each assessor groups get the assessments
         queryset = self.get_queryset().none()

@@ -258,6 +258,12 @@ class Application(RevisionedMixin):
         (APPLICATION_TYPE_REISSUE, 'Reissue'),
     )
 
+    PAYMENT_STATUS_NOT_REQUIRED = 'payment_not_required'
+    PAYMENT_STATUS_UNPAID = 'unpaid'
+    PAYMENT_STATUS_PARTIALLY_PAID = 'partially_paid'
+    PAYMENT_STATUS_PAID = 'paid'
+    PAYMENT_STATUS_OVERPAID = 'over_paid'
+
     application_type = models.CharField(
         'Application Type',
         max_length=40,
@@ -473,25 +479,25 @@ class Application(RevisionedMixin):
     @property
     def application_fee_paid(self):
         return self.payment_status in [
-            Invoice.PAYMENT_STATUS_NOT_REQUIRED,
-            Invoice.PAYMENT_STATUS_PAID,
-            Invoice.PAYMENT_STATUS_OVERPAID,
+            Application.PAYMENT_STATUS_NOT_REQUIRED,
+            Application.PAYMENT_STATUS_PAID,
+            Application.PAYMENT_STATUS_OVERPAID,
         ]
 
     @property
     def payment_status(self):
         # TODO: needs more work, underpaid/overpaid statuses to be added, refactor to key/name like processing_status
         if self.application_fee == 0:
-            return Invoice.PAYMENT_STATUS_NOT_REQUIRED
+            return Application.PAYMENT_STATUS_NOT_REQUIRED
         else:
             if self.invoices.count() == 0:
-                return Invoice.PAYMENT_STATUS_UNPAID
+                return Application.PAYMENT_STATUS_UNPAID
             else:
                 try:
                     latest_invoice = Invoice.objects.get(
                         reference=self.invoices.latest('id').invoice_reference)
                 except Invoice.DoesNotExist:
-                    return Invoice.PAYMENT_STATUS_UNPAID
+                    return Application.PAYMENT_STATUS_UNPAID
                 return latest_invoice.payment_status
 
     @property
@@ -2780,24 +2786,24 @@ class ApplicationSelectedActivity(models.Model):
     @property
     def licence_fee_paid(self):
         return self.payment_status in [
-            Invoice.PAYMENT_STATUS_NOT_REQUIRED,
-            Invoice.PAYMENT_STATUS_PAID,
-            Invoice.PAYMENT_STATUS_OVERPAID,
+            Application.PAYMENT_STATUS_NOT_REQUIRED,
+            Application.PAYMENT_STATUS_PAID,
+            Application.PAYMENT_STATUS_OVERPAID,
         ]
 
     @property
     def payment_status(self):
         if self.licence_fee == 0:
-            return Invoice.PAYMENT_STATUS_NOT_REQUIRED
+            return Application.PAYMENT_STATUS_NOT_REQUIRED
         else:
             if self.invoices.count() == 0:
-                return Invoice.PAYMENT_STATUS_UNPAID
+                return Application.PAYMENT_STATUS_UNPAID
             else:
                 try:
                     latest_invoice = Invoice.objects.get(
                         reference=self.invoices.latest('id').invoice_reference)
                 except Invoice.DoesNotExist:
-                    return Invoice.PAYMENT_STATUS_UNPAID
+                    return Application.PAYMENT_STATUS_UNPAID
                 return latest_invoice.payment_status
 
     @property
