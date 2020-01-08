@@ -338,23 +338,35 @@ export default {
             idLocationFieldsDetails: vm.guid + "LocationFieldsDetails",
             sanctionOutcomeInitialised: false,
             objectHash : null,
-            hashAttributeWhitelist: [
-                'alleged_offences',
-                'allocated_group_id',
-                'date_of_issue',
-                'details',
-                'district_id',
-                'identifier',
-                'location',
-                'lodgement_number',
-                'occurrence_date_from',
-                'occurrence_date_to',
-                'occurrence_time_from',
-                'occurrence_time_to',
-                'occurrence_from_to',
-                'offenders',
-                'region_id',
-            ],
+            hashAttributeWhiteDict: {
+                'alleged_offences': [
+                    'id',
+                    'reason_for_removal',
+                    'removed',
+                    'removed_by_id',
+                    'section_regulation',
+                ],
+                'allocated_group_id': '__all__',
+                'date_of_issue': '__all__',
+                'details': '__all__',
+                'district_id': '__all__',
+                'identifier': '__all__',
+                'location': '__all__',
+                'lodgement_number': '__all__',
+                'occurrence_date_from': '__all__',
+                'occurrence_date_to': '__all__',
+                'occurrence_time_from': '__all__',
+                'occurrence_time_to': '__all__',
+                'occurrence_from_to': '__all__',
+                'offenders': [
+                    'id',
+                    'organisation',
+                    'person',
+                    'reason_for_removal',
+                    'removed',
+                    ,],
+                'region_id': '__all__',
+            },
 
             current_alleged_offence: {  // Store the alleged offence temporarily once selected in awesomplete. Cleared when clicking on the "Add" button.
                 id: null,
@@ -665,14 +677,37 @@ export default {
             this.objectHash = this.calculateHash();
         },
         calculateHash: function() {
+            console.log('calculateHash()');
+            console.log(this.offence);
+
             let copiedObject = {}
             Object.getOwnPropertyNames(this.offence).forEach(
                 (val, idx, array) => {
-                    if (this.hashAttributeWhitelist.includes(val)) {
-                        copiedObject[val] = this.offence[val]
+                    if(val in this.hashAttributeWhiteDict){
+                        let attributes = this.hashAttributeWhiteDict[val];  // Array or '__all__'
+                        let target_obj = this.offence[val];  // Can be array
+
+                        if (attributes == '__all__'){
+                            copiedObject[val] = target_obj;
+                        }
+                        else if (Array.isArray(target_obj)){
+                            for (let j=0; j<target_obj.length; j++){
+                                let target = target_obj[j];
+                                for (let i=0; i<attributes.length; i++){
+                                    copiedObject[val + j.toString() + i.toString()] = target[attributes[i]];
+                                }
+                            }
+                        }
+                        else {
+                            for (let i=0; i<attributes.length; i++){
+                                copiedObject[val + i.toString()] = target_obj[attributes[i]];
+                            }
+                        }
                     }
                 });
-            return hash(copiedObject);
+            let hashedValue = hash(copiedObject);
+            console.log(hashedValue);
+            return hashedValue;
         },
         formChanged: function(){
             let changed = false;
@@ -747,7 +782,6 @@ export default {
             await swal("Error", errorText, "error");
         },
         updateAssignedToId: async function (user) {
-            console.log('updateAssignedToId');
             let url = helpers.add_endpoint_join(api_endpoints.offence, this.offence.id + '/update_assigned_to_id/');
             let payload = null;
             if (user === 'current_user' && this.offence.user_in_group) {
@@ -767,11 +801,20 @@ export default {
             this.constructAllegedOffencesTable();
             this.updateObjectHash();
         },
-        openSanctionOutcome: function() {
-          this.sanctionOutcomeInitialised = true;
-          this.$nextTick(() => {
-              this.$refs.sanction_outcome.isModalOpen = true;
-          });
+        openSanctionOutcome: async function() {
+            try {
+                if (this.formChanged()){
+                    // Save changes implicitly
+                    await this.saveOffence();
+                    this.updateObjectHash();
+                }
+                this.sanctionOutcomeInitialised = true;
+                this.$nextTick(() => {
+                    this.$refs.sanction_outcome.isModalOpen = true;
+                });
+            } catch (err) {
+                this.processError(err);
+            }
         },
         updateWorkflowBindId: function() {
             let timeNow = Date.now()
@@ -781,12 +824,21 @@ export default {
                 this.workflowBindId = timeNow.toString();
             }
         },
-        addWorkflow: function(workflow_type) {
-            this.workflow_type = workflow_type;
-            this.updateWorkflowBindId();
-            this.$nextTick(() => {
-                this.$refs.add_workflow.isModalOpen = true;
-            });
+        addWorkflow: async function(workflow_type) {
+            try {
+                if (this.formChanged()){
+                    // Save changes implicitly
+                    await this.saveOffence();
+                    this.updateObjectHash();
+                }
+                this.workflow_type = workflow_type;
+                this.updateWorkflowBindId();
+                this.$nextTick(() => {
+                    this.$refs.add_workflow.isModalOpen = true;
+                });
+            } catch (err) {
+                this.processError(err);
+            }
         },
         showHideAddressDetailsFields: function(showAddressFields, showDetailsFields) {
           if (showAddressFields) {
@@ -915,7 +967,6 @@ export default {
         //  }
         //},
         personSelected: function(para) {
-            console.log('personSelected');
             let vm = this;
             vm.setCurrentOffender(para.data_type, para.id);
         },
@@ -934,7 +985,6 @@ export default {
         },
 
         reasonOffenderLostFocus: function(e) {
-            console.log('reason lost focus');
             let offender_uuid = e.target.getAttribute("data-offender-uuid");
 
             for (let i=0; i<this.offence.offenders.length; i++){
@@ -945,8 +995,6 @@ export default {
             }
         },
         reasonAllegedOffenceLostFocus: function(e) {
-
-            console.log('reason lost focus');
             let alleged_offence_uuid = e.target.getAttribute("data-alleged-offence-uuid");
 
             for (let i=0; i<this.offence.alleged_offences.length; i++){
@@ -957,7 +1005,6 @@ export default {
             }
         },
         removeOffenderClicked: function(e) {
-            console.log('removeOffenderClicked');
             let offender_uuid = e.target.getAttribute("data-offender-uuid");
 
             // Remove offender
@@ -966,11 +1013,9 @@ export default {
                 if (offender.uuid == offender_uuid){
                     if (offender.id){
                         // this offender exists in the database
-                        console.log('existing');
                         offender.removed = true;
                     } else {
                         // this is new offender
-                        console.log('new');
                         this.offence.offenders.splice(i, 1);
                     }
                 }
@@ -978,7 +1023,6 @@ export default {
             this.constructOffendersTable();
         },
         restoreOffenderClicked: function(e){
-            console.log('restoreOffenderClicked');
             let offender_uuid = e.target.getAttribute("data-offender-uuid");
 
             // Restore offender
@@ -987,7 +1031,6 @@ export default {
                 if (offender.uuid == offender_uuid){
                     if (offender.id){
                         // this offender exists in the database
-                        console.log('existing');
                         offender.removed = false;
                     } else {
                         // this is new offender
@@ -998,7 +1041,6 @@ export default {
             this.constructOffendersTable();
         },
         restoreAllegedOffenceClicked: function(e) {
-            console.log('restoreAllegedOffenceClicked');
             let alleged_offence_uuid = e.target.getAttribute("data-alleged-offence-uuid");
 
             // Restore alleged_offence
@@ -1007,7 +1049,6 @@ export default {
                 if (alleged_offence.uuid == alleged_offence_uuid){
                     if (alleged_offence.id){
                         // this alleged_offence exists in the database
-                        console.log('existing');
                         alleged_offence.removed = false;
                     } else {
                         // this is new alleged_offence
@@ -1018,7 +1059,6 @@ export default {
             this.constructAllegedOffencesTable();
         },
         removeAllegedOffenceClicked: function(e) {
-            console.log('removeAllegedOffenceClicked');
             let alleged_offence_uuid = e.target.getAttribute("data-alleged-offence-uuid");
 
             // Remove offender
@@ -1027,11 +1067,9 @@ export default {
                 if (alleged_offence.uuid == alleged_offence_uuid){
                     if (alleged_offence.id){
                         // this alleged_offence exists in the database
-                        console.log('existing');
                         alleged_offence.removed = true;
                     } else {
                         // this is new alleged_offence
-                        console.log('new');
                         this.offence.alleged_offences.splice(i, 1);
                     }
                 }
@@ -1039,7 +1077,6 @@ export default {
             this.constructAllegedOffencesTable();
         },
         addOffenderClicked: async function() {
-            console.log('addOffenderClicked');
             if (this.current_offender && this.current_offender.id && this.current_offender.data_type) {
                 // save person before adding to offender list
                 await this.$refs.search_offender.parentSave()
@@ -1089,7 +1126,6 @@ export default {
             this.setCurrentOffenderEmpty();
         },
         addAllegedOffenceClicked: function() {
-            console.log('addAllegedOffenceClicked');
             if (this.current_alleged_offence && this.current_alleged_offence.id) {
 
                 // Check if the item is already in the list
@@ -1132,7 +1168,6 @@ export default {
             this.$refs.alleged_offence_table.vmDataTable.row.add({ allegedOffence: allegedOffence, offence: this.offence }).draw();
         },
         constructOffendersTable: function(){
-            console.log('constructOffendersTable');
             this.$refs.offender_table.vmDataTable.clear().draw();
             if (this.offence.offenders){
                 for(let i=0; i<this.offence.offenders.length; i++){
@@ -1141,8 +1176,6 @@ export default {
             }
         },
         addOffenderToTable: function(offender) {
-            console.log('addOffenderTotable');
-            console.log(offender.reason_for_removal);
             offender.uuid = uuid();
             this.$refs.offender_table.vmDataTable.row.add({ offender: offender, offence: this.offence }).draw();
         },

@@ -1,8 +1,8 @@
 <template lang="html">
     <div class="container">
         <div class="row">
-            <div class="col-md-3">
-                <h3>Remediation Action: ---</h3>
+            <div class="col-md-5">
+                <h3>Remediation Action: {{ remediation_action.remediation_action_id }}</h3>
             </div>
         </div>
         <div>
@@ -67,9 +67,11 @@
                             </div>
 
                         </div>
-                        <input type="button" @click.prevent="submit" class="btn btn-primary pull-right button-gap" value="Submit"/>
-                        <input type="button" @click.prevent="save" class="btn btn-primary pull-right button-gap" value="Save and Continue"/>
-                        <input type="button" @click.prevent="saveExit" class="btn btn-primary pull-right button-gap" value="Save and Exit"/>
+                        <div v-if="canSaveSubmit">
+                            <input type="button" @click.prevent="submit" class="btn btn-primary pull-right button-gap" value="Submit"/>
+                            <input type="button" @click.prevent="save" class="btn btn-primary pull-right button-gap" value="Save and Continue"/>
+                            <input type="button" @click.prevent="saveExit" class="btn btn-primary pull-right button-gap" value="Save and Exit"/>
+                        </div>
                     </div>
                 </div>
             </div>
@@ -123,6 +125,9 @@ export default {
         readonlyForm: function(){
             return !this.remediation_action.action_taken_editable;
         },
+        canSaveSubmit: function() {
+            return this.remediation_action.action_taken_editable;
+        }
     },
     methods: {
         ...mapActions('remediationActionStore', {

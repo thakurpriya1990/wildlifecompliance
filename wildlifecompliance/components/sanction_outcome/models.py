@@ -427,7 +427,7 @@ class SanctionOutcome(models.Model):
         else:
             return True
 
-    def send_to_dot(self):
+    def send_to_inc(self):
         if self.type == SanctionOutcome.TYPE_INFRINGEMENT_NOTICE:
             # if self.is_issuable(raise_exception=True):
             self.status = SanctionOutcome.STATUS_WITH_DOT
@@ -474,9 +474,12 @@ class SanctionOutcome(models.Model):
 
         elif self.type == SanctionOutcome.TYPE_REMEDIATION_NOTICE:
             self.status = SanctionOutcome.STATUS_AWAITING_REMEDIATION_ACTIONS
+            id_suffix = 1
             for remediation_action in self.remediation_actions.all():
                 remediation_action.status = RemediationAction.STATUS_OPEN
+                remediation_action.remediation_action_id = self.lodgement_number + '-' + str(id_suffix)
                 remediation_action.save()
+                id_suffix += 1
 
         new_group = SanctionOutcome.get_compliance_permission_group(self.regionDistrictId, SanctionOutcome.WORKFLOW_ENDORSE)
         self.allocated_group = new_group
@@ -698,10 +701,11 @@ class RemediationAction(RevisionedMixin):
         (STATUS_ACCEPTED, 'Accepted')
     )
 
+    remediation_action_id = models.CharField(max_length=20, blank=True)
     action = models.TextField(blank=True)
     due_date = models.DateField(null=True, blank=True)
     sanction_outcome = models.ForeignKey(SanctionOutcome, related_name='remediation_actions', null=True, on_delete=models.SET_NULL,)
-    status = models.CharField(max_length=40, choices=STATUS_CHOICES, blank=True, default=STATUS_OPEN)
+    status = models.CharField(max_length=40, choices=STATUS_CHOICES, blank=True,)
     objects = models.Manager()
     objects_for_external = RemediationActionExternalManager()
     action_taken = models.TextField(blank=True)
@@ -752,7 +756,7 @@ class SanctionOutcomeCommsLogEntry(CommunicationsLogEntry):
 
 
 class SanctionOutcomeUserAction(models.Model):
-    ACTION_ISSUE_PARKING_INFRINGEMENT = "Issue Parking Infringement {}"
+    ACTION_ISSUE_PARKING_INFRINGEMENT = "Issue Parking Infringement {} to {}"
     ACTION_CREATE = "Create Sanction Outcome {}"
     ACTION_SEND_TO_MANAGER = "Send Sanction Outcome {} to manager"
     ACTION_UPDATE = "Update Sanction Outcome {}"

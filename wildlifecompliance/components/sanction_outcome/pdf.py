@@ -343,4 +343,3 @@ def create_infringement_notice_pdf_bytes(filename, sanction_outcome):
         # END: Save
 
         return document
-        # return value
