@@ -15,8 +15,9 @@ class Command(BaseCommand):
     def handle(self, *args, **options):
         logger.info('Running command {}'.format(__name__))
 
-        subprocess.call('python manage_wc.py send_unpaid_infringements_file', shell=True)
-        subprocess.call('python manage_wc.py extend_due_date_from_1st_to_2nd', shell=True)
-        subprocess.call('python manage_wc.py send_rego_to_dot', shell=True)
+        #subprocess.call('python manage_wc.py send_unpaid_infringements_file', shell=True)
+        #subprocess.call('python manage_wc.py extend_due_date_from_1st_to_2nd', shell=True)
+        #subprocess.call('python manage_wc.py send_rego_to_dot', shell=True)
+        subprocess.call('python manage_wc.py close_document_and_physical_artifacts', shell=True)
 
         logger.info('Command {} completed'.format(__name__))

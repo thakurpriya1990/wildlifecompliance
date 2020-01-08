@@ -27,7 +27,7 @@ class Artifact(RevisionedMixin):
     STATUS_WAITING_FOR_DISPOSAL = 'waiting_for_disposal'
     STATUS_CLOSED = 'closed'
     STATUS_CHOICES = (
-            (STATUS_ACTIVE, 'Open'),
+            (STATUS_ACTIVE, 'Active'),
             (STATUS_WAITING_FOR_DISPOSAL, 'Waiting For Disposal'),
             (STATUS_CLOSED,  'Closed'),
             )
@@ -35,7 +35,7 @@ class Artifact(RevisionedMixin):
     #_file = models.FileField(max_length=255, null=True)
     identifier = models.CharField(max_length=255, blank=True, null=True)
     description = models.TextField(blank=True, null=True)
-    created = models.DateTimeField(auto_now_add=True, null=False, blank=False)
+    created_at = models.DateTimeField(auto_now_add=True, null=False, blank=False)
     artifact_date = models.DateField(null=True)
     artifact_time = models.TimeField(blank=True, null=True)
     number = models.CharField(max_length=50, blank=True, null=True)
@@ -96,8 +96,33 @@ class Artifact(RevisionedMixin):
     def get_related_items_descriptor(self):
         #return '{0}, {1}'.format(self.title, self.details)
         return self.identifier
-    #def log_user_action(self, action, request):
-     #   return ArtifactUserAction.log_action(self, action, request.user)
+
+    def log_user_action(self, action, request=None):
+        user_name = None
+        if not request:
+            return ArtifactUserAction.log_action(self, action)
+        else:
+            return ArtifactUserAction.log_action(self, action, request.user)
+
+    def close(self, request=None):
+        close_record, parents = can_close_record(self, request)
+        if close_record:
+            self.status = self.STATUS_CLOSED
+            self.log_user_action(
+                    ArtifactUserAction.ACTION_CLOSE.format(self.number), 
+                    request)
+        else:
+            self.status = self.STATUS_PENDING_CLOSURE
+            self.log_user_action(
+                    ArtifactUserAction.ACTION_PENDING_CLOSURE.format(self.number), 
+                    request)
+        self.save()
+        # Call close() on any parent with pending_closure status
+        if parents and self.status == 'closed':
+            for parent in parents:
+                if parent.status == 'pending_closure':
+                    parent.close(request)
+
 
 # TODO - no longer required
 class DocumentArtifactType(models.Model):
@@ -237,27 +262,8 @@ class DocumentArtifact(Artifact):
         verbose_name = 'CM_DocumentArtifact'
         verbose_name_plural = 'CM_DocumentArtifacts'
 
-    def log_user_action(self, action, request):
-        return ArtifactUserAction.log_action(self, action, request.user)
-
-    def close(self, request):
-        close_record, parents = can_close_record(self, request)
-        if close_record:
-            self.status = self.STATUS_CLOSED
-            self.log_user_action(
-                    ArtifactUserAction.ACTION_CLOSE.format(self.number), 
-                    request)
-        else:
-            self.status = self.STATUS_PENDING_CLOSURE
-            self.log_user_action(
-                    ArtifactUserAction.ACTION_PENDING_CLOSURE.format(self.number), 
-                    request)
-        self.save()
-        # Call close() on any parent with pending_closure status
-        if parents and self.status == 'closed':
-            for parent in parents:
-                if parent.status == 'pending_closure':
-                    parent.close(request)
+    #def log_user_action(self, action, request):
+     #   return ArtifactUserAction.log_action(self, action, request.user)
 
     def add_legal_case(self, legal_case_id):
         #legal_case_id = request.data.get('legal_case_id')
@@ -316,8 +322,8 @@ class PhysicalArtifact(Artifact):
         verbose_name = 'CM_PhysicalArtifact'
         verbose_name_plural = 'CM_PhysicalArtifacts'
 
-    def log_user_action(self, action, request):
-        return ArtifactUserAction.log_action(self, action, request.user)
+    #def log_user_action(self, action, request):
+     #   return ArtifactUserAction.log_action(self, action, request.user)
 
     def add_legal_case(self, legal_case_id):
         #legal_case_id = request.data.get('legal_case_id')
@@ -347,13 +353,13 @@ class ArtifactCommsLogDocument(Document):
         app_label = 'wildlifecompliance'
 
 
-class ArtifactUserAction(UserAction):
+class ArtifactUserAction(models.Model):
     ACTION_CREATE_ARTIFACT = "Create artifact {}"
     ACTION_SAVE_ARTIFACT = "Save artifact {}"
     #ACTION_OFFENCE = "Create Offence {}"
     #ACTION_SANCTION_OUTCOME = "Create Sanction Outcome {}"
     #ACTION_SEND_TO_MANAGER = "Send Inspection {} to Manager"
-    #ACTION_CLOSE = "Close Inspection {}"
+    ACTION_CLOSE = "Close Artifact {}"
     #ACTION_PENDING_CLOSURE = "Mark Inspection {} as pending closure"
     #ACTION_REQUEST_AMENDMENT = "Request amendment for {}"
     #ACTION_ENDORSEMENT = "Inspection {} has been endorsed by {}"
@@ -365,21 +371,30 @@ class ArtifactUserAction(UserAction):
     #ACTION_UPLOAD_INSPECTION_REPORT = "Upload Inspection Report '{}'"
     #ACTION_CHANGE_INDIVIDUAL_INSPECTED = "Change individual inspected from {} to {}"
     #ACTION_CHANGE_ORGANISATION_INSPECTED = "Change organisation inspected from {} to {}"
-
+    who = models.ForeignKey(EmailUser, null=True, blank=True)
+    when = models.DateTimeField(null=False, blank=False, auto_now_add=True)
+    what = models.TextField(blank=False)
+    artifact = models.ForeignKey(Artifact, related_name='action_logs')
     class Meta:
         app_label = 'wildlifecompliance'
         ordering = ('-when',)
 
     @classmethod
-    def log_action(cls, artifact, action, user):
+    def log_action(cls, artifact, action, user=None):
         return cls.objects.create(
             artifact=artifact,
             who=user,
             what=str(action)
         )
 
-    artifact = models.ForeignKey(Artifact, related_name='action_logs')
 
+
+    def __str__(self):
+        return "{what} ({who} at {when})".format(
+            what=self.what,
+            who=self.who,
+            when=self.when
+        )
 
 class ArtifactDocument(Document):
     artifact = models.ForeignKey(

@@ -61,6 +61,7 @@ class ArtifactSerializer(serializers.ModelSerializer):
                 'artifact_date',
                 'artifact_time',
                 'artifact_object_type',
+                'status',
                 )
         read_only_fields = (
                 'id',
@@ -117,7 +118,11 @@ class ArtifactPaginatedSerializer(serializers.ModelSerializer):
     #    return '---'
 
     def get_status(self, obj):
-        return 'not implemented yet'
+        display_name = ''
+        for choice in Artifact.STATUS_CHOICES:
+            if obj.status == choice[0]:
+                display_name = choice[1]
+        return display_name
 
     def get_user_action(self, obj):
         url_list = []
@@ -192,7 +197,7 @@ class DocumentArtifactStatementSerializer(ArtifactSerializer):
                 #'_file',
                 'identifier',
                 'description',
-                'custodian',
+                #'custodian',
                 )
         read_only_fields = (
                 'id',
@@ -263,8 +268,8 @@ class DocumentArtifactSerializer(ArtifactSerializer):
 class SaveDocumentArtifactSerializer(ArtifactSerializer):
     #document_type_id = serializers.IntegerField(
      #   required=False, write_only=True, allow_null=True)
-    custodian_id = serializers.IntegerField(
-        required=False, write_only=True, allow_null=True)
+    #custodian_id = serializers.IntegerField(
+     #   required=False, write_only=True, allow_null=True)
     statement_id = serializers.IntegerField(
         required=False, write_only=True, allow_null=True)
     person_providing_statement_id = serializers.IntegerField(
@@ -283,7 +288,7 @@ class SaveDocumentArtifactSerializer(ArtifactSerializer):
                 'id',
                 'identifier',
                 'description',
-                'custodian_id',
+                #'custodian_id',
                 'statement_id',
                 'artifact_date',
                 'artifact_time',
@@ -373,11 +378,19 @@ class SavePhysicalArtifactSerializer(ArtifactSerializer):
 
 
 class ArtifactUserActionSerializer(serializers.ModelSerializer):
-    who = serializers.CharField(source='who.get_full_name')
+    #who = serializers.CharField(source='who.get_full_name')
+    who = serializers.SerializerMethodField()
 
     class Meta:
         model = ArtifactUserAction
         fields = '__all__'
+
+    def get_who(self, obj):
+        if obj.who:
+            return obj.who.get_full_name()
+        else:
+            # When who==None, which means System performed the action
+            return 'System'
 
 
 class ArtifactCommsLogEntrySerializer(CommunicationLogEntrySerializer):
