@@ -63,6 +63,7 @@ import modal from '@vue-utils/bootstrap-modal.vue';
 import { mapState, mapGetters, mapActions, mapMutations } from "vuex";
 import { api_endpoints, helpers, cache_helper } from "@/utils/hooks";
 import filefield from '@/components/common/compliance_file.vue';
+import "jquery-ui/ui/widgets/draggable.js";
 require("select2/dist/css/select2.min.css");
 require("select2-bootstrap-theme/dist/select2-bootstrap.min.css");
 
@@ -160,12 +161,19 @@ export default {
     mounted: function () {
         this.$nextTick(() => {
             this.addEventListeners();
+            this.makeModalsDraggable();
         });
     },
     methods: {
         ...mapActions({
             loadAllocatedGroup: 'loadAllocatedGroup',  // defined in store/modules/user.js
         }),
+        makeModalsDraggable: function(){
+            this.elem_modal = $('.modal > .modal-dialog');
+            for (let i=0; i<this.elem_modal.length; i++){
+                $(this.elem_modal[i]).draggable();
+            }
+        },
         addEventListeners: function () {
             console.log('in addEventListeners');
 

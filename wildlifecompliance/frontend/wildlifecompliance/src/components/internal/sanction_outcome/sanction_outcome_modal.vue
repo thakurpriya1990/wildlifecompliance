@@ -606,16 +606,15 @@ export default {
             }
             this.close();
         },
-          typeChanged: function(){
-              console.log('typeChanged called by watch');
-              this.constructAllegedOffencesTable();
-              this.check_if_is_parking_offence();
-          },
+        typeChanged: function(){
+            this.constructAllegedOffencesTable();
+            this.check_if_is_parking_offence();
+        },
         makeModalsDraggable: function(){
-          this.elem_modal = $('.modal > .modal-dialog');
-          for (let i=0; i<this.elem_modal.length; i++){
-            $(this.elem_modal[i]).draggable();
-          }
+            this.elem_modal = $('.modal > .modal-dialog');
+            for (let i=0; i<this.elem_modal.length; i++){
+                $(this.elem_modal[i]).draggable();
+            }
         },
         close: function() {
             this.$parent.sanctionOutcomeInitialised = false;
@@ -937,13 +936,9 @@ export default {
     },
     mounted: function() {
         this.$nextTick(() => {
-            console.log("mounted sanction1");
             this.addEventListeners();
-            console.log("mounted sanction2");
             this.elem_paper_id_notice = $('#paper_id_notice');
-            console.log("mounted sanction3");
             this.makeModalsDraggable();
-            console.log("mounted sanction4");
         });
     }
 };

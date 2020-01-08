@@ -61,6 +61,7 @@ import { mapState, mapGetters, mapActions, mapMutations } from "vuex";
 import { api_endpoints, helpers, cache_helper } from "@/utils/hooks";
 require("select2/dist/css/select2.min.css");
 require("select2-bootstrap-theme/dist/select2-bootstrap.min.css");
+import "jquery-ui/ui/widgets/draggable.js";
 
 export default {
     name: "SendParkingInfringement",
@@ -108,6 +109,7 @@ export default {
     mounted: function () {
         this.$nextTick(() => {
             this.addEventListeners();
+            this.makeModalsDraggable();
         });
     },
     methods: {
@@ -116,6 +118,12 @@ export default {
         }),
         addEventListeners: function () {
 
+        },
+        makeModalsDraggable: function(){
+            this.elem_modal = $('.modal > .modal-dialog');
+            for (let i=0; i<this.elem_modal.length; i++){
+                $(this.elem_modal[i]).draggable();
+            }
         },
         ok: async function () {
             try {
