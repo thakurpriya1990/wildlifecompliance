@@ -587,7 +587,7 @@ class SanctionOutcomeViewSet(viewsets.ModelViewSet):
                 # No workflow
                 # No allocated group changes
 
-                # When updated from with_dot status by adding registrationholder, status becomes awaiting_issuance
+                # When updated from with_dot status by adding registration_holder, status becomes awaiting_issuance
                 if request_data['status']['id'] == SanctionOutcome.STATUS_WITH_DOT and (request_data['registration_holder_id'] or request_data['driver_id']):
                     request_data['status'] = SanctionOutcome.STATUS_AWAITING_ISSUANCE
                 else:
@@ -897,7 +897,7 @@ class SanctionOutcomeViewSet(viewsets.ModelViewSet):
                 # Email to the offender, and bcc to the respoinsible officer, manager and infringement notice coordinators
                 inc_group = SanctionOutcome.get_compliance_permission_group(None, SanctionOutcome.WORKFLOW_ENDORSE)
                 inc_emails = [member.email for member in inc_group.members]
-                to_address = [instance.get_offender().email, ]
+                to_address = [instance.get_offender()[0].email, ]
                 cc = None
                 bcc = [instance.responsible_officer.email, request.user.email] + inc_emails
                 email_data = send_infringement_notice(to_address, instance, workflow_entry, request, cc, bcc)
@@ -998,7 +998,7 @@ class SanctionOutcomeViewSet(viewsets.ModelViewSet):
                         last_date.due_date_applied.strftime('%d/%m/%Y')),
                         request)
 
-                to_address = [instance.get_offender().email,]
+                to_address = [instance.get_offender()[0].email,]
                 cc = [instance.responsible_officer.email, request.user.email] if instance.responsible_officer else None
                 bcc = None
                 email_data = send_due_date_extended_mail(to_address, instance, workflow_entry, request, cc, bcc)

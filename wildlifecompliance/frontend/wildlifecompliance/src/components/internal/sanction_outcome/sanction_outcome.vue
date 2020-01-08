@@ -508,6 +508,8 @@ export default {
                 'region_id',
                 'time_of_issue',
                 'type',
+                'driver_id',
+                'registration_holder_id',
             ],
             comms_url: helpers.add_endpoint_json(
                 api_endpoints.sanction_outcome,
@@ -1009,7 +1011,15 @@ export default {
         formatDate: function(d){
             return moment(d).format("DD/MM/YYYY");
         },
-        sendParkingInfringement: function(){
+        sendParkingInfringement: async function(){
+            console.log('sendParkingInfringement()1');
+            if (this.formChanged()){
+                console.log('sendParkingInfringement()2');
+                // Save changes implicitly
+                await this.saveSanctionOutcome();
+                this.updateObjectHash();
+            }
+            console.log('sendParkingInfringement()3');
             this.sendParkingInfringementId += 1
             this.$nextTick(() => {
                 this.$refs.send_parking_infringement.isModalOpen = true;
@@ -1038,11 +1048,11 @@ export default {
         },
         formChanged: function(){
             let changed = false;
-            if (!this.readonlyForm){
+        //    if (!this.readonlyForm){
                 if(this.objectHash !== this.calculateHash()){
                     changed = true;
                 }
-            }
+         //   }
             return changed;
         },
         sanctionOutcomeDocumentUploaded: function() {

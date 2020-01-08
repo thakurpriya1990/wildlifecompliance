@@ -12,7 +12,6 @@ from ledger.accounts.models import EmailUser, RevisionedMixin
 from wildlifecompliance.components.main.models import Document, CommunicationsLogEntry
 from wildlifecompliance.components.main.related_item import can_close_record
 from wildlifecompliance.components.offence.models import Offence, Offender, AllegedOffence
-from wildlifecompliance.components.sanction_outcome.email import email_detais_to_department_of_transport
 from wildlifecompliance.components.sanction_outcome_due.models import SanctionOutcomeDueDateConfiguration
 from wildlifecompliance.components.sanction_outcome_due.serializers import SaveSanctionOutcomeDueDateSerializer
 from wildlifecompliance.components.section_regulation.models import SectionRegulation
@@ -172,7 +171,7 @@ class SanctionOutcome(models.Model):
         return is_parking_offence
 
     def get_content_for_uin(self):
-        offender = self.get_offender()
+        offender = self.get_offender()[0]
         uin = UnpaidInfringementFileBody()
         uin.offenders_surname.set(offender.last_name)
         uin.offenders_other_names.set(offender.first_name)
@@ -243,11 +242,11 @@ class SanctionOutcome(models.Model):
 
     def get_offender(self):
         if self.driver:
-            return self.driver
+            return self.driver, 'driver'
         elif self.registration_holder:
-            return self.registration_holder
+            return self.registration_holder, 'registration_holder'
         else:
-            return self.offender.person
+            return self.offender.person, 'offender'
 
     @property
     def prefix_lodgement_nubmer(self):
@@ -445,12 +444,7 @@ class SanctionOutcome(models.Model):
                 self.status = SanctionOutcome.STATUS_AWAITING_PAYMENT
                 self.payment_status = SanctionOutcome.PAYMENT_STATUS_UNPAID
                 self.set_penalty_amounts()
-                if self.due_dates.count():
-                    # Already at least one infringement notice issued
-                    self.create_due_dates(reason_for_extension='Issue infringement notice')
-                else:
-                    # First time to issue the infringement notice
-                    self.create_due_dates(reason_for_extension='original')
+                self.create_due_dates()
 
         new_group = SanctionOutcome.get_compliance_permission_group(self.regionDistrictId, SanctionOutcome.WORKFLOW_ENDORSE)
         self.allocated_group = new_group
@@ -488,7 +482,17 @@ class SanctionOutcome(models.Model):
         # Add action log
         # self.log_user_action(SanctionOutcomeUserAction.ACTION_ENDORSE.format(self.lodgement_number), request)
 
-    def create_due_dates(self, reason_for_extension='original', extended_by_id=None):
+    def create_due_dates(self, extended_by_id=None):
+        print('create_due_dates')
+        # Construct description
+        offender, title = self.get_offender()
+        recipient = ''
+        if title == 'driver':
+            recipient = ' to the driver ({})'.format(offender.email)
+        elif title == 'registration_holder':
+            recipient = ' to the registration holder ({})'.format(offender.email)
+        reason_for_extension = 'Issue infringement notice on ' + self.date_of_issue.strftime("%d/%m/%Y") + recipient
+
         due_date_config = SanctionOutcomeDueDateConfiguration.get_config_by_date(self.date_of_issue)
         self.due_date_extended_max = self.date_of_issue + relativedelta(years=1)
         data = {}
@@ -573,36 +577,25 @@ class SanctionOutcome(models.Model):
             return None
 
     @property
-    def last_due_date_1st(self):
+    def last_due_date(self):
         if self.type == SanctionOutcome.TYPE_INFRINGEMENT_NOTICE:
             due_dates = self.due_dates.order_by('-created_at')
             if self.date_of_issue and not due_dates:
-                # Should not reach here
-                self.create_due_dates()
-                self.set_penalty_amounts()
-                self.save()
-                due_dates = self.due_dates.order_by('-created_at')
-
-            return due_dates.first().due_date_1st  # Get last record
+                raise ValidationError('Issued but not due dates are set.')
+            return due_dates.first()
         else:
             return None
 
     @property
-    def last_due_date_2nd(self):
-        if self.type == SanctionOutcome.TYPE_INFRINGEMENT_NOTICE:
-            due_dates = self.due_dates.order_by('-created_at')
-            if self.date_of_issue and not due_dates:
-                # Should not reach here
-                self.create_due_dates()
-                self.set_penalty_amounts()
-                self.save()
-                due_dates = self.due_dates.order_by('-created_at')
+    def last_due_date_1st(self):
+        return self.last_due_date.due_date_1st
 
-            return due_dates.first().due_date_2nd
-        else:
-            return None
+    @property
+    def last_due_date_2nd(self):
+        return self.last_due_date.due_date_2nd
 
     def extend_due_date(self, target_date, reason_for_extension, extended_by_id):
+        print('extend_due_date')
         now_date = datetime.datetime.now().date()
         due_date_config = SanctionOutcomeDueDateConfiguration.get_config_by_date(self.date_of_issue)
         if target_date <= self.due_date_extended_max:
@@ -758,7 +751,7 @@ class SanctionOutcomeCommsLogEntry(CommunicationsLogEntry):
 class SanctionOutcomeUserAction(models.Model):
     ACTION_ISSUE_PARKING_INFRINGEMENT = "Issue Parking Infringement {} to {}"
     ACTION_CREATE = "Create Sanction Outcome {}"
-    ACTION_SEND_TO_MANAGER = "Send Sanction Outcome {} to manager"
+    ACTION_SEND_TO_MANAGER = "Forward Sanction Outcome {} to manager"
     ACTION_UPDATE = "Update Sanction Outcome {}"
     ACTION_ENDORSE_AND_ISSUE = "Endorse and Issue Sanction Outcome {}"
     ACTION_ENDORSE = "Endorse Sanction Outcome {}"

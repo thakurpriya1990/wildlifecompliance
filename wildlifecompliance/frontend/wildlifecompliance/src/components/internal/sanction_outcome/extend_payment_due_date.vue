@@ -204,8 +204,6 @@ export default {
                 this.processingDetails = true;
                 const response = await this.sendData();
                 this.close();
-            //    this.$router.push({ name: 'internal-sanction-outcome-dash' });
-                console.log(this.$parent)
                 this.$parent.loadSanctionOutcome({ sanction_outcome_id: this.$parent.sanction_outcome.id });
             } catch (err){
                 this.processError(err);

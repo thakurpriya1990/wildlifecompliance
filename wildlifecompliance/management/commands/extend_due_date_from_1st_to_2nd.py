@@ -90,7 +90,7 @@ class Command(BaseCommand):
                         workflow_entry = serializer.save()
                         # Send reminder email (to: offender, cc: , bcc: respoinsible officer)
 
-                        to_address = [overdue_sanction_outcome.get_offender().email, ]
+                        to_address = [overdue_sanction_outcome.get_offender()[0].email, ]
                         cc = None
                         bcc = [overdue_sanction_outcome.responsible_officer.email,] if overdue_sanction_outcome.responsible_officer else None
                         email_data = send_remind_1st_period_overdue_mail(to_address, overdue_sanction_outcome, workflow_entry, cc, bcc)

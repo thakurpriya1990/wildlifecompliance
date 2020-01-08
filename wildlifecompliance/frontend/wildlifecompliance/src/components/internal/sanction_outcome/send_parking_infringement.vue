@@ -6,7 +6,16 @@
 
                     <div class="form-group"><div class="row">
                         <div class="col-sm-3">
-                            <label class="control-label pull-left">Reason</label>
+                            <label class="control-label pull-left">Recipient</label>
+                        </div>
+                        <div class="col-sm-7">
+                            {{ recipient_details }}
+                        </div>
+                    </div></div>
+
+                    <div class="form-group"><div class="row">
+                        <div class="col-sm-3">
+                            <label class="control-label pull-left">Details</label>
                         </div>
                         <div class="col-sm-7">
                             <textarea class="form-control" placeholder="add reason" id="reason" v-model="details"/>
@@ -81,6 +90,19 @@ export default {
             let filled = true;
 
             return filled;
+        },
+        recipient_details: function() {
+            let details = '';
+            if (this.sanction_outcome){
+                if (this.sanction_outcome.driver){
+                    details = 'Driver: ' + this.sanction_outcome.driver.email;
+                } else if (this.sanction_outcome.registration_holder){
+                    details = 'Registration holder' + this.sanction_outcome.registration_holder.email;
+                } else if (this.sanction_outcome.offender){
+                    details = this.sanction_outcome.offender.person.email;
+                }
+            }
+            return details;
         }
     },
     mounted: function () {
@@ -100,7 +122,7 @@ export default {
                 this.processingDetails = true;
                 const response = await this.sendData();
                 this.close();
-                this.$router.push({ name: 'internal-sanction-outcome-dash' });
+                this.$parent.loadSanctionOutcome({ sanction_outcome_id: this.$parent.sanction_outcome.id });
             } catch (err){
                 this.processError(err);
             } finally {
