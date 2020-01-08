@@ -29,7 +29,7 @@ from wildlifecompliance.components.sanction_outcome.email import send_infringeme
     send_due_date_extended_mail, send_return_to_officer_email, send_to_manager_email, send_withdraw_by_manager_email, \
     send_withdraw_by_branch_manager_email, send_return_to_infringement_notice_coordinator_email, send_decline_email, \
     send_escalate_for_withdrawal_email, email_detais_to_department_of_transport, send_remediation_notice, \
-    send_caution_notice, send_letter_of_advice
+    send_caution_notice, send_letter_of_advice, send_parking_infringement_without_offenders
 from wildlifecompliance.components.sanction_outcome.models import SanctionOutcome, RemediationAction, \
     SanctionOutcomeCommsLogEntry, AllegedCommittedOffence, SanctionOutcomeUserAction, SanctionOutcomeCommsLogDocument, \
     AmendmentRequestReason
@@ -64,6 +64,12 @@ class SanctionOutcomeFilterBackend(DatatablesFilterBackend):
                          Q(offender__person__first_name__icontains=search_text) | \
                          Q(offender__person__last_name__icontains=search_text) | \
                          Q(offender__person__email__icontains=search_text) | \
+                         Q(driver__first_name__icontains=search_text) | \
+                         Q(driver__last_name__icontains=search_text) | \
+                         Q(driver__email__icontains=search_text) | \
+                         Q(registration_holder__first_name__icontains=search_text) | \
+                         Q(registration_holder__last_name__icontains=search_text) | \
+                         Q(registration_holder__email__icontains=search_text) | \
                          Q(offender__organisation__organisation__name__icontains=search_text) | \
                          Q(offender__organisation__organisation__abn__icontains=search_text) | \
                          Q(offender__organisation__organisation__trading_name__icontains=search_text)
@@ -149,7 +155,8 @@ class SanctionOutcomePaginatedViewSet(viewsets.ModelViewSet):
         self.paginator.page_size = queryset.count()
         result_page = self.paginator.paginate_queryset(queryset, request)
         serializer = SanctionOutcomeDatatableSerializer(result_page, many=True, context={'request': request})
-        ret = self.paginator.get_paginated_response(serializer.data)
+        s_data = serializer.data
+        ret = self.paginator.get_paginated_response(s_data)
         return ret
 
     @list_route(methods=['GET', ])
@@ -902,7 +909,7 @@ class SanctionOutcomeViewSet(viewsets.ModelViewSet):
                     serializer.is_valid(raise_exception=True)
                     serializer.save()
 
-                instance.log_user_action(SanctionOutcomeUserAction.ACTION_ISSUE_PARKING_INFRINGEMENT.format(instance.lodgement_number), request)
+                instance.log_user_action(SanctionOutcomeUserAction.ACTION_ISSUE_PARKING_INFRINGEMENT.format(instance.lodgement_number, ', '.join(to_address)), request)
 
                 return Response(
                     # return_serializer.data,
@@ -1092,15 +1099,20 @@ class SanctionOutcomeViewSet(viewsets.ModelViewSet):
                             instance.log_user_action(SanctionOutcomeUserAction.ACTION_ENDORSE.format(instance.lodgement_number), request)
 
                     else:
-                        instance.send_to_dot()
+                        # This is a parking infringement but no offenders are set
+                        instance.send_to_inc()
 
-                        # Send email to DoT with attachment  <== This should be performed by the cron
-                        # to_address = ['shibaken+dot@dbca.gov.wa.au', ]
-                        # cc = [instance.responsible_officer.email, request.user.email,]
-                        # bcc = None
-                        # email_data = email_detais_to_department_of_transport(to_address, instance, request, cc, bcc)
+                        inc_group = SanctionOutcome.get_compliance_permission_group(None, SanctionOutcome.WORKFLOW_ENDORSE)
+                        inc_emails = [member.email for member in inc_group.members]
+                        to_address = inc_emails
+                        cc = [instance.responsible_officer.email, request.user.email]
+                        bcc = []
 
-                        # instance.log_user_action(SanctionOutcomeUserAction.ACTION_SEND_TO_DOT.format(instance.lodgement_number), request)
+                        # Email to infringement notice coordinators
+                        email_data = send_parking_infringement_without_offenders(to_address, instance, workflow_entry, request, cc, bcc)
+
+                        # Log action
+                        instance.log_user_action( SanctionOutcomeUserAction.ACTION_ENDORSE.format(instance.lodgement_number), request)
 
                 elif workflow_type == SanctionOutcome.WORKFLOW_RETURN_TO_OFFICER:
                     if not reason:
@@ -1201,7 +1213,7 @@ class SanctionOutcomeViewSet(viewsets.ModelViewSet):
                 request_data['sanction_outcome'] = u'{}'.format(instance.id)
                 if request_data.get('comms_log_id'):
                     comms = SanctionOutcomeCommsLogEntry.objects.get(id=request_data.get('comms_log_id'))
-                    serializer = SanctionOutcomeCommsLogEntrySerializer(instance=comms, data=request.data)
+                    serializer = SanctionOutcomeCommsLogEntrySerializer(instance=comms, data=request_data)
                 else:
                     serializer = SanctionOutcomeCommsLogEntrySerializer(data=request_data)
                 serializer.is_valid(raise_exception=True)

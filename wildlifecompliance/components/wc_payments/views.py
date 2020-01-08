@@ -235,20 +235,3 @@ class InvoicePDFView(InvoiceOwnerMixin, View):
     def get_object(self):
         invoice = get_object_or_404(Invoice, reference=self.kwargs['reference'])
         return invoice
-
-
-# class SanctionOutcomePDFView(SanctionOutcomePdfMixin, View):
-#     """
-#     Generate infringement notice pdf file dynamically
-#     """
-#     def get(self, request, *args, **kwargs):
-#         so = get_object_or_404(SanctionOutcome, id=self.kwargs['sanction_outcome_id'])
-#         if so.date_of_issue:
-#             # Sanction outcome pdf should be created only after issued
-#             response = HttpResponse(content_type='application/pdf')
-#             response.write(create_infringement_notice_pdf_bytes('infringement_notice.pdf', so))
-#             return response
-#
-#     def get_object(self):
-#         so = get_object_or_404(SanctionOutcome, id=self.kwargs['sanction_outcome_id'])
-#         return so

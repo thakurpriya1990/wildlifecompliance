@@ -84,11 +84,16 @@ class Command(BaseCommand):
                         serializer.is_valid(raise_exception=True)
                         serializer.save()
 
+                        data = {'sanction_outcome': overdue_sanction_outcome.id}
+                        serializer = SanctionOutcomeCommsLogEntrySerializer(data=data)
+                        serializer.is_valid(raise_exception=True)
+                        workflow_entry = serializer.save()
                         # Send reminder email (to: offender, cc: , bcc: respoinsible officer)
+
                         to_address = [overdue_sanction_outcome.get_offender().email, ]
                         cc = None
                         bcc = [overdue_sanction_outcome.responsible_officer.email,] if overdue_sanction_outcome.responsible_officer else None
-                        email_data = send_remind_1st_period_overdue_mail(to_address, overdue_sanction_outcome, cc, bcc)
+                        email_data = send_remind_1st_period_overdue_mail(to_address, overdue_sanction_outcome, workflow_entry, cc, bcc)
 
                         # Add communication log
                         if email_data:
