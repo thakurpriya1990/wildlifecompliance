@@ -4,12 +4,18 @@ from django.conf import settings
 from django.core.exceptions import ObjectDoesNotExist
 from django.contrib.auth.models import Group, ContentType, Permission
 from django.db import transaction
-from ledger.accounts.utils import get_app_label
+# from ledger.accounts.utils import get_app_label
 from wildlifecompliance.components.licences.models import LicenceActivity
 from wildlifecompliance.components.applications.models import ActivityPermissionGroup
 
 logger = logging.getLogger(__name__)
 
+
+def get_app_label():
+    try:
+        return settings.SYSTEM_APP_LABEL
+    except AttributeError:
+        return ''
 
 class PermissionCollector(object):
 
