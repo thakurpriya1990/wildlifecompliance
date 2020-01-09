@@ -6,12 +6,14 @@ from django.utils import timezone
 
 import logging
 
+from wildlifecompliance import settings
 from wildlifecompliance.components.sanction_outcome.email import send_remind_1st_period_overdue_mail
 from wildlifecompliance.components.sanction_outcome.models import SanctionOutcome, SanctionOutcomeUserAction
 from wildlifecompliance.components.sanction_outcome.serializers import SanctionOutcomeCommsLogEntrySerializer
 from wildlifecompliance.components.sanction_outcome_due.models import SanctionOutcomeDueDate
 from wildlifecompliance.components.sanction_outcome_due.serializers import SaveSanctionOutcomeDueDateSerializer
 from wildlifecompliance.helpers import DEBUG
+from wildlifecompliance.management.commands.cron_tasks import get_infringement_notice_coordinators
 
 logger = logging.getLogger(__name__)
 
@@ -88,11 +90,16 @@ class Command(BaseCommand):
                         serializer = SanctionOutcomeCommsLogEntrySerializer(data=data)
                         serializer.is_valid(raise_exception=True)
                         workflow_entry = serializer.save()
-                        # Send reminder email (to: offender, cc: , bcc: respoinsible officer)
+
+                        # Determine the bcc
+                        members = get_infringement_notice_coordinators()
+                        bcc_list = [member.email for member in members] if members else [settings.NOTIFICATION_EMAIL]
+                        if overdue_sanction_outcome.responsible_officer:
+                            bcc_list.append(overdue_sanction_outcome.responsible_officer.email)
 
                         to_address = [overdue_sanction_outcome.get_offender()[0].email, ]
                         cc = None
-                        bcc = [overdue_sanction_outcome.responsible_officer.email,] if overdue_sanction_outcome.responsible_officer else None
+                        bcc = bcc_list
                         email_data = send_remind_1st_period_overdue_mail(to_address, overdue_sanction_outcome, workflow_entry, cc, bcc)
 
                         # Add communication log
