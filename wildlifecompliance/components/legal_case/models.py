@@ -14,7 +14,7 @@ from wildlifecompliance.components.main.models import (
         UserAction, 
         Document,
         )
-from wildlifecompliance.components.main.related_item import can_close_record
+from wildlifecompliance.components.main.related_item import can_close_legal_case
 from wildlifecompliance.components.users.models import RegionDistrict, CompliancePermissionGroup
 from django.core.exceptions import ValidationError
 
@@ -145,7 +145,7 @@ class LegalCase(RevisionedMixin):
     #    self.save()
 
     def close(self, request):
-        close_record, parents = can_close_record(self, request)
+        close_record, parents = can_close_legal_case(self, request)
         if close_record:
             self.status = self.STATUS_CLOSED
             self.log_user_action(

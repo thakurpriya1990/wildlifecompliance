@@ -13,7 +13,7 @@ from wildlifecompliance.components.main.models import (
         UserAction, 
         Document,
         )
-from wildlifecompliance.components.main.related_item import can_close_record
+from wildlifecompliance.components.main.related_item import can_close_artifact
 from wildlifecompliance.components.users.models import RegionDistrict, CompliancePermissionGroup
 from wildlifecompliance.components.offence.models import Offence, Offender
 from wildlifecompliance.components.legal_case.models import LegalCase

@@ -244,6 +244,7 @@ class DocumentArtifactSerializer(ArtifactSerializer):
                 'interviewer_email',
                 'document_type_display',
                 #'status',
+                'created_at',
                 )
         read_only_fields = (
                 'id',
@@ -340,6 +341,7 @@ class PhysicalArtifactSerializer(ArtifactSerializer):
                 'legal_case_id_list',
                 'officer_email',
                 #'status',
+                'created_at',
                 )
         read_only_fields = (
                 'id',

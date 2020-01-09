@@ -39,10 +39,9 @@
                     </span>
                 </div>
             </div>
-        </div>
-        <div class="col-md-3 pull-right">
-            <button @click.prevent="createArtifact"
-                class="btn btn-primary pull-right">New Object</button>
+            <div class="col-md-3 pull-right">
+                <button @click.prevent="createArtifact" class="btn btn-primary pull-right">New Object</button>
+            </div>
         </div>
 
         <div class="row">
@@ -52,13 +51,11 @@
         </div>
         </FormSection>
         <div v-if="createArtifactInitialised">
-            <PersonOrArtifactModal 
+            <CreateArtifact
             ref="create_artifact"
             :readonlyForm="readonlyForm"
             v-bind:key="createArtifactBindId"
-            @modal-action="receivePersonOrArtifactEntity"
-            :rowNumberSelected="rowNumberSelected"
-            :initialTabSelected="tabSelected"
+            initialTabSelected="artifact"
             />
         </div>
     </div>
@@ -162,6 +159,11 @@ export default {
             ],
         }
     },
+    computed: {
+        readonlyForm: function() {
+            return false;
+        },
+    },
     mounted(){
         let vm = this;
         vm.$nextTick(() => {
@@ -188,6 +190,7 @@ export default {
     },
     methods: {
         createArtifact: function() {
+            console.log("create artifact")
             this.setCreateArtifactBindId()
             this.createArtifactInitialised = true;
             this.$nextTick(() => {

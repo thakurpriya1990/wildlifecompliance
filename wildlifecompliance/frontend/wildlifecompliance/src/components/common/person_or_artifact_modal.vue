@@ -2,13 +2,20 @@
     <div id="PersonOrArtifactModal">
         <modal transition="modal fade" @ok="ok()" @cancel="cancel()" title="" large force>
             <div class="container-fluid">
-                <ul class="nav nav-pills">
-                    <li :class="personTabListClass"><a data-toggle="tab" @click="updateTabSelected('pTab')" :href="'#'+pTab">Person</a></li>
-                    <li :class="artifactTabListClass"><a data-toggle="tab" @click="updateTabSelected('aTab')" :href="'#'+aTab" >Object</a></li>
-                    <li :class="urlTabListClass"><a data-toggle="tab" @click="updateTabSelected('uTab')" :href="'#'+uTab">URL</a></li>
-                </ul>
+                <div v-if="legalCaseId">
+                    <ul class="nav nav-pills">
+                        <li :class="personTabListClass"><a data-toggle="tab" @click="updateTabSelected('pTab')" :href="'#'+pTab">Person</a></li>
+                        <li :class="artifactTabListClass"><a data-toggle="tab" @click="updateTabSelected('aTab')" :href="'#'+aTab" >Object</a></li>
+                        <li :class="urlTabListClass"><a data-toggle="tab" @click="updateTabSelected('uTab')" :href="'#'+uTab">URL</a></li>
+                    </ul>
+                </div>
+                <div v-else>
+                    <ul class="nav nav-pills">
+                        <li :class="artifactTabListClass"><a data-toggle="tab" @click="updateTabSelected('aTab')" :href="'#'+aTab" >Object</a></li>
+                    </ul>
+                </div>
                 <div class="tab-content ul-top-buffer">
-                    <div :id="pTab" :class="personTabClass"><div class="row">
+                    <div v-if="legalCaseId" :id="pTab" :class="personTabClass"><div class="row">
                         <div class="col-sm-12 form-group"><div class="row">
                             <div class="col-sm-12">
                                 <SearchPersonOrganisation 
@@ -64,7 +71,7 @@
                         @entity-selected="entitySelected"
                         /-->
                     </div>
-                    <div :id="uTab" :class="urlTabClass">
+                    <div v-if="legalCaseId" :id="uTab" :class="urlTabClass">
                         <div class="col-sm-12">
                             <div class="col-sm-2">
                                 <select class="form-control" name="protocol" v-model="urlProtocol">
@@ -116,7 +123,7 @@ export default {
         },
         rowNumberSelected: {
             type: String,
-            required: true,
+            required: false,
         },
         initialTabSelected: {
             type: String,
@@ -153,6 +160,13 @@ export default {
                 showComponent = true;
             }
             return showComponent;
+        },
+        legalCaseId: function() {
+            let legalId = '';
+            if (this.legal_case) {
+                legalId = this.legal_case.id;
+            }
+            return legalId;
         },
         showPhysicalArtifactComponent: function() {
             let showComponent = false;
@@ -287,6 +301,10 @@ export default {
                 this.submitUrl();
             }
             this.emitModalAction();
+            // For Artifact Dashboard
+            if (this.$parent.$refs.artifact_table) {
+                this.$parent.$refs.artifact_table.vmDataTable.ajax.reload()
+            }
             /*
             this.$nextTick(() => {
                 if (this.entity.id || this.urlTabSelected && this.urlText) {
