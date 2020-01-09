@@ -55,6 +55,12 @@ from wildlifecompliance.components.licences.models import (
 logger = logging.getLogger(__name__)
 
 
+def get_app_label():
+    try:
+        return settings.SYSTEM_APP_LABEL
+    except AttributeError:
+        return ''
+
 def update_application_doc_filename(instance, filename):
     return 'wildlifecompliance/applications/{}/documents/{}'.format(
         instance.application.id, filename)
@@ -1253,6 +1259,21 @@ class Application(RevisionedMixin):
             request=request
         )
 
+    def get_assessor_permission_group(self, activity_id=None, first=True):
+        app_label = get_app_label()
+        qs = self._user.groups.filter(
+            permissions__codename='assessor'
+        )
+        if activity_id is not None:
+           qs = qs.filter(
+                activitypermissiongroup__licence_activities__id__in=activity_id if isinstance(
+                    activity_id, (list, models.query.QuerySet)
+                ) else [activity_id]
+           )
+        if app_label:
+            qs = qs.filter(permissions__content_type__app_label=app_label)
+        return qs.first() if first else qs
+
     def assign_application_assessment(self, request):
         with transaction.atomic():
             try:
@@ -1268,9 +1289,8 @@ class Application(RevisionedMixin):
                     raise Exception("Assessment record ID %s \
                     does not exist!" % (assessment_id))
 
-                assessor_group = request.user \
-                    .get_wildlifelicence_permission_group(
-                        permission_codename='assessor',
+                assessor_group = self \
+                    .get_assessor_permission_group(
                         activity_id=assessment.licence_activity_id,
                         first=True
                     )
@@ -1317,8 +1337,7 @@ class Application(RevisionedMixin):
 
                     # check user has assessor permission
                     assessor_group = \
-                        request.user.get_wildlifelicence_permission_group(
-                            permission_codename='assessor',
+                        self.get_assessor_permission_group(
                             activity_id=assessment.licence_activity_id,
                             first=True
                         )
@@ -1372,8 +1391,7 @@ class Application(RevisionedMixin):
                     raise Exception("Assessment record ID %s (activity: %s) does not exist!" % (
                         assessment_id, activity_id))
 
-                assessor_group = request.user.get_wildlifelicence_permission_group(
-                    permission_codename='assessor',
+                assessor_group = self.get_assessor_permission_group(
                     activity_id=assessment.licence_activity_id,
                     first=True
                 )
@@ -1549,6 +1567,7 @@ class Application(RevisionedMixin):
 
         return True if paid > self.application_fee else False
 
+    @property
     def previous_paid_amount(self):
         """
         Gets the paid amount from the previous application for application
@@ -2239,8 +2258,62 @@ class Application(RevisionedMixin):
         ).distinct()
 
     @staticmethod
+    def get_request_user_proxy_details(request):
+        proxy_id = request.data.get(
+            "proxy_id",
+            request.GET.get("proxy_id")
+        )
+        organisation_id = request.data.get(
+            "organisation_id",
+            request.GET.get("organisation_id")
+        )
+        return Application.validate_request_user_proxy_details(request, proxy_id, organisation_id)
+
+    @staticmethod
+    def get_request_user_permission_group(request, permission_codename, activity_id=None, first=True):
+        try:
+            app_label = settings.SYSTEM_APP_LABEL
+        except AttributeError:
+            app_label = ''
+        qs = request.user.groups.filter(
+            permissions__codename=permission_codename
+        )
+        if activity_id is not None:
+            qs = qs.filter(
+                activitypermissiongroup__licence_activities__id__in=activity_id if isinstance(
+                    activity_id, (list, models.query.QuerySet)
+                ) else [activity_id]
+            )
+        if app_label:
+            qs = qs.filter(permissions__content_type__app_label=app_label)
+        return qs.first() if first else qs
+
+    @staticmethod
+    def validate_request_user_proxy_details(request, proxy_id, organisation_id):
+        proxy_details = {
+            'proxy_id': proxy_id,
+            'organisation_id': organisation_id,
+        }
+
+        if not proxy_id and not organisation_id:
+            return proxy_details
+
+        # Only licensing officers can apply as a proxy
+        if not Application.get_request_user_permission_group(
+            permission_codename='licensing_officer',
+            first=True
+        ):
+            proxy_details['proxy_id'] = None
+
+        user = EmailUser.objects.get(pk=proxy_id) if proxy_details['proxy_id'] else request.user
+        if organisation_id and not user.wildlifecompliance_organisations.filter(pk=organisation_id):
+            proxy_details['organisation_id'] = None
+
+        return proxy_details
+
+    @staticmethod
     def get_request_user_applications(request):
-        proxy_details = request.user.get_wildlifecompliance_proxy_details(request)
+        proxy_details = Application.get_request_user_proxy_details(request)
         proxy_id = proxy_details.get('proxy_id')
         organisation_id = proxy_details.get('organisation_id')
         return Application.objects.filter(
