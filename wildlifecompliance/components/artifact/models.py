@@ -39,7 +39,7 @@ class Artifact(RevisionedMixin):
     artifact_date = models.DateField(null=True)
     artifact_time = models.TimeField(blank=True, null=True)
     number = models.CharField(max_length=50, blank=True, null=True)
-    artifact_status = models.CharField(
+    status = models.CharField(
             max_length=100,
             choices=STATUS_CHOICES,
             default='active'

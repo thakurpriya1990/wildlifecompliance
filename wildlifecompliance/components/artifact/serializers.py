@@ -48,7 +48,7 @@ from django.utils import timezone
 class ArtifactSerializer(serializers.ModelSerializer):
     #custodian = EmailUserSerializer(read_only=True)
     #statement = DocumentArtifactStatementSerializer(read_only=True)
-    artifact_status = CustomChoiceField(read_only=True)
+    status = CustomChoiceField(read_only=True)
     artifact_object_type = serializers.SerializerMethodField()
     class Meta:
         model = Artifact
@@ -62,7 +62,7 @@ class ArtifactSerializer(serializers.ModelSerializer):
                 'artifact_date',
                 'artifact_time',
                 'artifact_object_type',
-                'artifact_status',
+                'status',
                 )
         read_only_fields = (
                 'id',
@@ -83,7 +83,7 @@ class ArtifactSerializer(serializers.ModelSerializer):
 
 class ArtifactPaginatedSerializer(serializers.ModelSerializer):
     #artifact_type = serializers.SerializerMethodField()
-    artifact_status = serializers.SerializerMethodField()
+    status = serializers.SerializerMethodField()
     user_action = serializers.SerializerMethodField()
     entity = serializers.SerializerMethodField()
 
@@ -93,7 +93,7 @@ class ArtifactPaginatedSerializer(serializers.ModelSerializer):
             'id',
             'number',
             'artifact_type',
-            'artifact_status',
+            'status',
             'user_action',
             'artifact_date',
             'identifier',
@@ -118,10 +118,10 @@ class ArtifactPaginatedSerializer(serializers.ModelSerializer):
     #        return display_name
     #    return '---'
 
-    def get_artifact_status(self, obj):
+    def get_status(self, obj):
         display_name = ''
         for choice in Artifact.STATUS_CHOICES:
-            if obj.artifact_status == choice[0]:
+            if obj.status == choice[0]:
                 display_name = choice[1]
         return display_name
 

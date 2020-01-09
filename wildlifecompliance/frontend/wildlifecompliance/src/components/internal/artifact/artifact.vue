@@ -229,7 +229,7 @@ export default {
       return helpers.getCookie("csrftoken");
     },
     artifactStatusDisplay: function() {
-        return this.baseArtifact.artifact_status ? this.baseArtifact.artifact_status.name : '';
+        return this.baseArtifact.status ? this.baseArtifact.status.name : '';
     },
     readonlyForm: function() {
         /*

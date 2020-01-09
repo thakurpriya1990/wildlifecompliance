@@ -125,7 +125,7 @@ export default {
                     {
                         searchable: false,
                         orderable: false,
-                        data: 'artifact_status'
+                        data: 'status'
                     },
                     {
                         searchable: false,
