@@ -339,34 +339,55 @@ export default {
         dtOptionsAllegedOffence: {
           columns: [
             {
-              data: "id",
-              visible: false
-            },
-            {
-              data: "Act"
-            },
-            {
-              data: "Section/Regulation"
-            },
-            {
-              data: "Alleged Offence"
-            },
-            {
-              data: "Include",
-              mRender: function(data, type, row) {
-                let ret_line = null;
-  
-                if (vm.sanction_outcome.type == 'infringement_notice'){
-                  ret_line = '<input type="radio" name="infringement_radio_button" class="alleged_offence_include" value="' + data + '"></input>';
-                } else if (vm.sanction_outcome.type == '' || vm.sanction_outcome.type == null) {
-                  // Should not reach here
-                  ret_line = '';
-                } else {
-                  ret_line = '<input type="checkbox" class="alleged_offence_include" value="' + data + '" checked="checked"></input>';
+                visible: false,
+                mRender: function(data, type, full){
+                    return full.id;
                 }
-  
-                return ret_line;
-              }
+            },
+            {
+                mRender: function(data, type, full){
+                    return full.section_regulation.act;
+                }
+            },
+            {
+                mRender: function(data, type, full){
+                    return full.section_regulation.name;
+                }
+            },
+            {
+                mRender: function(data, type, full){
+                    return full.section_regulation.offence_text;
+                }
+            },
+            {
+                mRender: function(data, type, full) {
+                    let ret_line = '';
+                    ret_line += full.number_linked_sanction_outcomes_active + '/' + full.number_linked_sanction_outcomes_total + ' ';
+
+                    if (full.number_linked_sanction_outcomes_active > 0){
+                        if (vm.sanction_outcome.type == 'infringement_notice'){
+                            ret_line += '<input type="radio" name="infringement_radio_button" class="alleged_offence_include" value="' + full.id + '" disabled></input>';
+                        } else if (vm.sanction_outcome.type == '' || vm.sanction_outcome.type == null) {
+                            // Should not reach here
+                            ret_line += '';
+                        } else {
+                            ret_line += '<input type="checkbox" class="alleged_offence_include" value="' + full.id + '" disabled></input>';
+                        }
+
+                    } else {
+                        if (vm.sanction_outcome.type == 'infringement_notice'){
+                            ret_line += '<input type="radio" name="infringement_radio_button" class="alleged_offence_include" value="' + full.id + '"></input>';
+                        } else if (vm.sanction_outcome.type == '' || vm.sanction_outcome.type == null) {
+                            // Should not reach here
+                            ret_line += '';
+                        } else {
+                            ret_line += '<input type="checkbox" class="alleged_offence_include" value="' + full.id + '" checked="checked"></input>';
+                        }
+                    }
+
+
+                    return ret_line;
+                }
             }
           ]
         },
@@ -566,6 +587,7 @@ export default {
 
                 this.close();
                 this.processingDetails = false;
+                this.$emit('sanction_outcome_created');
             } catch(err) {
                 this.processError(err);
                 this.processingDetails = false;
@@ -869,20 +891,19 @@ export default {
         },
         constructAllegedOffencesTable: function(){
             // Construct the datatable of the alleged offences
-            console.log('constructAllegedOffencesTable');
-
             this.clearTableAllegedOffence();
-  
+
             if (this.sanction_outcome.current_offence && this.sanction_outcome.current_offence.alleged_offences) {
                 for (let j = 0; j < this.sanction_outcome.current_offence.alleged_offences.length; j++) {
                     let alleged_offence = this.sanction_outcome.current_offence.alleged_offences[j];
-                    this.$refs.tbl_alleged_offence.vmDataTable.row.add({
-                        id: alleged_offence.id,
-                        Act: alleged_offence.section_regulation.act,
-                        "Section/Regulation": alleged_offence.section_regulation.name,
-                        "Alleged Offence": alleged_offence.section_regulation.offence_text,
-                        Include: alleged_offence.id
-                    }).draw();
+                    this.$refs.tbl_alleged_offence.vmDataTable.row.add(alleged_offence).draw();
+                   // this.$refs.tbl_alleged_offence.vmDataTable.row.add({
+                   //     id: alleged_offence.id,
+                   //     Act: alleged_offence.section_regulation.act,
+                   //     "Section/Regulation": alleged_offence.section_regulation.name,
+                   //     "Alleged Offence": alleged_offence.section_regulation.offence_text,
+                   //     Include: alleged_offence.id
+                   // }).draw();
                 }
             }
         },

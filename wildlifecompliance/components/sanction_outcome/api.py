@@ -36,9 +36,9 @@ from wildlifecompliance.components.sanction_outcome.models import SanctionOutcom
 from wildlifecompliance.components.sanction_outcome.serializers import SanctionOutcomeSerializer, \
     SaveSanctionOutcomeSerializer, SaveRemediationActionSerializer, SanctionOutcomeDatatableSerializer, \
     UpdateAssignedToIdSerializer, SanctionOutcomeCommsLogEntrySerializer, SanctionOutcomeUserActionSerializer, \
-    AllegedCommittedOffenceSerializer, AllegedCommittedOffenceCreateSerializer, RecordFerCaseNumberSerializer, \
+    AllegedCommittedOffenceSerializer, RecordFerCaseNumberSerializer, \
     RemediationActionSerializer, RemediationActionUpdateStatusSerializer, AmendmentRequestReasonSerializer, \
-    SaveAmendmentRequestForRemediationAction
+    SaveAmendmentRequestForRemediationAction, AllegedCommittedOffenceCreateSerializer
 from wildlifecompliance.components.users.models import CompliancePermissionGroup, RegionDistrict
 from wildlifecompliance.helpers import is_internal
 from wildlifecompliance.components.main.models import TemporaryDocumentCollection
@@ -701,16 +701,15 @@ class SanctionOutcomeViewSet(viewsets.ModelViewSet):
 
                 # Create relations between this sanction outcome and the alleged offence(s)
                 count_alleged_offences = 0
-                parking_offence_included = False
-                for id in request_data['alleged_offence_ids_included']:
-                    try:
-                        alleged_offence = AllegedOffence.objects.get(id=id)
-                        alleged_commited_offence = AllegedCommittedOffence.objects.create(sanction_outcome=instance, alleged_offence=alleged_offence, included=True)
-                        count_alleged_offences += 1
-                        if alleged_offence.section_regulation.is_parking_offence:
-                            parking_offence_included = True
-                    except:
-                        pass  # Should not reach here
+                for ao_id in request_data['alleged_offence_ids_included']:
+                    # alleged_offence = AllegedOffence.objects.get(id=ao_id)
+                    # alleged_commited_offence = AllegedCommittedOffence.objects.create(sanction_outcome=instance, alleged_offence=alleged_offence, included=True)
+
+                    data = {'alleged_offence_id': ao_id, 'sanction_outcome_id': instance.id}
+                    serializer = AllegedCommittedOffenceCreateSerializer(data=data)
+                    serializer.is_valid(raise_exception=True)
+                    serializer.save()
+                    count_alleged_offences += 1
 
                 # Validate if alleged offences are selected
                 if count_alleged_offences == 0:

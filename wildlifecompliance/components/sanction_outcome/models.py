@@ -660,6 +660,14 @@ class AllegedCommittedOffence(RevisionedMixin):
     sanction_outcome = models.ForeignKey(SanctionOutcome, null=False,)
     included = models.BooleanField(default=True)  # True means sanction_outcome is included in the sanction_outcome
 
+    @staticmethod
+    def get_active_alleged_committed_offences(alleged_offence):
+        return AllegedCommittedOffence.objects.filter(
+            Q(included=True) &
+            Q(alleged_offence=alleged_offence)
+        ).exclude(
+            Q(sanction_outcome__status__in=(SanctionOutcome.STATUS_DECLINED, SanctionOutcome.STATUS_WITHDRAWN)))
+
     def retrieve_penalty_amounts_by_date(self, date_of_issue):
         return self.alleged_offence.retrieve_penalty_amounts_by_date(date_of_issue)
 
