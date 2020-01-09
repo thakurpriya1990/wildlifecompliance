@@ -40,6 +40,10 @@
                 </div>
             </div>
         </div>
+        <div class="col-md-3 pull-right">
+            <button @click.prevent="createArtifact"
+                class="btn btn-primary pull-right">New Object</button>
+        </div>
 
         <div class="row">
             <div class="col-lg-12">
@@ -47,6 +51,16 @@
             </div>
         </div>
         </FormSection>
+        <div v-if="createArtifactInitialised">
+            <PersonOrArtifactModal 
+            ref="create_artifact"
+            :readonlyForm="readonlyForm"
+            v-bind:key="createArtifactBindId"
+            @modal-action="receivePersonOrArtifactEntity"
+            :rowNumberSelected="rowNumberSelected"
+            :initialTabSelected="tabSelected"
+            />
+        </div>
     </div>
 </template>
 
@@ -55,6 +69,7 @@ import $ from 'jquery'
 import datatable from '@vue-utils/datatable.vue'
 import FormSection from "@/components/compliance_forms/section.vue";
 import { api_endpoints, helpers, cache_helper } from '@/utils/hooks'
+import CreateArtifact from "@common-components/person_or_artifact_modal.vue";
 
 export default {
     name: 'ArtifactTableDash',
@@ -68,6 +83,8 @@ export default {
             filterStatus: 'all',
             filterDateFromPicker: '',
             filterDateToPicker: '',
+            createArtifactInitialised: false,
+            createArtifactBindId: '',
 
             dtOptions: {
                 serverSide: true,
@@ -170,6 +187,17 @@ export default {
         this.constructOptionsStatus();
     },
     methods: {
+        createArtifact: function() {
+            this.setCreateArtifactBindId()
+            this.createArtifactInitialised = true;
+            this.$nextTick(() => {
+                this.$refs.create_artifact.isModalOpen = true;
+            });
+        },
+        setCreateArtifactBindId: function() {
+            let timeNow = Date.now()
+            this.createArtifactBindId = 'artifact' + timeNow.toString();
+        },
         addEventListeners: function () {
             console.log('addEventLinsterners');
 
@@ -220,6 +248,7 @@ export default {
     components: {
         datatable,
         FormSection,
+        CreateArtifact,
     },
 }
 
