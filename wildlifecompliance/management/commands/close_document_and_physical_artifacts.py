@@ -32,7 +32,6 @@ class Command(BaseCommand):
     def handle(self, *args, **options):
         try:
             with transaction.atomic():
-                print("bbtest")
                 logger.info('Running command {}'.format(__name__))
                 #today = timezone.localtime(timezone.now()).date()
                 today = timezone.localtime(timezone.now())
@@ -60,12 +59,10 @@ class Command(BaseCommand):
 
                 # retrieve active DocumentArtifacts with created dates older than the disposal period
                 #document_artifacts = DocumentArtifact.objects.filter(status='active', created_at__lt=document_artifact_disposal_date_cutoff)
-                # test data
-                doc = DocumentArtifact.objects.last()
-                #for doc in document_artifacts:
-                 #   print(doc)
-                print(doc.created_at)
-                doc.close()
+                document_artifacts = DocumentArtifact.objects.filter(status='active', created_at__gt=document_artifact_disposal_date_cutoff)
+                for doc in document_artifacts:
+                    print(doc.created_at)
+                    doc.close()
 
 
                 ## Retrieve sanction outcomes whose type is Infringement Notice and which is unpaid

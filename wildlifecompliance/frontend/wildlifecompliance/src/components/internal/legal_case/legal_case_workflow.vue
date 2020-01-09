@@ -172,7 +172,7 @@ export default {
           //this.$refs.comms_log_file.commsLogId ? payload.append('inspection_comms_log_id', this.$refs.comms_log_file.commsLogId) : null;
           this.workflow_type ? payload.append('workflow_type', this.workflow_type) : null;
           //this.allocated_group_id ? payload.append('allocated_group_id', this.allocated_group_id) : null;
-
+          /*
           let legalCaseResponse = await this.saveLegalCase({create: false, internal: true })
           if (legalCaseResponse.ok) {
               try {
@@ -185,6 +185,18 @@ export default {
                       this.errorResponse = err.statusText;
                   }
           }
+          */
+          let legalCaseResponse = await this.saveLegalCase({create: false, internal: true })
+          try {
+              let res = await Vue.http.post(post_url, payload);
+              console.log(res);
+              if (res.ok) {
+                  return res
+              }
+          } catch(err) {
+              this.errorResponse = err.statusText;
+          }
+
       },
         /*
       createDocumentActionUrl: async function(done) {

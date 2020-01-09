@@ -86,7 +86,7 @@ export default {
                     dataSrc: 'data',
                     data: function(d) {
                         d.type = vm.filterType;
-                        d.status = vm.filterStatus;
+                        d.artifact_status = vm.filterStatus;
                         d.date_from = vm.filterDateFromPicker;
                         d.date_to = vm.filterDateToPicker;
                     }
@@ -125,7 +125,7 @@ export default {
                     {
                         searchable: false,
                         orderable: false,
-                        data: 'status'
+                        data: 'artifact_status'
                     },
                     {
                         searchable: false,

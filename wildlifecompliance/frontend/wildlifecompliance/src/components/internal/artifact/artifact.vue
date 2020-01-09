@@ -12,15 +12,15 @@
                     <div class="panel-heading">
                         Workflow
                     </div>
-                    <!--div class="panel-body panel-collapse">
+                    <div class="panel-body panel-collapse">
                         <div class="row">
                             <div class="col-sm-12">
                                 <strong>Status</strong><br/>
-                                {{ statusDisplay }}<br/>
+                                {{ artifactStatusDisplay }}<br/>
                             </div>
                         </div>
 
-                        <div v-if="legal_case.allocated_group" class="form-group">
+                        <!--div v-if="legal_case.allocated_group" class="form-group">
                           <div class="row">
                             <div class="col-sm-12 top-buffer-s">
                               <strong>Currently assigned to</strong><br/>
@@ -40,8 +40,8 @@
                             <a @click="updateAssignedToId('current_user')" class="btn pull-right">
                                 Assign to me
                             </a>
-                        </div>
-                    </div-->
+                        </div-->
+                    </div>
                 </div>
             </div>
 
@@ -163,6 +163,8 @@ export default {
               api_endpoints.artifact,
               this.$route.params.artifact_id + "/action_log"
             ),
+            baseArtifact: {},
+            //artifactStatusDisplay: '',
             /*
             hashAttributeWhitelist: [
               'allocated_group_id',
@@ -178,6 +180,16 @@ export default {
 
       };
   },
+    /*
+  watch: {
+        baseArtifact: {
+            handler: function (){
+                //this.setStatusDisplay();
+            },
+            deep: true,
+        },
+  },
+  */
   components: {
     CommsLogs,
     FormSection,
@@ -216,14 +228,9 @@ export default {
     csrf_token: function() {
       return helpers.getCookie("csrftoken");
     },
-      /*
-    statusDisplay: function() {
-        return this.legal_case.status ? this.legal_case.status.name : '';
+    artifactStatusDisplay: function() {
+        return this.baseArtifact.artifact_status ? this.baseArtifact.artifact_status.name : '';
     },
-    statusId: function() {
-        return this.legal_case.status ? this.legal_case.status.id : '';
-    },
-    */
     readonlyForm: function() {
         /*
         let readonly = true
@@ -334,7 +341,12 @@ export default {
         this.$refs.legal_case_workflow.isModalOpen = true;
       });
     },
-    */
+    setStatusDisplay: function() {
+        if (this.baseArtifact && this.baseArtifact.status && this.baseArtifact.status.name) {
+            this.statusDisplay = this.baseArtifact.status.name;
+        }
+    },
+      */
     saveExit: async function() {
         await this.save({ "returnToDash": true })
     },
@@ -412,6 +424,9 @@ export default {
               );
           let artifactId = returnedArtifact.body.id
           let artifactObjectType = returnedArtifact.body.artifact_object_type
+          //this.artifactStatusDisplay = returnedArtifact.body.status ? returnedArtifact.body.status.name : '';
+          this.baseArtifact = _.cloneDeep(returnedArtifact.body);
+          //Object.assign(this.baseArtifact, returnedArtifact.body);
           console.log(artifactId)
           console.log(artifactObjectType)
           if (artifactId && artifactObjectType === 'document') {

@@ -48,6 +48,7 @@ from django.utils import timezone
 class ArtifactSerializer(serializers.ModelSerializer):
     #custodian = EmailUserSerializer(read_only=True)
     #statement = DocumentArtifactStatementSerializer(read_only=True)
+    artifact_status = CustomChoiceField(read_only=True)
     artifact_object_type = serializers.SerializerMethodField()
     class Meta:
         model = Artifact
@@ -61,7 +62,7 @@ class ArtifactSerializer(serializers.ModelSerializer):
                 'artifact_date',
                 'artifact_time',
                 'artifact_object_type',
-                'status',
+                'artifact_status',
                 )
         read_only_fields = (
                 'id',
@@ -82,7 +83,7 @@ class ArtifactSerializer(serializers.ModelSerializer):
 
 class ArtifactPaginatedSerializer(serializers.ModelSerializer):
     #artifact_type = serializers.SerializerMethodField()
-    status = serializers.SerializerMethodField()
+    artifact_status = serializers.SerializerMethodField()
     user_action = serializers.SerializerMethodField()
     entity = serializers.SerializerMethodField()
 
@@ -92,7 +93,7 @@ class ArtifactPaginatedSerializer(serializers.ModelSerializer):
             'id',
             'number',
             'artifact_type',
-            'status',
+            'artifact_status',
             'user_action',
             'artifact_date',
             'identifier',
@@ -117,10 +118,10 @@ class ArtifactPaginatedSerializer(serializers.ModelSerializer):
     #        return display_name
     #    return '---'
 
-    def get_status(self, obj):
+    def get_artifact_status(self, obj):
         display_name = ''
         for choice in Artifact.STATUS_CHOICES:
-            if obj.status == choice[0]:
+            if obj.artifact_status == choice[0]:
                 display_name = choice[1]
         return display_name
 
@@ -217,6 +218,7 @@ class DocumentArtifactSerializer(ArtifactSerializer):
     offence = OffenceSerializer(read_only=True)
     offender = OffenderSerializer(read_only=True)
     related_items = serializers.SerializerMethodField()
+    #status = CustomChoiceField(read_only=True)
 
     class Meta:
         model = DocumentArtifact
@@ -241,6 +243,7 @@ class DocumentArtifactSerializer(ArtifactSerializer):
                 'related_items',
                 'interviewer_email',
                 'document_type_display',
+                #'status',
                 )
         read_only_fields = (
                 'id',
@@ -312,6 +315,7 @@ class PhysicalArtifactSerializer(ArtifactSerializer):
     disposal_method = PhysicalArtifactDisposalMethodSerializer(read_only=True)
     related_items = serializers.SerializerMethodField()
     legal_case_id_list = serializers.SerializerMethodField()
+    #status = CustomChoiceField(read_only=True)
 
     class Meta:
         model = PhysicalArtifact
@@ -335,6 +339,7 @@ class PhysicalArtifactSerializer(ArtifactSerializer):
                 'related_items',
                 'legal_case_id_list',
                 'officer_email',
+                #'status',
                 )
         read_only_fields = (
                 'id',

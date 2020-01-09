@@ -282,7 +282,7 @@ class LegalCaseUserAction(UserAction):
     #ACTION_SANCTION_OUTCOME = "Create Sanction Outcome {}"
     #ACTION_SEND_TO_MANAGER = "Send Inspection {} to Manager"
     #ACTION_CLOSE = "Close Inspection {}"
-    #ACTION_PENDING_CLOSURE = "Mark Inspection {} as pending closure"
+    ACTION_PENDING_CLOSURE = "Mark Inspection {} as pending closure"
     #ACTION_REQUEST_AMENDMENT = "Request amendment for {}"
     #ACTION_ENDORSEMENT = "Inspection {} has been endorsed by {}"
     ACTION_ADD_WEAK_LINK = "Create manual link between {}: {} and {}: {}"

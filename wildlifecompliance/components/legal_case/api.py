@@ -639,7 +639,9 @@ class LegalCaseViewSet(viewsets.ModelViewSet):
                             temp_doc_collection.delete()
 
                 ## Set Inspection status depending on workflow type
-                #workflow_type = request.data.get('workflow_type')
+                workflow_type = request.data.get('workflow_type')
+                if workflow_type == 'close':
+                    instance.close(request)
                 #if workflow_type == 'send_to_manager':
                 #    instance.send_to_manager(request)
                 #elif workflow_type == 'request_amendment':
