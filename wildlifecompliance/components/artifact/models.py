@@ -13,7 +13,7 @@ from wildlifecompliance.components.main.models import (
         UserAction, 
         Document,
         )
-from wildlifecompliance.components.main.related_item import can_close_record
+#from wildlifecompliance.components.main.related_item import can_close_artifact
 from wildlifecompliance.components.users.models import RegionDistrict, CompliancePermissionGroup
 from wildlifecompliance.components.offence.models import Offence, Offender
 from wildlifecompliance.components.legal_case.models import LegalCase
@@ -23,18 +23,27 @@ logger = logging.getLogger(__name__)
 
 
 class Artifact(RevisionedMixin):
+    STATUS_ACTIVE = 'active'
+    STATUS_WAITING_FOR_DISPOSAL = 'waiting_for_disposal'
+    STATUS_CLOSED = 'closed'
+    STATUS_CHOICES = (
+            (STATUS_ACTIVE, 'Active'),
+            (STATUS_WAITING_FOR_DISPOSAL, 'Waiting For Disposal'),
+            (STATUS_CLOSED,  'Closed'),
+            )
     # _file - document or seizure notice
     #_file = models.FileField(max_length=255, null=True)
     identifier = models.CharField(max_length=255, blank=True, null=True)
     description = models.TextField(blank=True, null=True)
+    created_at = models.DateTimeField(auto_now_add=True, null=False, blank=False)
     artifact_date = models.DateField(null=True)
     artifact_time = models.TimeField(blank=True, null=True)
     number = models.CharField(max_length=50, blank=True, null=True)
-    #custodian = models.ForeignKey(
-    #        EmailUser,
-    #        related_name='artifact_custodian',
-    #        null=True,
-    #        )
+    status = models.CharField(
+            max_length=100,
+            choices=STATUS_CHOICES,
+            default='active'
+            )
 
     class Meta:
         app_label = 'wildlifecompliance'
@@ -52,11 +61,32 @@ class Artifact(RevisionedMixin):
 
     @property
     def object_type(self):
-        return 'object_type'
+        object_type = None
+        pa = PhysicalArtifact.objects.filter(artifact_ptr_id=self.id)
+        da = DocumentArtifact.objects.filter(artifact_ptr_id=self.id)
+        if pa:
+            object_type = 'document_artifact'
+        elif da:
+            object_type = 'physical_artifact'
+        return object_type
 
     @property
-    def custodian(self):
-        return 'custodian'
+    def artifact_type(self):
+        pa = PhysicalArtifact.objects.filter(artifact_ptr_id=self.id)
+        if pa and pa.first().physical_artifact_type and pa.first().physical_artifact_type.artifact_type:
+            return pa.first().physical_artifact_type.artifact_type
+
+        da = DocumentArtifact.objects.filter(artifact_ptr_id=self.id)
+        #if da and da.first().document_type and da.first().document_type.artifact_type:
+         #   return da.first().document_type.artifact_type
+        if da and da.first().document_type:
+            document_type = da.first().document_type
+            display_name = ''
+            for choice in DocumentArtifact.DOCUMENT_TYPE_CHOICES:
+                if document_type == choice[0]:
+                    display_name = choice[1]
+            return display_name
+        return '---'
 
     @property
     def get_related_items_identifier(self):
@@ -66,9 +96,35 @@ class Artifact(RevisionedMixin):
     def get_related_items_descriptor(self):
         #return '{0}, {1}'.format(self.title, self.details)
         return self.identifier
-    #def log_user_action(self, action, request):
-     #   return ArtifactUserAction.log_action(self, action, request.user)
 
+    def log_user_action(self, action, request=None):
+        user_name = None
+        if not request:
+            return ArtifactUserAction.log_action(self, action)
+        else:
+            return ArtifactUserAction.log_action(self, action, request.user)
+
+    #def close(self, request=None):
+    #    close_record, parents = can_close_artifact(self, request)
+    #    if close_record:
+    #        self.status = self.STATUS_CLOSED
+    #        self.log_user_action(
+    #                ArtifactUserAction.ACTION_CLOSE.format(self.number), 
+    #                request)
+    #    else:
+    #        self.status = self.STATUS_PENDING_CLOSURE
+    #        self.log_user_action(
+    #                ArtifactUserAction.ACTION_PENDING_CLOSURE.format(self.number), 
+    #                request)
+    #    self.save()
+    #    # Call close() on any parent with pending_closure status
+    #    if parents and self.status == 'closed':
+    #        for parent in parents:
+    #            if parent.status == 'pending_closure':
+    #                parent.close(request)
+
+
+# TODO - no longer required
 class DocumentArtifactType(models.Model):
     artifact_type = models.CharField(max_length=50)
     #schema = JSONField(null=True)
@@ -125,10 +181,33 @@ class PhysicalArtifactDisposalMethod(models.Model):
 
 
 class DocumentArtifact(Artifact):
-    document_type = models.ForeignKey(
-            DocumentArtifactType,
-            null=True
+    WITNESS_STATEMENT = 'witness_statement'
+    RECORD_OF_INTERVIEW = 'record_of_interview'
+    OFFICER_STATEMENT = 'officer_statement'
+    EXPERT_STATEMENT = 'expert_statement'
+    PHOTOGRAPH = 'photograph'
+    VIDEO = 'video'
+    SOUND = 'sound'
+    OTHER = 'other'
+    DOCUMENT_TYPE_CHOICES = (
+            (WITNESS_STATEMENT, 'Witness Statement'),
+            (RECORD_OF_INTERVIEW, 'Record of Interview'),
+            (OFFICER_STATEMENT, 'Officer Statement'),
+            (EXPERT_STATEMENT, 'Expert Statement'),
+            (PHOTOGRAPH, 'Photograph'),
+            (VIDEO, 'Video'),
+            (SOUND, 'Sound'),
+            (OTHER, 'Other')
             )
+    document_type = models.CharField(
+            max_length=30,
+            choices=DOCUMENT_TYPE_CHOICES,
+            #default='individual'
+            )
+    #document_type = models.ForeignKey(
+    #        DocumentArtifactType,
+    #        null=True
+    #        )
     #_file = models.FileField(max_length=255)
     #identifier = models.CharField(max_length=255, blank=True, null=True)
     #description = models.TextField(blank=True, null=True)
@@ -150,12 +229,14 @@ class DocumentArtifact(Artifact):
     #        )
     #document_created_date = models.DateField(null=True)
     #document_created_time = models.TimeField(blank=True, null=True)
+    # can be witness, expert, etc
     person_providing_statement = models.ForeignKey(
             EmailUser,
             related_name='document_artifact_person_providing_statement',
             null=True,
             )
     interviewer_email = models.CharField(max_length=255, blank=True, null=True)
+    # TODO - no longer required?
     interviewer = models.ForeignKey(
             EmailUser,
             related_name='document_artifact_interviewer',
@@ -181,27 +262,8 @@ class DocumentArtifact(Artifact):
         verbose_name = 'CM_DocumentArtifact'
         verbose_name_plural = 'CM_DocumentArtifacts'
 
-    def log_user_action(self, action, request):
-        return ArtifactUserAction.log_action(self, action, request.user)
-
-    def close(self, request):
-        close_record, parents = can_close_record(self, request)
-        if close_record:
-            self.status = self.STATUS_CLOSED
-            self.log_user_action(
-                    ArtifactUserAction.ACTION_CLOSE.format(self.number), 
-                    request)
-        else:
-            self.status = self.STATUS_PENDING_CLOSURE
-            self.log_user_action(
-                    ArtifactUserAction.ACTION_PENDING_CLOSURE.format(self.number), 
-                    request)
-        self.save()
-        # Call close() on any parent with pending_closure status
-        if parents and self.status == 'closed':
-            for parent in parents:
-                if parent.status == 'pending_closure':
-                    parent.close(request)
+    #def log_user_action(self, action, request):
+     #   return ArtifactUserAction.log_action(self, action, request.user)
 
     def add_legal_case(self, legal_case_id):
         #legal_case_id = request.data.get('legal_case_id')
@@ -212,6 +274,28 @@ class DocumentArtifact(Artifact):
         legal_case = LegalCase.objects.get(id=legal_case_id_int)
         if legal_case:
             self.legal_case.add(legal_case)
+
+    def close(self, request=None):
+        # NOTE: close_record logic moved to can_close_legal_case
+        self.status = self.STATUS_CLOSED
+        self.log_user_action(
+                ArtifactUserAction.ACTION_CLOSE.format(self.number),
+                request)
+        self.save()
+
+    #def close(self, request=None):
+    #    close_record, parents = can_close_artifact(self, request)
+    #    if close_record:
+    #        self.status = self.STATUS_CLOSED
+    #        self.log_user_action(
+    #                ArtifactUserAction.ACTION_CLOSE.format(self.number), 
+    #                request)
+    #        self.save()
+    #    # Call close() on any parent with pending_closure status
+    #    if parents and self.status == 'closed':
+    #        for parent in parents:
+    #            if parent.status == 'pending_closure':
+    #                parent.close(request)
 
 
 class PhysicalArtifact(Artifact):
@@ -260,8 +344,8 @@ class PhysicalArtifact(Artifact):
         verbose_name = 'CM_PhysicalArtifact'
         verbose_name_plural = 'CM_PhysicalArtifacts'
 
-    def log_user_action(self, action, request):
-        return ArtifactUserAction.log_action(self, action, request.user)
+    #def log_user_action(self, action, request):
+     #   return ArtifactUserAction.log_action(self, action, request.user)
 
     def add_legal_case(self, legal_case_id):
         #legal_case_id = request.data.get('legal_case_id')
@@ -272,7 +356,36 @@ class PhysicalArtifact(Artifact):
         legal_case = LegalCase.objects.get(id=legal_case_id_int)
         if legal_case:
             self.legal_case.add(legal_case)
+    
+    #def close(self, request=None):
+    #    close_record, parents = can_close_artifact(self, request)
+    #    # TODO: add logic to check for disposal date
+    #    if close_record:
+    #        self.status = self.STATUS_CLOSED
+    #        self.log_user_action(
+    #                ArtifactUserAction.ACTION_CLOSE.format(self.number),
+    #                request)
+    #        self.save()
+    #    # Call close() on any parent with pending_closure status
+    #    if parents and self.status == 'closed':
+    #        for parent in parents:
+    #            if parent.status == 'pending_closure':
+    #                parent.close(request)
 
+    def close(self, request=None):
+        # TODO: add logic to check for disposal date
+        # NOTE: close_record logic moved to can_close_legal_case
+        if not self.disposal_date:
+            self.status = self.STATUS_WAITING_FOR_DISPOSAL
+            self.log_user_action(
+                    ArtifactUserAction.ACTION_WAITING_FOR_DISPOSAL.format(self.number),
+                    request)
+        else:
+            self.status = self.STATUS_CLOSED
+            self.log_user_action(
+                    ArtifactUserAction.ACTION_CLOSE.format(self.number),
+                    request)
+        self.save()
 
 class ArtifactCommsLogEntry(CommunicationsLogEntry):
     artifact = models.ForeignKey(Artifact, related_name='comms_logs')
@@ -291,13 +404,14 @@ class ArtifactCommsLogDocument(Document):
         app_label = 'wildlifecompliance'
 
 
-class ArtifactUserAction(UserAction):
+class ArtifactUserAction(models.Model):
     ACTION_CREATE_ARTIFACT = "Create artifact {}"
     ACTION_SAVE_ARTIFACT = "Save artifact {}"
     #ACTION_OFFENCE = "Create Offence {}"
     #ACTION_SANCTION_OUTCOME = "Create Sanction Outcome {}"
     #ACTION_SEND_TO_MANAGER = "Send Inspection {} to Manager"
-    #ACTION_CLOSE = "Close Inspection {}"
+    ACTION_CLOSE = "Close Artifact {}"
+    ACTION_WAITING_FOR_DISPOSAL = "Mark Artifact {} as waiting for disposal"
     #ACTION_PENDING_CLOSURE = "Mark Inspection {} as pending closure"
     #ACTION_REQUEST_AMENDMENT = "Request amendment for {}"
     #ACTION_ENDORSEMENT = "Inspection {} has been endorsed by {}"
@@ -309,21 +423,30 @@ class ArtifactUserAction(UserAction):
     #ACTION_UPLOAD_INSPECTION_REPORT = "Upload Inspection Report '{}'"
     #ACTION_CHANGE_INDIVIDUAL_INSPECTED = "Change individual inspected from {} to {}"
     #ACTION_CHANGE_ORGANISATION_INSPECTED = "Change organisation inspected from {} to {}"
-
+    who = models.ForeignKey(EmailUser, null=True, blank=True)
+    when = models.DateTimeField(null=False, blank=False, auto_now_add=True)
+    what = models.TextField(blank=False)
+    artifact = models.ForeignKey(Artifact, related_name='action_logs')
     class Meta:
         app_label = 'wildlifecompliance'
         ordering = ('-when',)
 
     @classmethod
-    def log_action(cls, artifact, action, user):
+    def log_action(cls, artifact, action, user=None):
         return cls.objects.create(
             artifact=artifact,
             who=user,
             what=str(action)
         )
 
-    artifact = models.ForeignKey(Artifact, related_name='action_logs')
 
+
+    def __str__(self):
+        return "{what} ({who} at {when})".format(
+            what=self.what,
+            who=self.who,
+            when=self.when
+        )
 
 class ArtifactDocument(Document):
     artifact = models.ForeignKey(

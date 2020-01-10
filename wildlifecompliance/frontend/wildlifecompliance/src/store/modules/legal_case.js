@@ -81,6 +81,12 @@ export const legalCaseStore = {
                 }
             }
         },
+        updateRunningSheetPersonList(state, entity) {
+            if (!state.legal_case.running_sheet_person_list) {
+                Vue.set(state.legal_case, 'running_sheet_person_list', []);
+            }
+            state.legal_case.running_sheet_person_list.push(entity)
+        },
     },
     actions: {
         async loadLegalCase({ dispatch, commit }, { legal_case_id }) {
@@ -168,6 +174,9 @@ export const legalCaseStore = {
         },
         setRunningSheetEntryDescription({ commit }, {recordNumber, description, userId}) {
             commit("updateRunningSheetEntryDescription", {recordNumber, description, userId})
+        },
+        addToRunningSheetPersonList({ commit }, entity) {
+            commit("updateRunningSheetPersonList", entity)
         },
     },
 };

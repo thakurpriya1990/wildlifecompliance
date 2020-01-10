@@ -17,7 +17,7 @@
                     </div>
                     <div class="tab-content">
                         <div :id="newTab" class="tab-pane fade in active">
-                        <FormSection :formCollapse="false" :label="artifactType" Index="0" :hideHeader="!documentArtifactIdExists">
+                        <FormSection :formCollapse="false" :label="artifactTypeDisplay" Index="0" :hideHeader="!documentArtifactIdExists">
                             <div :id="objectTab" class="tab-pane fade in active li-top-buffer">
                                 <div class="col-sm-12">
                                     <div class="form-group">
@@ -27,8 +27,8 @@
                                         </div>
                                         <div class="col-sm-6">
                                           <select class="form-control" v-model="document_artifact.document_type" ref="setArtifactType">
-                                            <option  v-for="option in documentArtifactTypes" :value="option" v-bind:key="option.id">
-                                              {{ option.artifact_type }}
+                                            <option  v-for="option in documentArtifactTypes" :value="option.id" v-bind:key="option.id">
+                                              {{ option.display }}
                                             </option>
                                           </select>
                                         </div>
@@ -41,13 +41,22 @@
                                             <div class="col-sm-3">
                                                 <label class="control-label pull-left" for="Name">Document</label>
                                             </div>
-                                            <div class="col-sm-9">
+                                            <div v-if="parentModal" class="col-sm-9">
                                                 <filefield
                                                 ref="default_document"
                                                 name="default-document"
                                                 :isRepeatable="true"
                                                 documentActionUrl="temporary_document"
                                                 @update-temp-doc-coll-id="setTemporaryDocumentCollectionId"/>
+                                            </div>
+                                            <div v-else class="col-sm-9">
+                                                <filefield 
+                                                ref="document_artifact_documents" 
+                                                name="document-artifact-documents" 
+                                                :isRepeatable="true" 
+                                                :documentActionUrl="document_artifact.defaultDocumentUrl" 
+                                                :readonly="readonlyForm"
+                                                />
                                             </div>
                                         </div>
                                     </div>
@@ -69,7 +78,7 @@
                                         <div class="col-sm-6">
                                           <select class="form-control" v-model="document_artifact.statement_id" ref="setStatement">
                                             <option  v-for="option in legal_case.statement_artifacts" :value="option.id" v-bind:key="option.id">
-                                            {{ option.document_type.artifact_type }}: {{ option.identifier }}
+                                            {{ option.document_type_display }}: {{ option.identifier }}
                                             </option>
                                           </select>
                                         </div>
@@ -108,13 +117,13 @@
                                             </div>
                                         </div>
                                     </div>
-                                    <div v-if="interviewerVisibility" class="form-group">
+                                    <div v-show="interviewerVisibility" class="form-group">
                                         <div class="row">
                                             <div class="col-sm-3">
                                                 <label >{{ interviewerLabel }}</label>
                                             </div>
                                             <div class="col-sm-9">
-                                                <select ref="department_users" class="form-control" v-model="document_artifact.interviewer_email">
+                                                <select ref="document_artifact_department_users" class="form-control" v-model="document_artifact.interviewer_email">
                                                     <option  v-for="option in departmentStaffList" :value="option.email" v-bind:key="option.pk">
                                                     {{ option.name }} 
                                                     </option>
@@ -148,7 +157,12 @@
                             </div>
                         </FormSection>
                         </div>
-                        <div :id="existingTab" class="tab-pane fade in li-top-buffer">
+                        <div v-if="parentModal" :id="existingTab" class="tab-pane fade in li-top-buffer">
+                            <div class="row">
+                                <div class="col-lg-12">
+                                    <datatable ref="existing_artifact_table" id="existing-artifact-table" :dtOptions="dtOptions" :dtHeaders="dtHeaders" />
+                                </div>
+                            </div>
                         </div>
                         <div v-if="!parentModal" :id="rTab" class="tab-pane fade in">
                             <FormSection :formCollapse="false" label="Related Items">
@@ -184,6 +198,7 @@ import moment from 'moment';
 import SearchPersonOrganisation from './search_person_or_organisation'
 import FormSection from "@/components/forms/section_toggle.vue";
 import RelatedItems from "@common-components/related_items.vue";
+import datatable from '@vue-utils/datatable.vue'
 
 export default {
     name: "DocumentArtifactComponent",
@@ -207,16 +222,112 @@ export default {
             entity: {
                 id: null,
             },
+            /*
             statementArtifactTypes: [
                 'Record of Interview',
                 'Witness Statement',
                 'Expert Statement',
                 'Officer Statement',
                 ],
+                */
+            statementArtifactTypes: [
+                'record_of_interview',
+                'witness_statement',
+                'expert_statement',
+                'officer_statement',
+                ],
             statementVisibility: false,
             //departmentStaffList: [],
             //personProvidingStatementLabel: '',
             //interviewerLabel: '',
+            dtOptions: {
+                serverSide: true,
+                searchDelay: 1000,
+                lengthMenu: [ [10, 25, 50, 100, -1], [10, 25, 50, 100, "All"] ],
+                order: [
+                    [0, 'desc']
+                ],
+                language: {
+                    processing: "<i class='fa fa-4x fa-spinner fa-spin'></i>"
+                },
+                responsive: true,
+                processing: true,
+                ajax: {
+                    url: '/api/artifact_paginated/get_paginated_datatable/?format=datatables',
+                    dataSrc: 'data',
+                    data: function(d) {
+                        /*
+                        d.type = vm.filterType;
+                        d.status = vm.filterStatus;
+                        d.date_from = vm.filterDateFromPicker;
+                        d.date_to = vm.filterDateToPicker;
+                        */
+                    }
+                },
+                columns: [
+                    {
+                        data: 'number',
+                        searchable: true,
+                        orderable: true,
+                    },
+                    {
+                        data: 'artifact_type',
+                        searchable: true,
+                        orderable: false,
+                    },
+                    {
+                        data: 'identifier',
+                        searchable: true,
+                        orderable: true
+                    },
+                    /*
+                    {
+                        data: 'artifact_date',
+                        searchable: false,
+                        orderable: true,
+                        mRender: function (data, type, full) {
+                            return data != '' && data != null ? moment(data).format('DD/MM/YYYY') : '';
+                        }
+                    },
+                    {
+                        searchable: false,
+                        orderable: false,
+                        mRender: function (data, type,full){
+                            return '---';
+                        }
+                    },
+                    {
+                        searchable: false,
+                        orderable: false,
+                        data: 'status'
+                    },
+                    */
+                    {
+                        searchable: false,
+                        orderable: false,
+                        data: 'entity',
+                        mRender: function (data, type,full){
+                            let documentArtifactId = data.id;
+                            let documentArtifactType = data.artifact_type ? data.artifact_type.replace(/\s/g, '~') : null;
+                            let documentArtifactIdentifier = data.identifier ? data.identifier.replace(/\s/g, '~') : null;
+                            return `<a data-id=${documentArtifactId} data-artifact-type=${documentArtifactType} data-data-type="document_artifact" data-identifier=${documentArtifactIdentifier} class="row_insert" href="#">Insert</a><br/>`
+                            //return `<a class="row_insert" href="#">Insert</a><br/>`
+                        }
+                    }
+                ],
+            },
+            dtHeaders: [
+                'Number',
+                'Document Type',
+                'Identifier',
+                /*
+                'Date',
+                'Custodian',
+                'Status',
+                */
+                'Action',
+            ],
+
         }
     },
     components: {
@@ -225,6 +336,7 @@ export default {
       SearchPersonOrganisation,
       FormSection,
       RelatedItems,
+      datatable,
     },
     props: {
         parentModal: {
@@ -314,6 +426,7 @@ export default {
           }
           return recordExists;
         },
+        /*
         artifactType: function() {
           console.log("artifact type")
           let aType = ''
@@ -322,36 +435,57 @@ export default {
           }
           return aType;
         },
+        */
+        artifactType: function() {
+          console.log("artifact type")
+          let aType = ''
+          if (this.document_artifact) {
+              aType = this.document_artifact.document_type;
+          }
+          return aType;
+        },
+        artifactTypeDisplay: function() {
+            let display = '';
+            if (this.artifactType) {
+                for (let documentArtifactType of this.documentArtifactTypes) {
+                    //if (this.artifactType && this.artifactType.id === this.artifactType) {
+                    if (documentArtifactType.id === this.artifactType) {
+                        display = documentArtifactType.display;
+                    }
+                }
+            }
+            return display;
+        },
         personProvidingStatementLabel: function() {
             let label = '';
-            if (this.artifactType === 'Witness Statement') {
+            if (this.artifactType === 'witness_statement') {
                 label = 'Witness';
-            } else if (this.artifactType === 'Expert Statement') {
+            } else if (this.artifactType === 'expert_statement') {
                 label = 'Expert';
             }
             return label;
         },
         interviewerLabel: function() {
             let label = '';
-            if (this.artifactType === 'Witness Statement') {
+            if (this.artifactType === 'witness_statement') {
                 label = 'Officer taking statement'
-            } else if (this.artifactType === 'Record of Interview') {
+            } else if (this.artifactType === 'record_of_interview') {
                 label = 'Interviewer';
-            } else if (this.artifactType === 'Officer Statement') {
+            } else if (this.artifactType === 'officer_statement') {
                 label = 'Officer';
             }
             return label
         },
         personProvidingStatementVisibility: function() {
             let visibility = false;
-            if (this.artifactType === 'Expert Statement' || this.artifactType === 'Witness Statement') {
+            if (this.artifactType === 'expert_statement' || this.artifactType === 'witness_statement') {
                 visibility = true;
             }
             return visibility;
         },
         interviewerVisibility: function() {
             let visibility = false;
-            if (this.artifactType !== 'Expert Statement' && this.statementArtifactTypes.includes(this.artifactType)) {
+            if (this.artifactType !== 'expert_statement' && this.statementArtifactTypes.includes(this.artifactType)) {
                 visibility = true;
             }
             return visibility;
@@ -395,6 +529,8 @@ export default {
             setRelatedItems: 'setRelatedItems',
             setPersonProvidingStatementId: 'setPersonProvidingStatementId',
             setInterviewerId: 'setInterviewerId',
+            setInterviewerEmail: 'setInterviewerEmail',
+            setTemporaryDocumentCollectionId: 'setTemporaryDocumentCollectionId',
             //setDocumentArtifactLegalId: 'setDocumentArtifactLegalId',
         }),
         ...mapActions('legalCaseStore', {
@@ -415,9 +551,11 @@ export default {
                 this.statementVisibility = false;
             }
         },
+        /*
         setTemporaryDocumentCollectionId: function(val) {
             this.temporary_document_collection_id = val;
         },
+        */
         setPersonProvidingStatement: function(entity) {
             console.log(entity);
             //Object.assign(this.entity, entity)
@@ -442,17 +580,45 @@ export default {
             await this.saveDocumentArtifact({ create: true, internal: true, legal_case_id: this.legalCaseId });
             //this.entity.id = 
             this.$nextTick(() => {
+                /*
+                let artifactTypeDisplay = '';
+                for (let artifactType of this.documentArtifactTypes) {
+                    if (artifactType.id === this.artifactType) {
+                        artifactTypeDisplay = artifactType.display;
+                    }
+                }
+                */
                 this.$emit('entity-selected', {
                     id: this.document_artifact.id,
                     data_type: 'document_artifact',
                     identifier: this.document_artifact.identifier,
                     artifact_type: this.artifactType,
+                    display: this.artifactTypeDisplay,
                 });
             });
             //return documentArtifactEntity;
         },
         cancel: async function() {
             await this.$refs.default_document.cancel();
+        },
+        emitDocumentArtifact: async function(e) {
+            console.log(e)
+            //let documentNumber = e.target.id;
+            //let documentId = null;
+            //await this.loadDocumentArtifact({ document_artifact_id: e.target.id });
+            let documentArtifactId = e.target.dataset.id;
+            let documentArtifactType = e.target.dataset.artifactType.replace(/~/g, ' ');
+            let documentArtifactIdentifier = e.target.dataset.identifier.replace(/~/g, ' ');
+            this.$nextTick(() => {
+                this.$emit('existing-entity-selected', {
+                        id: documentArtifactId,
+                        data_type: 'document_artifact',
+                        identifier: documentArtifactIdentifier,
+                        artifact_type: documentArtifactType,
+                        display: documentArtifactType,
+                    });
+            });
+            //this.$parent.$parent.ok();
         },
         addEventListeners: function() {
             let vm = this;
@@ -462,7 +628,7 @@ export default {
             // "From" field
             el_fr_date.datetimepicker({
             format: "DD/MM/YYYY",
-            minDate: "now",
+            maxDate: "now",
             showClear: true
             });
             el_fr_date.on("dp.change", function(e) {
@@ -482,6 +648,38 @@ export default {
                   vm.document_artifact.artifact_time = "";
                 }
             });
+            // department_users
+            $(vm.$refs.document_artifact_department_users).select2({
+                    "theme": "bootstrap",
+                    allowClear: true,
+                    placeholder:""
+                }).
+                on("select2:select",function (e) {
+                    console.log(e)
+                    let selected = $(e.currentTarget);
+                    let selectedData = selected.val();
+                    vm.setInterviewerEmail(selectedData);
+                    //vm.setSelectedCustodian(selectedData);
+                    //let custodianData = e.params.data
+                    //console.log(custodianData)
+                    //Object.assign(vm.selectedCustodian, custodianData);
+                }).
+                on("select2:unselect",function (e) {
+                    var selected = $(e.currentTarget);
+                    vm.setInterviewerEmail('');
+                    //vm.selectedCustodian = {}
+                });
+            let existingArtifactTable = $('#existing-artifact-table');
+            existingArtifactTable.on(
+                'click',
+                '.row_insert',
+                (e) => {
+                    this.emitDocumentArtifact(e);
+                    //console.log(e.target)
+                    //this.$emit('entity-selected', {
+                    //this.insertrunningSheetKeydown(e);
+                });
+            
             /*
             // artifact type events
             let artifactEvent = $(vm.$refs.setArtifactType);

@@ -538,6 +538,7 @@ export default {
       setRunningSheetTransform: 'setRunningSheetTransform',
       setAddRunningSheetEntry: 'setAddRunningSheetEntry',
       setRunningSheetEntry: 'setRunningSheetEntry',
+      addToRunningSheetPersonList: 'addToRunningSheetPersonList',
     }),
     ...mapActions({
         loadCurrentUser: 'loadCurrentUser',
@@ -604,9 +605,10 @@ export default {
         console.log(recordNumberElement);
         let replacementVal = ''
         if (entity.full_name) {
-            replacementVal = `<a contenteditable="false" target="_blank" href="/internal/users/${entity.id}">${entity.full_name}</a>`
+            replacementVal = `<a contenteditable="false" target="_blank" href="/internal/users/${entity.id}">${entity.full_name}</a>`;
             // add to runningSheetPersonList
-            this.legal_case.runningSheetPersonList.push(entity)
+            this.addToRunningSheetPersonList(entity)
+            //this.legal_case.runningSheetPersonList.push(entity)
         }
         let recordDescriptionHtml = recordNumberElement[0].innerHTML.replace(this.tabSelectedKeyCombination, replacementVal).replace(/&nbsp\;/g, ' ');
         return recordDescriptionHtml;
@@ -620,10 +622,10 @@ export default {
     */
     insertArtifactModalUrl: function({"entity": entity, "recordNumberElement": recordNumberElement}) {
         let replacementVal = '';
-        let urlDescription = entity.identifier ? entity.identifier : entity.artifact_type;
+        let urlDescription = entity.identifier ? entity.identifier : entity.display;
 
         if (urlDescription) {
-            replacementVal = `<a contenteditable="false" target="_blank" href="/internal/object/${entity.id}">${urlDescription}</a>`
+            replacementVal = `<a contenteditable="false" target="_blank" href="/internal/object/${entity.id}">${urlDescription}</a>`;
             // add to runningSheetArtifactList
             /*
             if (this.legal_case && !this.legal_case.runningSheetArtifactList) {
@@ -690,8 +692,10 @@ export default {
             console.log("constructRunningSheetTableEntry");
             this.$refs.running_sheet_table.vmDataTable.rows().every((rowIdx, tableLoop, rowLoop) => {
                 let rowData = this.$refs.running_sheet_table.vmDataTable.row(rowIdx).data()
+                /*
                 console.log(rowIdx)
                 console.log(rowData)
+                */
                 if (rowData.number === rowNumber) {
                     let i = 0;
                     for (let r of this.runningSheetUrl) {
@@ -947,6 +951,7 @@ export default {
                 parsedText = parsedText.replace(match[0], replacementVal).replace(/\&nbsp\;/g, ' ');
             }
         }
+        // TODO: add artifact url parsing here
         return parsedText;
     },
     tokenToUrl: function(description) {
@@ -954,7 +959,7 @@ export default {
         const personTokenRegex = /\{\{ \"person\_id\"\: \"\d+\"\, \"full\_name\"\: \"\w+(\s\w+)*\" \}\}/g;
         const personIdRegex = /\{\{ \"person\_id\"\: \"\d+/g;
         // const personNameRegex = /\"full\_name\"\: \"\w+ \w+/g;
-        const personNameRegex = /\"full\_name\"\: \"\w+/g;
+        const personNameRegex = /\"full\_name\"\: \"\w+(\s\w+)*/g;
         let personTokenArray = [...description.matchAll(personTokenRegex)];
         for (let personToken of personTokenArray) {
             let idArray = [...personToken[0].matchAll(personIdRegex)];

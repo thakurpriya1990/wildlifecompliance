@@ -26,17 +26,17 @@ export const physicalArtifactStore = {
                 state.physical_artifact.artifact_date = moment(state.physical_artifact.artifact_date, 'YYYY-MM-DD').format('DD/MM/YYYY');
             }
             // default doc implemented in Artifact model/viewset
-            let defaultPhysicalUrl = helpers.add_endpoint_join(
+            let defaultDocumentUrl = helpers.add_endpoint_join(
                 api_endpoints.artifact,
-                state.physical_artifact.id + "/process_default_physical/"
+                state.physical_artifact.id + "/process_default_document/"
                 )
-            Vue.set(state.physical_artifact, 'defaultPhysicalUrl', defaultPhysicalUrl); 
+            Vue.set(state.physical_artifact, 'defaultDocumentUrl', defaultDocumentUrl); 
             // comms log doc implemented in Artifact model/viewset
-            let commsLogsPhysicalUrl = helpers.add_endpoint_join(
+            let commsLogsDocumentUrl = helpers.add_endpoint_join(
                 api_endpoints.artifact,
-                state.physical_artifact.id + "/process_comms_log_physical/"
+                state.physical_artifact.id + "/process_comms_log_document/"
                 )
-            Vue.set(state.physical_artifact, 'commsLogsPhysicalUrl', commsLogsPhysicalUrl); 
+            Vue.set(state.physical_artifact, 'commsLogsDocumentUrl', commsLogsDocumentUrl); 
             /*
             let createLegalCaseProcessCommsLogsPhysicalUrl = helpers.add_endpoint_join(
                 api_endpoints.legal_case,
@@ -47,6 +47,12 @@ export const physicalArtifactStore = {
         },
         updateRelatedItems(state, related_items) {
             Vue.set(state.physical_artifact, 'related_items', related_items);
+        },
+        updateOfficerEmail(state, email) {
+            Vue.set(state.physical_artifact, 'officer_email', email);
+        },
+        updateTemporaryDocumentCollectionId(state, temp_doc_id) {
+            Vue.set(state.physical_artifact, 'temporary_document_collection_id', temp_doc_id);
         },
         /*
         updatePhysicalArtifactLegalId(state, legal_case_id) {
@@ -129,6 +135,12 @@ export const physicalArtifactStore = {
         */
         setRelatedItems({ commit }, related_items ) {
             commit("updateRelatedItems", related_items);
+        },
+        setOfficerEmail({ commit }, email ) {
+            commit("updateOfficerEmail", email);
+        },
+        setTemporaryDocumentCollectionId({ commit }, temp_doc_id) {
+            commit("updateTemporaryDocumentCollectionId", temp_doc_id);
         },
     },
 };
