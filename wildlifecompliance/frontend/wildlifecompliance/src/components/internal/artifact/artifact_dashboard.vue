@@ -39,6 +39,9 @@
                     </span>
                 </div>
             </div>
+            <div class="col-md-3 pull-right">
+                <button @click.prevent="createArtifact" class="btn btn-primary pull-right">New Object</button>
+            </div>
         </div>
 
         <div class="row">
@@ -47,6 +50,14 @@
             </div>
         </div>
         </FormSection>
+        <div v-if="createArtifactInitialised">
+            <CreateArtifact
+            ref="create_artifact"
+            :readonlyForm="readonlyForm"
+            v-bind:key="createArtifactBindId"
+            initialTabSelected="artifact"
+            />
+        </div>
     </div>
 </template>
 
@@ -55,6 +66,7 @@ import $ from 'jquery'
 import datatable from '@vue-utils/datatable.vue'
 import FormSection from "@/components/compliance_forms/section.vue";
 import { api_endpoints, helpers, cache_helper } from '@/utils/hooks'
+import CreateArtifact from "@common-components/person_or_artifact_modal.vue";
 
 export default {
     name: 'ArtifactTableDash',
@@ -68,6 +80,8 @@ export default {
             filterStatus: 'all',
             filterDateFromPicker: '',
             filterDateToPicker: '',
+            createArtifactInitialised: false,
+            createArtifactBindId: '',
 
             dtOptions: {
                 serverSide: true,
@@ -86,7 +100,7 @@ export default {
                     dataSrc: 'data',
                     data: function(d) {
                         d.type = vm.filterType;
-                        d.status = vm.filterStatus;
+                        d.artifact_status = vm.filterStatus;
                         d.date_from = vm.filterDateFromPicker;
                         d.date_to = vm.filterDateToPicker;
                     }
@@ -98,7 +112,7 @@ export default {
                         orderable: true,
                     },
                     {
-                        data: 'type',
+                        data: 'artifact_type',
                         searchable: true,
                         orderable: false,
                     },
@@ -145,6 +159,11 @@ export default {
             ],
         }
     },
+    computed: {
+        readonlyForm: function() {
+            return false;
+        },
+    },
     mounted(){
         let vm = this;
         vm.$nextTick(() => {
@@ -170,6 +189,18 @@ export default {
         this.constructOptionsStatus();
     },
     methods: {
+        createArtifact: function() {
+            console.log("create artifact")
+            this.setCreateArtifactBindId()
+            this.createArtifactInitialised = true;
+            this.$nextTick(() => {
+                this.$refs.create_artifact.isModalOpen = true;
+            });
+        },
+        setCreateArtifactBindId: function() {
+            let timeNow = Date.now()
+            this.createArtifactBindId = 'artifact' + timeNow.toString();
+        },
         addEventListeners: function () {
             console.log('addEventLinsterners');
 
@@ -220,6 +251,7 @@ export default {
     components: {
         datatable,
         FormSection,
+        CreateArtifact,
     },
 }
 

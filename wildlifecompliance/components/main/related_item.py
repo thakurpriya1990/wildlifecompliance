@@ -338,9 +338,8 @@ def get_related_items(entity, pending_closure=False, **kwargs):
                                         )
                                 return_list.append(related_item)
                 # legal case artifacts
-                elif entity._meta.model_name == 'legalcase' and f.is_relation and f.many_to_many:
-                    print("many to many")
-                    print(f.__dict__)
+                elif entity._meta.model_name == 'legalcase' and f.is_relation and f.many_to_many \
+                        and f.name in ('legal_case_document_artifacts', 'legal_case_physical_artifacts'):
                     field_objects = f.related_model.objects.filter(legal_case=entity)
                     # TODO: Refactor repeated code
                     if field_objects:
@@ -358,6 +357,23 @@ def get_related_items(entity, pending_closure=False, **kwargs):
                                                 )
                                         )
                                 return_list.append(related_item)
+
+                # legal case associated_persons
+                elif entity._meta.model_name == 'legalcase' and f.is_relation and f.many_to_many \
+                    and f.name == 'associated_persons':
+                    field_objects = entity.associated_persons.all()
+                    if field_objects:
+                        for field_object in field_objects:
+                            related_item = RelatedItem(
+                                    model_name = format_model_name(f.related_model.__name__),
+                                    identifier = field_object.get_related_items_identifier,
+                                    descriptor = field_object.get_related_items_descriptor,
+                                    action_url = format_url(
+                                            model_name=f.related_model.__name__,
+                                            obj_id=field_object.id
+                                            )
+                                    )
+                            return_list.append(related_item)
 
                 # foreign keys from entity to EmailUser
                 elif f.is_relation and f.related_model._meta.model_name == 'emailuser':
@@ -474,6 +490,39 @@ def get_related_items(entity, pending_closure=False, **kwargs):
     except Exception as e:
         print(traceback.print_exc())
         raise serializers.ValidationError(str(e))
+
+
+def can_close_legal_case(entity, request=None):
+    print("can close legal case")
+    children, parents = get_related_items(entity, pending_closure=True)
+    close_record = True
+    #artifact_children = []
+    if children:
+        for child in children:
+            close_child_record = True
+            if child._meta.model_name in ('documentartifact', 'physicalartifact'):
+                sub_children, sub_parents = get_related_items(child, pending_closure=True)
+                for sub_parent in sub_parents:
+                    if sub_parent.status not in ('closed', 'pending_closure') and sub_parent.id != entity.id:
+                        close_child_record = False
+            if close_child_record:
+                child.close()
+
+            if child.status not in ('closed', 'waiting_for_disposal'):
+                close_record = False
+    return close_record, parents
+
+#def can_close_artifact(entity, request=None):
+#    print("can close artifact")
+#    children, parents = get_related_items(entity, pending_closure=True)
+#    close_record = True
+#    if parents:
+#        for parent in parents:
+#            print("parent.status")
+#            print(parent.status)
+#            if parent.status not in ('closed', 'pending_closure'):  # Final status codes for Legal Case
+#                close_record = False
+#    return close_record, parents
 
 
 def can_close_record(entity, request=None):

@@ -31,7 +31,7 @@ module.exports = {
         try {
             let retrieved_val = await storeInstance.getItem(
               key);
-            if (retrieved_val) {
+            if (retrieved_val && retrieved_val.length > 0) {
             
                 let timeDiff = timeNow - retrieved_val[0];
                 // ensure cached value is not stale
@@ -49,7 +49,7 @@ module.exports = {
                         returnedFromUrl.body.id.toString(),
                         valToStore
                     );
-                    if (retrieved_val) {
+                    if (retrieved_val && retrieved_val.length > 0) {
                         return retrieved_val[1];
                     }
                 } 
@@ -59,9 +59,11 @@ module.exports = {
             if (store_keys.length > 0) {
                 for (let store_key of store_keys) {
                     let this_entry = await storeInstance.getItem(store_key);
-                    let timeDiff = timeNow - this_entry[0];
-                    if (timeDiff > expiryDiff * 7) {
-                        await storeInstance.removeItem(store_key);
+                    if (this_entry && this_entry.length > 0) {
+                        let timeDiff = timeNow - this_entry[0];
+                        if (timeDiff > expiryDiff * 7) {
+                            await storeInstance.removeItem(store_key);
+                        }
                     }
                 }
             }
@@ -89,7 +91,10 @@ module.exports = {
                 // Clear store if stale
                 // We only need to check the first entry, since all store values are written at the same time
                 let firstEntry = await storeInstance.getItem(store_keys[0]);
-                let timeDiff = timeNow - firstEntry[0];
+                let timeDiff = null;
+                if (firstEntry && firstEntry.length > 0) {
+                    timeDiff = timeNow - firstEntry[0];
+                }
                 // ensure cached value is not stale
                 if (timeDiff > expiryDiff) {
                     storeInstance.clear();
@@ -111,14 +116,16 @@ module.exports = {
                 await storeInstance.clear();
                 // populate store - switch accounts for DRF method using @renderer_classes((JSONRenderer,))
                 if (returnedFromUrl.body.results) {
-                for (let record of returnedFromUrl.body.results) {
-                    let new_val = await storeInstance.setItem(
-                        record.id.toString(), 
-                        [timeNow, record]
-                        );
-                    returned_list.push(new_val[1]);
-                }
-                } else if (returnedFromUrl.body[0] && returnedFromUrl.body[0].id) {
+                    for (let record of returnedFromUrl.body.results) {
+                        let new_val = await storeInstance.setItem(
+                            record.id.toString(), 
+                            [timeNow, record]
+                            );
+                        if (new_val && new_val.length > 0) {
+                            returned_list.push(new_val[1]);
+                        }
+                    }
+                } else if (returnedFromUrl && returnedFromUrl.body && returnedFromUrl.body[0] && returnedFromUrl.body[0].id) {
                     for (let record of returnedFromUrl.body) {
                     let new_val = await storeInstance.setItem(
                         record.id.toString(), 
@@ -128,11 +135,13 @@ module.exports = {
                     }
                 } else if (returnedFromUrl.body[0] && returnedFromUrl.body[0].pk) {
                     for (let record of returnedFromUrl.body) {
-                    let new_val = await storeInstance.setItem(
-                        record.pk.toString(), 
-                        [timeNow, record]
-                        );
-                    returned_list.push(new_val[1]);
+                        let new_val = await storeInstance.setItem(
+                            record.pk.toString(), 
+                            [timeNow, record]
+                            );
+                        if (new_val && new_val.length > 0) {
+                        returned_list.push(new_val[1]);
+                        }
                     }
                 }
             }
@@ -141,12 +150,14 @@ module.exports = {
         } catch(err) {
             // on cache failure, request data from backend directly
             console.error(err)
+            let errorMessage = null;
             const returnedFromDb = await Vue.http.get(url);
-            if (returnedFromDb.body.results) {
-                return returnedFromDb.body.results;
-            } else {
-                return returnedFromDb.body;
+            if (returnedFromDb && returnedFromDb.body && returnedFromDb.body.results) {
+                errorMessage = returnedFromDb.body.results;
+            } else if (returnedFromDb && returnedFromDb.body) {
+                errorMessage = returnedFromDb.body;
             }
+            return errorMessage;
         }
     }
 };
