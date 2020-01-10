@@ -159,9 +159,18 @@ class SanctionOutcome(models.Model):
     objects_active = SanctionOutcomeActiveManager()
     objects_for_external = SanctionOutcomeExternalManager()
 
+    def can_close_record(self):
+        can_close_record = True
+
+        for ra in self.remediation_actions.all():
+            if ra.status not in RemediationAction.FINAL_STATUSES:
+                can_close_record = False
+                break
+
+        return can_close_record
+
     def close(self, request=None):
-        close_record, parents = can_close_record(self)
-        if close_record:
+        if self.can_close_record():
             self.status = self.STATUS_CLOSED
             self.log_user_action(SanctionOutcomeUserAction.ACTION_CLOSE.format(self.lodgement_number), request)
         else:
@@ -738,10 +747,15 @@ def perform_can_close_record(sender, instance, **kwargs):
                     parent.close()
     elif isinstance(instance, RemediationAction):
         if instance.status in RemediationAction.FINAL_STATUSES:
-            close_record, parents = can_close_record(instance)
-            for parent in parents:
-                if parent.status in ('pending_closure', SanctionOutcome.STATUS_AWAITING_REMEDIATION_ACTIONS):  # tuple must include all the status regarded as pending closure
+            parent = instance.sanction_outcome
+            if parent.status in (SanctionOutcome.STATUS_PENDING_CLOSURE, SanctionOutcome.STATUS_AWAITING_REMEDIATION_ACTIONS):  # tuple must include all the status regarded as pending closure
+                if parent.can_close_record():
                     parent.close()
+
+            # close_record, parents = can_close_record(instance)
+            # for parent in parents:
+            #     if parent.status in ('pending_closure', SanctionOutcome.STATUS_AWAITING_REMEDIATION_ACTIONS):  # tuple must include all the status regarded as pending closure
+            #         parent.close()
 
 
 post_save.connect(perform_can_close_record, sender=SanctionOutcome)
