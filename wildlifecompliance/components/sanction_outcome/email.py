@@ -42,6 +42,12 @@ class NotificationCloseToDueRemediationAction(TemplateEmailBase):
     txt_template = 'wildlifecompliance/emails/notification_close_to_due_remediation_action.txt'
 
 
+class NotificationOverdueRemediationAction(TemplateEmailBase):
+    subject = 'Reminder: Overdue'
+    html_template = 'wildlifecompliance/emails/notification_overdue_remediation_action.html'
+    txt_template = 'wildlifecompliance/emails/notification_overdue_remediation_action.txt'
+
+
 class CautionNoticeEmail(TemplateEmailBase):
     subject = 'Caution Notice Issued'
     html_template = 'wildlifecompliance/emails/caution_notice.html'
@@ -191,6 +197,27 @@ def send_unpaid_infringements_file(to_address, cc=None, bcc=None, attachments=[]
         # 'url': url,
         # 'sanction_outcome': sanction_outcome,
         'workflow_entry_details': 'This is unpaid infringements message body.',
+    }
+    msg = email.send(to_address,
+                     context=context,
+                     attachments=attachments,
+                     cc=cc,
+                     bcc=bcc)
+    sender = settings.DEFAULT_FROM_EMAIL
+    email_data = _extract_email_headers(msg, sender=sender)
+
+    return email_data
+
+
+def send_notification_overdue_remediation_action(to_address, sanction_outcome, workflow_entry, cc=None, bcc=None, attachments=[]):
+    email = NotificationOverdueRemediationAction()
+    # if request.data.get('email_subject'):
+    #     email.subject = request.data.get('email_subject')
+    # url = request.build_absolute_uri(reverse('internal-sanction-outcome-detail', kwargs={ 'sanction_outcome_id': sanction_outcome.id }))
+    context = {
+        # 'url': url,
+        'sanction_outcome': sanction_outcome,
+        'workflow_entry_details': 'Remediation action is overdue.',
     }
     msg = email.send(to_address,
                      context=context,

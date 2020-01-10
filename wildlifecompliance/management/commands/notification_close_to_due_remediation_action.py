@@ -32,13 +32,14 @@ class Command(BaseCommand):
             with transaction.atomic():
                 logger.info('Running command {}'.format(__name__))
                 today = timezone.localtime(timezone.now()).date()
-                one_week_before = today - relativedelta(days=7)
+                one_week_before = today + relativedelta(days=7)
 
                 # Pick up all the remediation actions which are close to due and no notifications sent yet
                 ras = RemediationAction.objects.filter(Q(due_date__lt=one_week_before) & Q(status=RemediationAction.STATUS_OPEN)).\
                     exclude(notifications__in=RemediationActionNotification.objects.filter(type=RemediationActionNotification.TYPE_CLOSE_TO_DUE))
 
-                print(ras.count())
+                for ra in ras:
+                    print(ra)
 
                 # Send email (to: offender, bcc: officers)
                 for ra in ras:
@@ -65,7 +66,6 @@ class Command(BaseCommand):
 
                     # Comms log
                     if email_data:
-                        # email_data['sanction_outcome'] = id
                         serializer = SanctionOutcomeCommsLogEntrySerializer(workflow_entry, data=email_data, partial=True)
                         serializer.is_valid(raise_exception=True)
                         serializer.save()

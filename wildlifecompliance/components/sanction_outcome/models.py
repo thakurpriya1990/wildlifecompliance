@@ -286,7 +286,8 @@ class SanctionOutcome(models.Model):
         if self.lodgement_number:
             raise ValidationError('Sanction outcome saved in the database with the logement number cannot be deleted.')
 
-        super(SanctionOutcome, self).delete()
+        raise ValidationError('Sanction outcome cannot be deleted.')
+        # super(SanctionOutcome, self).delete()
 
     def log_user_action(self, action, request=None):
         if request:
@@ -481,6 +482,8 @@ class SanctionOutcome(models.Model):
                     self.payment_status = SanctionOutcome.PAYMENT_STATUS_UNPAID
                     self.set_penalty_amounts()
                     self.create_due_dates()
+            new_group = SanctionOutcome.get_compliance_permission_group(self.regionDistrictId, SanctionOutcome.WORKFLOW_ENDORSE)
+            self.allocated_group = new_group
 
         elif self.type in (SanctionOutcome.TYPE_CAUTION_NOTICE, SanctionOutcome.TYPE_LETTER_OF_ADVICE):
             # self.status = SanctionOutcome.STATUS_CLOSED
@@ -496,8 +499,6 @@ class SanctionOutcome(models.Model):
                 remediation_action.save()
                 id_suffix += 1
 
-        new_group = SanctionOutcome.get_compliance_permission_group(self.regionDistrictId, SanctionOutcome.WORKFLOW_ENDORSE)
-        self.allocated_group = new_group
         self.save()
 
         # Add action log
@@ -734,7 +735,7 @@ class RemediationAction(RevisionedMixin):
         verbose_name_plural = 'CM_RemediationActions'
 
     def __str__(self):
-        return '{}'.format(self.action,)
+        return 'ID: {}, action:{}'.format(self.id, self.action,)
 
 
 def perform_can_close_record(sender, instance, **kwargs):
