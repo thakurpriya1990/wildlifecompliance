@@ -280,7 +280,7 @@
         </div>
 
         <div v-if="sanctionOutcomeInitialised">
-            <SanctionOutcome ref="sanction_outcome" :parent_update_function="constructOffenceDedicatedPage" />
+            <SanctionOutcome ref="sanction_outcome" :parent_update_function="constructOffenceDedicatedPage" @sanction_outcome_created="constructOffenceDedicatedPage" />
         </div>
     </div>
 </template>
@@ -520,7 +520,7 @@ export default {
                     },
                     {
                         mRender: function(data, type, row) {
-                            let ret_str = row.allegedOffence.number_linked_sanction_outcomes_active + '(' + row.allegedOffence.number_linked_sanction_outcomes_total + ')';
+                            let ret_str = row.allegedOffence.number_linked_sanction_outcomes_active + '/' + row.allegedOffence.number_linked_sanction_outcomes_total;
                             if (row.offence.in_editable_status && row.offence.can_user_action){
                                 if (row.allegedOffence.removed){
                                     ret_str = ret_str + '<a href="#" class="restore_button" data-alleged-offence-uuid="' + row.allegedOffence.uuid + '">Restore</a>';

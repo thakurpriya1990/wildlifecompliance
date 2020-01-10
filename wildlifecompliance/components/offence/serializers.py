@@ -220,10 +220,7 @@ class OffenceSerializer(serializers.ModelSerializer):
             ).count()
 
             # number_linked_to_sanction_outcomes which includes alleged offence and its status is other than draft
-            ret_obj['number_linked_sanction_outcomes_active'] = AllegedCommittedOffence.objects.filter(
-                Q(included=True) &
-                Q(alleged_offence=alleged_offence)
-            ).exclude(Q(sanction_outcome__status=SanctionOutcome.STATUS_DRAFT)).count()
+            ret_obj['number_linked_sanction_outcomes_active'] = AllegedCommittedOffence.get_active_alleged_committed_offences(alleged_offence).count()
 
             ret_list.append(ret_obj)
         return ret_list

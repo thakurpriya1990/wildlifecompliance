@@ -151,10 +151,10 @@ class Offence(RevisionedMixin):
     def close(self, request=None):
         close_record, parents = can_close_record(self)
         if close_record:
-            self.status =  self.STATUS_CLOSED
+            self.status = self.STATUS_CLOSED
             self.log_user_action(OffenceUserAction.ACTION_CLOSE.format(self.lodgement_number), request)
         else:
-            self.status =  self.STATUS_PENDING_CLOSURE
+            self.status = self.STATUS_PENDING_CLOSURE
             self.log_user_action(OffenceUserAction.ACTION_PENDING_CLOSURE.format(self.lodgement_number), request)
         self.save()
 

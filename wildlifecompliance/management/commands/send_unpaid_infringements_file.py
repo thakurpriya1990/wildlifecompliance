@@ -20,6 +20,7 @@ from wildlifecompliance.components.users.models import CompliancePermissionGroup
 from wildlifecompliance.helpers import DEBUG
 from wildlifecompliance.management.classes.unpaid_infringement_file import UnpaidInfringementFileHeader, \
     UnpaidInfringementFileTrailer
+from wildlifecompliance.management.commands.cron_tasks import get_infringement_notice_coordinators
 
 logger = logging.getLogger(__name__)
 
@@ -118,11 +119,7 @@ class Command(BaseCommand):
                     uin_file.save()
 
                     # Determine the recipients
-                    compliance_content_type = ContentType.objects.get(model="compliancepermissiongroup")
-                    permissions = Permission.objects.filter(codename='infringement_notice_coordinator', content_type_id=compliance_content_type.id)
-                    allowed_groups = CompliancePermissionGroup.objects.filter(permissions__in=permissions)
-                    groups = [group for group in allowed_groups.all()]
-                    members = [member for member in group.members for group in groups]
+                    members = get_infringement_notice_coordinators()
 
                     # Emailing
                     to_address = [member.email for member in members] if members else [settings.NOTIFICATION_EMAIL]

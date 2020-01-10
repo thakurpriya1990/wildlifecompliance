@@ -6,7 +6,16 @@
 
                     <div class="form-group"><div class="row">
                         <div class="col-sm-3">
-                            <label class="control-label pull-left">Reason</label>
+                            <label class="control-label pull-left">Recipient</label>
+                        </div>
+                        <div class="col-sm-7">
+                            {{ recipient_details }}
+                        </div>
+                    </div></div>
+
+                    <div class="form-group"><div class="row">
+                        <div class="col-sm-3">
+                            <label class="control-label pull-left">Details</label>
                         </div>
                         <div class="col-sm-7">
                             <textarea class="form-control" placeholder="add reason" id="reason" v-model="details"/>
@@ -52,6 +61,7 @@ import { mapState, mapGetters, mapActions, mapMutations } from "vuex";
 import { api_endpoints, helpers, cache_helper } from "@/utils/hooks";
 require("select2/dist/css/select2.min.css");
 require("select2-bootstrap-theme/dist/select2-bootstrap.min.css");
+import "jquery-ui/ui/widgets/draggable.js";
 
 export default {
     name: "SendParkingInfringement",
@@ -81,11 +91,25 @@ export default {
             let filled = true;
 
             return filled;
+        },
+        recipient_details: function() {
+            let details = '';
+            if (this.sanction_outcome){
+                if (this.sanction_outcome.driver){
+                    details = 'Driver: ' + this.sanction_outcome.driver.email;
+                } else if (this.sanction_outcome.registration_holder){
+                    details = 'Registration holder' + this.sanction_outcome.registration_holder.email;
+                } else if (this.sanction_outcome.offender){
+                    details = this.sanction_outcome.offender.person.email;
+                }
+            }
+            return details;
         }
     },
     mounted: function () {
         this.$nextTick(() => {
             this.addEventListeners();
+            this.makeModalsDraggable();
         });
     },
     methods: {
@@ -95,12 +119,18 @@ export default {
         addEventListeners: function () {
 
         },
+        makeModalsDraggable: function(){
+            this.elem_modal = $('.modal > .modal-dialog');
+            for (let i=0; i<this.elem_modal.length; i++){
+                $(this.elem_modal[i]).draggable();
+            }
+        },
         ok: async function () {
             try {
                 this.processingDetails = true;
                 const response = await this.sendData();
                 this.close();
-                this.$router.push({ name: 'internal-sanction-outcome-dash' });
+                this.$parent.loadSanctionOutcome({ sanction_outcome_id: this.$parent.sanction_outcome.id });
             } catch (err){
                 this.processError(err);
             } finally {
