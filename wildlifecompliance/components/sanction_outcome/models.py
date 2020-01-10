@@ -67,6 +67,7 @@ class SanctionOutcome(models.Model):
     STATUS_DECLINED = 'declined'
     STATUS_OVERDUE = 'overdue'
     STATUS_WITHDRAWN = 'withdrawn'
+    STATUS_PENDING_CLOSURE = 'pending_closure'
     STATUS_CLOSED = 'closed'
     STATUS_WITH_DOT = 'with_dot'
     STATUS_AWAITING_ISSUANCE = 'awaiting_issuance'
@@ -157,6 +158,16 @@ class SanctionOutcome(models.Model):
     objects = models.Manager()
     objects_active = SanctionOutcomeActiveManager()
     objects_for_external = SanctionOutcomeExternalManager()
+
+    def close(self, request=None):
+        close_record, parents = can_close_record(self)
+        if close_record:
+            self.status = self.STATUS_CLOSED
+            self.log_user_action(SanctionOutcomeUserAction.ACTION_CLOSE.format(self.lodgement_number), request)
+        else:
+            self.status = self.STATUS_PENDING_CLOSURE
+            self.log_user_action(SanctionOutcomeUserAction.ACTION_PENDING_CLOSURE.format(self.lodgement_number), request)
+        self.save()
 
     @property
     def is_parking_offence(self):
@@ -450,7 +461,7 @@ class SanctionOutcome(models.Model):
         self.allocated_group = new_group
         self.save()
 
-    def endorse(self):
+    def endorse(self, request):
         if self.type == SanctionOutcome.TYPE_INFRINGEMENT_NOTICE:
             if self.issued_on_paper:
                 pass
@@ -463,8 +474,9 @@ class SanctionOutcome(models.Model):
                     self.create_due_dates()
 
         elif self.type in (SanctionOutcome.TYPE_CAUTION_NOTICE, SanctionOutcome.TYPE_LETTER_OF_ADVICE):
-            self.status = SanctionOutcome.STATUS_CLOSED
+            # self.status = SanctionOutcome.STATUS_CLOSED
             self.save()  # This makes sure this sanction outcome status sets to 'closed'
+            self.close(request)
 
         elif self.type == SanctionOutcome.TYPE_REMEDIATION_NOTICE:
             self.status = SanctionOutcome.STATUS_AWAITING_REMEDIATION_ACTIONS
@@ -644,17 +656,6 @@ class SanctionOutcome(models.Model):
         ordering = ['-id']
 
 
-def perform_can_close_record(sender, instance, **kwargs):
-    # Trigger the close() function of each parent entity of this sanction outcome
-    if instance.status in (SanctionOutcome.FINAL_STATUSES):
-        close_record, parents = can_close_record(instance)
-        for parent in parents:
-            if parent.status == 'pending_closure':
-                parent.close()
-
-post_save.connect(perform_can_close_record, sender=SanctionOutcome)
-
-
 class AllegedCommittedOffence(RevisionedMixin):
     alleged_offence = models.ForeignKey(AllegedOffence, null=False,)
     sanction_outcome = models.ForeignKey(SanctionOutcome, null=False,)
@@ -701,6 +702,7 @@ class RemediationAction(RevisionedMixin):
         (STATUS_SUBMITTED, 'Submitted'),
         (STATUS_ACCEPTED, 'Accepted')
     )
+    FINAL_STATUSES = (STATUS_ACCEPTED, )
 
     remediation_action_id = models.CharField(max_length=20, blank=True)
     action = models.TextField(blank=True)
@@ -724,6 +726,26 @@ class RemediationAction(RevisionedMixin):
 
     def __str__(self):
         return '{}'.format(self.action,)
+
+
+def perform_can_close_record(sender, instance, **kwargs):
+    # Trigger the close() function of each parent entity of this sanction outcome
+    if isinstance(instance, SanctionOutcome):
+        if instance.status in SanctionOutcome.FINAL_STATUSES:
+            close_record, parents = can_close_record(instance)
+            for parent in parents:
+                if parent.status in ('pending_closure', ):  # tuple must include all the status regarded as pending closure
+                    parent.close()
+    elif isinstance(instance, RemediationAction):
+        if instance.status in RemediationAction.FINAL_STATUSES:
+            close_record, parents = can_close_record(instance)
+            for parent in parents:
+                if parent.status in ('pending_closure', SanctionOutcome.STATUS_AWAITING_REMEDIATION_ACTIONS):  # tuple must include all the status regarded as pending closure
+                    parent.close()
+
+
+post_save.connect(perform_can_close_record, sender=SanctionOutcome)
+post_save.connect(perform_can_close_record, sender=RemediationAction)
 
 
 def update_compliance_doc_filename(instance, filename):
@@ -768,6 +790,7 @@ class SanctionOutcomeUserAction(models.Model):
     ACTION_RETURN_TO_OFFICER = "Request amendment for Sanction Outcome {}"
     ACTION_RETURN_TO_INFRINGEMENT_NOTICE_COORDINATOR = "Return Sanction Outcome {} to Infringement Notice Coordinator"
     ACTION_WITHDRAW = "Withdraw Sanction Outcome {}"
+    ACTION_PENDING_CLOSURE = "Mark Sanction Outcome {} as pending closure"
     ACTION_CLOSE = "Close Sanction Outcome {}"
     ACTION_ADD_WEAK_LINK = "Create manual link between Sanction Outcome: {} and {}: {}"
     ACTION_REMOVE_WEAK_LINK = "Remove manual link between Sanction Outcome: {} and {}: {}"

@@ -940,8 +940,9 @@ class SanctionOutcomeViewSet(viewsets.ModelViewSet):
                 serializer.is_valid(raise_exception=True)
                 serializer.save()
 
-                instance.status = SanctionOutcome.STATUS_CLOSED
+                # instance.status = SanctionOutcome.STATUS_CLOSED
                 instance.save()
+                instance.close()
 
                 return_serializer = SanctionOutcomeSerializer(instance=instance, context={'request': request})
                 headers = self.get_success_headers(return_serializer.data)
@@ -1071,7 +1072,7 @@ class SanctionOutcomeViewSet(viewsets.ModelViewSet):
 
                 elif workflow_type == SanctionOutcome.WORKFLOW_ENDORSE:
                     if not instance.is_parking_offence or (instance.is_parking_offence and instance.offender):
-                        instance.endorse()
+                        instance.endorse(request)
 
                         if not instance.issued_on_paper:
                             # Email to the offender, and bcc to the respoinsible officer, manager and infringement notice coordinators

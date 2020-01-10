@@ -475,16 +475,15 @@ def get_related_items(entity, pending_closure=False, **kwargs):
         print(traceback.print_exc())
         raise serializers.ValidationError(str(e))
 
+
 def can_close_record(entity, request=None):
-    print("can close record")
     children, parents = get_related_items(entity, pending_closure=True)
     close_record = True
     if children:
         for child in children:
-            print(child)
-            print(child.status)
             if child.status not in ('closed', 'discarded', 'declined', 'withdrawn'):  # This tuple should include only very final status of the entity
                 close_record = False
+                break
     return close_record, parents
 
 # Examples of model properties for get_related_items
