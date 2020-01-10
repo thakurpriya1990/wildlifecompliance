@@ -59,11 +59,15 @@ class Command(BaseCommand):
 
                 # retrieve active DocumentArtifacts with created dates older than the disposal period
                 #document_artifacts = DocumentArtifact.objects.filter(status='active', created_at__lt=document_artifact_disposal_date_cutoff)
-                document_artifacts = DocumentArtifact.objects.filter(status='active', created_at__gt=document_artifact_disposal_date_cutoff)
+                document_artifacts = DocumentArtifact.objects.filter(status='active', legal_case_id=None, created_at__gt=document_artifact_disposal_date_cutoff)
                 for doc in document_artifacts:
                     print(doc.created_at)
                     doc.close()
 
+                physical_artifacts = PhysicalArtifact.objects.filter(status='active', legal_case_id=None, created_at__gt=physical_artifact_disposal_date_cutoff)
+                for artifact in physical_artifacts:
+                    print(physical.created_at)
+                    physical.close()
 
                 ## Retrieve sanction outcomes whose type is Infringement Notice and which is unpaid
                 #sanction_outcomes = SanctionOutcome.objects.filter(

@@ -13,7 +13,7 @@ from wildlifecompliance.components.main.models import (
         UserAction, 
         Document,
         )
-from wildlifecompliance.components.main.related_item import can_close_artifact
+#from wildlifecompliance.components.main.related_item import can_close_artifact
 from wildlifecompliance.components.users.models import RegionDistrict, CompliancePermissionGroup
 from wildlifecompliance.components.offence.models import Offence, Offender
 from wildlifecompliance.components.legal_case.models import LegalCase
@@ -276,18 +276,26 @@ class DocumentArtifact(Artifact):
             self.legal_case.add(legal_case)
 
     def close(self, request=None):
-        close_record, parents = can_close_artifact(self, request)
-        if close_record:
-            self.status = self.STATUS_CLOSED
-            self.log_user_action(
-                    ArtifactUserAction.ACTION_CLOSE.format(self.number), 
-                    request)
-            self.save()
-        # Call close() on any parent with pending_closure status
-        if parents and self.status == 'closed':
-            for parent in parents:
-                if parent.status == 'pending_closure':
-                    parent.close(request)
+        # NOTE: close_record logic moved to can_close_legal_case
+        self.status = self.STATUS_CLOSED
+        self.log_user_action(
+                ArtifactUserAction.ACTION_CLOSE.format(self.number),
+                request)
+        self.save()
+
+    #def close(self, request=None):
+    #    close_record, parents = can_close_artifact(self, request)
+    #    if close_record:
+    #        self.status = self.STATUS_CLOSED
+    #        self.log_user_action(
+    #                ArtifactUserAction.ACTION_CLOSE.format(self.number), 
+    #                request)
+    #        self.save()
+    #    # Call close() on any parent with pending_closure status
+    #    if parents and self.status == 'closed':
+    #        for parent in parents:
+    #            if parent.status == 'pending_closure':
+    #                parent.close(request)
 
 
 class PhysicalArtifact(Artifact):
@@ -348,22 +356,30 @@ class PhysicalArtifact(Artifact):
         legal_case = LegalCase.objects.get(id=legal_case_id_int)
         if legal_case:
             self.legal_case.add(legal_case)
+    
+    #def close(self, request=None):
+    #    close_record, parents = can_close_artifact(self, request)
+    #    # TODO: add logic to check for disposal date
+    #    if close_record:
+    #        self.status = self.STATUS_CLOSED
+    #        self.log_user_action(
+    #                ArtifactUserAction.ACTION_CLOSE.format(self.number),
+    #                request)
+    #        self.save()
+    #    # Call close() on any parent with pending_closure status
+    #    if parents and self.status == 'closed':
+    #        for parent in parents:
+    #            if parent.status == 'pending_closure':
+    #                parent.close(request)
 
     def close(self, request=None):
-        close_record, parents = can_close_artifact(self, request)
         # TODO: add logic to check for disposal date
-        if close_record:
-            self.status = self.STATUS_CLOSED
-            self.log_user_action(
-                    ArtifactUserAction.ACTION_CLOSE.format(self.number),
-                    request)
-            self.save()
-        # Call close() on any parent with pending_closure status
-        if parents and self.status == 'closed':
-            for parent in parents:
-                if parent.status == 'pending_closure':
-                    parent.close(request)
-
+        # NOTE: close_record logic moved to can_close_legal_case
+        self.status = self.STATUS_CLOSED
+        self.log_user_action(
+                ArtifactUserAction.ACTION_CLOSE.format(self.number),
+                request)
+        self.save()
 
 class ArtifactCommsLogEntry(CommunicationsLogEntry):
     artifact = models.ForeignKey(Artifact, related_name='comms_logs')

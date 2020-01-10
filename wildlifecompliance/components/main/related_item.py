@@ -495,28 +495,33 @@ def can_close_legal_case(entity, request=None):
     print("can close legal case")
     children, parents = get_related_items(entity, pending_closure=True)
     close_record = True
+    #artifact_children = []
     if children:
         for child in children:
-            # attempt to close artifact
-            print(child)
-            print(child.status)
+            close_child_record = True
             if child._meta.model_name in ('documentartifact', 'physicalartifact'):
+                sub_children, sub_parents = get_related_items(child, pending_closure=True)
+                for sub_parent in sub_parents:
+                    if sub_parent.status not in ('closed', 'pending_closure') and sub_parent.id != entity.id:
+                        close_child_record = False
+            if close_child_record:
                 child.close()
-            if child.status not in ('closed'):
+
+            if child.status not in ('closed', 'waiting_for_disposal'):
                 close_record = False
     return close_record, parents
 
-def can_close_artifact(entity, request=None):
-    print("can close artifact")
-    children, parents = get_related_items(entity, pending_closure=True)
-    close_record = True
-    if parents:
-        for parent in parents:
-            print("parent.status")
-            print(parent.status)
-            if parent.status not in ('closed', 'pending_closure'):  # Final status codes for Legal Case
-                close_record = False
-    return close_record, parents
+#def can_close_artifact(entity, request=None):
+#    print("can close artifact")
+#    children, parents = get_related_items(entity, pending_closure=True)
+#    close_record = True
+#    if parents:
+#        for parent in parents:
+#            print("parent.status")
+#            print(parent.status)
+#            if parent.status not in ('closed', 'pending_closure'):  # Final status codes for Legal Case
+#                close_record = False
+#    return close_record, parents
 
 def can_close_record(entity, request=None):
     print("can close record")
