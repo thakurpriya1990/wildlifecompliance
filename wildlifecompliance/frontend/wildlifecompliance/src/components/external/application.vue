@@ -323,14 +323,15 @@ export default {
     this.$nextTick(() => {
         vm.eventListeners();
     });
-    if (this.application.application_type.id=='amend_activity'){ 
+    if ((this.application.application_type.id=='amend_activity') // licence activity amendments.
+    || (this.application.customer_status.id=='amendment_required')) { // requested amendments.
       // fees can be adjusted from selected components for requested amendments.
       this.adjusted_application_fee = this.application.application_fee - this.application.total_paid_amount
     } else {
-      // fees already adjusted for application amendments and new applications.
+      // no adjustments for new applications.
       this.adjusted_application_fee = this.application.application_fee
     }
-  },
+  }
 }
 </script>
 
