@@ -36,6 +36,12 @@ class RemediationNoticeEmail(TemplateEmailBase):
     txt_template = 'wildlifecompliance/emails/remediation_notice.txt'
 
 
+class NotificationCloseToDueRemediationAction(TemplateEmailBase):
+    subject = 'Reminder: Due Date is in one week'
+    html_template = 'wildlifecompliance/emails/notification_close_to_due_remediation_action.html'
+    txt_template = 'wildlifecompliance/emails/notification_close_to_due_remediation_action.txt'
+
+
 class CautionNoticeEmail(TemplateEmailBase):
     subject = 'Caution Notice Issued'
     html_template = 'wildlifecompliance/emails/caution_notice.html'
@@ -176,7 +182,7 @@ def send_remind_1st_period_overdue_mail(to_address, sanction_outcome, workflow_e
     return email_data
 
 
-def send_unpaid_infringements_file(to_address, cc=None, bcc=None, attachements=[]):
+def send_unpaid_infringements_file(to_address, cc=None, bcc=None, attachments=[]):
     email = UnpaidInfringementsFileMail()
     # if request.data.get('email_subject'):
     #     email.subject = request.data.get('email_subject')
@@ -188,7 +194,28 @@ def send_unpaid_infringements_file(to_address, cc=None, bcc=None, attachements=[
     }
     msg = email.send(to_address,
                      context=context,
-                     attachments=attachements,
+                     attachments=attachments,
+                     cc=cc,
+                     bcc=bcc)
+    sender = settings.DEFAULT_FROM_EMAIL
+    email_data = _extract_email_headers(msg, sender=sender)
+
+    return email_data
+
+
+def send_notification_close_to_due_remediation_action(to_address, sanction_outcome, workflow_entry, cc=None, bcc=None, attachments=[]):
+    email = NotificationCloseToDueRemediationAction()
+    # if request.data.get('email_subject'):
+    #     email.subject = request.data.get('email_subject')
+    # url = request.build_absolute_uri(reverse('internal-sanction-outcome-detail', kwargs={ 'sanction_outcome_id': sanction_outcome.id }))
+    context = {
+        # 'url': url,
+        'sanction_outcome': sanction_outcome,
+        'workflow_entry_details': 'This is notification mail for the remediation notice.  Due date is in one week.',
+    }
+    msg = email.send(to_address,
+                     context=context,
+                     attachments=attachments,
                      cc=cc,
                      bcc=bcc)
     sender = settings.DEFAULT_FROM_EMAIL
