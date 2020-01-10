@@ -330,10 +330,6 @@ export default {
       // fees already adjusted for application amendments and new applications.
       this.adjusted_application_fee = this.application.application_fee
     }
-    console.log(this.adjusted_application_fee)
-    console.log(this.application.application_fee)
-    console.log(this.application.total_paid_amount)
-    console.log(this.application.has_amended_fee)
   },
 }
 </script>
