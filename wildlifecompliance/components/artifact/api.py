@@ -70,6 +70,7 @@ from wildlifecompliance.components.artifact.serializers import (
         PhysicalArtifactSerializer,
         #DocumentArtifactTypeSerializer,
         PhysicalArtifactTypeSerializer,
+        PhysicalArtifactTypeSchemaSerializer,
         PhysicalArtifactDisposalMethodSerializer,
         ArtifactUserActionSerializer,
         ArtifactCommsLogEntrySerializer,
@@ -332,6 +333,12 @@ class PhysicalArtifactViewSet(viewsets.ModelViewSet):
                 if physical_artifact_type:
                     physical_artifact_type_id = physical_artifact_type.get('id')
                     request_data['physical_artifact_type_id'] = physical_artifact_type_id
+
+                disposal_method = request_data.get('disposal_method')
+                disposal_method_id = None
+                if disposal_method:
+                    disposal_method_id = disposal_method.get('id')
+                    request_data['disposal_method_id'] = disposal_method_id
 
                 if instance:
                     serializer = SavePhysicalArtifactSerializer(
@@ -714,4 +721,35 @@ class PhysicalArtifactTypeViewSet(viewsets.ModelViewSet):
        if is_internal(self.request):
            return PhysicalArtifactType.objects.all()
        return PhysicalArtifactType.objects.none()
+
+   @detail_route(methods=['GET',])
+   @renderer_classes((JSONRenderer,))
+   def get_schema(self, request, *args, **kwargs):
+       instance = self.get_object()
+       try:
+           serializer = PhysicalArtifactTypeSchemaSerializer(instance)
+           return Response(
+               serializer.data,
+               status=status.HTTP_201_CREATED,
+               )
+       except serializers.ValidationError:
+           print(traceback.print_exc())
+           raise
+       except ValidationError as e:
+           print(traceback.print_exc())
+           raise serializers.ValidationError(repr(e.error_dict))
+       except Exception as e:
+           print(traceback.print_exc())
+           raise serializers.ValidationError(str(e))
+
+
+class PhysicalArtifactDisposalMethodViewSet(viewsets.ModelViewSet):
+   queryset = PhysicalArtifactDisposalMethod.objects.all()
+   serializer_class = PhysicalArtifactDisposalMethodSerializer
+
+   def get_queryset(self):
+       # user = self.request.user
+       if is_internal(self.request):
+           return PhysicalArtifactDisposalMethod.objects.all()
+       return PhysicalArtifactDisposalMethod.objects.none()
 

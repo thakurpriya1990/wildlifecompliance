@@ -156,14 +156,30 @@ class PhysicalArtifactTypeSerializer(serializers.ModelSerializer):
                 'id',
                 )
 
+
+class PhysicalArtifactTypeSchemaSerializer(serializers.ModelSerializer):
+    artifact_type_id = serializers.IntegerField(
+        required=False, write_only=True, allow_null=True)        
+
+    class Meta:
+        model = PhysicalArtifactType
+        fields = (
+            'id',
+            'details_schema',
+            'storage_schema',
+            'artifact_type_id',
+        )
+        read_only_fields = (
+            'id', 
+            )
+
 class PhysicalArtifactDisposalMethodSerializer(serializers.ModelSerializer):
     class Meta:
-        model = DocumentArtifactType
+        model = PhysicalArtifactDisposalMethod
         fields = (
                 'id',
                 'disposal_method',
                 'description',
-                'date_created',
                 )
         read_only_fields = (
                 'id',
@@ -340,6 +356,8 @@ class PhysicalArtifactSerializer(ArtifactSerializer):
 class SavePhysicalArtifactSerializer(ArtifactSerializer):
     physical_artifact_type_id = serializers.IntegerField(
         required=False, write_only=True, allow_null=True)
+    disposal_method_id = serializers.IntegerField(
+        required=False, write_only=True, allow_null=True)
     custodian_id = serializers.IntegerField(
         required=False, write_only=True, allow_null=True)
     #legal_case_id = serializers.IntegerField(
@@ -358,6 +376,9 @@ class SavePhysicalArtifactSerializer(ArtifactSerializer):
                 'artifact_time',
                 'physical_artifact_type_id',
                 'officer_email',
+                'disposal_date',
+                'disposal_method_id',
+                'disposal_details',
                 )
         read_only_fields = (
                 'id',

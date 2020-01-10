@@ -30,7 +30,7 @@
                                                   <label>Physical Type</label>
                                                 </div>
                                                 <div class="col-sm-6">
-                                                  <select class="form-control" v-model="physical_artifact.physical_artifact_type">
+                                                  <select class="form-control" v-model="physical_artifact.physical_artifact_type" @change="loadSchema">
                                                     <option  v-for="option in physicalArtifactTypes" :value="option" v-bind:key="option.id">
                                                       {{ option.artifact_type }}
                                                     </option>
@@ -133,13 +133,63 @@
                                         disposal
                                     </div-->
                                     <div :id="detailsTab" :class="detailsTabClass">
-                                        details
+                                        <FormSection :formCollapse="false" label="Checklist">
+                                            <div class="col-sm-12 form-group"><div class="row">
+                                                    <div v-if="rendererVisibility" v-for="(item, index) in detailsSchema">
+                                                  <compliance-renderer-block
+                                                     :component="item"
+                                                     :readonlyForm="readonlyForm"
+                                                     v-bind:key="`compliance_renderer_block${index}`"
+                                                    />
+                                                </div>
+                                            </div></div>
+                                        </FormSection>
                                     </div>
                                     <div :id="storageTab" :class="storageTabClass">
-                                        storage
+                                        <FormSection :formCollapse="false" label="Checklist">
+                                            <div class="col-sm-12 form-group"><div class="row">
+                                                    <div v-if="rendererVisibility" v-for="(item, index) in storageSchema">
+                                                  <compliance-renderer-block
+                                                     :component="item"
+                                                     :readonlyForm="readonlyForm"
+                                                     v-bind:key="`compliance_renderer_block${index}`"
+                                                    />
+                                                </div>
+                                            </div></div>
+                                        </FormSection>
                                     </div>
                                     <div :id="disposalTab" :class="disposalTabClass">
-                                        disposal
+                                        <FormSection :formCollapse="false" label="Related Items">
+                                            <div class="col-sm-12 form-group"><div class="row">
+                                                <div class="col-sm-3">
+                                                  <label>Disposal Method</label>
+                                                </div>
+                                                <div class="col-sm-6">
+                                                  <select class="form-control" v-model="physical_artifact.disposal_method">
+                                                    <option  v-for="option in disposalMethods" :value="option" v-bind:key="option.id">
+                                                      {{ option.disposal_method }}
+                                                    </option>
+                                                  </select>
+                                                </div>
+                                            </div></div>
+                                            <div class="col-sm-12 form-group"><div class="row">
+                                                <label class="col-sm-3">Date</label>
+                                                <div class="col-sm-3">
+                                                    <div class="input-group date" ref="disposalDatePicker">
+                                                        <input :disabled="readonlyForm" type="text" class="form-control" placeholder="DD/MM/YYYY" v-model="physical_artifact.disposal_date" />
+                                                        <span class="input-group-addon">
+                                                            <span class="glyphicon glyphicon-calendar"></span>
+                                                        </span>
+                                                    </div>
+                                                </div>
+                                            </div></div>
+                                            <div class="col-sm-3">
+                                              <label>Disposal details</label>
+                                            </div>
+                                            <div class="col-sm-9">
+                                              <textarea :readonly="readonlyForm" class="form-control" v-model="physical_artifact.disposal_details"/>
+                                            </div>
+                                        </FormSection>
                                     </div>
                                     <!--div :id="relatedItemsTab" class="tab-pane fade in"-->
                                     <div v-if="parentModal" :id="existingTab" class="tab-pane fade in li-top-buffer">
@@ -212,6 +262,9 @@ export default {
             physicalArtifactTypes: [],
             departmentStaffList: [],
             selectedCustodian: {},
+            disposalMethods: [],
+            detailsSchema: [],
+            storageSchema: [],
             entity: {
                 id: null,
             },
@@ -692,6 +745,23 @@ export default {
                 (e) => {
                     this.emitPhysicalArtifact(e);
                 });
+
+            //Disposal Date
+            let disposal_date_control = $(vm.$refs.disposalDatePicker);
+            // "From" field
+            disposal_date_control.datetimepicker({
+            format: "DD/MM/YYYY",
+            maxDate: "now",
+            showClear: true
+            });
+            disposal_date_control.on("dp.change", function(e) {
+                console.log(e)
+                if (el_fr_date.data("DateTimePicker").date()) {
+                  vm.physical_artifact.disposal_date = e.date.format("DD/MM/YYYY");
+                } else if (disposal_date_control.data("date") === "") {
+                  vm.physical_artifact.disposal_date = "";
+                }
+            });
             
         },
         /*
@@ -717,6 +787,22 @@ export default {
             }
             return comparison;
         },
+        loadSchema: function() {
+            console.log("load schema")
+            this.$nextTick(async function() {
+                let url = helpers.add_endpoint_json(
+                            api_endpoints.physical_artifact_types,
+                            this.physical_artifact.artifact_type_id + '/get_schema',
+                            );
+                let returned_schema = await cache_helper.getSetCache(
+                'PhysicalArtifactTypeSchema',
+                this.physical_artifact.id.toString(),
+                url);
+                if (returned_schema) {
+                  console.log(returnedSchema);
+                }
+            });
+        },
 
       //createPhysicalActionUrl: async function(done) {
       //  if (!this.inspection.id) {
@@ -733,6 +819,7 @@ export default {
     mounted: function() {
       this.$nextTick(async () => {
           this.addEventListeners();
+          //this.loadSchema();
       });
     },
     beforeDestroy: async function() {
@@ -764,6 +851,18 @@ export default {
             artifact_type: "",
             description: "",
           });
+        let returned_disposal_methods = await cache_helper.getSetCacheList(
+          'DisposalMethods',
+          api_endpoints.disposal_methods
+          );
+        Object.assign(this.disposalMethods, returned_disposal_methods);
+        // blank entry allows user to clear selection
+        this.disposalMethods.splice(0, 0,
+          {
+            id: "",
+            disposal_method: "",
+            description: "",
+          });
         // retrieve department_users from backend cache
         let returned_department_users = await this.$http.get(api_endpoints.department_users)
         Object.assign(this.departmentStaffList, returned_department_users.body)
@@ -772,6 +871,10 @@ export default {
             pk: "",
             name: "",
           });
+      this.$nextTick(async () => {
+          //this.addEventListeners();
+          this.loadSchema();
+      });
         /*
         if (this.physical_artifact && this.physical_artifact.officer_email) {
             this.$refs.physical_artifact_department_users = this.physical_artifact.officer_email;

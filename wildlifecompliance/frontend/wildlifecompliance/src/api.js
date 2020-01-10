@@ -61,5 +61,6 @@ module.exports = {
     physical_artifact: '/api/physical_artifact/',
     document_artifact: '/api/document_artifact/',
     department_users: '/api/department_users',
+    disposal_methods: '/api/disposal_methods',
 }
 
