@@ -910,3 +910,17 @@ class AmendmentRequestForRemediationAction(models.Model):
         app_label = 'wildlifecompliance'
         verbose_name = 'CM_AmendmentRequest'
         verbose_name_plural = 'CM_AmendmentRequests'
+
+
+class RemediationActionNotification(models.Model):
+    TYPE_CLOSE_TO_DUE = 'close_to_due'
+    TYPE_OVERDUE = 'overdue'
+
+    type = models.CharField(max_length=30, blank=True,)
+    remediation_action = models.ForeignKey(RemediationAction, related_name='notifications')
+    sanction_outcome_comms_log_entry = models.ForeignKey(SanctionOutcomeCommsLogEntry,)
+
+    class Meta:
+        app_label = 'wildlifecompliance'
+        verbose_name = 'CM_RemediationActionNotification'
+        verbose_name_plural = 'CM_RemediationActionNotifications'

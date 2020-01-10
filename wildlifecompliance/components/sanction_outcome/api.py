@@ -218,6 +218,10 @@ class RemediationActionViewSet(viewsets.ModelViewSet):
 
                 serializer = RemediationActionSerializer(instance, context={'request': request})
 
+                # TODO: Email to the offender
+                # TODO: Comms log to the sanction outcome
+                # TODO: Action log to the sanction outcome
+
                 return Response(
                     serializer.data,
                     status=status.HTTP_201_CREATED
@@ -245,6 +249,10 @@ class RemediationActionViewSet(viewsets.ModelViewSet):
                 serializer = RemediationActionUpdateStatusSerializer(instance, data={'status': RemediationAction.STATUS_ACCEPTED}, context={'request': request})
                 serializer.is_valid(raise_exception=True)
                 serializer.save()
+
+                # TODO: Email to the offender
+                # TODO: Comms log to the sanction outcome
+                # TODO: Action log to the sanction outcome
 
                 headers = self.get_success_headers(serializer.data)
                 return Response(
@@ -277,6 +285,10 @@ class RemediationActionViewSet(viewsets.ModelViewSet):
                 serializer = RemediationActionUpdateStatusSerializer(serializer.instance, data={'status': RemediationAction.STATUS_SUBMITTED}, context={'request': request})
                 serializer.is_valid(raise_exception=True)
                 serializer.save()
+
+                # TODO: Email to the officer?
+                # TODO: Comms log to the sanction outcome
+                # TODO: Action log to the sanction outcome
 
                 headers = self.get_success_headers(serializer.data)
                 return Response(
