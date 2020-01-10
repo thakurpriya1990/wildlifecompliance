@@ -375,10 +375,16 @@ class PhysicalArtifact(Artifact):
     def close(self, request=None):
         # TODO: add logic to check for disposal date
         # NOTE: close_record logic moved to can_close_legal_case
-        self.status = self.STATUS_CLOSED
-        self.log_user_action(
-                ArtifactUserAction.ACTION_CLOSE.format(self.number),
-                request)
+        if not self.disposal_date:
+            self.status = self.STATUS_WAITING_FOR_DISPOSAL
+            self.log_user_action(
+                    ArtifactUserAction.ACTION_WAITING_FOR_DISPOSAL.format(self.number),
+                    request)
+        else:
+            self.status = self.STATUS_CLOSED
+            self.log_user_action(
+                    ArtifactUserAction.ACTION_CLOSE.format(self.number),
+                    request)
         self.save()
 
 class ArtifactCommsLogEntry(CommunicationsLogEntry):
@@ -405,6 +411,7 @@ class ArtifactUserAction(models.Model):
     #ACTION_SANCTION_OUTCOME = "Create Sanction Outcome {}"
     #ACTION_SEND_TO_MANAGER = "Send Inspection {} to Manager"
     ACTION_CLOSE = "Close Artifact {}"
+    ACTION_WAITING_FOR_DISPOSAL = "Mark Artifact {} as waiting for disposal"
     #ACTION_PENDING_CLOSURE = "Mark Inspection {} as pending closure"
     #ACTION_REQUEST_AMENDMENT = "Request amendment for {}"
     #ACTION_ENDORSEMENT = "Inspection {} has been endorsed by {}"
