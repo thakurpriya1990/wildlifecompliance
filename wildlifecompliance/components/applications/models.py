@@ -1082,8 +1082,8 @@ class Application(RevisionedMixin):
                                 self.id), request)
 
                     # notify linked officer groups of submission.
-                    if self.requires_refund:  # Refund for amended application.
-
+                    if self.requires_refund:  
+                        # notify of refund on amended licence activity purpose.
                         send_amendment_refund_email_notification(
                             group_users, self, request)
                     else:
@@ -1557,6 +1557,7 @@ class Application(RevisionedMixin):
 
         return amount
 
+    @property
     def requires_refund(self):
         """
         Check on the last invoice amount against application fee.
