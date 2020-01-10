@@ -57,6 +57,7 @@ from wildlifecompliance.components.legal_case.models import (
         LegalCaseCommsLogDocument,
         LegalCasePriority,
         LegalCaseRunningSheetEntry,
+        LegalCasePerson,
 )
 #from wildlifecompliance.components.artifact.models import (
 #        DocumentArtifact,
@@ -82,6 +83,7 @@ from wildlifecompliance.components.legal_case.serializers import (
         DeleteReinstateLegalCaseRunningSheetEntrySerializer,
         RunningSheetEntryVersionSerializer,
         RunningSheetEntryHistorySerializer,
+        CreateLegalCasePersonSerializer,
         )
 from wildlifecompliance.components.users.models import (
     CompliancePermissionGroup,    
@@ -360,6 +362,15 @@ class LegalCaseViewSet(viewsets.ModelViewSet):
     #    serializer = InspectionOptimisedSerializer(queryset, many=True)
     #    return Response(serializer.data)
 
+    def add_associated_persons(self, instance, request):
+        running_sheet_person_list = request.data.get('running_sheet_person_list')
+        if running_sheet_person_list:
+            for person in running_sheet_person_list:
+                person_id = person.get('id')
+                email_user = EmailUser.objects.get(id=person_id)
+                if email_user not in instance.associated_persons.all():
+                        instance.associated_persons.add(email_user)
+                        instance.save()
 
     @renderer_classes((JSONRenderer,))
     def update(self, request, workflow=False, *args, **kwargs):
@@ -382,6 +393,8 @@ class LegalCaseViewSet(viewsets.ModelViewSet):
                         running_sheet_entry_serializer.is_valid(raise_exception=True)
                         if running_sheet_entry_serializer.is_valid():
                             running_sheet_entry_serializer.save()
+                # LegalCasePerson
+                self.add_associated_persons(instance, request)
 
                 #new_running_sheet_artifacts = request.data.get('runningSheetArtifactList')
                 #if new_running_sheet_artifacts and len(new_running_sheet_artifacts) > 0:
@@ -626,7 +639,9 @@ class LegalCaseViewSet(viewsets.ModelViewSet):
                             temp_doc_collection.delete()
 
                 ## Set Inspection status depending on workflow type
-                #workflow_type = request.data.get('workflow_type')
+                workflow_type = request.data.get('workflow_type')
+                if workflow_type == 'close':
+                    instance.close(request)
                 #if workflow_type == 'send_to_manager':
                 #    instance.send_to_manager(request)
                 #elif workflow_type == 'request_amendment':

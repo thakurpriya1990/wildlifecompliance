@@ -45,13 +45,22 @@
                                                     <div class="col-sm-3">
                                                         <label class="control-label pull-left" for="Name">Seizure Notice</label>
                                                     </div>
-                                                    <div class="col-sm-9">
+                                                    <div v-if="parentModal" class="col-sm-9">
                                                         <filefield
                                                         ref="default_document"
                                                         name="default-document"
                                                         :isRepeatable="true"
                                                         documentActionUrl="temporary_document"
                                                         @update-temp-doc-coll-id="setTemporaryDocumentCollectionId"/>
+                                                    </div>
+                                                    <div v-else class="col-sm-9">
+                                                        <filefield 
+                                                        ref="physical_artifact_documents" 
+                                                        name="physical-artifact-documents" 
+                                                        :isRepeatable="true" 
+                                                        :documentActionUrl="physical_artifact.defaultDocumentUrl" 
+                                                        :readonly="readonlyForm"
+                                                        />
                                                     </div>
                                                 </div>
                                             </div>
@@ -78,12 +87,12 @@
                                             <div class="form-group">
                                                 <div class="row">
                                                     <div class="col-sm-3">
-                                                        <label>Witness</label>
+                                                        <label>Officer</label>
                                                     </div>
                                                     <div class="col-sm-9">
-                                                        <select ref="department_users" class="form-control">
-                                                            <option  v-for="option in departmentStaffList" :value="option.pk" v-bind:key="option.pk">
-                                                            {{ option.name }} 
+                                                        <select ref="physical_artifact_department_users" class="form-control" v-model="physical_artifact.officer_email">
+                                                            <option  v-for="option in departmentStaffList" :value="option.email" v-bind:key="option.pk">
+                                                            {{ option.name }}
                                                             </option>
                                                         </select>
                                                     </div>
@@ -251,6 +260,16 @@ export default {
         canUserAction: function() {
             return true;
         },
+        officerVisibility: function() {
+            let visibility = true;
+            /*
+            let visibility = false;
+            if (this.artifactType !== 'Expert Statement' && this.statementArtifactTypes.includes(this.artifactType)) {
+                visibility = true;
+            }
+            */
+            return visibility;
+        },
         physicalArtifactId: function() {
             let id = null;
             if (this.physical_artifact && this.physical_artifact.id) {
@@ -272,6 +291,20 @@ export default {
             }
             return aType;
         },
+        /*
+        artifactTypeDisplay: function() {
+            let display = '';
+            if (this.artifactType) {
+                for (let physicalArtifactType of this.physicalArtifactTypes) {
+                    //if (this.artifactType && this.artifactType.id === this.artifactType) {
+                    if (physicalArtifactType.id === this.artifactType) {
+                        display = physicalArtifactType.artifact_type;
+                    }
+                }
+            }
+            return display;
+        },
+        */
         readonlyForm: function() {
             return false;
         },
@@ -414,13 +447,17 @@ export default {
             loadPhysicalArtifact: 'loadPhysicalArtifact',
             setPhysicalArtifact: 'setPhysicalArtifact',
             setRelatedItems: 'setRelatedItems',
+            setOfficerEmail: 'setOfficerEmail',
+            setTemporaryDocumentCollectionId: 'setTemporaryDocumentCollectionId',
         }),
         updateTabSelected: function(tabValue) {
             this.tabSelected = tabValue;
         },
+        /*
         setTemporaryDocumentCollectionId: function(val) {
             this.temporary_document_collection_id = val;
         },
+        */
         entitySelected: function(entity) {
             console.log(entity);
             Object.assign(this.entity, entity)
@@ -449,9 +486,26 @@ export default {
                     data_type: 'physical_artifact',
                     identifier: this.physical_artifact.identifier,
                     artifact_type: this.artifactType,
+                    display: this.artifactType,
                 });
             });
             //return physicalArtifactEntity;
+        },
+        emitDocumentArtifact: async function(e) {
+            console.log(e)
+            let physicalArtifactId = e.target.dataset.id;
+            let physicalArtifactType = e.target.dataset.artifactType.replace(/~/g, ' ');
+            let physicalArtifactIdentifier = e.target.dataset.identifier.replace(/~/g, ' ');
+            this.$nextTick(() => {
+                this.$emit('existing-entity-selected', {
+                        id: physicalArtifactId,
+                        data_type: 'physical_artifact',
+                        identifier: physicalArtifactIdentifier,
+                        artifact_type: physicalArtifactType,
+                        display: physicalArtifactType,
+                    });
+            });
+            //this.$parent.$parent.ok();
         },
         cancel: async function() {
             await this.$refs.default_document.cancel();
@@ -464,7 +518,7 @@ export default {
             // "From" field
             el_fr_date.datetimepicker({
             format: "DD/MM/YYYY",
-            minDate: "now",
+            maxDate: "now",
             showClear: true
             });
             el_fr_date.on("dp.change", function(e) {
@@ -485,26 +539,23 @@ export default {
                 }
             });
             // department_users
-            $(vm.$refs.department_users).select2({
+            $(vm.$refs.physical_artifact_department_users).select2({
                     "theme": "bootstrap",
                     allowClear: true,
                     placeholder:""
                 }).
                 on("select2:select",function (e) {
-                    console.log(e)
                     let selected = $(e.currentTarget);
                     let selectedData = selected.val();
-                    vm.setSelectedCustodian(selectedData);
-                    //let custodianData = e.params.data
-                    //console.log(custodianData)
-                    //Object.assign(vm.selectedCustodian, custodianData);
+                    vm.setOfficerEmail(selectedData);
                 }).
                 on("select2:unselect",function (e) {
                     var selected = $(e.currentTarget);
-                    vm.selectedCustodian = {}
+                    vm.setOfficerEmail('');
                 });
             
         },
+        /*
         setSelectedCustodian: function(pk) {
             for (let record of this.departmentStaffList) {
                 if (record.pk.toString() === pk) {
@@ -513,6 +564,7 @@ export default {
                 }
             }
         },
+        */
         compare: function(a, b) {
             console.log("compare")
             const nameA = a.name.toLowerCase();
@@ -581,6 +633,11 @@ export default {
             pk: "",
             name: "",
           });
+        /*
+        if (this.physical_artifact && this.physical_artifact.officer_email) {
+            this.$refs.physical_artifact_department_users = this.physical_artifact.officer_email;
+        }
+        */
         /*
         let returned_department_staff = await cache_helper.getSetCacheList(
           'DepartmentStaff',

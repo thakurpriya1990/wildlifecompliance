@@ -168,3 +168,19 @@ class TemporaryDocument(Document):
     class Meta:
         app_label = 'wildlifecompliance'
 
+class GlobalSettings(models.Model):
+    keys = (
+            ('document_object_disposal_period', 'Document Object Disposal Period'),
+            ('physical_object_disposal_period', 'Physical Object Disposal Period'),
+            )
+
+    key = models.CharField(max_length=255, choices=keys, blank=False, null=False, unique=True)
+    value = models.CharField(max_length=255)
+
+    class Meta:
+        app_label = 'wildlifecompliance'
+        verbose_name_plural = 'Global Settings'
+
+    def __str__(self):
+        return "{}, {}".format(self.key, self.value)
+

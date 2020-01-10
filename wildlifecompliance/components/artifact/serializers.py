@@ -48,6 +48,7 @@ from django.utils import timezone
 class ArtifactSerializer(serializers.ModelSerializer):
     #custodian = EmailUserSerializer(read_only=True)
     #statement = DocumentArtifactStatementSerializer(read_only=True)
+    status = CustomChoiceField(read_only=True)
     artifact_object_type = serializers.SerializerMethodField()
     class Meta:
         model = Artifact
@@ -61,6 +62,7 @@ class ArtifactSerializer(serializers.ModelSerializer):
                 'artifact_date',
                 'artifact_time',
                 'artifact_object_type',
+                'status',
                 )
         read_only_fields = (
                 'id',
@@ -80,36 +82,48 @@ class ArtifactSerializer(serializers.ModelSerializer):
 
 
 class ArtifactPaginatedSerializer(serializers.ModelSerializer):
-    type = serializers.SerializerMethodField()
+    #artifact_type = serializers.SerializerMethodField()
     status = serializers.SerializerMethodField()
     user_action = serializers.SerializerMethodField()
+    entity = serializers.SerializerMethodField()
 
     class Meta:
         model = Artifact
         fields = (
             'id',
             'number',
-            'type',
+            'artifact_type',
             'status',
             'user_action',
             'artifact_date',
             'identifier',
             'description',
+            'entity',
         )
 
-    def get_type(self, artifact_obj):
-        pa = PhysicalArtifact.objects.filter(artifact_ptr_id=artifact_obj.id)
-        if pa and pa.first().physical_artifact_type and pa.first().physical_artifact_type.artifact_type:
-            return pa.first().physical_artifact_type.artifact_type
+    #def get_artifact_type(self, artifact_obj):
+    #    pa = PhysicalArtifact.objects.filter(artifact_ptr_id=artifact_obj.id)
+    #    if pa and pa.first().physical_artifact_type and pa.first().physical_artifact_type.artifact_type:
+    #        return pa.first().physical_artifact_type.artifact_type
 
-        da = DocumentArtifact.objects.filter(artifact_ptr_id=artifact_obj.id)
-        if da and da.first().document_type and da.first().document_type.artifact_type:
-            return da.first().document_type.artifact_type
-
-        return '---'
+    #    da = DocumentArtifact.objects.filter(artifact_ptr_id=artifact_obj.id)
+    #    #if da and da.first().document_type and da.first().document_type.artifact_type:
+    #     #   return da.first().document_type.artifact_type
+    #    if da and da.first().document_type:
+    #        document_type = da.first().document_type
+    #        display_name = ''
+    #        for choice in DocumentArtifact.DOCUMENT_TYPE_CHOICES:
+    #            if document_type == choice[0]:
+    #                display_name = choice[1]
+    #        return display_name
+    #    return '---'
 
     def get_status(self, obj):
-        return 'not implemented yet'
+        display_name = ''
+        for choice in Artifact.STATUS_CHOICES:
+            if obj.status == choice[0]:
+                display_name = choice[1]
+        return display_name
 
     def get_user_action(self, obj):
         url_list = []
@@ -119,21 +133,31 @@ class ArtifactPaginatedSerializer(serializers.ModelSerializer):
         urls = '<br />'.join(url_list)
         return urls
 
+    def get_entity(self, obj):
+        entity = {
+                'id': obj.id,
+                'data_type': obj.object_type,
+                'identifier': obj.identifier,
+                'artifact_type': obj.artifact_type,
+                'display': obj.artifact_type,
+                }
+        return entity
 
-class DocumentArtifactTypeSerializer(serializers.ModelSerializer):
-    class Meta:
-        model = DocumentArtifactType
-        fields = (
-                'id',
-                'artifact_type',
-                'version',
-                'description',
-                'date_created',
 
-                )
-        read_only_fields = (
-                'id',
-                )
+#class DocumentArtifactTypeSerializer(serializers.ModelSerializer):
+#    class Meta:
+#        model = DocumentArtifactType
+#        fields = (
+#                'id',
+#                'artifact_type',
+#                'version',
+#                'description',
+#                'date_created',
+#
+#                )
+#        read_only_fields = (
+#                'id',
+#                )
 
 
 class PhysicalArtifactTypeSerializer(serializers.ModelSerializer):
@@ -174,7 +198,7 @@ class DocumentArtifactStatementSerializer(ArtifactSerializer):
                 #'_file',
                 'identifier',
                 'description',
-                'custodian',
+                #'custodian',
                 )
         read_only_fields = (
                 'id',
@@ -183,7 +207,9 @@ class DocumentArtifactStatementSerializer(ArtifactSerializer):
 
 class DocumentArtifactSerializer(ArtifactSerializer):
     statement = DocumentArtifactStatementSerializer(read_only=True)
-    document_type = DocumentArtifactTypeSerializer(read_only=True)
+    #document_type = DocumentArtifactTypeSerializer(read_only=True)
+    #document_type = CustomChoiceField(read_only=True)
+    document_type_display = serializers.SerializerMethodField()
     person_providing_statement = EmailUserSerializer(read_only=True)
     interviewer = EmailUserSerializer(read_only=True)
     people_attending = EmailUserSerializer(read_only=True, many=True)
@@ -192,6 +218,7 @@ class DocumentArtifactSerializer(ArtifactSerializer):
     offence = OffenceSerializer(read_only=True)
     offender = OffenderSerializer(read_only=True)
     related_items = serializers.SerializerMethodField()
+    #status = CustomChoiceField(read_only=True)
 
     class Meta:
         model = DocumentArtifact
@@ -204,7 +231,7 @@ class DocumentArtifactSerializer(ArtifactSerializer):
                 'artifact_date',
                 'artifact_time',
                 'document_type',
-                'document_type_id',
+                #'document_type_id',
                 'statement',
                 'statement_id',
                 'person_providing_statement',
@@ -215,6 +242,9 @@ class DocumentArtifactSerializer(ArtifactSerializer):
                 'offender',
                 'related_items',
                 'interviewer_email',
+                'document_type_display',
+                #'status',
+                'created_at',
                 )
         read_only_fields = (
                 'id',
@@ -229,12 +259,21 @@ class DocumentArtifactSerializer(ArtifactSerializer):
             legal_case_id_list.append(legal_case.id)
         return legal_case_id_list
 
+    def get_document_type_display(self, obj):
+        display_name = ''
+        for choice in DocumentArtifact.DOCUMENT_TYPE_CHOICES:
+            if obj.document_type == choice[0]:
+                display_name = choice[1]
+            #res_obj.append({'id': choice[0], 'display': choice[1]});
+        #res_json = json.dumps(res_obj)
+        return display_name
+
 
 class SaveDocumentArtifactSerializer(ArtifactSerializer):
-    document_type_id = serializers.IntegerField(
-        required=False, write_only=True, allow_null=True)
-    custodian_id = serializers.IntegerField(
-        required=False, write_only=True, allow_null=True)
+    #document_type_id = serializers.IntegerField(
+     #   required=False, write_only=True, allow_null=True)
+    #custodian_id = serializers.IntegerField(
+     #   required=False, write_only=True, allow_null=True)
     statement_id = serializers.IntegerField(
         required=False, write_only=True, allow_null=True)
     person_providing_statement_id = serializers.IntegerField(
@@ -253,11 +292,12 @@ class SaveDocumentArtifactSerializer(ArtifactSerializer):
                 'id',
                 'identifier',
                 'description',
-                'custodian_id',
+                #'custodian_id',
                 'statement_id',
                 'artifact_date',
                 'artifact_time',
-                'document_type_id',
+                #'document_type_id',
+                'document_type',
                 'person_providing_statement_id',
                 'interviewer_id',
                 'offence_id',
@@ -276,6 +316,7 @@ class PhysicalArtifactSerializer(ArtifactSerializer):
     disposal_method = PhysicalArtifactDisposalMethodSerializer(read_only=True)
     related_items = serializers.SerializerMethodField()
     legal_case_id_list = serializers.SerializerMethodField()
+    #status = CustomChoiceField(read_only=True)
 
     class Meta:
         model = PhysicalArtifact
@@ -299,6 +340,8 @@ class PhysicalArtifactSerializer(ArtifactSerializer):
                 'related_items',
                 'legal_case_id_list',
                 'officer_email',
+                #'status',
+                'created_at',
                 )
         read_only_fields = (
                 'id',
@@ -342,11 +385,19 @@ class SavePhysicalArtifactSerializer(ArtifactSerializer):
 
 
 class ArtifactUserActionSerializer(serializers.ModelSerializer):
-    who = serializers.CharField(source='who.get_full_name')
+    #who = serializers.CharField(source='who.get_full_name')
+    who = serializers.SerializerMethodField()
 
     class Meta:
         model = ArtifactUserAction
         fields = '__all__'
+
+    def get_who(self, obj):
+        if obj.who:
+            return obj.who.get_full_name()
+        else:
+            # When who==None, which means System performed the action
+            return 'System'
 
 
 class ArtifactCommsLogEntrySerializer(CommunicationLogEntrySerializer):

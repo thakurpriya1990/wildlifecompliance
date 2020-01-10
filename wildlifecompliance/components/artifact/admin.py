@@ -16,9 +16,9 @@ class DocumentArtifactAdmin(admin.ModelAdmin):
 class PhysicalArtifactAdmin(admin.ModelAdmin):
     pass
 
-@admin.register(models.DocumentArtifactType)
-class DocumentArtifactTypeAdmin(admin.ModelAdmin):
-    pass
+#@admin.register(models.DocumentArtifactType)
+#class DocumentArtifactTypeAdmin(admin.ModelAdmin):
+#    pass
 
 @admin.register(models.PhysicalArtifactType)
 class PhysicalArtifactTypeAdmin(admin.ModelAdmin):

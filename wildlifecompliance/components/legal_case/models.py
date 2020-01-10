@@ -14,7 +14,7 @@ from wildlifecompliance.components.main.models import (
         UserAction, 
         Document,
         )
-from wildlifecompliance.components.main.related_item import can_close_record
+from wildlifecompliance.components.main.related_item import can_close_legal_case
 from wildlifecompliance.components.users.models import RegionDistrict, CompliancePermissionGroup
 from django.core.exceptions import ValidationError
 
@@ -103,6 +103,10 @@ class LegalCase(RevisionedMixin):
             LegalCasePriority,
             null=True
             )
+    associated_persons = models.ManyToManyField(
+            EmailUser,
+            related_name='legal_case_associated_persons',
+            )
 
     class Meta:
         app_label = 'wildlifecompliance'
@@ -141,7 +145,7 @@ class LegalCase(RevisionedMixin):
     #    self.save()
 
     def close(self, request):
-        close_record, parents = can_close_record(self, request)
+        close_record, parents = can_close_legal_case(self, request)
         if close_record:
             self.status = self.STATUS_CLOSED
             self.log_user_action(
@@ -166,6 +170,11 @@ class LegalCasePerson(EmailUser):
     class Meta:
         app_label = 'wildlifecompliance'
 
+    def __str__(self):
+        return "id:{}, legal_case_id:{}".format(
+                self.id,
+                self.legal_case_id,
+                )
 
 class LegalCaseRunningSheetEntryManager(models.Manager):
     #def create_running_sheet_entry(self, legal_case_id, user_id, description=None):
@@ -272,8 +281,8 @@ class LegalCaseUserAction(UserAction):
     #ACTION_OFFENCE = "Create Offence {}"
     #ACTION_SANCTION_OUTCOME = "Create Sanction Outcome {}"
     #ACTION_SEND_TO_MANAGER = "Send Inspection {} to Manager"
-    #ACTION_CLOSE = "Close Inspection {}"
-    #ACTION_PENDING_CLOSURE = "Mark Inspection {} as pending closure"
+    ACTION_CLOSE = "Close Legal Case {}"
+    ACTION_PENDING_CLOSURE = "Mark Inspection {} as pending closure"
     #ACTION_REQUEST_AMENDMENT = "Request amendment for {}"
     #ACTION_ENDORSEMENT = "Inspection {} has been endorsed by {}"
     ACTION_ADD_WEAK_LINK = "Create manual link between {}: {} and {}: {}"

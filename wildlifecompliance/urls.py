@@ -113,7 +113,7 @@ router.register(r'artifact', artifact_api.ArtifactViewSet)
 router.register(r'artifact_paginated', artifact_api.ArtifactPaginatedViewSet)
 router.register(r'physical_artifact', artifact_api.PhysicalArtifactViewSet)
 router.register(r'physical_artifact_types', artifact_api.PhysicalArtifactTypeViewSet)
-router.register(r'document_artifact_types', artifact_api.DocumentArtifactTypeViewSet)
+#router.register(r'document_artifact_types', artifact_api.DocumentArtifactTypeViewSet)
 
 api_patterns = [url(r'^api/my_user_details/$',
                     users_api.GetMyUserDetails.as_view(),
