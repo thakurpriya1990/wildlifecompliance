@@ -142,6 +142,13 @@
                                         disposal
                                     </div>
                                     <!--div :id="relatedItemsTab" class="tab-pane fade in"-->
+                                    <div v-if="parentModal" :id="existingTab" class="tab-pane fade in li-top-buffer">
+                                        <div class="row">
+                                            <div class="col-lg-12">
+                                                <datatable ref="existing_artifact_table" id="existing-artifact-table" :dtOptions="dtOptions" :dtHeaders="dtHeaders" />
+                                            </div>
+                                        </div>
+                                    </div>
                                     <div v-if="!parentModal" :id="relatedItemsTab" :class="relatedItemsTabClass">
                                         <FormSection :formCollapse="false" label="Related Items">
                                             <div class="col-sm-12 form-group"><div class="row">
@@ -183,6 +190,7 @@ import SearchPersonOrganisation from './search_person_or_organisation'
 //require("select2-bootstrap-theme/dist/select2-bootstrap.min.css");
 import FormSection from "@/components/forms/section_toggle.vue";
 import RelatedItems from "@common-components/related_items.vue";
+import datatable from '@vue-utils/datatable.vue'
 
 export default {
     name: "PhysicalArtifactComponent",
@@ -207,6 +215,101 @@ export default {
             entity: {
                 id: null,
             },
+            dtOptions: {
+                serverSide: true,
+                searchDelay: 1000,
+                lengthMenu: [ [10, 25, 50, 100, -1], [10, 25, 50, 100, "All"] ],
+                order: [
+                    [0, 'desc']
+                ],
+                language: {
+                    processing: "<i class='fa fa-4x fa-spinner fa-spin'></i>"
+                },
+                responsive: true,
+                processing: true,
+                ajax: {
+                    url: '/api/artifact_paginated/get_paginated_datatable/?format=datatables',
+                    dataSrc: 'data',
+                    data: function(d) {
+                        d.object_type = 'physical_artifact'
+                        /*
+                        d.type = vm.filterType;
+                        d.status = vm.filterStatus;
+                        d.date_from = vm.filterDateFromPicker;
+                        d.date_to = vm.filterDateToPicker;
+                        */
+                    }
+                },
+                columns: [
+                    {
+                        data: 'number',
+                        searchable: true,
+                        orderable: true,
+                    },
+                    {
+                        data: 'artifact_type',
+                        searchable: true,
+                        orderable: false,
+                    },
+                    {
+                        data: 'identifier',
+                        searchable: true,
+                        orderable: true
+                    },
+                    /*
+                    {
+                        data: 'artifact_date',
+                        searchable: false,
+                        orderable: true,
+                        mRender: function (data, type, full) {
+                            return data != '' && data != null ? moment(data).format('DD/MM/YYYY') : '';
+                        }
+                    },
+                    {
+                        searchable: false,
+                        orderable: false,
+                        mRender: function (data, type,full){
+                            return '---';
+                        }
+                    },
+                    {
+                        searchable: false,
+                        orderable: false,
+                        data: 'status'
+                    },
+                    */
+                    {
+                        searchable: false,
+                        orderable: false,
+                        data: 'digital_documents'
+                    },
+                    {
+                        searchable: false,
+                        orderable: false,
+                        data: 'entity',
+                        mRender: function (data, type,full){
+                            let documentArtifactId = data.id;
+                            let documentArtifactType = data.artifact_type ? data.artifact_type.replace(/\s/g, '~') : null;
+                            let documentArtifactIdentifier = data.identifier ? data.identifier.replace(/\s/g, '~') : null;
+                            return `<a data-id=${documentArtifactId} data-artifact-type=${documentArtifactType} data-data-type="document_artifact" data-identifier=${documentArtifactIdentifier} class="row_insert" href="#">Insert</a><br/>`
+                            //return `<a class="row_insert" href="#">Insert</a><br/>`
+                        }
+                    }
+                ],
+            },
+            dtHeaders: [
+                'Number',
+                'Document Type',
+                'Identifier',
+                /*
+                'Date',
+                'Custodian',
+                'Status',
+                */
+                'Documents',
+                'Action',
+            ],
+
         }
     },
     components: {
@@ -215,6 +318,7 @@ export default {
       SearchPersonOrganisation,
       FormSection,
       RelatedItems,
+      datatable,
     },
     props: {
         parentModal: {
@@ -491,6 +595,7 @@ export default {
             });
             //return physicalArtifactEntity;
         },
+        /*
         emitDocumentArtifact: async function(e) {
             console.log(e)
             let physicalArtifactId = e.target.dataset.id;
@@ -507,8 +612,35 @@ export default {
             });
             //this.$parent.$parent.ok();
         },
+        */
         cancel: async function() {
             await this.$refs.default_document.cancel();
+        },
+        emitPhysicalArtifact: async function(e) {
+            console.log(e)
+            let physicalArtifactId = e.target.dataset.id;
+            // update existing DocumentArtifact with legal_case_id
+            let fetchUrl = helpers.add_endpoint_join(
+                api_endpoints.physical_artifact,
+                physicalArtifactId + '/'
+                )
+            let payload = {
+                "legal_case_id": this.legalCaseId
+            }
+            console.log(payload);
+            await Vue.http.put(fetchUrl, payload);
+            let physicalArtifactType = e.target.dataset.artifactType.replace(/~/g, ' ');
+            let physicalArtifactIdentifier = e.target.dataset.identifier.replace(/~/g, ' ').replace('null', '');
+            this.$nextTick(() => {
+                this.$emit('existing-entity-selected', {
+                        id: physicalArtifactId,
+                        data_type: 'physical_artifact',
+                        identifier: physicalArtifactIdentifier,
+                        artifact_type: physicalArtifactType,
+                        display: physicalArtifactType,
+                    });
+            });
+            //this.$parent.$parent.ok();
         },
         addEventListeners: function() {
             let vm = this;
@@ -552,6 +684,13 @@ export default {
                 on("select2:unselect",function (e) {
                     var selected = $(e.currentTarget);
                     vm.setOfficerEmail('');
+                });
+            let existingArtifactTable = $('#existing-artifact-table');
+            existingArtifactTable.on(
+                'click',
+                '.row_insert',
+                (e) => {
+                    this.emitPhysicalArtifact(e);
                 });
             
         },

@@ -275,6 +275,7 @@ export default {
             this.close();
         },
         emitModalAction: function() {
+            console.log(this.entity)
             this.$nextTick(() => {
                 if (this.entity.id || this.urlTabSelected && this.urlText) {
                     this.$emit('modal-action', {
