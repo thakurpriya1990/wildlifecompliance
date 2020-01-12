@@ -135,7 +135,7 @@
                                     <div :id="detailsTab" :class="detailsTabClass">
                                         <FormSection :formCollapse="false" label="Checklist">
                                             <div class="col-sm-12 form-group"><div class="row">
-                                                    <div v-if="rendererVisibility" v-for="(item, index) in detailsSchema">
+                                                <div v-if="detailsSchemaVisibility" v-for="(item, index) in detailsSchema">
                                                   <compliance-renderer-block
                                                      :component="item"
                                                      :readonlyForm="readonlyForm"
@@ -148,7 +148,7 @@
                                     <div :id="storageTab" :class="storageTabClass">
                                         <FormSection :formCollapse="false" label="Checklist">
                                             <div class="col-sm-12 form-group"><div class="row">
-                                                    <div v-if="rendererVisibility" v-for="(item, index) in storageSchema">
+                                                <div v-if="storageSchemaVisibility" v-for="(item, index) in storageSchema">
                                                   <compliance-renderer-block
                                                      :component="item"
                                                      :readonlyForm="readonlyForm"
@@ -400,6 +400,22 @@ export default {
         ...mapGetters('legalCaseStore', {
             legal_case: "legal_case",
         }),
+        detailsSchemaVisibility: function() {
+            console.log("detailsSchemaVisibility")
+            if (this.detailsSchema && this.detailsSchema.length > 0) {
+                return true;
+            } else {
+                return false
+            }
+        },
+        storageSchemaVisibility: function() {
+            console.log("storageSchemaVisibility")
+            if (this.storageSchema && this.storageSchema.length > 0) {
+                return true;
+            } else {
+                return false
+            }
+        },
         legalCaseId: function() {
           let ret_val = null;
           if (this.legal_case && this.legal_case.id) {
@@ -445,6 +461,13 @@ export default {
             let aType = ''
             if (this.physical_artifact && this.physical_artifact.physical_artifact_type) {
                 aType = this.physical_artifact.physical_artifact_type.artifact_type;
+            }
+            return aType;
+        },
+        artifactTypeId: function() {
+            let aType = ''
+            if (this.physical_artifact && this.physical_artifact.physical_artifact_type) {
+                aType = this.physical_artifact.physical_artifact_type.id;
             }
             return aType;
         },
@@ -787,19 +810,29 @@ export default {
             }
             return comparison;
         },
-        loadSchema: function() {
+        loadSchema: async function() {
             console.log("load schema")
-            this.$nextTick(async function() {
-                let url = helpers.add_endpoint_json(
-                            api_endpoints.physical_artifact_types,
-                            this.physical_artifact.artifact_type_id + '/get_schema',
-                            );
-                let returned_schema = await cache_helper.getSetCache(
-                'PhysicalArtifactTypeSchema',
-                this.physical_artifact.id.toString(),
-                url);
-                if (returned_schema) {
-                  console.log(returnedSchema);
+            this.$nextTick(async () => {
+                if (this.artifactTypeId) {
+                    console.log("really load schema")
+                    let url = helpers.add_endpoint_json(
+                                api_endpoints.physical_artifact_types,
+                                this.artifactTypeId + '/get_schema',
+                                );
+                    let returnedSchema = await cache_helper.getSetCache(
+                    'PhysicalArtifactTypeSchema',
+                    this.artifactTypeId.toString(),
+                    url);
+                    if (returnedSchema) {
+                        Object.assign(this.detailsSchema, returnedSchema.details_schema);
+                        Object.assign(this.storageSchema, returnedSchema.storage_schema);
+                        /*
+                        this.detailsSchema = returnedSchema.details_schema;
+                        this.storageSchema = returnedSchema.storage_schema;
+                        */
+                    }
+                } else {
+                    console.log(" no artifactTypeId")
                 }
             });
         },
@@ -873,7 +906,7 @@ export default {
           });
       this.$nextTick(async () => {
           //this.addEventListeners();
-          this.loadSchema();
+          await this.loadSchema();
       });
         /*
         if (this.physical_artifact && this.physical_artifact.officer_email) {
