@@ -70,6 +70,7 @@ from wildlifecompliance.components.artifact.serializers import (
         PhysicalArtifactSerializer,
         #DocumentArtifactTypeSerializer,
         PhysicalArtifactTypeSerializer,
+        PhysicalArtifactTypeSchemaSerializer,
         PhysicalArtifactDisposalMethodSerializer,
         ArtifactUserActionSerializer,
         ArtifactCommsLogEntrySerializer,
@@ -333,6 +334,12 @@ class PhysicalArtifactViewSet(viewsets.ModelViewSet):
                     physical_artifact_type_id = physical_artifact_type.get('id')
                     request_data['physical_artifact_type_id'] = physical_artifact_type_id
 
+                disposal_method = request_data.get('disposal_method')
+                disposal_method_id = None
+                if disposal_method:
+                    disposal_method_id = disposal_method.get('id')
+                    request_data['disposal_method_id'] = disposal_method_id
+
                 if instance:
                     serializer = SavePhysicalArtifactSerializer(
                             instance=instance,
@@ -391,6 +398,7 @@ class PhysicalArtifactViewSet(viewsets.ModelViewSet):
 
 class ArtifactFilterBackend(DatatablesFilterBackend):
     def filter_queryset(self, request, queryset, view):
+        print(request)
         total_count = queryset.count()
 
         # Storage for the filters
@@ -400,20 +408,33 @@ class ArtifactFilterBackend(DatatablesFilterBackend):
         # Filter by the search_text
         search_text = request.GET.get('search[value]', '')
 
+        # Get object type document_artifact or physical_artifact
+        object_type = request.GET.get('object_type', '')
+
         q_objects = Q()
         ids = []
 
         if search_text:
-            # Found ids of the Artifact model
-            ids_p = PhysicalArtifact.objects.filter(Q(physical_artifact_type__artifact_type__icontains=search_text)).values_list('artifact_ptr_id', flat=True).distinct()
-            #ids_d = DocumentArtifact.objects.filter(Q(document_type__artifact_type__icontains=search_text)).values_list('artifact_ptr_id', flat=True).distinct()
-            ids_d = DocumentArtifact.objects.filter(Q(document_type__icontains=search_text)).values_list('artifact_ptr_id', flat=True).distinct()
-
-            # Q object for filtering Artifact
-            q_objects &= Q(identifier__icontains=search_text) | \
-                         Q(number__icontains=search_text) | \
-                         Q(id__in=ids_p) | \
-                         Q(id__in=ids_d)
+            if object_type == 'physical_artifact':
+                ids_p = PhysicalArtifact.objects.filter(Q(physical_artifact_type__artifact_type__icontains=search_text)).values_list('artifact_ptr_id', flat=True).distinct()
+                # Q object for filtering Artifact
+                q_objects &= Q(identifier__icontains=search_text) | \
+                             Q(number__icontains=search_text) | \
+                             Q(id__in=ids_p)
+            elif object_type == 'document_artifact':
+                ids_d = DocumentArtifact.objects.filter(Q(document_type__icontains=search_text)).values_list('artifact_ptr_id', flat=True).distinct()
+                # Q object for filtering Artifact
+                q_objects &= Q(identifier__icontains=search_text) | \
+                             Q(number__icontains=search_text) | \
+                             Q(id__in=ids_d)
+            else:
+                ids_p = PhysicalArtifact.objects.filter(Q(physical_artifact_type__artifact_type__icontains=search_text)).values_list('artifact_ptr_id', flat=True).distinct()
+                ids_d = DocumentArtifact.objects.filter(Q(document_type__icontains=search_text)).values_list('artifact_ptr_id', flat=True).distinct()
+                # Q object for filtering Artifact
+                q_objects &= Q(identifier__icontains=search_text) | \
+                             Q(number__icontains=search_text) | \
+                             Q(id__in=ids_p) | \
+                             Q(id__in=ids_d)
 
         # TODO: implement filtering by the dropdown filters
         # type = request.GET.get('type', '').lower()
@@ -469,7 +490,16 @@ class ArtifactPaginatedViewSet(viewsets.ModelViewSet):
     def get_queryset(self):
         # user = self.request.user
         if is_internal(self.request):
-            return Artifact.objects.all()
+            qs = None
+            # Get object type document_artifact or physical_artifact
+            object_type = self.request.GET.get('object_type', '')
+            if object_type == 'physical_artifact':
+                qs = PhysicalArtifact.objects.all()
+            elif object_type == 'document_artifact':
+                qs = DocumentArtifact.objects.all()
+            else:
+                qs = Artifact.objects.all()
+            return qs
         return Artifact.objects.none()
 
     @list_route(methods=['GET', ])
@@ -691,4 +721,35 @@ class PhysicalArtifactTypeViewSet(viewsets.ModelViewSet):
        if is_internal(self.request):
            return PhysicalArtifactType.objects.all()
        return PhysicalArtifactType.objects.none()
+
+   @detail_route(methods=['GET',])
+   @renderer_classes((JSONRenderer,))
+   def get_schema(self, request, *args, **kwargs):
+       instance = self.get_object()
+       try:
+           serializer = PhysicalArtifactTypeSchemaSerializer(instance)
+           return Response(
+               serializer.data,
+               status=status.HTTP_201_CREATED,
+               )
+       except serializers.ValidationError:
+           print(traceback.print_exc())
+           raise
+       except ValidationError as e:
+           print(traceback.print_exc())
+           raise serializers.ValidationError(repr(e.error_dict))
+       except Exception as e:
+           print(traceback.print_exc())
+           raise serializers.ValidationError(str(e))
+
+
+class PhysicalArtifactDisposalMethodViewSet(viewsets.ModelViewSet):
+   queryset = PhysicalArtifactDisposalMethod.objects.all()
+   serializer_class = PhysicalArtifactDisposalMethodSerializer
+
+   def get_queryset(self):
+       # user = self.request.user
+       if is_internal(self.request):
+           return PhysicalArtifactDisposalMethod.objects.all()
+       return PhysicalArtifactDisposalMethod.objects.none()
 

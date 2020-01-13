@@ -30,7 +30,7 @@
                                                   <label>Physical Type</label>
                                                 </div>
                                                 <div class="col-sm-6">
-                                                  <select class="form-control" v-model="physical_artifact.physical_artifact_type">
+                                                  <select class="form-control" v-model="physical_artifact.physical_artifact_type" @change="loadSchema">
                                                     <option  v-for="option in physicalArtifactTypes" :value="option" v-bind:key="option.id">
                                                       {{ option.artifact_type }}
                                                     </option>
@@ -133,15 +133,72 @@
                                         disposal
                                     </div-->
                                     <div :id="detailsTab" :class="detailsTabClass">
-                                        details
+                                        <FormSection :formCollapse="false" label="Checklist">
+                                            <div class="col-sm-12 form-group"><div class="row">
+                                                <div v-if="detailsSchemaVisibility" v-for="(item, index) in detailsSchema">
+                                                  <compliance-renderer-block
+                                                     :component="item"
+                                                     :readonlyForm="readonlyForm"
+                                                     v-bind:key="`compliance_renderer_block${index}`"
+                                                    />
+                                                </div>
+                                            </div></div>
+                                        </FormSection>
                                     </div>
                                     <div :id="storageTab" :class="storageTabClass">
-                                        storage
+                                        <FormSection :formCollapse="false" label="Checklist">
+                                            <div class="col-sm-12 form-group"><div class="row">
+                                                <div v-if="storageSchemaVisibility" v-for="(item, index) in storageSchema">
+                                                  <compliance-renderer-block
+                                                     :component="item"
+                                                     :readonlyForm="readonlyForm"
+                                                     v-bind:key="`compliance_renderer_block${index}`"
+                                                    />
+                                                </div>
+                                            </div></div>
+                                        </FormSection>
                                     </div>
                                     <div :id="disposalTab" :class="disposalTabClass">
-                                        disposal
+                                        <FormSection :formCollapse="false" label="Related Items">
+                                            <div class="col-sm-12 form-group"><div class="row">
+                                                <div class="col-sm-3">
+                                                  <label>Disposal Method</label>
+                                                </div>
+                                                <div class="col-sm-6">
+                                                  <select class="form-control" v-model="physical_artifact.disposal_method">
+                                                    <option  v-for="option in disposalMethods" :value="option" v-bind:key="option.id">
+                                                      {{ option.disposal_method }}
+                                                    </option>
+                                                  </select>
+                                                </div>
+                                            </div></div>
+                                            <div class="col-sm-12 form-group"><div class="row">
+                                                <label class="col-sm-3">Date</label>
+                                                <div class="col-sm-3">
+                                                    <div class="input-group date" ref="disposalDatePicker">
+                                                        <input :disabled="readonlyForm" type="text" class="form-control" placeholder="DD/MM/YYYY" v-model="physical_artifact.disposal_date" />
+                                                        <span class="input-group-addon">
+                                                            <span class="glyphicon glyphicon-calendar"></span>
+                                                        </span>
+                                                    </div>
+                                                </div>
+                                            </div></div>
+                                            <div class="col-sm-3">
+                                              <label>Disposal details</label>
+                                            </div>
+                                            <div class="col-sm-9">
+                                              <textarea :readonly="readonlyForm" class="form-control" v-model="physical_artifact.disposal_details"/>
+                                            </div>
+                                        </FormSection>
                                     </div>
                                     <!--div :id="relatedItemsTab" class="tab-pane fade in"-->
+                                    <div v-if="parentModal" :id="existingTab" class="tab-pane fade in li-top-buffer">
+                                        <div class="row">
+                                            <div class="col-lg-12">
+                                                <datatable ref="existing_artifact_table" id="existing-artifact-table" :dtOptions="dtOptions" :dtHeaders="dtHeaders" />
+                                            </div>
+                                        </div>
+                                    </div>
                                     <div v-if="!parentModal" :id="relatedItemsTab" :class="relatedItemsTabClass">
                                         <FormSection :formCollapse="false" label="Related Items">
                                             <div class="col-sm-12 form-group"><div class="row">
@@ -183,6 +240,7 @@ import SearchPersonOrganisation from './search_person_or_organisation'
 //require("select2-bootstrap-theme/dist/select2-bootstrap.min.css");
 import FormSection from "@/components/forms/section_toggle.vue";
 import RelatedItems from "@common-components/related_items.vue";
+import datatable from '@vue-utils/datatable.vue'
 
 export default {
     name: "PhysicalArtifactComponent",
@@ -204,9 +262,107 @@ export default {
             physicalArtifactTypes: [],
             departmentStaffList: [],
             selectedCustodian: {},
+            disposalMethods: [],
+            detailsSchema: [],
+            storageSchema: [],
             entity: {
                 id: null,
             },
+            dtOptions: {
+                serverSide: true,
+                searchDelay: 1000,
+                lengthMenu: [ [10, 25, 50, 100, -1], [10, 25, 50, 100, "All"] ],
+                order: [
+                    [0, 'desc']
+                ],
+                language: {
+                    processing: "<i class='fa fa-4x fa-spinner fa-spin'></i>"
+                },
+                responsive: true,
+                processing: true,
+                ajax: {
+                    url: '/api/artifact_paginated/get_paginated_datatable/?format=datatables',
+                    dataSrc: 'data',
+                    data: function(d) {
+                        d.object_type = 'physical_artifact'
+                        /*
+                        d.type = vm.filterType;
+                        d.status = vm.filterStatus;
+                        d.date_from = vm.filterDateFromPicker;
+                        d.date_to = vm.filterDateToPicker;
+                        */
+                    }
+                },
+                columns: [
+                    {
+                        data: 'number',
+                        searchable: true,
+                        orderable: true,
+                    },
+                    {
+                        data: 'artifact_type',
+                        searchable: true,
+                        orderable: false,
+                    },
+                    {
+                        data: 'identifier',
+                        searchable: true,
+                        orderable: true
+                    },
+                    /*
+                    {
+                        data: 'artifact_date',
+                        searchable: false,
+                        orderable: true,
+                        mRender: function (data, type, full) {
+                            return data != '' && data != null ? moment(data).format('DD/MM/YYYY') : '';
+                        }
+                    },
+                    {
+                        searchable: false,
+                        orderable: false,
+                        mRender: function (data, type,full){
+                            return '---';
+                        }
+                    },
+                    {
+                        searchable: false,
+                        orderable: false,
+                        data: 'status'
+                    },
+                    */
+                    {
+                        searchable: false,
+                        orderable: false,
+                        data: 'digital_documents'
+                    },
+                    {
+                        searchable: false,
+                        orderable: false,
+                        data: 'entity',
+                        mRender: function (data, type,full){
+                            let documentArtifactId = data.id;
+                            let documentArtifactType = data.artifact_type ? data.artifact_type.replace(/\s/g, '~') : null;
+                            let documentArtifactIdentifier = data.identifier ? data.identifier.replace(/\s/g, '~') : null;
+                            return `<a data-id=${documentArtifactId} data-artifact-type=${documentArtifactType} data-data-type="document_artifact" data-identifier=${documentArtifactIdentifier} class="row_insert" href="#">Insert</a><br/>`
+                            //return `<a class="row_insert" href="#">Insert</a><br/>`
+                        }
+                    }
+                ],
+            },
+            dtHeaders: [
+                'Number',
+                'Document Type',
+                'Identifier',
+                /*
+                'Date',
+                'Custodian',
+                'Status',
+                */
+                'Documents',
+                'Action',
+            ],
+
         }
     },
     components: {
@@ -215,6 +371,7 @@ export default {
       SearchPersonOrganisation,
       FormSection,
       RelatedItems,
+      datatable,
     },
     props: {
         parentModal: {
@@ -243,6 +400,22 @@ export default {
         ...mapGetters('legalCaseStore', {
             legal_case: "legal_case",
         }),
+        detailsSchemaVisibility: function() {
+            console.log("detailsSchemaVisibility")
+            if (this.detailsSchema && this.detailsSchema.length > 0) {
+                return true;
+            } else {
+                return false
+            }
+        },
+        storageSchemaVisibility: function() {
+            console.log("storageSchemaVisibility")
+            if (this.storageSchema && this.storageSchema.length > 0) {
+                return true;
+            } else {
+                return false
+            }
+        },
         legalCaseId: function() {
           let ret_val = null;
           if (this.legal_case && this.legal_case.id) {
@@ -288,6 +461,13 @@ export default {
             let aType = ''
             if (this.physical_artifact && this.physical_artifact.physical_artifact_type) {
                 aType = this.physical_artifact.physical_artifact_type.artifact_type;
+            }
+            return aType;
+        },
+        artifactTypeId: function() {
+            let aType = ''
+            if (this.physical_artifact && this.physical_artifact.physical_artifact_type) {
+                aType = this.physical_artifact.physical_artifact_type.id;
             }
             return aType;
         },
@@ -491,6 +671,7 @@ export default {
             });
             //return physicalArtifactEntity;
         },
+        /*
         emitDocumentArtifact: async function(e) {
             console.log(e)
             let physicalArtifactId = e.target.dataset.id;
@@ -507,8 +688,35 @@ export default {
             });
             //this.$parent.$parent.ok();
         },
+        */
         cancel: async function() {
             await this.$refs.default_document.cancel();
+        },
+        emitPhysicalArtifact: async function(e) {
+            console.log(e)
+            let physicalArtifactId = e.target.dataset.id;
+            // update existing DocumentArtifact with legal_case_id
+            let fetchUrl = helpers.add_endpoint_join(
+                api_endpoints.physical_artifact,
+                physicalArtifactId + '/'
+                )
+            let payload = {
+                "legal_case_id": this.legalCaseId
+            }
+            console.log(payload);
+            await Vue.http.put(fetchUrl, payload);
+            let physicalArtifactType = e.target.dataset.artifactType.replace(/~/g, ' ');
+            let physicalArtifactIdentifier = e.target.dataset.identifier.replace(/~/g, ' ').replace('null', '');
+            this.$nextTick(() => {
+                this.$emit('existing-entity-selected', {
+                        id: physicalArtifactId,
+                        data_type: 'physical_artifact',
+                        identifier: physicalArtifactIdentifier,
+                        artifact_type: physicalArtifactType,
+                        display: physicalArtifactType,
+                    });
+            });
+            //this.$parent.$parent.ok();
         },
         addEventListeners: function() {
             let vm = this;
@@ -553,6 +761,30 @@ export default {
                     var selected = $(e.currentTarget);
                     vm.setOfficerEmail('');
                 });
+            let existingArtifactTable = $('#existing-artifact-table');
+            existingArtifactTable.on(
+                'click',
+                '.row_insert',
+                (e) => {
+                    this.emitPhysicalArtifact(e);
+                });
+
+            //Disposal Date
+            let disposal_date_control = $(vm.$refs.disposalDatePicker);
+            // "From" field
+            disposal_date_control.datetimepicker({
+            format: "DD/MM/YYYY",
+            maxDate: "now",
+            showClear: true
+            });
+            disposal_date_control.on("dp.change", function(e) {
+                console.log(e)
+                if (el_fr_date.data("DateTimePicker").date()) {
+                  vm.physical_artifact.disposal_date = e.date.format("DD/MM/YYYY");
+                } else if (disposal_date_control.data("date") === "") {
+                  vm.physical_artifact.disposal_date = "";
+                }
+            });
             
         },
         /*
@@ -578,6 +810,32 @@ export default {
             }
             return comparison;
         },
+        loadSchema: async function() {
+            console.log("load schema")
+            this.$nextTick(async () => {
+                if (this.artifactTypeId) {
+                    console.log("really load schema")
+                    let url = helpers.add_endpoint_json(
+                                api_endpoints.physical_artifact_types,
+                                this.artifactTypeId + '/get_schema',
+                                );
+                    let returnedSchema = await cache_helper.getSetCache(
+                    'PhysicalArtifactTypeSchema',
+                    this.artifactTypeId.toString(),
+                    url);
+                    if (returnedSchema) {
+                        Object.assign(this.detailsSchema, returnedSchema.details_schema);
+                        Object.assign(this.storageSchema, returnedSchema.storage_schema);
+                        /*
+                        this.detailsSchema = returnedSchema.details_schema;
+                        this.storageSchema = returnedSchema.storage_schema;
+                        */
+                    }
+                } else {
+                    console.log(" no artifactTypeId")
+                }
+            });
+        },
 
       //createPhysicalActionUrl: async function(done) {
       //  if (!this.inspection.id) {
@@ -594,6 +852,7 @@ export default {
     mounted: function() {
       this.$nextTick(async () => {
           this.addEventListeners();
+          //this.loadSchema();
       });
     },
     beforeDestroy: async function() {
@@ -625,6 +884,18 @@ export default {
             artifact_type: "",
             description: "",
           });
+        let returned_disposal_methods = await cache_helper.getSetCacheList(
+          'DisposalMethods',
+          api_endpoints.disposal_methods
+          );
+        Object.assign(this.disposalMethods, returned_disposal_methods);
+        // blank entry allows user to clear selection
+        this.disposalMethods.splice(0, 0,
+          {
+            id: "",
+            disposal_method: "",
+            description: "",
+          });
         // retrieve department_users from backend cache
         let returned_department_users = await this.$http.get(api_endpoints.department_users)
         Object.assign(this.departmentStaffList, returned_department_users.body)
@@ -633,6 +904,10 @@ export default {
             pk: "",
             name: "",
           });
+      this.$nextTick(async () => {
+          //this.addEventListeners();
+          await this.loadSchema();
+      });
         /*
         if (this.physical_artifact && this.physical_artifact.officer_email) {
             this.$refs.physical_artifact_department_users = this.physical_artifact.officer_email;

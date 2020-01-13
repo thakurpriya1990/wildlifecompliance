@@ -179,6 +179,8 @@ class PhysicalArtifactDisposalMethod(models.Model):
         verbose_name_plural = 'CM_PhysicalArtifactDisposalMethods'
         #unique_together = ('artifact_type', 'version')
 
+    def __str__(self):
+        return '{}, {}'.format(self.disposal_method, self.description)
 
 class DocumentArtifact(Artifact):
     WITNESS_STATEMENT = 'witness_statement'

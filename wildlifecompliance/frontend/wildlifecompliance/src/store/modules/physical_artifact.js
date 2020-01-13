@@ -22,8 +22,13 @@ export const physicalArtifactStore = {
                 ...physical_artifact
             });
             console.log('updatePhysicalArtifact');
+            // format artifact_date for vue
             if (state.physical_artifact.artifact_date) {
                 state.physical_artifact.artifact_date = moment(state.physical_artifact.artifact_date, 'YYYY-MM-DD').format('DD/MM/YYYY');
+            }
+            // format disposal_date for vue
+            if (state.physical_artifact.disposal_date) {
+                state.physical_artifact.disposal_date = moment(state.physical_artifact.disposal_date, 'YYYY-MM-DD').format('DD/MM/YYYY');
             }
             // default doc implemented in Artifact model/viewset
             let defaultDocumentUrl = helpers.add_endpoint_join(
@@ -83,10 +88,17 @@ export const physicalArtifactStore = {
                 let payload = new Object();
                 Object.assign(payload, state.physical_artifact);
                 console.log(payload);
+                // format artifact date for backend save
                 if (payload.artifact_date) {
                     payload.artifact_date = moment(payload.artifact_date, 'DD/MM/YYYY').format('YYYY-MM-DD');
                 } else if (payload.artifact_date === '') {
                     payload.artifact_date = null;
+                }
+                // format disposal date for backend save
+                if (payload.disposal_date) {
+                    payload.disposal_date = moment(payload.disposal_date, 'DD/MM/YYYY').format('YYYY-MM-DD');
+                } else if (payload.disposal_date === '') {
+                    payload.disposal_date = null;
                 }
                 if (legal_case_id) {
                     payload.legal_case_id = legal_case_id;

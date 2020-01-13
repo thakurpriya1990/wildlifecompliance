@@ -86,6 +86,7 @@ class ArtifactPaginatedSerializer(serializers.ModelSerializer):
     status = serializers.SerializerMethodField()
     user_action = serializers.SerializerMethodField()
     entity = serializers.SerializerMethodField()
+    digital_documents = serializers.SerializerMethodField()
 
     class Meta:
         model = Artifact
@@ -99,24 +100,8 @@ class ArtifactPaginatedSerializer(serializers.ModelSerializer):
             'identifier',
             'description',
             'entity',
+            'digital_documents',
         )
-
-    #def get_artifact_type(self, artifact_obj):
-    #    pa = PhysicalArtifact.objects.filter(artifact_ptr_id=artifact_obj.id)
-    #    if pa and pa.first().physical_artifact_type and pa.first().physical_artifact_type.artifact_type:
-    #        return pa.first().physical_artifact_type.artifact_type
-
-    #    da = DocumentArtifact.objects.filter(artifact_ptr_id=artifact_obj.id)
-    #    #if da and da.first().document_type and da.first().document_type.artifact_type:
-    #     #   return da.first().document_type.artifact_type
-    #    if da and da.first().document_type:
-    #        document_type = da.first().document_type
-    #        display_name = ''
-    #        for choice in DocumentArtifact.DOCUMENT_TYPE_CHOICES:
-    #            if document_type == choice[0]:
-    #                display_name = choice[1]
-    #        return display_name
-    #    return '---'
 
     def get_status(self, obj):
         display_name = ''
@@ -143,21 +128,16 @@ class ArtifactPaginatedSerializer(serializers.ModelSerializer):
                 }
         return entity
 
+    def get_digital_documents(self, obj):
+        url_list = []
 
-#class DocumentArtifactTypeSerializer(serializers.ModelSerializer):
-#    class Meta:
-#        model = DocumentArtifactType
-#        fields = (
-#                'id',
-#                'artifact_type',
-#                'version',
-#                'description',
-#                'date_created',
-#
-#                )
-#        read_only_fields = (
-#                'id',
-#                )
+        if obj.documents.all().count():
+            for doc in obj.documents.all():
+                url = '<a href="{}" target="_blank">{}</a>'.format(doc._file.url, doc.name)
+                url_list.append(url)
+
+        urls = '<br />'.join(url_list)
+        return urls
 
 
 class PhysicalArtifactTypeSerializer(serializers.ModelSerializer):
@@ -176,14 +156,30 @@ class PhysicalArtifactTypeSerializer(serializers.ModelSerializer):
                 'id',
                 )
 
+
+class PhysicalArtifactTypeSchemaSerializer(serializers.ModelSerializer):
+    artifact_type_id = serializers.IntegerField(
+        required=False, write_only=True, allow_null=True)        
+
+    class Meta:
+        model = PhysicalArtifactType
+        fields = (
+            'id',
+            'details_schema',
+            'storage_schema',
+            'artifact_type_id',
+        )
+        read_only_fields = (
+            'id', 
+            )
+
 class PhysicalArtifactDisposalMethodSerializer(serializers.ModelSerializer):
     class Meta:
-        model = DocumentArtifactType
+        model = PhysicalArtifactDisposalMethod
         fields = (
                 'id',
                 'disposal_method',
                 'description',
-                'date_created',
                 )
         read_only_fields = (
                 'id',
@@ -360,6 +356,8 @@ class PhysicalArtifactSerializer(ArtifactSerializer):
 class SavePhysicalArtifactSerializer(ArtifactSerializer):
     physical_artifact_type_id = serializers.IntegerField(
         required=False, write_only=True, allow_null=True)
+    disposal_method_id = serializers.IntegerField(
+        required=False, write_only=True, allow_null=True)
     custodian_id = serializers.IntegerField(
         required=False, write_only=True, allow_null=True)
     #legal_case_id = serializers.IntegerField(
@@ -378,6 +376,9 @@ class SavePhysicalArtifactSerializer(ArtifactSerializer):
                 'artifact_time',
                 'physical_artifact_type_id',
                 'officer_email',
+                'disposal_date',
+                'disposal_method_id',
+                'disposal_details',
                 )
         read_only_fields = (
                 'id',
