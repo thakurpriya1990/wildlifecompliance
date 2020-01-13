@@ -141,7 +141,7 @@ export default {
 
 <style lang="css">
 .select2-container {
-    width: inherit !important;
+    width: 100% !important;
 }
 
 input {

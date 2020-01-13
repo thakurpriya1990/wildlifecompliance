@@ -32,10 +32,22 @@ class ActivityInvoiceNotificationEmail(TemplateEmailBase):
     txt_template = 'wildlifecompliance/emails/send_activity_invoice_notification.txt'
 
 
+class ActivityInvoiceIssueNotificationEmail(TemplateEmailBase):
+    subject = 'Issuance of your licence activity is pending payment.'
+    html_template = 'wildlifecompliance/emails/send_activity_invoice_issue_notification.html'
+    txt_template = 'wildlifecompliance/emails/send_activity_invoice_issue_notification.txt'
+
+
 class ApplicationSubmitNotificationEmail(TemplateEmailBase):
     subject = 'A new application has been submitted'
     html_template = 'wildlifecompliance/emails/send_application_submit_notification.html'
     txt_template = 'wildlifecompliance/emails/send_application_submit_notification.txt'
+
+
+class ApplicationRefundNotificationEmail(TemplateEmailBase):
+    subject = 'An application requiring a refund has been submitted'
+    html_template = 'wildlifecompliance/emails/send_application_refund_notification.html'
+    txt_template = 'wildlifecompliance/emails/send_application_refund_notification.txt'
 
 
 class AmendmentSubmitNotificationEmail(TemplateEmailBase):
@@ -101,6 +113,14 @@ def send_assessment_reminder_email(select_group, assessment, request=None):
             'internal-application-detail',
             kwargs={
                 'application_pk': application.id}))
+
+    if '-internal' not in url:
+        url = "{0}://{1}{2}.{3}{4}".format(request.scheme,
+                                           settings.SITE_PREFIX,
+                                           '-internal',
+                                           settings.SITE_DOMAIN,
+                                           url.split(request.get_host())[1])
+
     context = {
         'url': url
     }
@@ -120,6 +140,14 @@ def send_assessment_email_notification(select_group, assessment, request):
             'internal-application-detail',
             kwargs={
                 'application_pk': application.id}))
+
+    if '-internal' not in url:
+        url = "{0}://{1}{2}.{3}{4}".format(request.scheme,
+                                           settings.SITE_PREFIX,
+                                           '-internal',
+                                           settings.SITE_DOMAIN,
+                                           url.split(request.get_host())[1])
+
     context = {
         'text': text,
         'url': url
@@ -203,6 +231,25 @@ def send_activity_invoice_email_notification(
     return True
 
 
+def send_activity_invoice_issue_notification(
+        application, activity, request):
+
+    email = ActivityInvoiceIssueNotificationEmail()
+    url = request.build_absolute_uri(
+        '/external/#'
+    )
+
+    context = {
+        'application': application,
+        'url': url
+    }
+    recipients = [application.submitter.email]
+    msg = email.send(recipients, context=context)
+    sender = request.user if request else settings.DEFAULT_FROM_EMAIL
+    _log_application_email(msg, application, sender=sender)
+    return True
+
+
 def send_application_submitter_email_notification(application, request):
     # An email to submitter notifying about new application is submitted
     email = ApplicationSubmitterNotificationEmail()
@@ -222,6 +269,33 @@ def send_application_submitter_email_notification(application, request):
     _log_application_email(msg, application, sender=sender)
 
 
+def send_amendment_refund_email_notification(
+        group_email, application, request):
+    # An email to internal users notifying about required refund.
+    email = ApplicationRefundNotificationEmail()
+    url = request.build_absolute_uri(
+        reverse(
+            'internal-application-detail',
+            kwargs={
+                'application_pk': application.id}))
+
+    if '-internal' not in url:
+        url = "{0}://{1}{2}.{3}{4}".format(request.scheme,
+                                           settings.SITE_PREFIX,
+                                           '-internal',
+                                           settings.SITE_DOMAIN,
+                                           url.split(request.get_host())[1])
+
+    context = {
+        'application': application,
+        'url': url
+    }
+    email_group = [item.email for item in group_email]
+    msg = email.send(email_group, context=context)
+    sender = request.user if request else settings.DEFAULT_FROM_EMAIL
+    _log_application_email(msg, application, sender=sender)
+
+
 def send_application_submit_email_notification(
         group_email, application, request):
     # An email to internal users notifying about new application is submitted
@@ -231,6 +305,13 @@ def send_application_submit_email_notification(
             'internal-application-detail',
             kwargs={
                 'application_pk': application.id}))
+
+    if '-internal' not in url:
+        url = "{0}://{1}{2}.{3}{4}".format(request.scheme,
+                                           settings.SITE_PREFIX,
+                                           '-internal',
+                                           settings.SITE_DOMAIN,
+                                           url.split(request.get_host())[1])
 
     context = {
         'application': application,
@@ -251,6 +332,13 @@ def send_amendment_submit_email_notification(
             'internal-application-detail',
             kwargs={
                 'application_pk': application.id}))
+
+    if '-internal' not in url:
+        url = "{0}://{1}{2}.{3}{4}".format(request.scheme,
+                                           settings.SITE_PREFIX,
+                                           '-internal',
+                                           settings.SITE_DOMAIN,
+                                           url.split(request.get_host())[1])
 
     context = {
         'application': application,
@@ -370,6 +458,14 @@ def send_id_updated_notification(user, applications, assigned_officers, request)
     url = request.build_absolute_uri(
         '/internal/users/{}'.format(user.id)
     )
+
+    if '-internal' not in url:
+        url = "{0}://{1}{2}.{3}{4}".format(request.scheme,
+                                           settings.SITE_PREFIX,
+                                           '-internal',
+                                           settings.SITE_DOMAIN,
+                                           url.split(request.get_host())[1])
+
     applications_list_string = ', '.join([str(application.id) for application in applications])
     context = {
         'user': '{first_name} {last_name}'.format(
@@ -394,6 +490,13 @@ def send_application_return_to_officer_conditions_notification(
             'internal-application-detail',
             kwargs={
                 'application_pk': application.id}))
+
+    if '-internal' not in url:
+        url = "{0}://{1}{2}.{3}{4}".format(request.scheme,
+                                           settings.SITE_PREFIX,
+                                           '-internal',
+                                           settings.SITE_DOMAIN,
+                                           url.split(request.get_host())[1])
 
     context = {
         'application': application,

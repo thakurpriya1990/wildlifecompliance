@@ -114,6 +114,10 @@ export const applicationStore = {
                 (!for_user_role || rootGetters.hasRole(for_user_role, activity[licence_activity_id_key]))
             );
         },
+        sendToAssessorActivities: (state, getters) => {
+            // Application status which permits sending assessments for licensing Officer.
+            return getters.licenceActivities(['with_officer', 'with_officer_conditions', 'with_assessor'], 'licensing_officer');
+        },
     },
     mutations: {
         [UPDATE_APPLICATION] (state, application) {

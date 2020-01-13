@@ -40,13 +40,17 @@ from wildlifecompliance.components.applications.email import (
     send_id_update_request_notification,
     send_application_return_to_officer_conditions_notification,
     send_activity_invoice_email_notification,
+    send_activity_invoice_issue_notification,
+    send_amendment_refund_email_notification,
 )
 from wildlifecompliance.components.main.utils import get_choice_value
 from wildlifecompliance.ordered_model import OrderedModel
 from wildlifecompliance.components.licences.models import (
     LicenceCategory,
     LicenceActivity,
-    LicencePurpose
+    LicencePurpose,
+    WildlifeLicence,
+    LicenceDocument,
 )
 logger = logging.getLogger(__name__)
 
@@ -187,6 +191,7 @@ class Application(RevisionedMixin):
     PROCESSING_STATUS_DECLINED = 'declined'
     PROCESSING_STATUS_DISCARDED = 'discarded'
     PROCESSING_STATUS_UNDER_REVIEW = 'under_review'
+    PROCESSING_STATUS_AWAITING_PAYMENT = 'awaiting_payment'
     PROCESSING_STATUS_CHOICES = (
         (PROCESSING_STATUS_DRAFT, 'Draft'),
         (PROCESSING_STATUS_AWAITING_APPLICANT_RESPONSE, 'Awaiting Applicant Response'),
@@ -195,6 +200,7 @@ class Application(RevisionedMixin):
         (PROCESSING_STATUS_DECLINED, 'Declined'),
         (PROCESSING_STATUS_DISCARDED, 'Discarded'),
         (PROCESSING_STATUS_UNDER_REVIEW, 'Under Review'),
+        (PROCESSING_STATUS_AWAITING_PAYMENT, 'Awaiting Payment'),        
     )
 
     ID_CHECK_STATUS_NOT_CHECKED = 'not_checked'
@@ -252,6 +258,12 @@ class Application(RevisionedMixin):
         (APPLICATION_TYPE_REISSUE, 'Reissue'),
     )
 
+    PAYMENT_STATUS_NOT_REQUIRED = 'payment_not_required'
+    PAYMENT_STATUS_UNPAID = 'unpaid'
+    PAYMENT_STATUS_PARTIALLY_PAID = 'partially_paid'
+    PAYMENT_STATUS_PAID = 'paid'
+    PAYMENT_STATUS_OVERPAID = 'over_paid'
+
     application_type = models.CharField(
         'Application Type',
         max_length=40,
@@ -284,11 +296,6 @@ class Application(RevisionedMixin):
         blank=True,
         null=True,
         related_name='wildlifecompliance_applications')
-    assigned_officer = models.ForeignKey(
-        EmailUser,
-        blank=True,
-        null=True,
-        related_name='wildlifecompliance_applications_assigned')
     id_check_status = models.CharField(
         'Identification Check Status',
         max_length=30,
@@ -313,6 +320,11 @@ class Application(RevisionedMixin):
         'wildlifecompliance.WildlifeLicence',
         null=True,
         blank=True)
+    # generated licence for the application.
+    licence_document = models.ForeignKey(
+        LicenceDocument,
+        blank=True,
+        null=True)
     previous_application = models.ForeignKey(
         'self', on_delete=models.PROTECT, blank=True, null=True, related_name='parents')
     application_fee = models.DecimalField(
@@ -388,6 +400,9 @@ class Application(RevisionedMixin):
         # not yet submitted
         if activity_statuses.count(ApplicationSelectedActivity.PROCESSING_STATUS_DRAFT) == len(activity_statuses):
             return self.PROCESSING_STATUS_DRAFT
+        # awaiting payment
+        if activity_statuses.count(ApplicationSelectedActivity.PROCESSING_STATUS_AWAITING_LICENCE_FEE_PAYMENT) == len(activity_statuses):
+            return self.PROCESSING_STATUS_AWAITING_PAYMENT
         # application discarded
         elif activity_statuses.count(ApplicationSelectedActivity.PROCESSING_STATUS_DISCARDED) == len(activity_statuses):
             return self.PROCESSING_STATUS_DISCARDED
@@ -413,7 +428,15 @@ class Application(RevisionedMixin):
 
     @property
     def is_assigned(self):
-        return self.assigned_officer is not None
+        """
+        A check for any licence activities on this application has been
+        allocated to an internal officer.
+        """
+        assigned = ApplicationSelectedActivity.objects.filter(
+            application_id=self.id
+        ).exclude(assigned_officer__isnull=True).first()
+
+        return True if assigned else False
 
     @property
     def can_user_edit(self):
@@ -456,26 +479,54 @@ class Application(RevisionedMixin):
     @property
     def application_fee_paid(self):
         return self.payment_status in [
-            Invoice.PAYMENT_STATUS_NOT_REQUIRED,
-            Invoice.PAYMENT_STATUS_PAID,
-            Invoice.PAYMENT_STATUS_OVERPAID,
+            Application.PAYMENT_STATUS_NOT_REQUIRED,
+            Application.PAYMENT_STATUS_PAID,
+            Application.PAYMENT_STATUS_OVERPAID,
         ]
 
     @property
     def payment_status(self):
         # TODO: needs more work, underpaid/overpaid statuses to be added, refactor to key/name like processing_status
         if self.application_fee == 0:
-            return Invoice.PAYMENT_STATUS_NOT_REQUIRED
+            return Application.PAYMENT_STATUS_NOT_REQUIRED
         else:
             if self.invoices.count() == 0:
-                return Invoice.PAYMENT_STATUS_UNPAID
+                return Application.PAYMENT_STATUS_UNPAID
             else:
                 try:
                     latest_invoice = Invoice.objects.get(
                         reference=self.invoices.latest('id').invoice_reference)
                 except Invoice.DoesNotExist:
-                    return Invoice.PAYMENT_STATUS_UNPAID
+                    return Application.PAYMENT_STATUS_UNPAID
                 return latest_invoice.payment_status
+
+    @property
+    def latest_invoice(self):
+        """
+        Property defining the latest invoice for the Application.
+        """
+        latest_invoice = None
+        if self.invoices.count() > 0:
+            try:
+                latest_invoice = Invoice.objects.get(
+                    reference=self.invoices.latest('id').invoice_reference)
+            except Invoice.DoesNotExist:
+                return None
+
+        return latest_invoice
+
+    @property
+    def total_paid_amount(self):
+        """
+        Property defining the total amount already paid for the Application.
+        """
+        amount = 0
+        if self.invoices.count() > 0:
+            invoices = ApplicationInvoice.objects.filter(application_id=self.id)
+            for invoice in invoices:
+                detail = Invoice.objects.get(reference=invoice.invoice_reference)
+                amount += detail.amount
+        return amount
 
     @property
     def regions_list(self):
@@ -483,14 +534,24 @@ class Application(RevisionedMixin):
 
     @property
     def permit(self):
-        return self.licence.licence_document._file.url if self.licence else None
+        return self.licence_document if self.licence_document else None
 
     @property
     def licence_officers(self):
+        """
+        Authorised licensing officers for this Application.
+        """
         groups = self.get_permission_groups('licensing_officer').values_list('id', flat=True)
         return EmailUser.objects.filter(
             groups__id__in=groups
         ).distinct()
+
+    @property
+    def licence_approvers(self):
+        groups = self.get_permission_groups('issuing_officer')\
+            .values_list('id', flat=True)
+
+        return EmailUser.objects.filter(groups__id__in=groups).distinct()
 
     @property
     def officers_and_assessors(self):
@@ -612,6 +673,23 @@ class Application(RevisionedMixin):
         selected_activity.save()
         logger.info("Application: %s Activity ID: %s changed activity status to: %s" % (self.id, activity_id, activity_status))
 
+    def set_activity_approver(self, activity_id, licence_approver):
+        '''
+        Sets an allocated Approver for an Application Selected Activity.
+
+        :param activity_id is an unique identifier for ASA.
+        :param licence_approver is an EmailUser to be allocated to ASA.
+        '''
+        if not activity_id:
+            logger.error("Application: %s cannot update activity approver (%s) \
+                no activity_id provided." % (self.id, licence_approver))
+            return
+        selected_activity = self.get_selected_activity(activity_id)
+        selected_activity.assigned_approver = licence_approver
+        selected_activity.save()
+        logger.info("Application: %s Activity ID: %s changed activity approver \
+            to: %s" % (self.id, activity_id, licence_approver))
+
     def get_selected_activity(self, activity_id):
         '''
         :param activity_id: LicenceActivity ID, used to filter ApplicationSelectedActivity (ASA)
@@ -660,12 +738,23 @@ class Application(RevisionedMixin):
         return self.get_dynamic_schema_attributes(data_source)['fees']
 
     def get_dynamic_schema_attributes(self, data_source):
-        dynamic_attributes = {
-            'fees': Application.calculate_base_fees(
-                self.licence_purposes.values_list('id', flat=True)
-            ),
-            'activity_attributes': {},
-        }
+
+        if self.application_type == Application.APPLICATION_TYPE_AMENDMENT:
+            # Application amendments require an new application without fees.
+            dynamic_attributes = {
+                'fees': {
+                    'application': Decimal(0.0),
+                    'licence': Decimal(0.0),
+                },          
+                'activity_attributes': {},
+            }
+        else:
+            dynamic_attributes = {
+                'fees': Application.calculate_base_fees(
+                    self.licence_purposes.values_list('id', flat=True)
+                ),
+                'activity_attributes': {},
+            }
 
         def parse_modifiers(dynamic_attributes, component, schema_name, adjusted_by_fields, activity):
             def increase_fee(fees, field, amount):
@@ -787,8 +876,10 @@ class Application(RevisionedMixin):
                 Application.APPLICATION_TYPE_REISSUE,
             ]:
                 selected_activity.licence_fee = Decimal(0)
+                selected_activity.application_fee = Decimal(0)
             else:
                 selected_activity.licence_fee = fees['licence']
+                selected_activity.application_fee = fees['application']
             for field, value in field_data.items():
                 setattr(selected_activity, field, value)
                 selected_activity.save()
@@ -934,14 +1025,15 @@ class Application(RevisionedMixin):
                             licence_activity=activity["id"])
                         if (qs):
                             for q in qs:
+                                standard_condition = ApplicationStandardCondition.objects.get(id=q.standard_condition_id)
                                 ApplicationCondition.objects.create(
-                                    default_condition=q,
                                     is_default=True,
-                                    standard=False,
+                                    standard=True,
+                                    standard_condition=standard_condition,
                                     application=self,
                                     licence_activity=LicenceActivity.objects.get(
                                         id=activity["id"]),
-                                    return_type=q.return_type)
+                                    return_type=standard_condition.return_type)
 
                 self.save()
                 officer_groups = ActivityPermissionGroup.objects.filter(
@@ -956,8 +1048,13 @@ class Application(RevisionedMixin):
                     self.log_user_action(
                         ApplicationUserAction.ACTION_ID_REQUEST_AMENDMENTS_SUBMIT.format(
                             self.id), request)
-                    send_amendment_submit_email_notification(
-                        group_users, self, request)
+                    if self.requires_refund:
+                        send_amendment_refund_email_notification(
+                            group_users, self, request)
+                    else:
+                        send_amendment_submit_email_notification(
+                            group_users, self, request)
+
                 else:
                     # Create a log entry for the application
                     self.log_user_action(
@@ -977,12 +1074,15 @@ class Application(RevisionedMixin):
                         self.submitter.log_user_action(
                             ApplicationUserAction.ACTION_LODGE_APPLICATION.format(
                                 self.id), request)
-                    # Send email to submitter, then to linked Officer Groups
-                    send_application_submitter_email_notification(
-                        self, request)
 
-                    send_application_submit_email_notification(
-                        group_users, self, request)
+                    # notify linked officer groups of submission.
+                    if self.requires_refund:  # Refund for amended application.
+
+                        send_amendment_refund_email_notification(
+                            group_users, self, request)
+                    else:
+                        send_application_submit_email_notification(
+                            group_users, self, request)
 
                     self.documents.all().update(can_delete=False)
 
@@ -1086,23 +1186,40 @@ class Application(RevisionedMixin):
                     self.id), request)
 
     def assign_officer(self, request, officer):
+        """
+        Method to allocate an officer to an application licence activity.
+        :param request contains activity_id
+        :param officer is EmailUser details.
+        """
+        activity_id = request.data.get('activity_id', None)
+        selected_activity = self.get_selected_activity(activity_id)
         with transaction.atomic():
             try:
-                if officer != self.assigned_officer:
-                    self.assigned_officer = officer
-                    self.save()
+                if officer != selected_activity.assigned_officer:
+                    selected_activity.assigned_officer = officer
+                    selected_activity.save()
                     # Create a log entry for the application
-                    self.log_user_action(ApplicationUserAction.ACTION_ASSIGN_TO_OFFICER.format(
-                        self.id, '{}({})'.format(officer.get_full_name(), officer.email)), request)
+                    self.log_user_action(
+                        ApplicationUserAction.ACTION_ASSIGN_TO_OFFICER.format(
+                            self.id, '{}({})'.format(
+                                officer.get_full_name(),
+                                officer.email)
+                        ), request)
             except BaseException:
                 raise
 
     def unassign_officer(self, request):
+        """
+        Method to remove an officer from an application licence activity.
+        :param request contains activity_id.
+        """
+        activity_id = request.data.get('activity_id', None)
+        selected_activity = self.get_selected_activity(activity_id)
         with transaction.atomic():
             try:
-                if self.assigned_officer:
-                    self.assigned_officer = None
-                    self.save()
+                if selected_activity.assigned_officer:
+                    selected_activity.assigned_officer = None
+                    selected_activity.save()
                     # Create a log entry for the application
                     self.log_user_action(
                         ApplicationUserAction.ACTION_UNASSIGN_OFFICER.format(
@@ -1111,9 +1228,10 @@ class Application(RevisionedMixin):
                 raise
 
     def return_to_officer_conditions(self, request, activity_id):
+        selected_activity = self.get_selected_activity(activity_id)
         text = request.data.get('text', '')
-        if self.assigned_officer:
-            email_list = [self.assigned_officer.email]
+        if selected_activity.assigned_officer:
+            email_list = [selected_activity.assigned_officer.email]
         else:
             officer_groups = ActivityPermissionGroup.objects.filter(
                 permissions__codename='licensing_officer',
@@ -1134,6 +1252,108 @@ class Application(RevisionedMixin):
             text=text,
             request=request
         )
+
+    def assign_application_assessment(self, request):
+        with transaction.atomic():
+            try:
+                assessment_id = request.data.get('assessment_id')
+                assessor_id = request.data.get('assessor_id')
+
+                assessment = Assessment.objects.filter(
+                    id=assessment_id,
+                    application=self
+                ).first()
+
+                if not assessment:
+                    raise Exception("Assessment record ID %s \
+                    does not exist!" % (assessment_id))
+
+                assessor_group = request.user \
+                    .get_wildlifelicence_permission_group(
+                        permission_codename='assessor',
+                        activity_id=assessment.licence_activity_id,
+                        first=True
+                    )
+                if not assessor_group:
+                    raise Exception("Missing assessor permissions for Activity \
+                        ID: %s" % (assessment.licence_activity_id))
+
+                # Set the actioner to the assessor
+                assessor = EmailUser.objects \
+                    .get(id=assessor_id) if assessor_id else assessor_id
+                assessment.actioned_by = assessor
+                assessment.save()
+                # Log application action
+                if (assessor):
+                    self.log_user_action(
+                        ApplicationUserAction.ACTION_ASSESSMENT_ASSIGNED
+                        .format(assessment.assessor_group,
+                                assessor.get_full_name()),
+                        request)
+                else:
+                    self.log_user_action(
+                        ApplicationUserAction.ACTION_ASSESSMENT_UNASSIGNED
+                        .format(assessment.assessor_group), request)
+
+            except BaseException:
+                raise
+
+    def complete_application_assessments_by_user(self, request):
+        '''
+        Method to complete all assessments which are assigned to the current
+        user within the current users permissions group.
+        '''
+        with transaction.atomic():
+            try:
+                activity_id = request.data.get('activity_id', None)
+                assessments = Assessment.objects.filter(
+                    status=Assessment.STATUS_AWAITING_ASSESSMENT,
+                    application=self,
+                    licence_activity=activity_id
+                )
+
+                # select each assessment on application.
+                for assessment in assessments:
+
+                    # check user has assessor permission
+                    assessor_group = \
+                        request.user.get_wildlifelicence_permission_group(
+                            permission_codename='assessor',
+                            activity_id=assessment.licence_activity_id,
+                            first=True
+                        )
+                    if not assessor_group:
+                        continue
+
+                    assessment.status = Assessment.STATUS_COMPLETED
+                    assessment.actioned_by = request.user
+                    assessment.save()
+
+                    # Log application action
+                    self.log_user_action(
+                        ApplicationUserAction.ACTION_ASSESSMENT_COMPLETE
+                        .format(assessor_group), request)
+
+                    # Log entry for organisation
+                    if self.org_applicant:
+                        self.org_applicant.log_user_action(
+                            ApplicationUserAction.ACTION_ASSESSMENT_COMPLETE
+                            .format(assessor_group), request)
+
+                    elif self.proxy_applicant:
+                        self.proxy_applicant.log_user_action(
+                            ApplicationUserAction.ACTION_ASSESSMENT_COMPLETE
+                            .format(assessor_group), request)
+
+                    else:
+                        self.submitter.log_user_action(
+                            ApplicationUserAction.ACTION_ASSESSMENT_COMPLETE
+                            .format(assessor_group), request)
+
+                    self.check_assessment_complete(
+                        assessment.licence_activity_id)
+            except BaseException:
+                raise
 
     def complete_assessment(self, request):
         with transaction.atomic():
@@ -1267,9 +1487,83 @@ class Application(RevisionedMixin):
         return self.amendment_requests.filter(licence_activity_id__in=activity_ids)
 
     @property
+    def has_amended_fees(self):
+        """
+        Check on previous invoice amounts for difference in application fee.
+        """
+        fees_amended = False
+        # Application amendments requires a new submission and applies the
+        # previous paid for adjustments.
+        paid = self.total_paid_amount + self.previous_paid_amount
+        if paid > 0 and paid <= self.application_fee:
+            fees_amended = True
+
+        return fees_amended
+
+    @property
+    def amended_activities(self):
+        """
+        Sets the application fee for each activity with a new amended amount
+        based on the difference already paid.
+        """
+        amended = []
+        if not self.latest_invoice:
+            return amended
+        latest_inv = self.latest_invoice
+        app_inv = ApplicationInvoice.objects.filter(
+            invoice_reference=latest_inv.reference).first()
+        for activity in self.activities:
+            invoice_line = ApplicationInvoiceLine.objects.filter(
+                invoice=app_inv,
+                licence_activity=activity.licence_activity).first()
+            inv_amount = self.activity_invoice_amount(activity)
+            # inv_amount = invoice_line.amount
+            if (invoice_line and activity.application_fee > inv_amount):
+                difference = activity.application_fee - inv_amount
+                activity.application_fee = difference
+                amended.append(activity)
+
+        return amended
+
+    def activity_invoice_amount(self, activity):
+        """
+        Gets the total amount paid for an activity across multiple invoices.
+        """
+        amount = 0
+        invoices = ApplicationInvoice.objects.filter(application_id=self.id)
+        for invoice in invoices:
+            line = ApplicationInvoiceLine.objects.filter(
+                invoice=invoice,
+                licence_activity=activity.licence_activity).first()
+            amount += line.amount if line else 0
+
+        return amount
+
+    def requires_refund(self):
+        """
+        Check on the last invoice amount against application fee.
+        """
+        # Application amendments requires a new submission and applies the
+        # previous paid for adjustments.
+        paid = self.total_paid_amount + self.previous_paid_amount
+
+        return True if paid > self.application_fee else False
+
+    def previous_paid_amount(self):
+        """
+        Gets the paid amount from the previous application for application
+        amendments which require a new submission.
+        """
+        previous_paid = 0
+        if self.application_type == Application.APPLICATION_TYPE_AMENDMENT:
+            previous = Application.objects.get(id=self.previous_application.id)
+            previous_paid += previous.total_paid_amount
+
+        return previous_paid
+
+    @property
     def assessments(self):
-        qs = Assessment.objects.filter(
-            application=self, status=Assessment.STATUS_AWAITING_ASSESSMENT)
+        qs = Assessment.objects.filter(application=self)
         return qs
 
     @property
@@ -1441,6 +1735,11 @@ class Application(RevisionedMixin):
         with transaction.atomic():
             try:
                 activity_list = details.get('activity', [])
+
+                # Correct processing status if no assessments were required.
+                for activity in activity_list:
+                    self.check_assessment_complete(activity)
+
                 incorrect_statuses = ApplicationSelectedActivity.objects.filter(
                     application_id=self.id,
                     licence_activity_id__in=activity_list
@@ -1558,82 +1857,94 @@ class Application(RevisionedMixin):
             licence_activity_id=selected_activity.licence_activity_id)
 
         with transaction.atomic():
-            for existing_activity in licence_latest_activities_for_licence_activity_id:
-                # compare each activity's purposes and find the difference from
-                # the selected_purposes of the new application
-                issued_activity_purposes = application_selected_purpose_ids.filter(
-                    licence_activity_id=selected_activity.licence_activity_id)
-                existing_activity_purposes = existing_activity.purposes.values_list('id', flat=True)
-                common_purpose_ids = list(set(existing_activity_purposes) & set(issued_activity_purposes))
-                remaining_purpose_ids_list = list(set(existing_activity_purposes) - set(issued_activity_purposes))
+            try:
+                for existing_activity in licence_latest_activities_for_licence_activity_id:
+                    # compare each activity's purposes and find the difference from
+                    # the selected_purposes of the new application
+                    issued_activity_purposes = application_selected_purpose_ids.filter(
+                        licence_activity_id=selected_activity.licence_activity_id)
+                    existing_activity_purposes = existing_activity.purposes.values_list('id', flat=True)
+                    common_purpose_ids = list(set(existing_activity_purposes) & set(issued_activity_purposes))
+                    remaining_purpose_ids_list = list(set(existing_activity_purposes) - set(issued_activity_purposes))
 
-                # No relevant purposes were selected for action for this existing activity, do nothing
-                if not common_purpose_ids:
-                    pass
+                    # No relevant purposes were selected for action for this existing activity, do nothing
+                    if not common_purpose_ids:
+                        pass
 
-                # If there are no remaining purposes in the existing_activity
-                # (i.e. this issued activity replaces them all),
-                # mark activity as replaced
-                elif not remaining_purpose_ids_list:
-                    existing_activity.updated_by = request.user
-                    existing_activity.activity_status = ApplicationSelectedActivity.ACTIVITY_STATUS_REPLACED
-                    existing_activity.save()
+                    # If there are no remaining purposes in the existing_activity
+                    # (i.e. this issued activity replaces them all),
+                    # mark activity as replaced
+                    elif not remaining_purpose_ids_list:
+                        existing_activity.updated_by = request.user
+                        existing_activity.activity_status = ApplicationSelectedActivity.ACTIVITY_STATUS_REPLACED
+                        existing_activity.save()
 
-                # If only a subset of the existing_activity's purposes are to be actioned,
-                # create new_activity for remaining purposes:
-                elif remaining_purpose_ids_list:
-                    existing_application = existing_activity.application
-                    existing_activity_status = existing_activity.activity_status
-                    new_copied_application = existing_application.copy_application_purposes_for_status(
-                                            remaining_purpose_ids_list, existing_activity_status)
+                    # If only a subset of the existing_activity's purposes are to be actioned,
+                    # create new_activity for remaining purposes:
+                    elif remaining_purpose_ids_list:
+                        existing_application = existing_activity.application
+                        existing_activity_status = existing_activity.activity_status
+                        new_copied_application = existing_application.copy_application_purposes_for_status(
+                                                remaining_purpose_ids_list, existing_activity_status)
 
-                    # for each new application created, set its previous_application to latest_application_in_function,
-                    # then update latest_application_in_function to the new_copied_application
-                    new_copied_application.previous_application = latest_application_in_function
-                    new_copied_application.save()
-                    latest_application_in_function = new_copied_application
+                        # for each new application created, set its previous_application to latest_application_in_function,
+                        # then update latest_application_in_function to the new_copied_application
+                        new_copied_application.previous_application = latest_application_in_function
+                        new_copied_application.save()
+                        latest_application_in_function = new_copied_application
 
-                    # Mark existing_activity as replaced
-                    existing_activity.updated_by = request.user
-                    existing_activity.activity_status = ApplicationSelectedActivity.ACTIVITY_STATUS_REPLACED
-                    existing_activity.save()
+                        # Mark existing_activity as replaced
+                        existing_activity.updated_by = request.user
+                        existing_activity.activity_status = ApplicationSelectedActivity.ACTIVITY_STATUS_REPLACED
+                        existing_activity.save()
 
-            selected_activity.processing_status = ApplicationSelectedActivity.PROCESSING_STATUS_ACCEPTED
-            selected_activity.activity_status = ApplicationSelectedActivity.ACTIVITY_STATUS_CURRENT
+                selected_activity.processing_status = ApplicationSelectedActivity.PROCESSING_STATUS_ACCEPTED
+                selected_activity.activity_status = ApplicationSelectedActivity.ACTIVITY_STATUS_CURRENT
 
-            self.generate_returns(parent_licence, selected_activity, request)
-            # Log application action
-            self.log_user_action(
-                ApplicationUserAction.ACTION_ISSUE_LICENCE_.format(
-                    selected_activity.licence_activity.name), request)
-            # Log entry for organisation
-            if self.org_applicant:
-                self.org_applicant.log_user_action(
+                self.generate_returns(parent_licence, selected_activity, request)
+                # Log application action
+                self.log_user_action(
                     ApplicationUserAction.ACTION_ISSUE_LICENCE_.format(
                         selected_activity.licence_activity.name), request)
-            elif self.proxy_applicant:
-                self.proxy_applicant.log_user_action(
-                    ApplicationUserAction.ACTION_ISSUE_LICENCE_.format(
-                        selected_activity.licence_activity.name), request)
-            else:
-                self.submitter.log_user_action(
-                    ApplicationUserAction.ACTION_ISSUE_LICENCE_.format(
-                        selected_activity.licence_activity.name), request)
+                # Log entry for organisation
+                if self.org_applicant:
+                    self.org_applicant.log_user_action(
+                        ApplicationUserAction.ACTION_ISSUE_LICENCE_.format(
+                            selected_activity.licence_activity.name), request)
+                elif self.proxy_applicant:
+                    self.proxy_applicant.log_user_action(
+                        ApplicationUserAction.ACTION_ISSUE_LICENCE_.format(
+                            selected_activity.licence_activity.name), request)
+                else:
+                    self.submitter.log_user_action(
+                        ApplicationUserAction.ACTION_ISSUE_LICENCE_.format(
+                            selected_activity.licence_activity.name), request)
 
-            selected_activity.save()
+                selected_activity.save()
 
-            parent_licence.current_application = latest_application_in_function
-            parent_licence.save()
+                # update the status of the application.
+                self.update_customer_approval_status()
 
-            if generate_licence:
-                # Re-generate PDF document using all finalised activities
-                parent_licence.generate_doc()
-                send_application_issue_notification(
-                    activities=[selected_activity],
-                    application=self,
-                    request=request,
-                    licence=parent_licence
-                )
+                parent_licence.current_application = latest_application_in_function
+                parent_licence.save()
+
+                if generate_licence:
+                    # Re-generate PDF document using all finalised activities
+                    parent_licence.generate_doc()
+                    send_application_issue_notification(
+                        activities=[selected_activity],
+                        application=self,
+                        request=request,
+                        licence=parent_licence
+                    )
+                    # Attach the re-generated licence to latest application.
+                    latest_application_in_function.licence_document \
+                        = parent_licence.licence_document
+                    latest_application_in_function.save()
+
+            except BaseException:
+                print(Exception)
+                raise
 
     def final_decision(self, request):
         """
@@ -1664,6 +1975,12 @@ class Application(RevisionedMixin):
                         raise Exception("Activity \"%s\" has an invalid processing status: %s" % (
                             selected_activity.licence_activity.name, selected_activity.processing_status))
 
+                    # skip over activities already issued and awaiting payment.
+                    if selected_activity.processing_status in [
+                        ApplicationSelectedActivity.PROCESSING_STATUS_AWAITING_LICENCE_FEE_PAYMENT,
+                    ]:
+                        continue
+
                     if item['final_status'] == ApplicationSelectedActivity.DECISION_ACTION_ISSUED:
 
                         original_issue_date = start_date = item.get('start_date')
@@ -1693,6 +2010,7 @@ class Application(RevisionedMixin):
 
                         # Populate fields below even if the token payment has failed.
                         # They will be reused after a successful payment by the applicant.
+                        selected_activity.assigned_approver = None
                         selected_activity.original_issue_date = original_issue_date
                         selected_activity.issue_date = timezone.now()
                         selected_activity.decision_action = ApplicationSelectedActivity.DECISION_ACTION_ISSUED
@@ -1704,6 +2022,7 @@ class Application(RevisionedMixin):
                         selected_activity.save()
 
                     elif item['final_status'] == ApplicationSelectedActivity.DECISION_ACTION_DECLINED:
+                        selected_activity.assigned_approver = None
                         selected_activity.updated_by = request.user
                         selected_activity.processing_status = ApplicationSelectedActivity.PROCESSING_STATUS_DECLINED
                         selected_activity.decision_action = ApplicationSelectedActivity.DECISION_ACTION_ISSUED
@@ -1744,6 +2063,8 @@ class Application(RevisionedMixin):
                         request=request,
                         licence=parent_licence
                     )
+                    self.licence_document = parent_licence.licence_document
+                    self.save()
                 # If there are no issued_activities in this application and the parent_licence was
                 # created as part of this application (i.e. it was not a pre-existing one), delete it
                 elif not issued_activities and created:
@@ -1760,25 +2081,36 @@ class Application(RevisionedMixin):
             for activity in failed_payment_activities:
                 activity.processing_status = ApplicationSelectedActivity.PROCESSING_STATUS_AWAITING_LICENCE_FEE_PAYMENT
                 activity.save()
-            raise Exception("Could not process licence fee payment for: {}".format(
-                ", ".join([activity.licence_activity.name for activity in failed_payment_activities])
-            ))
+                # Notify customer of failed payment and set Application status for customer.
+                self.customer_status = Application.CUSTOMER_STATUS_AWAITING_PAYMENT
+                self.save()
+                send_activity_invoice_issue_notification(self, activity, request)
 
         self.update_customer_approval_status()
 
     def update_customer_approval_status(self):
-        # Update application customer approval status depending on count of approved/declined activities
+        # Update application customer approval status depending on count of approved/declined/unpaid activities
         total_activity_count = self.selected_activities.count()
+
         approved_activity_count = self.selected_activities.filter(
             processing_status=ApplicationSelectedActivity.PROCESSING_STATUS_ACCEPTED).count()
+
         declined_activity_count = self.selected_activities.filter(
             processing_status=ApplicationSelectedActivity.PROCESSING_STATUS_DECLINED).count()
+
+        unpaid_activity_count = self.selected_activities.filter(
+            processing_status=ApplicationSelectedActivity.PROCESSING_STATUS_AWAITING_LICENCE_FEE_PAYMENT).count()
+
         if 0 < approved_activity_count < total_activity_count:
             self.customer_status = Application.CUSTOMER_STATUS_PARTIALLY_APPROVED
         elif approved_activity_count == total_activity_count:
             self.customer_status = Application.CUSTOMER_STATUS_ACCEPTED
         elif declined_activity_count == total_activity_count:
             self.customer_status = Application.CUSTOMER_STATUS_DECLINED
+        # override decision status if payment is pending.
+        if unpaid_activity_count > 0:
+            self.customer_status = Application.CUSTOMER_STATUS_AWAITING_PAYMENT
+
         self.save()
 
     def generate_returns(self, licence, selected_activity, request):
@@ -1791,7 +2123,7 @@ class Application(RevisionedMixin):
         timedelta = datetime.timedelta
         for condition in self.conditions.all():
             try:
-                if condition.due_date and condition.due_date >= today:
+                if condition.return_type and condition.due_date and condition.due_date >= today:
                     current_date = condition.due_date
                     # create a first Return
                     try:
@@ -1924,6 +2256,7 @@ class ApplicationInvoice(models.Model):
     application = models.ForeignKey(Application, related_name='invoices')
     invoice_reference = models.CharField(
         max_length=50, null=True, blank=True, default='')
+    invoice_datetime = models.DateTimeField(auto_now=True)
 
     class Meta:
         app_label = 'wildlifecompliance'
@@ -1943,6 +2276,19 @@ class ApplicationInvoice(models.Model):
             pass
         return False
 
+class ApplicationInvoiceLine(models.Model):
+    invoice = models.ForeignKey(
+        ApplicationInvoice, related_name='application_activity_lines')
+    licence_activity = models.ForeignKey(
+        'wildlifecompliance.LicenceActivity', null=True)
+    amount = models.DecimalField(max_digits=8, decimal_places=2, default='0')
+
+    class Meta:
+        app_label = 'wildlifecompliance'
+
+    def __str__(self):
+        return 'Invoice #{} - Activity {} : Amount {}'.format(
+            self.invoice, self.licence_activity, self.amount)
 
 class ApplicationLogDocument(Document):
     log_entry = models.ForeignKey(
@@ -2170,6 +2516,12 @@ class Assessment(ApplicationRequest):
     def is_inspection_required(self):
         return self.selected_activity.is_inspection_required
 
+    def assessors(self):
+        return self.assessor_group.members.all()
+
+    @property
+    def assigned_assessor(self):
+        return self.actioned_by
 
 class ApplicationSelectedActivity(models.Model):
     PROPOSED_ACTION_DEFAULT = 'default'
@@ -2221,7 +2573,7 @@ class ApplicationSelectedActivity(models.Model):
         (PROCESSING_STATUS_WITH_OFFICER, 'With Officer'),
         (PROCESSING_STATUS_WITH_ASSESSOR, 'With Assessor'),
         (PROCESSING_STATUS_OFFICER_CONDITIONS, 'With Officer-Conditions'),
-        (PROCESSING_STATUS_OFFICER_FINALISATION, 'With Officer-Finalisation'),
+        (PROCESSING_STATUS_OFFICER_FINALISATION, 'With Approver'),
         (PROCESSING_STATUS_AWAITING_LICENCE_FEE_PAYMENT, 'Awaiting Licence Fee Payment'),
         (PROCESSING_STATUS_ACCEPTED, 'Accepted'),
         (PROCESSING_STATUS_DECLINED, 'Declined'),
@@ -2264,6 +2616,18 @@ class ApplicationSelectedActivity(models.Model):
     is_inspection_required = models.BooleanField(default=False)
     licence_fee = models.DecimalField(
         max_digits=8, decimal_places=2, default='0')
+    application_fee = models.DecimalField(
+        max_digits=8, decimal_places=2, default='0')
+    assigned_approver = models.ForeignKey(
+        EmailUser,
+        blank=True,
+        null=True,
+        related_name='wildlifecompliance_officer_finalisation')
+    assigned_officer = models.ForeignKey(
+        EmailUser,
+        blank=True,
+        null=True,
+        related_name='wildlifecompliance_officer')
 
     def __str__(self):
         return "Application {id} Selected Activity: {short_name} ({activity_id})".format(
@@ -2422,25 +2786,45 @@ class ApplicationSelectedActivity(models.Model):
     @property
     def licence_fee_paid(self):
         return self.payment_status in [
-            Invoice.PAYMENT_STATUS_NOT_REQUIRED,
-            Invoice.PAYMENT_STATUS_PAID,
-            Invoice.PAYMENT_STATUS_OVERPAID,
+            Application.PAYMENT_STATUS_NOT_REQUIRED,
+            Application.PAYMENT_STATUS_PAID,
+            Application.PAYMENT_STATUS_OVERPAID,
         ]
 
     @property
     def payment_status(self):
         if self.licence_fee == 0:
-            return Invoice.PAYMENT_STATUS_NOT_REQUIRED
+            return Application.PAYMENT_STATUS_NOT_REQUIRED
         else:
             if self.invoices.count() == 0:
-                return Invoice.PAYMENT_STATUS_UNPAID
+                return Application.PAYMENT_STATUS_UNPAID
             else:
                 try:
                     latest_invoice = Invoice.objects.get(
                         reference=self.invoices.latest('id').invoice_reference)
                 except Invoice.DoesNotExist:
-                    return Invoice.PAYMENT_STATUS_UNPAID
+                    return Application.PAYMENT_STATUS_UNPAID
                 return latest_invoice.payment_status
+
+    @property
+    def licensing_officers(self):
+        """
+        Authorised licence officers for this Selected Activity.
+        """
+        groups = ActivityPermissionGroup.get_groups_for_activities(
+            self.licence_activity, 'licensing_officer')
+
+        return EmailUser.objects.filter(groups__id__in=groups).distinct()
+
+    @property
+    def issuing_officers(self):
+        """
+        Authorised issuing officers for this Selected Activity.
+        """
+        groups = ActivityPermissionGroup.get_groups_for_activities(
+            self.licence_activity, 'issuing_officer')
+
+        return EmailUser.objects.filter(groups__id__in=groups).distinct()
 
     @staticmethod
     def get_current_activities_for_application_type(application_type, **kwargs):
@@ -2505,13 +2889,26 @@ class ApplicationSelectedActivity(models.Model):
             }
         )
         try:
+            '''
+            Requires check for KeyError when an Order has not been successfully created for an Activity Licence. When an Order
+            does not exist the session key 'checkout_invoice' will remain from the token's previous Application payment.
+            Another check is required to check valid invoice details.
+            '''
             invoice_ref = request.session['checkout_invoice']
+            created_invoice = Invoice.objects.filter(reference=invoice_ref).first()
+            if (created_invoice.text != application_submission):  # text on invoice does not match this payment submission.
+                raise KeyError
         except KeyError:
             logger.error("No invoice reference generated for Activity ID: %s" % self.licence_activity_id)
             return False
-        ActivityInvoice.objects.get_or_create(
+        invoice = ActivityInvoice.objects.get_or_create(
             activity=self,
             invoice_reference=invoice_ref
+        )
+        line = ActivityInvoiceLine.object.get_or_create(
+            invoice=invoice[0],
+            licence_activity=self.licence_activity,
+            amount=self.licence_fee
         )
         delete_session_application(request.session)
         flush_checkout_session(request.session)
@@ -2560,6 +2957,7 @@ class ActivityInvoice(models.Model):
     activity = models.ForeignKey(ApplicationSelectedActivity, related_name='invoices')
     invoice_reference = models.CharField(
         max_length=50, null=True, blank=True, default='')
+    invoice_datetime = models.DateTimeField(auto_now=True)
 
     class Meta:
         app_label = 'wildlifecompliance'
@@ -2579,6 +2977,21 @@ class ActivityInvoice(models.Model):
         except Invoice.DoesNotExist:
             pass
         return False
+
+
+class ActivityInvoiceLine(models.Model):
+    invoice = models.ForeignKey(
+        ActivityInvoice, related_name='licence_activity_lines')
+    licence_activity = models.ForeignKey(
+        'wildlifecompliance.LicenceActivity', null=True)
+    amount = models.DecimalField(max_digits=8, decimal_places=2, default='0')
+
+    class Meta:
+        app_label = 'wildlifecompliance'
+
+    def __str__(self):
+        return 'Invoice #{} - Activity {} : Amount {}'.format(
+            self.invoice, self.licence_activity, self.amount)
 
 
 @python_2_unicode_compatible
@@ -2744,13 +3157,74 @@ class ApplicationFormDataRecord(models.Model):
                 )} for item in missing_fields]
             )
 
+    @staticmethod
+    def render_defined_conditions(application, data_source):
+
+        def parse_component(component, schema_name, adjusted_by_fields, activity):    
+
+            if set(['StandardCondition']).issubset(component):
+                condition = ApplicationStandardCondition.objects.filter(code=component['StandardCondition'],
+                                                                        obsolete=False ).first()
+                if condition:
+                    ApplicationCondition.objects.create(standard_condition=condition,
+                                                        is_rendered=True,
+                                                        standard=True,
+                                                        application=application,
+                                                        licence_activity=LicenceActivity.objects.get(id=activity.licence_activity_id),
+                                                        return_type=condition.return_type)
+
+        for selected_activity in application.activities:
+            schema_fields = application.get_schema_fields_for_purposes(
+                selected_activity.purposes.values_list('id', flat=True)
+            )
+            renderedConditions = ApplicationCondition.objects.filter(application_id=application.id, 
+                                                                 licence_activity_id=selected_activity.licence_activity_id, 
+                                                                 is_rendered=True 
+                                                                ).delete()        
+
+            # Adjustments based on selected options (radios and checkboxes)
+            adjusted_by_fields = {}
+            for form_data_record in data_source:
+                try:
+                    # Retrieve dictionary of fields from a model instance
+                    data_record = form_data_record.__dict__
+                except AttributeError:
+                    # If a raw form data (POST) is supplied, form_data_record is a key
+                    data_record = data_source[form_data_record]
+
+                schema_name = data_record['schema_name']
+                if schema_name not in schema_fields:
+                    continue
+                schema_data = schema_fields[schema_name]
+
+                if 'options' in schema_data:
+                    for option in schema_data['options']:
+                        # Only modifications if the current option is selected
+                        if option['value'] != data_record['value']:
+                            continue
+                        parse_component(
+                            component=option,
+                            schema_name=schema_name,
+                            adjusted_by_fields=adjusted_by_fields,
+                            activity=selected_activity
+                        )
+
+                # If this is a checkbox - skip unchecked ones
+                elif data_record['value'] == 'on':
+                    parse_component(
+                        component=schema_data,
+                        schema_name=schema_name,
+                        adjusted_by_fields=adjusted_by_fields,
+                        activity=selected_activity
+                    )
+
 
 @python_2_unicode_compatible
 class ApplicationStandardCondition(RevisionedMixin):
     text = models.TextField()
     code = models.CharField(max_length=10, unique=True)
     obsolete = models.BooleanField(default=False)
-    return_type = models.ForeignKey('wildlifecompliance.ReturnType', null=True)
+    return_type = models.ForeignKey('wildlifecompliance.ReturnType', null=True, blank=True)
 
     def __str__(self):
         return self.code
@@ -2760,10 +3234,11 @@ class ApplicationStandardCondition(RevisionedMixin):
 
 
 class DefaultCondition(OrderedModel):
-    condition = models.TextField(null=True, blank=True)
+    comments = models.TextField(null=True, blank=True)
     licence_activity = models.ForeignKey(
         'wildlifecompliance.LicenceActivity', null=True)
-    return_type = models.ForeignKey('wildlifecompliance.ReturnType', null=True)
+    standard_condition = models.ForeignKey(
+        ApplicationStandardCondition, null=True)      
 
     class Meta:
         app_label = 'wildlifecompliance'
@@ -2785,6 +3260,7 @@ class ApplicationCondition(OrderedModel):
         DefaultCondition, null=True, blank=True)
     is_default = models.BooleanField(default=False)
     standard = models.BooleanField(default=True)
+    is_rendered = models.BooleanField(default=False)
     application = models.ForeignKey(Application, related_name='conditions')
     due_date = models.DateField(null=True, blank=True)
     recurrence = models.BooleanField(default=False)
@@ -2795,7 +3271,7 @@ class ApplicationCondition(OrderedModel):
     recurrence_schedule = models.IntegerField(null=True, blank=True)
     licence_activity = models.ForeignKey(
         'wildlifecompliance.LicenceActivity', null=True)
-    return_type = models.ForeignKey('wildlifecompliance.ReturnType', null=True)
+    return_type = models.ForeignKey('wildlifecompliance.ReturnType', null=True, blank=True)
     # order = models.IntegerField(default=1)
 
     class Meta:
@@ -2836,6 +3312,8 @@ class ApplicationUserAction(UserAction):
     ACTION_ASSESSMENT_RECALLED = "Assessment recalled {}"
     ACTION_ASSESSMENT_RESENT = "Assessment Resent {}"
     ACTION_ASSESSMENT_COMPLETE = "Assessment Completed for group {} "
+    ACTION_ASSESSMENT_ASSIGNED = "Assessment for {} Assigned to {}"
+    ACTION_ASSESSMENT_UNASSIGNED = "Unassigned Assessor from Assessment for {}"    
     ACTION_DECLINE = "Decline application {}"
     ACTION_ENTER_CONDITIONS = "Entered condition for activity {}"
     ACTION_CREATE_CONDITION_ = "Create condition {}"

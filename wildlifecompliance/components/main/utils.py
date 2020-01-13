@@ -169,7 +169,7 @@ def delete_session_activity(session):
 
 
 def bind_application_to_invoice(request, application, invoice_ref):
-    from wildlifecompliance.components.applications.models import ApplicationInvoice
+    from wildlifecompliance.components.applications.models import ApplicationInvoice, ApplicationInvoiceLine
     logger = logging.getLogger('application_checkout')
     try:
         inv = Invoice.objects.get(reference=invoice_ref)
@@ -209,6 +209,12 @@ def bind_application_to_invoice(request, application, invoice_ref):
                 invoice_ref))
         app_inv, created = ApplicationInvoice.objects.get_or_create(
             application=application, invoice_reference=invoice_ref)
+        for activity in application.activities:
+            ApplicationInvoiceLine.objects.create(
+                invoice=app_inv,
+                licence_activity=activity.licence_activity,
+                amount=activity.application_fee
+            )
         application.save()
 
         request.session['wc_last_application'] = application.id

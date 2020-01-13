@@ -73,3 +73,19 @@ $sections-menu-width: 249px;
 .inline-block {
     display: inline-block;
 }
+
+.nav-item {
+    background-color: rgba(200,200,200,0.8) !important;
+    cursor: pointer;
+}
+
+.nav-item>li>a {
+    background-color: yellow !important;
+    color: #fff;
+}
+
+.nav-item>li.active>a, .nav-item>li.active>a:hover, .nav-item>li.active>a:focus {
+  color: white;
+  background-color: blue;
+  border: 1px solid #888888;
+}

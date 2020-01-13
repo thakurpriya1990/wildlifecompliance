@@ -5,11 +5,20 @@ from django.db import transaction
 from django.core.exceptions import ValidationError
 from ledger.checkout.utils import calculate_excl_gst
 from rest_framework import viewsets, serializers, status, views
-from rest_framework.decorators import detail_route, list_route, renderer_classes
+from rest_framework.decorators import (
+    detail_route,
+    list_route,
+    renderer_classes,
+)
 from rest_framework.response import Response
 from rest_framework.renderers import JSONRenderer
 from wildlifecompliance.helpers import is_customer, is_internal
-from wildlifecompliance.components.returns.utils import SpreadSheet
+from wildlifecompliance.components.returns.utils import (
+    SpreadSheet,
+    checkout,
+    set_session_return,
+    delete_session_return,
+)
 from wildlifecompliance.components.licences.models import (
     WildlifeLicence
 )
@@ -23,9 +32,6 @@ from wildlifecompliance.components.returns.serializers import (
     ReturnLogEntrySerializer,
     ReturnTypeSerializer,
     ReturnRequestSerializer,
-)
-from wildlifecompliance.components.main.utils import (
-    checkout,
 )
 from wildlifecompliance.components.applications.models import (
     Application,
@@ -199,11 +205,11 @@ class ReturnViewSet(viewsets.ReadOnlyModelViewSet):
             instance = self.get_object()
             if not instance.has_data:
                 return Response(
-                        {'error': 'Upload not applicable for Return Type.'}, status=status.HTTP_406_NOT_ACCEPTABLE)
+                    {'error': 'Upload not applicable for Return Type.'}, status=status.HTTP_406_NOT_ACCEPTABLE)
             spreadsheet = SpreadSheet(instance, request.FILES['spreadsheet']).factory()
             if not spreadsheet.is_valid():
                 return Response(
-                        {'error': 'Enter data in correct format.'}, status=status.HTTP_404_NOT_FOUND)
+                    {'error': 'Enter data in correct format.'}, status=status.HTTP_404_NOT_FOUND)
             table = instance.data.build_table(spreadsheet.rows_list)
 
             return Response(table)
@@ -263,21 +269,26 @@ class ReturnViewSet(viewsets.ReadOnlyModelViewSet):
 
     @detail_route(methods=['post'])
     @renderer_classes((JSONRenderer,))
-    def return_fee_checkout(self, request, *args, **kwargs):
+    def submit_and_checkout(self, request, *args, **kwargs):
         try:
             instance = self.get_object()
             product_lines = []
-            return_submission = u'Return submitted by {} confirmation {}'.format(
-                 u'{} {}'.format(instance.submitter.first_name, instance.submitter.last_name),
-                 instance.lodgement_number)
+
+            return_submission = u'Return submitted by {} {} confirmation {}\
+                '.format(instance.submitter.first_name,
+                         instance.submitter.last_name,
+                         instance.lodgement_number)
+            set_session_return(request.session, instance)
             product_lines.append({
-                    'ledger_description': '{}'.format(instance.return_type.description),
-                    'quantity': 1,
-                    'price_incl_tax': str(instance.return_fee),
-                    'price_excl_tax': str(calculate_excl_gst(instance.return_fee)),
-                    'oracle_code': ''
+                'ledger_description': '{}'.format("Return Description"),
+                'quantity': 1,
+                'price_incl_tax': str(instance.return_fee),
+                'price_excl_tax': str(calculate_excl_gst(instance.return_fee)),
+                'oracle_code': ''
             })
-            checkout_result = checkout(request, instance, lines=product_lines,
+
+            checkout_result = checkout(request,
+                                       instance, lines=product_lines,
                                        invoice_text=return_submission)
             return checkout_result
         except serializers.ValidationError:
@@ -329,6 +340,7 @@ class ReturnViewSet(viewsets.ReadOnlyModelViewSet):
             serializer = self.get_serializer(instance)
             return Response(serializer.data)
         except serializers.ValidationError:
+            delete_session_return(request.session)
             print(traceback.print_exc())
             raise
         except ValidationError as e:
@@ -337,6 +349,7 @@ class ReturnViewSet(viewsets.ReadOnlyModelViewSet):
             else:
                 raise serializers.ValidationError(repr(e[0].encode('utf-8')))
         except Exception as e:
+            delete_session_return(request.session)
             print(traceback.print_exc())
             raise serializers.ValidationError(str(e))
 

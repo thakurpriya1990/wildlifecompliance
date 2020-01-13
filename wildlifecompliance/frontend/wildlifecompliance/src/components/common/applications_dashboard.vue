@@ -29,6 +29,15 @@
                                 </select>
                             </div>
                         </div>
+                        <div class="col-md-3">
+                            <div class="form-group">
+                                <label for="">Submitter</label>
+                                <select class="form-control" v-model="filterApplicationSubmitter">
+                                    <option value="All">All</option>
+                                    <option v-for="s in application_submitters" :value="s.email" v-bind:key="`submitter_${s.email}`">{{s.search_term}}</option>
+                                </select>
+                            </div>
+                        </div>                        
                         <div v-if="is_external" class="col-md-3">
                             <router-link  style="margin-top:25px;" class="btn btn-primary pull-right" :to="{ name: 'apply_application_organisation' }">New Application</router-link>
                         </div>
@@ -52,16 +61,8 @@
                                 </span>
                             </div>
                         </div>
-                        <div class="col-md-3">
-                            <div class="form-group">
-                                <label for="">Submitter</label>
-                                <select class="form-control" v-model="filterApplicationSubmitter" ref="submitter_select">
-                                    <option value="All">All</option>
-                                    <option v-for="s in application_submitters" :value="s.email" v-bind:key="`submitter_${s.email}`">{{s.search_term}}</option>
-                                </select>
-                            </div>
-                        </div>
                     </div>
+                    <div class="row"><br/></div> 
                     <div class="row">
                         <div class="col-lg-12">
                             <datatable v-if="level=='external'" ref="external_application_datatable" :id="datatable_id" :dtOptions="application_ex_options" :dtHeaders="application_ex_headers"/>
@@ -100,11 +101,12 @@ export default {
     },
     data() {
         let vm = this;
-        let internal_application_headers = ["Number","Category","Activity","Type","Submitter","Applicant","Status","Payment Status","Lodged on","Assigned Officer","Action"];
+        let internal_application_headers = ["Number","Category","Activity","Type","Submitter","Applicant","Status","Payment Status","Lodged on","Action"];
         let internal_columns = [
             {
                 data: "lodgement_number",
                 width: "10%",
+                className: "app-row-icon",
             },
             {
                 data: "category_name",
@@ -174,20 +176,18 @@ export default {
                 searchable: false // handled by filter_queryset override method - class ApplicationFilterBackend
             },
             {
-                data: "assigned_officer",
-                visible: false,
-                name: "assigned_officer__first_name, assigned_officer__last_name, assigned_officer__email"
-            },
-            {
                 // Actions
                 width: "10%",
                 mRender:function (data,type,full) {
                     let links = '';
                     if (!vm.is_external){
-                        const finalised = ['approved', 'declined'].includes(full.processing_status.id);
-                        links += (full.can_be_processed && full.user_in_officers_and_assessors) ?
+                        const finalised = ['approved', 'declined', 'awaiting_payment'].includes(full.processing_status.id);
+                        links += (full.can_be_processed && full.user_in_officers) ?
                             `<a href='/internal/application/${full.id}'>Process</a><br/>` :
                             `<a href='/${finalised ? 'internal' : 'external'}/application/${full.id}'>View</a><br/>`;
+                    }
+                    if (!vm.is_external && full.payment_url){
+                        links +=  `<a href='${full.payment_url}' target='_blank' >Record Payment</a><br/>`;
                     }
                     if (vm.is_external){
                         if (full.can_current_user_edit) {
@@ -208,6 +208,7 @@ export default {
             {
                 data: "lodgement_number",
                 width: "10%",
+                className: "app-row-icon",                
             },
             {
                 data: "category_name",
@@ -246,6 +247,7 @@ export default {
             {
                 data: "applicant",
                 width: "10%",
+                className: "normal-white-space",
                 orderable: false,
                 searchable: false // handled by filter_queryset override method - class ApplicationFilterBackend
             },
@@ -255,6 +257,7 @@ export default {
                 mRender:function(data,type,full){
                     return data.name;
                 },
+                className: "normal-white-space",
                 orderable: false,
                 searchable: false // handled by filter_queryset override method - class ApplicationFilterBackend
             },
@@ -264,6 +267,7 @@ export default {
                 mRender:function (data,type,full) {
                     return data != '' && data != null ? moment(data).format(vm.dateFormat): '';
                 },
+                className: "normal-white-space",
                 searchable: false // handled by filter_queryset override method - class ApplicationFilterBackend
             },
             {
@@ -287,6 +291,13 @@ export default {
                         if (full.payment_status == 'unpaid'){
                             links +=  `<a href='#${full.id}' data-pay-application-fee='${full.id}'>Pay Application Fee</a><br/>`;
                         }
+                        if (full.payment_url){
+                              links +=  `<a href='${full.payment_url}' target='_blank' >Record Payment</a><br/>`;
+                        }
+                        if (['awaiting_payment'].includes(full.customer_status.id) && full.payment_status == 'paid'){
+                            let activity = full.activities.find(activity => activity.can_pay_licence_fee=true)
+                            links +=  `<a href='#${full.id}' data-pay-application-licence-fee='${full.id}' pay-licence-fee-for='${activity.id}'>Pay Licence Fee</a><br/>`;
+                        }                        
                     }
                     return links;
                 },
@@ -572,7 +583,14 @@ export default {
                 e.preventDefault();
                 var id = $(this).attr('data-pay-application-fee');
                 vm.payApplicationFee(id);
-            });
+            });        
+            // External Pay Licence Fee listener
+            vm.visibleDatatable.vmDataTable.on('click', 'a[data-pay-application-licence-fee]', function(e) {
+                e.preventDefault();
+                const activity_id = $(this).attr('pay-licence-fee-for');
+                const application_id = $(this).attr('data-pay-application-licence-fee');
+                vm.payLicenceFee(application_id, activity_id);
+            });                       
             // Child row listener
             vm.visibleDatatable.vmDataTable.on('click', 'tr.appRecordRow', function(e) {
                 // If a link is clicked, ignore
@@ -599,11 +617,11 @@ export default {
                                 <td>${activity['activity_name_str']}</td>
                                 <td>${activity['activity_purpose_names'].
                                     replace(/(?:\r\n|\r|\n|,)/g, '<br>')}</td>
+                                ${vm.is_external ? '' : activity['assigned_officer'] == null ?  `<td>&nbsp;</td>`: `<td>${activity['officer_name']}</td>`}    
                                 ${vm.is_external ? '' : `<td>${activity['processing_status']['name']}</td>`}
-                                <td>
-                                    ${activity['can_pay_licence_fee'] ?
+                                ${vm.is_external ? '' : `<td>${activity['can_pay_licence_fee'] ?
                                     `<a pay-licence-fee-for='${activity['id']}' application-id='${row.data()['id']}'>Pay licence fee</a>` : ''}
-                                </td>
+                                </td>`}
                             </tr>`;
                     });
                     // Generate html for child row
@@ -611,29 +629,30 @@ export default {
                         <table class="table table-striped table-bordered child-row-table">
                             <tr>
                                 <td class="width_20pc"><strong>Submitter:&nbsp;</strong></td>
-                                <td>${row.data()['submitter']['first_name']}
+                                <td>&nbsp;&nbsp;${row.data()['submitter']['first_name']}
                                     ${row.data()['submitter']['last_name']}</td>
                             </tr>`;
-                    if (!vm.is_external){
-                        child_row += `
+
+                    child_row += `
                             <tr>
                                 <td><strong>Payment Status:&nbsp;</strong></td>
-                                <td>${row.data()['payment_status']}</td>
+                                <td>&nbsp;&nbsp;${row.data()['payment_status']}</td>
                             </tr>
-                            <tr>
-                                <td><strong>Assigned Officer:&nbsp;</strong></td>
-                                <td>${row.data()['assigned_officer'] === null
-                                    ? '' : row.data()['assigned_officer']}</td>
-                            </tr>`;
-                    }
+                            ${row.data()['invoice_url'] ?
+                            `<tr>
+                                <td><strong>Invoice:&nbsp;</strong></td>
+                                <td><a href="${row.data()['invoice_url']}'" target="_blank"><i style="color:red" class="fa fa-file-pdf-o"></i></a></td>
+                            </tr>` : ' ' } `;
+
                     child_row += `</table>`
                     child_row += `
                         <table class="table table-striped table-bordered child-row-table">
                             <tr>
                                 <th>Activity</th>
                                 <th class="width_55pc">Purposes</th>
-                                ${vm.is_external ? '' : '<th class="width_20pc">Status</th>'}
-                                <th class="width_10pc">Action</th>
+                                ${vm.is_external ? '' : '<th class="width_20pc">Assigned Officer</th>'}                            
+                                ${vm.is_external ? '' : '<th class="width_10pc">Status</th>'}
+                                ${vm.is_external ? '' : '<th class="width_10pc">Action</th>'}
                             </tr>
                             ${activity_rows}
                         </table>`;
@@ -651,19 +670,6 @@ export default {
                     const application_id = $(this).attr('application-id');
                     vm.payLicenceFee(application_id, activity_id);
                 });
-            });
-            // Initialise select2 for submitter
-            $(vm.$refs.submitter_select).select2({
-                "theme": "bootstrap",
-                placeholder:"Select Submitter"
-            }).
-            on("select2:select",function (e) {
-                var selected = $(e.currentTarget);
-                vm.filterApplicationSubmitter = selected.val();
-            }).
-            on("select2:unselect",function (e) {
-                var selected = $(e.currentTarget);
-                vm.filterApplicationSubmitter = selected.val();
             });
         },
         initialiseSearch:function(){

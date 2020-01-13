@@ -1,9 +1,9 @@
 <template id="application_issuance">
                 <div class="col-md-12">
 
-                    <ul class="nav nav-tabs" id="tabs-section" data-tabs="tabs">
-                        <li v-for="(activity, index) in visibleLicenceActivities" v-bind:key="`issue_activity_tab_${index}`">
-                            <a data-toggle="tab" v-on:click="selectTab(activity)">{{activity.name}}</a>
+                    <ul class="nav nav-pills mb-3" id="tabs-section" data-tabs="tabs">
+                        <li class="nav-item" v-for="(activity, index) in visibleLicenceActivities" v-bind:key="`issue_activity_tab_${index}`">
+                            <a class="nav-link" data-toggle="pill" v-on:click="selectTab(activity)">{{activity.name}}</a>
                         </li>
                     </ul>
                     <div class="tab-content">
@@ -30,7 +30,7 @@
                                                 </div>
                                                 <div class="row">
                                                     <div class="col-sm-3">
-                                                        <label class="control-label pull-left">Ready for finalisation?</label>
+                                                        <label class="control-label pull-left">Ready for issuing?</label>
                                                     </div>
                                                     <div class="col-sm-9">
                                                         <input type="checkbox" class="confirmation-checkbox" v-model="getActivity(item.id).confirmed">
@@ -232,7 +232,6 @@ export default {
             return this.filterActivityList({
                 activity_list: this.licenceActivities([
                     'with_officer_finalisation',
-                    'awaiting_licence_fee_payment'
                 ], 'issuing_officer'),
                 exclude_processing_statuses: ['discarded']
             });
@@ -274,16 +273,21 @@ export default {
             ).length;
         },
         canSubmit: function() {
-            const missingConfirmations = this.licence.activity.filter(
-                activity => !activity.confirmed
+            const required_confirmations = this.visibleLicenceActivities.length
+            const confirmations = this.licence.activity.filter(
+                activity => activity.confirmed
             ).length;
-            return missingConfirmations === 0;
+            return confirmations === required_confirmations;
         },
         canEditLicenceDates: function() {
             return this.application.application_type && this.application.application_type.id !== 'amend_activity';
         },
     },
     methods:{
+        ...mapActions({
+            load: 'loadApplication',
+            revert: 'revertApplication',
+        }),
         ...mapActions([
             'setActivityTab'
         ]),
@@ -335,6 +339,7 @@ export default {
                                     helpers.apiVueResourceError(error),
                                     'error'
                                 )
+                                this.load({ url: `/api/application/${this.application.id}/internal_application.json` });
                             });
                 }
             },(error) => {
@@ -410,6 +415,23 @@ export default {
         eventListeners(){
         },
 
+        initFirstTab: function(force){
+            const tab = $('#tabs-section li:first-child a')[0];
+            var first_tab = this.application.activities[0].licence_activity
+
+            if(tab) {
+                tab.click();
+            }
+            else { // force first tab selection attributes.
+                this.licenceActivities().filter(activity => {
+                    if (activity.id==first_tab) {
+
+                        this.setActivityTab({ id: activity.id, name: activity.name });
+                    }
+                })
+            }
+        },
+
         userHasRole: function(role, activity_id) {
             return this.application.user_roles.filter(
                 role_record => role_record.role == role && (!activity_id || activity_id == role_record.activity_id)
@@ -462,7 +484,7 @@ export default {
 
         this.$nextTick(() => {
             vm.eventListeners();
-            $('#tabs-section li:first-child a').click();
+            vm.initFirstTab();
         });
     },
     updated: function() {

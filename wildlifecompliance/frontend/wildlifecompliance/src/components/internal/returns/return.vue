@@ -18,23 +18,21 @@
                 <div class="col-sm-12">
                     <form class="form-horizontal" name="return_form">
                         <div class="form-group">
+                            <label for="" class="col-sm-3 control-label">Licence Activity</label>
+                            <div class="col-sm-6">
+                                {{returns.condition.licence_activity.name}}
+                            </div>                         
+                        </div>
+                        <div class="form-group">
                             <label for="" class="col-sm-3 control-label">Condition</label>
                             <div class="col-sm-6">
-                                {{returns.condition}}
+                                <textarea disabled class="form-control" name="details" placeholder="" v-model="returns.condition.condition"></textarea>
                             </div>
                         </div>
                         <div class="form-group">
-                            <label for="" class="col-sm-3 control-label">Details</label>
+                            <label for="" class="col-sm-3 control-label">Due Date</label>
                             <div class="col-sm-6">
-                                <textarea disabled class="form-control" name="details" placeholder="" v-model="returns.text"></textarea>
-                            </div>
-                        </div>
-                        <div class="form-group">
-                            <label for="" class="col-sm-3 control-label">Documents</label>
-                            <div class="col-sm-6">
-                                <div class="row" v-for="d in returns.documents">
-                                    <a :href="d[1]" target="_blank" class="control-label pull-left">{{d[0]}}</a>
-                                </div>
+                                {{returns.condition.due_date}}
                             </div>
                         </div>
                     </form>
@@ -42,19 +40,6 @@
             </div>
         </div>
         </template>
-
-        <div class="row" style="margin-bottom:50px;">
-            <div class="navbar navbar-fixed-bottom" style="background-color: #f5f5f5 ">
-                <div class="navbar-inner">
-                    <div class="container">
-                        <p class="pull-right" style="margin-top:5px;">
-                            <button style="width:150px;" class="btn btn-primary btn-md" v-if="false" >Save</button>
-                        </p>
-                    </div>
-                </div>
-            </div>
-        </div>
-
         <ReturnSheet v-if="returns.format==='sheet'"></ReturnSheet>
         <ReturnQuestion v-if="returns.format==='question'"></ReturnQuestion>
         <ReturnData v-if="returns.format==='data'"></ReturnData>

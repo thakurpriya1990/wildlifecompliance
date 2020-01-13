@@ -63,7 +63,19 @@ export const rendererStore = {
         },
         getFormValue: (state) => (component_name) => {
             return state.form_data[component_name] ? state.form_data[component_name].value : null;
-        }
+        },
+        isComponentEditableForOfficer: (state, getters, rootState, rootGetters) => {
+             // function to enforce editable rendered components for officer.
+            return rootGetters.canAssignOfficerFor(rootGetters.selected_activity_tab_id); // check permissions.
+        },
+        allCurrentActivitiesWithAssessor: (state, getters, rootState, rootGetters) => {
+            // list of activities with assessment sent for the current user.
+            return getters.allCurrentActivities.filter(activity => {
+
+                return rootGetters.canAssignAssessorFor(activity.id);
+            });
+        },
+        
     },
     mutations: {
         [UPDATE_RENDERER_TABS] (state, tabs) {

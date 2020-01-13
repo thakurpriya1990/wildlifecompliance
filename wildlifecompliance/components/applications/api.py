@@ -68,6 +68,8 @@ from rest_framework_datatables.pagination import DatatablesPageNumberPagination
 from rest_framework_datatables.filters import DatatablesFilterBackend
 from rest_framework_datatables.renderers import DatatablesRenderer
 
+from wildlifecompliance.management.permissions_manager import PermissionUser
+
 
 class GetEmptyList(views.APIView):
     renderer_classes = [JSONRenderer, ]
@@ -491,6 +493,44 @@ class ApplicationViewSet(viewsets.ModelViewSet):
             print(traceback.print_exc())
             raise serializers.ValidationError(str(e))
 
+    @detail_route(methods=['POST', ])
+    def assign_application_assessment(self, request, *args, **kwargs):
+        try:
+            instance = self.get_object()
+            instance.assign_application_assessment(request)
+            serializer = InternalApplicationSerializer(
+                instance, context={'request': request})
+            return Response(serializer.data)
+        except serializers.ValidationError:
+            print(traceback.print_exc())
+            raise
+        except ValidationError as e:
+            print(traceback.print_exc())
+            raise serializers.ValidationError(repr(e.error_dict))
+        except Exception as e:
+            print(traceback.print_exc())
+            raise serializers.ValidationError(str(e))
+
+    @detail_route(methods=['POST', ])
+    def complete_application_assessments(self, request, *args, **kwargs):
+        try:
+            instance = self.get_object()
+            instance.complete_application_assessments_by_user(request)
+            serializer = InternalApplicationSerializer(
+                instance, context={'request': request})
+            return Response(serializer.data)
+        except serializers.ValidationError:
+            print(traceback.print_exc())
+            raise
+        except ValidationError as e:
+            if hasattr(e, 'error_dict'):
+                raise serializers.ValidationError(repr(e.error_dict))
+            else:
+                raise serializers.ValidationError(repr(e[0].encode('utf-8')))
+        except Exception as e:
+            print(traceback.print_exc())
+            raise serializers.ValidationError(str(e))
+
     @list_route(methods=['GET', ])
     def active_licence_application(self, request, *args, **kwargs):
         active_application = Application.get_active_licence_applications(request).first()
@@ -579,16 +619,20 @@ class ApplicationViewSet(viewsets.ModelViewSet):
         try:
             instance = self.get_object()
             product_lines = []
-            application_submission = u'Application submitted by {} confirmation {}'.format(
-                u'{} {}'.format(instance.submitter.first_name, instance.submitter.last_name), instance.lodgement_number)
+            application_submission = u'Application fee for {}'.format(
+                instance.lodgement_number)
             set_session_application(request.session, instance)
-            product_lines.append({
-                'ledger_description': '{}'.format(instance.licence_type_name),
-                'quantity': 1,
-                'price_incl_tax': str(instance.application_fee),
-                'price_excl_tax': str(calculate_excl_gst(instance.application_fee)),
-                'oracle_code': ''
-            })
+            # check activities consist of amended fees.
+            activities = instance.activities if not instance.has_amended_fees\
+                else instance.amended_activities
+            for activity in activities:
+                product_lines.append({
+                    'ledger_description': '{}'.format(activity.licence_activity.name),
+                    'quantity': 1,
+                    'price_incl_tax': str(activity.application_fee),
+                    'price_excl_tax': str(calculate_excl_gst(activity.application_fee)),
+                    'oracle_code': ''
+                })
             checkout_result = checkout(request, instance, lines=product_lines,
                                        invoice_text=application_submission)
             return checkout_result
@@ -614,20 +658,25 @@ class ApplicationViewSet(viewsets.ModelViewSet):
             if not activity_id:
                 raise Exception(
                     'No activity selected for payment!')
-            activity = ApplicationSelectedActivity.objects.get(id=activity_id)
+
+            activities = ApplicationSelectedActivity.objects.filter(
+                application_id=instance.id,
+                processing_status=ApplicationSelectedActivity.PROCESSING_STATUS_AWAITING_LICENCE_FEE_PAYMENT)
 
             product_lines = []
             application_submission = u'Activity licence issued for {} application {}'.format(
                 u'{} {}'.format(request.user.first_name, request.user.last_name), instance.lodgement_number)
 
-            set_session_activity(request.session, activity)
-            product_lines.append({
-                'ledger_description': '{}'.format(activity.licence_activity.name),
-                'quantity': 1,
-                'price_incl_tax': str(activity.licence_fee),
-                'price_excl_tax': str(calculate_excl_gst(activity.licence_fee)),
-                'oracle_code': ''
-            })
+            set_session_activity(request.session, activities[0])
+            for activity in activities:
+                product_lines.append({
+                    'ledger_description': '{}'.format(activity.licence_activity.name),
+                    'quantity': 1,
+                    'price_incl_tax': str(activity.licence_fee),
+                    'price_excl_tax': str(calculate_excl_gst(activity.licence_fee)),
+                    'oracle_code': ''
+                })
+
             checkout_result = checkout(
                 request, instance,
                 lines=product_lines,
@@ -747,7 +796,7 @@ class ApplicationViewSet(viewsets.ModelViewSet):
             last_activity, context={'request': request})
         return Response({'activity': serializer.data})
 
-    @detail_route(methods=['GET', ])
+    @detail_route(methods=['POST', ])
     def assign_to_me(self, request, *args, **kwargs):
         try:
             instance = self.get_object()
@@ -802,7 +851,7 @@ class ApplicationViewSet(viewsets.ModelViewSet):
             print(traceback.print_exc())
             raise serializers.ValidationError(str(e))
 
-    @detail_route(methods=['GET', ])
+    @detail_route(methods=['POST', ])
     def unassign_officer(self, request, *args, **kwargs):
         try:
             instance = self.get_object()
@@ -816,6 +865,102 @@ class ApplicationViewSet(viewsets.ModelViewSet):
         except ValidationError as e:
             print(traceback.print_exc())
             raise serializers.ValidationError(repr(e.error_dict))
+        except Exception as e:
+            print(traceback.print_exc())
+            raise serializers.ValidationError(str(e))
+
+    @detail_route(methods=['POST', ])
+    def make_me_activity_approver(self, request, *args, **kwargs):
+        try:
+            activity_id = request.data.get('activity_id', None)
+            instance = self.get_object()
+            me = request.user
+
+            if me not in instance.licence_approvers:
+                raise serializers.ValidationError('You are not in any relevant \
+                    licence approver groups for this application.')
+
+            instance.set_activity_approver(activity_id, me)
+            serializer = InternalApplicationSerializer(
+                instance, context={'request': request})
+
+            return Response(serializer.data)
+
+        except serializers.ValidationError:
+            print(traceback.print_exc())
+            raise
+
+        except ValidationError as e:
+            print(traceback.print_exc())
+            raise serializers.ValidationError(repr(e.error_dict))
+
+        except Exception as e:
+            print(traceback.print_exc())
+            raise serializers.ValidationError(str(e))
+
+    @detail_route(methods=['POST', ])
+    def assign_activity_approver(self, request, *args, **kwargs):
+        try:
+            instance = self.get_object()
+            activity_id = request.data.get('activity_id', None)
+            approver_id = request.data.get('approver_id', None)
+            approver = None
+
+            if not approver_id:
+                raise serializers.ValidationError('Could not Assign Approver.')
+
+            try:
+                approver = EmailUser.objects.get(id=approver_id)
+
+            except EmailUser.DoesNotExist:
+                raise serializers.ValidationError('A user with the id passed in\
+                    does not exist.')
+
+            if not request.user.has_perm('wildlifecompliance.issuing_officer'):
+                raise serializers.ValidationError('You are not authorised to\
+                    assign approvers for application activity.')
+
+            if approver not in instance.licence_approvers:
+                raise serializers.ValidationError('User is not in any relevant\
+                    licence approver groups for application activity.')
+
+            instance.set_activity_approver(activity_id, approver)
+            serializer = InternalApplicationSerializer(
+                instance, context={'request': request})
+
+            return Response(serializer.data)
+
+        except serializers.ValidationError:
+            print(traceback.print_exc())
+            raise
+
+        except ValidationError as e:
+            print(traceback.print_exc())
+            raise serializers.ValidationError(repr(e.error_dict))
+
+        except Exception as e:
+            print(traceback.print_exc())
+            raise serializers.ValidationError(str(e))
+
+    @detail_route(methods=['POST', ])
+    def unassign_activity_approver(self, request, *args, **kwargs):
+        try:
+            instance = self.get_object()
+            activity_id = request.data.get('activity_id', None)
+            instance.set_activity_approver(activity_id, None)
+            serializer = InternalApplicationSerializer(
+                instance, context={'request': request})
+
+            return Response(serializer.data)
+
+        except serializers.ValidationError:
+            print(traceback.print_exc())
+            raise
+
+        except ValidationError as e:
+            print(traceback.print_exc())
+            raise serializers.ValidationError(repr(e.error_dict))
+
         except Exception as e:
             print(traceback.print_exc())
             raise serializers.ValidationError(str(e))
@@ -1028,6 +1173,8 @@ class ApplicationViewSet(viewsets.ModelViewSet):
                 request.data,
                 action=ApplicationFormDataRecord.ACTION_TYPE_ASSIGN_VALUE
             )
+            # Render any Application Standard Conditions triggered from Form.
+            ApplicationFormDataRecord.render_defined_conditions(instance, request.data)
             return Response({'success': True})
         except MissingFieldsException as e:
             return Response({
@@ -1357,11 +1504,24 @@ class AssessmentPaginatedViewSet(viewsets.ModelViewSet):
     @list_route(methods=['GET', ])
     def datatable_list(self, request, *args, **kwargs):
         self.serializer_class = DTAssessmentSerializer
-        queryset = self.get_queryset()
+
+        # Get the assessor groups the current user is member of
+        perm_user = PermissionUser(request.user)
+        assessor_groups = perm_user.get_wildlifelicence_permission_group(
+            'assessor', first=False)
+
+        # For each assessor groups get the assessments
+        queryset = self.get_queryset().none()
+        for group in assessor_groups:
+            queryset = queryset | Assessment.objects.filter(
+                assessor_group=group) | Assessment.objects.filter(
+                actioned_by=self.request.user)
+
         queryset = self.filter_queryset(queryset)
         self.paginator.page_size = queryset.count()
         result_page = self.paginator.paginate_queryset(queryset, request)
-        serializer = DTAssessmentSerializer(result_page, context={'request': request}, many=True)
+        serializer = DTAssessmentSerializer(
+            result_page, context={'request': request}, many=True)
         return self.paginator.get_paginated_response(serializer.data)
 
 
@@ -1394,7 +1554,8 @@ class AssessmentViewSet(viewsets.ModelViewSet):
     @list_route(methods=['GET', ])
     def user_list(self, request, *args, **kwargs):
         # Get the assessor groups the current user is member of
-        assessor_groups = request.user.get_wildlifelicence_permission_group('assessor', first=False)
+        perm_user = PermissionUser(request.user)
+        assessor_groups = perm_user.get_wildlifelicence_permission_group('assessor', first=False)
 
         # For each assessor groups get the assessments
         queryset = self.get_queryset().none()
@@ -1520,10 +1681,7 @@ class AssessorGroupViewSet(viewsets.ModelViewSet):
     def user_list(self, request, *args, **kwargs):
         app_id = request.data.get('application_id')
         application = Application.objects.get(id=app_id)
-        id_list = set()
-        for assessment in application.assessments:
-            id_list.add(assessment.assessor_group.id)
-        queryset = self.get_queryset(application).exclude(id__in=id_list)
+        queryset = self.get_queryset(application)
         serializer = self.get_serializer(queryset, many=True)
 
         return Response(serializer.data)

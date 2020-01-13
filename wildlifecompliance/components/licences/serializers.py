@@ -1,13 +1,19 @@
+from django.urls import reverse
 from wildlifecompliance.components.licences.models import (
     WildlifeLicence,
     LicenceCategory,
     LicenceActivity,
     LicencePurpose
 )
+from wildlifecompliance.components.applications.models import (
+    ApplicationSelectedActivity,
+    ActivityInvoice,
+)
 from wildlifecompliance.components.applications.serializers import (
     WildlifeLicenceApplicationSerializer,
     ExternalApplicationSelectedActivityMergedSerializer
 )
+from ledger.payments.invoice.models import Invoice
 from rest_framework import serializers
 
 
@@ -74,6 +80,7 @@ class DTInternalWildlifeLicenceSerializer(WildlifeLicenceSerializer):
     last_issue_date = serializers.SerializerMethodField(read_only=True)
     latest_activities_merged = ExternalApplicationSelectedActivityMergedSerializer(many=True, read_only=True)
     can_action = serializers.SerializerMethodField(read_only=True)
+    invoice_url = serializers.SerializerMethodField(read_only=True)
 
     class Meta:
         model = WildlifeLicence
@@ -86,7 +93,8 @@ class DTInternalWildlifeLicenceSerializer(WildlifeLicenceSerializer):
             'latest_activities_merged',
             'is_latest_in_category',
             'can_action',
-            'can_add_purpose'
+            'can_add_purpose',
+            'invoice_url',
         )
         # the serverSide functionality of datatables is such that only columns that have field 'data'
         # defined are requested from the serializer. Use datatables_always_serialize to force render
@@ -138,6 +146,24 @@ class DTInternalWildlifeLicenceSerializer(WildlifeLicenceSerializer):
 
         return data
 
+    def get_invoice_url(self, obj):
+        url = None
+        try:
+            licence_activity = ApplicationSelectedActivity.objects.filter(
+                application_id=obj.current_application_id)
+            activity_inv = ActivityInvoice.objects.filter(
+                activity_id=licence_activity[0].id).first()
+            latest_invoice = Invoice.objects.get(
+                reference=activity_inv.invoice_reference)
+
+            url = reverse(
+                'payments:invoice-pdf',
+                kwargs={'reference': latest_invoice.reference})
+
+            return url
+
+        except Exception:
+            return None
 
 class DTExternalWildlifeLicenceSerializer(WildlifeLicenceSerializer):
     licence_document = serializers.CharField(
@@ -146,6 +172,7 @@ class DTExternalWildlifeLicenceSerializer(WildlifeLicenceSerializer):
     last_issue_date = serializers.SerializerMethodField(read_only=True)
     latest_activities_merged = ExternalApplicationSelectedActivityMergedSerializer(many=True, read_only=True)
     can_action = serializers.SerializerMethodField(read_only=True)
+    invoice_url = serializers.SerializerMethodField(read_only=True)
 
     class Meta:
         model = WildlifeLicence
@@ -158,7 +185,8 @@ class DTExternalWildlifeLicenceSerializer(WildlifeLicenceSerializer):
             'latest_activities_merged',
             'is_latest_in_category',
             'can_action',
-            'can_add_purpose'
+            'can_add_purpose',
+            'invoice_url',
         )
         # the serverSide functionality of datatables is such that only columns that have field 'data'
         # defined are requested from the serializer. Use datatables_always_serialize to force render
@@ -209,6 +237,25 @@ class DTExternalWildlifeLicenceSerializer(WildlifeLicenceSerializer):
                     data.get('can_action')['can_reinstate'] = True
 
         return data
+
+    def get_invoice_url(self, obj):
+        url = None
+        try:
+            licence_activity = ApplicationSelectedActivity.objects.filter(
+                application_id=obj.current_application_id)
+            activity_inv = ActivityInvoice.objects.filter(
+                activity_id=licence_activity[0].id).first()
+            latest_invoice = Invoice.objects.get(
+                reference=activity_inv.invoice_reference)
+
+            url = reverse(
+                'payments:invoice-pdf',
+                kwargs={'reference': latest_invoice.reference})
+
+            return url
+
+        except Exception:
+            return None
 
 
 class BasePurposeSerializer(serializers.ModelSerializer):

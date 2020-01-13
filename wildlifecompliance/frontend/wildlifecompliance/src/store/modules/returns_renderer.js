@@ -51,10 +51,12 @@ export const returnsRendererStore = {
             commit(UPDATE_RETURNS_TABS, tabs);
         },
         setReturnsSpecies({ commit }, { species }) {
+            console.log('setReturnSpecies')
             // Mock species list used for dev.
             let fullSpeciesList = {'S000001': 'Western Grey Kangaroo', 'S000002': 'Western Red Kangaroo',
                                    'S000003': 'Blue Banded Bee', 'S000004': 'Orange-Browed Resin Bee'}
-            commit(UPDATE_RETURNS_SPECIES, species);
+            console.log(fullSpeciesList)
+            commit(UPDATE_RETURNS_SPECIES, fullSpeciesList);
         },
         setReturnsExternal({ commit }, { external }) {
             commit(UPDATE_RETURNS_EXTERNAL, external);

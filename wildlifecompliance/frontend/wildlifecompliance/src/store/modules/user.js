@@ -54,10 +54,80 @@ export const userStore = {
             return getters.hasRole('licensing_officer') || getters.application.can_current_user_edit;
         },
         canEditDeficiencies: (state, getters) => {
-            return getters.hasRole('licensing_officer');
+            return getters.application.activities.find(activity => {
+
+                return activity.licence_activity === getters.selected_activity_tab_id
+                    // verify role exist for selected activity.
+                    && getters.hasRole('licensing_officer', activity.licence_activity)
+                    // verify activity status.
+                    && ['with_officer', 'with_officer_conditions'].includes(activity.processing_status.id)
+                    // verify current user is associated.
+                    && activity.licensing_officers.find(officer => officer.id === getters.current_user.id);
+            });                    
         },
         canViewComments: (state, getters) => {
             return getters.hasRole('licensing_officer') || getters.hasRole('assessor');
+        },
+        canAssignApproverFor: (state, getters, rootState, rootGetters) => (activity_id) => {
+            // This function also checks authorisation.
+            return rootGetters.application.activities.find(activity => {
+
+                return activity.licence_activity === activity_id 
+                    && ['with_officer_finalisation', 'awaiting_licence_fee_payment'].includes(activity.processing_status.id) 
+                    && getters.hasRole('issuing_officer', activity_id)
+                    // verify current user is associated.
+                    && activity.issuing_officers.find(officer => officer.id === getters.current_user.id);
+            })                    
+        },
+        canEditAssessmentFor: (state, getters, rootState, rootGetters) => (activity_id) => {
+            return rootGetters.application.assessments.find(assessment => {
+
+                return (assessment.licence_activity===activity_id)
+                    // verify user is authorised for activity.
+                    && (getters.hasRole('assessor', assessment.licence_activity))
+                    // verify user is assigned or assessment is not allocated.
+                    && (!assessment.assigned_assessor || assessment.assigned_assessor.id===getters.current_user.id)
+            });          
+        },
+        canRequestAmendmentFor: (state, getters, rootState, rootGetters) => (activity_id) => {
+            return rootGetters.application.activities.find(activity => {
+
+                return activity.licence_activity === activity_id
+                    // verify user is authorised for activity.
+                    && getters.hasRole('licensing_officer', activity_id)
+                    // verify activity status
+                    && ['with_officer', 'with_officer_conditions'].includes(activity.processing_status.id)
+                    // verify current user is associated.
+                    && activity.licensing_officers.find(officer => officer.id === getters.current_user.id);
+            });          
+        },
+        canAssignOfficerFor: (state, getters, rootState, rootGetters) => (activity_id) => {
+            return rootGetters.application.activities.find(activity => {
+
+                return activity.licence_activity === activity_id
+                    // verify role exist for activity.
+                    && getters.hasRole('licensing_officer', activity_id)
+                    // verify activity status.
+                    && ['with_officer', 'with_officer_conditions'].includes(activity.processing_status.id)
+                    // verify current user is associated.
+                    && activity.licensing_officers.find(officer => officer.id === getters.current_user.id);
+            });                    
+        },
+        canAssignAssessorFor: (state, getters, rootState, rootGetters) => (activity_id) => {
+            return rootGetters.application.activities.find(activity => {
+
+                return activity.licence_activity === activity_id
+                    // verify user is authorised for activity.
+                    && getters.hasRole('assessor', activity_id)
+                    // verify activity status.
+                    && ['with_assessor'].includes(activity.processing_status.id)
+                    // verify user belongs to assessor group.
+                    && rootGetters.application.assessments.find(assessment => {
+
+                        return assessment.licence_activity === activity_id
+                            && assessment.assessors.find(assessor => assessor.id === getters.current_user.id);
+                    });
+            });                    
         },
     },
     mutations: {

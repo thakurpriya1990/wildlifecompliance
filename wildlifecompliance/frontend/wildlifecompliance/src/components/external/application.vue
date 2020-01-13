@@ -21,14 +21,14 @@
                             <div class="container">
                                 <p class="pull-right" style="margin-top:5px;">
                                     <span v-if="requiresCheckout" style="margin-right: 5px; font-size: 18px; display: block;">
-                                        <strong>Estimated application fee: {{application.application_fee | toCurrency}}</strong>
+                                        <strong>Estimated application fee: {{adjusted_application_fee | toCurrency}}</strong>
                                         <strong>Estimated licence fee: {{application.licence_fee | toCurrency}}</strong>
                                     </span>
                                     <input v-if="!isProcessing && canDiscardActivity" type="button" @click.prevent="discardActivity" class="btn btn-danger" value="Discard Activity"/>
                                     <input v-if="!isProcessing" type="button" @click.prevent="saveExit" class="btn btn-primary" value="Save and Exit"/>
                                     <input v-if="!isProcessing" type="button" @click.prevent="save" class="btn btn-primary" value="Save and Continue"/>
                                     <input v-if="!isProcessing && !requiresCheckout" type="button" @click.prevent="submit" class="btn btn-primary" value="Submit"/>
-                                    <input v-if="!isProcessing && requiresCheckout" type="button" @click.prevent="submit" class="btn btn-primary" value="Submit and Checkout"/>
+                                    <input v-if="!isProcessing && requiresCheckout" type="button" @click.prevent="submit" class="btn btn-primary" value="Pay and Submit"/>
                                     <button v-if="isProcessing" disabled class="pull-right btn btn-primary"><i class="fa fa-spin fa-spinner"></i>&nbsp;Processing</button>
                                 </p>
                             </div>
@@ -67,7 +67,8 @@ export default {
       isProcessing: false,
       tabSelected: false,
       application_customer_status_onload: {},
- 	    missing_fields: [],
+      missing_fields: [],
+      adjusted_application_fee: 0,
     }
   },
   components: {
@@ -96,9 +97,9 @@ export default {
       return (this.application) ? `/api/application/${this.application.id}/form_data.json` : '';
     },
     requiresCheckout: function() {
-      return this.application.application_fee > 0 && [
-        'draft', 'awaiting_payment'
-      ].includes(this.application_customer_status_onload.id)
+      return (this.adjusted_application_fee > 0 && [
+        'draft', 'awaiting_payment', 'amendment_required'
+      ].includes(this.application_customer_status_onload.id))
     },
     canDiscardActivity: function() {
       return this.application.activities.find(
@@ -246,9 +247,7 @@ export default {
         let swal_html = 'Are you sure you want to submit this application?'
         if (vm.requiresCheckout) {
             swal_title = 'Submit Application and Checkout'
-            swal_html = 'Are you sure you want to submit this application and proceed to checkout?<br><br>' +
-                'Upon proceeding, you agree that the system will charge the same credit card used to ' +
-                'pay the application fee when your licence is issued.'
+            swal_html = 'Are you sure you want to submit this application and proceed to checkout?<br><br>'
         }
         swal({
             title: swal_title,
@@ -261,7 +260,7 @@ export default {
                 this.saveFormData({ url: this.application_form_data_url }).then(res=>{
                     vm.$http.post(helpers.add_endpoint_json(api_endpoints.applications,vm.application.id+'/submit'),{}).then(res=>{
                       this.setApplication(res.body);
-                      if (vm.requiresCheckout) {
+                      if (this.adjusted_application_fee > 0) { //refund not required.
                           vm.$http.post(helpers.add_endpoint_join(api_endpoints.applications,vm.application.id+'/application_fee_checkout/'), {}).then(res=>{
                               window.location.href = "/ledger/checkout/checkout/payment-details/";
                           },err=>{
@@ -324,6 +323,17 @@ export default {
     this.$nextTick(() => {
         vm.eventListeners();
     });
+    if (this.application.application_type.id=='amend_activity'){ 
+      // fees can be adjusted from selected components for requested amendments.
+      this.adjusted_application_fee = this.application.application_fee - this.application.total_paid_amount
+    } else {
+      // fees already adjusted for application amendments and new applications.
+      this.adjusted_application_fee = this.application.application_fee
+    }
+    console.log(this.adjusted_application_fee)
+    console.log(this.application.application_fee)
+    console.log(this.application.total_paid_amount)
+    console.log(this.application.has_amended_fee)
   },
 }
 </script>

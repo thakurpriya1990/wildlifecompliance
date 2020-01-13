@@ -48,7 +48,7 @@
                                                                         v-model="type.purpose[index2].selected"
                                                                         @change="handlePurposeCheckboxChange(index,$event)">
                                                                             {{purpose.name}}
-                                                                            <span> ({{purpose.base_application_fee}} + {{purpose.base_licence_fee}})</span>
+                                                                            <span> ({{parseFloat(purpose.base_application_fee) | toCurrency}} + {{parseFloat(purpose.base_licence_fee) | toCurrency}})</span>
                                                                 </div>
 
                                                             </div>

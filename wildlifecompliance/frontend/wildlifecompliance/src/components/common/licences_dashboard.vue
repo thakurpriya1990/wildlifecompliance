@@ -16,7 +16,16 @@
                                 <label for="">Licence Category</label>
                                 <select class="form-control" v-model="filterLicenceType">
                                     <option value="All">All</option>
-                                    <option v-for="l in licence_categories" :value="l">{{l}}</option>
+                                    <option v-for="l in licence_categories" :value="l" v-bind:key="`cat_${l}`">{{l}}</option>
+                                </select>
+                            </div>
+                        </div>
+                        <div class="col-md-3">
+                            <div class="form-group">
+                                <label for="">Licence Holder</label>
+                                <select class="form-control" v-model="filterLicenceHolder">
+                                    <option value="All">All</option>
+                                    <option v-for="holder in licence_holders" :value="holder.holder_name" v-bind:key="`licence_holder_${holder.holder_name}`">{{holder.holder_name}}</option>
                                 </select>
                             </div>
                         </div>
@@ -49,16 +58,8 @@
                                 </span>
                             </div>
                         </div>
-                        <div class="col-md-3">
-                            <div class="form-group">
-                                <label for="">Licence Holder</label>
-                                <select class="form-control" v-model="filterLicenceHolder" ref="licence_holder_select">
-                                    <option value="All">All</option>
-                                    <option v-for="holder in licence_holders" :value="holder.holder_name" v-bind:key="`licence_holder_${holder.holder_name}`">{{holder.holder_name}}</option>
-                                </select>
-                            </div>
-                        </div>
                     </div>
+                    <div class="row"><br/></div>                     
                     <div class="row">
                         <div class="col-lg-12">
                             <datatable ref="licence_datatable" :id="datatable_id" :dtOptions="licence_options" :dtHeaders="licence_headers"/>
@@ -78,6 +79,7 @@ import {
     api_endpoints,
     helpers
 }from '@/utils/hooks'
+import '@/scss/dashboards/licence.scss';
 export default {
     name: 'LicenceTableDash',
     props: {
@@ -148,7 +150,8 @@ export default {
                 },
                 columns: [
                     {
-                        data: "licence_number"
+                        data: "licence_number",
+                        className: "licence-row-icon",
                     },
                     {
                         data: "current_application.category_name",
@@ -315,19 +318,6 @@ export default {
                     vm.filterLicenceIssuedFrom = "";
                     $(vm.$refs.licenceDateToPicker).data("DateTimePicker").minDate(false);
                 }
-            });
-            // Initialise select2 for holder
-            $(vm.$refs.licence_holder_select).select2({
-                "theme": "bootstrap",
-                placeholder:"Select Holder"
-            }).
-            on("select2:select",function (e) {
-                var selected = $(e.currentTarget);
-                vm.filterLicenceHolder = selected.val();
-            }).
-            on("select2:unselect",function (e) {
-                var selected = $(e.currentTarget);
-                vm.filterLicenceHolder = selected.val();
             });
             // Add Activity/Purpose listener
             vm.$refs.licence_datatable.vmDataTable.on('click', 'a[add-activity-purpose]', function(e) {
@@ -837,6 +827,18 @@ export default {
                             </tr>`;
                     });
                     // Generate html for child row
+                    child_row += `
+                        <table class="table table-bordered child-row-table">
+                            `;
+
+                    child_row += `
+                            ${row.data()['invoice_url'] ?
+                            `<tr>
+                                <td class="width_15pc"><strong>Invoice:&nbsp;</strong></td>
+                                <td><a href="${row.data()['invoice_url']}'" target="_blank"><i style="color:red" class="fa fa-file-pdf-o"></i></a></td>
+                            </tr>` : ' ' } `;
+
+                    child_row += `</table>`
                     child_row += `
                         <table class="table table-striped table-bordered child-row-table">
                             <tr>

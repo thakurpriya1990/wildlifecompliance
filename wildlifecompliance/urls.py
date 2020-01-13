@@ -6,6 +6,7 @@ from django.conf.urls.static import static
 from rest_framework import routers
 
 from wildlifecompliance import views
+from wildlifecompliance.components.returns.views import ReturnSuccessView
 from wildlifecompliance.components.applications.views import (
     ApplicationSuccessView,
     LicenceFeeSuccessView,
@@ -192,6 +193,7 @@ urlpatterns = [
 
     # following url is defined so that to include url path when sending
     # application emails to users
+<<<<<<< HEAD
     url(r'^internal/application/(?P<application_pk>\d+)/$', views.ApplicationView.as_view(), name='internal-application-detail'),
     url(r'^application_submit/submit_with_invoice/', ApplicationSuccessView.as_view(), name='external-application-success-invoice'),
     url(r'^application/finish_licence_fee_payment/', LicenceFeeSuccessView.as_view(), name='external-licence-fee-success-invoice'),
@@ -218,6 +220,28 @@ urlpatterns = [
     # inspection emails to users
     url(r'^internal/legal_case/(?P<legal_case_id>\d+)/$', views.ApplicationView.as_view(),
         name='internal-legal-case-detail'),
+||||||| merged common ancestors
+    url(r'^internal/application/(?P<application_pk>\d+)/$', views.ApplicationView.as_view(),
+        name='internal-application-detail'),
+    url(r'^application_submit/submit_with_invoice/',
+        ApplicationSuccessView.as_view(),
+        name='external-application-success-invoice'),
+    url(r'^application/finish_licence_fee_payment/',
+        LicenceFeeSuccessView.as_view(),
+        name='external-licence-fee-success-invoice'),
+=======
+    url(r'^internal/application/(?P<application_pk>\d+)/$', views.ApplicationView.as_view(),
+        name='internal-application-detail'),
+    url(r'^application_submit/submit_with_invoice/',
+        ApplicationSuccessView.as_view(),
+        name='external-application-success-invoice'),
+    url(r'^application/finish_licence_fee_payment/',
+        LicenceFeeSuccessView.as_view(),
+        name='external-licence-fee-success-invoice'),
+    url(r'^returns_submit/submit_with_invoice/',
+        ReturnSuccessView.as_view(),
+        name='external-returns-success-invoice'),
+>>>>>>> master
 
     # url(r'^export/xls/$', application_views.export_applications, name='export_applications'),
     url(r'^export/pdf/$', application_views.pdflatex, name='pdf_latex'),

@@ -17,9 +17,10 @@
                     <div class="navbar-inner">
                         <div class="container">
                             <p class="pull-right" style="margin-top:5px;">
-                                <button style="width:150px;" class="btn btn-primary btn-md" name="save_exit">Save and Exit</button>
-                                <button style="width:150px;" class="btn btn-primary btn-md" @click.prevent="save()" name="save_continue">Save and Continue</button>
+                                <button style="width:150px;" class="btn btn-primary btn-md" @click.prevent="save(false)" name="save_exit">Save and Exit</button>
+                                <button style="width:150px;" class="btn btn-primary btn-md" @click.prevent="save(true)" name="save_continue">Save and Continue</button>
                                 <button style="width:150px;" class="btn btn-primary btn-md" v-if="isSubmittable" @click.prevent="submit()" name="submit">Submit</button>
+                                <button style="width:150px;" class="btn btn-primary btn-md" v-if="isPayable" @click.prevent="submit_and_checkout()" name="submit">Submit &amp; Checkout</button>                                
                             </p>
                         </div>
                     </div>
@@ -71,6 +72,9 @@ export default {
     isSubmittable() {
       return this.returns.format !== 'sheet' && this.returns.lodgement_date == null
     },
+    isPayable() {
+      return false
+    },
     requiresCheckout: function() {
       return this.returns.return_fee > 0 && [
         'draft', 'awaiting_payment'
@@ -85,7 +89,7 @@ export default {
         'setReturns',
         'setReturnsExternal',
     ]),
-    save: function(e) {
+    save: function(andContinue) {
       const self = this;
       self.form=document.forms.external_returns_form;
       var data = new FormData(self.form);
@@ -109,20 +113,28 @@ export default {
       self.$http.post(helpers.add_endpoint_json(api_endpoints.returns,self.returns.id+'/save'),data,{
                       emulateJSON:true,
                     }).then((response)=>{
-                       let species_id = self.returns.sheet_species;
-                       self.setReturns(response.body);
-                       self.returns.sheet_species = species_id;
-                       swal('Save',
-                            'Return Details Saved',
-                            'success'
-                       );
-                    },(error)=>{
-                       console.log(error);
-                       swal('Error',
-                            'There was an error saving your return details.<br/>' + error.body,
-                            'error'
-                       )
+                      let species_id = self.returns.sheet_species;
+                      self.setReturns(response.body);
+                      self.returns.sheet_species = species_id;
 
+                      if (andContinue) { 
+
+                        swal( 'Save', 
+                              'Return Details Saved', 
+                              'success'
+                        )
+
+                      } else { // route back to main dashboard
+
+                        this.$router.push({name:"external-applications-dash",});
+
+                      }
+                    },(error)=>{
+                      console.log(error);
+                      swal('Error',
+                           'There was an error saving your return details.<br/>' + error.body,
+                           'error'
+                      )
                     });
     },
     submit: function(e) {
@@ -140,10 +152,34 @@ export default {
                        );
                     },(error)=>{
                         console.log(error);
-      });
+                        swal('Error',
+                             'There was an error submitting your return details.<br/>' + error.body,
+                             'error'
+                        )
+                    });
+
+    },
+    submit_and_checkout: function(e) {
+      const self = this;
+      self.form=document.forms.external_returns_form;
+      self.$http.post(helpers.add_endpoint_json(api_endpoints.returns,self.returns.id+'/submit_and_checkout'),{
+                      emulateJSON:true,
+                    }).then((response)=>{
+                             window.location.href = "/ledger/checkout/checkout/payment-details/";
+                       //let species_id = self.returns.sheet_species;
+                       //self.setReturns(response.body);
+                       //self.returns.sheet_species = species_id;
+                    },(error)=>{
+                        console.log(error);
+                        swal('Error',
+                             'There was an error submitting your return details.<br/>' + error.body,
+                             'error'
+                        )
+                    
+                    });
 
     }
-  },
+  },    
   beforeRouteEnter: function(to, from, next) {
      next(vm => {
        vm.load({ url: `/api/returns/${to.params.return_id}.json` });

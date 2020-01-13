@@ -6,6 +6,7 @@ import Organisation from '../organisations/manage.vue'
 import UserDashTable from '../users/dashboard.vue'
 import User from '../users/manage.vue'
 import Application from '../applications/application.vue'
+import CompleteAssessment from '../applications/complete_assessment.vue'
 import LicenceDashTable from '../licences/dashboard.vue'
 import CallEmailDashTable from '../call_email/call_email_dashboard.vue'
 import CallEmail from '../call_email/call_email.vue'
@@ -35,7 +36,8 @@ export default
     children: [
         {
             path: '/',
-            component: InternalDashboard
+            component: InternalDashboard,
+            name: 'internal-dash'
         },
         {
             path: 'licences',
@@ -257,6 +259,11 @@ export default
                         },
                         
                     ]
+                },
+                {
+                    path: 'assessment/:application_id',
+                    component: CompleteAssessment,
+                    name:"complete-assessment"
                 },
  
             ]

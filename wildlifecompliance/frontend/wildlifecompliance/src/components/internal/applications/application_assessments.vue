@@ -80,9 +80,9 @@
             </modal>
 
             <div>
-                <ul id="tabs-assessor" class="nav nav-tabs">
-                    <li v-for="(item1,index) in applicationActivities" :class="setAssessorTab(index)" @click.prevent="clearSendToAssessorForm()">
-                        <a v-if="isActivityVisible(item1.id)" data-toggle="tab" :data-target="`#${item1.id}`">{{item1.name}}</a>
+                <ul id="tabs-assessor" class="nav nav-pills mb-3">
+                    <li class="nav-item" v-for="(item1,index) in applicationActivities" :class="setAssessorTab(index)" @click.prevent="clearSendToAssessorForm()">
+                        <a class="nav-link" v-if="isActivityVisible(item1.id)" data-toggle="pill" :data-target="`#${item1.id}`">{{item1.name}}</a>
                     </li>
                 </ul>
             </div>
@@ -113,7 +113,7 @@
                                             </select>
                                     </div>
                                     <div class="col-sm-2">
-                                        <a class="btn btn-primary" style="cursor:pointer;text-decoration:none;" @click.prevent="sendtoAssessor(selectedActivity.id)">Send</a>
+                                        <a class="btn btn-primary" v-show="showSendToAssessorButton" style="cursor:pointer;text-decoration:none;" @click.prevent="sendtoAssessor(selectedActivity.id)">Send</a>
                                     </div>
                                 </div>
                                 <div class="row" v-if="optionsLoadedForActivity(selectedActivity)" v-bind:key="`assessor_datatable_${selectedActivity.id}`">
@@ -125,12 +125,12 @@
                                         :onMount="eventListeners"/>
                                 </div>
                             </div>
-                            <div :id="`${selectedActivity.id}`" class="tab-pane fade in">
-                                <Conditions
-                                    :key="`assessor_condition_${selected_activity_tab_id}`"
-                                    :final_view_conditions="final_view_conditions"
-                                    :activity="selectedActivity"/>
-                            </div>
+                        </div>
+                        <div :id="`${selectedActivity.id}`" class="tab-pane fade in">
+                            <Conditions
+                                :key="`assessor_condition_${selected_activity_tab_id}`"
+                                :final_view_conditions="final_view_conditions"
+                                :activity="selectedActivity"/>
                         </div>
                     </div>
                 </div>
@@ -176,6 +176,7 @@ export default {
             DATE_TIME_FORMAT: 'DD/MM/YYYY HH:mm:ss',
             viewingAssessmentId: null,
             savingAssessment: false,
+            showSendToAssessorButton: true,
         }
     },
     components: {
@@ -215,15 +216,20 @@ export default {
             'isApplicationActivityVisible',
             'unfinishedActivities',
             'current_user',
+            'sendToAssessorActivities',
+            'canAssignOfficerFor',
+            'allCurrentActivities',
+            'allCurrentActivitiesWithAssessor',
         ]),
         inspection_report_file_name: function() {
             return this.assessment.inspection_report != null ? this.assessment.inspection_report.name: '';
         },
         applicationActivities: function() {
-            return this.licenceActivities();
-        },
-        sendToAssessorActivities: function() {
-            return this.licenceActivities(['with_officer', 'with_officer_conditions', 'with_assessor'], 'licensing_officer');
+            if (this.$router.currentRoute.name=='complete-assessment'){
+                // filtered activity list for application when completing assessments.
+                return this.allCurrentActivitiesWithAssessor
+            }
+            return this.allCurrentActivities
         },
         selectedActivity: function(){
             const activities_list = this.licence_type_data.activity;
@@ -247,26 +253,41 @@ export default {
             return this.selected_activity_tab_id && this.selectedActivity.processing_status.id == 'with_assessor' ? true : false;
         },
         canSendToAssessor: function() {
+            this.showSendToAssessorButton = false;
+            if (this.$router.currentRoute.name=='complete-assessment'){
+                // complete assessment route is only for assessors.
+                return null;
+            }            
+            if (!this.canAssignOfficerFor(this.selected_activity_tab_id)) {
+                // officer has no permissions for licence activity.
+                return null;
+            }
             return this.sendToAssessorActivities.filter(visible_activity => {
                 if(visible_activity.id != this.selected_activity_tab_id) {
                     return false;
                 }
                 for(const assessor of this.assessorGroup) {
-                    if(assessor.licence_activities && assessor.licence_activities.filter(
-                            activity => {
-                                if(activity.id == visible_activity.id) {
-                                    // Pre-select default Assessor Group drop-down option for the current tab
-                                    if(this.selectedAssessor.id == null || !this.assessorInGroup(this.selectedAssessor.id)) {
-                                        this.selectedAssessor = assessor;
-                                    }
-                                    return true;
+                   if(assessor.licence_activities && assessor.licence_activities.filter(
+                           activity => {
+                                if(activity.id === visible_activity.id) {
+
+                                    return true; // this assessor is for activity.
                                 }
                                 return false;
                             }
-                    ).length) {
-                        return true;
+                    ).length) { // can send to this assessor
+                        if (!this.isAssessorAssigned(assessor, visible_activity.id)) {
+
+                            if(this.selectedAssessor.id == null || !this.assessorInGroup(this.selectedAssessor.id)) {
+                                // Pre-select default Assessor Group drop-down option for the current tab
+                                this.selectedAssessor = assessor;
+                            }
+                            this.showSendToAssessorButton = true;
+                            return true;
+                        };
                     }
                 }
+                return false; // no assessors in group.
             }).length;
         },
     },
@@ -413,6 +434,10 @@ export default {
                 })
             });
         },
+        canEditAssessment: function(assessment) {
+            // Check current user is assigned assessor.
+            return assessment.assigned_assessor && assessment.assigned_assessor.id===this.current_user.id
+        },  
         userHasRole: function(role, activity_id) {
             return this.hasRole(role, activity_id);
         },
@@ -423,9 +448,26 @@ export default {
             if(this.selected_activity_tab_id && !force) {
                 return;
             }
-            const tab = $('#tabs-section li:first-child a')[0];
+            //const tab = $('#tabs-assessor li:first-child a')[0];
+            const tab = null
+            var first_tab = this.applicationActivities[0].id
+
+            if (this.$router.currentRoute.name=='complete-assessment'){
+                // an activity is set for completing assessment.
+                first_tab = this.selected_activity_tab_id
+            }
+
             if(tab) {
                 tab.click();
+            }
+            else { // force first tab selection attributes.
+
+                this.licenceActivities().filter(activity => {
+                    if (activity.id==first_tab) {
+
+                        this.setActivityTab({ id: activity.id, name: activity.name });
+                    }
+                })
             }
         },
         assessorInGroup: function(assessor_id) {
@@ -441,9 +483,19 @@ export default {
             if(!assessor.licence_activities) {
                 return false;
             }
-            return assessor.licence_activities.filter(
-                activity => activity.id == activity_id
-            ).length > 0;
+            var isForActivity = assessor.licence_activities.find(activity => {
+
+                return activity.id === activity_id; 
+            });
+
+            return isForActivity && !this.isAssessorAssigned(assessor, activity_id)
+        },
+        isAssessorAssigned(assessor, activity_id) {
+            return this.application.assessments.find(assessment => {
+ 
+                return assessment.assessor_group.id === assessor.id
+                    && assessment.licence_activity === activity_id;               
+            });
         },
         sendtoAssessor: function(item1){
             let vm=this;
@@ -556,18 +608,18 @@ export default {
                             mRender:function (data,type,full) {
                                 let links = '';
                                 const pending = full.status.id === 'awaiting_assessment';
-                                if(full.status.id == 'completed' && vm.isLicensingOfficer){
+                                if(full.status.id == 'completed' && vm.canAssignOfficerFor(activity.id)){
                                     links +=  `
                                         <a data-assessmentid='${full.id}' class="assessment-action assessment_resend">Resend</a>
                                     `;
-                                } else if(pending && vm.isLicensingOfficer){
+                                } else if(pending && vm.canAssignOfficerFor(activity.id)){
                                     links +=  `
                                         <a data-assessmentid='${full.id}' class="assessment-action assessment_remind">Remind</a>
                                         <a data-assessmentid='${full.id}' class="assessment-action assessment_recall">Recall</a>
                                     `;
                                 }
                                 links +=  `
-                                    <a data-assessmentid='${full.id}' class="assessment-action assessment_view">${pending && vm.canCompleteAssessment? 'Edit' : 'View'}</a>
+                                    <a data-assessmentid='${full.id}' class="assessment-action assessment_view">${pending && vm.canEditAssessment(full)? 'Edit' : 'View'}</a>
                                 `;
                                 return links;
                             }}
