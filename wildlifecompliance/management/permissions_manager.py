@@ -336,15 +336,11 @@ class CollectorManager(object):
             logger.info("Verifying presence of custom groups in the database...")
             CustomGroupCollector().get_or_create_models()
             logger.info("Finished collecting custom groups and permissions.")
-<<<<<<< HEAD
-            
             logger.info("Verifying presence of compliance group permissions in the database...")
             CompliancePermissionCollector().get_or_create_models()
             logger.info("Verifying presence of compliance groups in the database...")
             ComplianceGroupCollector().get_or_create_models()
             logger.info("Finished collecting compliance groups and permissions.")
-||||||| merged common ancestors
-=======
 
 class PermissionUser(object):
     def __init__(self, a_user):
@@ -411,4 +407,3 @@ class PermissionUser(object):
             proxy_details['organisation_id'] = None
 
         return proxy_details
->>>>>>> master

@@ -192,15 +192,6 @@ urlpatterns = [
     url('^healthcheck/', views.HealthCheckView.as_view(), name='health_check'),
 
     # following url is defined so that to include url path when sending
-    # application emails to users
-<<<<<<< HEAD
-    url(r'^internal/application/(?P<application_pk>\d+)/$', views.ApplicationView.as_view(), name='internal-application-detail'),
-    url(r'^application_submit/submit_with_invoice/', ApplicationSuccessView.as_view(), name='external-application-success-invoice'),
-    url(r'^application/finish_licence_fee_payment/', LicenceFeeSuccessView.as_view(), name='external-licence-fee-success-invoice'),
-
-    # url(r'^infringement_penalty_submit/submit_with_invoice/', InfringementPenaltySuccessView.as_view(), name='external-application-success-invoice'),
-
-                  # following url is defined so that to include url path when sending
     # call_email emails to users
     url(r'^internal/call_email/(?P<call_email_id>\d+)/$', views.ApplicationView.as_view(),
         name='internal-call-email-detail'),
@@ -211,7 +202,7 @@ urlpatterns = [
         name='internal-inspection-detail'),
 
     # following url is defined so that to include url path when sending
-    # inspection emails to users
+    # sanction outcome emails to users
     url(r'^internal/sanction_outcome/(?P<sanction_outcome_id>\d+)/$', views.ApplicationView.as_view(), name='internal-sanction-outcome-detail'),
 
     url(r'^internal/offence/(?P<offence_id>\d+)/$', views.ApplicationView.as_view(), name='internal-offence-detail'),
@@ -220,7 +211,6 @@ urlpatterns = [
     # inspection emails to users
     url(r'^internal/legal_case/(?P<legal_case_id>\d+)/$', views.ApplicationView.as_view(),
         name='internal-legal-case-detail'),
-||||||| merged common ancestors
     url(r'^internal/application/(?P<application_pk>\d+)/$', views.ApplicationView.as_view(),
         name='internal-application-detail'),
     url(r'^application_submit/submit_with_invoice/',
@@ -229,7 +219,6 @@ urlpatterns = [
     url(r'^application/finish_licence_fee_payment/',
         LicenceFeeSuccessView.as_view(),
         name='external-licence-fee-success-invoice'),
-=======
     url(r'^internal/application/(?P<application_pk>\d+)/$', views.ApplicationView.as_view(),
         name='internal-application-detail'),
     url(r'^application_submit/submit_with_invoice/',
@@ -241,7 +230,6 @@ urlpatterns = [
     url(r'^returns_submit/submit_with_invoice/',
         ReturnSuccessView.as_view(),
         name='external-returns-success-invoice'),
->>>>>>> master
 
     # url(r'^export/xls/$', application_views.export_applications, name='export_applications'),
     url(r'^export/pdf/$', application_views.pdflatex, name='pdf_latex'),
