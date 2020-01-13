@@ -35,7 +35,7 @@ before_script:
     - psql -c 'create database travis_ci_test;' -U postgres
     - python manage_wc.py migrate --noinput
 script:
-    - COVERAGE_FILE=.coverage_ledger coverage run --source="." manage_wl.py test --noinput ledger
+    - COVERAGE_FILE=.coverage_ledger coverage run --source="." manage_wc.py test --noinput ledger
     - COVERAGE_FILE=.coverage_wc coverage run --source="." manage_wc.py test --noinput wildlifecompliance 
     - coverage combine .coverage_ledger .coverage_wc
 after_success:
