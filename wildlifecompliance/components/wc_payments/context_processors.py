@@ -1,5 +1,5 @@
 from django.conf import settings
-from commercialoperator import helpers
+from wildlifecompliance import helpers
 
 def commercialoperator_url(request):
     web_url = request.META['HTTP_HOST']

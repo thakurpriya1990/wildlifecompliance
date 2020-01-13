@@ -49,7 +49,7 @@ from django.db import transaction
 # from commercialoperator.components.bookings.confirmation_pdf import create_confirmation_pdf_bytes
 from rest_framework.response import Response
 
-from commercialoperator.components.bookings.confirmation_pdf import create_confirmation_pdf_bytes
+#from commercialoperator.components.bookings.confirmation_pdf import create_confirmation_pdf_bytes
 from ledger.checkout.utils import create_basket_session, create_checkout_session, place_order_submission, get_cookie_basket
 from ledger.payments.pdf import create_invoice_pdf_bytes
 from ledger.payments.utils import oracle_parser_on_invoice,update_payments
@@ -59,7 +59,8 @@ from decimal import Decimal
 # from commercialoperator.components.bookings.models import Booking, ParkBooking, BookingInvoice, ApplicationFee, ApplicationFeeInvoice
 from ledger.payments.models import Invoice
 from ledger.basket.models import Basket
-from ledger.payments.mixins import InvoiceOwnerMixin, SanctionOutcomePdfMixin
+#from ledger.payments.mixins import InvoiceOwnerMixin, SanctionOutcomePdfMixin
+from ledger.payments.mixins import InvoiceOwnerMixin
 from oscar.apps.order.models import Order
 
 import logging
