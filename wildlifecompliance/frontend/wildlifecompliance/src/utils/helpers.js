@@ -141,4 +141,20 @@ module.exports = {
       newText = aText.split("\n");
       return newText;
     },
+    datatableExactStringMatch: function(inputString) {
+      // returns a var in regex form to be passed to datatables search function
+      // eg. .search(regexSearch, true, false)
+      let regexSearch = '^' +
+                          inputString
+                              .replace(/\(/g, '\\(') // escape parentheses
+                              .replace(/\)/g, '\\)') 
+                          + '$';
+      return regexSearch;
+    },
+    guid: function(){
+      function s4(){
+        return Math.floor((1 + Math.random()) * 0x10000).toString(16).substring(1);
+      }
+      return s4() + s4() + '-' + s4() + '-' + s4() + '-' + s4() + '-' + s4() + s4() + s4();
+    }
 };

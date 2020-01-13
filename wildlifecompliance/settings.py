@@ -16,6 +16,13 @@ INSTALLED_APPS += [
     'wildlifecompliance.components.licences',
     'wildlifecompliance.components.users',
     'wildlifecompliance.components.returns',
+    'wildlifecompliance.components.call_email',
+    'wildlifecompliance.components.offence',
+    'wildlifecompliance.components.inspection',
+    'wildlifecompliance.components.sanction_outcome',
+    'wildlifecompliance.components.wc_payments',
+    'wildlifecompliance.components.legal_case',
+    'wildlifecompliance.components.artifact',
     'taggit',
     'rest_framework',
     'rest_framework_gis',
@@ -97,6 +104,20 @@ LOGGING['loggers']['application_checkout'] = {
     'handlers': ['application_checkout'],
     'level': 'INFO'
 }
+# # Additional logging for compliancemanagement
+# LOGGING['handlers']['compliancemanagement'] = {
+#     'level': 'INFO',
+#     'class': 'logging.handlers.RotatingFileHandler',
+#     'filename': os.path.join(
+#         BASE_DIR,
+#         'logs',
+#         'wildlifecompliance_compliancemanagement.log'),
+#     'formatter': 'verbose',
+#     'maxBytes': 5242880}
+# LOGGING['loggers']['compliancemanagement'] = {
+#     'handlers': ['compliancemanagement'],
+#     'level': 'INFO'
+# }
 
 STATICFILES_DIRS.append(
     os.path.join(
@@ -116,6 +137,7 @@ DATA_UPLOAD_MAX_NUMBER_FIELDS = None
 SYSTEM_NAME = env('SYSTEM_NAME', 'Wildlife Licensing System')
 SYSTEM_EMAIL = env('SYSTEM_EMAIL', 'wildlifelicensing@dbca.wa.gov.au')
 WC_PAYMENT_SYSTEM_ID = env('WC_PAYMENT_SYSTEM_ID', 'S999')
+COLS_ADMIN_GROUP = env('COLS_ADMIN_GROUP', 'COLS Admin')
 if not VALID_SYSTEMS:
     VALID_SYSTEMS = [WC_PAYMENT_SYSTEM_ID]
 DEP_URL = env('DEP_URL', 'www.dbca.wa.gov.au')
