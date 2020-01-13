@@ -30,6 +30,7 @@ var/
 .installed.cfg
 *.egg
 *.bak
+*.uin
 
 # PyInstaller
 #  Usually these files are written by a python script from a template
@@ -63,6 +64,8 @@ staticfiles*
 
 # vim
 *.swp
+*.swo
+*.swn
 
 # Sphinx documentation
 docs/_build/
@@ -104,20 +107,9 @@ wildlifecompliance/static/wildlifecompliance_vue/static/*
 # npm locks
 *-lock.json
 
-commercialoperator/static/commercialoperator_vue/static/css/app.css
-commercialoperator/static/commercialoperator_vue/static/js/app.js
-commercialoperator/static/commercialoperator_vue/static/js/manifest.js
-commercialoperator/static/commercialoperator_vue/static/js/vendor.js
-commercialoperator/static/commercialoperator_vue/static/js/babel-polyfill.js
-<<<<<<< HEAD
-commercialoperator/static/commercialoperator_vue/static/fonts/*
-commercialoperator/static/commercialoperator_vue/static/img/*
+wildlifecompliance/static/wildlifecompliance_vue/css/app.css
+wildlifecompliance/static/wildlifecompliance_vue/js/app.js
+wildlifecompliance/static/wildlifecompliance_vue/js/manifest.js
+wildlifecompliance/static/wildlifecompliance_vue/js/vendor.js
+wildlifecompliance/static/wildlifecompliance_vue/static/js/babel-polyfill.js
 
-disturbance/static/disturbance_vue/static/css/app.css
-disturbance/static/disturbance_vue/static/js/app.js
-disturbance/static/disturbance_vue/static/js/manifest.js
-disturbance/static/disturbance_vue/static/js/vendor.js
-disturbance/static/disturbance_vue/static/js/babel-polyfill.js
-
-=======
->>>>>>> f9a819def14f3956dd7cc4236331c382161051f7

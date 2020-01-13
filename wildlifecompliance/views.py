@@ -8,9 +8,11 @@ from django.contrib.auth.mixins import UserPassesTestMixin, LoginRequiredMixin
 
 from datetime import datetime, timedelta
 
-from wildlifecompliance.helpers import is_internal
+from wildlifecompliance.helpers import is_internal, prefer_compliance_management, is_model_backend, in_dbca_domain, \
+    is_compliance_internal_user, is_wildlifecompliance_admin
 from wildlifecompliance.forms import *
 from wildlifecompliance.components.applications.models import Application
+from wildlifecompliance.components.call_email.models import CallEmail
 from wildlifecompliance.components.returns.models import Return
 from wildlifecompliance.components.main import utils
 from wildlifecompliance.exceptions import BindApplicationException
@@ -19,6 +21,11 @@ from django.core.management import call_command
 
 class ApplicationView(DetailView):
     model = Application
+    template_name = 'wildlifecompliance/dash/index.html'
+
+
+class CallEmailView(DetailView):
+    model = CallEmail
     template_name = 'wildlifecompliance/dash/index.html'
 
 
@@ -62,7 +69,17 @@ class WildlifeComplianceRoutingView(TemplateView):
 
     def get(self, *args, **kwargs):
         if self.request.user.is_authenticated():
-            if is_internal(self.request):
+            print('email: {}'.format(self.request.user.email))
+            print("is_authenticated: True")
+            print('is_superuser: {}'.format(self.request.user.is_superuser))
+            print('is_model_backend: {}'.format(is_model_backend(self.request)))
+            print('is_dbca_domain: {}'.format(in_dbca_domain(self.request)))
+            print('is_compliance_internal_user: {}'.format(is_compliance_internal_user(self.request)))
+            print('is_wildlifecompliance_admin: {}'.format(is_wildlifecompliance_admin(self.request)))
+            print('prefer compliance management: {}'.format(prefer_compliance_management(self.request)))
+            if is_internal(self.request) and prefer_compliance_management(self.request):
+                return redirect('internal/call_email/')
+            elif is_internal(self.request):
                 return redirect('internal')
             return redirect('external')
         kwargs['form'] = LoginForm
