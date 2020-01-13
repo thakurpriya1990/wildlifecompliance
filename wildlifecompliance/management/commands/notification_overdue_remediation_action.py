@@ -1,24 +1,27 @@
+from dateutil.relativedelta import relativedelta
 from django.db import transaction
 from django.core.management.base import BaseCommand
 from django.db.models import Q, Max
 from django.utils import timezone
 import logging
 from wildlifecompliance.components.sanction_outcome.email import send_notification_overdue_remediation_action
-from wildlifecompliance.components.sanction_outcome.models import RemediationAction, RemediationActionNotification
+from wildlifecompliance.components.sanction_outcome.models import RemediationAction, RemediationActionNotification, \
+    SanctionOutcomeUserAction
 from wildlifecompliance.components.sanction_outcome.serializers import SanctionOutcomeCommsLogEntrySerializer, \
-    RemediationActionNotificationCreateSerializer
+    RemediationActionNotificationCreateSerializer, RemediationActionUpdateStatusSerializer
 
 logger = logging.getLogger(__name__)
 
 
 class Command(BaseCommand):
-    help = 'Send the notification mail to the external user one week before the due date of the a remediation action'
+    help = 'Send the overdue mail to the external user of the a remediation action'
 
     def handle(self, *args, **options):
         try:
             with transaction.atomic():
                 logger.info('Running command {}'.format(__name__))
                 today = timezone.localtime(timezone.now()).date()
+                # today = today + relativedelta(days=70)
 
                 # Pick up all the remediation actions which are close to due and no notifications sent yet
                 ras = RemediationAction.objects.filter(Q(due_date__lt=today) & Q(status=RemediationAction.STATUS_OPEN)). \
@@ -50,13 +53,19 @@ class Command(BaseCommand):
                     serializer.is_valid(raise_exception=True)
                     ran = serializer.save()
 
+                    # Set remediation action status to the 'overdue'
+                    serializer = RemediationActionUpdateStatusSerializer(ra, data={'status': RemediationAction.STATUS_OVERDUE}, )
+                    serializer.is_valid(raise_exception=True)
+                    serializer.save()
+
                     # Comms log
                     if email_data:
                         serializer = SanctionOutcomeCommsLogEntrySerializer(workflow_entry, data=email_data, partial=True)
                         serializer.is_valid(raise_exception=True)
                         serializer.save()
 
-                    # Action log: sending reminder mail doesn't require an action log entry
+                    # Action log, status has been changed to the 'overdue', record it as an action
+                    ra.sanction_outcome.log_user_action(SanctionOutcomeUserAction.ACTION_REMEDIATION_ACTION_OVERDUE.format(ra.sanction_outcome.lodgement_number))
 
                 logger.info('Command {} completed'.format(__name__))
 

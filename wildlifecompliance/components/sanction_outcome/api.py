@@ -287,6 +287,7 @@ class RemediationActionViewSet(viewsets.ModelViewSet):
                 serializer.save()
 
                 # TODO: Email to the officer?
+
                 # TODO: Comms log to the sanction outcome
                 # TODO: Action log to the sanction outcome
 
