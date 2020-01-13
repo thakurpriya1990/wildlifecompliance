@@ -91,6 +91,7 @@ export default {
                 this.processingDetails = true;
                 const response = await this.sendData();
                 this.close();
+                this.$emit('remediation_action_accepted', this.remediation_action_id);
             } catch (err){
                 this.processError(err);
             } finally {

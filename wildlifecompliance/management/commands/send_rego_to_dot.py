@@ -8,6 +8,7 @@ from django.utils import timezone
 
 import logging
 
+from wildlifecompliance import settings
 from wildlifecompliance.components.sanction_outcome.email import send_remind_1st_period_overdue_mail, \
     email_detais_to_department_of_transport
 from wildlifecompliance.components.sanction_outcome.models import SanctionOutcome, SanctionOutcomeUserAction, \
@@ -16,6 +17,7 @@ from wildlifecompliance.components.sanction_outcome.serializers import SanctionO
 from wildlifecompliance.components.sanction_outcome_due.models import SanctionOutcomeDueDate
 from wildlifecompliance.components.sanction_outcome_due.serializers import SaveSanctionOutcomeDueDateSerializer
 from wildlifecompliance.helpers import DEBUG
+from wildlifecompliance.management.commands.cron_tasks import get_infringement_notice_coordinators
 
 logger = logging.getLogger(__name__)
 
@@ -57,9 +59,13 @@ class Command(BaseCommand):
                     file_for_dot.filename = 'DPaw-' + datetime.date.today().strftime("%d%b%Y") + '-Request.txt'
                     file_for_dot.save()
 
+                    # Determine the bcc
+                    members = get_infringement_notice_coordinators()
+                    cc_list = [member.email for member in members] if members else [settings.NOTIFICATION_EMAIL]
+
                     # Email
                     to_address = ['shibaken+dot@dbca.gov.wa.au', ]
-                    cc = None
+                    cc = cc_list
                     bcc = None
                     attachments = [(file_for_dot.filename, file_for_dot.contents, 'text/plain'), ]
                     email_data = email_detais_to_department_of_transport(to_address, attachments, cc, bcc)

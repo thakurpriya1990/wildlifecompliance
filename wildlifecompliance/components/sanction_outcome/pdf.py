@@ -206,7 +206,7 @@ def _create_header(canvas, doc, draw_page_number=True):
     sanction_outcome = doc.sanction_outcome
     canvas.setFont(BOLD_FONTNAME, SMALL_FONTSIZE)
     current_x = PAGE_MARGIN + 5
-    canvas.drawString(current_x, current_y - (SMALL_FONTSIZE + HEADER_SMALL_BUFFER), sanction_outcome.get_offender().get_full_name())
+    canvas.drawString(current_x, current_y - (SMALL_FONTSIZE + HEADER_SMALL_BUFFER), sanction_outcome.get_offender()[0].get_full_name())
     # canvas.drawString(current_x, current_y - (SMALL_FONTSIZE + HEADER_SMALL_BUFFER), invoice.owner.get_full_name())
     # canvas.drawString(current_x, current_y - (SMALL_FONTSIZE + HEADER_SMALL_BUFFER) * 2,invoice.owner.username)
     current_x += 452
