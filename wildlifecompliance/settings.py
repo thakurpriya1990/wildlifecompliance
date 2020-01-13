@@ -1,5 +1,11 @@
+import os
+import confy
+BASE_DIR = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
+confy.read_environment_file(BASE_DIR+"/.env")
+os.environ.setdefault("BASE_DIR", BASE_DIR)
 from django.core.exceptions import ImproperlyConfigured
 from ledger.settings_base import *
+
 
 ROOT_URLCONF = 'wildlifecompliance.urls'
 SITE_ID = 1
@@ -118,7 +124,7 @@ LOGGING['loggers']['application_checkout'] = {
 #     'handlers': ['compliancemanagement'],
 #     'level': 'INFO'
 # }
-
+print(BASE_DIR)
 STATICFILES_DIRS.append(
     os.path.join(
         os.path.join(

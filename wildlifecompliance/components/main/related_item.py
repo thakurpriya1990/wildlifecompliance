@@ -5,7 +5,8 @@ from rest_framework.renderers import JSONRenderer
 from django.core.exceptions import ValidationError
 #from wildlifecompliance.components.offence.models import Offender
 from wildlifecompliance.components.organisations.models import Organisation
-from ledger.accounts.models import EmailUser
+#from ledger.accounts.models import EmailUser
+from wildlifecompliance.components.main.models import ComplianceManagementEmailUser as EmailUser
 from django.db import models
 from rest_framework import serializers
 from django.contrib.contenttypes.fields import GenericForeignKey

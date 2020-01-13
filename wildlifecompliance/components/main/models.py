@@ -184,3 +184,16 @@ class GlobalSettings(models.Model):
     def __str__(self):
         return "{}, {}".format(self.key, self.value)
 
+
+class ComplianceManagementEmailUser(EmailUser):
+    class Meta:
+        app_label = 'wildlifecompliance'
+        proxy = True
+
+    @property
+    def get_related_items_identifier(self):
+        return self.email
+
+    @property
+    def get_related_items_descriptor(self):
+        return self.get_full_name()
