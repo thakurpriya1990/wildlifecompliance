@@ -358,6 +358,30 @@ def get_related_items(entity, pending_closure=False, **kwargs):
                                         )
                                 return_list.append(related_item)
 
+                # artifacts linked to legal case - reverse of "legal case artifacts" above
+                elif f.name == 'legal_case' and f.is_relation and f.many_to_many \
+                        and entity._meta.model_name in ('documentartifact', 'physicalartifact'):
+                    if entity._meta.model_name == 'documentartifact':
+                        field_objects = f.related_model.objects.filter(legal_case_document_artifacts=entity)
+                    elif entity._meta.model_name == 'physicalartifact':
+                        field_objects = f.related_model.objects.filter(legal_case_physical_artifacts=entity)
+                    # TODO: Refactor repeated code
+                    if field_objects:
+                        for field_object in field_objects:
+                            if pending_closure:
+                                children.append(field_object)
+                            else:
+                                related_item = RelatedItem(
+                                        model_name = format_model_name(f.related_model.__name__),
+                                        identifier = field_object.get_related_items_identifier,
+                                        descriptor = field_object.get_related_items_descriptor,
+                                        action_url = format_url(
+                                                model_name=f.related_model.__name__,
+                                                obj_id=field_object.id
+                                                )
+                                        )
+                                return_list.append(related_item)
+
                 # legal case associated_persons
                 elif entity._meta.model_name == 'legalcase' and f.is_relation and f.many_to_many \
                     and f.name == 'associated_persons':

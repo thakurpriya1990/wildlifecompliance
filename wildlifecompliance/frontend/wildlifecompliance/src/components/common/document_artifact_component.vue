@@ -256,6 +256,7 @@ export default {
                     url: '/api/artifact_paginated/get_paginated_datatable/?format=datatables',
                     dataSrc: 'data',
                     data: function(d) {
+                        d.object_type = 'document_artifact'
                         /*
                         d.type = vm.filterType;
                         d.status = vm.filterStatus;
@@ -305,6 +306,11 @@ export default {
                     {
                         searchable: false,
                         orderable: false,
+                        data: 'digital_documents'
+                    },
+                    {
+                        searchable: false,
+                        orderable: false,
                         data: 'entity',
                         mRender: function (data, type,full){
                             let documentArtifactId = data.id;
@@ -325,6 +331,7 @@ export default {
                 'Custodian',
                 'Status',
                 */
+                'Documents',
                 'Action',
             ],
 
@@ -603,12 +610,19 @@ export default {
         },
         emitDocumentArtifact: async function(e) {
             console.log(e)
-            //let documentNumber = e.target.id;
-            //let documentId = null;
-            //await this.loadDocumentArtifact({ document_artifact_id: e.target.id });
             let documentArtifactId = e.target.dataset.id;
+            // update existing DocumentArtifact with legal_case_id
+            let fetchUrl = helpers.add_endpoint_join(
+                api_endpoints.document_artifact,
+                documentArtifactId + '/'
+                )
+            let payload = {
+                "legal_case_id": this.legalCaseId
+            }
+            console.log(payload);
+            await Vue.http.put(fetchUrl, payload);
             let documentArtifactType = e.target.dataset.artifactType.replace(/~/g, ' ');
-            let documentArtifactIdentifier = e.target.dataset.identifier.replace(/~/g, ' ');
+            let documentArtifactIdentifier = e.target.dataset.identifier.replace(/~/g, ' ').replace('null', '');
             this.$nextTick(() => {
                 this.$emit('existing-entity-selected', {
                         id: documentArtifactId,
