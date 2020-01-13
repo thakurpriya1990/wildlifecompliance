@@ -389,10 +389,11 @@ def get_related_items(entity, pending_closure=False, **kwargs):
                     field_objects = entity.associated_persons.all()
                     if field_objects:
                         for field_object in field_objects:
+                            compliance_management_email_user = EmailUser.objects.get(id=field_object.id)
                             related_item = RelatedItem(
                                     model_name = format_model_name(f.related_model.__name__),
-                                    identifier = field_object.get_related_items_identifier,
-                                    descriptor = field_object.get_related_items_descriptor,
+                                    identifier = compliance_management_email_user.get_related_items_identifier,
+                                    descriptor = compliance_management_email_user.get_related_items_descriptor,
                                     action_url = format_url(
                                             model_name=f.related_model.__name__,
                                             obj_id=field_object.id
