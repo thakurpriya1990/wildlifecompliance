@@ -16,6 +16,14 @@ export const sanctionOutcomeStore = {
         sanction_outcome: state => state.sanction_outcome,
     },
     mutations: {
+        updateRemediationAction(state, remediation_action){
+            console.log('updateRemediationAction');
+            for (let i=0; i<state.sanction_outcome.remediation_actions.length; i++){
+                if (state.sanction_outcome.remediation_actions[i].id == remediation_action.id){
+                    state.sanction_outcome.remediation_actions[i] = remediation_action;
+                }
+            }
+        },
         updateSanctionOutcome(state, sanction_outcome) {
             Vue.set(state, 'sanction_outcome', {
                 ...sanction_outcome
@@ -57,8 +65,18 @@ export const sanctionOutcomeStore = {
         },
     },
     actions: {
+        async loadRemediationAction({ dispatch, }, { remediation_action_id }){
+            const returned = await Vue.http.get(
+                helpers.add_endpoint_json(
+                    api_endpoints.remediation_action, 
+                    remediation_action_id)
+                );
+            console.log('returned.body');
+            console.log(returned.body);
+
+            await dispatch("setRemediationAction", returned.body);
+        },
         async loadSanctionOutcome({ dispatch, }, { sanction_outcome_id }) {
-            console.log("loadSanctionOutcome");
             try {
                 const returnedSanctionOutcome = await Vue.http.get(
                     helpers.add_endpoint_json(
@@ -107,6 +125,9 @@ export const sanctionOutcomeStore = {
         },
         setSanctionOutcome({ commit, }, sanction_outcome) {
             commit("updateSanctionOutcome", sanction_outcome);
+        },
+        setRemediationAction({ commit, }, remediation_action) {
+            commit("updateRemediationAction", remediation_action);
         },
         setAssignedToId({ commit, }, assigned_to_id) {
             commit("updateAssignedToId", assigned_to_id);

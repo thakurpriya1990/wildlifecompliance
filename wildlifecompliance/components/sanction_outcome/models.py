@@ -12,7 +12,6 @@ from ledger.accounts.models import EmailUser, RevisionedMixin
 from wildlifecompliance.components.main.models import Document, CommunicationsLogEntry
 from wildlifecompliance.components.main.related_item import can_close_record
 from wildlifecompliance.components.offence.models import Offence, Offender, AllegedOffence
-from wildlifecompliance.components.sanction_outcome.email import email_detais_to_department_of_transport
 from wildlifecompliance.components.sanction_outcome_due.models import SanctionOutcomeDueDateConfiguration
 from wildlifecompliance.components.sanction_outcome_due.serializers import SaveSanctionOutcomeDueDateSerializer
 from wildlifecompliance.components.section_regulation.models import SectionRegulation
@@ -68,6 +67,7 @@ class SanctionOutcome(models.Model):
     STATUS_DECLINED = 'declined'
     STATUS_OVERDUE = 'overdue'
     STATUS_WITHDRAWN = 'withdrawn'
+    STATUS_PENDING_CLOSURE = 'pending_closure'
     STATUS_CLOSED = 'closed'
     STATUS_WITH_DOT = 'with_dot'
     STATUS_AWAITING_ISSUANCE = 'awaiting_issuance'
@@ -159,6 +159,25 @@ class SanctionOutcome(models.Model):
     objects_active = SanctionOutcomeActiveManager()
     objects_for_external = SanctionOutcomeExternalManager()
 
+    def can_close_record(self):
+        can_close_record = True
+
+        for ra in self.remediation_actions.all():
+            if ra.status not in RemediationAction.FINAL_STATUSES:
+                can_close_record = False
+                break
+
+        return can_close_record
+
+    def close(self, request=None):
+        if self.can_close_record():
+            self.status = self.STATUS_CLOSED
+            self.log_user_action(SanctionOutcomeUserAction.ACTION_CLOSE.format(self.lodgement_number), request)
+        else:
+            self.status = self.STATUS_PENDING_CLOSURE
+            self.log_user_action(SanctionOutcomeUserAction.ACTION_PENDING_CLOSURE.format(self.lodgement_number), request)
+        self.save()
+
     @property
     def is_parking_offence(self):
         is_parking_offence = False
@@ -172,7 +191,7 @@ class SanctionOutcome(models.Model):
         return is_parking_offence
 
     def get_content_for_uin(self):
-        offender = self.get_offender()
+        offender = self.get_offender()[0]
         uin = UnpaidInfringementFileBody()
         uin.offenders_surname.set(offender.last_name)
         uin.offenders_other_names.set(offender.first_name)
@@ -243,11 +262,11 @@ class SanctionOutcome(models.Model):
 
     def get_offender(self):
         if self.driver:
-            return self.driver
+            return self.driver, 'driver'
         elif self.registration_holder:
-            return self.registration_holder
+            return self.registration_holder, 'registration_holder'
         else:
-            return self.offender.person
+            return self.offender.person, 'offender'
 
     @property
     def prefix_lodgement_nubmer(self):
@@ -267,7 +286,8 @@ class SanctionOutcome(models.Model):
         if self.lodgement_number:
             raise ValidationError('Sanction outcome saved in the database with the logement number cannot be deleted.')
 
-        super(SanctionOutcome, self).delete()
+        raise ValidationError('Sanction outcome cannot be deleted.')
+        # super(SanctionOutcome, self).delete()
 
     def log_user_action(self, action, request=None):
         if request:
@@ -445,18 +465,13 @@ class SanctionOutcome(models.Model):
                 self.status = SanctionOutcome.STATUS_AWAITING_PAYMENT
                 self.payment_status = SanctionOutcome.PAYMENT_STATUS_UNPAID
                 self.set_penalty_amounts()
-                if self.due_dates.count():
-                    # Already at least one infringement notice issued
-                    self.create_due_dates(reason_for_extension='Issue infringement notice')
-                else:
-                    # First time to issue the infringement notice
-                    self.create_due_dates(reason_for_extension='original')
+                self.create_due_dates()
 
         new_group = SanctionOutcome.get_compliance_permission_group(self.regionDistrictId, SanctionOutcome.WORKFLOW_ENDORSE)
         self.allocated_group = new_group
         self.save()
 
-    def endorse(self):
+    def endorse(self, request):
         if self.type == SanctionOutcome.TYPE_INFRINGEMENT_NOTICE:
             if self.issued_on_paper:
                 pass
@@ -467,10 +482,13 @@ class SanctionOutcome(models.Model):
                     self.payment_status = SanctionOutcome.PAYMENT_STATUS_UNPAID
                     self.set_penalty_amounts()
                     self.create_due_dates()
+            new_group = SanctionOutcome.get_compliance_permission_group(self.regionDistrictId, SanctionOutcome.WORKFLOW_ENDORSE)
+            self.allocated_group = new_group
 
         elif self.type in (SanctionOutcome.TYPE_CAUTION_NOTICE, SanctionOutcome.TYPE_LETTER_OF_ADVICE):
-            self.status = SanctionOutcome.STATUS_CLOSED
+            # self.status = SanctionOutcome.STATUS_CLOSED
             self.save()  # This makes sure this sanction outcome status sets to 'closed'
+            self.close(request)
 
         elif self.type == SanctionOutcome.TYPE_REMEDIATION_NOTICE:
             self.status = SanctionOutcome.STATUS_AWAITING_REMEDIATION_ACTIONS
@@ -481,14 +499,22 @@ class SanctionOutcome(models.Model):
                 remediation_action.save()
                 id_suffix += 1
 
-        new_group = SanctionOutcome.get_compliance_permission_group(self.regionDistrictId, SanctionOutcome.WORKFLOW_ENDORSE)
-        self.allocated_group = new_group
         self.save()
 
         # Add action log
         # self.log_user_action(SanctionOutcomeUserAction.ACTION_ENDORSE.format(self.lodgement_number), request)
 
-    def create_due_dates(self, reason_for_extension='original', extended_by_id=None):
+    def create_due_dates(self, extended_by_id=None):
+        print('create_due_dates')
+        # Construct description
+        offender, title = self.get_offender()
+        recipient = ''
+        if title == 'driver':
+            recipient = ' to the driver ({})'.format(offender.email)
+        elif title == 'registration_holder':
+            recipient = ' to the registration holder ({})'.format(offender.email)
+        reason_for_extension = 'Issue infringement notice on ' + self.date_of_issue.strftime("%d/%m/%Y") + recipient
+
         due_date_config = SanctionOutcomeDueDateConfiguration.get_config_by_date(self.date_of_issue)
         self.due_date_extended_max = self.date_of_issue + relativedelta(years=1)
         data = {}
@@ -573,36 +599,25 @@ class SanctionOutcome(models.Model):
             return None
 
     @property
-    def last_due_date_1st(self):
+    def last_due_date(self):
         if self.type == SanctionOutcome.TYPE_INFRINGEMENT_NOTICE:
             due_dates = self.due_dates.order_by('-created_at')
             if self.date_of_issue and not due_dates:
-                # Should not reach here
-                self.create_due_dates()
-                self.set_penalty_amounts()
-                self.save()
-                due_dates = self.due_dates.order_by('-created_at')
-
-            return due_dates.first().due_date_1st  # Get last record
+                raise ValidationError('Issued but not due dates are set.')
+            return due_dates.first()
         else:
             return None
 
     @property
-    def last_due_date_2nd(self):
-        if self.type == SanctionOutcome.TYPE_INFRINGEMENT_NOTICE:
-            due_dates = self.due_dates.order_by('-created_at')
-            if self.date_of_issue and not due_dates:
-                # Should not reach here
-                self.create_due_dates()
-                self.set_penalty_amounts()
-                self.save()
-                due_dates = self.due_dates.order_by('-created_at')
+    def last_due_date_1st(self):
+        return self.last_due_date.due_date_1st
 
-            return due_dates.first().due_date_2nd
-        else:
-            return None
+    @property
+    def last_due_date_2nd(self):
+        return self.last_due_date.due_date_2nd
 
     def extend_due_date(self, target_date, reason_for_extension, extended_by_id):
+        print('extend_due_date')
         now_date = datetime.datetime.now().date()
         due_date_config = SanctionOutcomeDueDateConfiguration.get_config_by_date(self.date_of_issue)
         if target_date <= self.due_date_extended_max:
@@ -651,21 +666,18 @@ class SanctionOutcome(models.Model):
         ordering = ['-id']
 
 
-def perform_can_close_record(sender, instance, **kwargs):
-    # Trigger the close() function of each parent entity of this sanction outcome
-    if instance.status in (SanctionOutcome.FINAL_STATUSES):
-        close_record, parents = can_close_record(instance)
-        for parent in parents:
-            if parent.status == 'pending_closure':
-                parent.close()
-
-post_save.connect(perform_can_close_record, sender=SanctionOutcome)
-
-
 class AllegedCommittedOffence(RevisionedMixin):
     alleged_offence = models.ForeignKey(AllegedOffence, null=False,)
     sanction_outcome = models.ForeignKey(SanctionOutcome, null=False,)
     included = models.BooleanField(default=True)  # True means sanction_outcome is included in the sanction_outcome
+
+    @staticmethod
+    def get_active_alleged_committed_offences(alleged_offence):
+        return AllegedCommittedOffence.objects.filter(
+            Q(included=True) &
+            Q(alleged_offence=alleged_offence)
+        ).exclude(
+            Q(sanction_outcome__status__in=(SanctionOutcome.STATUS_DECLINED, SanctionOutcome.STATUS_WITHDRAWN)))
 
     def retrieve_penalty_amounts_by_date(self, date_of_issue):
         return self.alleged_offence.retrieve_penalty_amounts_by_date(date_of_issue)
@@ -700,6 +712,7 @@ class RemediationAction(RevisionedMixin):
         (STATUS_SUBMITTED, 'Submitted'),
         (STATUS_ACCEPTED, 'Accepted')
     )
+    FINAL_STATUSES = (STATUS_ACCEPTED, )
 
     remediation_action_id = models.CharField(max_length=20, blank=True)
     action = models.TextField(blank=True)
@@ -722,7 +735,32 @@ class RemediationAction(RevisionedMixin):
         verbose_name_plural = 'CM_RemediationActions'
 
     def __str__(self):
-        return '{}'.format(self.action,)
+        return 'ID: {}, action:{}'.format(self.id, self.action,)
+
+
+def perform_can_close_record(sender, instance, **kwargs):
+    # Trigger the close() function of each parent entity of this sanction outcome
+    if isinstance(instance, SanctionOutcome):
+        if instance.status in SanctionOutcome.FINAL_STATUSES:
+            close_record, parents = can_close_record(instance)
+            for parent in parents:
+                if parent.status in ('pending_closure', ):  # tuple must include all the status regarded as pending closure
+                    parent.close()
+    elif isinstance(instance, RemediationAction):
+        if instance.status in RemediationAction.FINAL_STATUSES:
+            parent = instance.sanction_outcome
+            if parent.status in (SanctionOutcome.STATUS_PENDING_CLOSURE, SanctionOutcome.STATUS_AWAITING_REMEDIATION_ACTIONS):  # tuple must include all the status regarded as pending closure
+                if parent.can_close_record():
+                    parent.close()
+
+            # close_record, parents = can_close_record(instance)
+            # for parent in parents:
+            #     if parent.status in ('pending_closure', SanctionOutcome.STATUS_AWAITING_REMEDIATION_ACTIONS):  # tuple must include all the status regarded as pending closure
+            #         parent.close()
+
+
+post_save.connect(perform_can_close_record, sender=SanctionOutcome)
+post_save.connect(perform_can_close_record, sender=RemediationAction)
 
 
 def update_compliance_doc_filename(instance, filename):
@@ -758,7 +796,7 @@ class SanctionOutcomeCommsLogEntry(CommunicationsLogEntry):
 class SanctionOutcomeUserAction(models.Model):
     ACTION_ISSUE_PARKING_INFRINGEMENT = "Issue Parking Infringement {} to {}"
     ACTION_CREATE = "Create Sanction Outcome {}"
-    ACTION_SEND_TO_MANAGER = "Send Sanction Outcome {} to manager"
+    ACTION_SEND_TO_MANAGER = "Forward Sanction Outcome {} to manager"
     ACTION_UPDATE = "Update Sanction Outcome {}"
     ACTION_ENDORSE_AND_ISSUE = "Endorse and Issue Sanction Outcome {}"
     ACTION_ENDORSE = "Endorse Sanction Outcome {}"
@@ -767,6 +805,7 @@ class SanctionOutcomeUserAction(models.Model):
     ACTION_RETURN_TO_OFFICER = "Request amendment for Sanction Outcome {}"
     ACTION_RETURN_TO_INFRINGEMENT_NOTICE_COORDINATOR = "Return Sanction Outcome {} to Infringement Notice Coordinator"
     ACTION_WITHDRAW = "Withdraw Sanction Outcome {}"
+    ACTION_PENDING_CLOSURE = "Mark Sanction Outcome {} as pending closure"
     ACTION_CLOSE = "Close Sanction Outcome {}"
     ACTION_ADD_WEAK_LINK = "Create manual link between Sanction Outcome: {} and {}: {}"
     ACTION_REMOVE_WEAK_LINK = "Remove manual link between Sanction Outcome: {} and {}: {}"
@@ -777,6 +816,7 @@ class SanctionOutcomeUserAction(models.Model):
     ACTION_SEND_DETAILS_TO_INFRINGEMENT_NOTICE_COORDINATOR = "Send details of the Unpaid Infringement Notice {} to Infringement Notice Coordinator"
     ACTION_ESCALATE_FOR_WITHDRAWAL = "Escalate Infringement Notice {} for withdrawal"
     ACTION_INCREASE_FEE_AND_EXTEND_DUE = "Increase penalty amount from {} to {} and extend due date from {} to {}"
+    ACTION_REMEDIATION_ACTION_OVERDUE = "Set status of Remediation Action {} to 'overdue'"
 
     who = models.ForeignKey(EmailUser, null=True, blank=True)
     when = models.DateTimeField(null=False, blank=False, auto_now_add=True)
@@ -872,3 +912,17 @@ class AmendmentRequestForRemediationAction(models.Model):
         app_label = 'wildlifecompliance'
         verbose_name = 'CM_AmendmentRequest'
         verbose_name_plural = 'CM_AmendmentRequests'
+
+
+class RemediationActionNotification(models.Model):
+    TYPE_CLOSE_TO_DUE = 'close_to_due'
+    TYPE_OVERDUE = 'overdue'
+
+    type = models.CharField(max_length=30, blank=True,)
+    remediation_action = models.ForeignKey(RemediationAction, related_name='notifications')
+    sanction_outcome_comms_log_entry = models.ForeignKey(SanctionOutcomeCommsLogEntry,)
+
+    class Meta:
+        app_label = 'wildlifecompliance'
+        verbose_name = 'CM_RemediationActionNotification'
+        verbose_name_plural = 'CM_RemediationActionNotifications'

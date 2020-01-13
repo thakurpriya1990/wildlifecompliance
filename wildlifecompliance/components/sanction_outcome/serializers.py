@@ -18,7 +18,7 @@ from wildlifecompliance.components.sanction_outcome_due.serializers import Sanct
 from wildlifecompliance.components.section_regulation.serializers import SectionRegulationSerializer
 from wildlifecompliance.components.sanction_outcome.models import SanctionOutcome, RemediationAction, \
     SanctionOutcomeCommsLogEntry, SanctionOutcomeUserAction, AllegedCommittedOffence, AmendmentRequestReason, \
-    AmendmentRequestForRemediationAction
+    AmendmentRequestForRemediationAction, RemediationActionNotification
 from wildlifecompliance.components.users.serializers import CompliancePermissionGroupMembersSerializer
 from wildlifecompliance.helpers import is_internal
 
@@ -174,12 +174,29 @@ class AllegedCommittedOffenceCreateSerializer(serializers.ModelSerializer):
         )
 
     def validate(self, data):
-        existing = AllegedCommittedOffence.objects.filter(alleged_offence__id=data['alleged_offence_id'],
-                                                          sanction_outcome__id=data['sanction_outcome_id'],
-                                                          removed=False)
-        if existing:
-            ao = existing.first().alleged_offence
+        alleged_offence = AllegedOffence.objects.get(id=data['alleged_offence_id'])
+        acos = AllegedCommittedOffence.get_active_alleged_committed_offences(alleged_offence)
+
+        if acos.count():
+            ao = acos.first().alleged_offence
             raise serializers.ValidationError('Alleged offence: %s is duplicated' % ao)
+
+        return data
+
+
+class RemediationActionNotificationCreateSerializer(serializers.ModelSerializer):
+    remediation_action_id = serializers.IntegerField(write_only=True,)
+    sanction_outcome_comms_log_entry_id = serializers.IntegerField(write_only=True,)
+
+    class Meta:
+        model = RemediationActionNotification
+        fields = (
+            'remediation_action_id',
+            'sanction_outcome_comms_log_entry_id',
+            'type',
+        )
+
+    def validate(self, data):
         return data
 
 

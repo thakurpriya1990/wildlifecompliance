@@ -36,9 +36,9 @@ from wildlifecompliance.components.sanction_outcome.models import SanctionOutcom
 from wildlifecompliance.components.sanction_outcome.serializers import SanctionOutcomeSerializer, \
     SaveSanctionOutcomeSerializer, SaveRemediationActionSerializer, SanctionOutcomeDatatableSerializer, \
     UpdateAssignedToIdSerializer, SanctionOutcomeCommsLogEntrySerializer, SanctionOutcomeUserActionSerializer, \
-    AllegedCommittedOffenceSerializer, AllegedCommittedOffenceCreateSerializer, RecordFerCaseNumberSerializer, \
+    AllegedCommittedOffenceSerializer, RecordFerCaseNumberSerializer, \
     RemediationActionSerializer, RemediationActionUpdateStatusSerializer, AmendmentRequestReasonSerializer, \
-    SaveAmendmentRequestForRemediationAction
+    SaveAmendmentRequestForRemediationAction, AllegedCommittedOffenceCreateSerializer
 from wildlifecompliance.components.users.models import CompliancePermissionGroup, RegionDistrict
 from wildlifecompliance.helpers import is_internal
 from wildlifecompliance.components.main.models import TemporaryDocumentCollection
@@ -218,6 +218,10 @@ class RemediationActionViewSet(viewsets.ModelViewSet):
 
                 serializer = RemediationActionSerializer(instance, context={'request': request})
 
+                # TODO: Email to the offender
+                # TODO: Comms log to the sanction outcome
+                # TODO: Action log to the sanction outcome
+
                 return Response(
                     serializer.data,
                     status=status.HTTP_201_CREATED
@@ -245,6 +249,10 @@ class RemediationActionViewSet(viewsets.ModelViewSet):
                 serializer = RemediationActionUpdateStatusSerializer(instance, data={'status': RemediationAction.STATUS_ACCEPTED}, context={'request': request})
                 serializer.is_valid(raise_exception=True)
                 serializer.save()
+
+                # TODO: Email to the offender
+                # TODO: Comms log to the sanction outcome
+                # TODO: Action log to the sanction outcome
 
                 headers = self.get_success_headers(serializer.data)
                 return Response(
@@ -277,6 +285,11 @@ class RemediationActionViewSet(viewsets.ModelViewSet):
                 serializer = RemediationActionUpdateStatusSerializer(serializer.instance, data={'status': RemediationAction.STATUS_SUBMITTED}, context={'request': request})
                 serializer.is_valid(raise_exception=True)
                 serializer.save()
+
+                # TODO: Email to the officer?
+
+                # TODO: Comms log to the sanction outcome
+                # TODO: Action log to the sanction outcome
 
                 headers = self.get_success_headers(serializer.data)
                 return Response(
@@ -587,7 +600,7 @@ class SanctionOutcomeViewSet(viewsets.ModelViewSet):
                 # No workflow
                 # No allocated group changes
 
-                # When updated from with_dot status by adding registrationholder, status becomes awaiting_issuance
+                # When updated from with_dot status by adding registration_holder, status becomes awaiting_issuance
                 if request_data['status']['id'] == SanctionOutcome.STATUS_WITH_DOT and (request_data['registration_holder_id'] or request_data['driver_id']):
                     request_data['status'] = SanctionOutcome.STATUS_AWAITING_ISSUANCE
                 else:
@@ -701,16 +714,15 @@ class SanctionOutcomeViewSet(viewsets.ModelViewSet):
 
                 # Create relations between this sanction outcome and the alleged offence(s)
                 count_alleged_offences = 0
-                parking_offence_included = False
-                for id in request_data['alleged_offence_ids_included']:
-                    try:
-                        alleged_offence = AllegedOffence.objects.get(id=id)
-                        alleged_commited_offence = AllegedCommittedOffence.objects.create(sanction_outcome=instance, alleged_offence=alleged_offence, included=True)
-                        count_alleged_offences += 1
-                        if alleged_offence.section_regulation.is_parking_offence:
-                            parking_offence_included = True
-                    except:
-                        pass  # Should not reach here
+                for ao_id in request_data['alleged_offence_ids_included']:
+                    # alleged_offence = AllegedOffence.objects.get(id=ao_id)
+                    # alleged_commited_offence = AllegedCommittedOffence.objects.create(sanction_outcome=instance, alleged_offence=alleged_offence, included=True)
+
+                    data = {'alleged_offence_id': ao_id, 'sanction_outcome_id': instance.id}
+                    serializer = AllegedCommittedOffenceCreateSerializer(data=data)
+                    serializer.is_valid(raise_exception=True)
+                    serializer.save()
+                    count_alleged_offences += 1
 
                 # Validate if alleged offences are selected
                 if count_alleged_offences == 0:
@@ -897,7 +909,7 @@ class SanctionOutcomeViewSet(viewsets.ModelViewSet):
                 # Email to the offender, and bcc to the respoinsible officer, manager and infringement notice coordinators
                 inc_group = SanctionOutcome.get_compliance_permission_group(None, SanctionOutcome.WORKFLOW_ENDORSE)
                 inc_emails = [member.email for member in inc_group.members]
-                to_address = [instance.get_offender().email, ]
+                to_address = [instance.get_offender()[0].email, ]
                 cc = None
                 bcc = [instance.responsible_officer.email, request.user.email] + inc_emails
                 email_data = send_infringement_notice(to_address, instance, workflow_entry, request, cc, bcc)
@@ -941,8 +953,9 @@ class SanctionOutcomeViewSet(viewsets.ModelViewSet):
                 serializer.is_valid(raise_exception=True)
                 serializer.save()
 
-                instance.status = SanctionOutcome.STATUS_CLOSED
+                # instance.status = SanctionOutcome.STATUS_CLOSED
                 instance.save()
+                instance.close()
 
                 return_serializer = SanctionOutcomeSerializer(instance=instance, context={'request': request})
                 headers = self.get_success_headers(return_serializer.data)
@@ -998,7 +1011,7 @@ class SanctionOutcomeViewSet(viewsets.ModelViewSet):
                         last_date.due_date_applied.strftime('%d/%m/%Y')),
                         request)
 
-                to_address = [instance.get_offender().email,]
+                to_address = [instance.get_offender()[0].email,]
                 cc = [instance.responsible_officer.email, request.user.email] if instance.responsible_officer else None
                 bcc = None
                 email_data = send_due_date_extended_mail(to_address, instance, workflow_entry, request, cc, bcc)
@@ -1072,7 +1085,7 @@ class SanctionOutcomeViewSet(viewsets.ModelViewSet):
 
                 elif workflow_type == SanctionOutcome.WORKFLOW_ENDORSE:
                     if not instance.is_parking_offence or (instance.is_parking_offence and instance.offender):
-                        instance.endorse()
+                        instance.endorse(request)
 
                         if not instance.issued_on_paper:
                             # Email to the offender, and bcc to the respoinsible officer, manager and infringement notice coordinators
