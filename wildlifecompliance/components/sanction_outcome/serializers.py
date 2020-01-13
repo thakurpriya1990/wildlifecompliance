@@ -18,7 +18,7 @@ from wildlifecompliance.components.sanction_outcome_due.serializers import Sanct
 from wildlifecompliance.components.section_regulation.serializers import SectionRegulationSerializer
 from wildlifecompliance.components.sanction_outcome.models import SanctionOutcome, RemediationAction, \
     SanctionOutcomeCommsLogEntry, SanctionOutcomeUserAction, AllegedCommittedOffence, AmendmentRequestReason, \
-    AmendmentRequestForRemediationAction
+    AmendmentRequestForRemediationAction, RemediationActionNotification
 from wildlifecompliance.components.users.serializers import CompliancePermissionGroupMembersSerializer
 from wildlifecompliance.helpers import is_internal
 
@@ -181,6 +181,22 @@ class AllegedCommittedOffenceCreateSerializer(serializers.ModelSerializer):
             ao = acos.first().alleged_offence
             raise serializers.ValidationError('Alleged offence: %s is duplicated' % ao)
 
+        return data
+
+
+class RemediationActionNotificationCreateSerializer(serializers.ModelSerializer):
+    remediation_action_id = serializers.IntegerField(write_only=True,)
+    sanction_outcome_comms_log_entry_id = serializers.IntegerField(write_only=True,)
+
+    class Meta:
+        model = RemediationActionNotification
+        fields = (
+            'remediation_action_id',
+            'sanction_outcome_comms_log_entry_id',
+            'type',
+        )
+
+    def validate(self, data):
         return data
 
 

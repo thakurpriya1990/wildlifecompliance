@@ -431,6 +431,7 @@
                                  :key="sendParkingInfringementBindId" />
         <AcceptRemediationAction ref="accept_remediation_action"
                                  :remediation_action_id="remediation_action_id"
+                                 @remediation_action_accepted="onRemediationActionUpdated"
                                  :key="acceptRemediationActionBindId" />
         <RequestAmendmentRemediationAction ref="request_amendment_remediation_action"
                                            @remediation_action_updated="onRemediationActionUpdated"
@@ -1002,11 +1003,11 @@ export default {
             setRelatedItems: 'setRelatedItems',
             setRegistrationHolder: 'setRegistrationHolder',
             setDriver: 'setDriver',
+            loadRemediationAction: 'loadRemediationAction',
         }),
-        onRemediationActionUpdated: function(ra_updated){_
-            console.log(ra_updated);
-
-            // TODO: update this remediation_action
+        onRemediationActionUpdated: async function(remediation_action_id){_
+            await this.loadRemediationAction({ remediation_action_id: remediation_action_id });
+            this.constructRemediationActionsTable();
         },
         formatDate: function(d){
             return moment(d).format("DD/MM/YYYY");

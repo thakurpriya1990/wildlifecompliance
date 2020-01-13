@@ -159,9 +159,18 @@ class SanctionOutcome(models.Model):
     objects_active = SanctionOutcomeActiveManager()
     objects_for_external = SanctionOutcomeExternalManager()
 
+    def can_close_record(self):
+        can_close_record = True
+
+        for ra in self.remediation_actions.all():
+            if ra.status not in RemediationAction.FINAL_STATUSES:
+                can_close_record = False
+                break
+
+        return can_close_record
+
     def close(self, request=None):
-        close_record, parents = can_close_record(self)
-        if close_record:
+        if self.can_close_record():
             self.status = self.STATUS_CLOSED
             self.log_user_action(SanctionOutcomeUserAction.ACTION_CLOSE.format(self.lodgement_number), request)
         else:
@@ -277,7 +286,8 @@ class SanctionOutcome(models.Model):
         if self.lodgement_number:
             raise ValidationError('Sanction outcome saved in the database with the logement number cannot be deleted.')
 
-        super(SanctionOutcome, self).delete()
+        raise ValidationError('Sanction outcome cannot be deleted.')
+        # super(SanctionOutcome, self).delete()
 
     def log_user_action(self, action, request=None):
         if request:
@@ -472,6 +482,8 @@ class SanctionOutcome(models.Model):
                     self.payment_status = SanctionOutcome.PAYMENT_STATUS_UNPAID
                     self.set_penalty_amounts()
                     self.create_due_dates()
+            new_group = SanctionOutcome.get_compliance_permission_group(self.regionDistrictId, SanctionOutcome.WORKFLOW_ENDORSE)
+            self.allocated_group = new_group
 
         elif self.type in (SanctionOutcome.TYPE_CAUTION_NOTICE, SanctionOutcome.TYPE_LETTER_OF_ADVICE):
             # self.status = SanctionOutcome.STATUS_CLOSED
@@ -487,8 +499,6 @@ class SanctionOutcome(models.Model):
                 remediation_action.save()
                 id_suffix += 1
 
-        new_group = SanctionOutcome.get_compliance_permission_group(self.regionDistrictId, SanctionOutcome.WORKFLOW_ENDORSE)
-        self.allocated_group = new_group
         self.save()
 
         # Add action log
@@ -725,7 +735,7 @@ class RemediationAction(RevisionedMixin):
         verbose_name_plural = 'CM_RemediationActions'
 
     def __str__(self):
-        return '{}'.format(self.action,)
+        return 'ID: {}, action:{}'.format(self.id, self.action,)
 
 
 def perform_can_close_record(sender, instance, **kwargs):
@@ -738,10 +748,15 @@ def perform_can_close_record(sender, instance, **kwargs):
                     parent.close()
     elif isinstance(instance, RemediationAction):
         if instance.status in RemediationAction.FINAL_STATUSES:
-            close_record, parents = can_close_record(instance)
-            for parent in parents:
-                if parent.status in ('pending_closure', SanctionOutcome.STATUS_AWAITING_REMEDIATION_ACTIONS):  # tuple must include all the status regarded as pending closure
+            parent = instance.sanction_outcome
+            if parent.status in (SanctionOutcome.STATUS_PENDING_CLOSURE, SanctionOutcome.STATUS_AWAITING_REMEDIATION_ACTIONS):  # tuple must include all the status regarded as pending closure
+                if parent.can_close_record():
                     parent.close()
+
+            # close_record, parents = can_close_record(instance)
+            # for parent in parents:
+            #     if parent.status in ('pending_closure', SanctionOutcome.STATUS_AWAITING_REMEDIATION_ACTIONS):  # tuple must include all the status regarded as pending closure
+            #         parent.close()
 
 
 post_save.connect(perform_can_close_record, sender=SanctionOutcome)
@@ -801,6 +816,7 @@ class SanctionOutcomeUserAction(models.Model):
     ACTION_SEND_DETAILS_TO_INFRINGEMENT_NOTICE_COORDINATOR = "Send details of the Unpaid Infringement Notice {} to Infringement Notice Coordinator"
     ACTION_ESCALATE_FOR_WITHDRAWAL = "Escalate Infringement Notice {} for withdrawal"
     ACTION_INCREASE_FEE_AND_EXTEND_DUE = "Increase penalty amount from {} to {} and extend due date from {} to {}"
+    ACTION_REMEDIATION_ACTION_OVERDUE = "Set status of Remediation Action {} to 'overdue'"
 
     who = models.ForeignKey(EmailUser, null=True, blank=True)
     when = models.DateTimeField(null=False, blank=False, auto_now_add=True)
@@ -896,3 +912,17 @@ class AmendmentRequestForRemediationAction(models.Model):
         app_label = 'wildlifecompliance'
         verbose_name = 'CM_AmendmentRequest'
         verbose_name_plural = 'CM_AmendmentRequests'
+
+
+class RemediationActionNotification(models.Model):
+    TYPE_CLOSE_TO_DUE = 'close_to_due'
+    TYPE_OVERDUE = 'overdue'
+
+    type = models.CharField(max_length=30, blank=True,)
+    remediation_action = models.ForeignKey(RemediationAction, related_name='notifications')
+    sanction_outcome_comms_log_entry = models.ForeignKey(SanctionOutcomeCommsLogEntry,)
+
+    class Meta:
+        app_label = 'wildlifecompliance'
+        verbose_name = 'CM_RemediationActionNotification'
+        verbose_name_plural = 'CM_RemediationActionNotifications'
