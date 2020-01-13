@@ -238,11 +238,8 @@ urlpatterns = [
         name='mgt-commands'),
 
     # payment related urls
-    ###############
-    # cannot use payment_views
     url(r'^infringement_penalty/(?P<sanction_outcome_id>\d+)/$', payment_views.InfringementPenaltyView.as_view(), name='infringement_penalty'),
     url(r'^success/fee/$', payment_views.InfringementPenaltySuccessView.as_view(), name='penalty_success'),
-    ###############
     # url(r'wc/payments/invoice-pdf/(?P<reference>\d+)/$', payment_views.InvoicePDFView.as_view(), name='wc-invoice-pdf'),
     # url(r'^sanction_outcome/pdf/(?P<sanction_outcome_id>\d+)/$', payment_views.SanctionOutcomePDFView.as_view(), name='sanction_outcome_pdf'),
 ] + ledger_patterns
