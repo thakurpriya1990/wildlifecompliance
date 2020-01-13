@@ -144,6 +144,11 @@ export default {
                     {
                         searchable: false,
                         orderable: false,
+                        data: 'digital_documents'
+                    },
+                    {
+                        searchable: false,
+                        orderable: false,
                         data: 'user_action',
                     }
                 ],
@@ -155,6 +160,7 @@ export default {
                 'Date',
                 'Custodian',
                 'Status',
+                'Documents',
                 'Action',
             ],
         }
