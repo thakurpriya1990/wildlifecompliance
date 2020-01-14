@@ -29,7 +29,8 @@ from wildlifecompliance.components.sanction_outcome.email import send_infringeme
     send_due_date_extended_mail, send_return_to_officer_email, send_to_manager_email, send_withdraw_by_manager_email, \
     send_withdraw_by_branch_manager_email, send_return_to_infringement_notice_coordinator_email, send_decline_email, \
     send_escalate_for_withdrawal_email, email_detais_to_department_of_transport, send_remediation_notice, \
-    send_caution_notice, send_letter_of_advice, send_parking_infringement_without_offenders
+    send_caution_notice, send_letter_of_advice, send_parking_infringement_without_offenders, \
+    send_remediation_action_submitted_notice
 from wildlifecompliance.components.sanction_outcome.models import SanctionOutcome, RemediationAction, \
     SanctionOutcomeCommsLogEntry, AllegedCommittedOffence, SanctionOutcomeUserAction, SanctionOutcomeCommsLogDocument, \
     AmendmentRequestReason
@@ -291,9 +292,18 @@ class RemediationActionViewSet(viewsets.ModelViewSet):
                 serializer.is_valid(raise_exception=True)
                 serializer.save()
 
-                # TODO: Email to the officer?
+                # Email to the offender, and bcc to the respoinsible officer, manager and infringement notice coordinators
+                to_address = [member.email for member in ra.sanction_outcome.allocated_group.members]
+                cc = None
+                bcc = None
+                email_data = send_remediation_action_submitted_notice(to_address, ra, request, cc, bcc)
 
-                # TODO: Comms log to the sanction outcome
+                # Log the above email as a communication log entry
+                if email_data:
+                    email_data['sanction_outcome'] = ra.sanction_outcome.id
+                    serializer = SanctionOutcomeCommsLogEntrySerializer(data=email_data, partial=True)
+                    serializer.is_valid(raise_exception=True)
+                    serializer.save()
 
                 # Action log to the sanction outcome
                 ra.sanction_outcome.log_user_action(SanctionOutcomeUserAction.ACTION_REMEDIATION_ACTION_SUBMITTED.format(ra.remediation_action_id), request)

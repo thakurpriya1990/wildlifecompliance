@@ -36,6 +36,12 @@ class RemediationNoticeEmail(TemplateEmailBase):
     txt_template = 'wildlifecompliance/emails/remediation_notice.txt'
 
 
+class RemediationActionSubmittedMail(TemplateEmailBase):
+    subject = 'Remediation Action Submitted'
+    html_template = 'wildlifecompliance/emails/remediation_action_submitted.html'
+    txt_template = 'wildlifecompliance/emails/remediation_action_submitted.txt'
+
+
 class NotificationCloseToDueRemediationAction(TemplateEmailBase):
     subject = 'Reminder: Due Date is in one week'
     html_template = 'wildlifecompliance/emails/notification_close_to_due_remediation_action.html'
@@ -366,6 +372,40 @@ def send_parking_infringement_without_offenders(to_address, sanction_outcome, wo
     msg = email.send(to_address,
                      context=context,
                      attachments=prepare_attachments(workflow_entry.documents),
+                     cc=cc,
+                     bcc=bcc,
+                     )
+    sender = request.user if request else settings.DEFAULT_FROM_EMAIL
+    email_data = _extract_email_headers(msg, sender=sender)
+    return email_data
+
+
+def send_remediation_action_submitted_notice(to_address, remediation_action, request, cc=None, bcc=None):
+    email = RemediationActionSubmittedMail()
+    if request.data.get('email_subject'):
+        email.subject = request.data.get('email_subject')
+    url = request.build_absolute_uri(reverse('external'))
+    context = {
+        'url': url,
+        'remediation_action': remediation_action,
+        'action_taken': remediation_action.action_taken,
+    }
+
+    # pdf_file_name = 'infringement_notice_{}_{}.pdf'.format(sanction_outcome.lodgement_number, datetime.datetime.now().strftime("%Y%m%d%H%M%S"))
+    # document = create_infringement_notice_pdf_bytes(pdf_file_name, sanction_outcome)
+
+    # Attach files (files from the modal, and the PDF file generated above)
+    attachments = prepare_attachments(remediation_action.documents)
+    # attachments.append((pdf_file_name, document._file.path, 'application/pdf'))
+
+    # Attach the pdf file created above to the communication log entry
+    # doc = workflow_entry.documents.create(name=document.name)
+    # doc._file = document._file
+    # doc.save()
+
+    msg = email.send(to_address,
+                     context=context,
+                     attachments=attachments,
                      cc=cc,
                      bcc=bcc,
                      )
