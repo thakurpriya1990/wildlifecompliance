@@ -1006,6 +1006,8 @@ export default {
             loadRemediationAction: 'loadRemediationAction',
         }),
         onRemediationActionUpdated: async function(remediation_action_id){_
+            console.log('onRemediationActionUpdated');
+            console.log(remediation_action_id);
             await this.loadRemediationAction({ remediation_action_id: remediation_action_id });
             this.constructRemediationActionsTable();
         },
