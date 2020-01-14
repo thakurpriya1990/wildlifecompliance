@@ -86,10 +86,11 @@ class Command(BaseCommand):
                         serializer.is_valid(raise_exception=True)
                         serializer.save()
 
+                        # Create comms log entry
                         data = {'sanction_outcome': overdue_sanction_outcome.id}
                         serializer = SanctionOutcomeCommsLogEntrySerializer(data=data)
                         serializer.is_valid(raise_exception=True)
-                        workflow_entry = serializer.save()
+                        comms_log_entry = serializer.save()
 
                         # Determine the bcc
                         members = get_infringement_notice_coordinators()
@@ -97,15 +98,15 @@ class Command(BaseCommand):
                         if overdue_sanction_outcome.responsible_officer:
                             bcc_list.append(overdue_sanction_outcome.responsible_officer.email)
 
+                        # Email
                         to_address = [overdue_sanction_outcome.get_offender()[0].email, ]
                         cc = None
                         bcc = bcc_list
-                        email_data = send_remind_1st_period_overdue_mail(to_address, overdue_sanction_outcome, workflow_entry, cc, bcc)
+                        email_data = send_remind_1st_period_overdue_mail(to_address, overdue_sanction_outcome, comms_log_entry, cc, bcc)
 
                         # Add communication log
                         if email_data:
-                            email_data['sanction_outcome'] = overdue_sanction_outcome.id
-                            serializer = SanctionOutcomeCommsLogEntrySerializer(data=email_data, partial=True)
+                            serializer = SanctionOutcomeCommsLogEntrySerializer(instance=comms_log_entry, data=email_data, partial=True)
                             serializer.is_valid(raise_exception=True)
                             serializer.save()
 

@@ -32,6 +32,7 @@ class Command(BaseCommand):
 
                 # Send email (to: offender, bcc: officers)
                 for ra in ras:
+                    # Create new comms log entry
                     data = {'sanction_outcome': ra.sanction_outcome.id}
                     serializer = SanctionOutcomeCommsLogEntrySerializer(data=data)
                     serializer.is_valid(raise_exception=True)
@@ -41,7 +42,7 @@ class Command(BaseCommand):
                     cc = None
                     bcc = [ra.sanction_outcome.responsible_officer.email] if ra.sanction_outcome.responsible_officer else [member.email for member in ra.sanction_outcome.allocated_group.members]
                     attachments = []
-                    email_data = send_notification_overdue_remediation_action(to_address, ra.sanction_outcome, workflow_entry, cc, bcc, attachments)
+                    email_data = send_notification_overdue_remediation_action(to_address, ra.sanction_outcome, cc, bcc, attachments)
 
                     # Record in the RemediationActionNotification
                     data = {

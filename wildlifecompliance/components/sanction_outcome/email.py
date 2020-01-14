@@ -227,7 +227,7 @@ def send_unpaid_infringements_file(to_address, cc=None, bcc=None, attachments=[]
     return email_data
 
 
-def send_notification_overdue_remediation_action(to_address, sanction_outcome, workflow_entry, cc=None, bcc=None, attachments=[]):
+def send_notification_overdue_remediation_action(to_address, sanction_outcome, cc=None, bcc=None, attachments=[]):
     email = NotificationOverdueRemediationAction()
     # if request.data.get('email_subject'):
     #     email.subject = request.data.get('email_subject')
