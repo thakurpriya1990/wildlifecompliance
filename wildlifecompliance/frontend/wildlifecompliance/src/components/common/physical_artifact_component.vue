@@ -85,13 +85,27 @@
                                                 </div>
                                               </div>
                                             </div>
-                                            <div v-if="selectedStatementArtifact" class="form-group">
+                                            <div v-if="custodianVisibility" class="form-group">
                                                 <div class="row">
                                                     <div class="col-sm-3">
                                                         <label>Custodian</label>
                                                     </div>
                                                     <div class="col-sm-9">
                                                             {{ selectedStatementArtifact.custodian }}
+                                                    </div>
+                                                </div>
+                                            </div>
+                                            <div v-else class="form-group">
+                                                <div class="row">
+                                                    <div class="col-sm-3">
+                                                        <label>Custodian</label>
+                                                    </div>
+                                                    <div class="col-sm-9">
+                                                        <select ref="physical_artifact_department_users_custodian" class="form-control" v-model="physical_artifact.custodian_email">
+                                                            <option  v-for="option in departmentStaffList" :value="option.email" v-bind:key="option.pk">
+                                                            {{ option.name }}
+                                                            </option>
+                                                        </select>
                                                     </div>
                                                 </div>
                                             </div>
@@ -421,6 +435,9 @@ export default {
     watch: {
         artifactType: {
             handler: function (){
+                if (this.artifactType.toLowerCase() === 'found object') {
+                    this.setStatementId(null);
+                }
                 this.setStatementVisibility();
                 /*
                 if (this.statementVisibilityArray.includes(this.artifactType)) {
@@ -430,7 +447,12 @@ export default {
                 */
             },
             deep: true,
-        }
+        },
+        selectedStatementArtifact: {
+            handler: function() {
+            },
+            deep: true,
+        },
     },
     computed: {
         ...mapGetters('physicalArtifactStore', {
@@ -457,6 +479,13 @@ export default {
                 }
             }
             return statementArtifact;
+        },
+        custodianVisibility: function() {
+            let show = false;
+            if (this.selectedStatementArtifact && this.selectedStatementArtifact.custodian) {
+                show = true;
+            }
+            return show;
         },
         detailsSchemaVisibility: function() {
             console.log("detailsSchemaVisibility")
@@ -693,13 +722,17 @@ export default {
             setPhysicalArtifact: 'setPhysicalArtifact',
             setRelatedItems: 'setRelatedItems',
             setOfficerEmail: 'setOfficerEmail',
+            setCustodianEmail: 'setCustodianEmail',
             setTemporaryDocumentCollectionId: 'setTemporaryDocumentCollectionId',
+            setStatementId: 'setStatementId',
         }),
         setStatementVisibility: function() {
             if (
                 // legal case exists and Document Type is not a statementArtifactType
                 //(this.legalCaseExists && this.artifactType && !this.statementArtifactTypes.includes(this.artifactType)) ||
-                ((this.linkedLegalCase || this.legalCaseExists)) ||
+                ((this.linkedLegalCase || this.legalCaseExists) && this.artifactType && 
+                    ['seized object', 'surrendered object'].includes(this.artifactType.toLowerCase())) ||
+                //((this.linkedLegalCase || this.legalCaseExists)) ||
                 // OR physical_artifact already has a linked statement
                 (this.physical_artifact && this.physical_artifact.statement)
                 )
@@ -842,6 +875,22 @@ export default {
                     var selected = $(e.currentTarget);
                     vm.setOfficerEmail('');
                 });
+            // department_users_custodian
+            $(vm.$refs.physical_artifact_department_users_custodian).select2({
+                    "theme": "bootstrap",
+                    allowClear: true,
+                    placeholder:""
+                }).
+                on("select2:select",function (e) {
+                    let selected = $(e.currentTarget);
+                    let selectedData = selected.val();
+                    vm.setCustodianEmail(selectedData);
+                }).
+                on("select2:unselect",function (e) {
+                    var selected = $(e.currentTarget);
+                    vm.setCustodianEmail('');
+                });
+
             let existingArtifactTable = $('#existing-artifact-table');
             existingArtifactTable.on(
                 'click',
