@@ -817,8 +817,8 @@ class SanctionOutcomeUserAction(models.Model):
     ACTION_ESCALATE_FOR_WITHDRAWAL = "Escalate Infringement Notice {} for withdrawal"
     ACTION_INCREASE_FEE_AND_EXTEND_DUE = "Increase penalty amount from {} to {} and extend due date from {} to {}"
     ACTION_REMEDIATION_ACTION_OVERDUE = "Set status of Remediation Action {} to 'overdue'"
-    ACTION_REMEDIATION_ACTION_SUBMITTED = "Remediation Action {} submitted"
-    ACTION_REMEDIATION_ACTION_ACCEPTED = "Remediation Action {} accepted"
+    ACTION_REMEDIATION_ACTION_SUBMITTED = "Submit Remediation Action {}"
+    ACTION_REMEDIATION_ACTION_ACCEPTED = "Accept Remediation Action {}"
     ACTION_REQUEST_AMENDMENT = "Request amendment for Remediation Action {}"
 
     who = models.ForeignKey(EmailUser, null=True, blank=True)
