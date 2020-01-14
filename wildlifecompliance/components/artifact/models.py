@@ -327,6 +327,7 @@ class PhysicalArtifact(Artifact):
         blank=True, 
         null=True
         )
+    custodian_email = models.CharField(max_length=255, blank=True, null=True)
     #custodian = models.ForeignKey(
     #        EmailUser,
     #        related_name='physical_artifact_custodian',

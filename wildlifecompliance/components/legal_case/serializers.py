@@ -31,7 +31,7 @@ from wildlifecompliance.components.users.serializers import (
 )
 from wildlifecompliance.components.artifact.serializers import (
         #LegalCaseRunningSheetArtifactsSerializer,
-        DocumentArtifactSerializer,
+        DocumentArtifactStatementSerializer,
         PhysicalArtifactSerializer,
         )
 #from wildlifecompliance.components.offence.serializers import OrganisationSerializer
@@ -379,7 +379,7 @@ class LegalCaseSerializer(serializers.ModelSerializer):
                 'expert_statement',
                 'officer_statement'
             ]:
-                serialized_artifact = DocumentArtifactSerializer(artifact)
+                serialized_artifact = DocumentArtifactStatementSerializer(artifact)
                 artifact_list.append(serialized_artifact.data)
         return artifact_list
 
