@@ -211,16 +211,18 @@ class RemediationActionViewSet(viewsets.ModelViewSet):
                 serializer.is_valid(raise_exception=True)
                 serializer.save()
 
-                instance = self.get_object()
-                serializer = RemediationActionUpdateStatusSerializer(instance, data={'status': RemediationAction.STATUS_OPEN}, context={'request': request})
+                ra = self.get_object()
+                serializer = RemediationActionUpdateStatusSerializer(ra, data={'status': RemediationAction.STATUS_OPEN}, context={'request': request})
                 serializer.is_valid(raise_exception=True)
                 serializer.save()
 
-                serializer = RemediationActionSerializer(instance, context={'request': request})
+                serializer = RemediationActionSerializer(ra, context={'request': request})
 
                 # TODO: Email to the offender
                 # TODO: Comms log to the sanction outcome
-                # TODO: Action log to the sanction outcome
+
+                # Action log to the sanction outcome
+                ra.sanction_outcome.log_user_action(SanctionOutcomeUserAction.ACTION_REQUEST_AMENDMENT.format(ra.remediation_action_id), request)
 
                 return Response(
                     serializer.data,
@@ -245,14 +247,16 @@ class RemediationActionViewSet(viewsets.ModelViewSet):
     def accept(self, request, *args, **kwargs):
         try:
             with transaction.atomic():
-                instance = self.get_object()
-                serializer = RemediationActionUpdateStatusSerializer(instance, data={'status': RemediationAction.STATUS_ACCEPTED}, context={'request': request})
+                ra = self.get_object()
+                serializer = RemediationActionUpdateStatusSerializer(ra, data={'status': RemediationAction.STATUS_ACCEPTED}, context={'request': request})
                 serializer.is_valid(raise_exception=True)
                 serializer.save()
 
                 # TODO: Email to the offender
                 # TODO: Comms log to the sanction outcome
-                # TODO: Action log to the sanction outcome
+
+                # Action log to the sanction outcome
+                ra.sanction_outcome.log_user_action(SanctionOutcomeUserAction.ACTION_REMEDIATION_ACTION_ACCEPTED.format(ra.remediation_action_id), request)
 
                 headers = self.get_success_headers(serializer.data)
                 return Response(
@@ -280,6 +284,7 @@ class RemediationActionViewSet(viewsets.ModelViewSet):
         try:
             with transaction.atomic():
                 serializer = self._update_instance(request)
+                ra = serializer.instance
 
                 # Update status
                 serializer = RemediationActionUpdateStatusSerializer(serializer.instance, data={'status': RemediationAction.STATUS_SUBMITTED}, context={'request': request})
@@ -289,7 +294,9 @@ class RemediationActionViewSet(viewsets.ModelViewSet):
                 # TODO: Email to the officer?
 
                 # TODO: Comms log to the sanction outcome
-                # TODO: Action log to the sanction outcome
+
+                # Action log to the sanction outcome
+                ra.sanction_outcome.log_user_action(SanctionOutcomeUserAction.ACTION_REMEDIATION_ACTION_SUBMITTED.format(ra.remediation_action_id), request)
 
                 headers = self.get_success_headers(serializer.data)
                 return Response(

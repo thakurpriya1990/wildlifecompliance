@@ -65,7 +65,7 @@ class Command(BaseCommand):
                         serializer.save()
 
                     # Action log, status has been changed to the 'overdue', record it as an action
-                    ra.sanction_outcome.log_user_action(SanctionOutcomeUserAction.ACTION_REMEDIATION_ACTION_OVERDUE.format(ra.sanction_outcome.lodgement_number))
+                    ra.sanction_outcome.log_user_action(SanctionOutcomeUserAction.ACTION_REMEDIATION_ACTION_OVERDUE.format(ra.remediation_action_id))
 
                 logger.info('Command {} completed'.format(__name__))
 
