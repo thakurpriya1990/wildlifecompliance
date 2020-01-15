@@ -414,16 +414,19 @@ class SaveOffenceSerializer(serializers.ModelSerializer):
                 field_errors['Occurrence date to'] = ['Cannot be blank',]
             if not data['occurrence_time_to']:
                 field_errors['Occurrence time to'] = ['Cannot be blank',]
+        else:
+            data['occurrence_date_to'] = None
+            data['occurrence_time_to'] = None
 
         # Raise errors
         if field_errors:
             raise serializers.ValidationError(field_errors)
 
-        datetime_to = datetime.datetime.combine(data['occurrence_date_to'], data['occurrence_time_to'])
-        datetime_from = datetime.datetime.combine(data['occurrence_date_from'], data['occurrence_time_from'])
-
-        if datetime_to < datetime_from:
-            non_field_errors.append('Offence occurrence "from" datetime must be before "to" datetime')
+        if data['occurrence_from_to']:
+            datetime_to = datetime.datetime.combine(data['occurrence_date_to'], data['occurrence_time_to'])
+            datetime_from = datetime.datetime.combine(data['occurrence_date_from'], data['occurrence_time_from'])
+            if datetime_to < datetime_from:
+                non_field_errors.append('Offence occurrence "from" datetime must be before "to" datetime')
 
         # Raise errors
         if non_field_errors:
