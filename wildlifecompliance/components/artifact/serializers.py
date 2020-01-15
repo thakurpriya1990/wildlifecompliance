@@ -26,6 +26,7 @@ from wildlifecompliance.components.artifact.models import (
         PhysicalArtifactDisposalMethod,
         ArtifactCommsLogEntry,
         ArtifactUserAction,
+        PhysicalArtifactFormDataRecord,
         #LegalCaseRunningSheetArtifacts,
         )
 
@@ -44,6 +45,29 @@ from django.utils import timezone
 #        read_only_fields = (
 #                'id',
 #                )
+
+class PhysicalArtifactFormDataRecordSerializer(serializers.ModelSerializer):
+    class Meta:
+        model = PhysicalArtifactFormDataRecord
+        fields = (
+            'field_name',
+            'schema_name',
+            'component_type',
+            'instance_name',
+            'comment',
+            'deficiency',
+            'value',
+        )
+        read_only_fields = (
+            'field_name',
+            'schema_name',
+            'component_type',
+            'instance_name',
+            'comment',
+            'deficiency',
+            'value',
+        )
+
 
 class ArtifactSerializer(serializers.ModelSerializer):
     #custodian = EmailUserSerializer(read_only=True)
@@ -141,6 +165,7 @@ class ArtifactPaginatedSerializer(serializers.ModelSerializer):
 
 
 class PhysicalArtifactTypeSerializer(serializers.ModelSerializer):
+    artifact_type_display = serializers.SerializerMethodField()
     class Meta:
         model = PhysicalArtifactType
         fields = (
@@ -151,15 +176,23 @@ class PhysicalArtifactTypeSerializer(serializers.ModelSerializer):
                 'version',
                 'description',
                 'date_created',
+                'artifact_type_display',
                 )
         read_only_fields = (
                 'id',
                 )
 
+    def get_artifact_type_display(self, obj):
+        display_name = ''
+        for choice in PhysicalArtifactType.TYPE_CHOICES:
+            if obj.artifact_type == choice[0]:
+                display_name = choice[1]
+        return display_name
+
 
 class PhysicalArtifactTypeSchemaSerializer(serializers.ModelSerializer):
     artifact_type_id = serializers.IntegerField(
-        required=False, write_only=True, allow_null=True)        
+        required=False, write_only=True, allow_null=True)
 
     class Meta:
         model = PhysicalArtifactType
@@ -360,6 +393,7 @@ class PhysicalArtifactSerializer(ArtifactSerializer):
     related_items = serializers.SerializerMethodField()
     legal_case_id_list = serializers.SerializerMethodField()
     available_statement_artifacts = serializers.SerializerMethodField()
+    data = PhysicalArtifactFormDataRecordSerializer(many=True)
     #status = CustomChoiceField(read_only=True)
 
     class Meta:
@@ -389,6 +423,7 @@ class PhysicalArtifactSerializer(ArtifactSerializer):
                 #'status',
                 'created_at',
                 'available_statement_artifacts',
+                'data',
                 )
         read_only_fields = (
                 'id',

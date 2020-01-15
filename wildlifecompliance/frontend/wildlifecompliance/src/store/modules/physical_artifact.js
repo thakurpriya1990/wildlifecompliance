@@ -110,6 +110,10 @@ export const physicalArtifactStore = {
                 if (legal_case_id) {
                     payload.legal_case_id = legal_case_id;
                 }
+                // Renderer data
+                if (state.inspection.schema && state.inspection.schema.length > 0) {
+                    payload.renderer_data = rootGetters.renderer_form_data;
+                }
 
                 let fetchUrl = null;
                 if (create) {

@@ -30,9 +30,9 @@
                                                   <label>Physical Type</label>
                                                 </div>
                                                 <div class="col-sm-6">
-                                                  <select class="form-control" v-model="physical_artifact.physical_artifact_type" @change="loadSchema">
-                                                    <option  v-for="option in physicalArtifactTypes" :value="option" v-bind:key="option.id">
-                                                      {{ option.artifact_type }}
+                                                  <select class="form-control" v-model="physical_artifact.physical_artifact_type_id" @change="loadSchema">
+                                                    <option  v-for="option in physicalArtifactTypes" :value="option.id" v-bind:key="option.id">
+                                                      {{ option.artifact_type_display }}
                                                     </option>
                                                   </select>
                                                 </div>
@@ -435,7 +435,7 @@ export default {
     watch: {
         artifactType: {
             handler: function (){
-                if (this.artifactType.toLowerCase() === 'found object') {
+                if (this.artifactType === 'found_object') {
                     this.setStatementId(null);
                 }
                 this.setStatementVisibility();
@@ -460,6 +460,9 @@ export default {
         }),
         ...mapGetters('legalCaseStore', {
             legal_case: "legal_case",
+        }),
+        ...mapGetters({
+            renderer_form_data: 'renderer_form_data'
         }),
         selectedStatementArtifact: function() {
             let statementArtifact = {}
@@ -552,18 +555,22 @@ export default {
             return recordExists;
         },
         artifactType: function() {
-            let aType = ''
-            if (this.physical_artifact && this.physical_artifact.physical_artifact_type) {
-                aType = this.physical_artifact.physical_artifact_type.artifact_type;
+            let typeCode = ''
+            if (this.artifactTypeId && this.physicalArtifactTypes && this.physicalArtifactTypes.length > 0) {
+                for (let aType of this.physicalArtifactTypes) {
+                    if (aType.id === this.artifactTypeId) {
+                        typeCode = aType.artifact_type;
+                    }
+                }
             }
-            return aType;
+            return typeCode;
         },
         artifactTypeId: function() {
-            let aType = ''
-            if (this.physical_artifact && this.physical_artifact.physical_artifact_type) {
-                aType = this.physical_artifact.physical_artifact_type.id;
+            let typeId = null
+            if (this.physical_artifact) {
+                typeId = this.physical_artifact.physical_artifact_type_id;
             }
-            return aType;
+            return typeId;
         },
         /*
         artifactTypeDisplay: function() {
@@ -730,8 +737,8 @@ export default {
             if (
                 // legal case exists and Document Type is not a statementArtifactType
                 //(this.legalCaseExists && this.artifactType && !this.statementArtifactTypes.includes(this.artifactType)) ||
-                ((this.linkedLegalCase || this.legalCaseExists) && this.artifactType && 
-                    ['seized object', 'surrendered object'].includes(this.artifactType.toLowerCase())) ||
+                ((this.linkedLegalCase || this.legalCaseExists) && this.artifactType &&
+                    ['seized_object', 'surrendered_ object'].includes(this.artifactType)) ||
                 //((this.linkedLegalCase || this.legalCaseExists)) ||
                 // OR physical_artifact already has a linked statement
                 (this.physical_artifact && this.physical_artifact.statement)
@@ -953,9 +960,15 @@ export default {
                     'PhysicalArtifactTypeSchema',
                     this.artifactTypeId.toString(),
                     url);
+                    //let returnedSchema = await Vue.http.get(url);
+                    console.log(returnedSchema)
                     if (returnedSchema) {
                         Object.assign(this.detailsSchema, returnedSchema.details_schema);
                         Object.assign(this.storageSchema, returnedSchema.storage_schema);
+                        /*
+                        Object.assign(this.detailsSchema, returnedSchema.body.details_schema);
+                        Object.assign(this.storageSchema, returnedSchema.body.storage_schema);
+                        */
                         /*
                         this.detailsSchema = returnedSchema.details_schema;
                         this.storageSchema = returnedSchema.storage_schema;
