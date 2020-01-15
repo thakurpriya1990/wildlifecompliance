@@ -264,12 +264,6 @@ class Application(RevisionedMixin):
         (APPLICATION_TYPE_REISSUE, 'Reissue'),
     )
 
-    PAYMENT_STATUS_NOT_REQUIRED = 'payment_not_required'
-    PAYMENT_STATUS_UNPAID = 'unpaid'
-    PAYMENT_STATUS_PARTIALLY_PAID = 'partially_paid'
-    PAYMENT_STATUS_PAID = 'paid'
-    PAYMENT_STATUS_OVERPAID = 'over_paid'
-
     application_type = models.CharField(
         'Application Type',
         max_length=40,
@@ -485,25 +479,25 @@ class Application(RevisionedMixin):
     @property
     def application_fee_paid(self):
         return self.payment_status in [
-            Application.PAYMENT_STATUS_NOT_REQUIRED,
-            Application.PAYMENT_STATUS_PAID,
-            Application.PAYMENT_STATUS_OVERPAID,
+            ApplicationInvoice.PAYMENT_STATUS_NOT_REQUIRED,
+            ApplicationInvoice.PAYMENT_STATUS_PAID,
+            ApplicationInvoice.PAYMENT_STATUS_OVERPAID,
         ]
 
     @property
     def payment_status(self):
         # TODO: needs more work, underpaid/overpaid statuses to be added, refactor to key/name like processing_status
         if self.application_fee == 0:
-            return Application.PAYMENT_STATUS_NOT_REQUIRED
+            return ApplicationInvoice.PAYMENT_STATUS_NOT_REQUIRED
         else:
             if self.invoices.count() == 0:
-                return Application.PAYMENT_STATUS_UNPAID
+                return ApplicationInvoice.PAYMENT_STATUS_UNPAID
             else:
                 try:
                     latest_invoice = Invoice.objects.get(
                         reference=self.invoices.latest('id').invoice_reference)
                 except Invoice.DoesNotExist:
-                    return Application.PAYMENT_STATUS_UNPAID
+                    return ApplicationInvoice.PAYMENT_STATUS_UNPAID
                 return latest_invoice.payment_status
 
     @property
@@ -528,10 +522,15 @@ class Application(RevisionedMixin):
         """
         amount = 0
         if self.invoices.count() > 0:
-            invoices = ApplicationInvoice.objects.filter(application_id=self.id)
+            invoices = ApplicationInvoice.objects.filter(
+                application_id=self.id)
             for invoice in invoices:
-                detail = Invoice.objects.get(reference=invoice.invoice_reference)
+                detail = Invoice.objects.get(
+                    reference=invoice.invoice_reference)
                 amount += detail.amount
+        # Add previous application paid amounts.
+        amount += self.previous_paid_amount
+
         return amount
 
     @property
@@ -745,7 +744,10 @@ class Application(RevisionedMixin):
 
     def get_dynamic_schema_attributes(self, data_source):
 
-        if self.application_type == Application.APPLICATION_TYPE_AMENDMENT:
+        if self.application_type in [
+            Application.APPLICATION_TYPE_AMENDMENT,
+            Application.APPLICATION_TYPE_REISSUE,
+        ]:
             # Application amendments require an new application without fees.
             dynamic_attributes = {
                 'fees': {
@@ -854,7 +856,9 @@ class Application(RevisionedMixin):
         return dynamic_attributes
 
     def update_dynamic_attributes(self):
-        """ Update application and activity attributes based on selected JSON schema options. """
+        """ Update application and activity attributes based on selected JSON
+            schema options.
+        """
         if self.processing_status != Application.PROCESSING_STATUS_DRAFT:
             return
 
@@ -862,30 +866,38 @@ class Application(RevisionedMixin):
 
         # Update application and licence fees
         fees = dynamic_attributes['fees']
-
-        # Amendments and Reissues are always free.
-        if self.application_type in [
-            Application.APPLICATION_TYPE_AMENDMENT,
-            Application.APPLICATION_TYPE_REISSUE,
-        ]:
-            self.application_fee = Decimal(0)
-        else:
-            self.application_fee = fees['application']
+        self.application_fee = fees['application']
         self.save()
 
         # Save any parsed per-activity modifiers
-        for selected_activity, field_data in dynamic_attributes['activity_attributes'].items():
+        for selected_activity, field_data in \
+                dynamic_attributes['activity_attributes'].items():
             fees = field_data.pop('fees', {})
-            # Amendments and Reissues are always free.
+            selected_activity.licence_fee = fees['licence']
+            selected_activity.application_fee = fees['application']
             if self.application_type in [
                 Application.APPLICATION_TYPE_AMENDMENT,
                 Application.APPLICATION_TYPE_REISSUE,
             ]:
-                selected_activity.licence_fee = Decimal(0)
-                selected_activity.application_fee = Decimal(0)
-            else:
-                selected_activity.licence_fee = fees['licence']
+                # Check amendments and reissues for changes in fees.
+                if fees['licence'] > selected_activity.base_fees['licence']:
+                    selected_activity.licence_fee = fees['licence'] \
+                        - selected_activity.base_fees['licence']
+
                 selected_activity.application_fee = fees['application']
+                if fees['application']\
+                   > selected_activity.base_fees['application']:
+                    selected_activity.application_fee = fees['application'] \
+                        - selected_activity.base_fees['application']
+
+                # Check for refunds and set fee to zero.
+                if fees['licence'] < selected_activity.base_fees['licence']:
+                    selected_activity.licence_fee = Decimal(0)
+
+                if fees['application']\
+                   < selected_activity.base_fees['application']:
+                    selected_activity.application_fee = Decimal(0)
+
             for field, value in field_data.items():
                 setattr(selected_activity, field, value)
                 selected_activity.save()
@@ -991,7 +1003,7 @@ class Application(RevisionedMixin):
         from wildlifecompliance.components.licences.models import LicenceActivity
         with transaction.atomic():
             if self.can_user_edit:
-                if not self.application_fee_paid:
+                if not self.application_fee_paid and not self.requires_refund:
                     self.customer_status = Application.CUSTOMER_STATUS_AWAITING_PAYMENT
                     self.save()
                     return
@@ -1560,13 +1572,15 @@ class Application(RevisionedMixin):
     @property
     def requires_refund(self):
         """
-        Check on the last invoice amount against application fee.
+        Check on the previously paid invoice amount against application fee.
         """
-        # Application amendments requires a new submission and applies the
-        # previous paid for adjustments.
-        paid = self.total_paid_amount + self.previous_paid_amount
+        if self.application_fee < 1:
+            return False
 
-        return True if paid > self.application_fee else False
+        if self.total_paid_amount - self.application_fee > 0:
+            return True
+
+        return False
 
     @property
     def previous_paid_amount(self):
@@ -1575,9 +1589,10 @@ class Application(RevisionedMixin):
         amendments which require a new submission.
         """
         previous_paid = 0
+        # check for Customer licence amendment.
         if self.application_type == Application.APPLICATION_TYPE_AMENDMENT:
             previous = Application.objects.get(id=self.previous_application.id)
-            previous_paid += previous.total_paid_amount
+            previous_paid += previous.total_paid_amount if previous else 0
 
         return previous_paid
 
@@ -2026,7 +2041,9 @@ class Application(RevisionedMixin):
                             failed_payment_activities.append(selected_activity)
                         else:
                             issued_activities.append(selected_activity)
-                            self.issue_activity(request, selected_activity, parent_licence, generate_licence=False)
+                            self.issue_activity(
+                                request, selected_activity, 
+                                parent_licence, generate_licence=False)
 
                         # Populate fields below even if the token payment has failed.
                         # They will be reused after a successful payment by the applicant.
@@ -2327,6 +2344,12 @@ class Application(RevisionedMixin):
 
 
 class ApplicationInvoice(models.Model):
+    PAYMENT_STATUS_NOT_REQUIRED = 'payment_not_required'
+    PAYMENT_STATUS_UNPAID = 'unpaid'
+    PAYMENT_STATUS_PARTIALLY_PAID = 'partially_paid'
+    PAYMENT_STATUS_PAID = 'paid'
+    PAYMENT_STATUS_OVERPAID = 'over_paid'
+
     application = models.ForeignKey(Application, related_name='invoices')
     invoice_reference = models.CharField(
         max_length=50, null=True, blank=True, default='')
@@ -2712,6 +2735,8 @@ class ApplicationSelectedActivity(models.Model):
 
     class Meta:
         app_label = 'wildlifecompliance'
+        verbose_name = 'Application selected activity'
+        verbose_name_plural = 'Application selected activities'
 
     @staticmethod
     def is_valid_status(status):
@@ -2860,24 +2885,24 @@ class ApplicationSelectedActivity(models.Model):
     @property
     def licence_fee_paid(self):
         return self.payment_status in [
-            Application.PAYMENT_STATUS_NOT_REQUIRED,
-            Application.PAYMENT_STATUS_PAID,
-            Application.PAYMENT_STATUS_OVERPAID,
+            ActivityInvoice.PAYMENT_STATUS_NOT_REQUIRED,
+            ActivityInvoice.PAYMENT_STATUS_PAID,
+            ActivityInvoice.PAYMENT_STATUS_OVERPAID,
         ]
 
     @property
     def payment_status(self):
         if self.licence_fee == 0:
-            return Application.PAYMENT_STATUS_NOT_REQUIRED
+            return ActivityInvoice.PAYMENT_STATUS_NOT_REQUIRED
         else:
             if self.invoices.count() == 0:
-                return Application.PAYMENT_STATUS_UNPAID
+                return ActivityInvoice.PAYMENT_STATUS_UNPAID
             else:
                 try:
                     latest_invoice = Invoice.objects.get(
                         reference=self.invoices.latest('id').invoice_reference)
                 except Invoice.DoesNotExist:
-                    return Application.PAYMENT_STATUS_UNPAID
+                    return ActivityInvoice.PAYMENT_STATUS_UNPAID
                 return latest_invoice.payment_status
 
     @property
@@ -2928,6 +2953,57 @@ class ApplicationSelectedActivity(models.Model):
                 ApplicationSelectedActivity.ACTIVITY_STATUS_REPLACED
             ]
         ).distinct()
+
+    def total_paid_amount(self):
+        """
+        Property defining the total fees already paid for this licence Activity.
+        """
+        amount = 0
+        if self.invoices.count() > 0:
+            invoices = ActivityInvoice.objects.filter(
+                application_id=self.id)
+            for invoice in invoices:
+                detail = Invoice.objects.get(
+                    reference=invoice.invoice_reference)
+                amount += detail.amount
+
+        # Add previous application paid amounts.
+        amount += self.previous_paid_amount
+       
+        return amount
+
+    def requires_refund(self):
+        """
+        Check on the previously paid invoice amount against Activity fee.
+        NOTE: there is no use-case for refunding activity fee.
+        """
+        if self.licence_fee < 1:
+            return False
+
+        if self.total_paid_amount - self.licence_fee > 0:
+            return True
+
+        return False
+
+    def previous_paid_amount(self):
+        """
+        Gets the paid amount from the previous application for licence Activity
+        amendments.
+        """
+        previous_paid = 0
+        # check for both Requested Amendements and Customer licence amendment.
+        application = Application.objects.get(id=self.application.id)        
+        if application.application_type == \
+            Application.APPLICATION_TYPE_AMENDMENT \
+            or application.customer_status \
+            == Application.CUSTOMER_STATUS_AMENDMENT_REQUIRED:
+
+            previous_activity = ApplicationSelectedActivity.objects.filter(
+                application_id=application.previous_application.id
+            )
+            previous_paid += previous_activity.total_paid_amount
+
+        return previous_paid
 
     def process_licence_fee_payment(self, request, application):
         from ledger.payments.models import BpointToken
@@ -3028,6 +3104,12 @@ class ApplicationSelectedActivity(models.Model):
 
 
 class ActivityInvoice(models.Model):
+    PAYMENT_STATUS_NOT_REQUIRED = 'payment_not_required'
+    PAYMENT_STATUS_UNPAID = 'unpaid'
+    PAYMENT_STATUS_PARTIALLY_PAID = 'partially_paid'
+    PAYMENT_STATUS_PAID = 'paid'
+    PAYMENT_STATUS_OVERPAID = 'over_paid'
+
     activity = models.ForeignKey(ApplicationSelectedActivity, related_name='invoices')
     invoice_reference = models.CharField(
         max_length=50, null=True, blank=True, default='')
