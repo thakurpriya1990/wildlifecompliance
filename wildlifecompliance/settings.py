@@ -1,22 +1,9 @@
-<<<<<<< HEAD
-
-=======
 import os
 import confy
 BASE_DIR = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
 confy.read_environment_file(BASE_DIR+"/.env")
 os.environ.setdefault("BASE_DIR", BASE_DIR)
->>>>>>> efd9bc6f38ade9053977b18aac640066bc6f2a57
 from django.core.exceptions import ImproperlyConfigured
-
-import os
-import confy
-BASE_DIR = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
-
-confy.read_environment_file(BASE_DIR+"/.env")
-
-
-os.environ.setdefault("BASE_DIR", BASE_DIR)
 from ledger.settings_base import *
 
 
