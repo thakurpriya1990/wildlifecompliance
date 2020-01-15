@@ -224,6 +224,9 @@ export default {
     computed: {
     },
     methods:{
+        commaToNewline(s){
+            return s.replace(/[,;]/g, '\n');
+        },
         initialiseCommLogs: function(vm_uid,ref,datatable_options,table){
             let vm = this;
             let commsLogId = 'comms-log-table'+vm_uid;

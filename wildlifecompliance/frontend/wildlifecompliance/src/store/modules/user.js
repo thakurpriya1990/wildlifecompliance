@@ -1,5 +1,10 @@
 import Vue from 'vue';
 import {
+    api_endpoints,
+    helpers
+}
+from '@/utils/hooks';
+import {
     UPDATE_SELECTED_TAB_ID,
     UPDATE_SELECTED_TAB_NAME,
     UPDATE_CURRENT_USER,
@@ -18,9 +23,11 @@ export const userStore = {
         selected_apply_licence_select: null,
         application_workflow_state: false,
         current_user: {},
+        
     },
     getters: {
         current_user: state => state.current_user,
+        compliance_allocated_group: state => state.compliance_allocated_group,
         selected_activity_tab_id: state => state.selected_activity_tab_id,
         selected_activity_tab_name: state => state.selected_activity_tab_name,
         selected_apply_org_id: state => state.selected_apply_org_id,
@@ -175,8 +182,20 @@ export const userStore = {
                 });
             })
         },
+        
         setCurrentUser({ dispatch, commit }, user) {
             commit(UPDATE_CURRENT_USER, user);
+        },
+        async loadAllocatedGroup({}, {region_district_id, group_permission}) {
+            let url = helpers.add_endpoint_join(
+                api_endpoints.region_district,
+                region_district_id + '/get_compliance_group_by_region_district/'
+                );
+            let returned = await Vue.http.post(
+                url,
+                { 'group_permission': group_permission
+                });
+            return returned;
         },
     }
 }

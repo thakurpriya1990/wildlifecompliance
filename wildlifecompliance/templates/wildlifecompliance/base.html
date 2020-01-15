@@ -8,6 +8,8 @@
 {% is_internal as is_internal_login %}
 {% is_officer as is_officer_login %}
 {% is_wildlifecompliance_admin as is_wildlifecompliance_admin_login %}
+{% is_compliance_internal_user as is_compliance_internal_login %}
+{% prefer_compliance_management as prefer_compliance_management %}
 
 <!DOCTYPE html>
 <html lang="en">
@@ -17,7 +19,7 @@
             {% bootstrap_css %}
                 <link type="text/css" href="{% static 'wildlifecompliance/css/base.css' %}" rel="stylesheet">
             {% if not dev %}
-                <link rel="stylesheet" href="{% static 'wildlifecompliance_vue/static/css/app.css' %}">
+                <link rel="stylesheet" href="{% static 'wildlifecompliance_vue/css/app.css' %}">
             {% endif %}
             {% block extra_css %}
             {% endblock %}
@@ -57,20 +59,36 @@
                                     <span class="icon-bar"></span>
                                     <span class="icon-bar"></span>
                                 </button>
+<<<<<<< HEAD
                                 <a class="navbar-brand" href="{% url 'wc_home' %}"><div style="inline"><img src="{% static 'wildlifecompliance/img/dpaw_small.png' %}">Home</div></a>
+=======
+>>>>>>> efd9bc6f38ade9053977b18aac640066bc6f2a57
                             </div>
                             <div id="navbar" class="navbar-collapse collapse">
                                 <ul class="nav navbar-nav">
                                     {% block left_menu_items %}
-                                        {% if is_internal_login %}
+                                        {% if is_internal_login and not prefer_compliance_management %}
+                                            <a class="navbar-brand" href="{% url 'wc_home' %}"><div style="inline"><img src="{% static 'ledger/images/dpaw_small.png' %}">Home</div></a>
                                             <li><a href="/internal/licences">Licences</a></li>
                                             <li><a href="/internal/returns">Returns</a></li>
                                             <li><a href="/internal/tag_purchases">Tag Purchases</a></li>
                                             <li><a href="/internal/advices">Advices to CEO</a></li>
-                                            {% if is_officer_login %}
-                                                <li><a href="/internal/organisations/access">Organisation Access Requests</a></li>
-                                                <li><a href="/internal/search">Search</a></li>
-                                            {% endif %}
+                                        {% elif is_compliance_internal_login and prefer_compliance_management %}
+                                            <a class="navbar-brand" href="/internal/call_email"><div style="inline"><img src="{% static 'ledger/images/dpaw_small.png' %}">Home</div></a>
+                                            <li><a href="/internal/inspection">Inspections</a></li>
+                                            <li><a href="/internal/offence">Offences</a></li>
+                                            <li><a href="/internal/object">Objects</a></li>
+                                            <li><a href="/internal/sanction_outcome">Sanction Outcomes</a></li>
+                                            <li><a href="/internal/legal_case">Cases</a></li>
+                                        {% else %}
+                                            <!-- External user -->
+                                            <a class="navbar-brand" href="/external/"><div style="inline"><img src="{% static 'ledger/images/dpaw_small.png' %}">Home</div></a>
+                                            <li><a href="/external/sanction_outcome">Sanction Outcome</a></li>
+                                        {% endif %}
+
+                                        {% if is_officer_login %}
+                                            <li><a href="/internal/organisations/access">Organisation Access Requests</a></li>
+                                            <li><a href="/internal/search">Search</a></li>
                                         {% endif %}
                                     {% endblock %}
                                 </ul>
@@ -96,9 +114,25 @@
                                                 <span class="caret"></span>
                                             </a>
                                             <ul class="dropdown-menu">
+                                                {% if is_internal_login and not prefer_compliance_management %}
+                                                    <form name="update-system-preference" method="post" action="/api/users/{{request.user.id}}/update_system_preference/">
+                                                        {% csrf_token %}
+                                                        <input type="hidden" name="prefer_compliance_management" value="True"/>
+                                                        <input type="submit" class="submit" value="Show Compliance Management" />
+                                                    </form>
+                                                <li role="separator" class="divider"></li>
+                                                {% elif is_compliance_internal_login and prefer_compliance_management %}
+                                                    <form name="update-system-preference" method="post" action="/api/users/{{request.user.id}}/update_system_preference/">
+                                                        {% csrf_token %}
+                                                        <input type="hidden" name="prefer_compliance_management" value="False"/>
+                                                        <input type="submit" class="submit" value="Show Wildlife Licencing" />
+                                                    </form>
+                                                <li role="separator" class="divider"></li>
+                                                {% endif %}
                                                 {% if is_wildlifecompliance_admin_login %}
                                                     <li><a href="{% url 'admin:index' %}">Admin</a></li>
                                                     <li><a href="{% url 'mgt-commands' %}">Management Commands</a></li>
+                                                    <!--li><a href="{% url 'infringement_penalty' 1 %}">Management Commands</a></li-->
                                                     <li role="separator" class="divider"></li>
                                                 {% endif %}
                                                 <li><a href="{% url 'manage-account' %}">Manage Account</a></li>
@@ -151,17 +185,27 @@
         {% endblock %}
         {% if not dev %}
             <script type="text/javascript" src="https://static.dbca.wa.gov.au/static/libs/jquery/3.3.1/jquery.min.js"></script>
-            <script type="text/javascript" src="{% static 'wildlifecompliance_vue/static/js/manifest.js' %}"></script>
-            <script type="text/javascript" src="{% static 'wildlifecompliance_vue/static/js/vendor.js' %}"></script>
+            <script type="text/javascript" src="{% static 'wildlifecompliance_vue/js/manifest.js' %}"></script>
+            <script type="text/javascript" src="{% static 'wildlifecompliance_vue/js/vendor.js' %}"></script>
             {% if app_build_url %}
                 <script type="text/javascript" src="{{ app_build_url }}"></script>
             {% else %}
-                <script type="text/javascript" src="{% static 'wildlifecompliance_vue/static/js/app.js' %}"></script>
+                <!--script type="text/javascript" charset="utf-8" src="{% static 'wildlifecompliance_vue/js/app.js' %}"></script-->
+                <script type="text/javascript" src="{% static 'wildlifecompliance_vue/js/app.js' %}"></script>
             {% endif %}
         {% else %}
+            <!--script type="text/javascript" charset="utf-8" src="{{ dev_url }}"></script-->
             <script type="text/javascript" src="{{ dev_url }}"></script>
         {% endif %}
         {% block custom_js %}
         {% endblock %}
     </body>
 </html>
+<style>
+.submit {
+    background-color: transparent;
+    text-decoration: none;
+    border: none;
+    padding: 3px 20px;
+    }
+</style>

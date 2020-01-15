@@ -1,10 +1,35 @@
 from __future__ import unicode_literals
-
+import logging
 from django.db import models
 from django.db.models.query import QuerySet
 from django.utils.encoding import python_2_unicode_compatible
 from ledger.accounts.models import EmailUser
 import os
+from django.utils.translation import ugettext_lazy as _
+from django.contrib.postgres.fields.jsonb import JSONField
+
+logger = logging.getLogger(__name__)
+
+@python_2_unicode_compatible
+class Sequence(models.Model):
+
+    name = models.CharField(
+        verbose_name=_("name"),
+        max_length=100,
+        primary_key=True,
+    )
+
+    last = models.PositiveIntegerField(
+        verbose_name=_("last value"),
+    )
+
+    class Meta:
+        verbose_name = _("sequence")
+        verbose_name_plural = _("sequences")
+
+    def __str__(self):
+        return "Sequence(name={}, last={})".format(
+            repr(self.name), repr(self.last))
 
 
 @python_2_unicode_compatible
@@ -125,3 +150,50 @@ queryset_methods = {
 
 for method_name, method in queryset_methods.items():
     setattr(QuerySet, method_name, method)
+
+
+class TemporaryDocumentCollection(models.Model):
+
+    class Meta:
+        app_label = 'wildlifecompliance'
+
+
+# temp document obj for generic file upload component
+class TemporaryDocument(Document):
+    temp_document_collection = models.ForeignKey(
+        TemporaryDocumentCollection,
+        related_name='documents')
+    _file = models.FileField(max_length=255)
+
+    class Meta:
+        app_label = 'wildlifecompliance'
+
+class GlobalSettings(models.Model):
+    keys = (
+            ('document_object_disposal_period', 'Document Object Disposal Period'),
+            ('physical_object_disposal_period', 'Physical Object Disposal Period'),
+            )
+
+    key = models.CharField(max_length=255, choices=keys, blank=False, null=False, unique=True)
+    value = models.CharField(max_length=255)
+
+    class Meta:
+        app_label = 'wildlifecompliance'
+        verbose_name_plural = 'Global Settings'
+
+    def __str__(self):
+        return "{}, {}".format(self.key, self.value)
+
+
+class ComplianceManagementEmailUser(EmailUser):
+    class Meta:
+        app_label = 'wildlifecompliance'
+        proxy = True
+
+    @property
+    def get_related_items_identifier(self):
+        return self.email
+
+    @property
+    def get_related_items_descriptor(self):
+        return self.get_full_name()
