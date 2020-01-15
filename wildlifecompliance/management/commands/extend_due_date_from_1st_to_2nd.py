@@ -28,8 +28,7 @@ class Command(BaseCommand):
                 today = timezone.localtime(timezone.now()).date()
 
                 # Retrieve sanction outcomes whose type is Infringement Notice and which is unpaid
-                sanction_outcomes_base = SanctionOutcome.objects\
-                    .filter(
+                sanction_outcomes_base = SanctionOutcome.objects.filter(
                     Q(type=SanctionOutcome.TYPE_INFRINGEMENT_NOTICE) &
                     Q(status=SanctionOutcome.STATUS_AWAITING_PAYMENT) &
                     Q(payment_status=SanctionOutcome.PAYMENT_STATUS_UNPAID))\

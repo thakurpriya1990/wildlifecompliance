@@ -223,6 +223,7 @@ import $ from "jquery";
 import "bootstrap/dist/css/bootstrap.css";
 import "awesomplete/awesomplete.css";
 import uuid from 'uuid';
+import "jquery-ui/ui/widgets/draggable.js";
 
 export default {
   name: "Offence",
@@ -489,6 +490,12 @@ export default {
     ...mapActions('legalCaseStore', {
       loadLegalCase: "loadLegalCase",
     }),
+    makeModalsDraggable: function(){
+        this.elem_modal = $('.modal > .modal-dialog');
+        for (let i=0; i<this.elem_modal.length; i++){
+            $(this.elem_modal[i]).draggable();
+        }
+    },
     constructRegionsAndDistricts: async function() {
         let returned_regions = await cache_helper.getSetCacheList(
             "Regions",
@@ -1086,11 +1093,9 @@ export default {
         this.setAllocatedGroupId(this.allocated_group_id);
     },
     mounted: function() {
-        console.log('mounted');
-
-        let vm = this;
-        vm.$nextTick(() => {
-            vm.addEventListeners();
+        this.$nextTick(() => {
+            this.addEventListeners();
+            this.makeModalsDraggable();
         });
     }
 };
