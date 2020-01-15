@@ -2,7 +2,14 @@ from __future__ import unicode_literals
 from ledger.accounts.models import EmailUser
 from wildlifecompliance import settings
 from wildlifecompliance.components.applications.models import ActivityPermissionGroup
+from wildlifecompliance.components.users.models import (
+        CompliancePermissionGroup, 
+        ComplianceManagementUserPreferences,
+        )
+from confy import env
 
+DEBUG = env('DEBUG', False)
+BASIC_AUTH = env('BASIC_AUTH', False)
 
 def belongs_to(user, group_name):
     """
@@ -26,6 +33,7 @@ def belongs_to_list(user, group_names):
 
 def is_model_backend(request):
     # Return True if user logged in via single sign-on (i.e. an internal)
+    print request.session.get('_auth_user_backend')
     return 'ModelBackend' in request.session.get('_auth_user_backend')
 
 
@@ -36,6 +44,11 @@ def is_email_auth_backend(request):
 
 
 def is_wildlifecompliance_admin(request):
+    # a = request.user.is_authenticated()
+    # b = is_model_backend(request)
+    # c = in_dbca_domain(request)
+    # d = request.user.has_perm('wildlifecompliance.system.administrator')
+    # e = request.user.is_superuser
     return request.user.is_authenticated() and is_model_backend(request) and in_dbca_domain(
         request) and (request.user.has_perm('wildlifecompliance.system_administrator') or request.user.is_superuser)
 
@@ -64,8 +77,10 @@ def is_customer(request):
 
 
 def is_internal(request):
-    return is_departmentUser(request)
-
+    if DEBUG and BASIC_AUTH:
+        return True
+    else:
+        return is_departmentUser(request)
 
 def is_officer(request):
     licence_officer_groups = [group.name for group in ActivityPermissionGroup.objects.filter(
@@ -77,6 +92,34 @@ def is_officer(request):
                                        'payment_officer'])]
     return request.user.is_authenticated() and (belongs_to_list(
         request.user, licence_officer_groups) or request.user.is_superuser)
+
+def prefer_compliance_management(request):
+    if request.user.is_authenticated():
+        preference_qs, created = ComplianceManagementUserPreferences.objects.get_or_create(email_user=request.user)
+        if preference_qs and preference_qs.prefer_compliance_management:
+            return True
+    else:
+        return False
+
+def is_compliance_internal_user(request):
+    compliance_groups = [group.name for group in CompliancePermissionGroup.objects.filter(
+            permissions__codename__in=['volunteer',
+                                       'triage_call_email',
+                                       'issuing_officer',
+                                       'officer',
+                                       'infringement_notice_coordinator',
+                                       # 'branch_manager',
+                                       'manager'])]
+    return request.user.is_authenticated() and (belongs_to_list(
+        request.user, compliance_groups) or request.user.is_superuser)
+
+def is_able_to_view_sanction_outcome_pdf(user):
+    compliance_groups = [group.name for group in CompliancePermissionGroup.objects.filter(
+        permissions__codename__in=['officer',
+                                   'infringement_notice_coordinator',
+                                   'manager'])]
+    return user.is_authenticated() and (belongs_to_list(
+        user, compliance_groups) or user.is_superuser)
 
 
 def get_all_officers():
