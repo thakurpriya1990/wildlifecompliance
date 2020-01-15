@@ -1,3 +1,6 @@
+import datetime
+from collections import OrderedDict
+
 from django.db.models import Q
 from rest_framework import serializers
 
@@ -398,13 +401,31 @@ class SaveOffenceSerializer(serializers.ModelSerializer):
         non_field_errors = []
 
         if not data['region_id']:
-            non_field_errors.append('Offence must have a region.')
-
+            field_errors['Region'] = ['Offence must have a region',]
         if not data['identifier']:
-            non_field_errors.append('Offence must have an identifier.')
+            field_errors['Identifier'] = ['Offence must have an identifier',]
 
+        if not data['occurrence_date_from']:
+            field_errors['Occurrence date from'] = ['Cannot be blank',]
+        if not data['occurrence_time_from']:
+            field_errors['Occurrence time from'] = ['Cannot be blank',]
+        if data['occurrence_from_to']:
+            if not data['occurrence_date_to']:
+                field_errors['Occurrence date to'] = ['Cannot be blank',]
+            if not data['occurrence_time_to']:
+                field_errors['Occurrence time to'] = ['Cannot be blank',]
+
+        # Raise errors
         if field_errors:
             raise serializers.ValidationError(field_errors)
+
+        datetime_to = datetime.datetime.combine(data['occurrence_date_to'], data['occurrence_time_to'])
+        datetime_from = datetime.datetime.combine(data['occurrence_date_from'], data['occurrence_time_from'])
+
+        if datetime_to < datetime_from:
+            non_field_errors.append('Offence occurrence "from" datetime must be before "to" datetime')
+
+        # Raise errors
         if non_field_errors:
             raise serializers.ValidationError(non_field_errors)
 
