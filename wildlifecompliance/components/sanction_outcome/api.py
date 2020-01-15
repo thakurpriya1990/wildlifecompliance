@@ -338,11 +338,13 @@ class RemediationActionViewSet(viewsets.ModelViewSet):
                     serializer.save()
 
                 # Action log to the sanction outcome
-                ra.sanction_outcome.log_user_action(SanctionOutcomeUserAction.ACTION_REMEDIATION_ACTION_SUBMITTED.format(ra.remediation_action_id), request)
+                user_action = ra.sanction_outcome.log_user_action(SanctionOutcomeUserAction.ACTION_REMEDIATION_ACTION_SUBMITTED.format(ra.remediation_action_id), request)
+                user_action_serializer = SanctionOutcomeUserActionSerializer(user_action)
+                data_returned = user_action_serializer.data
 
                 headers = self.get_success_headers(serializer.data)
                 return Response(
-                    {},
+                    data_returned,
                     status=status.HTTP_200_OK,
                     headers=headers
                 )
