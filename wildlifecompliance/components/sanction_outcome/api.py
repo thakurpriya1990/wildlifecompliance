@@ -1135,7 +1135,29 @@ class SanctionOutcomeViewSet(viewsets.ModelViewSet):
                     email_data = send_decline_email(to_address, instance, workflow_entry, request, cc, bcc)
 
                 elif workflow_type == SanctionOutcome.WORKFLOW_ENDORSE:
-                    if not instance.is_parking_offence or (instance.is_parking_offence and instance.offender):
+                    if instance.type in (SanctionOutcome.TYPE_LETTER_OF_ADVICE, SanctionOutcome.TYPE_CAUTION_NOTICE):
+                        if not instance.issued_on_paper:
+                            to_address = [instance.get_offender()[0].email, ]
+                            cc = None
+                            bcc = [member.email for member in instance.allocated_group.members]
+                            if instance.type == SanctionOutcome.TYPE_CAUTION_NOTICE:
+                                email_data = send_caution_notice(to_address, instance, workflow_entry, request, cc, bcc)
+                            else:
+                                email_data = send_letter_of_advice(to_address, instance, workflow_entry, request, cc, bcc)
+
+                            # Action log for endorsement and issuance
+                            instance.log_user_action(SanctionOutcomeUserAction.ACTION_ENDORSE_AND_ISSUE.format(instance.lodgement_number), request)
+                        else:
+                            instance.log_user_action(SanctionOutcomeUserAction.ACTION_ENDORSE.format(instance.lodgement_number), request)
+
+                        # close letter_of_advice/caution_notice
+                        instance.status = SanctionOutcome.STATUS_CLOSED
+                        instance.save()
+
+                        # Action log for closure of this instance
+                        instance.log_user_action(SanctionOutcomeUserAction.ACTION_CLOSE.format(instance.lodgement_number),
+                                             request)
+                    elif not instance.is_parking_offence or (instance.is_parking_offence and instance.offender):
                         instance.endorse(request)
 
                         if not instance.issued_on_paper:
@@ -1147,15 +1169,8 @@ class SanctionOutcomeViewSet(viewsets.ModelViewSet):
                             bcc = [instance.responsible_officer.email, request.user.email] + inc_emails
                             if instance.type == SanctionOutcome.TYPE_INFRINGEMENT_NOTICE:
                                 email_data = send_infringement_notice(to_address, instance, workflow_entry, request, cc, bcc)
-                            elif instance.type == SanctionOutcome.TYPE_REMEDIATION_NOTICE:
-                                email_data = send_remediation_notice(to_address, instance, workflow_entry, request, cc, bcc)
-                            elif instance.type == SanctionOutcome.TYPE_CAUTION_NOTICE:
-                                email_data = send_caution_notice(to_address, instance, workflow_entry, request, cc, bcc)
-                            elif instance.type == SanctionOutcome.TYPE_LETTER_OF_ADVICE:
-                                email_data = send_letter_of_advice(to_address, instance, workflow_entry, request, cc, bcc)
                             else:
-                                # Should not reach here
-                                pass
+                                email_data = send_remediation_notice(to_address, instance, workflow_entry, request, cc, bcc)
 
                             # Log action
                             instance.log_user_action(SanctionOutcomeUserAction.ACTION_ENDORSE_AND_ISSUE.format(instance.lodgement_number), request)
@@ -1267,6 +1282,7 @@ class SanctionOutcomeViewSet(viewsets.ModelViewSet):
     @detail_route(methods=['POST', ])
     @renderer_classes((JSONRenderer,))
     def add_comms_log(self, request, instance=None, workflow=False, *args, **kwargs):
+        print('SanctionOutcome.add_comms_log')
         try:
             with transaction.atomic():
                 # create sanction outcome instance if not passed to this method
