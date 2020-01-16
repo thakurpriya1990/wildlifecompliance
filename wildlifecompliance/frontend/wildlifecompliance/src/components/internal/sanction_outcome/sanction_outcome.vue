@@ -369,7 +369,7 @@
                                     </div></div>
                                 </FormSection>
 
-                                <FormSection :formCollapse="false" label="Due Date" Index="5">
+                                <FormSection v-if="sanction_outcome.due_dates && sanction_outcome.due_dates.length>0" :formCollapse="false" label="Due Date" Index="5">
                                     <div v-for="item in sanction_outcome.due_dates">
                                         <div class="form-group"><div class="row">
                                             <div class="col-sm-3">
