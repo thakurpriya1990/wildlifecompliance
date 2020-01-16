@@ -19,16 +19,6 @@ class WildlifeLicence(admin.ModelAdmin):
     pass
 
 
-@admin.register(models.DefaultActivity)
-class DefaultActivityAdmin(admin.ModelAdmin):
-    pass
-
-
 @admin.register(models.LicencePurpose)
 class LicencePurposeAdmin(admin.ModelAdmin):
-    pass
-
-
-@admin.register(models.DefaultPurpose)
-class DefaultPurposeAdmin(admin.ModelAdmin):
     pass

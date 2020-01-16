@@ -17,17 +17,17 @@ from wildlifecompliance.components.licences.models import LicenceDocument
 
 BW_DPAW_HEADER_LOGO = os.path.join(
     settings.BASE_DIR,
-    'wildlifelicensing',
+    'wildlifecompliance',
     'static',
-    'wl',
+    'wildlifecompliance',
     'img',
     'bw_dpaw_header_logo.png')
 
 COLOUR_DPAW_HEADER_LOGO = os.path.join(
     settings.BASE_DIR,
-    'wildlifelicensing',
+    'wildlifecompliance',
     'static',
-    'wl',
+    'wildlifecompliance',
     'img',
     'colour_dpaw_header_logo.png')
 

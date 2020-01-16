@@ -236,6 +236,12 @@ export default {
         }
     },
     handlePurposeCheckboxChange:function(index, event){
+        if (this.selected_apply_licence_select=='amend_activity') {
+            // Ammendments to licence activity purposes do not incur fees.
+            this.application_fee = 0
+            this.licence_fee = 0
+            return
+        }
         const purpose_ids = [].concat.apply([], this.licence_categories[index].activity.map(
             activity => activity.purpose.filter(
                 purpose => purpose.selected || (purpose.id == event.target.id && event.target.checked)
