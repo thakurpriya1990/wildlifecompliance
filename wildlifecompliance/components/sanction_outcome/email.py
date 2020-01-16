@@ -36,6 +36,24 @@ class RemediationNoticeEmail(TemplateEmailBase):
     txt_template = 'wildlifecompliance/emails/remediation_notice.txt'
 
 
+class RemediationActionSubmittedMail(TemplateEmailBase):
+    subject = 'Remediation Action Submitted'
+    html_template = 'wildlifecompliance/emails/remediation_action_submitted.html'
+    txt_template = 'wildlifecompliance/emails/remediation_action_submitted.txt'
+
+
+class RemediationActionAcceptedMail(TemplateEmailBase):
+    subject = 'Remediation Action Accepted'
+    html_template = 'wildlifecompliance/emails/remediation_action_accepted.html'
+    txt_template = 'wildlifecompliance/emails/remediation_action_accepted.txt'
+
+
+class RemediationActionRequestAmendmentMail(TemplateEmailBase):
+    subject = 'Request Amendment for Remediation Action'
+    html_template = 'wildlifecompliance/emails/remediation_action_request_amendment.html'
+    txt_template = 'wildlifecompliance/emails/remediation_action_request_amendment.txt'
+
+
 class NotificationCloseToDueRemediationAction(TemplateEmailBase):
     subject = 'Reminder: Due Date is in one week'
     html_template = 'wildlifecompliance/emails/notification_close_to_due_remediation_action.html'
@@ -209,7 +227,7 @@ def send_unpaid_infringements_file(to_address, cc=None, bcc=None, attachments=[]
     return email_data
 
 
-def send_notification_overdue_remediation_action(to_address, sanction_outcome, workflow_entry, cc=None, bcc=None, attachments=[]):
+def send_notification_overdue_remediation_action(to_address, sanction_outcome, cc=None, bcc=None, attachments=[]):
     email = NotificationOverdueRemediationAction()
     # if request.data.get('email_subject'):
     #     email.subject = request.data.get('email_subject')
@@ -366,6 +384,81 @@ def send_parking_infringement_without_offenders(to_address, sanction_outcome, wo
     msg = email.send(to_address,
                      context=context,
                      attachments=prepare_attachments(workflow_entry.documents),
+                     cc=cc,
+                     bcc=bcc,
+                     )
+    sender = request.user if request else settings.DEFAULT_FROM_EMAIL
+    email_data = _extract_email_headers(msg, sender=sender)
+    return email_data
+
+
+def send_remediation_action_request_amendment_mail(to_address, remediation_action, request, cc=None, bcc=None):
+    email = RemediationActionRequestAmendmentMail()
+    if request.data.get('email_subject'):
+        email.subject = request.data.get('email_subject')
+    url = request.build_absolute_uri(reverse('external'))
+    context = {
+        'url': url,
+        'remediation_action': remediation_action,
+        'amendment_requests': remediation_action.amendment_requests,
+    }
+
+    # Attach files (files from the modal, and the PDF file generated above)
+    # attachments = prepare_attachments(remediation_action.documents)
+
+    msg = email.send(to_address,
+                     context=context,
+                     attachments=[],
+                     cc=cc,
+                     bcc=bcc,
+                     )
+    sender = request.user if request else settings.DEFAULT_FROM_EMAIL
+    email_data = _extract_email_headers(msg, sender=sender)
+    return email_data
+
+
+def send_remediation_action_accepted_notice(to_address, remediation_action, request, cc=None, bcc=None):
+    email = RemediationActionAcceptedMail()
+    if request.data.get('email_subject'):
+        email.subject = request.data.get('email_subject')
+    url = request.build_absolute_uri(reverse('external'))
+    context = {
+        'url': url,
+        'remediation_action': remediation_action,
+        'action_taken': remediation_action.action_taken,
+    }
+
+    # Attach files (files from the modal, and the PDF file generated above)
+    # attachments = prepare_attachments(remediation_action.documents)
+
+    msg = email.send(to_address,
+                     context=context,
+                     attachments=[],
+                     cc=cc,
+                     bcc=bcc,
+                     )
+    sender = request.user if request else settings.DEFAULT_FROM_EMAIL
+    email_data = _extract_email_headers(msg, sender=sender)
+    return email_data
+
+
+def send_remediation_action_submitted_notice(to_address, remediation_action, request, cc=None, bcc=None):
+    email = RemediationActionSubmittedMail()
+    if request.data.get('email_subject'):
+        email.subject = request.data.get('email_subject')
+    url = request.build_absolute_uri(reverse('external'))
+    context = {
+        'url': url,
+        'remediation_action': remediation_action,
+        'action_taken': remediation_action.action_taken,
+    }
+
+    # Attach files (files from the modal, and the PDF file generated above)
+    attachments = prepare_attachments(remediation_action.documents)
+
+    msg = email.send(to_address,
+                     context=context,
+                     attachments=attachments,
                      cc=cc,
                      bcc=bcc,
                      )

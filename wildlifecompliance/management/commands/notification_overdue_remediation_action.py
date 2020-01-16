@@ -32,6 +32,7 @@ class Command(BaseCommand):
 
                 # Send email (to: offender, bcc: officers)
                 for ra in ras:
+                    # Create new comms log entry
                     data = {'sanction_outcome': ra.sanction_outcome.id}
                     serializer = SanctionOutcomeCommsLogEntrySerializer(data=data)
                     serializer.is_valid(raise_exception=True)
@@ -41,7 +42,7 @@ class Command(BaseCommand):
                     cc = None
                     bcc = [ra.sanction_outcome.responsible_officer.email] if ra.sanction_outcome.responsible_officer else [member.email for member in ra.sanction_outcome.allocated_group.members]
                     attachments = []
-                    email_data = send_notification_overdue_remediation_action(to_address, ra.sanction_outcome, workflow_entry, cc, bcc, attachments)
+                    email_data = send_notification_overdue_remediation_action(to_address, ra.sanction_outcome, cc, bcc, attachments)
 
                     # Record in the RemediationActionNotification
                     data = {
@@ -65,7 +66,7 @@ class Command(BaseCommand):
                         serializer.save()
 
                     # Action log, status has been changed to the 'overdue', record it as an action
-                    ra.sanction_outcome.log_user_action(SanctionOutcomeUserAction.ACTION_REMEDIATION_ACTION_OVERDUE.format(ra.sanction_outcome.lodgement_number))
+                    ra.sanction_outcome.log_user_action(SanctionOutcomeUserAction.ACTION_REMEDIATION_ACTION_OVERDUE.format(ra.remediation_action_id))
 
                 logger.info('Command {} completed'.format(__name__))
 

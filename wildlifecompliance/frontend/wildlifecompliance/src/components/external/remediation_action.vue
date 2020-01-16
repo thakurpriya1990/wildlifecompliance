@@ -156,9 +156,8 @@ export default {
             }
         },
         submit: async function() {
-                await this.submitRemediationAction();
-                await swal("Submitted", "The record has been submitted", "success");
-                this.$router.push({ name: 'external-sanction-outcome-dash' });
+            let user_action = await this.submitRemediationAction();
+            this.$router.push({ name: 'external-remediation-action-submit-success', params: { remediation_action_id: this.remediation_action.id, user_action: user_action }});
         },
         processError: async function(err){
             let errorText = '';

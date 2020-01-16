@@ -636,7 +636,13 @@ export default {
             let visibility = false;
             if (this.canUserAction){
                 if (this.offence.status.id === this.STATUS_OPEN){
-                    visibility = true;
+                    for (let i=0; i<this.offence.alleged_offences.length; i++){
+                        let alleged_offence = this.offence.alleged_offences[i];
+                        if (alleged_offence.number_linked_sanction_outcomes_active == 0){
+                            visibility = true;
+                            break;
+                        }
+                    }
                 }
             }
             return visibility;
