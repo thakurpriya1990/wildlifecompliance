@@ -117,7 +117,7 @@ export default {
                 console.log('ok');
                 this.processingDetails = true;
                 const res = await this.sendData();
-                this.$emit('remediation_action_updated', res.body);
+                this.$emit('remediation_action_updated', this.remediation_action_id);
                 this.close();
             } catch (err){
                 this.processError(err);

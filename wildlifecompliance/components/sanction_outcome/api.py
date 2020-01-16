@@ -29,7 +29,9 @@ from wildlifecompliance.components.sanction_outcome.email import send_infringeme
     send_due_date_extended_mail, send_return_to_officer_email, send_to_manager_email, send_withdraw_by_manager_email, \
     send_withdraw_by_branch_manager_email, send_return_to_infringement_notice_coordinator_email, send_decline_email, \
     send_escalate_for_withdrawal_email, email_detais_to_department_of_transport, send_remediation_notice, \
-    send_caution_notice, send_letter_of_advice, send_parking_infringement_without_offenders
+    send_caution_notice, send_letter_of_advice, send_parking_infringement_without_offenders, \
+    send_remediation_action_submitted_notice, send_remediation_action_accepted_notice, \
+    send_remediation_action_request_amendment_mail
 from wildlifecompliance.components.sanction_outcome.models import SanctionOutcome, RemediationAction, \
     SanctionOutcomeCommsLogEntry, AllegedCommittedOffence, SanctionOutcomeUserAction, SanctionOutcomeCommsLogDocument, \
     AmendmentRequestReason
@@ -207,20 +209,32 @@ class RemediationActionViewSet(viewsets.ModelViewSet):
     def request_amendment(self, request, *args, **kwargs):
         try:
             with transaction.atomic():
+                # Save the amendment request
                 serializer = SaveAmendmentRequestForRemediationAction(data=request.data)
                 serializer.is_valid(raise_exception=True)
                 serializer.save()
 
-                instance = self.get_object()
-                serializer = RemediationActionUpdateStatusSerializer(instance, data={'status': RemediationAction.STATUS_OPEN}, context={'request': request})
+                # Set this remediation action status to the 'OPEN'
+                ra = self.get_object()
+                serializer = RemediationActionUpdateStatusSerializer(ra, data={'status': RemediationAction.STATUS_OPEN}, context={'request': request})
                 serializer.is_valid(raise_exception=True)
                 serializer.save()
 
-                serializer = RemediationActionSerializer(instance, context={'request': request})
+                # Email to the offender
+                to_address = [ra.sanction_outcome.get_offender()[0].email, ]
+                cc = None
+                bcc = [member.email for member in ra.sanction_outcome.allocated_group.members]
+                email_data = send_remediation_action_request_amendment_mail(to_address, ra, request, cc, bcc)
 
-                # TODO: Email to the offender
-                # TODO: Comms log to the sanction outcome
-                # TODO: Action log to the sanction outcome
+                # Comms log to the sanction outcome
+                if email_data:
+                    email_data['sanction_outcome'] = ra.sanction_outcome.id
+                    serializer = SanctionOutcomeCommsLogEntrySerializer(data=email_data, partial=True)
+                    serializer.is_valid(raise_exception=True)
+                    serializer.save()
+
+                # Action log to the sanction outcome
+                ra.sanction_outcome.log_user_action(SanctionOutcomeUserAction.ACTION_REQUEST_AMENDMENT.format(ra.remediation_action_id), request)
 
                 return Response(
                     serializer.data,
@@ -245,14 +259,26 @@ class RemediationActionViewSet(viewsets.ModelViewSet):
     def accept(self, request, *args, **kwargs):
         try:
             with transaction.atomic():
-                instance = self.get_object()
-                serializer = RemediationActionUpdateStatusSerializer(instance, data={'status': RemediationAction.STATUS_ACCEPTED}, context={'request': request})
+                ra = self.get_object()
+                serializer = RemediationActionUpdateStatusSerializer(ra, data={'status': RemediationAction.STATUS_ACCEPTED}, context={'request': request})
                 serializer.is_valid(raise_exception=True)
                 serializer.save()
 
-                # TODO: Email to the offender
-                # TODO: Comms log to the sanction outcome
-                # TODO: Action log to the sanction outcome
+                # Email to the offender
+                to_address = [ra.sanction_outcome.get_offender()[0].email, ]
+                cc = None
+                bcc = [member.email for member in ra.sanction_outcome.allocated_group.members]
+                email_data = send_remediation_action_accepted_notice(to_address, ra, request, cc, bcc)
+
+                # Comms log to the sanction outcome
+                if email_data:
+                    email_data['sanction_outcome'] = ra.sanction_outcome.id
+                    serializer = SanctionOutcomeCommsLogEntrySerializer(data=email_data, partial=True)
+                    serializer.is_valid(raise_exception=True)
+                    serializer.save()
+
+                # Action log to the sanction outcome
+                ra.sanction_outcome.log_user_action(SanctionOutcomeUserAction.ACTION_REMEDIATION_ACTION_ACCEPTED.format(ra.remediation_action_id), request)
 
                 headers = self.get_success_headers(serializer.data)
                 return Response(
@@ -280,20 +306,45 @@ class RemediationActionViewSet(viewsets.ModelViewSet):
         try:
             with transaction.atomic():
                 serializer = self._update_instance(request)
+                ra = serializer.instance
 
                 # Update status
                 serializer = RemediationActionUpdateStatusSerializer(serializer.instance, data={'status': RemediationAction.STATUS_SUBMITTED}, context={'request': request})
                 serializer.is_valid(raise_exception=True)
                 serializer.save()
 
-                # TODO: Email to the officer?
+                # Email
+                to_address = [member.email for member in ra.sanction_outcome.allocated_group.members]
+                cc = None
+                bcc = None
+                email_data = send_remediation_action_submitted_notice(to_address, ra, request, cc, bcc)
 
-                # TODO: Comms log to the sanction outcome
-                # TODO: Action log to the sanction outcome
+                # Create new comms log entry
+                data = {'sanction_outcome': ra.sanction_outcome.id}
+                serializer = SanctionOutcomeCommsLogEntrySerializer(data=data)
+                serializer.is_valid(raise_exception=True)
+                comms_log_entry = serializer.save()
+
+                # Attach files submitted to the communication log entry, so that they are displayed in the comms log table
+                for document in ra.documents.all():
+                    doc = comms_log_entry.documents.create(name=document.name)
+                    doc._file = document._file
+                    doc.save()
+
+                # Log the above email as a communication log entry
+                if email_data:
+                    serializer = SanctionOutcomeCommsLogEntrySerializer(instance=comms_log_entry, data=email_data, partial=True)
+                    serializer.is_valid(raise_exception=True)
+                    serializer.save()
+
+                # Action log to the sanction outcome
+                user_action = ra.sanction_outcome.log_user_action(SanctionOutcomeUserAction.ACTION_REMEDIATION_ACTION_SUBMITTED.format(ra.remediation_action_id), request)
+                user_action_serializer = SanctionOutcomeUserActionSerializer(user_action)
+                data_returned = user_action_serializer.data
 
                 headers = self.get_success_headers(serializer.data)
                 return Response(
-                    {},
+                    data_returned,
                     status=status.HTTP_200_OK,
                     headers=headers
                 )
@@ -1084,7 +1135,29 @@ class SanctionOutcomeViewSet(viewsets.ModelViewSet):
                     email_data = send_decline_email(to_address, instance, workflow_entry, request, cc, bcc)
 
                 elif workflow_type == SanctionOutcome.WORKFLOW_ENDORSE:
-                    if not instance.is_parking_offence or (instance.is_parking_offence and instance.offender):
+                    if instance.type in (SanctionOutcome.TYPE_LETTER_OF_ADVICE, SanctionOutcome.TYPE_CAUTION_NOTICE):
+                        if not instance.issued_on_paper:
+                            to_address = [instance.get_offender()[0].email, ]
+                            cc = None
+                            bcc = [member.email for member in instance.allocated_group.members]
+                            if instance.type == SanctionOutcome.TYPE_CAUTION_NOTICE:
+                                email_data = send_caution_notice(to_address, instance, workflow_entry, request, cc, bcc)
+                            else:
+                                email_data = send_letter_of_advice(to_address, instance, workflow_entry, request, cc, bcc)
+
+                            # Action log for endorsement and issuance
+                            instance.log_user_action(SanctionOutcomeUserAction.ACTION_ENDORSE_AND_ISSUE.format(instance.lodgement_number), request)
+                        else:
+                            instance.log_user_action(SanctionOutcomeUserAction.ACTION_ENDORSE.format(instance.lodgement_number), request)
+
+                        # close letter_of_advice/caution_notice
+                        instance.status = SanctionOutcome.STATUS_CLOSED
+                        instance.save()
+
+                        # Action log for closure of this instance
+                        instance.log_user_action(SanctionOutcomeUserAction.ACTION_CLOSE.format(instance.lodgement_number),
+                                             request)
+                    elif not instance.is_parking_offence or (instance.is_parking_offence and instance.offender):
                         instance.endorse(request)
 
                         if not instance.issued_on_paper:
@@ -1096,15 +1169,8 @@ class SanctionOutcomeViewSet(viewsets.ModelViewSet):
                             bcc = [instance.responsible_officer.email, request.user.email] + inc_emails
                             if instance.type == SanctionOutcome.TYPE_INFRINGEMENT_NOTICE:
                                 email_data = send_infringement_notice(to_address, instance, workflow_entry, request, cc, bcc)
-                            elif instance.type == SanctionOutcome.TYPE_REMEDIATION_NOTICE:
-                                email_data = send_remediation_notice(to_address, instance, workflow_entry, request, cc, bcc)
-                            elif instance.type == SanctionOutcome.TYPE_CAUTION_NOTICE:
-                                email_data = send_caution_notice(to_address, instance, workflow_entry, request, cc, bcc)
-                            elif instance.type == SanctionOutcome.TYPE_LETTER_OF_ADVICE:
-                                email_data = send_letter_of_advice(to_address, instance, workflow_entry, request, cc, bcc)
                             else:
-                                # Should not reach here
-                                pass
+                                email_data = send_remediation_notice(to_address, instance, workflow_entry, request, cc, bcc)
 
                             # Log action
                             instance.log_user_action(SanctionOutcomeUserAction.ACTION_ENDORSE_AND_ISSUE.format(instance.lodgement_number), request)
@@ -1216,6 +1282,7 @@ class SanctionOutcomeViewSet(viewsets.ModelViewSet):
     @detail_route(methods=['POST', ])
     @renderer_classes((JSONRenderer,))
     def add_comms_log(self, request, instance=None, workflow=False, *args, **kwargs):
+        print('SanctionOutcome.add_comms_log')
         try:
             with transaction.atomic():
                 # create sanction outcome instance if not passed to this method
