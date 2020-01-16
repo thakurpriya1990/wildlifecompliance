@@ -107,6 +107,35 @@ class LegalCase(RevisionedMixin):
             EmailUser,
             related_name='legal_case_associated_persons',
             )
+    victim_impact_statement_taken = models.BooleanField(default=False)
+    statements_pending = models.BooleanField(default=False)
+    vulnerable_hostile_witnesses = models.BooleanField(default=False)
+    witness_refusing_statement = models.BooleanField(default=False)
+    problems_needs_prosecution_witnesses = models.BooleanField(default=False)
+    accused_bad_character = models.BooleanField(default=False)
+    further_persons_interviews_pending = models.BooleanField(default=False)
+    other_interviews = models.BooleanField(default=False)
+    relevant_persons_pending_charges = models.BooleanField(default=False)
+    other_persons_receiving_sanction_outcome = models.BooleanField(default=False)
+    local_public_interest = models.BooleanField(default=False)
+    applications_orders_requests = models.BooleanField(default=False)
+    applications_orders_required = models.BooleanField(default=False)
+    other_legal_matters = models.BooleanField(default=False)
+
+    victim_impact_statement_taken_details = models.TextField(blank=True, null=True)
+    statements_pending_details = models.TextField(blank=True, null=True)
+    vulnerable_hostile_witnesses_details = models.TextField(blank=True, null=True)
+    witness_refusing_statement_details = models.TextField(blank=True, null=True)
+    problems_needs_prosecution_witnesses_details = models.TextField(blank=True, null=True)
+    accused_bad_character_details = models.TextField(blank=True, null=True)
+    further_persons_interviews_pending_details = models.TextField(blank=True, null=True)
+    other_interviews_details = models.TextField(blank=True, null=True)
+    relevant_persons_pending_charges_details = models.TextField(blank=True, null=True)
+    other_persons_receiving_sanction_outcome_details = models.TextField(blank=True, null=True)
+    local_public_interest_details = models.TextField(blank=True, null=True)
+    applications_orders_requests_details = models.TextField(blank=True, null=True)
+    applications_orders_required_details = models.TextField(blank=True, null=True)
+    other_legal_matters_details = models.TextField(blank=True, null=True)
 
     class Meta:
         app_label = 'wildlifecompliance'

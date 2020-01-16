@@ -102,6 +102,7 @@
                     <ul class="nav nav-pills aho2">
                         <li class="nav-item active"><a data-toggle="tab" :href="'#'+runTab">Running Sheet</a></li>
                         <li class="nav-item"><a data-toggle="tab" :href="'#'+cTab" >Case Details</a></li>
+                        <li class="nav-item"><a data-toggle="tab" :href="'#'+bTab" >Brief of Evidence</a></li>
                         <li class="nav-item"><a data-toggle="tab" :href="'#'+rTab">Related Items</a></li>
                     </ul>
                     <div class="tab-content">
@@ -154,6 +155,134 @@
                                             />
                                         </label>
                                     </div>
+                                </div></div>
+                            </FormSection>
+                        </div>
+                        <div :id="bTab" class="tab-pane fade in">
+                            <FormSection :formCollapse="false" label="Statement of Facts">
+                                <div class="col-sm-12 form-group"><div class="row">
+                                </div></div>
+                            </FormSection>
+                            <FormSection :formCollapse="false" label="Case Information Form">
+                                <div class="col-sm-12 form-group"><div class="row">
+                                    <label class="col-sm-10">
+                                    <input :onclick="readonlyBriefOfEvidence" type="checkbox" data-parsley-required v-model="legal_case.victim_impact_statement_taken" />
+                                    Victim impact statement to be taken?
+                                    </label>
+                                    <label v-if="legal_case.victim_impact_statement_taken" class="col-sm-10">Details
+                                        <textarea :readonly="readonlyForm" class="form-control location_address_field" v-model="legal_case.victim_impact_statement_taken_details" />
+                                    </label>
+                                    <label class="col-sm-10">
+                                    <input :onclick="readonlyBriefOfEvidence" type="checkbox" data-parsley-required v-model="legal_case.statements_pending" />
+                                    Witness (including expert statements) still to be taken?
+                                    </label>
+                                    <label v-if="legal_case.statements_pending" class="col-sm-10">Details
+                                        <textarea :readonly="readonlyForm" class="form-control location_address_field" v-model="legal_case.statements_pending_details" />
+                                    </label>
+                                    <label class="col-sm-10">
+                                    <input :onclick="readonlyBriefOfEvidence" type="checkbox" data-parsley-required v-model="legal_case.vulnerable_hostile_witnesses" />
+                                    Vulnerable / hostile witnesses?
+                                    </label>
+                                    <label v-if="legal_case.vulnerable_hostile_witnesses" class="col-sm-10">Details
+                                        <textarea :readonly="readonlyForm" class="form-control location_address_field" v-model="legal_case.vulnerable_hostile_witnesses_details" />
+                                    </label>
+                                    <label class="col-sm-10">
+                                    <input :onclick="readonlyBriefOfEvidence" type="checkbox" data-parsley-required v-model="legal_case.witness_refusing_statement" />
+                                    Witnesses refusing to make statements?
+                                    </label>
+                                    <label v-if="legal_case.witness_refusing_statement" class="col-sm-10">Details
+                                        <textarea :readonly="readonlyForm" class="form-control location_address_field" v-model="legal_case.witness_refusing_statement_details" />
+                                    </label>
+                                    <label class="col-sm-10">
+                                    <input :onclick="readonlyBriefOfEvidence" type="checkbox" data-parsley-required v-model="legal_case.problems_needs_prosecution_witnesses" />
+                                    Specific problems / needs of prosecution witnesses, e.g. interpreters?
+                                    </label>
+                                    <label v-if="legal_case.problems_needs_prosecution_witnesses" class="col-sm-10">Details
+                                        <textarea :readonly="readonlyForm" class="form-control location_address_field" v-model="legal_case.problems_needs_prosecution_witnesses" />
+                                    </label>
+                                    <label class="col-sm-10">
+                                    <input :onclick="readonlyBriefOfEvidence" type="checkbox" data-parsley-required v-model="legal_case.accused_bad_character" />
+                                    History of bad character / propensity (similar fact) evidence involving accused?
+                                    </label>
+                                    <label v-if="legal_case.accused_bad_character" class="col-sm-10">Details
+                                        <textarea :readonly="readonlyForm" class="form-control location_address_field" v-model="legal_case.accused_bad_character_details" />
+                                    </label>
+                                    <label class="col-sm-10">
+                                    <input :onclick="readonlyBriefOfEvidence" type="checkbox" data-parsley-required v-model="legal_case.further_persons_interviews_pending" />
+                                    Further persons (witness or suspect) to be interviewed?
+                                    </label>
+                                    <label v-if="legal_case.further_persons_interviews_pending" class="col-sm-10">Details
+                                        <textarea :readonly="readonlyForm" class="form-control location_address_field" v-model="legal_case.further_persons_interviews_pending_details" />
+                                    </label>
+                                    <label class="col-sm-10">
+                                    <input :onclick="readonlyBriefOfEvidence" type="checkbox" data-parsley-required v-model="legal_case.other_interviews" />
+                                    Other persons whose details do not appear on this brief who have been interviewed?
+                                    </label>
+                                    <label v-if="legal_case.other_interviews" class="col-sm-10">Details
+                                        <textarea :readonly="readonlyForm" class="form-control location_address_field" v-model="legal_case.other_interviews_details" />
+                                    </label>
+                                    <label class="col-sm-10">
+                                    <input :onclick="readonlyBriefOfEvidence" type="checkbox" data-parsley-required v-model="legal_case.relevant_persons_pending_charges" />
+                                    Other relevant persons charged or yet to be charged?
+                                    </label>
+                                    <label v-if="legal_case.relevant_persons_pending_charges" class="col-sm-10">Details
+                                        <textarea :readonly="readonlyForm" class="form-control location_address_field" v-model="legal_case.relevant_persons_pending_charges_details" />
+                                    </label>
+                                    <label class="col-sm-10">
+                                    <input :onclick="readonlyBriefOfEvidence" type="checkbox" data-parsley-required v-model="legal_case.other_persons_receiving_sanction_outcome" />
+                                    Others receiving Infringement / Warning arising out of the same incident?
+                                    </label>
+                                    <label v-if="legal_case.other_persons_receiving_sanction_outcome" class="col-sm-10">Details
+                                        <textarea :readonly="readonlyForm" class="form-control location_address_field" v-model="legal_case.other_persons_receiving_sanction_outcome_details" />
+                                    </label>
+                                    <label class="col-sm-10">
+                                    <input :onclick="readonlyBriefOfEvidence" type="checkbox" data-parsley-required v-model="legal_case.local_public_interest" />
+                                    Matters of local / public interest?
+                                    </label>
+                                    <label v-if="legal_case.local_public_interest" class="col-sm-10">Details
+                                        <textarea :readonly="readonlyForm" class="form-control location_address_field" v-model="legal_case.local_public_interest_details" />
+                                    </label>
+                                    <label class="col-sm-10">
+                                    <input :onclick="readonlyBriefOfEvidence" type="checkbox" data-parsley-required v-model="legal_case.applications_orders_requests" />
+                                    Other applications / orders on conviction requests?
+                                    </label>
+                                    <label v-if="legal_case.applications_orders_requests" class="col-sm-10">Details
+                                        <textarea :readonly="readonlyForm" class="form-control location_address_field" v-model="legal_case.applications_orders_requests_details" />
+                                    </label>
+                                    <label class="col-sm-10">
+                                    <input :onclick="readonlyBriefOfEvidence" type="checkbox" data-parsley-required v-model="legal_case.applications_orders_required" />
+                                    Are there any other applications / orders on conviction required?
+                                    </label>
+                                    <label v-if="legal_case.applications_orders_required" class="col-sm-10">Details
+                                        <textarea :readonly="readonlyForm" class="form-control location_address_field" v-model="legal_case.applications_orders_required_details" />
+                                    </label>
+                                    <label class="col-sm-10">
+                                    <input :onclick="readonlyBriefOfEvidence" type="checkbox" data-parsley-required v-model="legal_case.other_legal_matters" />
+                                    Is there any statutory notice, DEC licence, ministerial statement or policy etc. re the matter, premise or person subject to this brief?
+                                    </label>
+                                    <label v-if="legal_case.other_legal_matters" class="col-sm-10">Details
+                                        <textarea :readonly="readonlyForm" class="form-control location_address_field" v-model="legal_case.other_legal_matters_details" />
+                                    </label>
+                                </div></div>
+                            </FormSection>
+                            <FormSection :formCollapse="false" label="Offences, Offenders and Records of Interview">
+                                <div class="col-sm-12 form-group"><div class="row">
+                                </div></div>
+                            </FormSection>
+                            <FormSection :formCollapse="false" label="Witness Statements, Officer Statements, Expert Statements">
+                                <div class="col-sm-12 form-group"><div class="row">
+                                </div></div>
+                            </FormSection>
+                            <FormSection :formCollapse="false" label="List of Exhibits, Sensitive Unused and Non-Sensitive Unused Materials">
+                                <div class="col-sm-12 form-group"><div class="row">
+                                </div></div>
+                            </FormSection>
+                            <FormSection :formCollapse="false" label="List of Photographic, Video and Sound Exhibits">
+                                <div class="col-sm-12 form-group"><div class="row">
+                                </div></div>
+                            </FormSection>
+                            <FormSection :formCollapse="false" label="Additional Documents">
+                                <div class="col-sm-12 form-group"><div class="row">
                                 </div></div>
                             </FormSection>
                         </div>
@@ -284,6 +413,7 @@ export default {
             runTab: 'runTab'+this._uid,
             rTab: 'rTab'+this._uid,
             cTab: 'cTab'+this._uid,
+            bTab: 'bTab'+this._uid,
             current_schema: [],
             workflowBindId: '',
             workflow_type: '',
@@ -443,6 +573,13 @@ export default {
         }
         return readonly
     },
+    readonlyBriefOfEvidence: function() {
+        let readonly = true
+        if (this.legal_case && this.legal_case.id) {
+            readonly = !this.legal_case.can_user_action;
+        }
+        return readonly
+    },
     canUserAction: function() {
         let return_val = false
         if (this.legal_case && this.legal_case.id) {
@@ -543,6 +680,17 @@ export default {
     ...mapActions({
         loadCurrentUser: 'loadCurrentUser',
     }),
+    /*
+    handleVictimImpactCheckbox: function(e) {
+        console.log(e)
+        //let checkboxValue = false;
+        let eventValue = e.target.value ? e.target.value : null;
+        if (eventValue === 'on' && e.target.checked) {
+            //checkboxValue = true;
+            this.victimImpactCheckbox = true;
+        }
+    },
+    */
     setRunningSheetHistoryEntryBindId: function() {
         if (this.runningSheetHistoryEntryInstance) {
             this.uuid += 1;
