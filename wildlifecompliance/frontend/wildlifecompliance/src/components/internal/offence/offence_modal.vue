@@ -223,6 +223,7 @@ import $ from "jquery";
 import "bootstrap/dist/css/bootstrap.css";
 import "awesomplete/awesomplete.css";
 import uuid from 'uuid';
+import "jquery-ui/ui/widgets/draggable.js";
 
 export default {
   name: "Offence",
@@ -489,6 +490,12 @@ export default {
     ...mapActions('legalCaseStore', {
       loadLegalCase: "loadLegalCase",
     }),
+    makeModalsDraggable: function(){
+        this.elem_modal = $('.modal > .modal-dialog');
+        for (let i=0; i<this.elem_modal.length; i++){
+            $(this.elem_modal[i]).draggable();
+        }
+    },
     constructRegionsAndDistricts: async function() {
         let returned_regions = await cache_helper.getSetCacheList(
             "Regions",
@@ -758,7 +765,7 @@ export default {
             // When field errors raised
             for (let field_name in err.body){
                 if (err.body.hasOwnProperty(field_name)){
-                    errorText += field_name + ':<br />';
+                    errorText += field_name + ': ';
                     for (let j=0; j<err.body[field_name].length; j++){
                         errorText += err.body[field_name][j] + '<br />';
                     }
@@ -819,15 +826,17 @@ export default {
       let el_to_date = $(vm.$refs.occurrenceDateToPicker);
       let el_to_time = $(vm.$refs.occurrenceTimeToPicker);
 
-      // "From" field
+      // "Date From" field
       el_fr_date.datetimepicker({ format: "DD/MM/YYYY", maxDate: "now", showClear: true });
       el_fr_date.on("dp.change", function(e) {
         if (el_fr_date.data("DateTimePicker").date()) {
           vm.offence.occurrence_date_from = e.date.format("DD/MM/YYYY");
+            el_to_date.data('DateTimePicker').minDate(e.date);
         } else if (el_fr_date.data("date") === "") {
           vm.offence.occurrence_date_from = null;
         }
       });
+      // "Time From" field
       el_fr_time.datetimepicker({ format: "LT", showClear: true });
       el_fr_time.on("dp.change", function(e) {
         if (el_fr_time.data("DateTimePicker").date()) {
@@ -837,15 +846,17 @@ export default {
         }
       });
 
-      // "To" field
+      // "Date To" field
       el_to_date.datetimepicker({ format: "DD/MM/YYYY", maxDate: "now", showClear: true });
       el_to_date.on("dp.change", function(e) {
         if (el_to_date.data("DateTimePicker").date()) {
           vm.offence.occurrence_date_to = e.date.format("DD/MM/YYYY");
+            el_fr_date.data('DateTimePicker').minDate(e.date);
         } else if (el_to_date.data("date") === "") {
           vm.offence.occurrence_date_to = null;
         }
       });
+      // "Time To" field
       el_to_time.datetimepicker({ format: "LT", showClear: true });
       el_to_time.on("dp.change", function(e) {
         if (el_to_time.data("DateTimePicker").date()) {
@@ -1086,11 +1097,9 @@ export default {
         this.setAllocatedGroupId(this.allocated_group_id);
     },
     mounted: function() {
-        console.log('mounted');
-
-        let vm = this;
-        vm.$nextTick(() => {
-            vm.addEventListeners();
+        this.$nextTick(() => {
+            this.addEventListeners();
+            this.makeModalsDraggable();
         });
     }
 };
