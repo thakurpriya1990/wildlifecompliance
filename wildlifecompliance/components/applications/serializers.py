@@ -25,6 +25,7 @@ from wildlifecompliance.components.organisations.serializers import (
 from wildlifecompliance.components.users.serializers import UserAddressSerializer, DocumentSerializer
 from wildlifecompliance.components.main.fields import CustomChoiceField
 from wildlifecompliance import helpers
+from wildlifecompliance.management.permissions_manager import PermissionUser
 
 from rest_framework import serializers
 
@@ -76,8 +77,9 @@ class ApplicationSelectedActivityCanActionSerializer(serializers.Serializer):
             return False
         if user is None:
             return False
+        perm_user = PermissionUser(user)
         return (user.has_perm('wildlifecompliance.system_administrator') or
-            user.has_wildlifelicenceactivity_perm([
+            perm_user.has_wildlifelicenceactivity_perm([
                 'issuing_officer',
             ], obj.get('licence_activity_id'))) and obj.get('can_reissue')
 
@@ -404,6 +406,8 @@ class BaseApplicationSerializer(serializers.ModelSerializer):
     invoice_url = serializers.SerializerMethodField(read_only=True)
     can_user_view = serializers.SerializerMethodField(read_only=True)
     payment_url = serializers.SerializerMethodField(read_only=True)
+    total_paid_amount = serializers.DecimalField(
+        max_digits=8, decimal_places=2, coerce_to_string=False, read_only=True)
 
     class Meta:
         model = Application
@@ -452,6 +456,7 @@ class BaseApplicationSerializer(serializers.ModelSerializer):
             'total_paid_amount',
             'has_amended_fees',
             'payment_url',
+            'requires_refund',
         )
         read_only_fields = ('documents',)
 
@@ -905,9 +910,10 @@ class InternalApplicationSerializer(BaseApplicationSerializer):
         available_roles = ['assessor', 'licensing_officer', 'issuing_officer', 'return_curator']
         is_administrator = user.has_perm('wildlifecompliance.system_administrator')
         roles = []
+        perm_user = PermissionUser(user)
         for activity in obj.selected_activities.all():
             for role in available_roles:
-                if is_administrator or user.has_wildlifelicenceactivity_perm(role, activity.licence_activity_id):
+                if is_administrator or perm_user.has_wildlifelicenceactivity_perm(role, activity.licence_activity_id):
                     roles.append({'activity_id': activity.licence_activity_id, 'role': role})
         return roles
 

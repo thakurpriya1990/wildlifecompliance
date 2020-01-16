@@ -30,9 +30,9 @@
                                                   <label>Physical Type</label>
                                                 </div>
                                                 <div class="col-sm-6">
-                                                  <select class="form-control" v-model="physical_artifact.physical_artifact_type" @change="loadSchema">
-                                                    <option  v-for="option in physicalArtifactTypes" :value="option" v-bind:key="option.id">
-                                                      {{ option.artifact_type }}
+                                                  <select class="form-control" v-model="physical_artifact.physical_artifact_type_id" @change="loadSchema">
+                                                    <option  v-for="option in physicalArtifactTypes" :value="option.id" v-bind:key="option.id">
+                                                      {{ option.artifact_type_display }}
                                                     </option>
                                                   </select>
                                                 </div>
@@ -40,30 +40,6 @@
                                             </div>
                                         </div>
                                         <div class="col-sm-12">
-                                            <div class="form-group">
-                                                <div class="row">
-                                                    <div class="col-sm-3">
-                                                        <label class="control-label pull-left" for="Name">Seizure Notice</label>
-                                                    </div>
-                                                    <div v-if="parentModal" class="col-sm-9">
-                                                        <filefield
-                                                        ref="default_document"
-                                                        name="default-document"
-                                                        :isRepeatable="true"
-                                                        documentActionUrl="temporary_document"
-                                                        @update-temp-doc-coll-id="setTemporaryDocumentCollectionId"/>
-                                                    </div>
-                                                    <div v-else class="col-sm-9">
-                                                        <filefield 
-                                                        ref="physical_artifact_documents" 
-                                                        name="physical-artifact-documents" 
-                                                        :isRepeatable="true" 
-                                                        :documentActionUrl="physical_artifact.defaultDocumentUrl" 
-                                                        :readonly="readonlyForm"
-                                                        />
-                                                    </div>
-                                                </div>
-                                            </div>
                                             <div class="form-group">
                                               <div class="row">
                                                 <div class="col-sm-3">
@@ -75,22 +51,57 @@
                                               </div>
                                             </div>
                                             <div class="form-group">
-                                              <div class="row">
-                                                <div class="col-sm-3">
-                                                  <label>Description</label>
-                                                </div>
-                                                <div class="col-sm-9">
-                                                  <textarea :readonly="readonlyForm" class="form-control" v-model="physical_artifact.description"/>
-                                                </div>
-                                              </div>
-                                            </div>
-                                            <div class="form-group">
                                                 <div class="row">
                                                     <div class="col-sm-3">
                                                         <label>Officer</label>
                                                     </div>
                                                     <div class="col-sm-9">
                                                         <select ref="physical_artifact_department_users" class="form-control" v-model="physical_artifact.officer_email">
+                                                            <option  v-for="option in departmentStaffList" :value="option.email" v-bind:key="option.pk">
+                                                            {{ option.name }}
+                                                            </option>
+                                                        </select>
+                                                    </div>
+                                                </div>
+                                            </div>
+                                            <div v-if="statementVisibility" class="form-group">
+                                              <div class="row">
+                                                <div class="col-sm-3">
+                                                  <label>Statement</label>
+                                                </div>
+                                                <div v-if="parentModal" class="col-sm-6">
+                                                  <select class="form-control" v-model="physical_artifact.statement_id" ref="setStatement">
+                                                    <option  v-for="option in legal_case.statement_artifacts" :value="option.id" v-bind:key="option.id">
+                                                    {{ option.document_type_display }}: {{ option.identifier }}
+                                                    </option>
+                                                  </select>
+                                                </div>
+                                                <div v-else class="col-sm-6">
+                                                  <select class="form-control" v-model="physical_artifact.statement_id" ref="setStatement">
+                                                    <option  v-for="option in physical_artifact.available_statement_artifacts" :value="option.id" v-bind:key="option.id">
+                                                    {{ option.document_type_display }}: {{ option.identifier }}
+                                                    </option>
+                                                  </select>
+                                                </div>
+                                              </div>
+                                            </div>
+                                            <div v-if="custodianVisibility" class="form-group">
+                                                <div class="row">
+                                                    <div class="col-sm-3">
+                                                        <label>Custodian</label>
+                                                    </div>
+                                                    <div class="col-sm-9">
+                                                            {{ selectedStatementArtifact.custodian }}
+                                                    </div>
+                                                </div>
+                                            </div>
+                                            <div v-else class="form-group">
+                                                <div class="row">
+                                                    <div class="col-sm-3">
+                                                        <label>Custodian</label>
+                                                    </div>
+                                                    <div class="col-sm-9">
+                                                        <select ref="physical_artifact_department_users_custodian" class="form-control" v-model="physical_artifact.custodian_email">
                                                             <option  v-for="option in departmentStaffList" :value="option.email" v-bind:key="option.pk">
                                                             {{ option.name }}
                                                             </option>
@@ -117,6 +128,40 @@
                                                               <span class="glyphicon glyphicon-calendar"></span>
                                                           </span>
                                                         </div>
+                                                    </div>
+                                                </div>
+                                            </div>
+                                            <div class="form-group">
+                                              <div class="row">
+                                                <div class="col-sm-3">
+                                                  <label>Description</label>
+                                                </div>
+                                                <div class="col-sm-9">
+                                                  <textarea :readonly="readonlyForm" class="form-control" v-model="physical_artifact.description"/>
+                                                </div>
+                                              </div>
+                                            </div>
+                                            <div class="form-group">
+                                                <div class="row">
+                                                    <div class="col-sm-3">
+                                                        <label class="control-label pull-left" for="Name">Seizure Notice</label>
+                                                    </div>
+                                                    <div v-if="parentModal" class="col-sm-9">
+                                                        <filefield
+                                                        ref="default_document"
+                                                        name="default-document"
+                                                        :isRepeatable="true"
+                                                        documentActionUrl="temporary_document"
+                                                        @update-temp-doc-coll-id="setTemporaryDocumentCollectionId"/>
+                                                    </div>
+                                                    <div v-else class="col-sm-9">
+                                                        <filefield 
+                                                        ref="physical_artifact_documents" 
+                                                        name="physical-artifact-documents" 
+                                                        :isRepeatable="true" 
+                                                        :documentActionUrl="physical_artifact.defaultDocumentUrl" 
+                                                        :readonly="readonlyForm"
+                                                        />
                                                     </div>
                                                 </div>
                                             </div>
@@ -268,6 +313,13 @@ export default {
             entity: {
                 id: null,
             },
+            statementArtifactTypes: [
+                'record_of_interview',
+                'witness_statement',
+                'expert_statement',
+                'officer_statement',
+                ],
+            statementVisibility: false,
             dtOptions: {
                 serverSide: true,
                 searchDelay: 1000,
@@ -383,6 +435,10 @@ export default {
     watch: {
         artifactType: {
             handler: function (){
+                if (this.artifactType === 'found_object') {
+                    this.setStatementId(null);
+                }
+                this.setStatementVisibility();
                 /*
                 if (this.statementVisibilityArray.includes(this.artifactType)) {
                     console.log("statementVisibility true")
@@ -391,7 +447,12 @@ export default {
                 */
             },
             deep: true,
-        }
+        },
+        selectedStatementArtifact: {
+            handler: function() {
+            },
+            deep: true,
+        },
     },
     computed: {
         ...mapGetters('physicalArtifactStore', {
@@ -400,6 +461,35 @@ export default {
         ...mapGetters('legalCaseStore', {
             legal_case: "legal_case",
         }),
+        ...mapGetters({
+            renderer_form_data: 'renderer_form_data'
+        }),
+        selectedStatementArtifact: function() {
+            let statementArtifact = {}
+            if (this.physical_artifact && this.physical_artifact.statement_id) {
+                if (this.parentModal && this.legal_case && this.legal_case.statement_artifacts) {
+                    for (let artifact of this.legal_case.statement_artifacts) {
+                        if (this.physical_artifact.statement_id === artifact.id) {
+                            Object.assign(statementArtifact, artifact)
+                        }
+                    }
+                } else if (!this.parentModal && this.physical_artifact.available_statement_artifacts) {
+                    for (let artifact of this.physical_artifact.available_statement_artifacts) {
+                        if (this.physical_artifact.statement_id === artifact.id) {
+                            Object.assign(statementArtifact, artifact)
+                        }
+                    }
+                }
+            }
+            return statementArtifact;
+        },
+        custodianVisibility: function() {
+            let show = false;
+            if (this.selectedStatementArtifact && this.selectedStatementArtifact.custodian) {
+                show = true;
+            }
+            return show;
+        },
         detailsSchemaVisibility: function() {
             console.log("detailsSchemaVisibility")
             if (this.detailsSchema && this.detailsSchema.length > 0) {
@@ -430,6 +520,13 @@ export default {
           }
           return caseExists;
         },
+        linkedLegalCase: function() {
+            let caseExists = false;
+            if (this.physical_artifact && this.physical_artifact.legal_case_id_list && this.physical_artifact.legal_case_id_list.length > 0) {
+                caseExists = true;
+            }
+            return caseExists;
+        },
         canUserAction: function() {
             return true;
         },
@@ -458,18 +555,22 @@ export default {
             return recordExists;
         },
         artifactType: function() {
-            let aType = ''
-            if (this.physical_artifact && this.physical_artifact.physical_artifact_type) {
-                aType = this.physical_artifact.physical_artifact_type.artifact_type;
+            let typeCode = ''
+            if (this.artifactTypeId && this.physicalArtifactTypes && this.physicalArtifactTypes.length > 0) {
+                for (let aType of this.physicalArtifactTypes) {
+                    if (aType.id === this.artifactTypeId) {
+                        typeCode = aType.artifact_type;
+                    }
+                }
             }
-            return aType;
+            return typeCode;
         },
         artifactTypeId: function() {
-            let aType = ''
-            if (this.physical_artifact && this.physical_artifact.physical_artifact_type) {
-                aType = this.physical_artifact.physical_artifact_type.id;
+            let typeId = null
+            if (this.physical_artifact) {
+                typeId = this.physical_artifact.physical_artifact_type_id;
             }
-            return aType;
+            return typeId;
         },
         /*
         artifactTypeDisplay: function() {
@@ -628,8 +729,28 @@ export default {
             setPhysicalArtifact: 'setPhysicalArtifact',
             setRelatedItems: 'setRelatedItems',
             setOfficerEmail: 'setOfficerEmail',
+            setCustodianEmail: 'setCustodianEmail',
             setTemporaryDocumentCollectionId: 'setTemporaryDocumentCollectionId',
+            setStatementId: 'setStatementId',
         }),
+        setStatementVisibility: function() {
+            if (
+                // legal case exists and Document Type is not a statementArtifactType
+                //(this.legalCaseExists && this.artifactType && !this.statementArtifactTypes.includes(this.artifactType)) ||
+                ((this.linkedLegalCase || this.legalCaseExists) && this.artifactType &&
+                    ['seized_object', 'surrendered_ object'].includes(this.artifactType)) ||
+                //((this.linkedLegalCase || this.legalCaseExists)) ||
+                // OR physical_artifact already has a linked statement
+                (this.physical_artifact && this.physical_artifact.statement)
+                )
+            {
+                console.log("statementVisibility true")
+                this.statementVisibility = true;
+            } else {
+                console.log("statementVisibility false")
+                this.statementVisibility = false;
+            }
+        },
         updateTabSelected: function(tabValue) {
             this.tabSelected = tabValue;
         },
@@ -761,6 +882,22 @@ export default {
                     var selected = $(e.currentTarget);
                     vm.setOfficerEmail('');
                 });
+            // department_users_custodian
+            $(vm.$refs.physical_artifact_department_users_custodian).select2({
+                    "theme": "bootstrap",
+                    allowClear: true,
+                    placeholder:""
+                }).
+                on("select2:select",function (e) {
+                    let selected = $(e.currentTarget);
+                    let selectedData = selected.val();
+                    vm.setCustodianEmail(selectedData);
+                }).
+                on("select2:unselect",function (e) {
+                    var selected = $(e.currentTarget);
+                    vm.setCustodianEmail('');
+                });
+
             let existingArtifactTable = $('#existing-artifact-table');
             existingArtifactTable.on(
                 'click',
@@ -823,9 +960,15 @@ export default {
                     'PhysicalArtifactTypeSchema',
                     this.artifactTypeId.toString(),
                     url);
+                    //let returnedSchema = await Vue.http.get(url);
+                    console.log(returnedSchema)
                     if (returnedSchema) {
                         Object.assign(this.detailsSchema, returnedSchema.details_schema);
                         Object.assign(this.storageSchema, returnedSchema.storage_schema);
+                        /*
+                        Object.assign(this.detailsSchema, returnedSchema.body.details_schema);
+                        Object.assign(this.storageSchema, returnedSchema.body.storage_schema);
+                        */
                         /*
                         this.detailsSchema = returnedSchema.details_schema;
                         this.storageSchema = returnedSchema.storage_schema;
@@ -869,6 +1012,13 @@ export default {
         if (this.$route.params.physical_artifact_id) {
             await this.loadPhysicalArtifact({ physical_artifact_id: this.$route.params.physical_artifact_id });
         }
+        /*
+        // if main obj page, call loadLegalCase if document_artifact.legal_case_id exists
+        if (this.$route.name === 'view-artifact' && this.physical_artifact && this.physical_artifact.legal_case_id) {
+            await this.loadLegalCase({ legal_case_id: this.physical_artifact.legal_case_id });
+        }
+        */
+        this.setStatementVisibility();
         //await this.loadPhysicalArtifact({ physical_artifact_id: 1 });
         //console.log(this)
         // physical artifact types
