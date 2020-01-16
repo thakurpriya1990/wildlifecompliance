@@ -627,12 +627,16 @@ class ApplicationViewSet(viewsets.ModelViewSet):
                 else instance.amended_activities
             for activity in activities:
                 product_lines.append({
-                    'ledger_description': '{}'.format(activity.licence_activity.name),
+                    'ledger_description': '{}'.format(
+                        activity.licence_activity.name),
                     'quantity': 1,
                     'price_incl_tax': str(activity.application_fee),
-                    'price_excl_tax': str(calculate_excl_gst(activity.application_fee)),
+                    'price_excl_tax': str(calculate_excl_gst(
+                        activity.application_fee)),
                     'oracle_code': ''
                 })
+                if activity.application_fee < 1:
+                    raise Exception('Checkout request for zero amount.')
             checkout_result = checkout(request, instance, lines=product_lines,
                                        invoice_text=application_submission)
             return checkout_result

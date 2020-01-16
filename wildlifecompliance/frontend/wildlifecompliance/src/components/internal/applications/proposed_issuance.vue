@@ -191,14 +191,17 @@ export default {
                 vm.$http.post(helpers.add_endpoint_json(api_endpoints.applications,vm.application_id+'/proposed_licence'),JSON.stringify(vm.propose_issue),{
                         emulateJSON:true,
                     }).then((response)=>{
-                        swal(
-                                'Propose Issue',
-                                'The selected licenced activities have been proposed for Issue.',
-                                'success'
-                        )
-                        vm.issuingLicence = false;
-                        vm.close();
-                        vm.$emit('refreshFromResponse',response);
+                        //swal(
+                        //        'Propose Issue',
+                        //        'The selected licenced activities have been proposed for Issue.',
+                        //        'success'
+                        //)
+                        //vm.issuingLicence = false;
+                        //vm.close();
+                        //vm.$emit('refreshFromResponse',response);
+                        vm.$router.push({
+                            name:"internal-dash",
+                        });     
                     },(error)=>{
                         vm.errors = true;
                         vm.issuingLicence = false;
