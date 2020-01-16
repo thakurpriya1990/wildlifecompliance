@@ -131,14 +131,17 @@ export default {
                 vm.$http.post(helpers.add_endpoint_json(api_endpoints.applications,this.application_id+'/proposed_decline'),JSON.stringify(propose_decline),{
                         emulateJSON:true,
                     }).then((response)=>{
-                        swal(
-                                'Propose Decline',
-                                'The selected licenced activities have been proposed for Decline.',
-                                'success'
-                        )
-                        vm.decliningApplication = false;
-                        vm.close();
-                        vm.$emit('refreshFromResponse',response);
+                        //swal(
+                        //        'Propose Decline',
+                        //        'The selected licenced activities have been proposed for Decline.',
+                        //        'success'
+                        //)
+                        //vm.decliningApplication = false;
+                        //vm.close();
+                        //vm.$emit('refreshFromResponse',response);
+                        vm.$router.push({
+                            name:"internal-dash",
+                        });     
                     },(error)=>{
                         vm.errors = true;
                         vm.decliningApplication = false;

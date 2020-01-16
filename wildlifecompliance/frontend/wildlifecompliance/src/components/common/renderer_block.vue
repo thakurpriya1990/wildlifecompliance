@@ -432,7 +432,9 @@ const RendererBlock = {
             if(assignEventValue && value !== null && value !== undefined) {
                 this.value = value;
             }
-            this.refreshApplicationFees();
+            if (e.isTrusted) { // only refresh on user input not onLoad
+                this.refreshApplicationFees();
+            }
         }
     },
   }
