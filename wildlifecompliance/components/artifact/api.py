@@ -61,6 +61,7 @@ from wildlifecompliance.components.artifact.models import (
         PhysicalArtifactType,
         PhysicalArtifactDisposalMethod,
         ArtifactUserAction,
+        PhysicalArtifactFormDataRecord,
         )
 from wildlifecompliance.components.artifact.serializers import (
         ArtifactSerializer,
@@ -325,6 +326,23 @@ class PhysicalArtifactViewSet(viewsets.ModelViewSet):
             print(traceback.print_exc())
             raise serializers.ValidationError(str(e))
 
+    @detail_route(methods=['post'])
+    @renderer_classes((JSONRenderer,))
+    def form_data(self, request_data, *args, **kwargs):
+        try:
+            instance = self.get_object()
+            PhysicalArtifactFormDataRecord.process_form(
+                instance,
+                request_data.get('renderer_data'),
+                action=InspectionFormDataRecord.ACTION_TYPE_ASSIGN_VALUE
+            )
+            return redirect(reverse('external'))
+        except ValidationError as e:
+            raise serializers.ValidationError(repr(e.error_dict))
+        except Exception as e:
+            print(traceback.print_exc())
+        raise serializers.ValidationError(str(e))
+
     def common_save(self, request_data, instance=None):
         try:
             with transaction.atomic():
@@ -364,6 +382,9 @@ class PhysicalArtifactViewSet(viewsets.ModelViewSet):
                     # save temp doc if exists
                     if request_data.get('temporary_document_collection_id'):
                         self.handle_document(request_data, instance)
+                    # renderer data
+                    if request_data.get('renderer_data'):
+                        self.form_data(request_data)
                     return (instance, headers)
         except serializers.ValidationError:
             print(traceback.print_exc())
