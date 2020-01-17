@@ -327,12 +327,15 @@ export default {
                     vm.$http.post(helpers.add_endpoint_json(api_endpoints.applications,vm.application.id+'/final_decision'),JSON.stringify(licence),{
                                 emulateJSON:true,
                             }).then((response)=>{
-                                swal(
-                                    'Activities Finalised',
-                                    'The selected activities have been successfully finalised!',
-                                    'success'
-                                );
-                                vm.$parent.refreshFromResponse(response);
+                                //swal(
+                                //    'Activities Finalised',
+                                //    'The selected activities have been successfully finalised!',
+                                //    'success'
+                                //);
+                                //vm.$parent.refreshFromResponse(response);
+                                vm.$router.push({
+                                    name:"internal-dash",
+                                });     
                             },(error)=>{
                                 swal(
                                     'Application Error',
