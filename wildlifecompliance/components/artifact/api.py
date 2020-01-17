@@ -44,8 +44,9 @@ from wildlifecompliance.components.main.process_document import (
         process_generic_document, 
         save_comms_log_document_obj,
         save_default_document_obj,
-        save_details_document_obj,
-        save_storage_document_obj,
+        save_renderer_document_obj,
+        #save_details_document_obj,
+        #save_storage_document_obj,
         )
 from wildlifecompliance.components.main.email import prepare_mail
 from wildlifecompliance.components.users.serializers import (
@@ -138,7 +139,44 @@ class DocumentArtifactViewSet(viewsets.ModelViewSet):
             res_obj.append({'id': choice[0], 'display': choice[1]});
         res_json = json.dumps(res_obj)
         return HttpResponse(res_json, content_type='application/json')
-    
+
+    @detail_route(methods=['POST'])
+    @renderer_classes((JSONRenderer,))
+    def process_renderer_document(self, request, *args, **kwargs):
+        print("process_renderer_document")
+        try:
+            instance = self.get_object()
+            returned_data = process_generic_document(
+                request, 
+                instance, 
+                document_type='renderer_documents'
+                )
+            if returned_data:
+                print("returned_data")
+                print(returned_data)
+                filedata = returned_data.get('filedata')
+                # Log action if file uploaded
+                if filedata and request.data.get('action') == 'save':
+                    file_name = filedata[0].get('name')
+                    #if file_name:
+                    #    instance.log_user_action(
+                    #            ArtifactUserAction.ACTION_UPLOAD_INSPECTION_REPORT.format(
+                    #            file_name), request)
+                return Response(returned_data)
+            else:
+                return Response()
+        except serializers.ValidationError:
+            print(traceback.print_exc())
+            raise
+        except ValidationError as e:
+            if hasattr(e, 'error_dict'):
+                raise serializers.ValidationError(repr(e.error_dict))
+            else:
+                raise serializers.ValidationError(repr(e[0].encode('utf-8')))
+        except Exception as e:
+            print(traceback.print_exc())
+            raise serializers.ValidationError(str(e))
+
     @renderer_classes((JSONRenderer,))
     #def inspection_save(self, request, workflow=False, *args, **kwargs):
     def update(self, request, workflow=False, *args, **kwargs):
@@ -346,11 +384,11 @@ class PhysicalArtifactViewSet(viewsets.ModelViewSet):
     def common_save(self, request_data, instance=None):
         try:
             with transaction.atomic():
-                physical_artifact_type = request_data.get('physical_artifact_type')
-                physical_artifact_type_id = None
-                if physical_artifact_type:
-                    physical_artifact_type_id = physical_artifact_type.get('id')
-                    request_data['physical_artifact_type_id'] = physical_artifact_type_id
+                #physical_artifact_type = request_data.get('physical_artifact_type')
+                #physical_artifact_type_id = None
+                #if physical_artifact_type:
+                #    physical_artifact_type_id = physical_artifact_type.get('id')
+                #    request_data['physical_artifact_type_id'] = physical_artifact_type_id
 
                 disposal_method = request_data.get('disposal_method')
                 disposal_method_id = None

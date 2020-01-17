@@ -403,6 +403,15 @@ class PhysicalArtifact(Artifact):
         """ returns a queryset of form data records attached to PhysicalArtifact (shortcut to PhysicalArtifactFormDataRecord related_name). """
         return self.form_data_records.all()
 
+    @property
+    def details_schema(self):
+        if self.physical_artifact_type:
+            return self.physical_artifact_type.details_schema
+
+    @property
+    def storage_schema(self):
+        if self.physical_artifact_type:
+            return self.physical_artifact_type.storage_schema
 
 @python_2_unicode_compatible
 class PhysicalArtifactFormDataRecord(models.Model):
@@ -600,24 +609,24 @@ class ArtifactDocument(Document):
         app_label = 'wildlifecompliance'
 
 
-class DetailsDocument(Document):
+class RendererDocument(Document):
     log_entry = models.ForeignKey(
         PhysicalArtifact,
-        related_name='details_documents')
+        related_name='renderer_documents')
     _file = models.FileField(max_length=255)
 
     class Meta:
         app_label = 'wildlifecompliance'
 
 
-class StorageDocument(Document):
-    log_entry = models.ForeignKey(
-        PhysicalArtifact,
-        related_name='storage_documents')
-    _file = models.FileField(max_length=255)
-
-    class Meta:
-        app_label = 'wildlifecompliance'
+#class StorageDocument(Document):
+#    log_entry = models.ForeignKey(
+#        PhysicalArtifact,
+#        related_name='storage_documents')
+#    _file = models.FileField(max_length=255)
+#
+#    class Meta:
+#        app_label = 'wildlifecompliance'
 
 
 #class LegalCaseRunningSheetArtifacts(models.Model):

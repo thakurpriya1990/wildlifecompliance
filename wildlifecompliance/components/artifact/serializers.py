@@ -408,6 +408,7 @@ class PhysicalArtifactSerializer(ArtifactSerializer):
                 'statement',
                 'statement_id',
                 'physical_artifact_type',
+                'physical_artifact_type_id',
                 'used_within_case',
                 'sensitive_non_disclosable',
                 'disposal_method',
