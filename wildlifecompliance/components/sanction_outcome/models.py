@@ -436,6 +436,8 @@ class SanctionOutcome(models.Model):
 
     def is_issuable(self, raise_exception=False):
         date_window = self.issue_due_date_window
+        if not date_window:
+            raise ValidationError('Issue-due-date-window for the Section/Regulation must be set.')
         issue_due_date = self.offence_occurrence_date + relativedelta(days=date_window)
 
         today = datetime.date.today()
