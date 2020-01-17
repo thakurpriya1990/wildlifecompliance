@@ -148,11 +148,11 @@
                                                     </div>
                                                     <div v-if="parentModal" class="col-sm-9">
                                                         <filefield
-                                                        ref="default_document"
-                                                        name="default-document"
+                                                        ref="physical_artifact_documents"
+                                                        name="physical-artifact-documents"
                                                         :isRepeatable="true"
                                                         documentActionUrl="temporary_document"
-                                                        @update-temp-doc-coll-id="setTemporaryDocumentCollectionId"/>
+                                                        @update-temp-doc-coll-id="addToTemporaryDocumentCollectionList"/>
                                                     </div>
                                                     <div v-else class="col-sm-9">
                                                         <filefield 
@@ -185,6 +185,7 @@
                                                      :component="item"
                                                      :readonlyForm="readonlyForm"
                                                      v-bind:key="`compliance_renderer_block${index}`"
+                                                    @update-temp-doc-coll-id="addToTemporaryDocumentCollectionList"
                                                     />
                                                 </div>
                                             </div></div>
@@ -303,7 +304,8 @@ export default {
             isModalOpen: false,
             processingDetails: false,
             documentActionUrl: '',
-            temporary_physical_collection_id: null,
+            //temporary_physical_collection_id: null,
+            //temporary_physical_collection_list: [],
             physicalArtifactTypes: [],
             departmentStaffList: [],
             selectedCustodian: {},
@@ -728,7 +730,8 @@ export default {
             setRelatedItems: 'setRelatedItems',
             setOfficerEmail: 'setOfficerEmail',
             setCustodianEmail: 'setCustodianEmail',
-            setTemporaryDocumentCollectionId: 'setTemporaryDocumentCollectionId',
+            //setTemporaryDocumentCollectionId: 'setTemporaryDocumentCollectionId',
+            addToTemporaryDocumentCollectionList: 'addToTemporaryDocumentCollectionList',
             setStatementId: 'setStatementId',
         }),
         setStatementVisibility: function() {

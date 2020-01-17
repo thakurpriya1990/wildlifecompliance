@@ -610,10 +610,11 @@ class ArtifactDocument(Document):
 
 
 class RendererDocument(Document):
-    log_entry = models.ForeignKey(
+    physical_artifact = models.ForeignKey(
         PhysicalArtifact,
         related_name='renderer_documents')
     _file = models.FileField(max_length=255)
+    input_name = models.CharField(max_length=255, null=True, blank=True)
 
     class Meta:
         app_label = 'wildlifecompliance'

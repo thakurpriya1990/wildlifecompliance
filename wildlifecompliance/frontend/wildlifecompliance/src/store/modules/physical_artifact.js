@@ -65,8 +65,20 @@ export const physicalArtifactStore = {
         updateCustodianEmail(state, email) {
             Vue.set(state.physical_artifact, 'custodian_email', email);
         },
+        /*
         updateTemporaryDocumentCollectionId(state, temp_doc_id) {
             Vue.set(state.physical_artifact, 'temporary_document_collection_id', temp_doc_id);
+        },
+        */
+        updateTemporaryDocumentCollectionList(state, {temp_doc_id, input_name}) {
+            if (!state.physical_artifact.temporary_document_collection_list) {
+                Vue.set(state.physical_artifact, 'temporary_document_collection_list', []);
+            }
+            state.physical_artifact.temporary_document_collection_list.push(
+                {   "temp_doc_id": temp_doc_id,
+                    "input_name": input_name,
+                }
+            );
         },
         updateStatementId(state, statement_id) {
             console.log(statement_id)
@@ -189,8 +201,13 @@ export const physicalArtifactStore = {
         setCustodianEmail({ commit }, email ) {
             commit("updateCustodianEmail", email);
         },
+        /*
         setTemporaryDocumentCollectionId({ commit }, temp_doc_id) {
             commit("updateTemporaryDocumentCollectionId", temp_doc_id);
+        },
+        */
+        addToTemporaryDocumentCollectionList({ commit }, {temp_doc_id, input_name}) {
+            commit("updateTemporaryDocumentCollectionList", {temp_doc_id, input_name});
         },
         setStatementId({ commit }, statement_id) {
             commit("updateStatementId", statement_id);
