@@ -679,7 +679,7 @@ class SanctionOutcomeViewSet(viewsets.ModelViewSet):
                             else:
                                 instance.log_user_action(SanctionOutcomeUserAction.ACTION_REMOVE_ALLEGED_COMMITTED_OFFENCE.format(existing_aco.alleged_offence), request)
 
-                instance.log_user_action(SanctionOutcomeUserAction.ACTION_UPDATE.format(instance), request)
+                instance.log_user_action(SanctionOutcomeUserAction.ACTION_UPDATE.format(instance.lodgement_number), request)
 
                 # Return
                 return_serializer = SanctionOutcomeSerializer(instance=instance, context={'request': request})
