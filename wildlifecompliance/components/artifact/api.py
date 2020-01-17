@@ -308,8 +308,8 @@ class PhysicalArtifactViewSet(viewsets.ModelViewSet):
         return PhysicalArtifact.objects.none()
 
     def create(self, request, *args, **kwargs):
-        print("create")
-        print(request.data)
+        #print("create")
+        #print(request.data)
         try:
             with transaction.atomic():
                 request_data = request.data
@@ -339,7 +339,7 @@ class PhysicalArtifactViewSet(viewsets.ModelViewSet):
     @renderer_classes((JSONRenderer,))
     #def inspection_save(self, request, workflow=False, *args, **kwargs):
     def update(self, request, workflow=False, *args, **kwargs):
-        print(request.data)
+        #print(request.data)
         try:
             with transaction.atomic():
                 instance = self.get_object()
@@ -366,13 +366,15 @@ class PhysicalArtifactViewSet(viewsets.ModelViewSet):
 
     @detail_route(methods=['post'])
     @renderer_classes((JSONRenderer,))
-    def form_data(self, request_data, *args, **kwargs):
+    def form_data(self, instance, request_data, *args, **kwargs):
+        print("form data")
+        print(request_data)
         try:
-            instance = self.get_object()
+            #instance = self.get_object()
             PhysicalArtifactFormDataRecord.process_form(
                 instance,
                 request_data.get('renderer_data'),
-                action=InspectionFormDataRecord.ACTION_TYPE_ASSIGN_VALUE
+                action=PhysicalArtifactFormDataRecord.ACTION_TYPE_ASSIGN_VALUE
             )
             return redirect(reverse('external'))
         except ValidationError as e:
@@ -422,7 +424,7 @@ class PhysicalArtifactViewSet(viewsets.ModelViewSet):
                         self.handle_document(request_data, instance)
                     # renderer data
                     if request_data.get('renderer_data'):
-                        self.form_data(request_data)
+                        self.form_data(instance, request_data)
                     return (instance, headers)
         except serializers.ValidationError:
             print(traceback.print_exc())

@@ -90,6 +90,19 @@ export const physicalArtifactStore = {
                 console.log(returnedPhysicalArtifact)
                 commit("updatePhysicalArtifact", returnedPhysicalArtifact.body);
 
+                for (let form_data_record of returnedPhysicalArtifact.body.data) {
+                    await dispatch("setFormValue", {
+                        key: form_data_record.field_name,
+                        value: {
+                            "value": form_data_record.value,
+                            "comment_value": form_data_record.comment,
+                            "deficiency_value": form_data_record.deficiency,
+                        }
+                    }, {
+                        root: true
+                    });
+                }
+
             } catch (err) {
                 console.log(err);
             }
@@ -117,10 +130,14 @@ export const physicalArtifactStore = {
                     payload.legal_case_id = legal_case_id;
                 }
                 // Renderer data
+                /*
                 if ((state.physical_artifact.details_schema && state.physical_artifact.details_schema.length) || 
                     (state.physical_artifact.storage_schema && state.physical_artifact.storage_schema.length)) {
                     payload.renderer_data = rootGetters.renderer_form_data;
                 }
+                */
+                payload.renderer_data = rootGetters.renderer_form_data;
+                console.log(payload);
 
                 let fetchUrl = null;
                 if (create) {

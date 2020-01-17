@@ -22,7 +22,7 @@
                             </ul>
                             <div class="tab-content">
                                     <div :id="objectTab" :class="objectTabClass">
-                                    <FormSection :formCollapse="false" :label="artifactType" Index="0" :hideHeader="!physicalArtifactIdExists">
+                                    <FormSection :formCollapse="false" :label="artifactTypeDisplay" Index="0" :hideHeader="!physicalArtifactIdExists">
                                         <div class="col-sm-12">
                                             <div class="form-group">
                                               <div class="row">
@@ -572,20 +572,18 @@ export default {
             }
             return typeId;
         },
-        /*
         artifactTypeDisplay: function() {
             let display = '';
             if (this.artifactType) {
                 for (let physicalArtifactType of this.physicalArtifactTypes) {
                     //if (this.artifactType && this.artifactType.id === this.artifactType) {
-                    if (physicalArtifactType.id === this.artifactType) {
-                        display = physicalArtifactType.artifact_type;
+                    if (physicalArtifactType.artifact_type === this.artifactType) {
+                        display = physicalArtifactType.artifact_type_display;
                     }
                 }
             }
             return display;
         },
-        */
         readonlyForm: function() {
             return false;
         },
