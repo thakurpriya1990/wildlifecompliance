@@ -107,6 +107,7 @@ class LegalCase(RevisionedMixin):
             EmailUser,
             related_name='legal_case_associated_persons',
             )
+    statement_of_facts = models.TextField(blank=True, null=True)
     victim_impact_statement_taken = models.BooleanField(default=False)
     statements_pending = models.BooleanField(default=False)
     vulnerable_hostile_witnesses = models.BooleanField(default=False)

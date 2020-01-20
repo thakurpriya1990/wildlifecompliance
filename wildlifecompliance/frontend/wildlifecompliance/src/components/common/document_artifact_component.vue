@@ -91,6 +91,36 @@
                                         </div>
                                       </div>
                                     </div>
+                                    <div v-if="offenceVisibility" class="form-group">
+                                      <div class="row">
+                                        <div class="col-sm-3">
+                                          <label>Offence</label>
+                                        </div>
+                                        <div class="col-sm-6">
+                                          <select class="form-control" v-model="document_artifact.offence_id" @change.prevent="setOffenderId(null)">
+                                            <option  v-for="option in legal_case.offence_list" :value="option.id" v-bind:key="option.id">
+                                                <div v-if="option.id">
+                                                    {{ option.lodgement_number }}: {{ option.identifier }}
+                                                </div>
+                                            </option>
+                                          </select>
+                                        </div>
+                                      </div>
+                                      <div class="row">
+                                        <div class="col-sm-3">
+                                          <label>Offender</label>
+                                        </div>
+                                        <div class="col-sm-6">
+                                          <select class="form-control" v-model="document_artifact.offender_id" v-bind:key="document_artifact.offence_id">
+                                            <option  v-for="option in offenderList" :value="option.id" v-bind:key="option.id">
+                                            <div v-if="option.id">
+                                                {{ option.full_name }}: {{ option.email }}
+                                            </div>
+                                            </option>
+                                          </select>
+                                        </div>
+                                      </div>
+                                    </div>
                                     <div class="form-group">
                                       <div class="row">
                                         <div class="col-sm-3">
@@ -225,6 +255,7 @@ export default {
             temporary_document_collection_id: null,
             documentArtifactTypes: [],
             departmentStaffList: [],
+            //offenderList: [],
             selectedCustodian: {},
             entity: {
                 id: null,
@@ -404,6 +435,24 @@ export default {
         canUserAction: function() {
             return true;
         },
+        offenderList: function() {
+            let offenderList = [{ 
+                "id": null,
+                "full_name": null,
+                "email": null,
+            }];
+            //let offenderList = [];
+            if (this.legalCaseExists && this.document_artifact.offence_id) {
+                for (let offence of this.legal_case.offence_list) {
+                    if (this.document_artifact.offence_id === offence.id) {
+                        for (let offender of offence.offenders) {
+                            offenderList.push(offender.person)
+                        }
+                    }
+                }
+            }
+            return offenderList;
+        },
         personProvidingStatementEntity: function() {
             let entity = {}
             if (this.document_artifact && this.document_artifact.person_providing_statement) {
@@ -476,6 +525,13 @@ export default {
                 }
             }
             return display;
+        },
+        offenceVisibility: function() {
+            let visibility = false;
+            if (this.legalCaseExists && this.artifactType === 'record_of_interview') {
+                visibility = true;
+            }
+            return visibility;
         },
         personProvidingStatementLabel: function() {
             let label = '';
@@ -553,10 +609,34 @@ export default {
             setInterviewerEmail: 'setInterviewerEmail',
             setTemporaryDocumentCollectionId: 'setTemporaryDocumentCollectionId',
             //setDocumentArtifactLegalId: 'setDocumentArtifactLegalId',
+            setOffenderId: 'setOffenderId',
         }),
         ...mapActions('legalCaseStore', {
             loadLegalCase: 'loadLegalCase',
         }),
+        /*
+        setOffenderList: function() {
+            this.setOffenderId(null);
+            this.$nextTick(() => {
+                let oList = [{ 
+                    "id": null,
+                    "full_name": null,
+                    "email": null,
+                }];
+                //let offenderList = [];
+                if (this.legalCaseExists && this.document_artifact.offence_id) {
+                    for (let offence of this.legal_case.offence_list) {
+                        if (this.document_artifact.offence_id === offence.id) {
+                            for (let offender of offence.offenders) {
+                                oList.push(offender.person)
+                            }
+                        }
+                    }
+                }
+                Object.assign(this.offenderList, oList);
+            });
+        },
+        */
         setStatementVisibility: function() {
             if (
                 // legal case exists and Document Type is not a statementArtifactType

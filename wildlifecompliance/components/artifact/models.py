@@ -173,7 +173,11 @@ class PhysicalArtifactType(models.Model):
         unique_together = ('artifact_type', 'version')
 
     def __str__(self):
-        return self.artifact_type
+        display_name = ''
+        for choice in PhysicalArtifactType.TYPE_CHOICES:
+            if self.artifact_type == choice[0]:
+                display_name = choice[1]
+        return display_name
 
 
 class PhysicalArtifactDisposalMethod(models.Model):

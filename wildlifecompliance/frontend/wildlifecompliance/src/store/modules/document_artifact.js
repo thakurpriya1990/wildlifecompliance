@@ -57,6 +57,9 @@ export const documentArtifactStore = {
         updateTemporaryDocumentCollectionId(state, temp_doc_id) {
             Vue.set(state.document_artifact, 'temporary_document_collection_id', temp_doc_id);
         },
+        updateOffenderId(state, offender_id) {
+            Vue.set(state.document_artifact, 'offender_id', offender_id);
+        },
         /*
         updateDocumentArtifactLegalId(state, legal_case_id) {
             console.log(legal_case_id)
@@ -148,6 +151,9 @@ export const documentArtifactStore = {
         },
         setTemporaryDocumentCollectionId({ commit }, temp_doc_id) {
             commit("updateTemporaryDocumentCollectionId", temp_doc_id);
+        },
+        setOffenderId({ commit }, offender_id) {
+            commit("updateOffenderId", offender_id);
         },
     },
 };
