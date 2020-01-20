@@ -406,8 +406,7 @@ class BaseApplicationSerializer(serializers.ModelSerializer):
     invoice_url = serializers.SerializerMethodField(read_only=True)
     can_user_view = serializers.SerializerMethodField(read_only=True)
     payment_url = serializers.SerializerMethodField(read_only=True)
-    total_paid_amount = serializers.DecimalField(
-        max_digits=8, decimal_places=2, coerce_to_string=False, read_only=True)
+    total_paid_amount = serializers.SerializerMethodField(read_only=True)
 
     class Meta:
         model = Application
@@ -569,6 +568,14 @@ class BaseApplicationSerializer(serializers.ModelSerializer):
                 previous.latest_invoice.reference)
 
         return url
+
+    def get_total_paid_amount(self, obj):
+        paid = None
+
+        paid = obj.total_paid_amount + obj.previous_paid_amount
+
+        return paid
+
 
 class DTInternalApplicationSerializer(BaseApplicationSerializer):
     submitter = EmailUserSerializer()

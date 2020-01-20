@@ -490,6 +490,8 @@ class Application(RevisionedMixin):
         if self.application_fee == 0:
             return ApplicationInvoice.PAYMENT_STATUS_NOT_REQUIRED
         else:
+            if self.requires_refund:
+                return ApplicationInvoice.PAYMENT_STATUS_OVERPAID
             if self.invoices.count() == 0:
                 return ApplicationInvoice.PAYMENT_STATUS_UNPAID
             else:
@@ -529,7 +531,7 @@ class Application(RevisionedMixin):
                     reference=invoice.invoice_reference)
                 amount += detail.amount
         # Add previous application paid amounts.
-        amount += self.previous_paid_amount
+        # amount += self.previous_paid_amount
 
         return amount
 
@@ -748,12 +750,17 @@ class Application(RevisionedMixin):
             Application.APPLICATION_TYPE_AMENDMENT,
             Application.APPLICATION_TYPE_REISSUE,
         ]:
-            # Application amendments require an new application without fees.
+            # Licence amendment, reissue or requested amendment has
+            # no base fees.
+            application_fees = Application.calculate_base_fees(
+                    self.licence_purposes.values_list(
+                        'id', flat=True))['application']
+
             dynamic_attributes = {
                 'fees': {
-                    'application': Decimal(0.0),
+                    'application': application_fees,
                     'licence': Decimal(0.0),
-                },          
+                },
                 'activity_attributes': {},
             }
         else:
@@ -822,7 +829,8 @@ class Application(RevisionedMixin):
                     # Retrieve dictionary of fields from a model instance
                     data_record = form_data_record.__dict__
                 except AttributeError:
-                    # If a raw form data (POST) is supplied, form_data_record is a key
+                    # If a raw form data (POST) is supplied, form_data_record 
+                    # is a key
                     data_record = data_source[form_data_record]
 
                 schema_name = data_record['schema_name']
@@ -832,7 +840,8 @@ class Application(RevisionedMixin):
 
                 if 'options' in schema_data:
                     for option in schema_data['options']:
-                        # Only consider fee modifications if the current option is selected
+                        # Only consider fee modifications if the current option
+                        # is selected.
                         if option['value'] != data_record['value']:
                             continue
                         parse_modifiers(
@@ -859,7 +868,10 @@ class Application(RevisionedMixin):
         """ Update application and activity attributes based on selected JSON
             schema options.
         """
-        if self.processing_status != Application.PROCESSING_STATUS_DRAFT:
+        if self.processing_status not in [
+                Application.PROCESSING_STATUS_DRAFT,
+                Application.PROCESSING_STATUS_AWAITING_APPLICANT_RESPONSE,
+        ]:
             return
 
         dynamic_attributes = self.get_dynamic_schema_attributes(self.data)
@@ -878,13 +890,14 @@ class Application(RevisionedMixin):
             if self.application_type in [
                 Application.APPLICATION_TYPE_AMENDMENT,
                 Application.APPLICATION_TYPE_REISSUE,
-            ]:
+            ] or self.customer_status == \
+                    Application.CUSTOMER_STATUS_AMENDMENT_REQUIRED:
+
                 # Check amendments and reissues for changes in fees.
                 if fees['licence'] > selected_activity.base_fees['licence']:
                     selected_activity.licence_fee = fees['licence'] \
                         - selected_activity.base_fees['licence']
 
-                selected_activity.application_fee = fees['application']
                 if fees['application']\
                    > selected_activity.base_fees['application']:
                     selected_activity.application_fee = fees['application'] \
@@ -1536,23 +1549,68 @@ class Application(RevisionedMixin):
         Sets the application fee for each activity with a new amended amount
         based on the difference already paid.
         """
-        amended = []
-        if not self.latest_invoice:
-            return amended
-        latest_inv = self.latest_invoice
-        app_inv = ApplicationInvoice.objects.filter(
-            invoice_reference=latest_inv.reference).first()
-        for activity in self.activities:
-            invoice_line = ApplicationInvoiceLine.objects.filter(
-                invoice=app_inv,
-                licence_activity=activity.licence_activity).first()
-            inv_amount = self.activity_invoice_amount(activity)
-            # inv_amount = invoice_line.amount
-            if (invoice_line and activity.application_fee > inv_amount):
-                difference = activity.application_fee - inv_amount
-                activity.application_fee = difference
-                amended.append(activity)
+        def on_licence_amend():
+            """
+            Determines amended amount from already paid on previous application.
+            """
+            amended = []
+            previous = self.previous_application
+            if not previous.latest_invoice:
+                return amended
+            latest_inv = previous.latest_invoice
+            app_inv = ApplicationInvoice.objects.filter(
+                invoice_reference=latest_inv.reference).first()
+            for activity in self.activities:
+                invoice_line = ApplicationInvoiceLine.objects.filter(
+                    invoice=app_inv,
+                    licence_activity=activity.licence_activity).first()
+                inv_amount = previous.activity_invoice_amount(activity)
 
+                if activity.application_fee != inv_amount:
+                    activity.application_fee = activity.application_fee \
+                        + activity.base_fees['application']
+
+                if (invoice_line and activity.application_fee > inv_amount):
+                    difference = activity.application_fee - inv_amount
+                    activity.application_fee = difference
+                    amended.append(activity)
+
+            return amended
+
+        def on_request_amend():
+            """
+            Determines amended amount from already paid on current application.
+            """
+            amended = []
+            if not self.latest_invoice:
+                return amended
+            latest_inv = self.latest_invoice
+            app_inv = ApplicationInvoice.objects.filter(
+                invoice_reference=latest_inv.reference).first()
+
+            for activity in self.activities:
+                invoice_line = ApplicationInvoiceLine.objects.filter(
+                    invoice=app_inv,
+                    licence_activity=activity.licence_activity).first()
+                inv_amount = self.activity_invoice_amount(activity)
+
+                if activity.application_fee != inv_amount:
+                    activity.application_fee = activity.application_fee \
+                        + activity.base_fees['application']
+
+                if (invoice_line and activity.application_fee > inv_amount):
+                    difference = activity.application_fee - inv_amount
+                    activity.application_fee = difference
+                    amended.append(activity)             
+
+            return amended
+
+        amended = []
+        # check for Customer licence amendment.
+        if self.application_type == Application.APPLICATION_TYPE_AMENDMENT:
+            amended = on_licence_amend()
+        else:
+            amended = on_request_amend()
         return amended
 
     def activity_invoice_amount(self, activity):
@@ -1574,10 +1632,13 @@ class Application(RevisionedMixin):
         """
         Check on the previously paid invoice amount against application fee.
         """
-        if self.application_fee < 1:
+        if self.customer_status == Application.CUSTOMER_STATUS_ACCEPTED \
+           or self.application_fee < 1:
             return False
 
-        if self.total_paid_amount - self.application_fee > 0:
+        paid = self.total_paid_amount + self.previous_paid_amount
+
+        if paid - self.application_fee > 0:
             return True
 
         return False
@@ -2895,6 +2956,8 @@ class ApplicationSelectedActivity(models.Model):
         if self.licence_fee == 0:
             return ActivityInvoice.PAYMENT_STATUS_NOT_REQUIRED
         else:
+            if self.requires_refund:
+                return ActivityInvoice.PAYMENT_STATUS_OVERPAID
             if self.invoices.count() == 0:
                 return ActivityInvoice.PAYMENT_STATUS_UNPAID
             else:
@@ -2975,7 +3038,7 @@ class ApplicationSelectedActivity(models.Model):
     def requires_refund(self):
         """
         Check on the previously paid invoice amount against Activity fee.
-        NOTE: there is no use-case for refunding activity fee.
+        NOTE: there is no use-case for refunding licence activity fee.
         """
         if self.licence_fee < 1:
             return False

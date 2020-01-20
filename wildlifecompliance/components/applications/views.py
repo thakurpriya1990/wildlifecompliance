@@ -65,9 +65,20 @@ class ApplicationSuccessView(TemplateView):
 
     def get(self, request, *args, **kwargs):
         print('application success view')
+
+        submit_success = True
+        application = get_session_application(request.session)
+        try:
+            application.submit(request)
+            print('submit request')
+        except Exception as e:
+            submit_success = False
+            print(e)
+            traceback.print_exc
+
         try:
             print(get_session_application(request.session))
-            application = get_session_application(request.session)
+
             invoice_ref = request.GET.get('invoice')
             try:
                 bind_application_to_invoice(request, application, invoice_ref)
@@ -90,6 +101,10 @@ class ApplicationSuccessView(TemplateView):
         except Exception as e:
             print(e)
             traceback.print_exc
+            delete_session_application(request.session)
+            return redirect(reverse('external'))
+
+        if not submit_success:
             delete_session_application(request.session)
             return redirect(reverse('external'))
 
