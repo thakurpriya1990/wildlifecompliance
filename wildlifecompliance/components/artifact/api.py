@@ -44,8 +44,9 @@ from wildlifecompliance.components.main.process_document import (
         process_generic_document, 
         save_comms_log_document_obj,
         save_default_document_obj,
-        save_details_document_obj,
-        save_storage_document_obj,
+        save_renderer_document_obj,
+        #save_details_document_obj,
+        #save_storage_document_obj,
         )
 from wildlifecompliance.components.main.email import prepare_mail
 from wildlifecompliance.components.users.serializers import (
@@ -61,6 +62,7 @@ from wildlifecompliance.components.artifact.models import (
         PhysicalArtifactType,
         PhysicalArtifactDisposalMethod,
         ArtifactUserAction,
+        PhysicalArtifactFormDataRecord,
         )
 from wildlifecompliance.components.artifact.serializers import (
         ArtifactSerializer,
@@ -137,7 +139,7 @@ class DocumentArtifactViewSet(viewsets.ModelViewSet):
             res_obj.append({'id': choice[0], 'display': choice[1]});
         res_json = json.dumps(res_obj)
         return HttpResponse(res_json, content_type='application/json')
-    
+
     @renderer_classes((JSONRenderer,))
     #def inspection_save(self, request, workflow=False, *args, **kwargs):
     def update(self, request, workflow=False, *args, **kwargs):
@@ -269,8 +271,8 @@ class PhysicalArtifactViewSet(viewsets.ModelViewSet):
         return PhysicalArtifact.objects.none()
 
     def create(self, request, *args, **kwargs):
-        print("create")
-        print(request.data)
+        #print("create")
+        #print(request.data)
         try:
             with transaction.atomic():
                 request_data = request.data
@@ -300,7 +302,7 @@ class PhysicalArtifactViewSet(viewsets.ModelViewSet):
     @renderer_classes((JSONRenderer,))
     #def inspection_save(self, request, workflow=False, *args, **kwargs):
     def update(self, request, workflow=False, *args, **kwargs):
-        print(request.data)
+        #print(request.data)
         try:
             with transaction.atomic():
                 instance = self.get_object()
@@ -325,14 +327,70 @@ class PhysicalArtifactViewSet(viewsets.ModelViewSet):
             print(traceback.print_exc())
             raise serializers.ValidationError(str(e))
 
+    @detail_route(methods=['POST'])
+    @renderer_classes((JSONRenderer,))
+    def process_renderer_document(self, request, *args, **kwargs):
+        print("process_renderer_document")
+        try:
+            instance = self.get_object()
+            returned_data = process_generic_document(
+                request, 
+                instance, 
+                document_type='renderer_documents'
+                )
+            if returned_data:
+                print("returned_data")
+                print(returned_data)
+                filedata = returned_data.get('filedata')
+                # Log action if file uploaded
+                if filedata and request.data.get('action') == 'save':
+                    file_name = filedata[0].get('name')
+                    #if file_name:
+                    #    instance.log_user_action(
+                    #            ArtifactUserAction.ACTION_UPLOAD_INSPECTION_REPORT.format(
+                    #            file_name), request)
+                return Response(returned_data)
+            else:
+                return Response()
+        except serializers.ValidationError:
+            print(traceback.print_exc())
+            raise
+        except ValidationError as e:
+            if hasattr(e, 'error_dict'):
+                raise serializers.ValidationError(repr(e.error_dict))
+            else:
+                raise serializers.ValidationError(repr(e[0].encode('utf-8')))
+        except Exception as e:
+            print(traceback.print_exc())
+            raise serializers.ValidationError(str(e))
+
+    @detail_route(methods=['post'])
+    @renderer_classes((JSONRenderer,))
+    def form_data(self, instance, request_data, *args, **kwargs):
+        print("form data")
+        print(request_data)
+        try:
+            #instance = self.get_object()
+            PhysicalArtifactFormDataRecord.process_form(
+                instance,
+                request_data.get('renderer_data'),
+                action=PhysicalArtifactFormDataRecord.ACTION_TYPE_ASSIGN_VALUE
+            )
+            return redirect(reverse('external'))
+        except ValidationError as e:
+            raise serializers.ValidationError(repr(e.error_dict))
+        except Exception as e:
+            print(traceback.print_exc())
+        raise serializers.ValidationError(str(e))
+
     def common_save(self, request_data, instance=None):
         try:
             with transaction.atomic():
-                physical_artifact_type = request_data.get('physical_artifact_type')
-                physical_artifact_type_id = None
-                if physical_artifact_type:
-                    physical_artifact_type_id = physical_artifact_type.get('id')
-                    request_data['physical_artifact_type_id'] = physical_artifact_type_id
+                #physical_artifact_type = request_data.get('physical_artifact_type')
+                #physical_artifact_type_id = None
+                #if physical_artifact_type:
+                #    physical_artifact_type_id = physical_artifact_type.get('id')
+                #    request_data['physical_artifact_type_id'] = physical_artifact_type_id
 
                 disposal_method = request_data.get('disposal_method')
                 disposal_method_id = None
@@ -362,8 +420,11 @@ class PhysicalArtifactViewSet(viewsets.ModelViewSet):
                     if legal_case_id:
                         instance.add_legal_case(legal_case_id)
                     # save temp doc if exists
-                    if request_data.get('temporary_document_collection_id'):
+                    if request_data.get('temporary_document_collection_list'):
                         self.handle_document(request_data, instance)
+                    # renderer data
+                    if request_data.get('renderer_data'):
+                        self.form_data(instance, request_data)
                     return (instance, headers)
         except serializers.ValidationError:
             print(traceback.print_exc())
@@ -380,14 +441,21 @@ class PhysicalArtifactViewSet(viewsets.ModelViewSet):
         try:
             if not instance:
                 instance = self.get_object()
-            temporary_document_collection_id = request_data.get('temporary_document_collection_id')
-            if temporary_document_collection_id:
-                temp_doc_collection, created = TemporaryDocumentCollection.objects.get_or_create(
-                        id=temporary_document_collection_id)
-                if temp_doc_collection:
-                    for doc in temp_doc_collection.documents.all():
-                        save_default_document_obj(instance, doc)
-                    temp_doc_collection.delete()
+            temporary_document_collection_list = request_data.get('temporary_document_collection_list')
+            if temporary_document_collection_list:
+                for temporary_document_collection_dict in temporary_document_collection_list:
+                    temporary_document_collection_id = temporary_document_collection_dict.get('temp_doc_id')
+                    input_name = temporary_document_collection_dict.get('input_name')
+                    temp_doc_collection, created = TemporaryDocumentCollection.objects.get_or_create(
+                            id=temporary_document_collection_id)
+                    if temp_doc_collection and input_name == 'physical-artifact-documents':
+                        for doc in temp_doc_collection.documents.all():
+                            save_default_document_obj(instance, doc)
+                        temp_doc_collection.delete()
+                    elif temp_doc_collection and input_name:
+                        for doc in temp_doc_collection.documents.all():
+                            save_renderer_document_obj(instance, doc, input_name)
+                        temp_doc_collection.delete()
         except ValidationError as e:
             print(traceback.print_exc())
             raise serializers.ValidationError(repr(e.error_dict))

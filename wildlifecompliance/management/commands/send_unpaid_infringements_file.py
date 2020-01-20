@@ -76,7 +76,7 @@ class Command(BaseCommand):
 
                 count = due_dates.count()
                 sanction_outcome_ids = []  # Used when logging
-                logger.info('{} overdue (1st) infringement notice(s) found.'.format(str(count)))
+                logger.info('{} overdue (2nd) infringement notice(s) found.'.format(str(count)))
 
                 if count:
                     # Create record first to generate filename based on the ID

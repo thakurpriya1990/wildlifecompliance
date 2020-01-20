@@ -29,7 +29,9 @@ def get_infringement_notice_coordinators():
     permissions = Permission.objects.filter(codename='infringement_notice_coordinator',
                                             content_type_id=compliance_content_type.id)
     allowed_groups = CompliancePermissionGroup.objects.filter(permissions__in=permissions)
-    groups = [group for group in allowed_groups.all()]
-    members = [member for member in item.members for item in groups]
+    members = []
+    for group in allowed_groups.all():
+        for member in group.members:
+            members.append(member)
     return members
 

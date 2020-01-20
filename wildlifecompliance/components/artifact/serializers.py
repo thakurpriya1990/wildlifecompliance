@@ -26,6 +26,7 @@ from wildlifecompliance.components.artifact.models import (
         PhysicalArtifactDisposalMethod,
         ArtifactCommsLogEntry,
         ArtifactUserAction,
+        PhysicalArtifactFormDataRecord,
         #LegalCaseRunningSheetArtifacts,
         )
 
@@ -44,6 +45,29 @@ from django.utils import timezone
 #        read_only_fields = (
 #                'id',
 #                )
+
+class PhysicalArtifactFormDataRecordSerializer(serializers.ModelSerializer):
+    class Meta:
+        model = PhysicalArtifactFormDataRecord
+        fields = (
+            'field_name',
+            'schema_name',
+            'component_type',
+            'instance_name',
+            'comment',
+            'deficiency',
+            'value',
+        )
+        read_only_fields = (
+            'field_name',
+            'schema_name',
+            'component_type',
+            'instance_name',
+            'comment',
+            'deficiency',
+            'value',
+        )
+
 
 class ArtifactSerializer(serializers.ModelSerializer):
     #custodian = EmailUserSerializer(read_only=True)
@@ -82,6 +106,7 @@ class ArtifactSerializer(serializers.ModelSerializer):
 
 
 class ArtifactPaginatedSerializer(serializers.ModelSerializer):
+    artifact_type_display = serializers.SerializerMethodField()
     #artifact_type = serializers.SerializerMethodField()
     status = serializers.SerializerMethodField()
     user_action = serializers.SerializerMethodField()
@@ -101,6 +126,7 @@ class ArtifactPaginatedSerializer(serializers.ModelSerializer):
             'description',
             'entity',
             'digital_documents',
+            'artifact_type_display',
         )
 
     def get_status(self, obj):
@@ -139,8 +165,26 @@ class ArtifactPaginatedSerializer(serializers.ModelSerializer):
         urls = '<br />'.join(url_list)
         return urls
 
+    def get_artifact_type_display(self, artifact_obj):
+        display_name = ''
+        pa = PhysicalArtifact.objects.filter(artifact_ptr_id=artifact_obj.id)
+        if pa and pa.first().id:
+            physical_artifact = pa.first()
+            for choice in PhysicalArtifactType.TYPE_CHOICES:
+                if physical_artifact.artifact_type == choice[0]:
+                    display_name = choice[1]
+
+        da = DocumentArtifact.objects.filter(artifact_ptr_id=artifact_obj.id)
+        if da and da.first().id:
+            document_artifact = da.first()
+            for choice in DocumentArtifact.DOCUMENT_TYPE_CHOICES:
+                if document_artifact.document_type == choice[0]:
+                    display_name = choice[1]
+        return display_name
+
 
 class PhysicalArtifactTypeSerializer(serializers.ModelSerializer):
+    artifact_type_display = serializers.SerializerMethodField()
     class Meta:
         model = PhysicalArtifactType
         fields = (
@@ -151,15 +195,23 @@ class PhysicalArtifactTypeSerializer(serializers.ModelSerializer):
                 'version',
                 'description',
                 'date_created',
+                'artifact_type_display',
                 )
         read_only_fields = (
                 'id',
                 )
 
+    def get_artifact_type_display(self, obj):
+        display_name = ''
+        for choice in PhysicalArtifactType.TYPE_CHOICES:
+            if obj.artifact_type == choice[0]:
+                display_name = choice[1]
+        return display_name
+
 
 class PhysicalArtifactTypeSchemaSerializer(serializers.ModelSerializer):
     artifact_type_id = serializers.IntegerField(
-        required=False, write_only=True, allow_null=True)        
+        required=False, write_only=True, allow_null=True)
 
     class Meta:
         model = PhysicalArtifactType
@@ -187,6 +239,9 @@ class PhysicalArtifactDisposalMethodSerializer(serializers.ModelSerializer):
 
 
 class DocumentArtifactStatementSerializer(ArtifactSerializer):
+    document_type_display = serializers.SerializerMethodField()
+    custodian = serializers.SerializerMethodField()
+
     class Meta:
         model = DocumentArtifact
         fields = (
@@ -194,12 +249,33 @@ class DocumentArtifactStatementSerializer(ArtifactSerializer):
                 #'_file',
                 'identifier',
                 'description',
-                #'custodian',
+                'document_type_display',
+                'custodian',
                 )
         read_only_fields = (
                 'id',
                 )
 
+    def get_document_type_display(self, obj):
+        display_name = ''
+        for choice in DocumentArtifact.DOCUMENT_TYPE_CHOICES:
+            if obj.document_type == choice[0]:
+                display_name = choice[1]
+            #res_obj.append({'id': choice[0], 'display': choice[1]});
+        #res_json = json.dumps(res_obj)
+        return display_name
+
+    def get_custodian(self, obj):
+        custodian = None
+        WITNESS_STATEMENT = 'witness_statement'
+        RECORD_OF_INTERVIEW = 'record_of_interview'
+        OFFICER_STATEMENT = 'officer_statement'
+        EXPERT_STATEMENT = 'expert_statement'
+        if obj.document_type in ('witness_statement', 'expert_statement') and obj.person_providing_statement:
+            custodian = obj.person_providing_statement.get_full_name()
+        elif obj.document_type in ('record_of_interview', 'officer_statement') and obj.interviewer_email:
+            custodian = obj.interviewer_email
+        return custodian
 
 class DocumentArtifactSerializer(ArtifactSerializer):
     statement = DocumentArtifactStatementSerializer(read_only=True)
@@ -208,12 +284,14 @@ class DocumentArtifactSerializer(ArtifactSerializer):
     document_type_display = serializers.SerializerMethodField()
     person_providing_statement = EmailUserSerializer(read_only=True)
     interviewer = EmailUserSerializer(read_only=True)
-    people_attending = EmailUserSerializer(read_only=True, many=True)
+    #people_attending = EmailUserSerializer(read_only=True, many=True)
     #legal_case = LegalCaseSerializer(read_only=True, many=True)
+    people_attending_id_list = serializers.SerializerMethodField()
     legal_case_id_list = serializers.SerializerMethodField()
     offence = OffenceSerializer(read_only=True)
     offender = OffenderSerializer(read_only=True)
     related_items = serializers.SerializerMethodField()
+    available_statement_artifacts = serializers.SerializerMethodField()
     #status = CustomChoiceField(read_only=True)
 
     class Meta:
@@ -232,7 +310,7 @@ class DocumentArtifactSerializer(ArtifactSerializer):
                 'statement_id',
                 'person_providing_statement',
                 'interviewer',
-                'people_attending',
+                'people_attending_id_list',
                 'legal_case_id_list',
                 'offence',
                 'offender',
@@ -241,6 +319,7 @@ class DocumentArtifactSerializer(ArtifactSerializer):
                 'document_type_display',
                 #'status',
                 'created_at',
+                'available_statement_artifacts',
                 )
         read_only_fields = (
                 'id',
@@ -255,6 +334,12 @@ class DocumentArtifactSerializer(ArtifactSerializer):
             legal_case_id_list.append(legal_case.id)
         return legal_case_id_list
 
+    def get_people_attending_id_list(self, obj):
+        people_attending_id_list = []
+        for person in obj.people_attending.all():
+            people_attending_id_list.append(person.id)
+        return people_attending_id_list
+
     def get_document_type_display(self, obj):
         display_name = ''
         for choice in DocumentArtifact.DOCUMENT_TYPE_CHOICES:
@@ -263,6 +348,20 @@ class DocumentArtifactSerializer(ArtifactSerializer):
             #res_obj.append({'id': choice[0], 'display': choice[1]});
         #res_json = json.dumps(res_obj)
         return display_name
+
+    def get_available_statement_artifacts(self, obj):
+        artifact_list = []
+        for legal_case in obj.legal_case.all():
+            for artifact in legal_case.legal_case_document_artifacts.all():
+                if obj != artifact and artifact.document_type and artifact.document_type in [
+                    'record_of_interview',
+                    'witness_statement',
+                    'expert_statement',
+                    'officer_statement'
+                ]:
+                    serialized_artifact = DocumentArtifactStatementSerializer(artifact)
+                    artifact_list.append(serialized_artifact.data)
+        return artifact_list
 
 
 class SaveDocumentArtifactSerializer(ArtifactSerializer):
@@ -312,6 +411,8 @@ class PhysicalArtifactSerializer(ArtifactSerializer):
     disposal_method = PhysicalArtifactDisposalMethodSerializer(read_only=True)
     related_items = serializers.SerializerMethodField()
     legal_case_id_list = serializers.SerializerMethodField()
+    available_statement_artifacts = serializers.SerializerMethodField()
+    data = PhysicalArtifactFormDataRecordSerializer(many=True)
     #status = CustomChoiceField(read_only=True)
 
     class Meta:
@@ -324,7 +425,9 @@ class PhysicalArtifactSerializer(ArtifactSerializer):
                 'artifact_date',
                 'artifact_time',
                 'statement',
+                'statement_id',
                 'physical_artifact_type',
+                'physical_artifact_type_id',
                 'used_within_case',
                 'sensitive_non_disclosable',
                 'disposal_method',
@@ -336,8 +439,11 @@ class PhysicalArtifactSerializer(ArtifactSerializer):
                 'related_items',
                 'legal_case_id_list',
                 'officer_email',
+                'custodian_email',
                 #'status',
                 'created_at',
+                'available_statement_artifacts',
+                'data',
                 )
         read_only_fields = (
                 'id',
@@ -352,8 +458,25 @@ class PhysicalArtifactSerializer(ArtifactSerializer):
             legal_case_id_list.append(legal_case.id)
         return legal_case_id_list
 
+    def get_available_statement_artifacts(self, obj):
+        artifact_list = []
+        for legal_case in obj.legal_case.all():
+            for artifact in legal_case.legal_case_document_artifacts.all():
+                #if obj != artifact and artifact.document_type and artifact.document_type in [
+                if artifact.document_type and artifact.document_type in [
+                    'record_of_interview',
+                    'witness_statement',
+                    'expert_statement',
+                    'officer_statement'
+                ]:
+                    serialized_artifact = DocumentArtifactStatementSerializer(artifact)
+                    artifact_list.append(serialized_artifact.data)
+        return artifact_list
+
 
 class SavePhysicalArtifactSerializer(ArtifactSerializer):
+    statement_id = serializers.IntegerField(
+        required=False, write_only=True, allow_null=True)
     physical_artifact_type_id = serializers.IntegerField(
         required=False, write_only=True, allow_null=True)
     disposal_method_id = serializers.IntegerField(
@@ -376,9 +499,11 @@ class SavePhysicalArtifactSerializer(ArtifactSerializer):
                 'artifact_time',
                 'physical_artifact_type_id',
                 'officer_email',
+                'custodian_email',
                 'disposal_date',
                 'disposal_method_id',
                 'disposal_details',
+                'statement_id',
                 )
         read_only_fields = (
                 'id',
