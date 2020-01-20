@@ -106,6 +106,7 @@ class ArtifactSerializer(serializers.ModelSerializer):
 
 
 class ArtifactPaginatedSerializer(serializers.ModelSerializer):
+    artifact_type_display = serializers.SerializerMethodField()
     #artifact_type = serializers.SerializerMethodField()
     status = serializers.SerializerMethodField()
     user_action = serializers.SerializerMethodField()
@@ -125,6 +126,7 @@ class ArtifactPaginatedSerializer(serializers.ModelSerializer):
             'description',
             'entity',
             'digital_documents',
+            'artifact_type_display',
         )
 
     def get_status(self, obj):
@@ -162,6 +164,23 @@ class ArtifactPaginatedSerializer(serializers.ModelSerializer):
 
         urls = '<br />'.join(url_list)
         return urls
+
+    def get_artifact_type_display(self, artifact_obj):
+        display_name = ''
+        pa = PhysicalArtifact.objects.filter(artifact_ptr_id=artifact_obj.id)
+        if pa and pa.first().id:
+            physical_artifact = pa.first()
+            for choice in PhysicalArtifactType.TYPE_CHOICES:
+                if physical_artifact.artifact_type == choice[0]:
+                    display_name = choice[1]
+
+        da = DocumentArtifact.objects.filter(artifact_ptr_id=artifact_obj.id)
+        if da and da.first().id:
+            document_artifact = da.first()
+            for choice in DocumentArtifact.DOCUMENT_TYPE_CHOICES:
+                if document_artifact.document_type == choice[0]:
+                    display_name = choice[1]
+        return display_name
 
 
 class PhysicalArtifactTypeSerializer(serializers.ModelSerializer):
@@ -408,6 +427,7 @@ class PhysicalArtifactSerializer(ArtifactSerializer):
                 'statement',
                 'statement_id',
                 'physical_artifact_type',
+                'physical_artifact_type_id',
                 'used_within_case',
                 'sensitive_non_disclosable',
                 'disposal_method',

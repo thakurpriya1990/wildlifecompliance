@@ -7,9 +7,9 @@ from wildlifecompliance.components.main.models import TemporaryDocument
 
 def process_generic_document(request, instance, document_type=None, *args, **kwargs):
     print("process_generic_document")
-    print(request.data)
     try:
         action = request.data.get('action')
+        input_name = request.data.get('input_name')
         comms_log_id = request.data.get('comms_log_id')
         comms_instance = None
         # returned_file_data = None
@@ -27,13 +27,13 @@ def process_generic_document(request, instance, document_type=None, *args, **kwa
             pass
 
         elif action == 'delete':
-            delete_document(request, instance, comms_instance, document_type)
+            delete_document(request, instance, comms_instance, document_type, input_name)
 
         elif action == 'cancel':
-            deleted = cancel_document(request, instance, comms_instance, document_type)
+            deleted = cancel_document(request, instance, comms_instance, document_type, input_name)
 
         elif action == 'save':
-            save_document(request, instance, comms_instance, document_type)
+            save_document(request, instance, comms_instance, document_type, input_name)
 
         # HTTP Response varies by action and instance type
         if comms_instance and action == 'cancel' and deleted:
@@ -46,6 +46,25 @@ def process_generic_document(request, instance, document_type=None, *args, **kwa
                         ) for d in comms_instance.documents.all() if d._file]
             return {'filedata': returned_file_data,
                     'comms_instance_id': comms_instance.id}
+            #return Response(
+            #    [
+            #        dict(
+            #            input_name=d.input_name,
+            #            name=d.name,
+            #            file=d._file.url,
+            #            id=d.id,
+            #            can_delete=d.can_delete) for d in instance.documents.filter(
+            #            input_name=section) if d._file])
+
+        elif document_type == 'renderer_documents' and input_name:
+            returned_file_data = [dict(
+                        file=d._file.url,
+                        id=d.id,
+                        name=d.name,
+                        input_name=d.input_name,
+                        ) for d in instance.renderer_documents.filter(input_name=input_name) if d._file]
+            return {'filedata': returned_file_data}
+
         elif document_type == 'inspection_report':
             returned_file_data = [dict(
                         file=d._file.url,
@@ -66,7 +85,12 @@ def process_generic_document(request, instance, document_type=None, *args, **kwa
         print(traceback.print_exc())
         raise e
 
-def delete_document(request, instance, comms_instance, document_type):
+def delete_document(request, instance, comms_instance, document_type, input_name=None):
+    # PhysicalArtifact renderer docs delete
+    if document_type == 'renderer_documents' and 'document_id' in request.data and input_name:
+        document_id = request.data.get('document_id')
+        document = instance.renderer_documents.get(id=document_id, input_name=input_name)
+
     # inspection report delete
     if document_type == 'inspection_report' and 'document_id' in request.data:
         document_id = request.data.get('document_id')
@@ -89,7 +113,17 @@ def delete_document(request, instance, comms_instance, document_type):
     if document:
         document.delete()
 
-def cancel_document(request, instance, comms_instance, document_type):
+def cancel_document(request, instance, comms_instance, document_type, input_name=None):
+        # PhysicalArtifact renderer documents cancel
+        if document_type == 'renderer_documents':
+            document_list = instance.renderer_documents.all()
+
+            for document in document_list:
+                if document._file and os.path.isfile(
+                        document._file.path):
+                    os.remove(document._file.path)
+                document.delete()
+
         # inspection report cancel
         if document_type == 'inspection_report':
             document_list = instance.report.all()
@@ -121,13 +155,29 @@ def cancel_document(request, instance, comms_instance, document_type):
                     os.remove(document._file.path)
                 document.delete()
 
-def save_document(request, instance, comms_instance, document_type):
+def save_document(request, instance, comms_instance, document_type, input_name=None):
         # Match model related_name to instance or comms_instance, eg.
         # sanction_outcome = models.ForeignKey(SanctionOutcome, related_name='documents')..
         # this document can be accessed or created by 'instance.documents'
 
+        # PhysicalArtifact renderer document save
+        if document_type == 'renderer_documents' and 'filename' in request.data and input_name:
+            print("save renderer doc")
+            print(input_name)
+            filename = request.data.get('filename')
+            _file = request.data.get('_file')
+
+            document = instance.renderer_documents.get_or_create(
+                input_name=input_name, name=filename)[0]
+            path = default_storage.save(
+                'wildlifecompliance/{}/{}/renderer_documents/{}/{}'.format(
+                    instance._meta.model_name, instance.id, input_name, filename), ContentFile(
+                    _file.read()))
+
+            document._file = path
+            document.save()
         # inspection report save
-        if document_type == 'inspection_report' and 'filename' in request.data:
+        elif document_type == 'inspection_report' and 'filename' in request.data:
             filename = request.data.get('filename')
             _file = request.data.get('_file')
 
@@ -203,32 +253,18 @@ def save_default_document_obj(instance, temp_document):
     document._file = path
     document.save()
 
-# For transferring files from temp doc objs to physical artifact details renderer objs
-def save_details_document_obj(instance, temp_document):
-    document = instance.documents.get_or_create(
-        name=temp_document.name)[0]
+# For transferring files from temp doc objs to physical artifact renderer objs
+def save_renderer_document_obj(instance, temp_document, input_name):
+    document = instance.renderer_documents.get_or_create(
+            input_name=input_name,
+            name=temp_document.name)[0]
     path = default_storage.save(
-        'wildlifecompliance/{}/{}/details_documents/{}'.format(
-            instance._meta.model_name, 
-            instance.id, 
+        'wildlifecompliance/{}/{}/renderer_documents/{}/{}'.format(
+            instance._meta.model_name,
+            instance.id,
+            input_name,
             temp_document.name
-            ), 
-            temp_document._file
-        )
-
-    document._file = path
-    document.save()
-
-# For transferring files from temp doc objs to physical artifact storage renderer objs
-def save_storage_document_obj(instance, temp_document):
-    document = instance.documents.get_or_create(
-        name=temp_document.name)[0]
-    path = default_storage.save(
-        'wildlifecompliance/{}/{}/storage_documents/{}'.format(
-            instance._meta.model_name, 
-            instance.id, 
-            temp_document.name
-            ), 
+            ),
             temp_document._file
         )
 
