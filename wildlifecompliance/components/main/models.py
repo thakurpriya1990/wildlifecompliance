@@ -165,7 +165,7 @@ class TemporaryDocument(Document):
         TemporaryDocumentCollection,
         related_name='documents')
     _file = models.FileField(max_length=255)
-    input_name = models.CharField(max_length=255, null=True, blank=True)
+    #input_name = models.CharField(max_length=255, null=True, blank=True)
 
     class Meta:
         app_label = 'wildlifecompliance'

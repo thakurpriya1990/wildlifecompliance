@@ -254,15 +254,15 @@ def save_default_document_obj(instance, temp_document):
     document.save()
 
 # For transferring files from temp doc objs to physical artifact renderer objs
-def save_renderer_document_obj(instance, temp_document):
+def save_renderer_document_obj(instance, temp_document, input_name):
     document = instance.renderer_documents.get_or_create(
-            input_name=temp_document.input_name,
+            input_name=input_name,
             name=temp_document.name)[0]
     path = default_storage.save(
         'wildlifecompliance/{}/{}/renderer_documents/{}/{}'.format(
             instance._meta.model_name,
             instance.id,
-            temp_document.input_name,
+            input_name,
             temp_document.name
             ),
             temp_document._file
@@ -270,20 +270,4 @@ def save_renderer_document_obj(instance, temp_document):
 
     document._file = path
     document.save()
-
-## For transferring files from temp doc objs to physical artifact storage renderer objs
-#def save_storage_document_obj(instance, temp_document):
-#    document = instance.documents.get_or_create(
-#        name=temp_document.name)[0]
-#    path = default_storage.save(
-#        'wildlifecompliance/{}/{}/storage_documents/{}'.format(
-#            instance._meta.model_name, 
-#            instance.id, 
-#            temp_document.name
-#            ), 
-#            temp_document._file
-#        )
-#
-#    document._file = path
-#    document.save()
 

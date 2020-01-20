@@ -454,7 +454,7 @@ class PhysicalArtifactViewSet(viewsets.ModelViewSet):
                         temp_doc_collection.delete()
                     elif temp_doc_collection and input_name:
                         for doc in temp_doc_collection.documents.all():
-                            save_renderer_document_obj(instance, doc)
+                            save_renderer_document_obj(instance, doc, input_name)
                         temp_doc_collection.delete()
         except ValidationError as e:
             print(traceback.print_exc())
