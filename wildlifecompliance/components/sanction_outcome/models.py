@@ -170,6 +170,7 @@ class SanctionOutcome(models.Model):
         return can_close_record
 
     def close(self, request=None):
+        print('SanctionOutcome.close() called')
         if self.can_close_record():
             self.status = self.STATUS_CLOSED
             self.log_user_action(SanctionOutcomeUserAction.ACTION_CLOSE.format(self.lodgement_number), request)
@@ -486,12 +487,14 @@ class SanctionOutcome(models.Model):
             self.allocated_group = new_group
 
         elif self.type in (SanctionOutcome.TYPE_CAUTION_NOTICE, SanctionOutcome.TYPE_LETTER_OF_ADVICE):
-            # self.status = SanctionOutcome.STATUS_CLOSED
-            self.save()  # This makes sure this sanction outcome status sets to 'closed'
+            print('In SanctionOutcome.endorse(): Should not reach here...')
             self.close(request)
 
         elif self.type == SanctionOutcome.TYPE_REMEDIATION_NOTICE:
             self.status = SanctionOutcome.STATUS_AWAITING_REMEDIATION_ACTIONS
+            new_group = SanctionOutcome.get_compliance_permission_group(self.regionDistrictId, SanctionOutcome.WORKFLOW_RETURN_TO_OFFICER)
+            self.allocated_group = new_group
+
             id_suffix = 1
             for remediation_action in self.remediation_actions.all():
                 remediation_action.status = RemediationAction.STATUS_OPEN
@@ -500,9 +503,6 @@ class SanctionOutcome(models.Model):
                 id_suffix += 1
 
         self.save()
-
-        # Add action log
-        # self.log_user_action(SanctionOutcomeUserAction.ACTION_ENDORSE.format(self.lodgement_number), request)
 
     def create_due_dates(self, extended_by_id=None):
         print('create_due_dates')
@@ -789,6 +789,10 @@ class SanctionOutcomeCommsLogDocument(Document):
 class SanctionOutcomeCommsLogEntry(CommunicationsLogEntry):
     sanction_outcome = models.ForeignKey(SanctionOutcome, related_name='comms_logs')
 
+    def save(self, force_insert=False, force_update=False, using=None, update_fields=None):
+        print('In SanctionOutcomeCommsLogEntry.save()')
+        super(SanctionOutcomeCommsLogEntry, self).save(force_insert, force_update, using, update_fields)
+
     class Meta:
         app_label = 'wildlifecompliance'
 
@@ -817,6 +821,9 @@ class SanctionOutcomeUserAction(models.Model):
     ACTION_ESCALATE_FOR_WITHDRAWAL = "Escalate Infringement Notice {} for withdrawal"
     ACTION_INCREASE_FEE_AND_EXTEND_DUE = "Increase penalty amount from {} to {} and extend due date from {} to {}"
     ACTION_REMEDIATION_ACTION_OVERDUE = "Set status of Remediation Action {} to 'overdue'"
+    ACTION_REMEDIATION_ACTION_SUBMITTED = "Submit Remediation Action {}"
+    ACTION_REMEDIATION_ACTION_ACCEPTED = "Accept Remediation Action {}"
+    ACTION_REQUEST_AMENDMENT = "Request amendment for Remediation Action {}"
 
     who = models.ForeignKey(EmailUser, null=True, blank=True)
     when = models.DateTimeField(null=False, blank=False, auto_now_add=True)

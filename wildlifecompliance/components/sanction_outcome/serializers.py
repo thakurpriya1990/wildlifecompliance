@@ -65,11 +65,24 @@ class RemediationActionUpdateStatusSerializer(serializers.ModelSerializer):
         return data
 
 
+class AmendmentRequestForRemediationActionSerializer(serializers.ModelSerializer):
+
+    class Meta:
+        model = AmendmentRequestForRemediationAction
+        fields = (
+            'reason',
+            'details',
+            'created_at',
+            'updated_at',
+        )
+
+
 class RemediationActionSerializer(serializers.ModelSerializer):
     user_action = serializers.SerializerMethodField()
     action_taken_editable = serializers.SerializerMethodField()
     documents = serializers.SerializerMethodField()
     status = CustomChoiceField(read_only=True)
+    amendment_requests = AmendmentRequestForRemediationActionSerializer(read_only=True, many=True)
 
     class Meta:
         model = RemediationAction
@@ -83,6 +96,7 @@ class RemediationActionSerializer(serializers.ModelSerializer):
             'documents',
             'action_taken_editable',
             'remediation_action_id',
+            'amendment_requests',
         )
 
     def can_user_approve(self, obj, user):

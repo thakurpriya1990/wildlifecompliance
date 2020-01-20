@@ -75,9 +75,16 @@
                                         <div class="col-sm-3">
                                           <label>Statement</label>
                                         </div>
-                                        <div class="col-sm-6">
+                                        <div v-if="parentModal" class="col-sm-6">
                                           <select class="form-control" v-model="document_artifact.statement_id" ref="setStatement">
                                             <option  v-for="option in legal_case.statement_artifacts" :value="option.id" v-bind:key="option.id">
+                                            {{ option.document_type_display }}: {{ option.identifier }}
+                                            </option>
+                                          </select>
+                                        </div>
+                                        <div v-else class="col-sm-6">
+                                          <select class="form-control" v-model="document_artifact.statement_id" ref="setStatement">
+                                            <option  v-for="option in document_artifact.available_statement_artifacts" :value="option.id" v-bind:key="option.id">
                                             {{ option.document_type_display }}: {{ option.identifier }}
                                             </option>
                                           </select>
@@ -419,6 +426,13 @@ export default {
           }
           return caseExists;
         },
+        linkedLegalCase: function() {
+            let caseExists = false;
+            if (this.document_artifact && this.document_artifact.legal_case_id_list && this.document_artifact.legal_case_id_list.length > 0) {
+                caseExists = true;
+            }
+            return caseExists;
+        },
         documentArtifactId: function() {
           let id = null;
           if (this.document_artifact && this.document_artifact.id) {
@@ -546,7 +560,8 @@ export default {
         setStatementVisibility: function() {
             if (
                 // legal case exists and Document Type is not a statementArtifactType
-                (this.legalCaseExists && this.artifactType && !this.statementArtifactTypes.includes(this.artifactType)) ||
+                //(this.legalCaseExists && this.artifactType && !this.statementArtifactTypes.includes(this.artifactType)) ||
+                ((this.linkedLegalCase || this.legalCaseExists) && this.artifactType && !this.statementArtifactTypes.includes(this.artifactType)) ||
                 // OR document_artifact already has a linked statement
                 (this.document_artifact && this.document_artifact.statement)
                 )
