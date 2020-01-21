@@ -113,7 +113,7 @@ class InfringementPenaltySuccessView(TemplateView):
     template_name = 'wildlifecompliance/wc_payments/success.html'
 
     def get(self, request, *args, **kwargs):
-        print (" Infringement Peanlty SUCCESS ")
+        print (" Infringement Penalty SUCCESS ")
 
         sanction_outcome = None
         offender = None
