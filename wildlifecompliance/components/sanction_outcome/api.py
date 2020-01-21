@@ -36,13 +36,14 @@ from wildlifecompliance.components.sanction_outcome.email import send_infringeme
     send_remediation_action_request_amendment_mail
 from wildlifecompliance.components.sanction_outcome.models import SanctionOutcome, RemediationAction, \
     SanctionOutcomeCommsLogEntry, AllegedCommittedOffence, SanctionOutcomeUserAction, SanctionOutcomeCommsLogDocument, \
-    AmendmentRequestReason, SanctionOutcomeDocument
+    AmendmentRequestReason, SanctionOutcomeDocument, SanctionOutcomeDocumentAccessLog
 from wildlifecompliance.components.sanction_outcome.serializers import SanctionOutcomeSerializer, \
     SaveSanctionOutcomeSerializer, SaveRemediationActionSerializer, SanctionOutcomeDatatableSerializer, \
     UpdateAssignedToIdSerializer, SanctionOutcomeCommsLogEntrySerializer, SanctionOutcomeUserActionSerializer, \
     AllegedCommittedOffenceSerializer, RecordFerCaseNumberSerializer, \
     RemediationActionSerializer, RemediationActionUpdateStatusSerializer, AmendmentRequestReasonSerializer, \
-    SaveAmendmentRequestForRemediationAction, AllegedCommittedOffenceCreateSerializer
+    SaveAmendmentRequestForRemediationAction, AllegedCommittedOffenceCreateSerializer, \
+    SanctionOutcomeDocumentAccessLogSerializer
 from wildlifecompliance.components.users.models import CompliancePermissionGroup, RegionDistrict
 from wildlifecompliance.helpers import is_internal
 from wildlifecompliance.components.main.models import TemporaryDocumentCollection
@@ -491,6 +492,12 @@ class SanctionOutcomeViewSet(viewsets.ModelViewSet):
                 if mime_type_guess is not None:
                     response = HttpResponse(f, content_type=mime_type_guess[0])
                 response['Content-Disposition'] = 'inline;filename={}'.format(f_name)
+
+                # Log access
+                serializer = SanctionOutcomeDocumentAccessLogSerializer(data={'accessed_by_id': request.user.id, 'sanction_outcome_document_id': so_file.id})
+                serializer.is_valid(raise_exception=True)
+                serializer.save()
+
                 return response
         except IOError:
             response = HttpResponseNotFound()

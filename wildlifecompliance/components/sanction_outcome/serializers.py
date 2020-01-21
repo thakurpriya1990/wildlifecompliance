@@ -18,7 +18,7 @@ from wildlifecompliance.components.sanction_outcome_due.serializers import Sanct
 from wildlifecompliance.components.section_regulation.serializers import SectionRegulationSerializer
 from wildlifecompliance.components.sanction_outcome.models import SanctionOutcome, RemediationAction, \
     SanctionOutcomeCommsLogEntry, SanctionOutcomeUserAction, AllegedCommittedOffence, AmendmentRequestReason, \
-    AmendmentRequestForRemediationAction, RemediationActionNotification
+    AmendmentRequestForRemediationAction, RemediationActionNotification, SanctionOutcomeDocumentAccessLog
 from wildlifecompliance.components.users.serializers import CompliancePermissionGroupMembersSerializer
 from wildlifecompliance.helpers import is_internal
 
@@ -383,6 +383,18 @@ class UpdateAssignedToIdSerializer(serializers.ModelSerializer):
         )
 
 
+class SanctionOutcomeDocumentAccessLogSerializer(serializers.ModelSerializer):
+    sanction_outcome_document_id = serializers.IntegerField(required=False, write_only=True, allow_null=True)
+    accessed_by_id = serializers.IntegerField(required=False, write_only=True, allow_null=True)
+
+    class Meta:
+        model = SanctionOutcomeDocumentAccessLog
+        fields = (
+            'sanction_outcome_document_id',
+            'accessed_by_id',
+        )
+
+
 class SanctionOutcomeDatatableSerializer(serializers.ModelSerializer):
     status = CustomChoiceField(read_only=True)
     payment_status = CustomChoiceField(read_only=True)
@@ -441,7 +453,9 @@ class SanctionOutcomeDatatableSerializer(serializers.ModelSerializer):
             # Paper notices
             for doc in obj.documents.all():
                 if self.context.get('internal', False):
-                    url = '<a href="{}" target="_blank">{}</a>'.format(doc._file.url, doc.name)
+                    count_logs = doc.access_logs.count()
+                    viewed_text = ' Viewed by offender: <i class="fa fa-check-circle fa-lg viewed-by-offender" aria-hidden="true"></i>' if count_logs else ''
+                    url = '<a href="{}" target="_blank">{}</a>'.format(doc._file.url, doc.name) + viewed_text
                 else:
                     # To detect if the external user accessing the pdf file, we make Django serve the pdf file
                     url = '<a href="/api/sanction_outcome/{}/doc?name={}" target="_blank">{}</a>'.format(obj.id, doc.name, doc.name)
