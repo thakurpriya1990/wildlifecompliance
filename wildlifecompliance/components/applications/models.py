@@ -2956,8 +2956,6 @@ class ApplicationSelectedActivity(models.Model):
         if self.licence_fee == 0:
             return ActivityInvoice.PAYMENT_STATUS_NOT_REQUIRED
         else:
-            if self.requires_refund:
-                return ActivityInvoice.PAYMENT_STATUS_OVERPAID
             if self.invoices.count() == 0:
                 return ActivityInvoice.PAYMENT_STATUS_UNPAID
             else:
