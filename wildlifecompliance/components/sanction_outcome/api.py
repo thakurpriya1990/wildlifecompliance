@@ -170,9 +170,9 @@ class SanctionOutcomePaginatedViewSet(viewsets.ModelViewSet):
         This function is called from the external dashboard page by external user
         """
         queryset = SanctionOutcome.objects_for_external.filter(
-            (Q(offender__person=request.user) & Q(registration_holder=None) & Q(driver=None)) |
-            (Q(offender__person=None) & Q(registration_holder=request.user) & Q(driver=None)) |
-            (Q(offender__person=None) & Q(driver=request.user))
+            (Q(offender__person=request.user) & Q(offender__removed=False) & Q(registration_holder__isnull=True) & Q(driver__isnull=True)) |
+            (Q(offender__isnull=True) & Q(registration_holder=request.user) & Q(driver__isnull=True)) |
+            (Q(offender__isnull=True) & Q(driver=request.user))
         )
         queryset = self.filter_queryset(queryset).order_by('-id')
         self.paginator.page_size = queryset.count()
@@ -374,9 +374,9 @@ class RemediationActionViewSet(viewsets.ModelViewSet):
             return RemediationAction.objects.all()
         else:
             return RemediationAction.objects_for_external.filter(
-                (Q(sanction_outcome__offender__person=self.request.user) & Q(sanction_outcome__registration_holder=None) & Q(sanction_outcome__driver=None)) |
-                (Q(sanction_outcome__offender__person=None) & Q(sanction_outcome__registration_holder=self.request.user) & Q(sanction_outcome__driver=None)) |
-                (Q(sanction_outcome__offender__person=None) & Q(sanction_outcome__driver=self.request.user))
+                (Q(sanction_outcome__offender__person=self.request.user) & Q(sanction_outcome__registration_holder__isnull=True) & Q(sanction_outcome__driver__isnull=True)) |
+                (Q(sanction_outcome__offender__isnull=True) & Q(sanction_outcome__registration_holder=self.request.user) & Q(sanction_outcome__driver__isnull=True)) |
+                (Q(sanction_outcome__offender__isnull=True) & Q(sanction_outcome__driver=self.request.user))
             )
             # return RemediationAction.objects_for_external.filter(sanction_outcome__offender__person=self.request.user)
 
@@ -478,9 +478,9 @@ class SanctionOutcomeViewSet(viewsets.ModelViewSet):
 
             sanction_outcome = SanctionOutcome.objects_for_external.get(
                 (
-                    (Q(offender__person=request.user) & Q(registration_holder=None) & Q(driver=None)) |
-                    (Q(offender__person=None) & Q(registration_holder=request.user) & Q(driver=None)) |
-                    (Q(offender__person=None) & Q(driver=request.user))
+                    (Q(offender__person=request.user) & Q(registration_holder__isnull=True) & Q(driver__isnull=True)) |
+                    (Q(offender__isnull=True) & Q(registration_holder=request.user) & Q(driver__isnull=True)) |
+                    (Q(offender__isnull=True) & Q(driver=request.user))
                 )
                 & Q(id=sanction_outcome_id))
             so_file = SanctionOutcomeDocument.objects.get(Q(sanction_outcome=sanction_outcome) & Q(_file__icontains=file_name))
@@ -515,10 +515,9 @@ class SanctionOutcomeViewSet(viewsets.ModelViewSet):
             return SanctionOutcome.objects.all()
         else:
             return SanctionOutcome.objects_for_external.filter(
-                # Q(offender__person=self.request.user)
-                (Q(offender__person=self.request.user) & Q(registration_holder=None) & Q(driver=None)) |
-                (Q(offender__person=None) & Q(registration_holder=self.request.user) & Q(driver=None)) |
-                (Q(offender__person=None) & Q(driver=self.request.user))
+                (Q(offender__person=self.request.user) & Q(registration_holder__isnull=True) & Q(driver__isnull=True)) |
+                (Q(offender__isnull=True) & Q(registration_holder=self.request.user) & Q(driver__isnull=True)) |
+                (Q(offender__isnull=True) & Q(driver=self.request.user))
             )
         return SanctionOutcome.objects.none()
 

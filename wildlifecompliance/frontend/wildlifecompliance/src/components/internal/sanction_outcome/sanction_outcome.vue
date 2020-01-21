@@ -1101,6 +1101,7 @@ export default {
         },
         save: async function() {
             try {
+                console.log('save()');
                 let returned_so = await this.saveSanctionOutcome();
 
                 await swal("Saved", "The record has been saved", "success");

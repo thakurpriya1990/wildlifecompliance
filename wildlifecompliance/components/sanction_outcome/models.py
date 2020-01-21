@@ -31,11 +31,12 @@ class SanctionOutcomeActiveManager(models.Manager):
 class SanctionOutcomeExternalManager(models.Manager):
     def get_queryset(self):
         return super(SanctionOutcomeExternalManager, self).get_queryset().filter(
-            Q(offender__removed=False) &
-            Q(status__in=(SanctionOutcome.STATUS_AWAITING_PAYMENT,
-                          SanctionOutcome.STATUS_AWAITING_REMEDIATION_ACTIONS,
-                          SanctionOutcome.STATUS_OVERDUE,
-                          SanctionOutcome.STATUS_CLOSED)))
+            (
+                (Q(offender__isnull=False) & Q(offender__removed=False) & Q(registration_holder__isnull=True) & Q(driver__isnull=True)) |
+                (Q(offender__isnull=True) & Q(registration_holder__isnull=False) & Q(driver__isnull=True)) |
+                (Q(offender__isnull=True) & Q(driver__isnull=False))
+            ) &
+            Q(status__in=SanctionOutcome.STATUSES_FOR_EXTERNAL))
 
 
 class SanctionOutcome(models.Model):
@@ -80,6 +81,10 @@ class SanctionOutcome(models.Model):
     FINAL_STATUSES = (STATUS_DECLINED,
                       STATUS_CLOSED,
                       STATUS_WITHDRAWN,)
+    STATUSES_FOR_EXTERNAL = (STATUS_AWAITING_PAYMENT,
+                             STATUS_AWAITING_REMEDIATION_ACTIONS,
+                             STATUS_OVERDUE,
+                             STATUS_CLOSED)
     STATUS_CHOICES = (
         (STATUS_DRAFT, 'Draft'),
         (STATUS_AWAITING_ENDORSEMENT, 'Awaiting Endorsement'),
@@ -262,6 +267,7 @@ class SanctionOutcome(models.Model):
             return None
 
     def get_offender(self):
+        # Priority driver > resigtration_holder > offender
         if self.driver:
             return self.driver, 'driver'
         elif self.registration_holder:
@@ -649,9 +655,10 @@ class SanctionOutcome(models.Model):
     def determine_penalty_amount_by_date(self, date_payment):
         try:
             if self.offence_occurrence_date <= date_payment:
-                if date_payment <= self.last_due_date_1st:
-                    return self.penalty_amount_1st
-                elif date_payment <= self.last_due_date_2nd:
+                # if date_payment <= self.last_due_date_1st:
+                if self.last_due_date.due_date_term_currently_applied == '1st':
+                        return self.penalty_amount_1st
+                elif self.last_due_date.due_date_term_currently_applied == '2nd':
                     return self.penalty_amount_2nd
                 else:
                     # Should not reach here
@@ -704,7 +711,9 @@ class AllegedCommittedOffence(RevisionedMixin):
 
 class RemediationActionExternalManager(models.Manager):
     def get_queryset(self):
-        return super(RemediationActionExternalManager, self).get_queryset()
+        return super(RemediationActionExternalManager, self).get_queryset().filter(
+            Q(sanction_outcome__in=SanctionOutcome.objects_for_external.all())
+        )
 
 
 class RemediationAction(RevisionedMixin):

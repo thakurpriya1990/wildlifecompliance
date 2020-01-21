@@ -576,6 +576,9 @@ class SaveSanctionOutcomeSerializer(serializers.ModelSerializer):
                 non_field_errors.append('Time of Issue is required')
             if not self.context['num_of_documents_attached']:
                 non_field_errors.append('Paper notice is required')
+            if not data['offender_id']:
+                # Offender should be on the paper issued already
+                non_field_errors.append('Offender is required')
 
         if field_errors:
             raise serializers.ValidationError(field_errors)

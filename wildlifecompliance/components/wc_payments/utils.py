@@ -42,16 +42,19 @@ def get_session_infringement_invoice(session):
     except Invoice.DoesNotExist:
         raise Exception('Infringement Penalty not found for Sanction Outcome {}'.format(wc_infringement_id))
 
+
 def set_session_infringement_invoice(session, infringement_penalty):
     """ Infringement Penalty session ID """
     session['wc_infringement_invoice'] = infringement_penalty.id
     session.modified = True
+
 
 def delete_session_infringement_invoice(session):
     """ Infringement Penalty session ID """
     if 'wc_infringement_invoice' in session:
         del session['wc_infringement_invoice']
         session.modified = True
+
 
 def create_infringement_lines(sanction_outcome, invoice_text=None, vouchers=[], internal=False):
     """ Create the ledger lines - line item for infringement penalty sent to payment system """
