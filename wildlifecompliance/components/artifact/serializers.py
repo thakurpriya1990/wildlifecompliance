@@ -367,7 +367,7 @@ class DocumentArtifactSerializer(ArtifactSerializer):
     def get_available_statement_artifacts(self, obj):
         artifact_list = []
         if obj.legal_case:
-            for artifact in obj.legal_case.legal_case_document_artifacts.all():
+            for artifact in obj.legal_case.legal_case_document_artifacts_primary.all():
                 if obj != artifact and artifact.document_type and artifact.document_type in [
                     'record_of_interview',
                     'witness_statement',
@@ -495,7 +495,7 @@ class PhysicalArtifactSerializer(ArtifactSerializer):
     def get_available_statement_artifacts(self, obj):
         artifact_list = []
         if obj.legal_case:
-            for artifact in obj.legal_case.legal_case_document_artifacts.all():
+            for artifact in obj.legal_case.legal_case_document_artifacts_primary.all():
                 if obj != artifact and artifact.document_type and artifact.document_type in [
                     'record_of_interview',
                     'witness_statement',

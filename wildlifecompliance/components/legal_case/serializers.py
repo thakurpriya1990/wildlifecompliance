@@ -375,7 +375,7 @@ class LegalCaseSerializer(serializers.ModelSerializer):
         
     def get_statement_artifacts(self, obj):
         artifact_list = []
-        for artifact in obj.legal_case_document_artifacts.all():
+        for artifact in obj.legal_case_document_artifacts_primary.all():
             if artifact.document_type and artifact.document_type in [
                 'record_of_interview',
                 'witness_statement',
