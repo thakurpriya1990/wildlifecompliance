@@ -225,15 +225,22 @@ class DocumentArtifact(Artifact):
     #_file = models.FileField(max_length=255)
     #identifier = models.CharField(max_length=255, blank=True, null=True)
     #description = models.TextField(blank=True, null=True)
-    legal_case = models.ManyToManyField(
+    legal_case = models.ForeignKey(
+            LegalCase,
+            related_name='legal_case_document_artifacts_primary',
+            on_delete=models.PROTECT,
+            blank=True,
+            null=True
+            )
+    associated_legal_cases = models.ManyToManyField(
             LegalCase,
             related_name='legal_case_document_artifacts',
             )
     statement = models.ForeignKey(
         'self', 
         related_name='document_artifact_statement',
-        on_delete=models.PROTECT, 
-        blank=True, 
+        on_delete=models.PROTECT,
+        blank=True,
         null=True
         )
     #custodian = models.ForeignKey(
@@ -287,7 +294,12 @@ class DocumentArtifact(Artifact):
             raise e
         legal_case = LegalCase.objects.get(id=legal_case_id_int)
         if legal_case:
-            self.legal_case.add(legal_case)
+            if not self.legal_case:
+                self.legal_case = legal_case
+                self.save()
+            elif self.legal_case != legal_case:
+                self.associated_legal_cases.add(legal_case)
+
 
     def close(self, request=None):
         # NOTE: close_record logic moved to can_close_legal_case
@@ -317,7 +329,14 @@ class PhysicalArtifact(Artifact):
             PhysicalArtifactType,
             null=True
             )
-    legal_case = models.ManyToManyField(
+    legal_case = models.ForeignKey(
+            LegalCase,
+            related_name='legal_case_physical_artifacts_primary',
+            on_delete=models.PROTECT,
+            blank=True,
+            null=True
+            )
+    associated_legal_cases = models.ManyToManyField(
             LegalCase,
             related_name='legal_case_physical_artifacts',
             )
@@ -370,8 +389,12 @@ class PhysicalArtifact(Artifact):
             raise e
         legal_case = LegalCase.objects.get(id=legal_case_id_int)
         if legal_case:
-            self.legal_case.add(legal_case)
-    
+            if not self.legal_case:
+                self.legal_case = legal_case
+                self.save()
+            elif self.legal_case != legal_case:
+                self.associated_legal_cases.add(legal_case)
+
     #def close(self, request=None):
     #    close_record, parents = can_close_artifact(self, request)
     #    # TODO: add logic to check for disposal date

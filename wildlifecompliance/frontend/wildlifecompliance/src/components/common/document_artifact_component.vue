@@ -96,7 +96,7 @@
                                         <div class="col-sm-3">
                                           <label>Offence</label>
                                         </div>
-                                        <div v-if="parentModal" class="col-sm-6">
+                                        <div class="col-sm-6">
                                           <select class="form-control" v-model="document_artifact.offence_id" @change.prevent="setOffenderId(null)">
                                             <option  v-for="option in legal_case.offence_list" :value="option.id" v-bind:key="option.id">
                                                 <div v-if="option.id">
@@ -105,15 +105,12 @@
                                             </option>
                                           </select>
                                         </div>
-                                        <div v-else class="col-sm-6">
-                                            {{ existingOffenceDisplay }}
-                                        </div>
                                       </div>
                                       <div class="row">
                                         <div class="col-sm-3">
                                           <label>Offender</label>
                                         </div>
-                                        <div v-if="parentModal" class="col-sm-6">
+                                        <div class="col-sm-6">
                                           <select class="form-control" v-model="document_artifact.offender_id">
                                             <option  v-for="option in offenderList" :value="option.offender_id" v-bind:key="option.offender_id">
                                             <div v-if="option.id">
@@ -121,9 +118,6 @@
                                             </div>
                                             </option>
                                           </select>
-                                        </div>
-                                        <div v-else class="col-sm-6">
-                                            {{ existingOffenderDisplay }}
                                         </div>
                                       </div>
                                     </div>
