@@ -96,7 +96,7 @@
                                         <div class="col-sm-3">
                                           <label>Offence</label>
                                         </div>
-                                        <div class="col-sm-6">
+                                        <div v-if="parentModal" class="col-sm-6">
                                           <select class="form-control" v-model="document_artifact.offence_id" @change.prevent="setOffenderId(null)">
                                             <option  v-for="option in legal_case.offence_list" :value="option.id" v-bind:key="option.id">
                                                 <div v-if="option.id">
@@ -105,19 +105,25 @@
                                             </option>
                                           </select>
                                         </div>
+                                        <div v-else class="col-sm-6">
+                                            {{ existingOffenceDisplay }}
+                                        </div>
                                       </div>
                                       <div class="row">
                                         <div class="col-sm-3">
                                           <label>Offender</label>
                                         </div>
-                                        <div class="col-sm-6">
-                                          <select class="form-control" v-model="document_artifact.offender_id" v-bind:key="document_artifact.offence_id">
-                                            <option  v-for="option in offenderList" :value="option.id" v-bind:key="option.id">
+                                        <div v-if="parentModal" class="col-sm-6">
+                                          <select class="form-control" v-model="document_artifact.offender_id">
+                                            <option  v-for="option in offenderList" :value="option.offender_id" v-bind:key="option.offender_id">
                                             <div v-if="option.id">
                                                 {{ option.full_name }}: {{ option.email }}
                                             </div>
                                             </option>
                                           </select>
+                                        </div>
+                                        <div v-else class="col-sm-6">
+                                            {{ existingOffenderDisplay }}
                                         </div>
                                       </div>
                                     </div>
@@ -446,7 +452,9 @@ export default {
                 for (let offence of this.legal_case.offence_list) {
                     if (this.document_artifact.offence_id === offence.id) {
                         for (let offender of offence.offenders) {
-                            offenderList.push(offender.person)
+                            let offenderObj = Object.assign({}, offender.person)
+                            offenderObj.offender_id = offender.id
+                            offenderList.push(offenderObj)
                         }
                     }
                 }
@@ -526,12 +534,33 @@ export default {
             }
             return display;
         },
+        offenceExists: function() {
+            let oExists = false;
+            if (this.document_artifact && this.document_artifact.offence) {
+                oExists = true;
+            }
+            return oExists;
+        },
         offenceVisibility: function() {
             let visibility = false;
-            if (this.legalCaseExists && this.artifactType === 'record_of_interview') {
+            if ((this.legalCaseExists || this.offenceExists) && this.artifactType === 'record_of_interview') {
                 visibility = true;
             }
             return visibility;
+        },
+        existingOffenceDisplay: function() {
+            let display = '';
+            if (this.offenceExists) {
+                display = this.document_artifact.offence.lodgement_number + ": " + this.document_artifact.offence.identifier;
+            }
+            return display;
+        },
+        existingOffenderDisplay: function() {
+            let display = '';
+            if (this.offenceExists && this.document_artifact.offender && this.document_artifact.offender.person) {
+                display = this.document_artifact.offender.person.full_name + ": " + this.document_artifact.offender.person.email;
+            }
+            return display;
         },
         personProvidingStatementLabel: function() {
             let label = '';
@@ -671,25 +700,8 @@ export default {
             }
         },
         create: async function() {
-            //let documentArtifactEntity = null;
-            /*
-            if (this.saveButtonEnabled) {
-                savedEmailUser = await this.saveData('parentSave')
-            } else {
-                savedEmailUser = {'ok': true};
-            }
-            */
             await this.saveDocumentArtifact({ create: true, internal: true, legal_case_id: this.legalCaseId });
-            //this.entity.id = 
             this.$nextTick(() => {
-                /*
-                let artifactTypeDisplay = '';
-                for (let artifactType of this.documentArtifactTypes) {
-                    if (artifactType.id === this.artifactType) {
-                        artifactTypeDisplay = artifactType.display;
-                    }
-                }
-                */
                 this.$emit('entity-selected', {
                     id: this.document_artifact.id,
                     data_type: 'document_artifact',
@@ -698,7 +710,6 @@ export default {
                     display: this.artifactTypeDisplay,
                 });
             });
-            //return documentArtifactEntity;
         },
         cancel: async function() {
             await this.$refs.default_document.cancel();

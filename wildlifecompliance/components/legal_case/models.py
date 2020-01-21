@@ -107,6 +107,7 @@ class LegalCase(RevisionedMixin):
             EmailUser,
             related_name='legal_case_associated_persons',
             )
+    # Brief of evidence
     statement_of_facts = models.TextField(blank=True, null=True)
     victim_impact_statement_taken = models.BooleanField(default=False)
     statements_pending = models.BooleanField(default=False)
@@ -137,6 +138,37 @@ class LegalCase(RevisionedMixin):
     applications_orders_requests_details = models.TextField(blank=True, null=True)
     applications_orders_required_details = models.TextField(blank=True, null=True)
     other_legal_matters_details = models.TextField(blank=True, null=True)
+    # Prosecution brief
+    pb_statement_of_facts = models.TextField(blank=True, null=True)
+    pb_victim_impact_statement_taken = models.BooleanField(default=False)
+    pb_statements_pending = models.BooleanField(default=False)
+    pb_vulnerable_hostile_witnesses = models.BooleanField(default=False)
+    pb_witness_refusing_statement = models.BooleanField(default=False)
+    pb_problems_needs_prosecution_witnesses = models.BooleanField(default=False)
+    pb_accused_bad_character = models.BooleanField(default=False)
+    pb_further_persons_interviews_pending = models.BooleanField(default=False)
+    pb_other_interviews = models.BooleanField(default=False)
+    pb_relevant_persons_pending_charges = models.BooleanField(default=False)
+    pb_other_persons_receiving_sanction_outcome = models.BooleanField(default=False)
+    pb_local_public_interest = models.BooleanField(default=False)
+    pb_applications_orders_requests = models.BooleanField(default=False)
+    pb_applications_orders_required = models.BooleanField(default=False)
+    pb_other_legal_matters = models.BooleanField(default=False)
+
+    pb_victim_impact_statement_taken_details = models.TextField(blank=True, null=True)
+    pb_statements_pending_details = models.TextField(blank=True, null=True)
+    pb_vulnerable_hostile_witnesses_details = models.TextField(blank=True, null=True)
+    pb_witness_refusing_statement_details = models.TextField(blank=True, null=True)
+    pb_problems_needs_prosecution_witnesses_details = models.TextField(blank=True, null=True)
+    pb_accused_bad_character_details = models.TextField(blank=True, null=True)
+    pb_further_persons_interviews_pending_details = models.TextField(blank=True, null=True)
+    pb_other_interviews_details = models.TextField(blank=True, null=True)
+    pb_relevant_persons_pending_charges_details = models.TextField(blank=True, null=True)
+    pb_other_persons_receiving_sanction_outcome_details = models.TextField(blank=True, null=True)
+    pb_local_public_interest_details = models.TextField(blank=True, null=True)
+    pb_applications_orders_requests_details = models.TextField(blank=True, null=True)
+    pb_applications_orders_required_details = models.TextField(blank=True, null=True)
+    pb_other_legal_matters_details = models.TextField(blank=True, null=True)
 
     class Meta:
         app_label = 'wildlifecompliance'

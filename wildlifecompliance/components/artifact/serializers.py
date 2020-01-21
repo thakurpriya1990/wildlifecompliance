@@ -314,6 +314,8 @@ class DocumentArtifactSerializer(ArtifactSerializer):
                 'legal_case_id_list',
                 'offence',
                 'offender',
+                'offence_id',
+                'offender_id',
                 'related_items',
                 'interviewer_email',
                 'document_type_display',
