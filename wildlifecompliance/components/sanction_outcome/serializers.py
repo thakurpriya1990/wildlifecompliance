@@ -440,7 +440,11 @@ class SanctionOutcomeDatatableSerializer(serializers.ModelSerializer):
         if obj.documents.all().count():
             # Paper notices
             for doc in obj.documents.all():
-                url = '<a href="{}" target="_blank">{}</a>'.format(doc._file.url, doc.name)
+                if self.context.get('internal', False):
+                    url = '<a href="{}" target="_blank">{}</a>'.format(doc._file.url, doc.name)
+                else:
+                    # To detect if the external user accessing the pdf file, we make Django serve the pdf file
+                    url = '<a href="/api/sanction_outcome/{}/doc?name={}" target="_blank">{}</a>'.format(obj.id, doc.name, doc.name)
                 url_list.append(url)
 
         urls = '<br />'.join(url_list)

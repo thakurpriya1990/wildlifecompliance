@@ -362,7 +362,7 @@ export default {
             {
                 mRender: function(data, type, full) {
                     let ret_line = '';
-                    ret_line += full.number_linked_sanction_outcomes_active + '/' + full.number_linked_sanction_outcomes_total + ' ';
+                    //ret_line += full.number_linked_sanction_outcomes_active + '/' + full.number_linked_sanction_outcomes_total + ' ';
 
                     if (full.number_linked_sanction_outcomes_active > 0){
                         if (vm.sanction_outcome.type == 'infringement_notice'){
@@ -373,7 +373,6 @@ export default {
                         } else {
                             ret_line += '<input type="checkbox" class="alleged_offence_include" value="' + full.id + '" disabled></input>';
                         }
-
                     } else {
                         if (vm.sanction_outcome.type == 'infringement_notice'){
                             ret_line += '<input type="radio" name="infringement_radio_button" class="alleged_offence_include" value="' + full.id + '"></input>';
@@ -384,7 +383,6 @@ export default {
                             ret_line += '<input type="checkbox" class="alleged_offence_include" value="' + full.id + '" checked="checked"></input>';
                         }
                     }
-
 
                     return ret_line;
                 }

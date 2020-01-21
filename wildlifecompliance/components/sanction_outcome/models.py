@@ -477,7 +477,10 @@ class SanctionOutcome(models.Model):
     def endorse(self, request):
         if self.type == SanctionOutcome.TYPE_INFRINGEMENT_NOTICE:
             if self.issued_on_paper:
-                pass
+                self.status = SanctionOutcome.STATUS_AWAITING_PAYMENT
+                self.payment_status = SanctionOutcome.PAYMENT_STATUS_UNPAID
+                self.set_penalty_amounts()
+                self.create_due_dates()
             else:
                 if self.is_issuable(raise_exception=True):
                     self.confirm_date_time_issue(raise_exception=True)
@@ -555,7 +558,7 @@ class SanctionOutcome(models.Model):
         self.log_user_action(SanctionOutcomeUserAction.ACTION_ESCALATE_FOR_WITHDRAWAL.format(self.lodgement_number), request)
         self.save()
 
-    def withdraw_by_namager(self, request):
+    def withdraw_by_manager(self, request):
         self.status = self.STATUS_WITHDRAWN
         new_group = SanctionOutcome.get_compliance_permission_group(self.regionDistrictId, SanctionOutcome.WORKFLOW_WITHDRAW_BY_MANAGER)
         self.allocated_group = new_group
@@ -679,6 +682,7 @@ class AllegedCommittedOffence(RevisionedMixin):
             Q(included=True) &
             Q(alleged_offence=alleged_offence)
         ).exclude(
+            # Once sanction outcome is declined, related alleged_offence can be included in another sanction outcome.
             Q(sanction_outcome__status__in=(SanctionOutcome.STATUS_DECLINED, SanctionOutcome.STATUS_WITHDRAWN)))
 
     def retrieve_penalty_amounts_by_date(self, date_of_issue):
@@ -780,6 +784,17 @@ class SanctionOutcomeDocument(Document):
         verbose_name_plural = 'CM_SanctionOutcomeDocuments'
 
 
+class SanctionOutcomeDocumentAccessLog(models.Model):
+    accessed_at = models.DateTimeField(auto_now_add=True)
+    accessed_by = models.ForeignKey(EmailUser,)
+    sanction_outcome_document = models.ForeignKey(SanctionOutcomeDocument, related_name='access_logs')
+
+    class Meta:
+        app_label = 'wildlifecompliance'
+        verbose_name = 'CM_SanctionOutcomeDocumentAccessLog'
+        verbose_name_plural = 'CM_SanctionOutcomeDocumentAccessLogs'
+
+
 class SanctionOutcomeCommsLogDocument(Document):
     log_entry = models.ForeignKey('SanctionOutcomeCommsLogEntry', related_name='documents')
     _file = models.FileField(max_length=255)
@@ -818,7 +833,7 @@ class SanctionOutcomeUserAction(models.Model):
     ACTION_REMOVE_ALLEGED_COMMITTED_OFFENCE = "Remove alleged committed offence: {}"
     ACTION_RESTORE_ALLEGED_COMMITTED_OFFENCE = "Restore alleged committed offence: {}"
     ACTION_INCLUDE_ALLEGED_COMMITTED_OFFENCE = "Include alleged committed offence: {}"
-    ACTION_EXTEND_DUE_DATE = "Extend due date from {} to {}"
+    ACTION_EXTEND_DUE_DATE = "Extend due date of Sanction Outcome {} from {} to {}"
     ACTION_SEND_DETAILS_TO_INFRINGEMENT_NOTICE_COORDINATOR = "Send details of the Unpaid Infringement Notice {} to Infringement Notice Coordinator"
     ACTION_ESCALATE_FOR_WITHDRAWAL = "Escalate Infringement Notice {} for withdrawal"
     ACTION_INCREASE_FEE_AND_EXTEND_DUE = "Increase penalty amount from {} to {} and extend due date from {} to {}"
