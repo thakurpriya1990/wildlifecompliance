@@ -407,6 +407,7 @@ class BaseApplicationSerializer(serializers.ModelSerializer):
     can_user_view = serializers.SerializerMethodField(read_only=True)
     payment_url = serializers.SerializerMethodField(read_only=True)
     total_paid_amount = serializers.SerializerMethodField(read_only=True)
+    all_payments_url = serializers.SerializerMethodField(read_only=True)
 
     class Meta:
         model = Application
@@ -456,6 +457,7 @@ class BaseApplicationSerializer(serializers.ModelSerializer):
             'has_amended_fees',
             'payment_url',
             'requires_refund',
+            'all_payments_url',
         )
         read_only_fields = ('documents',)
 
@@ -553,19 +555,48 @@ class BaseApplicationSerializer(serializers.ModelSerializer):
 
         return url
 
-    def get_payment_url(self, obj):
+    def get_payment_url(self, app):
+        """
+        Builds a url link to ledger for invoice details associated with a
+        licence activity on this application.
+        """
         url = None
-        if obj.latest_invoice:
-            url = '{}?invoice={}'.format(
-                reverse('payments:invoice-payment'),
-                obj.latest_invoice.reference)
 
-        if obj.application_type == Application.APPLICATION_TYPE_AMENDMENT\
-                and obj.requires_refund:
-            previous = Application.objects.get(id=obj.previous_application.id)
+        if app.latest_invoice:  # url for latest invoice on app.
             url = '{}?invoice={}'.format(
                 reverse('payments:invoice-payment'),
-                previous.latest_invoice.reference)
+                app.latest_invoice.reference)
+
+        return url
+
+    def get_all_payments_url(self, app):
+        """
+        Builds a url link to ledger for all invoices associated with this
+        application.
+        """
+        url = None
+
+        if app.invoices.count() > 0:    # url for all invoices on app.
+            invoices = app.invoices.all()
+            invoice_str = app.latest_invoice.reference
+            for invoice in invoices:
+                invoice_str += '&invoice={}'.format(invoice.invoice_reference)
+            url = '{}?invoice={}'.format(
+                reverse('payments:invoice-payment'),
+                invoice_str)
+
+        if app.requires_refund:         # url for all invoices on previous app.
+            if app.application_type == Application.APPLICATION_TYPE_AMENDMENT:
+                previous = Application.objects.get(
+                    id=app.previous_application.id)
+                invoices = previous.invoices.all()
+                invoice_str = previous.latest_invoice.reference
+                for invoice in invoices:
+                    invoice_str += '&invoice={}'.format(
+                        invoice.invoice_reference)
+                    url = '{}?invoice={}'.format(
+                        reverse('payments:invoice-payment'),
+                        invoice_str)
 
         return url
 
@@ -591,6 +622,7 @@ class DTInternalApplicationSerializer(BaseApplicationSerializer):
     application_type = CustomChoiceField(read_only=True)
     activities = ApplicationSelectedActivitySerializer(many=True, read_only=True)
     payment_url = serializers.SerializerMethodField(read_only=True)
+    all_payments_url = serializers.SerializerMethodField(read_only=True)
 
     class Meta:
         model = Application
@@ -618,6 +650,7 @@ class DTInternalApplicationSerializer(BaseApplicationSerializer):
             'activities',
             'invoice_url',
             'payment_url',
+            'all_payments_url',
         )
         # the serverSide functionality of datatables is such that only columns that have field 'data'
         # defined are requested from the serializer. Use datatables_always_serialize to force render
