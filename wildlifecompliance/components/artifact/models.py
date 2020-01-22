@@ -647,6 +647,34 @@ class RendererDocument(Document):
         app_label = 'wildlifecompliance'
 
 
+class BriefOfEvidenceRecordOfInterview(models.Model):
+    legal_case = models.ForeignKey(
+            LegalCase, 
+            related_name='legal_case_boe_roi')
+    offence = models.ForeignKey(
+            Offence, 
+            related_name='offence_boe_roi')
+    offender = models.ForeignKey(
+            LegalCase, 
+            related_name='offender_boe_roi', 
+            blank=True, 
+            null=True)
+    record_of_interview = models.ForeignKey(
+            DocumentArtifact, 
+            related_name='record_of_interview_boe_roi', 
+            blank=True, 
+            null=True)
+    associated_doc_artifact = models.ForeignKey(
+            DocumentArtifact, 
+            related_name='document_artifact_boe_roi', 
+            blank=True, 
+            null=True)
+    ticked = models.BooleanField(default=False)
+
+    class Meta:
+        app_label = 'wildlifecompliance'
+
+
 #class StorageDocument(Document):
 #    log_entry = models.ForeignKey(
 #        PhysicalArtifact,
