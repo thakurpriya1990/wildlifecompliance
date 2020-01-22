@@ -1284,9 +1284,10 @@ class Application(RevisionedMixin):
             request=request
         )
 
-    def get_assessor_permission_group(self, activity_id=None, first=True):
+    def get_assessor_permission_group(
+                    self, user, activity_id=None, first=True):
         app_label = get_app_label()
-        qs = self._user.groups.filter(
+        qs = user.groups.filter(
             permissions__codename='assessor'
         )
         if activity_id is not None:
@@ -1316,6 +1317,7 @@ class Application(RevisionedMixin):
 
                 assessor_group = self \
                     .get_assessor_permission_group(
+                        request.user,
                         activity_id=assessment.licence_activity_id,
                         first=True
                     )
@@ -1363,6 +1365,7 @@ class Application(RevisionedMixin):
                     # check user has assessor permission
                     assessor_group = \
                         self.get_assessor_permission_group(
+                            request.user,
                             activity_id=assessment.licence_activity_id,
                             first=True
                         )
@@ -1417,6 +1420,7 @@ class Application(RevisionedMixin):
                         assessment_id, activity_id))
 
                 assessor_group = self.get_assessor_permission_group(
+                    request.user,
                     activity_id=assessment.licence_activity_id,
                     first=True
                 )

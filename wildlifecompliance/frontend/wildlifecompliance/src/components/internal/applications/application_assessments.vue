@@ -541,7 +541,10 @@ export default {
                     "assessment_id": this.viewingAssessmentId,
                 })
                 .then((response) => {
-                    this.$parent.refreshFromResponse(response);
+                    // FIXME: $parent causing local flags to loose settings
+                    // and therefore not closing. Should be ok as assessor
+                    // does not update applications.
+                    // this.$parent.refreshFromResponse(response);
                     this.refreshAssessorDatatables();
                     this.close();
                     swal(
