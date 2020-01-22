@@ -69,7 +69,7 @@ from wildlifecompliance.components.wc_payments.context_processors import templat
 from wildlifecompliance.components.wc_payments.models import InfringementPenalty, InfringementPenaltyInvoice
 from wildlifecompliance.components.wc_payments.utils import set_session_infringement_invoice, create_infringement_lines, \
     get_session_infringement_invoice, delete_session_infringement_invoice, checkout
-from wildlifecompliance.components.sanction_outcome.models import SanctionOutcome
+from wildlifecompliance.components.sanction_outcome.models import SanctionOutcome, SanctionOutcomeUserAction
 
 logger = logging.getLogger('payment_checkout')
 
@@ -113,7 +113,7 @@ class InfringementPenaltySuccessView(TemplateView):
     template_name = 'wildlifecompliance/wc_payments/success.html'
 
     def get(self, request, *args, **kwargs):
-        print (" Infringement Penalty SUCCESS ")
+        print ("=== Infringement Penalty SUCCESS ===")
 
         sanction_outcome = None
         offender = None
@@ -122,7 +122,7 @@ class InfringementPenaltySuccessView(TemplateView):
         try:
             context = template_context(self.request)
             basket = None
-            infringement_penalty = get_session_infringement_invoice(request.session)
+            infringement_penalty = get_session_infringement_invoice(request.session)  # this raises an error when accessed 2nd time
             sanction_outcome = infringement_penalty.sanction_outcome
 
             recipient = sanction_outcome.get_offender()[0].email
@@ -142,7 +142,8 @@ class InfringementPenaltySuccessView(TemplateView):
                 # sanction_outcome.status = SanctionOutcome.STATUS_CLOSED
                 sanction_outcome.payment_status = SanctionOutcome.PAYMENT_STATUS_PAID
                 sanction_outcome.save()
-                sanction_outcome.close(request)
+                sanction_outcome.log_user_action(SanctionOutcomeUserAction.ACTION_PAY_INFRINGEMENT_PENALTY.format(sanction_outcome.lodgement_number, invoice.payment_amount, invoice.reference), request)
+                sanction_outcome.close()
 
             invoice_ref = invoice.reference
             fee_inv, created = InfringementPenaltyInvoice.objects.get_or_create(infringement_penalty=infringement_penalty, invoice_reference=invoice_ref)
