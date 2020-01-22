@@ -33,7 +33,8 @@ from wildlifecompliance.components.sanction_outcome.email import send_infringeme
     send_escalate_for_withdrawal_email, email_detais_to_department_of_transport, send_remediation_notice, \
     send_caution_notice, send_letter_of_advice, send_parking_infringement_without_offenders, \
     send_remediation_action_submitted_notice, send_remediation_action_accepted_notice, \
-    send_remediation_action_request_amendment_mail
+    send_remediation_action_request_amendment_mail, send_infringement_notice_issued_on_paper, \
+    send_remediation_notice_issued_on_paper
 from wildlifecompliance.components.sanction_outcome.models import SanctionOutcome, RemediationAction, \
     SanctionOutcomeCommsLogEntry, AllegedCommittedOffence, SanctionOutcomeUserAction, SanctionOutcomeCommsLogDocument, \
     AmendmentRequestReason, SanctionOutcomeDocument, SanctionOutcomeDocumentAccessLog
@@ -1113,8 +1114,8 @@ class SanctionOutcomeViewSet(viewsets.ModelViewSet):
                         request)
 
                 to_address = [instance.get_offender()[0].email,]
-                cc = [instance.responsible_officer.email, request.user.email] if instance.responsible_officer else None
-                bcc = None
+                cc = None
+                bcc = [instance.responsible_officer.email, request.user.email] if instance.responsible_officer else None
                 email_data = send_due_date_extended_mail(to_address, instance, workflow_entry, request, cc, bcc)
 
                 # Log the above email as a communication log entry
@@ -1225,8 +1226,18 @@ class SanctionOutcomeViewSet(viewsets.ModelViewSet):
                             # Log action
                             instance.log_user_action(SanctionOutcomeUserAction.ACTION_ENDORSE_AND_ISSUE.format(instance.lodgement_number), request)
                         else:
-                            instance.log_user_action(SanctionOutcomeUserAction.ACTION_ENDORSE.format(instance.lodgement_number), request)
+                            # Email
+                            inc_group = SanctionOutcome.get_compliance_permission_group(None, SanctionOutcome.WORKFLOW_ENDORSE)
+                            inc_emails = [member.email for member in inc_group.members]
+                            to_address = inc_emails
+                            cc = [instance.responsible_officer.email,]
+                            bcc = None
+                            if instance.type == SanctionOutcome.TYPE_INFRINGEMENT_NOTICE:
+                                email_data = send_infringement_notice_issued_on_paper(to_address, instance, workflow_entry, request, cc, bcc)
+                            else:
+                                email_data = send_remediation_notice_issued_on_paper(to_address, instance, workflow_entry, request, cc, bcc)
 
+                            instance.log_user_action(SanctionOutcomeUserAction.ACTION_ENDORSE.format(instance.lodgement_number), request)
                     else:
                         # This is a parking infringement but no offenders are set
                         instance.send_to_inc()
@@ -1241,7 +1252,7 @@ class SanctionOutcomeViewSet(viewsets.ModelViewSet):
                         email_data = send_parking_infringement_without_offenders(to_address, instance, workflow_entry, request, cc, bcc)
 
                         # Log action
-                        instance.log_user_action( SanctionOutcomeUserAction.ACTION_ENDORSE.format(instance.lodgement_number), request)
+                        instance.log_user_action(SanctionOutcomeUserAction.ACTION_ENDORSE.format(instance.lodgement_number), request)
 
                 elif workflow_type == SanctionOutcome.WORKFLOW_RETURN_TO_OFFICER:
                     if not reason:

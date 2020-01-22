@@ -521,9 +521,11 @@ class SanctionOutcome(models.Model):
         offender, title = self.get_offender()
         recipient = ''
         if title == 'driver':
-            recipient = ' to the driver ({})'.format(offender.email)
+            recipient = ' to the {} (driver)'.format(offender.email)
         elif title == 'registration_holder':
-            recipient = ' to the registration holder ({})'.format(offender.email)
+            recipient = ' to the {} (registration holder)'.format(offender.email)
+        elif recipient == 'offender':
+            recipient = ' to the {}'.format(offender.email)
         reason_for_extension = 'Issue infringement notice on ' + self.date_of_issue.strftime("%d/%m/%Y") + recipient
 
         due_date_config = SanctionOutcomeDueDateConfiguration.get_config_by_date(self.date_of_issue)
@@ -641,7 +643,7 @@ class SanctionOutcome(models.Model):
                 data['due_date_1st'] = self.last_due_date_1st
                 data['due_date_2nd'] = target_date
                 data['due_date_term_currently_applied'] = '2nd'
-            data['reason_for_extension'] = reason_for_extension
+            data['reason_for_extension'] = 'Extend due date: ' + reason_for_extension
             data['extended_by_id'] = extended_by_id
             data['sanction_outcome_id'] = self.id
 
@@ -816,6 +818,7 @@ class SanctionOutcomeCommsLogEntry(CommunicationsLogEntry):
     sanction_outcome = models.ForeignKey(SanctionOutcome, related_name='comms_logs')
 
     def save(self, force_insert=False, force_update=False, using=None, update_fields=None):
+        print('=================')
         print('In SanctionOutcomeCommsLogEntry.save()')
         super(SanctionOutcomeCommsLogEntry, self).save(force_insert, force_update, using, update_fields)
 

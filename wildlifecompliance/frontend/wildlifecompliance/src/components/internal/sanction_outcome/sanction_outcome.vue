@@ -110,7 +110,8 @@
                                     </a>
                                 </div>
                             </div>
-                            <div v-if="visibilityEndorseButton" class="row action-button">
+                            <!-- div v-if="visibilityEndorseButton" class="row action-button" -->
+                            <div  class="row action-button">
                                 <div class="col-sm-12">
                                     <a @click="addWorkflow('endorse')" class="btn btn-primary btn-block">
                                         Endorse

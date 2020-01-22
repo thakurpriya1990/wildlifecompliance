@@ -186,6 +186,7 @@
                                             <div>
                                                 <SearchPersonOrganisation 
                                                 :excludeStaff="true" 
+                                                :personOnly="true" 
                                                 classNames="form-control" 
                                                 @entity-selected="personSelected" 
                                                 showCreateUpdate

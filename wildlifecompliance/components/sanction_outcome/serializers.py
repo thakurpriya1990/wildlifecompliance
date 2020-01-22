@@ -640,6 +640,9 @@ class SanctionOutcomeUserActionSerializer(serializers.ModelSerializer):
 class SanctionOutcomeCommsLogEntrySerializer(CommunicationLogEntrySerializer):
     documents = serializers.SerializerMethodField()
 
+    def __init__(self, *args, **kwargs):
+        super(SanctionOutcomeCommsLogEntrySerializer, self).__init__(*args, **kwargs)
+
     class Meta:
         model = SanctionOutcomeCommsLogEntry
         fields = '__all__'
