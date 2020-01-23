@@ -112,7 +112,7 @@ export default {
                         orderable: true,
                     },
                     {
-                        data: 'artifact_type',
+                        data: 'artifact_type_display',
                         searchable: true,
                         orderable: false,
                     },

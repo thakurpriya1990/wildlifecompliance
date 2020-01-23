@@ -106,6 +106,7 @@ class ArtifactSerializer(serializers.ModelSerializer):
 
 
 class ArtifactPaginatedSerializer(serializers.ModelSerializer):
+    artifact_type_display = serializers.SerializerMethodField()
     #artifact_type = serializers.SerializerMethodField()
     status = serializers.SerializerMethodField()
     user_action = serializers.SerializerMethodField()
@@ -125,6 +126,7 @@ class ArtifactPaginatedSerializer(serializers.ModelSerializer):
             'description',
             'entity',
             'digital_documents',
+            'artifact_type_display',
         )
 
     def get_status(self, obj):
@@ -162,6 +164,23 @@ class ArtifactPaginatedSerializer(serializers.ModelSerializer):
 
         urls = '<br />'.join(url_list)
         return urls
+
+    def get_artifact_type_display(self, artifact_obj):
+        display_name = ''
+        pa = PhysicalArtifact.objects.filter(artifact_ptr_id=artifact_obj.id)
+        if pa and pa.first().id:
+            physical_artifact = pa.first()
+            for choice in PhysicalArtifactType.TYPE_CHOICES:
+                if physical_artifact.artifact_type == choice[0]:
+                    display_name = choice[1]
+
+        da = DocumentArtifact.objects.filter(artifact_ptr_id=artifact_obj.id)
+        if da and da.first().id:
+            document_artifact = da.first()
+            for choice in DocumentArtifact.DOCUMENT_TYPE_CHOICES:
+                if document_artifact.document_type == choice[0]:
+                    display_name = choice[1]
+        return display_name
 
 
 class PhysicalArtifactTypeSerializer(serializers.ModelSerializer):
@@ -269,6 +288,7 @@ class DocumentArtifactSerializer(ArtifactSerializer):
     #legal_case = LegalCaseSerializer(read_only=True, many=True)
     people_attending_id_list = serializers.SerializerMethodField()
     legal_case_id_list = serializers.SerializerMethodField()
+    associated_legal_case_id_list = serializers.SerializerMethodField()
     offence = OffenceSerializer(read_only=True)
     offender = OffenderSerializer(read_only=True)
     related_items = serializers.SerializerMethodField()
@@ -293,8 +313,12 @@ class DocumentArtifactSerializer(ArtifactSerializer):
                 'interviewer',
                 'people_attending_id_list',
                 'legal_case_id_list',
+                'associated_legal_case_id_list',
+                'legal_case_id',
                 'offence',
                 'offender',
+                'offence_id',
+                'offender_id',
                 'related_items',
                 'interviewer_email',
                 'document_type_display',
@@ -311,8 +335,18 @@ class DocumentArtifactSerializer(ArtifactSerializer):
 
     def get_legal_case_id_list(self, obj):
         legal_case_id_list = []
-        for legal_case in obj.legal_case.all():
+        for legal_case in obj.associated_legal_cases.all():
             legal_case_id_list.append(legal_case.id)
+        if obj.legal_case:
+            legal_case_id_list.append(obj.legal_case.id)
+        return legal_case_id_list
+
+    def get_associated_legal_case_id_list(self, obj):
+        legal_case_id_list = []
+        for legal_case in obj.associated_legal_cases.all():
+            legal_case_id_list.append(legal_case.id)
+        #if obj.legal_case:
+         #   legal_case_id_list.append(obj.legal_case.id)
         return legal_case_id_list
 
     def get_people_attending_id_list(self, obj):
@@ -332,8 +366,8 @@ class DocumentArtifactSerializer(ArtifactSerializer):
 
     def get_available_statement_artifacts(self, obj):
         artifact_list = []
-        for legal_case in obj.legal_case.all():
-            for artifact in legal_case.legal_case_document_artifacts.all():
+        if obj.legal_case:
+            for artifact in obj.legal_case.legal_case_document_artifacts.all():
                 if obj != artifact and artifact.document_type and artifact.document_type in [
                     'record_of_interview',
                     'witness_statement',
@@ -392,6 +426,7 @@ class PhysicalArtifactSerializer(ArtifactSerializer):
     disposal_method = PhysicalArtifactDisposalMethodSerializer(read_only=True)
     related_items = serializers.SerializerMethodField()
     legal_case_id_list = serializers.SerializerMethodField()
+    associated_legal_case_id_list = serializers.SerializerMethodField()
     available_statement_artifacts = serializers.SerializerMethodField()
     data = PhysicalArtifactFormDataRecordSerializer(many=True)
     #status = CustomChoiceField(read_only=True)
@@ -408,6 +443,7 @@ class PhysicalArtifactSerializer(ArtifactSerializer):
                 'statement',
                 'statement_id',
                 'physical_artifact_type',
+                'physical_artifact_type_id',
                 'used_within_case',
                 'sensitive_non_disclosable',
                 'disposal_method',
@@ -418,6 +454,8 @@ class PhysicalArtifactSerializer(ArtifactSerializer):
                 'disposal_method',
                 'related_items',
                 'legal_case_id_list',
+                'associated_legal_case_id_list',
+                'legal_case_id',
                 'officer_email',
                 'custodian_email',
                 #'status',
@@ -434,16 +472,31 @@ class PhysicalArtifactSerializer(ArtifactSerializer):
 
     def get_legal_case_id_list(self, obj):
         legal_case_id_list = []
-        for legal_case in obj.legal_case.all():
+        for legal_case in obj.associated_legal_cases.all():
             legal_case_id_list.append(legal_case.id)
+        if obj.legal_case:
+            legal_case_id_list.append(obj.legal_case.id)
         return legal_case_id_list
+
+    def get_associated_legal_case_id_list(self, obj):
+        legal_case_id_list = []
+        for legal_case in obj.associated_legal_cases.all():
+            legal_case_id_list.append(legal_case.id)
+        #if obj.legal_case:
+         #   legal_case_id_list.append(obj.legal_case.id)
+        return legal_case_id_list
+
+    #def get_legal_case_id_list(self, obj):
+    #    legal_case_id_list = []
+    #    for legal_case in obj.legal_case.all():
+    #        legal_case_id_list.append(legal_case.id)
+    #    return legal_case_id_list
 
     def get_available_statement_artifacts(self, obj):
         artifact_list = []
-        for legal_case in obj.legal_case.all():
-            for artifact in legal_case.legal_case_document_artifacts.all():
-                #if obj != artifact and artifact.document_type and artifact.document_type in [
-                if artifact.document_type and artifact.document_type in [
+        if obj.legal_case:
+            for artifact in obj.legal_case.legal_case_document_artifacts.all():
+                if obj != artifact and artifact.document_type and artifact.document_type in [
                     'record_of_interview',
                     'witness_statement',
                     'expert_statement',

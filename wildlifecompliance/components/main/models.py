@@ -153,6 +153,7 @@ for method_name, method in queryset_methods.items():
 
 
 class TemporaryDocumentCollection(models.Model):
+    #input_name = models.CharField(max_length=255, null=True, blank=True)
 
     class Meta:
         app_label = 'wildlifecompliance'
@@ -164,6 +165,7 @@ class TemporaryDocument(Document):
         TemporaryDocumentCollection,
         related_name='documents')
     _file = models.FileField(max_length=255)
+    #input_name = models.CharField(max_length=255, null=True, blank=True)
 
     class Meta:
         app_label = 'wildlifecompliance'

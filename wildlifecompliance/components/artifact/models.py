@@ -173,7 +173,11 @@ class PhysicalArtifactType(models.Model):
         unique_together = ('artifact_type', 'version')
 
     def __str__(self):
-        return self.artifact_type
+        display_name = ''
+        for choice in PhysicalArtifactType.TYPE_CHOICES:
+            if self.artifact_type == choice[0]:
+                display_name = choice[1]
+        return display_name
 
 
 class PhysicalArtifactDisposalMethod(models.Model):
@@ -221,15 +225,22 @@ class DocumentArtifact(Artifact):
     #_file = models.FileField(max_length=255)
     #identifier = models.CharField(max_length=255, blank=True, null=True)
     #description = models.TextField(blank=True, null=True)
-    legal_case = models.ManyToManyField(
+    legal_case = models.ForeignKey(
+            LegalCase,
+            related_name='legal_case_document_artifacts_primary',
+            on_delete=models.PROTECT,
+            blank=True,
+            null=True
+            )
+    associated_legal_cases = models.ManyToManyField(
             LegalCase,
             related_name='legal_case_document_artifacts',
             )
     statement = models.ForeignKey(
         'self', 
         related_name='document_artifact_statement',
-        on_delete=models.PROTECT, 
-        blank=True, 
+        on_delete=models.PROTECT,
+        blank=True,
         null=True
         )
     #custodian = models.ForeignKey(
@@ -283,7 +294,12 @@ class DocumentArtifact(Artifact):
             raise e
         legal_case = LegalCase.objects.get(id=legal_case_id_int)
         if legal_case:
-            self.legal_case.add(legal_case)
+            if not self.legal_case:
+                self.legal_case = legal_case
+                self.save()
+            elif self.legal_case != legal_case:
+                self.associated_legal_cases.add(legal_case)
+
 
     def close(self, request=None):
         # NOTE: close_record logic moved to can_close_legal_case
@@ -313,7 +329,14 @@ class PhysicalArtifact(Artifact):
             PhysicalArtifactType,
             null=True
             )
-    legal_case = models.ManyToManyField(
+    legal_case = models.ForeignKey(
+            LegalCase,
+            related_name='legal_case_physical_artifacts_primary',
+            on_delete=models.PROTECT,
+            blank=True,
+            null=True
+            )
+    associated_legal_cases = models.ManyToManyField(
             LegalCase,
             related_name='legal_case_physical_artifacts',
             )
@@ -366,8 +389,12 @@ class PhysicalArtifact(Artifact):
             raise e
         legal_case = LegalCase.objects.get(id=legal_case_id_int)
         if legal_case:
-            self.legal_case.add(legal_case)
-    
+            if not self.legal_case:
+                self.legal_case = legal_case
+                self.save()
+            elif self.legal_case != legal_case:
+                self.associated_legal_cases.add(legal_case)
+
     #def close(self, request=None):
     #    close_record, parents = can_close_artifact(self, request)
     #    # TODO: add logic to check for disposal date
@@ -403,6 +430,15 @@ class PhysicalArtifact(Artifact):
         """ returns a queryset of form data records attached to PhysicalArtifact (shortcut to PhysicalArtifactFormDataRecord related_name). """
         return self.form_data_records.all()
 
+    @property
+    def details_schema(self):
+        if self.physical_artifact_type:
+            return self.physical_artifact_type.details_schema
+
+    @property
+    def storage_schema(self):
+        if self.physical_artifact_type:
+            return self.physical_artifact_type.storage_schema
 
 @python_2_unicode_compatible
 class PhysicalArtifactFormDataRecord(models.Model):
@@ -600,24 +636,25 @@ class ArtifactDocument(Document):
         app_label = 'wildlifecompliance'
 
 
-class DetailsDocument(Document):
-    log_entry = models.ForeignKey(
+class RendererDocument(Document):
+    physical_artifact = models.ForeignKey(
         PhysicalArtifact,
-        related_name='details_documents')
+        related_name='renderer_documents')
     _file = models.FileField(max_length=255)
+    input_name = models.CharField(max_length=255, null=True, blank=True)
 
     class Meta:
         app_label = 'wildlifecompliance'
 
 
-class StorageDocument(Document):
-    log_entry = models.ForeignKey(
-        PhysicalArtifact,
-        related_name='storage_documents')
-    _file = models.FileField(max_length=255)
-
-    class Meta:
-        app_label = 'wildlifecompliance'
+#class StorageDocument(Document):
+#    log_entry = models.ForeignKey(
+#        PhysicalArtifact,
+#        related_name='storage_documents')
+#    _file = models.FileField(max_length=255)
+#
+#    class Meta:
+#        app_label = 'wildlifecompliance'
 
 
 #class LegalCaseRunningSheetArtifacts(models.Model):
