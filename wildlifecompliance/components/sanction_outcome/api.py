@@ -270,7 +270,11 @@ class RemediationActionViewSet(viewsets.ModelViewSet):
                 ra = self.get_object()
                 serializer = RemediationActionUpdateStatusSerializer(ra, data={'status': RemediationAction.STATUS_ACCEPTED}, context={'request': request})
                 serializer.is_valid(raise_exception=True)
-                serializer.save()
+
+                # Action log to the sanction outcome before serializer.save() so that ACCEPTED log locates before CLOSED log.
+                ra.sanction_outcome.log_user_action(SanctionOutcomeUserAction.ACTION_REMEDIATION_ACTION_ACCEPTED.format(ra.remediation_action_id), request)
+
+                serializer.save()  # This may add CLOSE log to the action log
 
                 # Email to the offender
                 to_address = [ra.sanction_outcome.get_offender()[0].email, ]
@@ -284,9 +288,6 @@ class RemediationActionViewSet(viewsets.ModelViewSet):
                     serializer = SanctionOutcomeCommsLogEntrySerializer(data=email_data, partial=True)
                     serializer.is_valid(raise_exception=True)
                     serializer.save()
-
-                # Action log to the sanction outcome
-                ra.sanction_outcome.log_user_action(SanctionOutcomeUserAction.ACTION_REMEDIATION_ACTION_ACCEPTED.format(ra.remediation_action_id), request)
 
                 headers = self.get_success_headers(serializer.data)
                 return Response(
