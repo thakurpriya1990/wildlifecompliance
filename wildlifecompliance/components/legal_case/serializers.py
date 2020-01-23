@@ -24,6 +24,7 @@ from rest_framework import serializers
 from django.core.exceptions import ValidationError
 from wildlifecompliance.components.main.fields import CustomChoiceField
 
+from wildlifecompliance.components.offence.serializers import OffenceSerializer
 from wildlifecompliance.components.users.serializers import (
     ComplianceUserDetailsOptimisedSerializer,
     CompliancePermissionGroupMembersSerializer,
@@ -278,49 +279,6 @@ class LegalCaseRunningSheetSerializer(serializers.ModelSerializer):
                 )
 
 
-#class LegalCaseStatementArtifactsSerializer(serializers.ModelSerializer):
-#    statement_artifacts = serializers.SerializerMethodField()
-#
-#    class Meta:
-#        model = LegalCase
-#        fields = (
-#                'id',
-#                'statement_artifacts',
-#                )
-#        read_only_fields = (
-#                'id',
-#                )
-#
-#    #def get_statement_artifacts(self, obj):
-#    #    artifact_list = []
-#    #    for artifact in obj.legal_case_document_artifacts.all():
-#    #        if artifact.document_type \
-#    #        and artifact.document_type.artifact_type in \
-#    #        [
-#    #            'Record of Interview',
-#    #            'Witness Statement',
-#    #            'Expert Statement',
-#    #            'Officer Statement'
-#    #        ]:
-#    #            serialized_artifact = DocumentArtifactSerializer(artifact)
-#    #            artifact_list.append(serialized_artifact)
-#    #    return artifact_list
-#
-#    def get_statement_artifacts(self, obj):
-#        artifact_list = []
-#        for artifact in obj.legal_case_document_artifacts.all():
-#            if artifact.document_type and artifact.document_type in \
-#            [
-#                'record_of_interview',
-#                'witness_statement',
-#                'expert_statement',
-#                'officer_statement'
-#            ]:
-#                serialized_artifact = DocumentArtifactSerializer(artifact)
-#                artifact_list.append(serialized_artifact)
-#        return artifact_list
-
-
 class LegalCaseSerializer(serializers.ModelSerializer):
     running_sheet_entries = LegalCaseRunningSheetEntrySerializer(many=True)
     legal_case_person = EmailUserSerializer(many=True)
@@ -334,6 +292,7 @@ class LegalCaseSerializer(serializers.ModelSerializer):
     related_items = serializers.SerializerMethodField()
     statement_artifacts = serializers.SerializerMethodField()
     legal_case_priority = LegalCasePrioritySerializer()
+    offence_list = serializers.SerializerMethodField()
     #running_sheet_artifacts = LegalCaseRunningSheetArtifactsSerializer(read_only=True)
     #inspection_report = serializers.SerializerMethodField()
     #data = InspectionFormDataRecordSerializer(many=True)
@@ -364,7 +323,9 @@ class LegalCaseSerializer(serializers.ModelSerializer):
                 'running_sheet_entries',
                 'statement_artifacts',
                 'legal_case_person',
+                'offence_list',
                 #'running_sheet_artifacts',
+                'statement_of_facts',
                 'victim_impact_statement_taken',
                 'statements_pending',
                 'vulnerable_hostile_witnesses',
@@ -400,6 +361,18 @@ class LegalCaseSerializer(serializers.ModelSerializer):
                 'id',
                 )
 
+    def get_offence_list(self, obj):
+        offence_list = [{
+            'id': '',
+            'lodgement_number': '',
+            'identifier': '',
+            }]
+        offence_queryset = obj.offence_legal_case.all()
+        if offence_queryset and offence_queryset.first().id:
+            serializer = OffenceSerializer(offence_queryset, many=True, context=self.context)
+            offence_list.extend(serializer.data)
+        return offence_list
+        
     def get_statement_artifacts(self, obj):
         artifact_list = []
         for artifact in obj.legal_case_document_artifacts.all():
@@ -503,6 +476,7 @@ class SaveLegalCaseSerializer(serializers.ModelSerializer):
                 'applications_orders_requests',
                 'applications_orders_required',
                 'other_legal_matters',
+                'statement_of_facts',
 
                 'victim_impact_statement_taken_details',
                 'statements_pending_details',

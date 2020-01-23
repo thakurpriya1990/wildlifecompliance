@@ -161,6 +161,9 @@
                         <div :id="bTab" class="tab-pane fade in">
                             <FormSection :formCollapse="false" label="Statement of Facts">
                                 <div class="col-sm-12 form-group"><div class="row">
+                                    <label class="col-sm-10">Statement of facts
+                                        <textarea :readonly="readonlyForm" class="form-control location_address_field" v-model="legal_case.statement_of_facts" />
+                                    </label>
                                 </div></div>
                             </FormSection>
                             <FormSection :formCollapse="false" label="Case Information Form">
@@ -596,6 +599,17 @@ export default {
         // return false if no related item is an Offence
         return false
     },
+      /*
+    offenceList: function() {
+        let oList = [];
+        for (let item of this.legal_case.related_items) {
+            if (item.model_name.toLowerCase() === 'offence') {
+                oList.push(item);
+            }
+        }
+        return oList;
+    },
+    */
     offenceVisibility: function() {
         let offence_visibility = false;
         if (this.legal_case.status && this.legal_case.can_user_action) {

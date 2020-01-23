@@ -41,7 +41,13 @@ export const physicalArtifactStore = {
                 api_endpoints.artifact,
                 state.physical_artifact.id + "/process_comms_log_document/"
                 )
-            Vue.set(state.physical_artifact, 'commsLogsDocumentUrl', commsLogsDocumentUrl); 
+            Vue.set(state.physical_artifact, 'commsLogsDocumentUrl', commsLogsDocumentUrl);
+            // renderer
+            let rendererDocumentUrl = helpers.add_endpoint_join(
+                api_endpoints.physical_artifact,
+                state.physical_artifact.id + "/process_renderer_document/"
+                )
+            Vue.set(state.physical_artifact, 'rendererDocumentUrl', rendererDocumentUrl);
             /*
             let createLegalCaseProcessCommsLogsPhysicalUrl = helpers.add_endpoint_join(
                 api_endpoints.legal_case,
@@ -59,8 +65,20 @@ export const physicalArtifactStore = {
         updateCustodianEmail(state, email) {
             Vue.set(state.physical_artifact, 'custodian_email', email);
         },
+        /*
         updateTemporaryDocumentCollectionId(state, temp_doc_id) {
             Vue.set(state.physical_artifact, 'temporary_document_collection_id', temp_doc_id);
+        },
+        */
+        updateTemporaryDocumentCollectionList(state, {temp_doc_id, input_name}) {
+            if (!state.physical_artifact.temporary_document_collection_list) {
+                Vue.set(state.physical_artifact, 'temporary_document_collection_list', []);
+            }
+            state.physical_artifact.temporary_document_collection_list.push(
+                {   "temp_doc_id": temp_doc_id,
+                    "input_name": input_name,
+                }
+            );
         },
         updateStatementId(state, statement_id) {
             console.log(statement_id)
@@ -83,6 +101,19 @@ export const physicalArtifactStore = {
 
                 console.log(returnedPhysicalArtifact)
                 commit("updatePhysicalArtifact", returnedPhysicalArtifact.body);
+
+                for (let form_data_record of returnedPhysicalArtifact.body.data) {
+                    await dispatch("setFormValue", {
+                        key: form_data_record.field_name,
+                        value: {
+                            "value": form_data_record.value,
+                            "comment_value": form_data_record.comment,
+                            "deficiency_value": form_data_record.deficiency,
+                        }
+                    }, {
+                        root: true
+                    });
+                }
 
             } catch (err) {
                 console.log(err);
@@ -111,9 +142,14 @@ export const physicalArtifactStore = {
                     payload.legal_case_id = legal_case_id;
                 }
                 // Renderer data
-                if (state.inspection.schema && state.inspection.schema.length > 0) {
+                /*
+                if ((state.physical_artifact.details_schema && state.physical_artifact.details_schema.length) || 
+                    (state.physical_artifact.storage_schema && state.physical_artifact.storage_schema.length)) {
                     payload.renderer_data = rootGetters.renderer_form_data;
                 }
+                */
+                payload.renderer_data = rootGetters.renderer_form_data;
+                console.log(payload);
 
                 let fetchUrl = null;
                 if (create) {
@@ -165,8 +201,13 @@ export const physicalArtifactStore = {
         setCustodianEmail({ commit }, email ) {
             commit("updateCustodianEmail", email);
         },
+        /*
         setTemporaryDocumentCollectionId({ commit }, temp_doc_id) {
             commit("updateTemporaryDocumentCollectionId", temp_doc_id);
+        },
+        */
+        addToTemporaryDocumentCollectionList({ commit }, {temp_doc_id, input_name}) {
+            commit("updateTemporaryDocumentCollectionList", {temp_doc_id, input_name});
         },
         setStatementId({ commit }, statement_id) {
             commit("updateStatementId", statement_id);

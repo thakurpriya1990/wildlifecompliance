@@ -179,6 +179,7 @@ export default {
 
             var formData = new FormData();
             formData.append('action', 'delete');
+                formData.append('input_name', this.name);
             if (this.commsLogId) {
                 formData.append('comms_log_id', this.commsLogId);
             }
@@ -200,6 +201,7 @@ export default {
 
             let formData = new FormData();
             formData.append('action', 'cancel');
+                formData.append('input_name', this.name);
             if (this.commsLogId) {
                 formData.append('comms_log_id', this.commsLogId);
             }
@@ -232,7 +234,12 @@ export default {
                 let res = await Vue.http.post(this.document_action_url)
                 console.log(res)
                 this.temporary_document_collection_id = res.body.id
-                await this.$emit('update-temp-doc-coll-id', this.temporary_document_collection_id);
+                await this.$emit('update-temp-doc-coll-id',
+                    {
+                        "temp_doc_id": this.temporary_document_collection_id,
+                        "input_name": this.name,
+                    }
+                );
                 //this.$parent.temporary_document_collection_id = this.temporary_document_collection_id
                 this.$nextTick(async () => {
                     // must emit event here
