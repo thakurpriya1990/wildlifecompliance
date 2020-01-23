@@ -16,27 +16,39 @@
 #from wildlifecompliance.components.legal_case.models import LegalCase
 from wildlifecompliance.components.artifact.models import BriefOfEvidenceRecordOfInterview
 
-def build_legal_case_hierarchy(legal_case):
-        # build offences, offenders and ROI hierarchy
-        if legal_case.offence_legal_case.count():
-            #boe_list = []
-            for offence in self.offence_legal_case.all():
-                offence_level_record, created = BriefOfEvidenceRecordOfInterview.objects.get_or_create(
-                        legal_case=legal_case, 
-                        offence=offence)
-
-                for offender in offence.offender_set.all():
+def build_boe_roi_hierarchy(legal_case):
+    # build offences, offenders and ROI hierarchy
+    for offence in legal_case.offence_legal_case.all():
+        if not offence.offender_set.count():
+            offence_level_record, created = BriefOfEvidenceRecordOfInterview.objects.get_or_create(
+                    legal_case=legal_case, 
+                    offence=offence,
+                    offender=None,
+                    record_of_interview=None,
+                    associated_doc_artifact=None)
+        else:
+            for offender in offence.offender_set.all():
+                # statements must be 'record_of_interview' only
+                if not offender.document_artifact_offender.count() or not (
+                    'record_of_interview' in [document_artifact.document_type for 
+                    document_artifact in offender.document_artifact_offender.all()]):
                     offender_level_record, created = BriefOfEvidenceRecordOfInterview.objects.get_or_create(
                             legal_case=legal_case, 
                             offence=offence,
-                            offender= offender)
+                            offender= offender,
+                            record_of_interview=None,
+                            associated_doc_artifact=None)
+                else:
                     for document_artifact in offender.document_artifact_offender.all():
-                        if document_artifact.offence == offence:
+                        if document_artifact.offence == offence and document_artifact.document_type == 'record_of_interview' and (
+                                not document_artifact.document_artifact_statement.count()):
                             roi_level_record, created = BriefOfEvidenceRecordOfInterview.objects.get_or_create(
                                     legal_case=legal_case, 
                                     offence=offence,
                                     offender= offender,
-                                    record_of_interview=document_artifact)
+                                    record_of_interview=document_artifact,
+                                    associated_doc_artifact=None)
+                        else:
                             for sub_document_artifact in document_artifact.document_artifact_statement.all():
                                 doc_level_record, created = BriefOfEvidenceRecordOfInterview.objects.get_or_create(
                                         legal_case=legal_case, 
@@ -44,10 +56,4 @@ def build_legal_case_hierarchy(legal_case):
                                         offender= offender,
                                         record_of_interview=document_artifact,
                                         associated_doc_artifact=sub_document_artifact)
-                        #else:
-                         #   print("nah not this one")
-            #print("boe_list")
-            #for l in boe_list:
-            #    print(l)
-
 

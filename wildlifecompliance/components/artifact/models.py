@@ -655,7 +655,7 @@ class BriefOfEvidenceRecordOfInterview(models.Model):
             Offence, 
             related_name='offence_boe_roi')
     offender = models.ForeignKey(
-            LegalCase, 
+            Offender, 
             related_name='offender_boe_roi', 
             blank=True, 
             null=True)
@@ -674,6 +674,15 @@ class BriefOfEvidenceRecordOfInterview(models.Model):
     class Meta:
         app_label = 'wildlifecompliance'
 
+    #@property
+    #def __str__(self):
+    #    return '{}_{}_{}_{}_{}'.format(
+    #            self.legal_case.id, 
+    #            self.offence.id, 
+    #            self.offender.id, 
+    #            self.record_of_interview.id, 
+    #            self.associated_doc_artifact.id
+    #            )
 
 #class StorageDocument(Document):
 #    log_entry = models.ForeignKey(
