@@ -1940,6 +1940,51 @@ class Application(RevisionedMixin):
             else:
                 return WildlifeLicence.objects.none(), False
 
+    def reissue_activity(
+        self, request, selected_activity, 
+        parent_licence=None, generate_licence=False):
+        """
+        Process to allow a previously issued Activity to be updated and then
+        Re-issued.
+        1. Set Activity processing status to With Approver.
+        2. Set Activity status to Current.
+        3. Set Application process status to Under Review.
+        """
+        if not selected_activity.licence_fee_paid: # shouldn't occur if issued.
+            raise Exception(
+            "Cannot Reissue activity: licence fee has not been paid!")
+
+        with transaction.atomic():
+            try:
+                selected_activity.processing_status = \
+                    ApplicationSelectedActivity.PROCESSING_STATUS_OFFICER_FINALISATION
+                selected_activity.activity_status = \
+                    ApplicationSelectedActivity.ACTIVITY_STATUS_CURRENT
+                selected_activity.updated_by = request.user
+                # Log application action
+                self.log_user_action(
+                    ApplicationUserAction.ACTION_REISSUE_LICENCE_.format(
+                        selected_activity.licence_activity.name), request)
+                # Log entry for organisation
+                if self.org_applicant:
+                    self.org_applicant.log_user_action(
+                        ApplicationUserAction.ACTION_REISSUE_LICENCE_.format(
+                            selected_activity.licence_activity.name), request)
+                elif self.proxy_applicant:
+                    self.proxy_applicant.log_user_action(
+                        ApplicationUserAction.ACTION_REISSUE_LICENCE_.format(
+                            selected_activity.licence_activity.name), request)
+                else:
+                    self.submitter.log_user_action(
+                        ApplicationUserAction.ACTION_REISSUE_LICENCE_.format(
+                            selected_activity.licence_activity.name), request)
+
+                selected_activity.save()
+
+            except BaseException:
+                print(Exception)
+                raise
+
     def issue_activity(self, request, selected_activity, parent_licence=None, generate_licence=False):
 
         if not selected_activity.licence_fee_paid:
@@ -2216,6 +2261,9 @@ class Application(RevisionedMixin):
         self.save()
 
     def generate_returns(self, licence, selected_activity, request):
+
+        # TODO: Delete any previously existing returns with default status
+        # which may occur if this activity is being reissued or amended.
         from wildlifecompliance.components.returns.models import Return
         licence_expiry = selected_activity.expiry_date
         licence_expiry = datetime.datetime.strptime(
@@ -3161,6 +3209,10 @@ class ApplicationSelectedActivity(models.Model):
             self.updated_by = request.user
             self.save()
 
+    def reissue(self, request):
+        with transaction.atomic():
+            self.application.reissue_activity(request, self)
+
     def mark_as_replaced(self, request):
         with transaction.atomic():
             self.activity_status = ApplicationSelectedActivity.ACTIVITY_STATUS_REPLACED
@@ -3539,6 +3591,7 @@ class ApplicationUserAction(UserAction):
     ACTION_ENTER_CONDITIONS = "Entered condition for activity {}"
     ACTION_CREATE_CONDITION_ = "Create condition {}"
     ACTION_ISSUE_LICENCE_ = "Issue Licence for activity {}"
+    ACTION_REISSUE_LICENCE_ = "Re-issuing Licence for activity {}"
     ACTION_DECLINE_LICENCE_ = "Decline Licence for activity {}"
     ACTION_DISCARD_APPLICATION = "Discard application {}"
     # Assessors
