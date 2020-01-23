@@ -156,6 +156,7 @@ export default {
             }
         },
         submit: async function() {
+            console.log('submit');
             let user_action = await this.submitRemediationAction();
             this.$router.push({ name: 'external-remediation-action-submit-success', params: { remediation_action_id: this.remediation_action.id, user_action: user_action }});
         },

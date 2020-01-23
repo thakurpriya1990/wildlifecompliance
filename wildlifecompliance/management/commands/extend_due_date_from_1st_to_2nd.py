@@ -94,10 +94,10 @@ class Command(BaseCommand):
 
                     # Add action log
                     overdue_sanction_outcome.log_user_action(SanctionOutcomeUserAction.ACTION_INCREASE_FEE_AND_EXTEND_DUE.format(
-                        overdue_sanction_outcome.penalty_amount_1st,
-                        overdue_sanction_outcome.penalty_amount_2nd,
                         latest_due_date.due_date_1st,
                         latest_due_date.due_date_2nd,
+                        overdue_sanction_outcome.penalty_amount_1st,
+                        overdue_sanction_outcome.penalty_amount_2nd,
                     ))
 
                 logger.info('Command {} completed'.format(__name__))

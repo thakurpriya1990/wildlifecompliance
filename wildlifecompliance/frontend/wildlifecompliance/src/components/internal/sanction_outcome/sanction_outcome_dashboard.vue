@@ -414,5 +414,8 @@ export default {
 </script>
 
 <style>
-
+.viewed-by-offender {
+    color: green;
+    font: 1.5em;
+}
 </style>

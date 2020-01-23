@@ -1,5 +1,7 @@
 import json
 import logging
+import mimetypes
+import os
 import traceback
 
 from datetime import datetime
@@ -9,7 +11,7 @@ from django.contrib.contenttypes.models import ContentType
 from django.core.exceptions import ValidationError
 from django.db import transaction
 from django.db.models import Q
-from django.http import HttpResponse
+from django.http import HttpResponse, FileResponse, HttpResponseNotFound
 
 from rest_framework import viewsets, serializers, status
 from rest_framework.decorators import list_route, detail_route, renderer_classes
@@ -31,16 +33,18 @@ from wildlifecompliance.components.sanction_outcome.email import send_infringeme
     send_escalate_for_withdrawal_email, email_detais_to_department_of_transport, send_remediation_notice, \
     send_caution_notice, send_letter_of_advice, send_parking_infringement_without_offenders, \
     send_remediation_action_submitted_notice, send_remediation_action_accepted_notice, \
-    send_remediation_action_request_amendment_mail
+    send_remediation_action_request_amendment_mail, send_infringement_notice_issued_on_paper, \
+    send_remediation_notice_issued_on_paper
 from wildlifecompliance.components.sanction_outcome.models import SanctionOutcome, RemediationAction, \
     SanctionOutcomeCommsLogEntry, AllegedCommittedOffence, SanctionOutcomeUserAction, SanctionOutcomeCommsLogDocument, \
-    AmendmentRequestReason
+    AmendmentRequestReason, SanctionOutcomeDocument, SanctionOutcomeDocumentAccessLog
 from wildlifecompliance.components.sanction_outcome.serializers import SanctionOutcomeSerializer, \
     SaveSanctionOutcomeSerializer, SaveRemediationActionSerializer, SanctionOutcomeDatatableSerializer, \
     UpdateAssignedToIdSerializer, SanctionOutcomeCommsLogEntrySerializer, SanctionOutcomeUserActionSerializer, \
     AllegedCommittedOffenceSerializer, RecordFerCaseNumberSerializer, \
     RemediationActionSerializer, RemediationActionUpdateStatusSerializer, AmendmentRequestReasonSerializer, \
-    SaveAmendmentRequestForRemediationAction, AllegedCommittedOffenceCreateSerializer
+    SaveAmendmentRequestForRemediationAction, AllegedCommittedOffenceCreateSerializer, \
+    SanctionOutcomeDocumentAccessLogSerializer
 from wildlifecompliance.components.users.models import CompliancePermissionGroup, RegionDistrict
 from wildlifecompliance.helpers import is_internal
 from wildlifecompliance.components.main.models import TemporaryDocumentCollection
@@ -156,7 +160,7 @@ class SanctionOutcomePaginatedViewSet(viewsets.ModelViewSet):
         queryset = self.filter_queryset(queryset)
         self.paginator.page_size = queryset.count()
         result_page = self.paginator.paginate_queryset(queryset, request)
-        serializer = SanctionOutcomeDatatableSerializer(result_page, many=True, context={'request': request})
+        serializer = SanctionOutcomeDatatableSerializer(result_page, many=True, context={'request': request, 'internal': is_internal(request)})
         s_data = serializer.data
         ret = self.paginator.get_paginated_response(s_data)
         return ret
@@ -166,11 +170,15 @@ class SanctionOutcomePaginatedViewSet(viewsets.ModelViewSet):
         """
         This function is called from the external dashboard page by external user
         """
-        queryset = SanctionOutcome.objects_for_external.filter(Q(offender__person=request.user))
+        queryset = SanctionOutcome.objects_for_external.filter(
+            (Q(offender__person=request.user) & Q(offender__removed=False) & Q(registration_holder__isnull=True) & Q(driver__isnull=True)) |
+            (Q(offender__isnull=True) & Q(registration_holder=request.user) & Q(driver__isnull=True)) |
+            (Q(offender__isnull=True) & Q(driver=request.user))
+        )
         queryset = self.filter_queryset(queryset).order_by('-id')
         self.paginator.page_size = queryset.count()
         result_page = self.paginator.paginate_queryset(queryset, request)
-        serializer = SanctionOutcomeDatatableSerializer(result_page, many=True, context={'request': request})
+        serializer = SanctionOutcomeDatatableSerializer(result_page, many=True, context={'request': request, 'internal': is_internal(request)})
         ret = self.paginator.get_paginated_response(serializer.data)
         return ret
 
@@ -366,7 +374,12 @@ class RemediationActionViewSet(viewsets.ModelViewSet):
         if is_internal(self.request):
             return RemediationAction.objects.all()
         else:
-            return RemediationAction.objects_for_external.filter(sanction_outcome__offender__person=self.request.user)
+            return RemediationAction.objects_for_external.filter(
+                (Q(sanction_outcome__offender__person=self.request.user) & Q(sanction_outcome__registration_holder__isnull=True) & Q(sanction_outcome__driver__isnull=True)) |
+                (Q(sanction_outcome__offender__isnull=True) & Q(sanction_outcome__registration_holder=self.request.user) & Q(sanction_outcome__driver__isnull=True)) |
+                (Q(sanction_outcome__offender__isnull=True) & Q(sanction_outcome__driver=self.request.user))
+            )
+            # return RemediationAction.objects_for_external.filter(sanction_outcome__offender__person=self.request.user)
 
     def retrieve(self, request, *args, **kwargs):
         """
@@ -458,6 +471,39 @@ class SanctionOutcomeViewSet(viewsets.ModelViewSet):
     queryset = SanctionOutcome.objects.all()
     serializer_class = SanctionOutcomeSerializer
 
+    @detail_route(methods=['GET',])
+    def doc(self, request, *args, **kwargs):
+        try:
+            file_name = request.GET['name']
+            sanction_outcome_id = kwargs.get('pk', None)
+
+            sanction_outcome = SanctionOutcome.objects_for_external.get(
+                (
+                    (Q(offender__person=request.user) & Q(registration_holder__isnull=True) & Q(driver__isnull=True)) |
+                    (Q(offender__isnull=True) & Q(registration_holder=request.user) & Q(driver__isnull=True)) |
+                    (Q(offender__isnull=True) & Q(driver=request.user))
+                )
+                & Q(id=sanction_outcome_id))
+            so_file = SanctionOutcomeDocument.objects.get(Q(sanction_outcome=sanction_outcome) & Q(_file__icontains=file_name))
+
+            with open(so_file._file.path, 'r') as f:
+                mimetypes.init()
+                f_name = os.path.basename(so_file._file.path)
+                mime_type_guess = mimetypes.guess_type(f_name)
+                if mime_type_guess is not None:
+                    response = HttpResponse(f, content_type=mime_type_guess[0])
+                response['Content-Disposition'] = 'inline;filename={}'.format(f_name)
+
+                # Log access
+                serializer = SanctionOutcomeDocumentAccessLogSerializer(data={'accessed_by_id': request.user.id, 'sanction_outcome_document_id': so_file.id})
+                serializer.is_valid(raise_exception=True)
+                serializer.save()
+
+                return response
+        except IOError:
+            response = HttpResponseNotFound()
+        return response
+
     @list_route(methods=['GET', ])
     def reasons(self, request, *args, **kwargs):
         qs = AmendmentRequestReason.objects.all()
@@ -469,7 +515,11 @@ class SanctionOutcomeViewSet(viewsets.ModelViewSet):
         if is_internal(self.request):
             return SanctionOutcome.objects.all()
         else:
-            return SanctionOutcome.objects_for_external.filter(offender__person=self.request.user)
+            return SanctionOutcome.objects_for_external.filter(
+                (Q(offender__person=self.request.user) & Q(registration_holder__isnull=True) & Q(driver__isnull=True)) |
+                (Q(offender__isnull=True) & Q(registration_holder=self.request.user) & Q(driver__isnull=True)) |
+                (Q(offender__isnull=True) & Q(driver=self.request.user))
+            )
         return SanctionOutcome.objects.none()
 
     @list_route(methods=['GET', ])
@@ -679,7 +729,7 @@ class SanctionOutcomeViewSet(viewsets.ModelViewSet):
                             else:
                                 instance.log_user_action(SanctionOutcomeUserAction.ACTION_REMOVE_ALLEGED_COMMITTED_OFFENCE.format(existing_aco.alleged_offence), request)
 
-                instance.log_user_action(SanctionOutcomeUserAction.ACTION_UPDATE.format(instance), request)
+                instance.log_user_action(SanctionOutcomeUserAction.ACTION_UPDATE.format(instance.lodgement_number), request)
 
                 # Return
                 return_serializer = SanctionOutcomeSerializer(instance=instance, context={'request': request})
@@ -1058,13 +1108,14 @@ class SanctionOutcomeViewSet(viewsets.ModelViewSet):
                     last_date = dates[0]
                     second_last = dates[1]
                     instance.log_user_action(SanctionOutcomeUserAction.ACTION_EXTEND_DUE_DATE.format(
+                        instance.lodgement_number,
                         second_last.due_date_applied.strftime('%d/%m/%Y'),
                         last_date.due_date_applied.strftime('%d/%m/%Y')),
                         request)
 
                 to_address = [instance.get_offender()[0].email,]
-                cc = [instance.responsible_officer.email, request.user.email] if instance.responsible_officer else None
-                bcc = None
+                cc = None
+                bcc = [instance.responsible_officer.email, request.user.email] if instance.responsible_officer else None
                 email_data = send_due_date_extended_mail(to_address, instance, workflow_entry, request, cc, bcc)
 
                 # Log the above email as a communication log entry
@@ -1175,8 +1226,18 @@ class SanctionOutcomeViewSet(viewsets.ModelViewSet):
                             # Log action
                             instance.log_user_action(SanctionOutcomeUserAction.ACTION_ENDORSE_AND_ISSUE.format(instance.lodgement_number), request)
                         else:
-                            instance.log_user_action(SanctionOutcomeUserAction.ACTION_ENDORSE.format(instance.lodgement_number), request)
+                            # Email
+                            inc_group = SanctionOutcome.get_compliance_permission_group(None, SanctionOutcome.WORKFLOW_ENDORSE)
+                            inc_emails = [member.email for member in inc_group.members]
+                            to_address = inc_emails
+                            cc = [instance.responsible_officer.email,]
+                            bcc = None
+                            if instance.type == SanctionOutcome.TYPE_INFRINGEMENT_NOTICE:
+                                email_data = send_infringement_notice_issued_on_paper(to_address, instance, workflow_entry, request, cc, bcc)
+                            else:
+                                email_data = send_remediation_notice_issued_on_paper(to_address, instance, workflow_entry, request, cc, bcc)
 
+                            instance.log_user_action(SanctionOutcomeUserAction.ACTION_ENDORSE.format(instance.lodgement_number), request)
                     else:
                         # This is a parking infringement but no offenders are set
                         instance.send_to_inc()
@@ -1191,7 +1252,7 @@ class SanctionOutcomeViewSet(viewsets.ModelViewSet):
                         email_data = send_parking_infringement_without_offenders(to_address, instance, workflow_entry, request, cc, bcc)
 
                         # Log action
-                        instance.log_user_action( SanctionOutcomeUserAction.ACTION_ENDORSE.format(instance.lodgement_number), request)
+                        instance.log_user_action(SanctionOutcomeUserAction.ACTION_ENDORSE.format(instance.lodgement_number), request)
 
                 elif workflow_type == SanctionOutcome.WORKFLOW_RETURN_TO_OFFICER:
                     if not reason:

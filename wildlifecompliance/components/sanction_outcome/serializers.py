@@ -18,7 +18,7 @@ from wildlifecompliance.components.sanction_outcome_due.serializers import Sanct
 from wildlifecompliance.components.section_regulation.serializers import SectionRegulationSerializer
 from wildlifecompliance.components.sanction_outcome.models import SanctionOutcome, RemediationAction, \
     SanctionOutcomeCommsLogEntry, SanctionOutcomeUserAction, AllegedCommittedOffence, AmendmentRequestReason, \
-    AmendmentRequestForRemediationAction, RemediationActionNotification
+    AmendmentRequestForRemediationAction, RemediationActionNotification, SanctionOutcomeDocumentAccessLog
 from wildlifecompliance.components.users.serializers import CompliancePermissionGroupMembersSerializer
 from wildlifecompliance.helpers import is_internal
 
@@ -383,6 +383,18 @@ class UpdateAssignedToIdSerializer(serializers.ModelSerializer):
         )
 
 
+class SanctionOutcomeDocumentAccessLogSerializer(serializers.ModelSerializer):
+    sanction_outcome_document_id = serializers.IntegerField(required=False, write_only=True, allow_null=True)
+    accessed_by_id = serializers.IntegerField(required=False, write_only=True, allow_null=True)
+
+    class Meta:
+        model = SanctionOutcomeDocumentAccessLog
+        fields = (
+            'sanction_outcome_document_id',
+            'accessed_by_id',
+        )
+
+
 class SanctionOutcomeDatatableSerializer(serializers.ModelSerializer):
     status = CustomChoiceField(read_only=True)
     payment_status = CustomChoiceField(read_only=True)
@@ -440,7 +452,13 @@ class SanctionOutcomeDatatableSerializer(serializers.ModelSerializer):
         if obj.documents.all().count():
             # Paper notices
             for doc in obj.documents.all():
-                url = '<a href="{}" target="_blank">{}</a>'.format(doc._file.url, doc.name)
+                if self.context.get('internal', False):
+                    count_logs = doc.access_logs.count()
+                    viewed_text = ' Viewed by offender: <i class="fa fa-check-circle fa-lg viewed-by-offender" aria-hidden="true"></i>' if count_logs else ''
+                    url = '<a href="{}" target="_blank">{}</a>'.format(doc._file.url, doc.name) + viewed_text
+                else:
+                    # To detect if the external user accessing the pdf file, we make Django serve the pdf file
+                    url = '<a href="/api/sanction_outcome/{}/doc?name={}" target="_blank">{}</a>'.format(obj.id, doc.name, doc.name)
                 url_list.append(url)
 
         urls = '<br />'.join(url_list)
@@ -558,6 +576,9 @@ class SaveSanctionOutcomeSerializer(serializers.ModelSerializer):
                 non_field_errors.append('Time of Issue is required')
             if not self.context['num_of_documents_attached']:
                 non_field_errors.append('Paper notice is required')
+            if not data['offender_id']:
+                # Offender should be on the paper issued already
+                non_field_errors.append('Offender is required')
 
         if field_errors:
             raise serializers.ValidationError(field_errors)
@@ -618,6 +639,9 @@ class SanctionOutcomeUserActionSerializer(serializers.ModelSerializer):
 
 class SanctionOutcomeCommsLogEntrySerializer(CommunicationLogEntrySerializer):
     documents = serializers.SerializerMethodField()
+
+    def __init__(self, *args, **kwargs):
+        super(SanctionOutcomeCommsLogEntrySerializer, self).__init__(*args, **kwargs)
 
     class Meta:
         model = SanctionOutcomeCommsLogEntry

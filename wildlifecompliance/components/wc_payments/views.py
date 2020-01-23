@@ -69,7 +69,7 @@ from wildlifecompliance.components.wc_payments.context_processors import templat
 from wildlifecompliance.components.wc_payments.models import InfringementPenalty, InfringementPenaltyInvoice
 from wildlifecompliance.components.wc_payments.utils import set_session_infringement_invoice, create_infringement_lines, \
     get_session_infringement_invoice, delete_session_infringement_invoice, checkout
-from wildlifecompliance.components.sanction_outcome.models import SanctionOutcome
+from wildlifecompliance.components.sanction_outcome.models import SanctionOutcome, SanctionOutcomeUserAction
 
 logger = logging.getLogger('payment_checkout')
 
@@ -98,7 +98,7 @@ class InfringementPenaltyView(TemplateView):
                     invoice_text='Infringement Notice'
                 )
 
-                logger.info('{} built payment line item {} for Infringement and handing over to payment gateway'.format('User {} with id {}'.format(sanction_outcome.offender.person.get_full_name(), sanction_outcome.offender.person.id), sanction_outcome.id))
+                logger.info('{} built payment line item {} for Infringement and handing over to payment gateway'.format('User {} with id {}'.format(request.user.get_full_name(), request.user.id), sanction_outcome.id))
                 return checkout_response
 
         except Exception, e:
@@ -113,7 +113,7 @@ class InfringementPenaltySuccessView(TemplateView):
     template_name = 'wildlifecompliance/wc_payments/success.html'
 
     def get(self, request, *args, **kwargs):
-        print (" Infringement Peanlty SUCCESS ")
+        print ("=== Infringement Penalty SUCCESS ===")
 
         sanction_outcome = None
         offender = None
@@ -122,11 +122,11 @@ class InfringementPenaltySuccessView(TemplateView):
         try:
             context = template_context(self.request)
             basket = None
-            infringement_penalty = get_session_infringement_invoice(request.session)
+            infringement_penalty = get_session_infringement_invoice(request.session)  # this raises an error when accessed 2nd time
             sanction_outcome = infringement_penalty.sanction_outcome
 
-            recipient = sanction_outcome.offender.person.email
-            submitter = sanction_outcome.offender.person
+            recipient = sanction_outcome.get_offender()[0].email
+            submitter = sanction_outcome.get_offender()[0]
 
             if self.request.user.is_authenticated():
                 basket = Basket.objects.filter(status='Submitted', owner=request.user).order_by('-id')[:1]
@@ -142,7 +142,8 @@ class InfringementPenaltySuccessView(TemplateView):
                 # sanction_outcome.status = SanctionOutcome.STATUS_CLOSED
                 sanction_outcome.payment_status = SanctionOutcome.PAYMENT_STATUS_PAID
                 sanction_outcome.save()
-                sanction_outcome.close(request)
+                sanction_outcome.log_user_action(SanctionOutcomeUserAction.ACTION_PAY_INFRINGEMENT_PENALTY.format(sanction_outcome.lodgement_number, invoice.payment_amount, invoice.reference), request)
+                sanction_outcome.close()
 
             invoice_ref = invoice.reference
             fee_inv, created = InfringementPenaltyInvoice.objects.get_or_create(infringement_penalty=infringement_penalty, invoice_reference=invoice_ref)
@@ -154,12 +155,12 @@ class InfringementPenaltySuccessView(TemplateView):
                     order.user = submitter
                     order.save()
                 except Invoice.DoesNotExist:
-                    logger.error('{} tried paying an infringement penalty with an incorrect invoice'.format('User {} with id {}'.format(sanction_outcome.offender.person.get_full_name(), sanction_outcome.offender.person.id) if sanction_outcome.offender else 'An anonymous user'))
+                    logger.error('{} tried paying an infringement penalty with an incorrect invoice'.format('User {} with id {}'.format(sanction_outcome.get_offender()[0].get_full_name(), sanction_outcome.get_offender()[0].id) if sanction_outcome.offender else 'An anonymous user'))
                     #return redirect('external', args=(proposal.id,))
                     return redirect('external')
 
                 if inv.system not in ['0999']: # TODO Change to correct VALUE
-                    logger.error('{} tried paying an infringement penalty with an invoice from another system with reference number {}'.format('User {} with id {}'.format(sanction_outcome.offender.person.get_full_name(), sanction_outcome.offender.person.id) if sanction_outcome.offender.person else 'An anonymous user',inv.reference))
+                    logger.error('{} tried paying an infringement penalty with an invoice from another system with reference number {}'.format('User {} with id {}'.format(sanction_outcome.get_offender()[0].get_full_name(), sanction_outcome.get_offender()[0].id) if sanction_outcome.get_offender()[0] else 'An anonymous user',inv.reference))
                     #return redirect('external-proposal-detail', args=(proposal.id,))
                     return redirect('external')
 
@@ -201,7 +202,7 @@ class InfringementPenaltySuccessView(TemplateView):
                 infringement_penalty = InfringementPenalty.objects.get(id=request.session['wc_last_infringement_invoice'])
                 sanction_outcome = infringement_penalty.sanction_outcome
 
-                recipient = sanction_outcome.offender.person.email
+                recipient = sanction_outcome.get_offender()[0].email
                 submitter = sanction_outcome.assigned_to.email if sanction_outcome.assigned_to else None
 
                 if InfringementPenaltyInvoice.objects.filter(infringement_penalty=infringement_penalty).count() > 0:

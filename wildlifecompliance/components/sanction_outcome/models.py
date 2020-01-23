@@ -31,11 +31,12 @@ class SanctionOutcomeActiveManager(models.Manager):
 class SanctionOutcomeExternalManager(models.Manager):
     def get_queryset(self):
         return super(SanctionOutcomeExternalManager, self).get_queryset().filter(
-            Q(offender__removed=False) &
-            Q(status__in=(SanctionOutcome.STATUS_AWAITING_PAYMENT,
-                          SanctionOutcome.STATUS_AWAITING_REMEDIATION_ACTIONS,
-                          SanctionOutcome.STATUS_OVERDUE,
-                          SanctionOutcome.STATUS_CLOSED)))
+            (
+                (Q(offender__isnull=False) & Q(offender__removed=False) & Q(registration_holder__isnull=True) & Q(driver__isnull=True)) |
+                (Q(offender__isnull=True) & Q(registration_holder__isnull=False) & Q(driver__isnull=True)) |
+                (Q(offender__isnull=True) & Q(driver__isnull=False))
+            ) &
+            Q(status__in=SanctionOutcome.STATUSES_FOR_EXTERNAL))
 
 
 class SanctionOutcome(models.Model):
@@ -80,6 +81,10 @@ class SanctionOutcome(models.Model):
     FINAL_STATUSES = (STATUS_DECLINED,
                       STATUS_CLOSED,
                       STATUS_WITHDRAWN,)
+    STATUSES_FOR_EXTERNAL = (STATUS_AWAITING_PAYMENT,
+                             STATUS_AWAITING_REMEDIATION_ACTIONS,
+                             STATUS_OVERDUE,
+                             STATUS_CLOSED)
     STATUS_CHOICES = (
         (STATUS_DRAFT, 'Draft'),
         (STATUS_AWAITING_ENDORSEMENT, 'Awaiting Endorsement'),
@@ -201,14 +206,14 @@ class SanctionOutcome(models.Model):
         uin.offenders_organisation_name.set(offender.organisation)
         uin.party_indicator.set('I')
         uin.offenders_gender.set('U')
-        uin.offenders_address_line_1.set(offender.residential_address.line1)
-        uin.offenders_address_line_2.set(offender.residential_address.line2)
-        uin.offenders_address_line_3.set(offender.residential_address.line3)
+        uin.offenders_address_line_1.set(offender.residential_address.line1) if offender.residential_address else uin.offenders_address_line_1.set('')
+        uin.offenders_address_line_2.set(offender.residential_address.line2) if offender.residential_address else uin.offenders_address_line_2.set('')
+        uin.offenders_address_line_3.set(offender.residential_address.line3) if offender.residential_address else uin.offenders_address_line_3.set('')
         uin.offenders_address_line_4.set('')
-        uin.offenders_suburb.set(offender.residential_address.locality)
-        uin.offenders_state.set(offender.residential_address.state)
-        uin.offenders_postcode.set(offender.residential_address.postcode)
-        uin.offenders_country.set(offender.residential_address.country.name)
+        uin.offenders_suburb.set(offender.residential_address.locality) if offender.residential_address else uin.offenders_suburb.set('')
+        uin.offenders_state.set(offender.residential_address.state) if offender.residential_address else uin.offenders_state.set('')
+        uin.offenders_postcode.set(offender.residential_address.postcode) if offender.residential_address else uin.offenders_postcode.set('')
+        uin.offenders_country.set(offender.residential_address.country.name) if offender.residential_address else uin.offenders_country.set('')
         uin.date_address_known_to_be_current.set('')
         uin.acn.set('')
         uin.infringement_number.set(self.lodgement_number)
@@ -262,6 +267,7 @@ class SanctionOutcome(models.Model):
             return None
 
     def get_offender(self):
+        # Priority driver > resigtration_holder > offender
         if self.driver:
             return self.driver, 'driver'
         elif self.registration_holder:
@@ -436,6 +442,8 @@ class SanctionOutcome(models.Model):
 
     def is_issuable(self, raise_exception=False):
         date_window = self.issue_due_date_window
+        if not date_window:
+            raise ValidationError('Issue-due-date-window for the Section/Regulation must be set.')
         issue_due_date = self.offence_occurrence_date + relativedelta(days=date_window)
 
         today = datetime.date.today()
@@ -475,7 +483,10 @@ class SanctionOutcome(models.Model):
     def endorse(self, request):
         if self.type == SanctionOutcome.TYPE_INFRINGEMENT_NOTICE:
             if self.issued_on_paper:
-                pass
+                self.status = SanctionOutcome.STATUS_AWAITING_PAYMENT
+                self.payment_status = SanctionOutcome.PAYMENT_STATUS_UNPAID
+                self.set_penalty_amounts()
+                self.create_due_dates()
             else:
                 if self.is_issuable(raise_exception=True):
                     self.confirm_date_time_issue(raise_exception=True)
@@ -510,9 +521,11 @@ class SanctionOutcome(models.Model):
         offender, title = self.get_offender()
         recipient = ''
         if title == 'driver':
-            recipient = ' to the driver ({})'.format(offender.email)
+            recipient = ' to the {} (driver)'.format(offender.email)
         elif title == 'registration_holder':
-            recipient = ' to the registration holder ({})'.format(offender.email)
+            recipient = ' to the {} (registration holder)'.format(offender.email)
+        elif recipient == 'offender':
+            recipient = ' to the {}'.format(offender.email)
         reason_for_extension = 'Issue infringement notice on ' + self.date_of_issue.strftime("%d/%m/%Y") + recipient
 
         due_date_config = SanctionOutcomeDueDateConfiguration.get_config_by_date(self.date_of_issue)
@@ -553,7 +566,7 @@ class SanctionOutcome(models.Model):
         self.log_user_action(SanctionOutcomeUserAction.ACTION_ESCALATE_FOR_WITHDRAWAL.format(self.lodgement_number), request)
         self.save()
 
-    def withdraw_by_namager(self, request):
+    def withdraw_by_manager(self, request):
         self.status = self.STATUS_WITHDRAWN
         new_group = SanctionOutcome.get_compliance_permission_group(self.regionDistrictId, SanctionOutcome.WORKFLOW_WITHDRAW_BY_MANAGER)
         self.allocated_group = new_group
@@ -630,7 +643,7 @@ class SanctionOutcome(models.Model):
                 data['due_date_1st'] = self.last_due_date_1st
                 data['due_date_2nd'] = target_date
                 data['due_date_term_currently_applied'] = '2nd'
-            data['reason_for_extension'] = reason_for_extension
+            data['reason_for_extension'] = 'Extend due date: ' + reason_for_extension
             data['extended_by_id'] = extended_by_id
             data['sanction_outcome_id'] = self.id
 
@@ -644,9 +657,10 @@ class SanctionOutcome(models.Model):
     def determine_penalty_amount_by_date(self, date_payment):
         try:
             if self.offence_occurrence_date <= date_payment:
-                if date_payment <= self.last_due_date_1st:
-                    return self.penalty_amount_1st
-                elif date_payment <= self.last_due_date_2nd:
+                # if date_payment <= self.last_due_date_1st:
+                if self.last_due_date.due_date_term_currently_applied == '1st':
+                        return self.penalty_amount_1st
+                elif self.last_due_date.due_date_term_currently_applied == '2nd':
                     return self.penalty_amount_2nd
                 else:
                     # Should not reach here
@@ -677,6 +691,7 @@ class AllegedCommittedOffence(RevisionedMixin):
             Q(included=True) &
             Q(alleged_offence=alleged_offence)
         ).exclude(
+            # Once sanction outcome is declined, related alleged_offence can be included in another sanction outcome.
             Q(sanction_outcome__status__in=(SanctionOutcome.STATUS_DECLINED, SanctionOutcome.STATUS_WITHDRAWN)))
 
     def retrieve_penalty_amounts_by_date(self, date_of_issue):
@@ -698,7 +713,9 @@ class AllegedCommittedOffence(RevisionedMixin):
 
 class RemediationActionExternalManager(models.Manager):
     def get_queryset(self):
-        return super(RemediationActionExternalManager, self).get_queryset()
+        return super(RemediationActionExternalManager, self).get_queryset().filter(
+            Q(sanction_outcome__in=SanctionOutcome.objects_for_external.all())
+        )
 
 
 class RemediationAction(RevisionedMixin):
@@ -778,6 +795,17 @@ class SanctionOutcomeDocument(Document):
         verbose_name_plural = 'CM_SanctionOutcomeDocuments'
 
 
+class SanctionOutcomeDocumentAccessLog(models.Model):
+    accessed_at = models.DateTimeField(auto_now_add=True)
+    accessed_by = models.ForeignKey(EmailUser,)
+    sanction_outcome_document = models.ForeignKey(SanctionOutcomeDocument, related_name='access_logs')
+
+    class Meta:
+        app_label = 'wildlifecompliance'
+        verbose_name = 'CM_SanctionOutcomeDocumentAccessLog'
+        verbose_name_plural = 'CM_SanctionOutcomeDocumentAccessLogs'
+
+
 class SanctionOutcomeCommsLogDocument(Document):
     log_entry = models.ForeignKey('SanctionOutcomeCommsLogEntry', related_name='documents')
     _file = models.FileField(max_length=255)
@@ -790,6 +818,7 @@ class SanctionOutcomeCommsLogEntry(CommunicationsLogEntry):
     sanction_outcome = models.ForeignKey(SanctionOutcome, related_name='comms_logs')
 
     def save(self, force_insert=False, force_update=False, using=None, update_fields=None):
+        print('=================')
         print('In SanctionOutcomeCommsLogEntry.save()')
         super(SanctionOutcomeCommsLogEntry, self).save(force_insert, force_update, using, update_fields)
 
@@ -816,14 +845,15 @@ class SanctionOutcomeUserAction(models.Model):
     ACTION_REMOVE_ALLEGED_COMMITTED_OFFENCE = "Remove alleged committed offence: {}"
     ACTION_RESTORE_ALLEGED_COMMITTED_OFFENCE = "Restore alleged committed offence: {}"
     ACTION_INCLUDE_ALLEGED_COMMITTED_OFFENCE = "Include alleged committed offence: {}"
-    ACTION_EXTEND_DUE_DATE = "Extend due date from {} to {}"
+    ACTION_EXTEND_DUE_DATE = "Extend due date of Sanction Outcome {} from {} to {}"
     ACTION_SEND_DETAILS_TO_INFRINGEMENT_NOTICE_COORDINATOR = "Send details of the Unpaid Infringement Notice {} to Infringement Notice Coordinator"
     ACTION_ESCALATE_FOR_WITHDRAWAL = "Escalate Infringement Notice {} for withdrawal"
-    ACTION_INCREASE_FEE_AND_EXTEND_DUE = "Increase penalty amount from {} to {} and extend due date from {} to {}"
+    ACTION_INCREASE_FEE_AND_EXTEND_DUE = "Extend due date from {} to {} and Increase penalty amount from {} to {}"
     ACTION_REMEDIATION_ACTION_OVERDUE = "Set status of Remediation Action {} to 'overdue'"
     ACTION_REMEDIATION_ACTION_SUBMITTED = "Submit Remediation Action {}"
     ACTION_REMEDIATION_ACTION_ACCEPTED = "Accept Remediation Action {}"
     ACTION_REQUEST_AMENDMENT = "Request amendment for Remediation Action {}"
+    ACTION_PAY_INFRINGEMENT_PENALTY = "Pay Infringement Penalty of the Infringement {}, Amount: {}, Invoice: {}"
 
     who = models.ForeignKey(EmailUser, null=True, blank=True)
     when = models.DateTimeField(null=False, blank=False, auto_now_add=True)
