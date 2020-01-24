@@ -674,15 +674,23 @@ class BriefOfEvidenceRecordOfInterview(models.Model):
     class Meta:
         app_label = 'wildlifecompliance'
 
-    #@property
-    #def __str__(self):
-    #    return '{}_{}_{}_{}_{}'.format(
-    #            self.legal_case.id, 
-    #            self.offence.id, 
-    #            self.offender.id, 
-    #            self.record_of_interview.id, 
-    #            self.associated_doc_artifact.id
-    #            )
+    def __str__(self):
+        offender_id = ''
+        if self.offender:
+            offender_id = self.offender.id
+        record_of_interview_id = ''
+        if self.record_of_interview:
+            record_of_interview_id = self.record_of_interview.id
+        associated_doc_artifact_id = ''
+        if self.associated_doc_artifact:
+            associated_doc_artifact_id = self.associated_doc_artifact.id
+        return '{}_{}_{}_{}_{}'.format(
+                self.legal_case.id,
+                self.offence.id,
+                offender_id,
+                record_of_interview_id,
+                associated_doc_artifact_id
+                )
 
 #class StorageDocument(Document):
 #    log_entry = models.ForeignKey(

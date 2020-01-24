@@ -27,6 +27,7 @@ from wildlifecompliance.components.artifact.models import (
         ArtifactCommsLogEntry,
         ArtifactUserAction,
         PhysicalArtifactFormDataRecord,
+        BriefOfEvidenceRecordOfInterview,
         #LegalCaseRunningSheetArtifacts,
         )
 
@@ -572,6 +573,35 @@ class ArtifactCommsLogEntrySerializer(CommunicationLogEntrySerializer):
     def get_documents(self, obj):
         return [[d.name, d._file.url] for d in obj.documents.all()]
 
+
+class BriefOfEvidenceRecordOfInterviewTreeSerializer(serializers.ModelSerializer):
+    tree = serializers.SerializerMethodField()
+
+    class Meta:
+        model = BriefOfEvidenceRecordOfInterview
+        fields = (
+                'id',
+                'tree',
+                )
+        read_only_fields = (
+                'id',
+                )
+
+    def get_tree(self, obj):
+        return 'tree'
+
+
+class BriefOfEvidenceRecordOfInterviewTickedSerializer(serializers.ModelSerializer):
+
+    class Meta:
+        model = BriefOfEvidenceRecordOfInterview
+        fields = (
+                'id',
+                'ticked',
+                )
+        read_only_fields = (
+                'id',
+                )
 
 #class LegalCaseRunningSheetArtifactsSerializer(serializers.ModelSerializer):
 #    document_artifacts = DocumentArtifactSerializer(read_only=True, many=True)

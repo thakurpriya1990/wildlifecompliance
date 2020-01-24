@@ -25,7 +25,7 @@
                         <a class="col-sm-4 control-label pull-right" @click.stop="edit_activities(node)">{{ edit_display_text(node) }}  <i class="fa fa-edit"></i></a>
                     </span>
                     <span v-else>
-                        <p class="col-sm-4 control-label pull-right" style="color: grey;">{{ edit_display_text(node) }}  <i class="fa fa-edit"></p>
+                        <p class="col-sm-4 control-label pull-right" style="color: grey;">{{ edit_display_text(node) }}  <i class="fa fa-edit"></i></p>
                     </span>
                 </div>
             </template>
@@ -55,10 +55,10 @@ from '@/utils/hooks'
    sudo npm install --save @riophae/vue-treeselect
    import Treeselect from '@riophae/vue-treeselect'
 */
-import Treeselect from '@/third-party/vue-treeselect/dict/vue-treeselect.js'
-import '@/third-party/vue-treeselect/dict/vue-treeselect.css'
+import Treeselect from '@riophae/vue-treeselect'
+import '@riophae/vue-treeselect/dist/vue-treeselect.css'
 
-import Profile from '@/components/user/profile.vue'
+//import Profile from '@/components/user/profile.vue'
 //import setupResizeAndScrollEventListeners from '@riophae/vue-treeselect'
 
 export default {
@@ -67,10 +67,12 @@ export default {
         Treeselect,
     },
     props:{
-        proposal:{
+        /*
+        legal_case:{
             type: Object,
             required:true
         },
+        */
         value:{
             type: Object,
             required:false
@@ -201,6 +203,7 @@ export default {
     },
 
     mounted:function () {
+        console.log("treeview")
         if (!this.disabled) {
             this.limit = 20
         }
