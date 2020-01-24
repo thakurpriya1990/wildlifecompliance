@@ -274,12 +274,11 @@
                                         ref="record_of_interview_tree" 
                                         v-model="boeRoiTicked" 
                                         :options="boeRoiOptions" 
-                                        :default_expand_level="1" 
+                                        :default_expand_level="Infinity" 
                                         :disabled="false"
-                                        open-on-click
                                         multiple
-                                        clearable
-                                        open-on-focus
+                                        value-consists-of="LEAF_PRIORITY"
+                                        alwaysOpen
                                         />
                                 </div></div>
                             </FormSection>
