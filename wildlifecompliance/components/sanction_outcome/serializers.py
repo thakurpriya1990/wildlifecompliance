@@ -56,7 +56,7 @@ class RemediationActionUpdateStatusSerializer(serializers.ModelSerializer):
             else:
                 raise serializers.ValidationError('You don\'t have permission')
         elif new_status == RemediationAction.STATUS_SUBMITTED:
-            if req.user == obj.sanction_outcome.get_offender()[0].person:
+            if req.user == obj.sanction_outcome.get_offender()[0]:
                 # Only the offender of the remediation action can submit it
                 return data
             else:
@@ -105,7 +105,7 @@ class RemediationActionSerializer(serializers.ModelSerializer):
     def get_action_taken_editable(self, obj):
         req = self.context.get('request', {})
 
-        if req.user == obj.sanction_outcome.get_offender()[0].person and obj.status in (RemediationAction.STATUS_OPEN):
+        if req.user == obj.sanction_outcome.get_offender()[0] and obj.status in (RemediationAction.STATUS_OPEN):
             # if user is the offender
             # then editable
             return True
@@ -130,7 +130,7 @@ class RemediationActionSerializer(serializers.ModelSerializer):
                 url_list.append(accept_url)
                 url_list.append(request_amendment_url)
         else:
-            if req.user == obj.sanction_outcome.get_offender()[0].person:
+            if req.user == obj.sanction_outcome.get_offender()[0]:
                 if obj.status == RemediationAction.STATUS_OPEN:
                     url_list.append(submit_url)
                 else:

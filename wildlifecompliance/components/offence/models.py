@@ -101,7 +101,10 @@ class Offence(RevisionedMixin):
         verbose_name_plural = 'CM_Offences'
 
     def __str__(self):
-        return 'ID: {}, Status: {}, Identifier: {}'.format(self.id, self.status, self.identifier)
+        try:
+            return 'ID: {}, Status: {}, Identifier: {}'.format(self.id, self.status, self.identifier.encode('utf-8'))
+        except Exception as e:
+            return 'ID: {}'.format(self.id)
 
     def save(self, *args, **kwargs):
         super(Offence, self).save(*args, **kwargs)
