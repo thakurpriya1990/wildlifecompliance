@@ -159,6 +159,7 @@ class WildlifeLicence(models.Model):
     ACTIVITY_PURPOSE_ACTION_CANCEL = 'cancel'
     ACTIVITY_PURPOSE_ACTION_SUSPEND = 'suspend'
     ACTIVITY_PURPOSE_ACTION_REINSTATE = 'reinstate'
+    ACTIVITY_PURPOSE_ACTION_REISSUE = 'reissue'
 
     licence_document = models.ForeignKey(
         LicenceDocument,
@@ -231,6 +232,9 @@ class WildlifeLicence(models.Model):
                             can_action_activity_ids.append(activity.id)
                     elif action == WildlifeLicence.ACTIVITY_PURPOSE_ACTION_REINSTATE:
                         if activity_can_action['can_reinstate']:
+                            can_action_activity_ids.append(activity.id)
+                    elif action == WildlifeLicence.ACTIVITY_PURPOSE_ACTION_REISSUE:
+                        if activity_can_action['can_reissue']:
                             can_action_activity_ids.append(activity.id)
                 latest_activities = latest_activities.filter(id__in=can_action_activity_ids)
         else:
@@ -464,9 +468,10 @@ class WildlifeLicence(models.Model):
 
     def apply_action_to_purposes(self, request, action):
         """
-        Applies a specified action to a licence's purposes for a single licence_activity_id and selected purposes list
-        If not all purposes for an activity are to be actioned, create new SYSTEM_GENERATED Applications and
-        associated activities to apply the relevant statuses for each
+        Applies a specified action to a licence's purposes for a single licence
+        activity_id and selected purposes list If not all purposes for an
+        activity are to be actioned, create new SYSTEM_GENERATED Applications
+        and associated activities to apply the relevant statuses for each.
         """
         from wildlifecompliance.components.applications.models import (
             Application, ApplicationSelectedActivity
@@ -476,7 +481,8 @@ class WildlifeLicence(models.Model):
             WildlifeLicence.ACTIVITY_PURPOSE_ACTION_SURRENDER,
             WildlifeLicence.ACTIVITY_PURPOSE_ACTION_CANCEL,
             WildlifeLicence.ACTIVITY_PURPOSE_ACTION_SUSPEND,
-            WildlifeLicence.ACTIVITY_PURPOSE_ACTION_REINSTATE
+            WildlifeLicence.ACTIVITY_PURPOSE_ACTION_REINSTATE,
+            WildlifeLicence.ACTIVITY_PURPOSE_ACTION_REISSUE,
         ]:
             raise ValidationError('Selected action is not valid')
 
@@ -490,20 +496,30 @@ class WildlifeLicence(models.Model):
                     values_list('licence_activity_id', flat=True).\
                     distinct().count() != 1:
                 raise ValidationError(
-                    'Selected purposes must all be of the same licence activity')
+                  'Selected purposes must all be of the same licence activity')
 
-            licence_activity_id = LicencePurpose.objects.filter(id__in=purpose_ids_list). \
-                first().licence_activity_id
+            licence_activity_id = LicencePurpose.objects.filter(
+                id__in=purpose_ids_list).first().licence_activity_id
 
-            can_action_purposes = self.get_latest_purposes_for_licence_activity_and_action(
-                licence_activity_id, action)
-            can_action_purposes_ids_list = [purpose.id for purpose in can_action_purposes.order_by('id')]
+            can_action_purposes = \
+                self.get_latest_purposes_for_licence_activity_and_action(
+                    licence_activity_id, action)
+            can_action_purposes_ids_list = [
+                purpose.id for purpose in can_action_purposes.order_by('id')]
+
+            # A Reissue on Activity Purpose occurs on the selected Activity
+            # only and does apply to all activities.
+            if action == WildlifeLicence.ACTIVITY_PURPOSE_ACTION_REISSUE:
+                can_action_purposes_ids_list = purpose_ids_list
+                licence_activity_id = purpose_ids_list[0]
 
             # if all purposes were selected by the user for action,
             # action all previous status ApplicationSelectedActivity records
             if purpose_ids_list == can_action_purposes_ids_list:
-                activities_to_action = self.get_latest_activities_for_licence_activity_and_action(
-                    licence_activity_id, action)
+                activities_to_action = \
+                    self.get_latest_activities_for_licence_activity_and_action(
+                        licence_activity_id, action)
+
                 # action target activities
                 for activity in activities_to_action:
                     if action == WildlifeLicence.ACTIVITY_PURPOSE_ACTION_REACTIVATE_RENEW:
@@ -516,6 +532,8 @@ class WildlifeLicence(models.Model):
                         activity.suspend(request)
                     elif action == WildlifeLicence.ACTIVITY_PURPOSE_ACTION_REINSTATE:
                         activity.reinstate(request)
+                    elif action == WildlifeLicence.ACTIVITY_PURPOSE_ACTION_REISSUE:
+                        activity.reissue(request)
 
             else:
                 # else, if not all purposes were selected by the user for action:
@@ -561,6 +579,8 @@ class WildlifeLicence(models.Model):
                         post_actioned_status = ApplicationSelectedActivity.ACTIVITY_STATUS_SUSPENDED
                     elif action == WildlifeLicence.ACTIVITY_PURPOSE_ACTION_REINSTATE:
                         post_actioned_status = ApplicationSelectedActivity.ACTIVITY_STATUS_CURRENT
+                    elif action == WildlifeLicence.ACTIVITY_PURPOSE_ACTION_REISSUE:
+                        post_actioned_status = ApplicationSelectedActivity.ACTIVITY_STATUS_CURRENT
 
                     # if an application's purpose_ids are all in the purpose_ids_list,
                     # completely action the ApplicationSelectedActivity
@@ -575,6 +595,8 @@ class WildlifeLicence(models.Model):
                             activity.suspend(request)
                         elif action == WildlifeLicence.ACTIVITY_PURPOSE_ACTION_REINSTATE:
                             activity.reinstate(request)
+                        elif action == WildlifeLicence.ACTIVITY_PURPOSE_ACTION_REISSUE:
+                            activity.reissue(request)
 
                     # if application still has previous_status purposes after actioning selected purposes
                     elif set(application_licence_purpose_ids_list) - set(purpose_ids_list):
