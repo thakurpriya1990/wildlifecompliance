@@ -1,6 +1,7 @@
 import re
 
 from django.db.models import Q
+from django.urls import reverse
 from rest_framework import serializers
 from rest_framework.validators import UniqueTogetherValidator
 
@@ -472,10 +473,11 @@ class SanctionOutcomeDatatableSerializer(serializers.ModelSerializer):
 
         view_url = '<a href=/internal/sanction_outcome/' + str(obj.id) + '>View</a>'
         process_url = '<a href=/internal/sanction_outcome/' + str(obj.id) + '>Process</a>'
-        remediation_url = '<a href=/external/sanction_outcome/' + str(obj.id) + '>Add </a>'
         view_payment_url = '<a href="/ledger/payments/invoice/payment?invoice=' + inv_ref + '">View Payment</a>' if inv_ref else ''
         payment_url = '<a href="#" data-pay-infringement-penalty="' + str(obj.id) + '">Pay</a>'
-        record_payment_url = '<a href="/ledger/payments/invoice/payment?invoice=">Record Payment</a>'
+        # record_payment_url = '<a href="/ledger/payments/invoice/payment?invoice=">Record Payment</a>'
+        temp_url = reverse('preview_deferred_invoicing', kwargs={'sanction_outcome_pk': obj.id})
+        record_payment_url = '<a href="' + temp_url + '">Record Payment</a>'
 
         if obj.status in SanctionOutcome.FINAL_STATUSES:
             # if object is closed, no one can process but view

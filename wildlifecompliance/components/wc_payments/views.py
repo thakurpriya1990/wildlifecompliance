@@ -47,6 +47,7 @@ from django.db import transaction
 
 # from commercialoperator.components.proposals.serializers import ProposalSerializer
 # from commercialoperator.components.bookings.confirmation_pdf import create_confirmation_pdf_bytes
+from ledger.payments.helpers import is_payment_admin
 from rest_framework.response import Response
 
 #from commercialoperator.components.bookings.confirmation_pdf import create_confirmation_pdf_bytes
@@ -238,3 +239,115 @@ class InvoicePDFView(InvoiceOwnerMixin, View):
     def get_object(self):
         invoice = get_object_or_404(Invoice, reference=self.kwargs['reference'])
         return invoice
+
+
+class DeferredInvoicingPreviewView(TemplateView):
+    template_name = 'wildlifecompliance/wc_payments/preview.html'
+
+    def get(self, request, *args, **kwargs):
+        payment_method = self.request.GET.get('method')
+        context = template_context(self.request)
+        sanction_outcome_id = int(kwargs['sanction_outcome_pk'])
+        sanction_outcome = SanctionOutcome.objects.get(id=sanction_outcome_id)
+
+        try:
+            recipient = sanction_outcome.get_offender()[0].email
+            submitter = sanction_outcome.get_offender()[0]
+        except Exception as e:
+            recipient = sanction_outcome.get_offender()[0].email
+            submitter = sanction_outcome.get_offender()[0]
+
+        # TODO: make sure the if-conditional below
+        # if sanction_outcome.payment_status == SanctionOutcome.PAYMENT_STATUS_UNPAID and sanction_outcome.status == SanctionOutcome.STATUS_AWAITING_PAYMENT and is_payment_admin(request.user):
+        if is_payment_admin(request.user):
+            try:
+                lines = []
+                # lines = create_lines(request)
+                # logger.info('{} Show Park Bookings Preview for BPAY/Other/monthly invoicing'.format('User {} with id {}'.format(proposal.submitter.get_full_name(),proposal.submitter.id), proposal.id))
+                context.update({
+                    'lines': lines,
+                    # 'line_details': request.POST['payment'],
+                    'sanction_outcome_id': sanction_outcome_id,
+                    'submitter': submitter,
+                    'payment_method': payment_method,
+                })
+                return render(request, self.template_name, context)
+
+            except Exception as e:
+                logger.error('Error creating booking preview: {}'.format(e))
+        else:
+            logger.error('Error creating booking preview for the sanction outcome: {}'.format(sanction_outcome.lodgement_number))
+            raise
+
+
+class DeferredInvoicingView(TemplateView):
+    pass
+    # #template_name = 'mooring/booking/make_booking.html'
+    # template_name = 'commercialoperator/booking/success.html'
+    # #template_name = 'commercialoperator/booking/preview.html'
+    #
+    # def post(self, request, *args, **kwargs):
+    #
+    #     payment_method = self.request.POST.get('method')
+    #     context = template_context(self.request)
+    #     proposal_id = int(kwargs['proposal_pk'])
+    #     proposal = Proposal.objects.get(id=proposal_id)
+    #     try:
+    #         recipient = proposal.applicant.email
+    #         submitter = proposal.applicant
+    #     except:
+    #         recipient = proposal.submitter.email
+    #         submitter = proposal.submitter
+    #
+    #     if isinstance(proposal.org_applicant, Organisation):
+    #         try:
+    #             if proposal.org_applicant.bpay_allowed and payment_method=='bpay':
+    #                 booking_type = Booking.BOOKING_TYPE_INTERNET
+    #             elif proposal.org_applicant.monthly_invoicing_allowed and payment_method=='monthly_invoicing':
+    #                 booking_type = Booking.BOOKING_TYPE_MONTHLY_INVOICING
+    #             #elif proposal.org_applicant.other_allowed and payment_method=='other':
+    #             else:
+    #                 booking_type = Booking.BOOKING_TYPE_RECEPTION
+    #
+    #             booking = create_booking(request, proposal, booking_type=booking_type)
+    #             invoice_reference = None
+    #             if booking and payment_method=='bpay':
+    #                 # BPAY/OTHER invoice are created immediately. Monthly invoices are created later by Cron
+    #                 ret = create_bpay_invoice(submitter, booking)
+    #                 invoice_reference = booking.invoice.reference
+    #
+    #             if booking and payment_method=='other':
+    #                 # BPAY/Other invoice are created immediately. Monthly invoices are created later by Cron
+    #                 ret = create_other_invoice(submitter, booking)
+    #                 invoice_reference = booking.invoice.reference
+    #
+    #             if booking and payment_method=='monthly_invoicing':
+    #                 # For monthly_invoicing, invoice is created later by Cron. Now we only create a confirmation
+    #                 ret = create_monthly_confirmation(submitter, booking)
+    #
+    #             logger.info('{} Created Park Bookings with payment method {} for Proposal ID {}'.format('User {} with id {}'.format(proposal.submitter.get_full_name(),proposal.submitter.id), payment_method, proposal.id))
+    #             #send_monthly_invoicing_confirmation_tclass_email_notification(request, booking, invoice, recipients=[recipient])
+    #             context.update({
+    #                 'booking': booking,
+    #                 'booking_id': booking.id,
+    #                 'submitter': submitter,
+    #                 'monthly_invoicing': True if payment_method=='monthly_invoicing' else False,
+    #                 'invoice_reference': invoice_reference
+    #             })
+    #             if payment_method=='other':
+    #                 if is_payment_admin(request.user):
+    #                     return HttpResponseRedirect(reverse('payments:invoice-payment') + '?invoice={}'.format(invoice_reference))
+    #                 else:
+    #                     raise PermissionDenied
+    #             else:
+    #                 return render(request, self.template_name, context)
+    #
+    #
+    #         except Exception, e:
+    #             logger.error('Error Creating booking: {}'.format(e))
+    #             if booking:
+    #                 booking.delete()
+    #             raise
+    #     else:
+    #         logger.error('Error Creating booking: {}'.format(e))
+    #         raise
