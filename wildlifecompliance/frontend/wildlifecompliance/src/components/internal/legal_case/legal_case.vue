@@ -270,6 +270,17 @@
                             </FormSection>
                             <FormSection :formCollapse="false" label="Offences, Offenders and Records of Interview">
                                 <div class="col-sm-12 form-group"><div class="row">
+                                        <TreeSelect 
+                                        ref="record_of_interview_tree" 
+                                        v-model="boeRoiTicked" 
+                                        :options="boeRoiOptions" 
+                                        :default_expand_level="1" 
+                                        :disabled="false"
+                                        open-on-click
+                                        multiple
+                                        clearable
+                                        open-on-focus
+                                        />
                                 </div></div>
                             </FormSection>
                             <FormSection :formCollapse="false" label="Witness Statements, Officer Statements, Expert Statements">
@@ -395,12 +406,17 @@ import PersonOrArtifactModal from '@/components/common/person_or_artifact_modal'
 import _ from 'lodash';
 import RunningSheetHistory from './running_sheet_history'
 import LegalCaseWorkflow from './legal_case_workflow'
+//import TreeSelect from "@/components/compliance_forms/treeview.vue";
+import TreeSelect from '@riophae/vue-treeselect'
+import '@riophae/vue-treeselect/dist/vue-treeselect.css'
 
 
 export default {
     name: "ViewLegalCase",
     data: function() {
         return {
+            boeRoiTicked: [],
+            boeRoiOptions: [],
             uuid: 0,
             showSpinner: false,
             showExit: false,
@@ -552,6 +568,7 @@ export default {
     PersonOrArtifactModal,
     RunningSheetHistory,
     LegalCaseWorkflow,
+    TreeSelect,
   },
   computed: {
     ...mapGetters('legalCaseStore', {
@@ -1361,6 +1378,12 @@ export default {
 
       this.calculateHash();
       this.constructRunningSheetTableWrapper();
+      if (this.legal_case && this.legal_case.boe_roi_options) {
+          for (let item of this.legal_case.boe_roi_options) {
+              let cloned_item = _.cloneDeep(item);
+              this.boeRoiOptions.push(cloned_item)
+          }
+      }
   },
   destroyed: function() {
       window.removeEventListener('beforeunload', this.leaving);
@@ -1370,6 +1393,19 @@ export default {
   mounted: function() {
       this.$nextTick(() => {
           this.addEventListeners();
+          // populate Treeselect input vars
+          /*
+          for (let item of this.legal_case.boe_roi_ticked) {
+              let cloned_item = _.cloneDeep(item);
+              this.boeRoiTicked.push(cloned_item)
+          }
+          if (this.legal_case && this.legal_case.boe_roi_options) {
+              for (let item of this.legal_case.boe_roi_options) {
+                  let cloned_item = _.cloneDeep(item);
+                  this.boeRoiOptions.push(cloned_item)
+              }
+          }
+          */
       });
   },
 };

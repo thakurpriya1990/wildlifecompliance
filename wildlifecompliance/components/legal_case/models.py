@@ -9,7 +9,8 @@ from ledger.accounts.models import EmailUser, RevisionedMixin
 from ledger.licence.models import LicenceType
 from wildlifecompliance.components.organisations.models import Organisation
 from wildlifecompliance.components.call_email.models import CallEmail, Location
-#from wildlifecompliance.components.artifact.models import DocumentArtifact
+#from wildlifecompliance.components.artifact.utils import build_legal_case_hierarchy
+#from wildlifecompliance.components.artifact.utils import BriefOfEvidenceRecordOfInterview
 from wildlifecompliance.components.main.models import (
         CommunicationsLogEntry,
         UserAction, 
@@ -18,6 +19,7 @@ from wildlifecompliance.components.main.models import (
 from wildlifecompliance.components.main.related_item import can_close_legal_case
 from wildlifecompliance.components.users.models import RegionDistrict, CompliancePermissionGroup
 from django.core.exceptions import ValidationError
+from treebeard.mp_tree import MP_Node
 
 logger = logging.getLogger(__name__)
 
@@ -188,6 +190,7 @@ class LegalCase(RevisionedMixin):
             self.number = new_number_id
             self.save()
         # build offences, offenders and ROI hierarchy
+
         if self.offence_legal_case.count():
             boe_list = []
             for offence in self.offence_legal_case.all():
