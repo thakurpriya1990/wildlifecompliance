@@ -19,11 +19,8 @@ from wildlifecompliance.components.main.views import (
         SearchWeakLinksView,
         CreateWeakLinkView,
         RemoveWeakLinkView,
-        DepartmentUserView,
         )
 from wildlifecompliance.components.applications import views as application_views
-from wildlifecompliance.components.offence.api import OffenceViewSet
-from wildlifecompliance.components.sanction_outcome.api import RemediationActionViewSet
 from wildlifecompliance.components.users import api as users_api
 from wildlifecompliance.components.organisations import api as org_api
 from wildlifecompliance.components.applications import api as application_api
