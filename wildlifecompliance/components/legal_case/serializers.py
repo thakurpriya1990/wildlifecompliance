@@ -34,6 +34,7 @@ from wildlifecompliance.components.artifact.serializers import (
         #LegalCaseRunningSheetArtifactsSerializer,
         DocumentArtifactStatementSerializer,
         PhysicalArtifactSerializer,
+        BriefOfEvidenceRecordOfInterviewTickedSerializer,
         )
 #from wildlifecompliance.components.offence.serializers import OrganisationSerializer
 #from django.contrib.auth.models import Permission, ContentType
@@ -293,6 +294,8 @@ class LegalCaseSerializer(serializers.ModelSerializer):
     statement_artifacts = serializers.SerializerMethodField()
     legal_case_priority = LegalCasePrioritySerializer()
     offence_list = serializers.SerializerMethodField()
+    boe_roi_ticked = serializers.SerializerMethodField()
+    boe_roi_options = serializers.SerializerMethodField()
     #running_sheet_artifacts = LegalCaseRunningSheetArtifactsSerializer(read_only=True)
     #inspection_report = serializers.SerializerMethodField()
     #data = InspectionFormDataRecordSerializer(many=True)
@@ -355,11 +358,52 @@ class LegalCaseSerializer(serializers.ModelSerializer):
                 'applications_orders_requests_details',
                 'applications_orders_required_details',
                 'other_legal_matters_details',
+                'boe_roi_ticked',
+                'boe_roi_options',
 
                 )
         read_only_fields = (
                 'id',
                 )
+
+    def get_boe_roi_ticked(self, obj):
+        item_list = []
+        for item in obj.legal_case_boe_roi.all():
+            serializer = BriefOfEvidenceRecordOfInterviewTickedSerializer(item)
+            item_list.append(serializer.data)
+        return item_list
+
+    def get_boe_roi_options(self, obj):
+        item_list = []
+        #for item in obj.legal_case_boe_roi.all():
+        #    serializer = BriefOfEvidenceRecordOfInterviewTickedSerializer(item)
+        #    item_list.append(serializer.data)
+        #return item_list
+        item_list.append(
+                {
+                    "id": "1", 
+                    "label": "one", 
+                    "children": [
+                        {
+                            "id": "11",
+                            "label": "oneone",
+                        },
+                        {
+                            "id": "12",
+                            "label": "onetwo",
+                            "children": [
+                                {
+                                    "id": "121",
+                                    "label": "onetwoone",
+                                },
+                                {
+                                    "id": "122",
+                                    "label": "onetwotwo",
+                                }],
+                        }],
+                    })
+        item_list.append({"id": "2", "label": "two"})
+        return item_list
 
     def get_offence_list(self, obj):
         offence_list = [{
@@ -375,7 +419,7 @@ class LegalCaseSerializer(serializers.ModelSerializer):
         
     def get_statement_artifacts(self, obj):
         artifact_list = []
-        for artifact in obj.legal_case_document_artifacts.all():
+        for artifact in obj.legal_case_document_artifacts_primary.all():
             if artifact.document_type and artifact.document_type in [
                 'record_of_interview',
                 'witness_statement',

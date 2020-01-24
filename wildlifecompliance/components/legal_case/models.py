@@ -9,6 +9,8 @@ from ledger.accounts.models import EmailUser, RevisionedMixin
 from ledger.licence.models import LicenceType
 from wildlifecompliance.components.organisations.models import Organisation
 from wildlifecompliance.components.call_email.models import CallEmail, Location
+#from wildlifecompliance.components.artifact.utils import build_legal_case_hierarchy
+#from wildlifecompliance.components.artifact.utils import BriefOfEvidenceRecordOfInterview
 from wildlifecompliance.components.main.models import (
         CommunicationsLogEntry,
         UserAction, 
@@ -17,6 +19,7 @@ from wildlifecompliance.components.main.models import (
 from wildlifecompliance.components.main.related_item import can_close_legal_case
 from wildlifecompliance.components.users.models import RegionDistrict, CompliancePermissionGroup
 from django.core.exceptions import ValidationError
+from treebeard.mp_tree import MP_Node
 
 logger = logging.getLogger(__name__)
 
@@ -186,6 +189,52 @@ class LegalCase(RevisionedMixin):
             new_number_id = 'CS{0:06d}'.format(self.pk)
             self.number = new_number_id
             self.save()
+        # build offences, offenders and ROI hierarchy
+
+        if self.offence_legal_case.count():
+            boe_list = []
+            for offence in self.offence_legal_case.all():
+                boe_list.append({
+                    'legal_case': self.id,
+                    'offence': offence.id,
+                    'offender': None,
+                    'record_of_interview': None,
+                    'associated_doc_artifact': None
+                    })
+                for offender in offence.offender_set.all():
+                    boe_list.append({
+                        'legal_case': self.id,
+                        'offence': offence.id,
+                        'offender': offender.id,
+                        'record_of_interview': None,
+                        'associated_doc_artifact': None
+                        })
+                    for document_artifact in offender.document_artifact_offender.all():
+                        if document_artifact.offence == offence:
+                            boe_list.append({
+                                'legal_case': self.id,
+                                'offence': offence.id,
+                                'offender': offender.id,
+                                'record_of_interview': document_artifact.id,
+                                'associated_doc_artifact': None
+                                })
+                            for sub_document_artifact in document_artifact.document_artifact_statement.all():
+                                boe_list.append({
+                                    'legal_case': self.id,
+                                    'offence': offence.id,
+                                    'offender': offender.id,
+                                    'record_of_interview': document_artifact.id,
+                                    'associated_doc_artifact': sub_document_artifact.id
+                                    })
+                                #print("document_artifact")
+                                #print(document_artifact)
+                                #print(document_artifact.id)
+                        else:
+                            print("nah not this one")
+            print("boe_list")
+            for l in boe_list:
+                print(l)
+
 
     def log_user_action(self, action, request):
         return LegalCaseUserAction.log_action(self, action, request.user)

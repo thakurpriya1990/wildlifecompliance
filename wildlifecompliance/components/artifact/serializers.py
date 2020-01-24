@@ -27,6 +27,7 @@ from wildlifecompliance.components.artifact.models import (
         ArtifactCommsLogEntry,
         ArtifactUserAction,
         PhysicalArtifactFormDataRecord,
+        BriefOfEvidenceRecordOfInterview,
         #LegalCaseRunningSheetArtifacts,
         )
 
@@ -367,7 +368,7 @@ class DocumentArtifactSerializer(ArtifactSerializer):
     def get_available_statement_artifacts(self, obj):
         artifact_list = []
         if obj.legal_case:
-            for artifact in obj.legal_case.legal_case_document_artifacts.all():
+            for artifact in obj.legal_case.legal_case_document_artifacts_primary.all():
                 if obj != artifact and artifact.document_type and artifact.document_type in [
                     'record_of_interview',
                     'witness_statement',
@@ -495,7 +496,7 @@ class PhysicalArtifactSerializer(ArtifactSerializer):
     def get_available_statement_artifacts(self, obj):
         artifact_list = []
         if obj.legal_case:
-            for artifact in obj.legal_case.legal_case_document_artifacts.all():
+            for artifact in obj.legal_case.legal_case_document_artifacts_primary.all():
                 if obj != artifact and artifact.document_type and artifact.document_type in [
                     'record_of_interview',
                     'witness_statement',
@@ -572,6 +573,35 @@ class ArtifactCommsLogEntrySerializer(CommunicationLogEntrySerializer):
     def get_documents(self, obj):
         return [[d.name, d._file.url] for d in obj.documents.all()]
 
+
+class BriefOfEvidenceRecordOfInterviewTreeSerializer(serializers.ModelSerializer):
+    tree = serializers.SerializerMethodField()
+
+    class Meta:
+        model = BriefOfEvidenceRecordOfInterview
+        fields = (
+                'id',
+                'tree',
+                )
+        read_only_fields = (
+                'id',
+                )
+
+    def get_tree(self, obj):
+        return 'tree'
+
+
+class BriefOfEvidenceRecordOfInterviewTickedSerializer(serializers.ModelSerializer):
+
+    class Meta:
+        model = BriefOfEvidenceRecordOfInterview
+        fields = (
+                'id',
+                'ticked',
+                )
+        read_only_fields = (
+                'id',
+                )
 
 #class LegalCaseRunningSheetArtifactsSerializer(serializers.ModelSerializer):
 #    document_artifacts = DocumentArtifactSerializer(read_only=True, many=True)
