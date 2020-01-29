@@ -621,15 +621,17 @@ class ApplicationViewSet(viewsets.ModelViewSet):
             product_lines = []
             if instance.application_fee < 1:
                 raise Exception('Checkout request for zero amount.')
-            application_submission = u'Application fee for {}'.format(
+
+            application_submission = u'Application No: {}'.format(
                 instance.lodgement_number)
+
             set_session_application(request.session, instance)
             # check activities consist of amended fees.
             activities = instance.activities if not instance.has_amended_fees\
                 else instance.amended_activities
             for activity in activities:
                 product_lines.append({
-                    'ledger_description': '{}'.format(
+                    'ledger_description': '{} (Application Fee)'.format(
                         activity.licence_activity.name),
                     'quantity': 1,
                     'price_incl_tax': str(activity.application_fee),
@@ -660,26 +662,40 @@ class ApplicationViewSet(viewsets.ModelViewSet):
             instance = self.get_object()
             activity_id = request.data.get('activity_id')
             if not activity_id:
-                raise Exception(
-                    'No activity selected for payment!')
+                raise Exception('No activity selected for payment!')
 
-            activities = ApplicationSelectedActivity.objects.filter(
-                application_id=instance.id,
-                processing_status=ApplicationSelectedActivity.PROCESSING_STATUS_AWAITING_LICENCE_FEE_PAYMENT)
+            # check whether activities consist of amended application fees.
+            activities = instance.activities if not instance.has_amended_fees\
+                else instance.amended_activities
 
             product_lines = []
-            application_submission = u'Activity licence issued for {} application {}'.format(
-                u'{} {}'.format(request.user.first_name, request.user.last_name), instance.lodgement_number)
+            application_submission = u'Application No: {}'.format(
+                instance.lodgement_number)
 
             set_session_activity(request.session, activities[0])
             for activity in activities:
                 product_lines.append({
-                    'ledger_description': '{}'.format(activity.licence_activity.name),
+                    'ledger_description': '{} (Licence Fee)'.format(
+                        activity.licence_activity.name),
                     'quantity': 1,
                     'price_incl_tax': str(activity.licence_fee),
-                    'price_excl_tax': str(calculate_excl_gst(activity.licence_fee)),
+                    'price_excl_tax': str(calculate_excl_gst(
+                            activity.licence_fee)),
                     'oracle_code': ''
                 })
+
+            # Adjustments occur only to the application fee.
+            if instance.has_amended_fees:
+                for activity in activities:
+                    product_lines.append({
+                        'ledger_description': '{} (Application Fee)'.format(
+                            activity.licence_activity.name),
+                        'quantity': 1,
+                        'price_incl_tax': str(activity.application_fee),
+                        'price_excl_tax': str(calculate_excl_gst(
+                            activity.application_fee)),
+                        'oracle_code': ''
+                    })
 
             checkout_result = checkout(
                 request, instance,

@@ -529,9 +529,8 @@ class Application(RevisionedMixin):
             for invoice in invoices:
                 detail = Invoice.objects.get(
                     reference=invoice.invoice_reference)
-                amount += detail.amount
-        # Add previous application paid amounts.
-        # amount += self.previous_paid_amount
+                # payment_amount includes refund payment adjustments.
+                amount += detail.payment_amount
 
         return amount
 
@@ -742,6 +741,12 @@ class Application(RevisionedMixin):
         return ApplicationUserAction.log_action(self, action, request.user)
 
     def calculate_fees(self, data_source):
+        """
+        Calculates fees for Application and Licence. Application fee is
+        calculated with the base fee in all instances to allow for adjustments
+        made from form attributes. Previous attributes settings are not saved.
+        Licence fees cannot be adjusted with form attributes.
+        """
         return self.get_dynamic_schema_attributes(data_source)['fees']
 
     def get_dynamic_schema_attributes(self, data_source):
@@ -750,19 +755,18 @@ class Application(RevisionedMixin):
             Application.APPLICATION_TYPE_AMENDMENT,
             Application.APPLICATION_TYPE_REISSUE,
         ]:
-            # Licence amendment, reissue or requested amendment has
-            # no base fees.
+            # Licence amendment, reissue or already paid then no base fee is
+            # required.
             application_fees = Application.calculate_base_fees(
                     self.licence_purposes.values_list(
                         'id', flat=True))['application']
-
             dynamic_attributes = {
                 'fees': {
                     'application': application_fees,
                     'licence': Decimal(0.0),
                 },
                 'activity_attributes': {},
-            }
+            }         
         else:
             dynamic_attributes = {
                 'fees': Application.calculate_base_fees(
@@ -871,6 +875,7 @@ class Application(RevisionedMixin):
         if self.processing_status not in [
                 Application.PROCESSING_STATUS_DRAFT,
                 Application.PROCESSING_STATUS_AWAITING_APPLICANT_RESPONSE,
+                Application.PROCESSING_STATUS_UNDER_REVIEW,
         ]:
             return
 
@@ -887,26 +892,23 @@ class Application(RevisionedMixin):
             fees = field_data.pop('fees', {})
             selected_activity.licence_fee = fees['licence']
             selected_activity.application_fee = fees['application']
+
             if self.application_type in [
                 Application.APPLICATION_TYPE_AMENDMENT,
                 Application.APPLICATION_TYPE_REISSUE,
             ] or self.customer_status == \
-                    Application.CUSTOMER_STATUS_AMENDMENT_REQUIRED:
+                Application.CUSTOMER_STATUS_AMENDMENT_REQUIRED \
+                or self.processing_status == \
+                    Application.PROCESSING_STATUS_UNDER_REVIEW:
 
                 # Check amendments and reissues for changes in fees.
-                if fees['licence'] > selected_activity.base_fees['licence']:
-                    selected_activity.licence_fee = fees['licence'] \
-                        - selected_activity.base_fees['licence']
-
+                # Not applicable for Licence Fees.
                 if fees['application']\
                    > selected_activity.base_fees['application']:
                     selected_activity.application_fee = fees['application'] \
                         - selected_activity.base_fees['application']
 
                 # Check for refunds and set fee to zero.
-                if fees['licence'] < selected_activity.base_fees['licence']:
-                    selected_activity.licence_fee = Decimal(0)
-
                 if fees['application']\
                    < selected_activity.base_fees['application']:
                     selected_activity.application_fee = Decimal(0)
@@ -1542,7 +1544,7 @@ class Application(RevisionedMixin):
         # Application amendments requires a new submission and applies the
         # previous paid for adjustments.
         paid = self.total_paid_amount + self.previous_paid_amount
-        if paid > 0 and paid <= self.application_fee:
+        if paid > 0 and paid < self.application_fee:
             fees_amended = True
 
         return fees_amended
@@ -1641,11 +1643,9 @@ class Application(RevisionedMixin):
             return False
 
         paid = self.total_paid_amount + self.previous_paid_amount
+        over_paid = paid - int(self.application_fee)
 
-        if paid - self.application_fee > 0:
-            return True
-
-        return False
+        return True if over_paid > 0 else False
 
     @property
     def previous_paid_amount(self):
@@ -3067,6 +3067,7 @@ class ApplicationSelectedActivity(models.Model):
             ]
         ).distinct()
 
+    @property
     def total_paid_amount(self):
         """
         Property defining the total fees already paid for this licence Activity.
@@ -3074,17 +3075,15 @@ class ApplicationSelectedActivity(models.Model):
         amount = 0
         if self.invoices.count() > 0:
             invoices = ActivityInvoice.objects.filter(
-                application_id=self.id)
+                activity_id=self.id)
             for invoice in invoices:
                 detail = Invoice.objects.get(
                     reference=invoice.invoice_reference)
-                amount += detail.amount
-
-        # Add previous application paid amounts.
-        amount += self.previous_paid_amount
-       
+                amount = self.licence_fee
+     
         return amount
 
+    @property
     def requires_refund(self):
         """
         Check on the previously paid invoice amount against Activity fee.
@@ -3098,6 +3097,7 @@ class ApplicationSelectedActivity(models.Model):
 
         return False
 
+    @property
     def previous_paid_amount(self):
         """
         Gets the paid amount from the previous application for licence Activity

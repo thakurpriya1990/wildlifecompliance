@@ -137,17 +137,22 @@ class LicenceFeeSuccessView(TemplateView):
                     invoice_reference=invoice_ref
                 )
 
-                line = ActivityInvoiceLine.objects.get_or_create(
+                ActivityInvoiceLine.objects.get_or_create(
                     invoice=invoice[0],
                     licence_activity=activity.licence_activity,
                     amount=activity.licence_fee
                 )
-                # if not activity.licence_fee_paid:
-                #    raise Exception("Licence fee payment failed!")
+
+                if activity.application_fee > 0:
+                    ActivityInvoiceLine.objects.get_or_create(
+                        invoice=invoice[0],
+                        licence_activity=activity.licence_activity,
+                        amount=activity.application_fee
+                    )
 
                 activity.application.issue_activity(
-                    request, activity,
-                    generate_licence=True if i == activities.count() else False)
+                   request, activity,
+                   generate_licence=True if i == activities.count() else False)
 
                 i = i + 1
 
