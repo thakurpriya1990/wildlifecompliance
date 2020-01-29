@@ -78,7 +78,7 @@
                         
                         <div  class="row action-button">
                           <div v-if="canUserAction" class="col-sm-12">
-                                <a @click="open_sanction_outcome()" class="btn btn-primary btn-block">
+                                <a @click="addWorkflow('brief_of_evidence')" class="btn btn-primary btn-block">
                                   Brief of Evidence
                                 </a>
                           </div>

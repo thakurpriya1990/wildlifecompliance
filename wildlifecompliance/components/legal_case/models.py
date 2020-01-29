@@ -52,6 +52,7 @@ class LegalCase(RevisionedMixin):
     #STATUS_WITH_MANAGER = 'with_manager'
     #STATUS_REQUEST_AMENDMENT = 'request_amendment'
     STATUS_AWAIT_ENDORSEMENT = 'await_endorsement'
+    STATUS_BRIEF_OF_EVIDENCE = 'brief_of_evidence'
     #STATUS_SANCTION_OUTCOME = 'sanction_outcome'
     STATUS_DISCARDED = 'discarded'
     STATUS_CLOSED = 'closed'
@@ -63,6 +64,7 @@ class LegalCase(RevisionedMixin):
             (STATUS_AWAIT_ENDORSEMENT, 'Awaiting Endorsement'),
             #(STATUS_SANCTION_OUTCOME, 'Awaiting Sanction Outcomes'),
             (STATUS_DISCARDED, 'Discarded'),
+            (STATUS_BRIEF_OF_EVIDENCE, 'Brief of Evidence'),
             (STATUS_CLOSED, 'Closed'),
             (STATUS_PENDING_CLOSURE, 'Pending Closure')
             )
@@ -274,6 +276,17 @@ class LegalCase(RevisionedMixin):
                 if parent.status == 'pending_closure':
                     parent.close(request)
 
+    def generate_brief_of_evidence(self, request):
+        print("generate brief of evidence")
+        self.assigned_to = None
+        self.status = self.STATUS_BRIEF_OF_EVIDENCE
+        self.log_user_action(
+            LegalCaseUserAction.ACTION_GENERATE_BRIEF_OF_EVIDENCE.format(self.number), 
+            request)
+        # set allocated group to 
+        #self.allocated_group
+        self.save()
+
 
 class LegalCasePerson(EmailUser):
     legal_case = models.ForeignKey(LegalCase, related_name='legal_case_person')
@@ -389,6 +402,7 @@ class LegalCaseCommsLogDocument(Document):
 class LegalCaseUserAction(UserAction):
     ACTION_CREATE_LEGAL_CASE = "Create Case {}"
     ACTION_SAVE_LEGAL_CASE = "Save Case {}"
+    ACTION_GENERATE_BRIEF_OF_EVIDENCE = "Generate Brief of Evidence for Case {}"
     #ACTION_OFFENCE = "Create Offence {}"
     #ACTION_SANCTION_OUTCOME = "Create Sanction Outcome {}"
     #ACTION_SEND_TO_MANAGER = "Send Inspection {} to Manager"

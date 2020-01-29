@@ -100,6 +100,7 @@ from rest_framework_datatables.renderers import DatatablesRenderer
 
 from wildlifecompliance.components.legal_case.email import (
     send_mail)
+from wildlifecompliance.components.artifact.utils import build_boe_roi_hierarchy, build_all_boe_roi_hierarchy
 #from reversion.models import Version
 #import unicodedata
 
@@ -623,7 +624,7 @@ class LegalCaseViewSet(viewsets.ModelViewSet):
                 if not instance:
                     instance = self.get_object()
 
-                comms_log_id = request.data.get('inspection_comms_log_id')
+                comms_log_id = request.data.get('legal_case_comms_log_id')
                 if comms_log_id and comms_log_id is not 'null':
                     workflow_entry = instance.comms_logs.get(
                             id=comms_log_id)
@@ -642,7 +643,9 @@ class LegalCaseViewSet(viewsets.ModelViewSet):
                 workflow_type = request.data.get('workflow_type')
                 if workflow_type == 'close':
                     instance.close(request)
-                #if workflow_type == 'send_to_manager':
+                elif workflow_type == 'brief_of_evidence':
+                    build_all_boe_roi_hierarchy(instance)
+                    instance.generate_brief_of_evidence(request)
                 #    instance.send_to_manager(request)
                 #elif workflow_type == 'request_amendment':
                 #    instance.request_amendment(request)

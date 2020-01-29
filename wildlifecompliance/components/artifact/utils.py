@@ -16,6 +16,7 @@
 #from wildlifecompliance.components.legal_case.models import LegalCase
 from wildlifecompliance.components.artifact.models import BriefOfEvidenceRecordOfInterview
 
+# only generate leaf nodes
 def build_boe_roi_hierarchy(legal_case):
     # build offences, offenders and ROI hierarchy
     for offence in legal_case.offence_legal_case.all():
@@ -56,4 +57,37 @@ def build_boe_roi_hierarchy(legal_case):
                                         offender= offender,
                                         record_of_interview=document_artifact,
                                         associated_doc_artifact=sub_document_artifact)
+
+# generate every node in the tree
+def build_all_boe_roi_hierarchy(legal_case):
+    # build offences, offenders and ROI hierarchy
+    for offence in legal_case.offence_legal_case.all():
+        offence_level_record, created = BriefOfEvidenceRecordOfInterview.objects.get_or_create(
+                legal_case=legal_case, 
+                offence=offence,
+                offender=None,
+                record_of_interview=None,
+                associated_doc_artifact=None)
+        for offender in offence.offender_set.all():
+            offender_level_record, created = BriefOfEvidenceRecordOfInterview.objects.get_or_create(
+                    legal_case=legal_case, 
+                    offence=offence,
+                    offender= offender,
+                    record_of_interview=None,
+                    associated_doc_artifact=None)
+            for document_artifact in offender.document_artifact_offender.all():
+                if document_artifact.offence == offence and document_artifact.document_type == 'record_of_interview':
+                    roi_level_record, created = BriefOfEvidenceRecordOfInterview.objects.get_or_create(
+                            legal_case=legal_case, 
+                            offence=offence,
+                            offender= offender,
+                            record_of_interview=document_artifact,
+                            associated_doc_artifact=None)
+                    for sub_document_artifact in document_artifact.document_artifact_statement.all():
+                        doc_level_record, created = BriefOfEvidenceRecordOfInterview.objects.get_or_create(
+                                legal_case=legal_case, 
+                                offence=offence,
+                                offender= offender,
+                                record_of_interview=document_artifact,
+                                associated_doc_artifact=sub_document_artifact)
 
