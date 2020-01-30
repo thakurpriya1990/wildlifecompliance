@@ -100,7 +100,7 @@ from rest_framework_datatables.renderers import DatatablesRenderer
 
 from wildlifecompliance.components.legal_case.email import (
     send_mail)
-from wildlifecompliance.components.artifact.utils import build_boe_roi_hierarchy, build_all_boe_roi_hierarchy
+from wildlifecompliance.components.artifact.utils import build_all_boe_roi_hierarchy
 #from reversion.models import Version
 #import unicodedata
 

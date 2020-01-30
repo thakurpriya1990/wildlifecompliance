@@ -34,7 +34,8 @@ from wildlifecompliance.components.artifact.serializers import (
         #LegalCaseRunningSheetArtifactsSerializer,
         DocumentArtifactStatementSerializer,
         PhysicalArtifactSerializer,
-        BriefOfEvidenceRecordOfInterviewTickedSerializer,
+        BriefOfEvidenceRecordOfInterviewSerializer,
+        SaveBriefOfEvidenceRecordOfInterviewSerializer,
         )
 #from wildlifecompliance.components.offence.serializers import OrganisationSerializer
 #from django.contrib.auth.models import Permission, ContentType
@@ -294,8 +295,9 @@ class LegalCaseSerializer(serializers.ModelSerializer):
     statement_artifacts = serializers.SerializerMethodField()
     legal_case_priority = LegalCasePrioritySerializer()
     offence_list = serializers.SerializerMethodField()
-    boe_roi_ticked = serializers.SerializerMethodField()
+    #boe_roi_ticked = serializers.SerializerMethodField()
     boe_roi_options = serializers.SerializerMethodField()
+    legal_case_boe_roi = BriefOfEvidenceRecordOfInterviewSerializer(many=True)
     #running_sheet_artifacts = LegalCaseRunningSheetArtifactsSerializer(read_only=True)
     #inspection_report = serializers.SerializerMethodField()
     #data = InspectionFormDataRecordSerializer(many=True)
@@ -358,22 +360,59 @@ class LegalCaseSerializer(serializers.ModelSerializer):
                 'applications_orders_requests_details',
                 'applications_orders_required_details',
                 'other_legal_matters_details',
-                'boe_roi_ticked',
+                #'boe_roi_ticked',
                 'boe_roi_options',
+                'legal_case_boe_roi',
 
                 )
         read_only_fields = (
                 'id',
                 )
 
-    def get_boe_roi_ticked(self, obj):
-        item_list = []
-        for item in obj.legal_case_boe_roi.all():
-            serializer = BriefOfEvidenceRecordOfInterviewTickedSerializer(item)
-            item_list.append(serializer.data)
-        return item_list
-
     def get_boe_roi_options(self, obj):
+        offence_list = []
+
+        for offence_level_record in obj.legal_case_boe_roi.filter(offender=None):
+            offence_serializer = BriefOfEvidenceRecordOfInterviewSerializer(
+                    offence_level_record)
+            serialized_offence = offence_serializer.data
+            offence_children = []
+            for offender_level_record in offence_level_record.children.all():
+                offender_serializer = BriefOfEvidenceRecordOfInterviewSerializer(
+                            offender_level_record)
+                serialized_offender = offender_serializer.data
+                offender_children = []
+                for roi_level_record in offender_level_record.children.all():
+                    roi_serializer = BriefOfEvidenceRecordOfInterviewSerializer(
+                            roi_level_record)
+                    serialized_roi = roi_serializer.data
+                    roi_children = []
+                    for doc_artifact_level_record in roi_level_record.children.all():
+                        # check for associated docs and add to serialized_roi
+                        doc_serializer = BriefOfEvidenceRecordOfInterviewSerializer(
+                                doc_artifact_level_record)
+                        serialized_doc_artifact = doc_serializer.data
+                        if serialized_doc_artifact:
+                            roi_children.append(serialized_doc_artifact)
+                    serialized_roi['children'] = roi_children
+                    # add roi to offender_children
+                    if serialized_roi:
+                        #serialized_offender['children'] = serialized_roi
+                        offender_children.append(serialized_roi)
+                # add roi list to offender
+                serialized_offender['children'] = offender_children
+                ## add offender to offence_list
+                #offence_children.append(serialized_offender)
+                # add offender to offence
+                if serialized_offender:
+                    #serialized_offence['children'] = offence_children
+                    offence_children.append(serialized_offender)
+            serialized_offence['children'] = offence_children
+            offence_list.append(serialized_offence)
+        return offence_list
+
+
+    def bak_get_boe_roi_options(self, obj):
         item_list = []
         #for item in obj.legal_case_boe_roi.all():
         #    serializer = BriefOfEvidenceRecordOfInterviewTickedSerializer(item)

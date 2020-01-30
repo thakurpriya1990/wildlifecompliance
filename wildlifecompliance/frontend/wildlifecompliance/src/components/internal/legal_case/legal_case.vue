@@ -1379,6 +1379,10 @@ export default {
       this.constructRunningSheetTableWrapper();
       if (this.legal_case && this.legal_case.boe_roi_options) {
           for (let item of this.legal_case.boe_roi_options) {
+      /*
+      if (this.legal_case && this.legal_case.legal_case_boe_roi) {
+          for (let item of this.legal_case.legal_case_boe_roi) {
+              */
               let cloned_item = _.cloneDeep(item);
               this.boeRoiOptions.push(cloned_item)
           }

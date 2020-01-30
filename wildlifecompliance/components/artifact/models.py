@@ -670,27 +670,45 @@ class BriefOfEvidenceRecordOfInterview(models.Model):
             blank=True, 
             null=True)
     ticked = models.BooleanField(default=False)
+    children = models.ManyToManyField(
+            'self',
+            related_name='parents')
 
     class Meta:
         app_label = 'wildlifecompliance'
 
+    @property
+    def label(self):
+        return self.__str__()
     def __str__(self):
-        offender_id = ''
-        if self.offender:
-            offender_id = self.offender.id
-        record_of_interview_id = ''
-        if self.record_of_interview:
-            record_of_interview_id = self.record_of_interview.id
-        associated_doc_artifact_id = ''
-        if self.associated_doc_artifact:
-            associated_doc_artifact_id = self.associated_doc_artifact.id
-        return '{}_{}_{}_{}_{}'.format(
-                self.legal_case.id,
-                self.offence.id,
-                offender_id,
-                record_of_interview_id,
-                associated_doc_artifact_id
-                )
+        label_text = ''
+        if not self.offender and not self.record_of_interview and not self.associated_doc_artifact:
+            label_text = 'Offence: ' + self.offence.lodgement_number
+        elif not self.record_of_interview and not self.associated_doc_artifact:
+            label_text = 'Offender: ' + str(self.offender.id)
+        elif not self.associated_doc_artifact:
+            label_text = 'Record of Interview: ' + self.record_of_interview.number
+        else:
+            label_text = 'Associated Document Object: ' + self.associated_doc_artifact.number
+        return label_text
+
+    #def __str__(self):
+    #    offender_id = ''
+    #    if self.offender:
+    #        offender_id = self.offender.id
+    #    record_of_interview_id = ''
+    #    if self.record_of_interview:
+    #        record_of_interview_id = self.record_of_interview.id
+    #    associated_doc_artifact_id = ''
+    #    if self.associated_doc_artifact:
+    #        associated_doc_artifact_id = self.associated_doc_artifact.id
+    #    return '{}_{}_{}_{}_{}'.format(
+    #            self.legal_case.id,
+    #            self.offence.id,
+    #            offender_id,
+    #            record_of_interview_id,
+    #            associated_doc_artifact_id
+    #            )
 
 #class StorageDocument(Document):
 #    log_entry = models.ForeignKey(
