@@ -1,95 +1,42 @@
-# # from django.http import Http404, HttpResponse, HttpResponseRedirect, JsonResponse
-# # from django.core.urlresolvers import reverse
-# # from django.contrib.auth.decorators import login_required
-# from django.shortcuts import render, get_object_or_404, redirect
-# from django.views.generic import ListView, DetailView, CreateView, UpdateView, DeleteView, FormView
-from django.http.response import HttpResponse
+from django.core.exceptions import PermissionDenied
+from django.http.response import HttpResponse, HttpResponseRedirect
 from django.shortcuts import get_object_or_404, redirect, render
+from django.urls import reverse
 from django.views.generic.base import View, TemplateView
-# from django.conf import settings
-# from django.contrib.auth.mixins import UserPassesTestMixin, LoginRequiredMixin
-# from django.views.decorators.csrf import csrf_protect
-# from django.core.exceptions import ValidationError
 from django.db import transaction
-
-# from datetime import datetime, timedelta, date
-# from django.utils import timezone
-# from dateutil.relativedelta import relativedelta
-#
-# from commercialoperator.components.proposals.models import Proposal
-# from commercialoperator.components.compliances.models import Compliance
-# from commercialoperator.components.main.models import Park
-# from commercialoperator.components.organisations.models import Organisation
-# from commercialoperator.components.bookings.context_processors import commercialoperator_url, template_context
-# from commercialoperator.components.bookings.invoice_pdf import create_invoice_pdf_bytes
-# from commercialoperator.components.bookings.confirmation_pdf import create_confirmation_pdf_bytes
-# from commercialoperator.components.bookings.monthly_confirmation_pdf import create_monthly_confirmation_pdf_bytes
-# from commercialoperator.components.bookings.email import (
-#     send_invoice_tclass_email_notification,
-#     send_confirmation_tclass_email_notification,
-#     send_application_fee_invoice_tclass_email_notification,
-#     send_application_fee_confirmation_tclass_email_notification,
-# )
-# from commercialoperator.components.bookings.utils import (
-#     create_booking,
-#     get_session_booking,
-#     set_session_booking,
-#     delete_session_booking,
-#     create_lines,
-#     checkout,
-#     create_fee_lines,
-#     get_session_application_invoice,
-#     set_session_application_invoice,
-#     delete_session_application_invoice,
-#     calc_payment_due_date,
-#     create_bpay_invoice,
-# )
-
-# from commercialoperator.components.proposals.serializers import ProposalSerializer
-# from commercialoperator.components.bookings.confirmation_pdf import create_confirmation_pdf_bytes
 from ledger.payments.helpers import is_payment_admin
-from rest_framework.response import Response
-
-#from commercialoperator.components.bookings.confirmation_pdf import create_confirmation_pdf_bytes
-from ledger.checkout.utils import create_basket_session, create_checkout_session, place_order_submission, get_cookie_basket
 from ledger.payments.pdf import create_invoice_pdf_bytes
 from ledger.payments.utils import oracle_parser_on_invoice,update_payments
-import json
-from decimal import Decimal
-
-# from commercialoperator.components.bookings.models import Booking, ParkBooking, BookingInvoice, ApplicationFee, ApplicationFeeInvoice
 from ledger.payments.models import Invoice
 from ledger.basket.models import Basket
-#from ledger.payments.mixins import InvoiceOwnerMixin, SanctionOutcomePdfMixin
 from ledger.payments.mixins import InvoiceOwnerMixin
 from oscar.apps.order.models import Order
-
 import logging
-
 from wildlifecompliance.components.wc_payments.context_processors import template_context
 from wildlifecompliance.components.wc_payments.models import InfringementPenalty, InfringementPenaltyInvoice
-from wildlifecompliance.components.wc_payments.utils import set_session_infringement_invoice, create_infringement_lines, \
-    get_session_infringement_invoice, delete_session_infringement_invoice, checkout
+from wildlifecompliance.components.wc_payments.utils import set_session_infringement_invoice, \
+    get_session_infringement_invoice, delete_session_infringement_invoice, checkout, create_other_invoice
 from wildlifecompliance.components.sanction_outcome.models import SanctionOutcome, SanctionOutcomeUserAction
 
 logger = logging.getLogger('payment_checkout')
 
 
 class InfringementPenaltyView(TemplateView):
-    template_name = 'wildlifecompliance/payments/success.html'
-
     def get_object(self):
         return get_object_or_404(SanctionOutcome, id=self.kwargs['sanction_outcome_id'])
 
     def post(self, request, *args, **kwargs):
 
         sanction_outcome = self.get_object()
-        infringement_penalty = InfringementPenalty.objects.create(sanction_outcome=sanction_outcome, created_by=request.user, payment_type=InfringementPenalty.PAYMENT_TYPE_TEMPORARY)
+        infringement_penalty, created = InfringementPenalty.objects.get_or_create(sanction_outcome=sanction_outcome)
+        infringement_penalty.created_by = request.user
+        infringement_penalty.payment_type = InfringementPenalty.PAYMENT_TYPE_TEMPORARY
+        infringement_penalty.save()
 
         try:
             with transaction.atomic():
                 set_session_infringement_invoice(request.session, infringement_penalty)
-                lines = create_infringement_lines(sanction_outcome)
+                lines = sanction_outcome.as_line_items
                 checkout_response = checkout(
                     request,
                     sanction_outcome,
@@ -245,7 +192,7 @@ class DeferredInvoicingPreviewView(TemplateView):
     template_name = 'wildlifecompliance/wc_payments/preview.html'
 
     def get(self, request, *args, **kwargs):
-        payment_method = self.request.GET.get('method')
+        payment_method = self.request.GET.get('method', 'other')
         context = template_context(self.request)
         sanction_outcome_id = int(kwargs['sanction_outcome_pk'])
         sanction_outcome = SanctionOutcome.objects.get(id=sanction_outcome_id)
@@ -261,8 +208,7 @@ class DeferredInvoicingPreviewView(TemplateView):
         # if sanction_outcome.payment_status == SanctionOutcome.PAYMENT_STATUS_UNPAID and sanction_outcome.status == SanctionOutcome.STATUS_AWAITING_PAYMENT and is_payment_admin(request.user):
         if is_payment_admin(request.user):
             try:
-                lines = []
-                # lines = create_lines(request)
+                lines = sanction_outcome.as_line_items
                 # logger.info('{} Show Park Bookings Preview for BPAY/Other/monthly invoicing'.format('User {} with id {}'.format(proposal.submitter.get_full_name(),proposal.submitter.id), proposal.id))
                 context.update({
                     'lines': lines,
@@ -274,32 +220,56 @@ class DeferredInvoicingPreviewView(TemplateView):
                 return render(request, self.template_name, context)
 
             except Exception as e:
-                logger.error('Error creating booking preview: {}'.format(e))
+                logger.error('Error creating record payment preview: {}'.format(e))
         else:
-            logger.error('Error creating booking preview for the sanction outcome: {}'.format(sanction_outcome.lodgement_number))
+            logger.error('Error creating record payment preview for the sanction outcome: {}'.format(sanction_outcome.lodgement_number))
             raise
 
 
 class DeferredInvoicingView(TemplateView):
-    pass
-    # #template_name = 'mooring/booking/make_booking.html'
-    # template_name = 'commercialoperator/booking/success.html'
-    # #template_name = 'commercialoperator/booking/preview.html'
-    #
-    # def post(self, request, *args, **kwargs):
-    #
-    #     payment_method = self.request.POST.get('method')
-    #     context = template_context(self.request)
-    #     proposal_id = int(kwargs['proposal_pk'])
-    #     proposal = Proposal.objects.get(id=proposal_id)
-    #     try:
-    #         recipient = proposal.applicant.email
-    #         submitter = proposal.applicant
-    #     except:
-    #         recipient = proposal.submitter.email
-    #         submitter = proposal.submitter
-    #
-    #     if isinstance(proposal.org_applicant, Organisation):
+    template_name = 'wildlifecompliance/wc_payments/success.html'
+
+    def post(self, request, *args, **kwargs):
+        payment_method = self.request.POST.get('method')
+        context = template_context(self.request)
+        sanction_outcome_id = int(kwargs['sanction_outcome_pk'])
+        sanction_outcome = SanctionOutcome.objects.get(id=sanction_outcome_id)
+
+        if is_payment_admin(request.user):
+            try:
+                infringement_penalty, created = InfringementPenalty.objects.get_or_create(sanction_outcome=sanction_outcome)
+                infringement_penalty.created_by = request.user
+                infringement_penalty.payment_type = InfringementPenalty.PAYMENT_TYPE_RECEPTION
+                infringement_penalty.save()
+
+                invoice_reference = None
+                if sanction_outcome and payment_method == 'other':
+                    fee_inv = create_other_invoice(request, sanction_outcome)
+                    invoice_reference = fee_inv.invoice_reference
+                    invoice = Invoice.objects.get(reference=fee_inv.invoice_reference)
+                    logger.info('{} paid for sanction outcome: {} with payment method {}'.format(sanction_outcome.get_offender()[0].get_full_name(), sanction_outcome.lodgement_number, payment_method))
+
+                    # sanction_outcome.payment_status = SanctionOutcome.PAYMENT_STATUS_PAID
+                    # sanction_outcome.save()
+                    # sanction_outcome.log_user_action(SanctionOutcomeUserAction.ACTION_PAY_INFRINGEMENT_PENALTY.format(sanction_outcome.lodgement_number, invoice.payment_amount, invoice.reference), request)
+                    # sanction_outcome.close()
+
+                    if payment_method == 'other':
+                        if is_payment_admin(request.user):
+                            return HttpResponseRedirect(reverse('payments:invoice-payment') + '?invoice={}&amount=25'.format(invoice_reference))
+                        else:
+                            raise PermissionDenied
+
+            except Exception, e:
+                logger.error('Error Creating record payment: {}'.format(e))
+                # if booking:
+                #     booking.delete()
+                raise
+        else:
+            logger.error('Error Creating record payment: {}'.format(e))
+            raise
+
+#     if isinstance(proposal.org_applicant, Organisation):
     #         try:
     #             if proposal.org_applicant.bpay_allowed and payment_method=='bpay':
     #                 booking_type = Booking.BOOKING_TYPE_INTERNET

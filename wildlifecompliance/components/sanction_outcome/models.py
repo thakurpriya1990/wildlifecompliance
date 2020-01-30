@@ -1,4 +1,5 @@
 import datetime
+import logging
 
 from dateutil.relativedelta import relativedelta
 from django.contrib.auth.models import Permission
@@ -7,7 +8,6 @@ from django.core.exceptions import ValidationError
 from django.db import models
 from django.db.models import Q
 from django.db.models.signals import post_save
-
 from ledger.accounts.models import EmailUser, RevisionedMixin
 from wildlifecompliance.components.main.models import Document, CommunicationsLogEntry
 from wildlifecompliance.components.main.related_item import can_close_record
@@ -17,6 +17,9 @@ from wildlifecompliance.components.sanction_outcome_due.serializers import SaveS
 from wildlifecompliance.components.section_regulation.models import SectionRegulation
 from wildlifecompliance.components.users.models import RegionDistrict, CompliancePermissionGroup
 from wildlifecompliance.management.classes.unpaid_infringement_file import UnpaidInfringementFileBody
+
+
+logger = logging.getLogger(__name__)
 
 
 class SanctionOutcomeActiveManager(models.Manager):
@@ -255,12 +258,14 @@ class SanctionOutcome(models.Model):
     @property
     def infringement_penalty_invoice_reference(self):
         try:
-            if self.payment_status == SanctionOutcome.PAYMENT_STATUS_PAID:
-                ip = self.infringement_penalties.all().last()
-                if ip:
-                    ipv = ip.infringement_penalty_invoices.all().last()
-                    if ipv:
-                        return ipv.invoice_reference
+            ip = self.infringement_penalties.all().last()
+            if ip:
+                ipv = ip.infringement_penalty_invoices.all().last()
+                if ipv:
+                    if self.payment_status != SanctionOutcome.PAYMENT_STATUS_PAID:
+                        logger.warn('Sanction Outcome: {} has invoice but status is not paid'.format(self.lodgement_number))
+                    return ipv.invoice_reference
+
             return None
 
         except Exception as e:
@@ -672,6 +677,27 @@ class SanctionOutcome(models.Model):
                 raise ValidationError('Payment must be after the offence occurrence date.')
         except Exception as e:
             raise ValidationError('Something wrong.')
+
+    @property
+    def as_line_items(self):
+        """ Create the ledger lines - line item for infringement penalty sent to payment system """
+
+        now = datetime.datetime.now()
+        now_date = now.date()
+        penalty_amount = self.determine_penalty_amount_by_date(now_date)
+
+        line_items = [
+            {'ledger_description': 'Infringement Notice: {}, Issued: {} {}'.format(
+                self.lodgement_number,
+                self.date_of_issue.strftime("%d-%m-%Y"),
+                self.time_of_issue.strftime("%I:%M")),
+                'oracle_code': 'ABC123 GST',
+                'price_incl_tax': penalty_amount,
+                'price_excl_tax': penalty_amount,
+                'quantity': 1,
+            },
+        ]
+        return line_items
 
     class Meta:
         app_label = 'wildlifecompliance'

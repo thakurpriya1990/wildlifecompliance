@@ -102,7 +102,7 @@ class Payment(RevisionedMixin):
 class InfringementPenalty(Payment):
     PAYMENT_TYPE_INTERNET = 0
     PAYMENT_TYPE_RECEPTION = 1
-    PAYMENT_TYPE_BLACK = 2
+    PAYMENT_TYPE_BLACK = 2  # Probably this is not used for infringement notices
     PAYMENT_TYPE_TEMPORARY = 3
     PAYMENT_TYPE_CHOICES = (
         (PAYMENT_TYPE_INTERNET, 'Internet booking'),
