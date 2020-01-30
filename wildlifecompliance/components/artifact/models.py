@@ -672,7 +672,8 @@ class BriefOfEvidenceRecordOfInterview(models.Model):
     ticked = models.BooleanField(default=False)
     children = models.ManyToManyField(
             'self',
-            related_name='parents')
+            related_name='parents',
+            symmetrical=False)
 
     class Meta:
         app_label = 'wildlifecompliance'

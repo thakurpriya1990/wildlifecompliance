@@ -295,7 +295,7 @@ class LegalCaseSerializer(serializers.ModelSerializer):
     statement_artifacts = serializers.SerializerMethodField()
     legal_case_priority = LegalCasePrioritySerializer()
     offence_list = serializers.SerializerMethodField()
-    #boe_roi_ticked = serializers.SerializerMethodField()
+    boe_roi_ticked = serializers.SerializerMethodField()
     boe_roi_options = serializers.SerializerMethodField()
     legal_case_boe_roi = BriefOfEvidenceRecordOfInterviewSerializer(many=True)
     #running_sheet_artifacts = LegalCaseRunningSheetArtifactsSerializer(read_only=True)
@@ -360,7 +360,7 @@ class LegalCaseSerializer(serializers.ModelSerializer):
                 'applications_orders_requests_details',
                 'applications_orders_required_details',
                 'other_legal_matters_details',
-                #'boe_roi_ticked',
+                'boe_roi_ticked',
                 'boe_roi_options',
                 'legal_case_boe_roi',
 
@@ -368,6 +368,13 @@ class LegalCaseSerializer(serializers.ModelSerializer):
         read_only_fields = (
                 'id',
                 )
+
+    def get_boe_roi_ticked(self, obj):
+        ticked_list = []
+        for record in obj.legal_case_boe_roi.all():
+            if record.ticked:
+                ticked_list.append(record.id)
+        return ticked_list
 
     def get_boe_roi_options(self, obj):
         offence_list = []

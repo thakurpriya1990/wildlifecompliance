@@ -87,6 +87,12 @@ export const legalCaseStore = {
             }
             state.legal_case.running_sheet_person_list.push(entity)
         },
+        updateBoeRoiTicked(state, boeRoiTicked) {
+            Vue.set(state.legal_case, 'boe_roi_ticked', []);
+            for (let r of boeRoiTicked) {
+                state.legal_case.boe_roi_ticked.push(r)
+            }
+        },
     },
     actions: {
         async loadLegalCase({ dispatch, commit }, { legal_case_id }) {
@@ -177,6 +183,9 @@ export const legalCaseStore = {
         },
         addToRunningSheetPersonList({ commit }, entity) {
             commit("updateRunningSheetPersonList", entity)
+        },
+        setBoeRoiTicked({ commit }, boeRoiTicked) {
+            commit("updateBoeRoiTicked", boeRoiTicked)
         },
     },
 };

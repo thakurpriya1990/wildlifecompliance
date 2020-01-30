@@ -193,49 +193,49 @@ class LegalCase(RevisionedMixin):
             self.save()
         # build offences, offenders and ROI hierarchy
 
-        if self.offence_legal_case.count():
-            boe_list = []
-            for offence in self.offence_legal_case.all():
-                boe_list.append({
-                    'legal_case': self.id,
-                    'offence': offence.id,
-                    'offender': None,
-                    'record_of_interview': None,
-                    'associated_doc_artifact': None
-                    })
-                for offender in offence.offender_set.all():
-                    boe_list.append({
-                        'legal_case': self.id,
-                        'offence': offence.id,
-                        'offender': offender.id,
-                        'record_of_interview': None,
-                        'associated_doc_artifact': None
-                        })
-                    for document_artifact in offender.document_artifact_offender.all():
-                        if document_artifact.offence == offence:
-                            boe_list.append({
-                                'legal_case': self.id,
-                                'offence': offence.id,
-                                'offender': offender.id,
-                                'record_of_interview': document_artifact.id,
-                                'associated_doc_artifact': None
-                                })
-                            for sub_document_artifact in document_artifact.document_artifact_statement.all():
-                                boe_list.append({
-                                    'legal_case': self.id,
-                                    'offence': offence.id,
-                                    'offender': offender.id,
-                                    'record_of_interview': document_artifact.id,
-                                    'associated_doc_artifact': sub_document_artifact.id
-                                    })
-                                #print("document_artifact")
-                                #print(document_artifact)
-                                #print(document_artifact.id)
-                        else:
-                            print("nah not this one")
-            print("boe_list")
-            for l in boe_list:
-                print(l)
+        #if self.offence_legal_case.count():
+        #    boe_list = []
+        #    for offence in self.offence_legal_case.all():
+        #        boe_list.append({
+        #            'legal_case': self.id,
+        #            'offence': offence.id,
+        #            'offender': None,
+        #            'record_of_interview': None,
+        #            'associated_doc_artifact': None
+        #            })
+        #        for offender in offence.offender_set.all():
+        #            boe_list.append({
+        #                'legal_case': self.id,
+        #                'offence': offence.id,
+        #                'offender': offender.id,
+        #                'record_of_interview': None,
+        #                'associated_doc_artifact': None
+        #                })
+        #            for document_artifact in offender.document_artifact_offender.all():
+        #                if document_artifact.offence == offence:
+        #                    boe_list.append({
+        #                        'legal_case': self.id,
+        #                        'offence': offence.id,
+        #                        'offender': offender.id,
+        #                        'record_of_interview': document_artifact.id,
+        #                        'associated_doc_artifact': None
+        #                        })
+        #                    for sub_document_artifact in document_artifact.document_artifact_statement.all():
+        #                        boe_list.append({
+        #                            'legal_case': self.id,
+        #                            'offence': offence.id,
+        #                            'offender': offender.id,
+        #                            'record_of_interview': document_artifact.id,
+        #                            'associated_doc_artifact': sub_document_artifact.id
+        #                            })
+        #                        #print("document_artifact")
+        #                        #print(document_artifact)
+        #                        #print(document_artifact.id)
+        #                else:
+        #                    print("nah not this one")
+        #    print("boe_list")
+        #    for l in boe_list:
+        #        print(l)
 
 
     def log_user_action(self, action, request):

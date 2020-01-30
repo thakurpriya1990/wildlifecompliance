@@ -268,17 +268,17 @@
                                     </label>
                                 </div></div>
                             </FormSection>
-                            <FormSection :formCollapse="false" label="Offences, Offenders and Records of Interview">
+                            <FormSection :formCollapse="false" label="Offences, Offenders and Records of Interview" treeHeight="string">
                                 <div class="col-sm-12 form-group"><div class="row">
                                         <TreeSelect 
                                         ref="record_of_interview_tree" 
-                                        v-model="boeRoiTicked" 
+                                        :value="boeRoiTicked" 
                                         :options="boeRoiOptions" 
-                                        :default_expand_level="Infinity" 
+                                        :default-expand-level="Infinity" 
                                         :disabled="false"
                                         multiple
                                         value-consists-of="LEAF_PRIORITY"
-                                        alwaysOpen
+                                        @input="setBoeRoiTicked"
                                         />
                                 </div></div>
                             </FormSection>
@@ -414,7 +414,7 @@ export default {
     name: "ViewLegalCase",
     data: function() {
         return {
-            boeRoiTicked: [],
+            //boeRoiTicked: [],
             boeRoiOptions: [],
             uuid: 0,
             showSpinner: false,
@@ -687,7 +687,16 @@ export default {
             keyCombination = '^^';
         }
         return keyCombination;
-    }
+    },
+    boeRoiTicked: function() {
+        let ticked = []
+        if (this.legal_case && this.legal_case.boe_roi_ticked) {
+            for (let id of this.legal_case.boe_roi_ticked) {
+                ticked.push(id)
+            }
+        }
+        return ticked;
+    },
   },
   filters: {
     formatDate: function(data) {
@@ -706,6 +715,7 @@ export default {
       setAddRunningSheetEntry: 'setAddRunningSheetEntry',
       setRunningSheetEntry: 'setRunningSheetEntry',
       addToRunningSheetPersonList: 'addToRunningSheetPersonList',
+      setBoeRoiTicked: 'setBoeRoiTicked',
     }),
     ...mapActions({
         loadCurrentUser: 'loadCurrentUser',
@@ -970,8 +980,9 @@ export default {
       this.showSpinner = true;
       if (returnToDash) {
           this.showExit = true;
-      }      
+      }
       await this.runningSheetTransformWrapper();
+      //await this.setBoeRoiTicked(this.boeRoiTicked);
       //if (this.legal_case.id) {
       if (createNewRow) {
           //await this.saveLegalCase({ create: false, internal: true, createNewRow: true });
@@ -1387,6 +1398,12 @@ export default {
               this.boeRoiOptions.push(cloned_item)
           }
       }
+      /*
+      // read in ticked boe_roi records
+      for (let item of this.legal_case.boe_roi_ticked) {
+          this.boeRoiTicked.push(item)
+      }
+      */
   },
   destroyed: function() {
       window.removeEventListener('beforeunload', this.leaving);
@@ -1396,19 +1413,6 @@ export default {
   mounted: function() {
       this.$nextTick(() => {
           this.addEventListeners();
-          // populate Treeselect input vars
-          /*
-          for (let item of this.legal_case.boe_roi_ticked) {
-              let cloned_item = _.cloneDeep(item);
-              this.boeRoiTicked.push(cloned_item)
-          }
-          if (this.legal_case && this.legal_case.boe_roi_options) {
-              for (let item of this.legal_case.boe_roi_options) {
-                  let cloned_item = _.cloneDeep(item);
-                  this.boeRoiOptions.push(cloned_item)
-              }
-          }
-          */
       });
   },
 };

@@ -100,7 +100,8 @@ from rest_framework_datatables.renderers import DatatablesRenderer
 
 from wildlifecompliance.components.legal_case.email import (
     send_mail)
-from wildlifecompliance.components.artifact.utils import build_all_boe_roi_hierarchy
+from wildlifecompliance.components.artifact.utils import build_all_boe_roi_hierarchy, update_boe_roi_ticked
+from wildlifecompliance.components.artifact.serializers import SaveBriefOfEvidenceRecordOfInterviewSerializer
 #from reversion.models import Version
 #import unicodedata
 
@@ -377,7 +378,7 @@ class LegalCaseViewSet(viewsets.ModelViewSet):
     def update(self, request, workflow=False, *args, **kwargs):
         try:
             with transaction.atomic():
-                print(request.data)
+                #print(request.data)
                 instance = self.get_object()
                 running_sheet_entries = request.data.get('running_sheet_transform')
                 #running_sheet_saved = None
@@ -394,6 +395,14 @@ class LegalCaseViewSet(viewsets.ModelViewSet):
                         running_sheet_entry_serializer.is_valid(raise_exception=True)
                         if running_sheet_entry_serializer.is_valid():
                             running_sheet_entry_serializer.save()
+                boe_roi_ticked = request.data.get('boe_roi_ticked')
+                update_boe_roi_ticked(instance, boe_roi_ticked)
+                    #for id in boe_roi_ticked:
+                    #    boe_roi_serializer = SaveBriefOfEvidenceRecordOfInterviewSerializer(
+                    #            data={
+                    #                "id": id,
+                    #                "ticked": True,
+
                 # LegalCasePerson
                 self.add_associated_persons(instance, request)
 
