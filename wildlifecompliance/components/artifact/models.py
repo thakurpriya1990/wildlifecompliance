@@ -693,50 +693,6 @@ class BriefOfEvidenceRecordOfInterview(models.Model):
             label_text = 'Associated Document Object: ' + self.associated_doc_artifact.number
         return label_text
 
-    #def __str__(self):
-    #    offender_id = ''
-    #    if self.offender:
-    #        offender_id = self.offender.id
-    #    record_of_interview_id = ''
-    #    if self.record_of_interview:
-    #        record_of_interview_id = self.record_of_interview.id
-    #    associated_doc_artifact_id = ''
-    #    if self.associated_doc_artifact:
-    #        associated_doc_artifact_id = self.associated_doc_artifact.id
-    #    return '{}_{}_{}_{}_{}'.format(
-    #            self.legal_case.id,
-    #            self.offence.id,
-    #            offender_id,
-    #            record_of_interview_id,
-    #            associated_doc_artifact_id
-    #            )
-
-#class StorageDocument(Document):
-#    log_entry = models.ForeignKey(
-#        PhysicalArtifact,
-#        related_name='storage_documents')
-#    _file = models.FileField(max_length=255)
-#
-#    class Meta:
-#        app_label = 'wildlifecompliance'
-
-
-#class LegalCaseRunningSheetArtifacts(models.Model):
-#    legal_case = models.OneToOneField(
-#            LegalCase,
-#            related_name='running_sheet_artifacts'
-#            )
-#    document_artifacts = models.ManyToManyField(
-#            DocumentArtifact,
-#            related_name='running_sheet_document_artifacts',
-#            )
-#    physical_artifacts = models.ManyToManyField(
-#            PhysicalArtifact,
-#            related_name='running_sheet_physical_artifacts',
-#            )
-#
-#    class Meta:
-#        app_label = 'wildlifecompliance'
 
 #import reversion
 #reversion.register(LegalCaseRunningSheetEntry, follow=['user'])

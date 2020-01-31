@@ -418,39 +418,6 @@ class LegalCaseSerializer(serializers.ModelSerializer):
             offence_list.append(serialized_offence)
         return offence_list
 
-
-    def bak_get_boe_roi_options(self, obj):
-        item_list = []
-        #for item in obj.legal_case_boe_roi.all():
-        #    serializer = BriefOfEvidenceRecordOfInterviewTickedSerializer(item)
-        #    item_list.append(serializer.data)
-        #return item_list
-        item_list.append(
-                {
-                    "id": "1", 
-                    "label": "one", 
-                    "children": [
-                        {
-                            "id": "11",
-                            "label": "oneone",
-                        },
-                        {
-                            "id": "12",
-                            "label": "onetwo",
-                            "children": [
-                                {
-                                    "id": "121",
-                                    "label": "onetwoone",
-                                },
-                                {
-                                    "id": "122",
-                                    "label": "onetwotwo",
-                                }],
-                        }],
-                    })
-        item_list.append({"id": "2", "label": "two"})
-        return item_list
-
     def get_offence_list(self, obj):
         offence_list = [{
             'id': '',

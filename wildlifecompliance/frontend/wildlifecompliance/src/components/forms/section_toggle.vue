@@ -79,7 +79,7 @@ export default {
     .flex-container {
         display: flex;
         flex-direction: column;
-        min-height: 500px;
+        min-height: 400px;
     }
     /*
     .tree-height{
