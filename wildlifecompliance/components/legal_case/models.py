@@ -52,6 +52,7 @@ class LegalCase(RevisionedMixin):
     #STATUS_WITH_MANAGER = 'with_manager'
     #STATUS_REQUEST_AMENDMENT = 'request_amendment'
     STATUS_AWAIT_ENDORSEMENT = 'await_endorsement'
+    STATUS_BRIEF_OF_EVIDENCE = 'brief_of_evidence'
     #STATUS_SANCTION_OUTCOME = 'sanction_outcome'
     STATUS_DISCARDED = 'discarded'
     STATUS_CLOSED = 'closed'
@@ -63,6 +64,7 @@ class LegalCase(RevisionedMixin):
             (STATUS_AWAIT_ENDORSEMENT, 'Awaiting Endorsement'),
             #(STATUS_SANCTION_OUTCOME, 'Awaiting Sanction Outcomes'),
             (STATUS_DISCARDED, 'Discarded'),
+            (STATUS_BRIEF_OF_EVIDENCE, 'Brief of Evidence'),
             (STATUS_CLOSED, 'Closed'),
             (STATUS_PENDING_CLOSURE, 'Pending Closure')
             )
@@ -191,49 +193,49 @@ class LegalCase(RevisionedMixin):
             self.save()
         # build offences, offenders and ROI hierarchy
 
-        if self.offence_legal_case.count():
-            boe_list = []
-            for offence in self.offence_legal_case.all():
-                boe_list.append({
-                    'legal_case': self.id,
-                    'offence': offence.id,
-                    'offender': None,
-                    'record_of_interview': None,
-                    'associated_doc_artifact': None
-                    })
-                for offender in offence.offender_set.all():
-                    boe_list.append({
-                        'legal_case': self.id,
-                        'offence': offence.id,
-                        'offender': offender.id,
-                        'record_of_interview': None,
-                        'associated_doc_artifact': None
-                        })
-                    for document_artifact in offender.document_artifact_offender.all():
-                        if document_artifact.offence == offence:
-                            boe_list.append({
-                                'legal_case': self.id,
-                                'offence': offence.id,
-                                'offender': offender.id,
-                                'record_of_interview': document_artifact.id,
-                                'associated_doc_artifact': None
-                                })
-                            for sub_document_artifact in document_artifact.document_artifact_statement.all():
-                                boe_list.append({
-                                    'legal_case': self.id,
-                                    'offence': offence.id,
-                                    'offender': offender.id,
-                                    'record_of_interview': document_artifact.id,
-                                    'associated_doc_artifact': sub_document_artifact.id
-                                    })
-                                #print("document_artifact")
-                                #print(document_artifact)
-                                #print(document_artifact.id)
-                        else:
-                            print("nah not this one")
-            print("boe_list")
-            for l in boe_list:
-                print(l)
+        #if self.offence_legal_case.count():
+        #    boe_list = []
+        #    for offence in self.offence_legal_case.all():
+        #        boe_list.append({
+        #            'legal_case': self.id,
+        #            'offence': offence.id,
+        #            'offender': None,
+        #            'record_of_interview': None,
+        #            'associated_doc_artifact': None
+        #            })
+        #        for offender in offence.offender_set.all():
+        #            boe_list.append({
+        #                'legal_case': self.id,
+        #                'offence': offence.id,
+        #                'offender': offender.id,
+        #                'record_of_interview': None,
+        #                'associated_doc_artifact': None
+        #                })
+        #            for document_artifact in offender.document_artifact_offender.all():
+        #                if document_artifact.offence == offence:
+        #                    boe_list.append({
+        #                        'legal_case': self.id,
+        #                        'offence': offence.id,
+        #                        'offender': offender.id,
+        #                        'record_of_interview': document_artifact.id,
+        #                        'associated_doc_artifact': None
+        #                        })
+        #                    for sub_document_artifact in document_artifact.document_artifact_statement.all():
+        #                        boe_list.append({
+        #                            'legal_case': self.id,
+        #                            'offence': offence.id,
+        #                            'offender': offender.id,
+        #                            'record_of_interview': document_artifact.id,
+        #                            'associated_doc_artifact': sub_document_artifact.id
+        #                            })
+        #                        #print("document_artifact")
+        #                        #print(document_artifact)
+        #                        #print(document_artifact.id)
+        #                else:
+        #                    print("nah not this one")
+        #    print("boe_list")
+        #    for l in boe_list:
+        #        print(l)
 
 
     def log_user_action(self, action, request):
@@ -273,6 +275,17 @@ class LegalCase(RevisionedMixin):
             for parent in parents:
                 if parent.status == 'pending_closure':
                     parent.close(request)
+
+    def generate_brief_of_evidence(self, request):
+        print("generate brief of evidence")
+        self.assigned_to = None
+        self.status = self.STATUS_BRIEF_OF_EVIDENCE
+        self.log_user_action(
+            LegalCaseUserAction.ACTION_GENERATE_BRIEF_OF_EVIDENCE.format(self.number), 
+            request)
+        # set allocated group to 
+        #self.allocated_group
+        self.save()
 
 
 class LegalCasePerson(EmailUser):
@@ -389,6 +402,7 @@ class LegalCaseCommsLogDocument(Document):
 class LegalCaseUserAction(UserAction):
     ACTION_CREATE_LEGAL_CASE = "Create Case {}"
     ACTION_SAVE_LEGAL_CASE = "Save Case {}"
+    ACTION_GENERATE_BRIEF_OF_EVIDENCE = "Generate Brief of Evidence for Case {}"
     #ACTION_OFFENCE = "Create Offence {}"
     #ACTION_SANCTION_OUTCOME = "Create Sanction Outcome {}"
     #ACTION_SEND_TO_MANAGER = "Send Inspection {} to Manager"
