@@ -4,12 +4,16 @@ from django.core.management.base import BaseCommand
 from django.db.models import Q, Max
 from django.utils import timezone
 import logging
+
+from ledger.payments.invoice.models import Invoice
+
 from wildlifecompliance import settings
 from wildlifecompliance.components.sanction_outcome.email import send_unpaid_infringements_file
 from wildlifecompliance.components.sanction_outcome.models import SanctionOutcome, SanctionOutcomeUserAction, \
     UnpaidInfringementFile
 from wildlifecompliance.components.sanction_outcome.serializers import SanctionOutcomeCommsLogEntrySerializer
 from wildlifecompliance.components.sanction_outcome_due.models import SanctionOutcomeDueDate
+from wildlifecompliance.components.wc_payments.models import InfringementPenalty, InfringementPenaltyInvoice
 from wildlifecompliance.helpers import DEBUG
 from wildlifecompliance.management.classes.unpaid_infringement_file import UnpaidInfringementFileHeader, \
     UnpaidInfringementFileTrailer
@@ -31,7 +35,15 @@ class Command(BaseCommand):
                 sanction_outcomes_base = SanctionOutcome.objects.filter(
                     Q(type=SanctionOutcome.TYPE_INFRINGEMENT_NOTICE) &
                     Q(status=SanctionOutcome.STATUS_AWAITING_PAYMENT) &
-                    Q(payment_status=SanctionOutcome.PAYMENT_STATUS_UNPAID))\
+                    # Q(payment_status=SanctionOutcome.PAYMENT_STATUS_UNPAID))\
+                    # Q(infringement_penalties__in=InfringementPenalty.objects.filter(
+                    #     Q(invoice__payment_status__in=(SanctionOutcome.PAYMENT_STATUS_PARTIALLY_PAID, SanctionOutcome.PAYMENT_STATUS_UNPAID)) &
+                    #     Q(invoice__voided=False)))) \
+                    Q(infringement_penalty__in=InfringementPenalty.objects.filter(
+                        Q(infringement_penalty_invoices__in=InfringementPenaltyInvoice.objects.filter(
+                            Q(invoice_reference__in=Invoice.objects.filter(payment_status__in=(SanctionOutcome.PAYMENT_STATUS_PARTIALLY_PAID, SanctionOutcome.PAYMENT_STATUS_UNPAID)).values('reference'))
+                        ))
+                    ))) \
                     .filter(due_dates__in=SanctionOutcomeDueDate.objects.filter(Q(due_date_2nd__lt=today) & Q(due_date_term_currently_applied='2st')))
 
                 if DEBUG:
@@ -40,7 +52,16 @@ class Command(BaseCommand):
                     sanction_outcomes_debug = SanctionOutcome.objects.filter(
                         Q(type=SanctionOutcome.TYPE_INFRINGEMENT_NOTICE) &
                         Q(status=SanctionOutcome.STATUS_AWAITING_PAYMENT) &
-                        Q(payment_status=SanctionOutcome.PAYMENT_STATUS_UNPAID) &
+                        # Q(payment_status=SanctionOutcome.PAYMENT_STATUS_UNPAID) &
+                        # Q(infringement_penalties__in=InfringementPenalty.objects.filter(
+                        #     Q(invoice__payment_status__in=(SanctionOutcome.PAYMENT_STATUS_PARTIALLY_PAID, SanctionOutcome.PAYMENT_STATUS_UNPAID)) &
+                        #     Q(invoice__voided=False)
+                        # )) &
+                        Q(infringement_penalty__in=InfringementPenalty.objects.filter(
+                            Q(infringement_penalty_invoices__in=InfringementPenaltyInvoice.objects.filter(
+                                Q(invoice_reference__in=Invoice.objects.filter(payment_status__in=(SanctionOutcome.PAYMENT_STATUS_PARTIALLY_PAID, SanctionOutcome.PAYMENT_STATUS_UNPAID)))
+                            ))
+                        )) &
                         Q(description__icontains='__overdue2nd__'))\
                         .filter(due_dates__in=SanctionOutcomeDueDate.objects.filter(Q(due_date_term_currently_applied='2nd')))
 
