@@ -851,7 +851,8 @@ export default {
             payload.alleged_offence_ids_included = alleged_offence_ids_included;
             payload.alleged_offence_ids_excluded = alleged_offence_ids_excluded;
             // temporary doc
-            this.temporary_document_collection_id ? payload.temporary_document_collection_id = this.temporary_document_collection_id : null;
+            //this.temporary_document_collection_id ? payload.temporary_document_collection_id = this.temporary_document_collection_id : null;
+            this.temporary_document_collection_id ? payload.append('temporary_document_collection_id', this.temporary_document_collection_id.temp_doc_id) : null;
   
             // Retrieve remediation actions and set them to the payload
             let remediation_actions = vm.$refs.tbl_remediation_actions.vmDataTable.rows().data().toArray();

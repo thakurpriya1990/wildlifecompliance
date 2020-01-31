@@ -29,7 +29,7 @@ from wildlifecompliance.components.artifact.models import (
         PhysicalArtifactFormDataRecord,
         BriefOfEvidenceRecordOfInterview,
         #LegalCaseRunningSheetArtifacts,
-        )
+    )
 
 from wildlifecompliance.components.offence.serializers import OffenceSerializer, OffenderSerializer
 # local EmailUser serializer req?
@@ -37,6 +37,7 @@ from wildlifecompliance.components.call_email.serializers import EmailUserSerial
 #from wildlifecompliance.components.legal_case.serializers import LegalCaseSerializer
 from reversion.models import Version
 from django.utils import timezone
+#from rest_framework_recursive.fields import RecursiveField
 
 
 #class LegalCasePrioritySerializer(serializers.ModelSerializer):
@@ -574,33 +575,51 @@ class ArtifactCommsLogEntrySerializer(CommunicationLogEntrySerializer):
         return [[d.name, d._file.url] for d in obj.documents.all()]
 
 
-class BriefOfEvidenceRecordOfInterviewTreeSerializer(serializers.ModelSerializer):
-    tree = serializers.SerializerMethodField()
+#class BriefOfEvidenceRecordOfInterviewTreeSerializer(serializers.ModelSerializer):
+#class RecursiveField(serializers.Serializer):
+#    def to_representation(self, value):
+#        serializer = self.parent.parent.__class__(value, context=self.context)
+#        return serializer.data
+
+class BriefOfEvidenceRecordOfInterviewSerializer(serializers.ModelSerializer):
+    #children = serializers.ListField(child=RecursiveField())
+    label = serializers.SerializerMethodField()
 
     class Meta:
         model = BriefOfEvidenceRecordOfInterview
         fields = (
                 'id',
-                'tree',
+                'legal_case_id',
+                'offence_id',
+                #'children',
+                'offender_id',
+                'record_of_interview_id',
+                'associated_doc_artifact_id',
+                'ticked',
+                'label',
+                #'children',
                 )
         read_only_fields = (
                 'id',
                 )
 
-    def get_tree(self, obj):
-        return 'tree'
+    def get_label(self, obj):
+        return obj.label
 
 
-class BriefOfEvidenceRecordOfInterviewTickedSerializer(serializers.ModelSerializer):
+
+class SaveBriefOfEvidenceRecordOfInterviewSerializer(serializers.ModelSerializer):
 
     class Meta:
         model = BriefOfEvidenceRecordOfInterview
         fields = (
                 'id',
+                'legal_case_id',
                 'ticked',
                 )
         read_only_fields = (
                 'id',
+                'legal_case_id',
                 )
 
 #class LegalCaseRunningSheetArtifactsSerializer(serializers.ModelSerializer):
