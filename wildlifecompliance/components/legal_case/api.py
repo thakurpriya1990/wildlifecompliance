@@ -100,7 +100,12 @@ from rest_framework_datatables.renderers import DatatablesRenderer
 
 from wildlifecompliance.components.legal_case.email import (
     send_mail)
-from wildlifecompliance.components.artifact.utils import build_all_boe_roi_hierarchy, update_boe_roi_ticked
+from wildlifecompliance.components.artifact.utils import (
+        build_all_boe_roi_hierarchy, 
+        update_boe_roi_ticked,
+        build_all_boe_other_statements_hierarchy,
+        update_boe_other_statements_ticked,
+        )
 from wildlifecompliance.components.artifact.serializers import SaveBriefOfEvidenceRecordOfInterviewSerializer
 #from reversion.models import Version
 #import unicodedata
@@ -653,6 +658,7 @@ class LegalCaseViewSet(viewsets.ModelViewSet):
                 if workflow_type == 'close':
                     instance.close(request)
                 elif workflow_type == 'brief_of_evidence':
+                    build_all_boe_other_statements_hierarchy(instance)
                     build_all_boe_roi_hierarchy(instance)
                     instance.generate_brief_of_evidence(request)
                 #    instance.send_to_manager(request)

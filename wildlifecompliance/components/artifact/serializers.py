@@ -275,8 +275,8 @@ class DocumentArtifactStatementSerializer(ArtifactSerializer):
         EXPERT_STATEMENT = 'expert_statement'
         if obj.document_type in ('witness_statement', 'expert_statement') and obj.person_providing_statement:
             custodian = obj.person_providing_statement.get_full_name()
-        elif obj.document_type in ('record_of_interview', 'officer_statement') and obj.interviewer_email:
-            custodian = obj.interviewer_email
+        elif obj.document_type in ('record_of_interview', 'officer_statement') and obj.officer_interviewer_email:
+            custodian = obj.officer_interviewer_email
         return custodian
 
 class DocumentArtifactSerializer(ArtifactSerializer):
@@ -322,7 +322,7 @@ class DocumentArtifactSerializer(ArtifactSerializer):
                 'offence_id',
                 'offender_id',
                 'related_items',
-                'interviewer_email',
+                'officer_interviewer_email',
                 'document_type_display',
                 #'status',
                 'created_at',
@@ -414,7 +414,7 @@ class SaveDocumentArtifactSerializer(ArtifactSerializer):
                 'interviewer_id',
                 'offence_id',
                 'offender_id',
-                'interviewer_email',
+                'officer_interviewer_email',
                 )
         read_only_fields = (
                 'id',

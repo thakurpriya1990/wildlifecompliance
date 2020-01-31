@@ -256,7 +256,7 @@ class DocumentArtifact(Artifact):
             related_name='document_artifact_person_providing_statement',
             null=True,
             )
-    interviewer_email = models.CharField(max_length=255, blank=True, null=True)
+    officer_interviewer_email = models.CharField(max_length=255, blank=True, null=True)
     # TODO - no longer required?
     interviewer = models.ForeignKey(
             EmailUser,
@@ -646,6 +646,46 @@ class RendererDocument(Document):
     class Meta:
         app_label = 'wildlifecompliance'
 
+class BriefOfEvidenceOtherStatements(models.Model):
+    legal_case = models.ForeignKey(
+            LegalCase, 
+            related_name='legal_case_boe_other_statements')
+    person = models.CharField(max_length=255, null=True, blank=True)
+    statement = models.ForeignKey(
+            DocumentArtifact, 
+            related_name='statement_boe_other_statements',
+            blank=True,
+            null=True
+            )
+    associated_doc_artifact = models.ForeignKey(
+            DocumentArtifact, 
+            related_name='document_artifact_boe_other_statements', 
+            blank=True, 
+            null=True)
+    ticked = models.BooleanField(default=False)
+    children = models.ManyToManyField(
+            'self',
+            related_name='parents',
+            symmetrical=False)
+
+
+    class Meta:
+        app_label = 'wildlifecompliance'
+
+    @property
+    def label(self):
+        return self.__str__()
+
+    def __str__(self):
+        label_text = ''
+        if not self.statement and not self.associated_doc_artifact:
+            label_text = 'Person: ' + self.person
+        elif not self.associated_doc_artifact:
+            label_text = self.statement.document_type + ': ' + self.statement.number
+        else:
+            label_text = 'Associated Document Object: ' + self.associated_doc_artifact.number
+        return label_text
+
 
 class BriefOfEvidenceRecordOfInterview(models.Model):
     legal_case = models.ForeignKey(
@@ -681,6 +721,7 @@ class BriefOfEvidenceRecordOfInterview(models.Model):
     @property
     def label(self):
         return self.__str__()
+
     def __str__(self):
         label_text = ''
         if not self.offender and not self.record_of_interview and not self.associated_doc_artifact:

@@ -32,7 +32,7 @@ INSTALLED_APPS += [
     'taggit',
     'rest_framework',
     'rest_framework_gis',
-    'rest_framework_datatables'
+    'rest_framework_datatables',
 ]
 
 # maximum number of days allowed for a booking
