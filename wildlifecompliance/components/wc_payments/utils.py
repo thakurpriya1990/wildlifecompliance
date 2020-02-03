@@ -108,15 +108,23 @@ def create_other_invoice(request, sanction_outcome):
             order = create_invoice(sanction_outcome, payment_method='other')
             invoice = Invoice.objects.get(order_number=order.number)
 
-            infringement_penalty, created = InfringementPenalty.objects.get_or_create(sanction_outcome=sanction_outcome)
-            infringement_penalty.created_by = request.user
-            infringement_penalty.payment_type = InfringementPenalty.PAYMENT_TYPE_RECEPTION
-            infringement_penalty.save()
+            # infringement_penalty, created = InfringementPenalty.objects.get_or_create()
+            # infringement_penalty.created_by = request.user
+            # infringement_penalty.payment_type = InfringementPenalty.PAYMENT_TYPE_RECEPTION
+            # infringement_penalty.save()
+            sanction_outcome.infringement_penalty.created_by = request.user
+            sanction_outcome.infringement_penalty.payment_type = InfringementPenalty.PAYMENT_TYPE_RECEPTION
+            sanction_outcome.save()
 
-            invoice_ref = invoice.reference
-            fee_inv, created = InfringementPenaltyInvoice.objects.get_or_create(infringement_penalty=infringement_penalty,
-                                                                                invoice_reference=invoice_ref)
-            return fee_inv
+            infringement_penalty_invoice, created = InfringementPenaltyInvoice.objects.get_or_create(infringement_penalty=sanction_outcome.infringement_penalty,
+                                                                                                     invoice_reference=invoice.reference)
+
+            return invoice
+
+            # invoice_ref = invoice.reference
+            # fee_inv, created = InfringementPenaltyInvoice.objects.get_or_create(infringement_penalty=infringement_penalty,
+            #                                                                     invoice_reference=invoice_ref)
+            # return fee_inv
 
         except Exception, e:
             logger.error('Failed to create OTHER invoice for sanction outcome: {}'.format(sanction_outcome.lodgement_number))

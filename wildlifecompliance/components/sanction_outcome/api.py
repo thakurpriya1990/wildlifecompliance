@@ -12,6 +12,7 @@ from django.core.exceptions import ValidationError
 from django.db import transaction
 from django.db.models import Q
 from django.http import HttpResponse, FileResponse, HttpResponseNotFound
+from ledger.payments.invoice.models import Invoice
 
 from rest_framework import viewsets, serializers, status
 from rest_framework.decorators import list_route, detail_route, renderer_classes
@@ -46,6 +47,7 @@ from wildlifecompliance.components.sanction_outcome.serializers import SanctionO
     SaveAmendmentRequestForRemediationAction, AllegedCommittedOffenceCreateSerializer, \
     SanctionOutcomeDocumentAccessLogSerializer
 from wildlifecompliance.components.users.models import CompliancePermissionGroup, RegionDistrict
+from wildlifecompliance.components.wc_payments.models import InfringementPenalty, InfringementPenaltyInvoice
 from wildlifecompliance.helpers import is_internal
 from wildlifecompliance.components.main.models import TemporaryDocumentCollection
 
@@ -90,7 +92,8 @@ class SanctionOutcomeFilterBackend(DatatablesFilterBackend):
 
         payment_status = request.GET.get('payment_status', '').lower()
         if payment_status and payment_status != 'all':
-            q_objects &= Q(payment_status=payment_status)
+            # q_objects &= Q(payment_status=payment_status)
+            q_objects &= Q(infringement_penalty__infringement_penalty_invoices__in=InfringementPenaltyInvoice.objects.filter(Q(invoice__payment_status=payment_status) & Q(invoice__voided=False)))
 
         date_from = request.GET.get('date_from', '').lower()
         if date_from:
