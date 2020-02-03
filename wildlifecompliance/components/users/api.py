@@ -332,11 +332,10 @@ class UserViewSet(viewsets.ModelViewSet):
     @detail_route(methods=['POST', ])
     def update_contact(self, request, *args, **kwargs):
         try:
-            import ipdb; ipdb.set_trace()
-            instance = self.get_object()
-            serializer = ContactSerializer(instance, data=request.data)
-            serializer.is_valid(raise_exception=True)
             with transaction.atomic():
+                instance = self.get_object()
+                serializer = ContactSerializer(instance, data=request.data)
+                serializer.is_valid(raise_exception=True)
                 instance = serializer.save()
                 instance.log_user_action(
                     EmailUserAction.ACTION_CONTACT_DETAILS_UPDATE.format(

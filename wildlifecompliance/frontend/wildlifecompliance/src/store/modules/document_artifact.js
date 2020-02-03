@@ -60,6 +60,13 @@ export const documentArtifactStore = {
         updateOffenderId(state, offender_id) {
             Vue.set(state.document_artifact, 'offender_id', offender_id);
         },
+        updateOfficerInterviewer(state, officer_interviewer) {
+            let officerInterviewerConcise = {}
+            officerInterviewerConcise.email = officer_interviewer.email
+            officerInterviewerConcise.given_name = officer_interviewer.given_name
+            officerInterviewerConcise.surname = officer_interviewer.surname
+            Vue.set(state.document_artifact, 'officer_interviewer', officerInterviewerConcise);
+        },
         /*
         updateDocumentArtifactLegalId(state, legal_case_id) {
             console.log(legal_case_id)
@@ -154,6 +161,10 @@ export const documentArtifactStore = {
         },
         setOffenderId({ commit }, offender_id) {
             commit("updateOffenderId", offender_id);
+        },
+        setOfficerInterviewer({ commit }, officer_interviewer) {
+            console.log(officer_interviewer)
+            commit("updateOfficerInterviewer", officer_interviewer);
         },
     },
 };

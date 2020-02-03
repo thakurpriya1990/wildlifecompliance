@@ -202,12 +202,56 @@ class DocumentArtifactViewSet(viewsets.ModelViewSet):
                     # save temp doc if exists
                     if request_data.get('temporary_document_collection_id'):
                         self.handle_document(request_data, instance)
-                    # TODO add people attending
+                    # create officer_interviewer_email_user if required and attach to DocumentArtifact
+                    if request_data.get('officer_interviewer'):
+                        officer_interviewer = request_data.get('officer_interviewer')
+                        email_user_instance = self.create_officer_interviewer_email_user(officer_interviewer)
+                        instance.officer_interviewer = email_user_instance
+                        instance.save()
 
                     return (instance, headers)
         except serializers.ValidationError:
             print(traceback.print_exc())
             raise
+        except ValidationError as e:
+            print(traceback.print_exc())
+            raise serializers.ValidationError(repr(e.error_dict))
+        except Exception as e:
+            print(traceback.print_exc())
+            raise serializers.ValidationError(str(e))
+
+    def create_officer_interviewer_email_user(self, officer_interviewer, *args, **kwargs):
+        try:
+            #email_user_id_requested = request.data.get('email_user', {}).get('id', {})
+            #email_address = request.data.get('email_user', {}).get('email', '')
+            email_user_instance = None
+            email_address = officer_interviewer.get('email')
+            if not email_address:
+                #first_name = request.data.get('email_user', {}).get('first_name', '')
+                #last_name = request.data.get('email_user', {}).get('last_name', '')
+                first_name = officer_interviewer.get('given_name', '')
+                last_name = officer_interviewer.get('surname', '')
+                email_address = generate_dummy_email(first_name, last_name)
+
+            # generate queryset to test whether user exists in EmailUser
+            qs = EmailUser.objects.filter(email=email_address)
+            if qs and qs.first():
+                email_user_instance = qs.first()
+            else:
+                email_user_instance = EmailUser.objects.create_user(email_address, '')
+                email_user_instance.is_staff = True
+            email_user_instance.save()
+                #request.data['email_user'].update({'email': email_address})
+
+            #email_user_serializer = SaveEmailUserSerializer(
+            #    email_user_instance,
+            #    data=request.data['email_user'],
+            #    partial=True)
+
+            #if email_user_serializer.is_valid(raise_exception=True):
+            #    email_user_serializer.save()
+
+            return email_user_instance
         except ValidationError as e:
             print(traceback.print_exc())
             raise serializers.ValidationError(repr(e.error_dict))

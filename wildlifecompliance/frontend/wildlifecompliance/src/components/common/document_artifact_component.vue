@@ -160,8 +160,8 @@
                                                 <label >{{ interviewerLabel }}</label>
                                             </div>
                                             <div class="col-sm-9">
-                                                <select ref="document_artifact_department_users" class="form-control" v-model="document_artifact.interviewer_email">
-                                                    <option  v-for="option in departmentStaffList" :value="option.email" v-bind:key="option.pk">
+                                                <select ref="document_artifact_department_users" class="form-control" v-model="officerInterviewerEmailAddress">
+                                                    <option  v-for="option in departmentStaffList" :value="option" v-bind:key="option.pk">
                                                     {{ option.name }} 
                                                     </option>
                                                 </select>
@@ -491,6 +491,13 @@ export default {
           }
           return id;
         },
+        officerInterviewerEmailAddress: function() {
+          let emailAddress = null;
+          if (this.document_artifact && this.document_artifact.officer_interviewer) {
+              emailaddress = this.documentArtifact.officer_interviewer.email;
+          }
+          return emailAddress;
+        },
         documentArtifactIdExists: function() {
           let recordExists = false;
           if (this.document_artifact && this.document_artifact.id) {
@@ -633,6 +640,7 @@ export default {
             setTemporaryDocumentCollectionId: 'setTemporaryDocumentCollectionId',
             //setDocumentArtifactLegalId: 'setDocumentArtifactLegalId',
             setOffenderId: 'setOffenderId',
+            setOfficerInterviewer: 'setOfficerInterviewer',
         }),
         ...mapActions('legalCaseStore', {
             loadLegalCase: 'loadLegalCase',
@@ -772,7 +780,9 @@ export default {
                     console.log(e)
                     let selected = $(e.currentTarget);
                     let selectedData = selected.val();
-                    vm.setInterviewerEmail(selectedData);
+                    console.log(selectedData)
+                    vm.setOfficerInterviewer(selectedData);
+                    //vm.setInterviewerEmail(selectedData);
                     //vm.setSelectedCustodian(selectedData);
                     //let custodianData = e.params.data
                     //console.log(custodianData)

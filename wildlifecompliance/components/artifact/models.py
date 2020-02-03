@@ -257,10 +257,9 @@ class DocumentArtifact(Artifact):
             null=True,
             )
     officer_interviewer_email = models.CharField(max_length=255, blank=True, null=True)
-    # TODO - no longer required?
-    interviewer = models.ForeignKey(
+    officer_interviewer = models.ForeignKey(
             EmailUser,
-            related_name='document_artifact_interviewer',
+            related_name='document_artifact_officer_interviewer',
             null=True,
             )
     people_attending = models.ManyToManyField(
