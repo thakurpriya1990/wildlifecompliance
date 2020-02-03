@@ -196,11 +196,15 @@ export default {
                         }
                     },
                     {
+                        data: 'user_action',
                         mRender: function (data, type, full) {
-                            if (full.status.id === 'awaiting_payment'){
-                                return `<a href='#${full.id}' data-pay-infringement-penalty='${full.id}'>Pay</a><br/>`;
-                            }
-                            return '';
+                            console.log('data');
+                            console.log(data);
+                            return data;
+                           // if (full.status.id === 'awaiting_payment'){
+                           //     return `<a href='#${full.id}' data-pay-infringement-penalty='${full.id}'>Pay</a><br/>`;
+                           // }
+                           // return '';
                         }
                     },
                     // Remediation Actions

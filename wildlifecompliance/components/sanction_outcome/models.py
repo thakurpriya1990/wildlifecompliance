@@ -174,14 +174,20 @@ class SanctionOutcome(models.Model):
 
     @property
     def payment_status(self):
-        # ret = self.ledger_invoice.payment_status if self.ledger_invoice else ''
-        # return ret
         ret = ''
         if self.infringement_penalty:
             ipi = self.infringement_penalty.infringement_penalty_invoices.all().last()
             if ipi:
                 if ipi.ledger_invoice:
                     ret = ipi.ledger_invoice.payment_status
+
+        # Update status if ledger invoice's payment_status is 'paid'
+        if ret == 'paid' and self.status != SanctionOutcome.STATUS_CLOSED:
+            self.status = SanctionOutcome.STATUS_CLOSED
+            self.save()
+
+        if ret == '' and self.status == SanctionOutcome.STATUS_AWAITING_PAYMENT:
+            ret = 'unpaid'
 
         return ret
 

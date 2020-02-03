@@ -401,9 +401,9 @@ class SanctionOutcomeDocumentAccessLogSerializer(serializers.ModelSerializer):
 
 
 class SanctionOutcomeDatatableSerializer(serializers.ModelSerializer):
-    status = CustomChoiceField(read_only=True)
     # payment_status = CustomChoiceField(read_only=True)
     payment_status = serializers.ReadOnlyField()
+    status = CustomChoiceField(read_only=True)
     type = CustomChoiceField(read_only=True)
     user_action = serializers.SerializerMethodField()
     # offender = OffenderSerializer(read_only=True,)
@@ -418,8 +418,8 @@ class SanctionOutcomeDatatableSerializer(serializers.ModelSerializer):
         fields = (
             'id',
             'type',
-            'status',
             'payment_status',
+            'status',
             'lodgement_number',
             'region',
             'district',
@@ -489,38 +489,42 @@ class SanctionOutcomeDatatableSerializer(serializers.ModelSerializer):
         record_payment_url = '<a href="' + reverse('payments:invoice-payment') + '?invoice={}'.format(inv_ref) + '">Record Payment</a>' if inv_ref \
             else '<a href="' + reverse('preview_deferred_invoicing', kwargs={'sanction_outcome_pk': obj.id}) + '">Record Payment</a>'
 
-        if obj.status in SanctionOutcome.FINAL_STATUSES:
-            # if object is closed, no one can process but view
-            url_list.append(view_url)
-        else:
-            if user.id == obj.assigned_to_id:
-                # if user is assigned to the object, the user can process it
-                url_list.append(process_url)
-            elif (obj.allocated_group and not obj.assigned_to_id) and user.id in [member.id for member in obj.allocated_group.members]:
-                # if user belongs to the same group of the object
-                # and no one is assigned to the object,
-                # the user can process it
-                url_list.append(process_url)
-            else:
+        if user == obj.get_offender()[0]:
+            # If offender
+            if obj.payment_status == 'unpaid':
+                url_list.append(cc_payment_url)
+        elif is_internal(self.context.get('request')):
+            # If internal user
+            if obj.status in SanctionOutcome.FINAL_STATUSES:
+                # if object is closed, no one can process but view
                 url_list.append(view_url)
-
-        if is_payment_admin(user):
-            if inv_ref:
-                if obj.payment_status != SanctionOutcome.PAYMENT_STATUS_PAID:
-                    url_list.append(record_payment_url)
-                else:
-                    url_list.append(view_payment_url)
             else:
-                if obj.payment_status != SanctionOutcome.PAYMENT_STATUS_PAID:
-                    url_list.append(cc_payment_url)
-                    url_list.append(record_payment_url)
-                else:
-                    # Should not reach here
-                    logger.warn('Sanction Outcome: {} payment status is PAID, but no invoices found.')
+                if user.id == obj.assigned_to_id:
+                    # if user is assigned to the object, the user can process it
+                    url_list.append(process_url)
+                elif (obj.allocated_group and not obj.assigned_to_id) and user.id in [member.id for member in obj.allocated_group.members]:
+                    # if user belongs to the same group of the object
+                    # and no one is assigned to the object,
+                    # the user can process it
+                    url_list.append(process_url)
 
-        if not url_list:
-            # In other case user can view
-            url_list.append(view_url)
+            if is_payment_admin(user):
+                if inv_ref:
+                    if obj.payment_status != SanctionOutcome.PAYMENT_STATUS_PAID:
+                        url_list.append(record_payment_url)
+                    else:
+                        url_list.append(view_payment_url)
+                else:
+                    if obj.payment_status != SanctionOutcome.PAYMENT_STATUS_PAID:
+                        url_list.append(cc_payment_url)
+                        url_list.append(record_payment_url)
+                    else:
+                        # Should not reach here
+                        logger.warn('Sanction Outcome: {} payment status is PAID, but no invoices found.')
+
+            if not url_list:
+                # In other case user can view
+                url_list.append(view_url)
 
         urls = '<br />'.join(url_list)
         return urls

@@ -6,7 +6,7 @@ from django.views.generic.base import View, TemplateView
 from django.db import transaction
 from ledger.payments.helpers import is_payment_admin
 from ledger.payments.pdf import create_invoice_pdf_bytes
-from ledger.payments.utils import oracle_parser_on_invoice,update_payments
+from ledger.payments.utils import update_payments
 from ledger.payments.models import Invoice
 from ledger.basket.models import Basket
 from ledger.payments.mixins import InvoiceOwnerMixin
@@ -30,12 +30,8 @@ class InfringementPenaltyView(TemplateView):
     def post(self, request, *args, **kwargs):
 
         sanction_outcome = self.get_object()
-        # infringement_penalty, created = InfringementPenalty.objects.get_or_create(sanction_outcome=sanction_outcome)
         if not sanction_outcome.infringement_penalty:
-            sanction_outcome.infringement_penalty = InfringementPenalty.objects.create()
-        sanction_outcome.infringement_penalty.created_by = request.user
-        sanction_outcome.infringement_penalty.payment_type = InfringementPenalty.PAYMENT_TYPE_TEMPORARY
-        sanction_outcome.save()
+            sanction_outcome.infringement_penalty = InfringementPenalty.objects.create(created_by=request.user, payment_type=InfringementPenalty.PAYMENT_TYPE_TEMPORARY)
 
         try:
             with transaction.atomic():
@@ -89,8 +85,10 @@ class InfringementPenaltySuccessView(TemplateView):
             order = Order.objects.get(basket=basket[0])
             invoice = Invoice.objects.get(order_number=order.number)
 
+            print('invoice.reference: ' + invoice.reference)
+
             # Update status of the infringement notice
-            if invoice.payment_status == 'paid':
+            if invoice.payment_status == 'paid' and sanction_outcome.status not in SanctionOutcome.FINAL_STATUSES:
                 sanction_outcome.log_user_action(SanctionOutcomeUserAction.ACTION_PAY_INFRINGEMENT_PENALTY.format(sanction_outcome.lodgement_number, invoice.payment_amount, invoice.reference), request)
                 sanction_outcome.close()
 
@@ -123,6 +121,7 @@ class InfringementPenaltySuccessView(TemplateView):
                 infringement_penalty.save()
                 request.session['wc_last_infringement_invoice'] = infringement_penalty.id
                 delete_session_infringement_invoice(request.session)
+                print('delete session infringement invoice')
 
                 # TODO 1. offender, 2. internal officer
                 #send_application_fee_invoice_tclass_email_notification(request, proposal, invoice, recipients=[recipient])
@@ -141,6 +140,7 @@ class InfringementPenaltySuccessView(TemplateView):
                 return render(request, self.template_name, context)
 
         except Exception as e:
+            print('Exception: ' + e.message)
             if ('wc_last_infringement_invoice' in request.session) and InfringementPenalty.objects.filter(id=request.session['wc_last_infringement_invoice']).exists():
                 infringement_penalty = InfringementPenalty.objects.get(id=request.session['wc_last_infringement_invoice'])
                 sanction_outcome = infringement_penalty.sanction_outcome
@@ -148,19 +148,21 @@ class InfringementPenaltySuccessView(TemplateView):
                 recipient = sanction_outcome.get_offender()[0].email
                 submitter = sanction_outcome.assigned_to.email if sanction_outcome.assigned_to else None
 
-                # if InfringementPenaltyInvoice.objects.filter(infringement_penalty=infringement_penalty).count() > 0:
-                #     ip_inv = InfringementPenaltyInvoice.objects.filter(infringement_penalty=infringement_penalty)
-                #     invoice = ip_inv[0]
-                invoice = infringement_penalty.invoice
+                if InfringementPenaltyInvoice.objects.filter(infringement_penalty=infringement_penalty).count() > 0:
+                    ip_inv = InfringementPenaltyInvoice.objects.filter(infringement_penalty=infringement_penalty)
+                    invoice = ip_inv[0]
+
+                # if infringement_penalty.infringement_penalty_invoices.all().count():
+
             else:
                 return redirect('external')
 
         try:
             invoice_created_datetime = invoice.created
         except Exception as e:
-            # inv = Invoice.objects.get(reference=invoice.invoice_reference)
-            # invoice_created_datetime = inv.created
-            invoice_created_datetime = infringement_penalty.created
+            inv = Invoice.objects.get(reference=invoice.invoice_reference)
+            invoice_created_datetime = inv.created
+            # invoice_created_datetime = infringement_penalty.created
 
         context = {
             'sanction_outcome': sanction_outcome,
