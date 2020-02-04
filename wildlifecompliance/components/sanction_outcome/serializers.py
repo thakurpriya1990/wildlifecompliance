@@ -491,7 +491,7 @@ class SanctionOutcomeDatatableSerializer(serializers.ModelSerializer):
 
         if user == obj.get_offender()[0]:
             # If offender
-            if obj.payment_status == 'unpaid':
+            if obj.payment_status == 'unpaid' and obj.status == SanctionOutcome.STATUS_AWAITING_PAYMENT:
                 url_list.append(cc_payment_url)
         elif is_internal(self.context.get('request')):
             # If internal user
@@ -510,12 +510,15 @@ class SanctionOutcomeDatatableSerializer(serializers.ModelSerializer):
 
             if is_payment_admin(user):
                 if inv_ref:
+                    # There is an invoice
                     if obj.payment_status != SanctionOutcome.PAYMENT_STATUS_PAID:
+                        # Partially paid
                         url_list.append(record_payment_url)
                     else:
+                        # Paid
                         url_list.append(view_payment_url)
                 else:
-                    if obj.payment_status != SanctionOutcome.PAYMENT_STATUS_PAID:
+                    if obj.payment_status != SanctionOutcome.PAYMENT_STATUS_PAID and obj.status == SanctionOutcome.STATUS_AWAITING_PAYMENT:
                         url_list.append(cc_payment_url)
                         url_list.append(record_payment_url)
                     else:
