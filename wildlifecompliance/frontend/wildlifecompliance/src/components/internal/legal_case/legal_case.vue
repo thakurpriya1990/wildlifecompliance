@@ -78,7 +78,7 @@
                         
                         <div  class="row action-button">
                           <div v-if="canUserAction" class="col-sm-12">
-                                <a @click="open_sanction_outcome()" class="btn btn-primary btn-block">
+                                <a @click="addWorkflow('brief_of_evidence')" class="btn btn-primary btn-block">
                                   Brief of Evidence
                                 </a>
                           </div>
@@ -268,8 +268,18 @@
                                     </label>
                                 </div></div>
                             </FormSection>
-                            <FormSection :formCollapse="false" label="Offences, Offenders and Records of Interview">
+                            <FormSection :formCollapse="false" label="Offences, Offenders and Records of Interview" treeHeight="string">
                                 <div class="col-sm-12 form-group"><div class="row">
+                                        <TreeSelect 
+                                        ref="record_of_interview_tree" 
+                                        :value="boeRoiTicked" 
+                                        :options="boeRoiOptions" 
+                                        :default-expand-level="Infinity" 
+                                        :disabled="false"
+                                        multiple
+                                        value-consists-of="LEAF_PRIORITY"
+                                        @input="setBoeRoiTicked"
+                                        />
                                 </div></div>
                             </FormSection>
                             <FormSection :formCollapse="false" label="Witness Statements, Officer Statements, Expert Statements">
@@ -395,12 +405,17 @@ import PersonOrArtifactModal from '@/components/common/person_or_artifact_modal'
 import _ from 'lodash';
 import RunningSheetHistory from './running_sheet_history'
 import LegalCaseWorkflow from './legal_case_workflow'
+//import TreeSelect from "@/components/compliance_forms/treeview.vue";
+import TreeSelect from '@riophae/vue-treeselect'
+import '@riophae/vue-treeselect/dist/vue-treeselect.css'
 
 
 export default {
     name: "ViewLegalCase",
     data: function() {
         return {
+            //boeRoiTicked: [],
+            boeRoiOptions: [],
             uuid: 0,
             showSpinner: false,
             showExit: false,
@@ -552,6 +567,7 @@ export default {
     PersonOrArtifactModal,
     RunningSheetHistory,
     LegalCaseWorkflow,
+    TreeSelect,
   },
   computed: {
     ...mapGetters('legalCaseStore', {
@@ -671,7 +687,16 @@ export default {
             keyCombination = '^^';
         }
         return keyCombination;
-    }
+    },
+    boeRoiTicked: function() {
+        let ticked = []
+        if (this.legal_case && this.legal_case.boe_roi_ticked) {
+            for (let id of this.legal_case.boe_roi_ticked) {
+                ticked.push(id)
+            }
+        }
+        return ticked;
+    },
   },
   filters: {
     formatDate: function(data) {
@@ -690,6 +715,7 @@ export default {
       setAddRunningSheetEntry: 'setAddRunningSheetEntry',
       setRunningSheetEntry: 'setRunningSheetEntry',
       addToRunningSheetPersonList: 'addToRunningSheetPersonList',
+      setBoeRoiTicked: 'setBoeRoiTicked',
     }),
     ...mapActions({
         loadCurrentUser: 'loadCurrentUser',
@@ -954,8 +980,9 @@ export default {
       this.showSpinner = true;
       if (returnToDash) {
           this.showExit = true;
-      }      
+      }
       await this.runningSheetTransformWrapper();
+      //await this.setBoeRoiTicked(this.boeRoiTicked);
       //if (this.legal_case.id) {
       if (createNewRow) {
           //await this.saveLegalCase({ create: false, internal: true, createNewRow: true });
@@ -1361,6 +1388,22 @@ export default {
 
       this.calculateHash();
       this.constructRunningSheetTableWrapper();
+      if (this.legal_case && this.legal_case.boe_roi_options) {
+          for (let item of this.legal_case.boe_roi_options) {
+      /*
+      if (this.legal_case && this.legal_case.legal_case_boe_roi) {
+          for (let item of this.legal_case.legal_case_boe_roi) {
+              */
+              let cloned_item = _.cloneDeep(item);
+              this.boeRoiOptions.push(cloned_item)
+          }
+      }
+      /*
+      // read in ticked boe_roi records
+      for (let item of this.legal_case.boe_roi_ticked) {
+          this.boeRoiTicked.push(item)
+      }
+      */
   },
   destroyed: function() {
       window.removeEventListener('beforeunload', this.leaving);

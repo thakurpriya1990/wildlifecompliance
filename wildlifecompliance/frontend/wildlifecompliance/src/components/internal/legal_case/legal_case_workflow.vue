@@ -2,7 +2,7 @@
     <div id="LegalCaseWorkflow">
         <modal transition="modal fade" @ok="ok()" @cancel="cancel()" :title="modalTitle" large force>
           <div class="container-fluid">
-            <div class="row">
+            <div v-if="workflow_type==='close'" class="row">
                 <div class="col-sm-12">
                         <div class="form-group">
                           <div class="row">
@@ -25,6 +25,11 @@
                             </div>
                         </div>
                 </div>
+            </div>
+            <div v-else class="row">
+                <strong>Are you sure you want to generate the Brief of Evidence?
+                    <br>( This will make the Case read-only and no further changes can be made)
+                </strong>
             </div>
           </div>
             <div slot="footer">
@@ -98,6 +103,8 @@ export default {
       modalTitle: function() {
           if (this.workflow_type === 'close') {
               return "Close Legal Case";
+          } else if (this.workflow_type === 'brief_of_evidence') {
+              return "Generate the Brief of Evidence";
           }
       },
         /*

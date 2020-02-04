@@ -619,6 +619,8 @@ class ApplicationViewSet(viewsets.ModelViewSet):
         try:
             instance = self.get_object()
             product_lines = []
+            if instance.application_fee < 1:
+                raise Exception('Checkout request for zero amount.')
             application_submission = u'Application fee for {}'.format(
                 instance.lodgement_number)
             set_session_application(request.session, instance)
@@ -635,8 +637,6 @@ class ApplicationViewSet(viewsets.ModelViewSet):
                         activity.application_fee)),
                     'oracle_code': ''
                 })
-                if activity.application_fee < 1:
-                    raise Exception('Checkout request for zero amount.')
             checkout_result = checkout(request, instance, lines=product_lines,
                                        invoice_text=application_submission)
             return checkout_result

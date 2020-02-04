@@ -214,9 +214,6 @@ export default {
                                 if (!vm.is_external && full.can_action['can_reinstate']) {
                                     links += `<a reinstate-licence='${full.id}'>Reinstate</a><br/>`
                                 }
-                                if (!vm.is_external && full.can_action['can_reissue']) {
-                                    links += `<a reissue-licence='${full.id}' org-id='${org_id}' proxy-id='${proxy_id}' licence-category-id='${licence_category_id}'>Reissue</a><br/>`
-                                }
                             }
                             return links;
                         },
@@ -682,12 +679,23 @@ export default {
                     confirmButtonText: 'Accept'
                 }).then((result) => {
                     if (result.value) {
-                        vm.setApplyLicenceSelect({licence_select: 'reissue_activity'});
-                        var licence_category_id = $(this).attr('licence-category-id');
-                        var licence_activity_id = $(this).attr('reissue-activity');
-                        vm.setApplyProxyId({id: $(this).attr('proxy-id')});
-                        vm.setApplyOrgId({id: $(this).attr('org-id')});
-                        vm.routeApplyLicence(licence_category_id, licence_activity_id);
+                        var action_licence = {
+                            purpose_ids_list:[]
+                        };                        
+                        action_licence.purpose_ids_list[0] = $(this).attr('reissue-activity');
+                        var licence_id = $(this).attr('lic-id');
+                        vm.licence_action = 'reissue';
+                        vm.selected_licence_id = licence_id;
+                        vm.$http.post(helpers.add_endpoint_json(api_endpoints.licences,licence_id+'/reissue_purposes'),JSON.stringify(action_licence),{
+                            emulateJSON:true,
+                            }).then((response)=>{
+                                // route back to application for reissue.
+                                vm.$router.push({name:"internal-application", params:{application_id: response.body.current_application.id}});
+                            },(error)=>{
+                                vm.errors = true;
+                                vm.actioningPurposes = false;
+                                vm.errorString = helpers.apiVueResourceError(error);
+                            });
                     }
                 },(error) => {
                 });
@@ -817,7 +825,7 @@ export default {
                                     }
                                     if (!vm.is_external && activity['can_action']['can_reissue']) {
                                         activity_rows +=
-                                            `<a reissue-activity='${activity["licence_activity_id"]}' proxy-id='${proxy_id}' org-id='${org_id}' licence-category-id='${licence_category_id}'>Reissue</a></br>`;
+                                            `<a reissue-activity='${activity['licence_activity_id']}' lic-id='${licence_id}' proxy-id='${proxy_id}' org-id='${org_id}' licence-category-id='${licence_category_id}'>Reissue</a></br>`;
                                     }
                                     if (!vm.is_external && activity['can_action']['can_reinstate']) {
                                         activity_rows +=

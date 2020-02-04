@@ -1,0 +1,58 @@
+from wildlifecompliance.components.artifact.models import BriefOfEvidenceRecordOfInterview
+
+
+# generate every node in the tree
+def build_all_boe_roi_hierarchy(legal_case):
+    # build offences, offenders and ROI hierarchy
+    for offence in legal_case.offence_legal_case.all():
+        offence_level_record, created = BriefOfEvidenceRecordOfInterview.objects.get_or_create(
+                legal_case=legal_case, 
+                offence=offence,
+                offender=None,
+                record_of_interview=None,
+                associated_doc_artifact=None)
+        for offender in offence.offender_set.all():
+            offender_level_record, offender_level_record_created = BriefOfEvidenceRecordOfInterview.objects.get_or_create(
+                    legal_case=legal_case, 
+                    offence=offence,
+                    offender= offender,
+                    record_of_interview=None,
+                    associated_doc_artifact=None)
+            if offender_level_record_created:
+                print('add offender level record {} to offence {}'.format(offender_level_record, offence_level_record))
+                offence_level_record.children.add(offender_level_record)
+            for document_artifact in offender.document_artifact_offender.all():
+                if document_artifact.offence == offence and document_artifact.document_type == 'record_of_interview':
+                    roi_level_record, roi_level_record_created = BriefOfEvidenceRecordOfInterview.objects.get_or_create(
+                            legal_case=legal_case, 
+                            offence=offence,
+                            offender= offender,
+                            record_of_interview=document_artifact,
+                            associated_doc_artifact=None)
+                    if roi_level_record_created:
+                        print('add roi level record {} to offender {}'.format(roi_level_record, offender_level_record))
+                        offender_level_record.children.add(roi_level_record)
+                    for sub_document_artifact in document_artifact.document_artifact_statement.all():
+                        doc_level_record, doi_level_record_created = BriefOfEvidenceRecordOfInterview.objects.get_or_create(
+                                legal_case=legal_case, 
+                                offence=offence,
+                                offender= offender,
+                                record_of_interview=document_artifact,
+                                associated_doc_artifact=sub_document_artifact)
+                        if doi_level_record_created:
+                            print('add doc level record {} to roi {}'.format(doc_level_record, roi_level_record))
+                            roi_level_record.children.add(doc_level_record)
+
+def update_boe_roi_ticked(legal_case, boe_roi_ticked):
+    print("boe_roi_ticked")
+    print(boe_roi_ticked)
+    # get all associated BriefOfEvidenceRecordOfInterview records
+    queryset = BriefOfEvidenceRecordOfInterview.objects.filter(legal_case__id=legal_case.id)
+    for record in queryset:
+        if record.id in boe_roi_ticked:
+            record.ticked = True
+        else:
+            record.ticked = False
+        record.save()
+
+
