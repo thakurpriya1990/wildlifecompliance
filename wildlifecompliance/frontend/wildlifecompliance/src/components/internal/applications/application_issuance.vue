@@ -103,6 +103,22 @@
                                         <div class="col-sm-3">
                                             <label class="control-label pull-left"  for="details">Files to be attached to email</label>
                                         </div>
+                                        <div v-if="defaultDocument" class="col-sm-9">
+                                            <filefield 
+                                                ref="comms_log_file" 
+                                                name="comms-log-file" 
+                                                :isRepeatable="true" 
+                                                documentActionUrl="temporary_document" 
+                                                @update-temp-doc-coll-id="setTemporaryDocumentCollectionId"/>
+                                        </div>
+                                        <div v-else class="col-sm-9">
+                                            <filefield 
+                                                ref="comms_log_file" 
+                                                name="comms-log-file" 
+                                                :isRepeatable="true" 
+                                                :documentActionUrl="defaultDocumentUrl" 
+                                                @update-temp-doc-coll-id="setTemporaryDocumentCollectionId"/>
+                                        </div>                                       
                                     </div>
                                 </div>
                             </div>
@@ -184,9 +200,13 @@ import {
 }
 from '@/utils/hooks'
 import { mapGetters, mapActions } from 'vuex'
+import filefield from '@/components/common/compliance_file.vue'
 
 export default {
     name: 'InternalApplicationIssuance',
+    components:{
+        filefield,
+    },    
     props: {
         application: Object,
         licence_activity_tab:Number
@@ -208,6 +228,10 @@ export default {
                 showClear:true,
                 allowInputToggle:true
             },
+            defaultDocumentUrl: helpers.add_endpoint_join(
+                api_endpoints.applications,
+                vm.application.id + "/process_default_document/"
+                )
         }
     },
     watch:{
@@ -281,6 +305,14 @@ export default {
         },
         canEditLicenceDates: function() {
             return this.application.application_type && this.application.application_type.id !== 'amend_activity';
+        },
+        defaultDocument: function() {
+            this.$http.post(helpers.add_endpoint_json(api_endpoints.applications,this.application.id+'/process_default_document')).then((response)=>{
+                    return response.body
+                    //vm.refreshFromResponse(response)
+                },(error)=>{
+                    console.log(error)
+                });            
         },
     },
     methods:{
@@ -433,6 +465,10 @@ export default {
                     }
                 })
             }
+        },
+
+        setTemporaryDocumentCollectionId: function(val) {
+            this.temporary_document_collection_id = val;
         },
 
         userHasRole: function(role, activity_id) {

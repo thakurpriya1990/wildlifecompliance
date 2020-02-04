@@ -14,6 +14,8 @@ from django.dispatch import receiver
 from django.contrib.postgres.fields.jsonb import JSONField
 from django.contrib.auth.models import Group
 from django.core.exceptions import ValidationError
+from django.core.files.storage import default_storage
+from django.core.files.base import ContentFile
 from django.utils import timezone
 from django.utils.encoding import python_2_unicode_compatible
 
@@ -52,6 +54,9 @@ from wildlifecompliance.components.licences.models import (
     WildlifeLicence,
     LicenceDocument,
 )
+from wildlifecompliance.components.main.models import (
+    TemporaryDocumentCollection
+)
 logger = logging.getLogger(__name__)
 
 
@@ -81,6 +86,24 @@ def replace_special_chars(input_str, new_char='_'):
 def update_application_comms_log_filename(instance, filename):
     return 'wildlifecompliance/applications/{}/communications/{}/{}'.format(
         instance.log_entry.application.id, instance.id, filename)
+
+
+def get_temporary_document_collection(collection_id):
+    """
+    Utility function to retrieve stored documents from temporary storage.
+    """
+
+    temp_doc_collection = None
+    temp_doc_collection, created = \
+        TemporaryDocumentCollection.objects.get_or_create(
+            id=collection_id.get('temp_doc_id'))
+
+    # if temp_doc_collection:
+    #    for doc in temp_doc_collection.documents.all():
+    #       save_comms_log_document_obj(instance, workflow_entry, doc)
+    #    temp_doc_collection.delete()
+
+    return temp_doc_collection
 
 
 class ActivityPermissionGroup(Group):
@@ -137,12 +160,18 @@ class ApplicationDocument(Document):
     input_name = models.CharField(max_length=255, null=True, blank=True)
     # after initial submit prevent document from being deleted
     can_delete = models.BooleanField(default=True)
+    selected_activity = models.ForeignKey(
+        'ApplicationSelectedActivity',
+        blank=True,
+        null=True,
+        related_name='proposed_attachments')
 
     def delete(self):
         if self.can_delete:
             return super(ApplicationDocument, self).delete()
         logger.info(
-            'Cannot delete existing document object after application has been submitted (including document submitted before\
+            'Cannot delete existing document object after application has been\
+            submitted (including document submitted before\
             application pushback to status Draft): {}'.format(
                 self.name)
         )
@@ -1851,6 +1880,25 @@ class Application(RevisionedMixin):
                     raise ValidationError(
                         'You cannot propose for licence if it is not with officer for conditions')
 
+                # process any attachments which need to be emailed to internal
+                # and attachments for the applicant when issued.
+                email_attachments = get_temporary_document_collection(
+                    request.data.get('email_attachments_id')
+                )        
+                for attachment in email_attachments.documents.all():
+                    print(attachment)
+
+                proposed_attachments = get_temporary_document_collection(
+                    request.data.get('proposed_attachments_id')
+                )
+
+                for activity_id in activity_list:
+                    activity = self.activities.get(
+                        licence_activity_id=activity_id
+                    )
+                    # store attachment against issued activities.
+                    activity.store_proposed_attachments(proposed_attachments)
+
                 if self.application_type == Application.APPLICATION_TYPE_AMENDMENT:
                     # Pre-populate proposed issue dates with dates from the currently active licence.
                     for activity_id in activity_list:
@@ -3219,6 +3267,37 @@ class ApplicationSelectedActivity(models.Model):
             self.updated_by = request.user
             self.save()
 
+    def store_proposed_attachments(self, proposed_attachments):
+        """
+        Stores proposed attachments from Temporary Document Collection to the
+        Application Selected Activity.
+        """
+        with transaction.atomic():
+            INPUT_NAME = 'proposed_attachment'
+            try:
+                for attachment in proposed_attachments.documents.all():
+                    document = self.proposed_attachments.get_or_create(
+                        application_id=self.application_id,
+                        selected_activity_id=self.licence_activity_id,
+                        input_name=INPUT_NAME)[0]
+                    
+                    document.name = str(attachment.name)
+
+                    if document._file and os.path.isfile(document._file.path):
+                        os.remove(document._file.path)
+                    document.application_id = self.application_id
+                    document.selected_activity_id = self.licence_activity_id
+
+                    path = default_storage.save(
+                      'wildlifecompliance/applications/{}/documents/{}'.format(
+                          self.application_id), ContentFile(
+                          attachment._file.read()))  
+
+                    document._file = path                  
+                    document.save()
+
+            except BaseException:
+                raise
 
 class ActivityInvoice(models.Model):
     PAYMENT_STATUS_NOT_REQUIRED = 'payment_not_required'

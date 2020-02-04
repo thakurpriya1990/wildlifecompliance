@@ -69,6 +69,36 @@
                                     </div>
                                 </div>
                             </div>
+                            <div class="form-group">
+                                <div class="row">
+                                    <div class="col-sm-3">
+                                        <label class="control-label pull-left" for="Name">Proposed Attachments</label>
+                                    </div>
+            			            <div class="col-sm-9">
+                                        <filefield 
+                                            ref="comms_log_file" 
+                                            name="comms-log-file" 
+                                            :isRepeatable="true" 
+                                            documentActionUrl="temporary_document" 
+                                            @update-temp-doc-coll-id="setTemporaryDocumentCollectionId"/>
+                                    </div>                                                              
+                                </div>
+                            </div>
+                            <div class="form-group">
+                                <div class="row">
+                                    <div class="col-sm-3">
+                                        <label class="control-label pull-left" for="Name">Email Attachments</label>
+                                    </div>
+            			            <div class="col-sm-9">
+                                        <filefield 
+                                            ref="comms_log_file" 
+                                            name="comms-log-file" 
+                                            :isRepeatable="true" 
+                                            documentActionUrl="temporary_document" 
+                                            @update-temp-doc-coll-id="setTemporaryEmailCollectionId"/>
+                                    </div>                                                              
+                                </div>
+                            </div>   
                         </div>
                     </form>
                 </div>
@@ -88,11 +118,13 @@ import modal from '@vue-utils/bootstrap-modal.vue'
 import alert from '@vue-utils/alert.vue'
 import {helpers,api_endpoints} from "@/utils/hooks.js"
 import { mapGetters } from 'vuex'
+import filefield from '@/components/common/compliance_file.vue'
 export default {
     name:'Proposed-Licence',
     components:{
         modal,
-        alert
+        alert,
+        filefield,
     },
     props:{
     },
@@ -106,7 +138,7 @@ export default {
                 cc_email:null,
                 reason:null,
                 expiry_date:null,
-                start_date:null
+                start_date:null,
             },
             issuingLicence: false,
             validation_form: null,
@@ -121,6 +153,8 @@ export default {
                 keepInvalid:true,
                 allowInputToggle:true
             },
+            temporary_document_colection_id: null,
+            temporary_document_email_id: null,
         }
     },
     computed: {
@@ -182,9 +216,17 @@ export default {
                 console.log(error);
             } );
         },
+        setTemporaryDocumentCollectionId: function(val) {
+            this.temporary_document_collection_id = val;
+        },
+        setTemporaryEmailCollectionId: function(val) {
+            this.temporary_document_email_id = val;
+        },
         sendData:function(){
             let vm = this;
             vm.errors = false;
+            vm.propose_issue.proposed_attachments_id = this.temporary_document_collection_id;
+            vm.propose_issue.email_attachments_id = this.temporary_document_email_id;
             let propose_issue = JSON.parse(JSON.stringify(vm.propose_issue));
             vm.issuingLicence = true;
             if (propose_issue.activity.length > 0){
