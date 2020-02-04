@@ -581,22 +581,20 @@ class BaseApplicationSerializer(serializers.ModelSerializer):
             invoice_str = app.latest_invoice.reference
             for invoice in invoices:
                 invoice_str += '&invoice={}'.format(invoice.invoice_reference)
+
+            if app.requires_refund:
+                if app.application_type == \
+                        Application.APPLICATION_TYPE_AMENDMENT:
+                    previous = Application.objects.get(
+                        id=app.previous_application.id)
+                    invoices = previous.invoices.all()
+                    for invoice in invoices:
+                        invoice_str += '&invoice={}'.format(
+                            invoice.invoice_reference)
+
             url = '{}?invoice={}'.format(
                 reverse('payments:invoice-payment'),
                 invoice_str)
-
-        if app.requires_refund:         # url for all invoices on previous app.
-            if app.application_type == Application.APPLICATION_TYPE_AMENDMENT:
-                previous = Application.objects.get(
-                    id=app.previous_application.id)
-                invoices = previous.invoices.all()
-                invoice_str = previous.latest_invoice.reference
-                for invoice in invoices:
-                    invoice_str += '&invoice={}'.format(
-                        invoice.invoice_reference)
-                    url = '{}?invoice={}'.format(
-                        reverse('payments:invoice-payment'),
-                        invoice_str)
 
         return url
 
