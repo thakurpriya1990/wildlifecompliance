@@ -32,6 +32,7 @@ class InfringementPenaltyView(TemplateView):
         sanction_outcome = self.get_object()
         if not sanction_outcome.infringement_penalty:
             sanction_outcome.infringement_penalty = InfringementPenalty.objects.create(created_by=request.user, payment_type=InfringementPenalty.PAYMENT_TYPE_TEMPORARY)
+        sanction_outcome.save()
 
         try:
             with transaction.atomic():
@@ -88,9 +89,28 @@ class InfringementPenaltySuccessView(TemplateView):
             print('invoice.reference: ' + invoice.reference)
 
             # Update status of the infringement notice
-            if invoice.payment_status == 'paid' and sanction_outcome.status not in SanctionOutcome.FINAL_STATUSES:
-                sanction_outcome.log_user_action(SanctionOutcomeUserAction.ACTION_PAY_INFRINGEMENT_PENALTY.format(sanction_outcome.lodgement_number, invoice.payment_amount, invoice.reference), request)
-                sanction_outcome.close()
+            if sanction_outcome.status not in SanctionOutcome.FINAL_STATUSES:
+                inv_payment_status = invoice.payment_status
+                if inv_payment_status == SanctionOutcome.PAYMENT_STATUS_PAID:
+                    sanction_outcome.log_user_action(SanctionOutcomeUserAction.ACTION_PAY_INFRINGEMENT_PENALTY.format(sanction_outcome.lodgement_number, invoice.payment_amount, invoice.reference), request)
+                    sanction_outcome.payment_status = SanctionOutcome.PAYMENT_STATUS_PAID
+                    sanction_outcome.close()
+                elif inv_payment_status == SanctionOutcome.PAYMENT_STATUS_OVER_PAID:
+                    # Should not reach here
+                    logger.warn('{} overpaid an infringement penalty: {}'.format(
+                        'User {} with id {}'.format(request.user.get_full_name(), request.user.id) if sanction_outcome.offender else 'An anonymous user',
+                        sanction_outcome.lodgement_number
+                    ))
+                    sanction_outcome.payment_status = SanctionOutcome.PAYMENT_STATUS_OVER_PAID
+                    sanction_outcome.save()
+                elif inv_payment_status == SanctionOutcome.PAYMENT_STATUS_PARTIALLY_PAID:
+                    # Should not reach here
+                    logger.warn('{} partially paid an infringement penalty: {}'.format(
+                        'User {} with id {}'.format(request.user.get_full_name(), request.user.id) if sanction_outcome.offender else 'An anonymous user',
+                        sanction_outcome.lodgement_number
+                    ))
+                    sanction_outcome.payment_status = SanctionOutcome.PAYMENT_STATUS_OVER_PAID
+                    sanction_outcome.save()
 
             # invoice_ref = invoice.reference
             fee_inv, created = InfringementPenaltyInvoice.objects.get_or_create(infringement_penalty=infringement_penalty, invoice_reference=invoice.reference)
@@ -104,12 +124,18 @@ class InfringementPenaltySuccessView(TemplateView):
                     order.user = submitter
                     order.save()
                 except Invoice.DoesNotExist:
-                    logger.error('{} tried paying an infringement penalty with an incorrect invoice'.format('User {} with id {}'.format(sanction_outcome.get_offender()[0].get_full_name(), sanction_outcome.get_offender()[0].id) if sanction_outcome.offender else 'An anonymous user'))
+                    logger.error('{} tried paying an infringement penalty: {} with an incorrect invoice'.format(
+                        'User {} with id {}'.format(request.user.get_full_name(), request.user.id) if request.user else 'An anonymous user',
+                        sanction_outcome.lodgement_number
+                    ))
                     #return redirect('external', args=(proposal.id,))
                     return redirect('external')
 
                 if invoice.system not in ['0999']: # TODO Change to correct VALUE
-                    logger.error('{} tried paying an infringement penalty with an invoice from another system with reference number {}'.format('User {} with id {}'.format(sanction_outcome.get_offender()[0].get_full_name(), sanction_outcome.get_offender()[0].id) if sanction_outcome.get_offender()[0] else 'An anonymous user',inv.reference))
+                    logger.error('{} tried paying an infringement penalty with an invoice from another system with reference number {}'.format(
+                        'User {} with id {}'.format(request.user.get_full_name(), request.user.id) if request.user else 'An anonymous user',
+                        invoice.reference
+                    ))
                     #return redirect('external-proposal-detail', args=(proposal.id,))
                     return redirect('external')
 

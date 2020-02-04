@@ -200,7 +200,7 @@ export default {
                         orderable: true,
                     },
                     {
-                        data: 'payment_status',
+                        data: 'payment_status.name',
                         searchable: true,
                         orderable: false,
                     },

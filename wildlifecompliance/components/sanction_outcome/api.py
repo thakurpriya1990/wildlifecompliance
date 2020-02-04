@@ -92,8 +92,7 @@ class SanctionOutcomeFilterBackend(DatatablesFilterBackend):
 
         payment_status = request.GET.get('payment_status', '').lower()
         if payment_status and payment_status != 'all':
-            # q_objects &= Q(payment_status=payment_status)
-            q_objects &= Q(infringement_penalty__infringement_penalty_invoices__in=InfringementPenaltyInvoice.objects.filter(Q(invoice__payment_status=payment_status) & Q(invoice__voided=False)))
+            q_objects &= Q(payment_status=payment_status)
 
         date_from = request.GET.get('date_from', '').lower()
         if date_from:

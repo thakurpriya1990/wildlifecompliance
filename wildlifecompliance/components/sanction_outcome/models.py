@@ -128,6 +128,8 @@ class SanctionOutcome(models.Model):
 
     type = models.CharField(max_length=30, choices=TYPE_CHOICES, blank=True,)
     status = models.CharField(max_length=40, choices=STATUS_CHOICES, default=__original_status,)
+    payment_status = models.CharField(max_length=30, choices=PAYMENT_STATUS_CHOICES, blank=True,)  # This value should always reflect ledger invoice.payment_status
+                                                                                                   # Ref: functions for endorsement and post_save function in the wc_payment/utils.py
 
     region = models.ForeignKey(RegionDistrict, related_name='sanction_outcome_region', null=True,)
     district = models.ForeignKey(RegionDistrict, related_name='sanction_outcome_district', null=True,)
@@ -172,24 +174,24 @@ class SanctionOutcome(models.Model):
     objects_active = SanctionOutcomeActiveManager()
     objects_for_external = SanctionOutcomeExternalManager()
 
-    @property
-    def payment_status(self):
-        ret = ''
-        if self.infringement_penalty:
-            ipi = self.infringement_penalty.infringement_penalty_invoices.all().last()
-            if ipi:
-                if ipi.ledger_invoice:
-                    ret = ipi.ledger_invoice.payment_status
-
-        # Update status if ledger invoice's payment_status is 'paid'
-        if ret == 'paid' and self.status != SanctionOutcome.STATUS_CLOSED:
-            self.status = SanctionOutcome.STATUS_CLOSED
-            self.save()
-
-        if ret == '' and self.status == SanctionOutcome.STATUS_AWAITING_PAYMENT:
-            ret = 'unpaid'
-
-        return ret
+    # @property
+    # def payment_status(self):
+    #     ret = ''
+    #     if self.infringement_penalty:
+    #         ipi = self.infringement_penalty.infringement_penalty_invoices.all().last()
+    #         if ipi:
+    #             if ipi.ledger_invoice:
+    #                 ret = ipi.ledger_invoice.payment_status
+    #
+    #     # Update status if ledger invoice's payment_status is 'paid'
+    #     if ret == 'paid' and self.status != SanctionOutcome.STATUS_CLOSED:
+    #         self.status = SanctionOutcome.STATUS_CLOSED
+    #         self.save()
+    #
+    #     if ret == '' and self.status == SanctionOutcome.STATUS_AWAITING_PAYMENT:
+    #         ret = 'unpaid'
+    #
+    #     return ret
 
     def can_close_record(self):
         can_close_record = True
@@ -495,6 +497,7 @@ class SanctionOutcome(models.Model):
             if not self.issued_on_paper and self.is_issuable(raise_exception=True):
                 self.confirm_date_time_issue(raise_exception=True)
                 self.status = SanctionOutcome.STATUS_AWAITING_PAYMENT
+                self.payment_status = SanctionOutcome.PAYMENT_STATUS_UNPAID
                 self.set_penalty_amounts()
                 self.create_due_dates()
 
@@ -506,12 +509,14 @@ class SanctionOutcome(models.Model):
         if self.type == SanctionOutcome.TYPE_INFRINGEMENT_NOTICE:
             if self.issued_on_paper:
                 self.status = SanctionOutcome.STATUS_AWAITING_PAYMENT
+                self.payment_status = SanctionOutcome.PAYMENT_STATUS_UNPAID
                 self.set_penalty_amounts()
                 self.create_due_dates()
             else:
                 if self.is_issuable(raise_exception=True):
                     self.confirm_date_time_issue(raise_exception=True)
                     self.status = SanctionOutcome.STATUS_AWAITING_PAYMENT
+                    self.payment_status = SanctionOutcome.PAYMENT_STATUS_UNPAID
                     self.set_penalty_amounts()
                     self.create_due_dates()
             new_group = SanctionOutcome.get_compliance_permission_group(self.regionDistrictId, SanctionOutcome.WORKFLOW_ENDORSE)
@@ -602,6 +607,7 @@ class SanctionOutcome(models.Model):
 
     def return_to_infringement_notice_coordinator(self, request):
         self.status = self.STATUS_AWAITING_PAYMENT
+        self.payment_status = SanctionOutcome.PAYMENT_STATUS_UNPAID
         new_group = SanctionOutcome.get_compliance_permission_group(self.regionDistrictId, SanctionOutcome.WORKFLOW_RETURN_TO_INFRINGEMENT_NOTICE_COORDINATOR)
         self.allocated_group = new_group
         self.log_user_action(SanctionOutcomeUserAction.ACTION_RETURN_TO_INFRINGEMENT_NOTICE_COORDINATOR.format(self.lodgement_number), request)

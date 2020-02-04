@@ -183,7 +183,7 @@ export default {
                         }
                     },
                     {
-                        data: 'payment_status',
+                        data: 'payment_status.name',
                         searchable: true,
                         orderable: true,
                     },

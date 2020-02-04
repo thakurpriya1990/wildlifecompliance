@@ -46,20 +46,7 @@ class Command(BaseCommand):
                                                               Q(included=True) &
                                                               Q(alleged_offence__removed=False) &
                                                               Q(alleged_offence__section_regulation__is_parking_offence=True)).\
-                                                        exclude(sanction_outcome__in=SanctionOutcome.objects.filter(
-                                                            # Q(infringement_penalties__in=InfringementPenalty.objects.filter(
-                                                            #     Q(invoice__payment_status=SanctionOutcome.PAYMENT_STATUS_PAID) &
-                                                            #     Q(invoice__voided=False)
-                                                            # ))
-                                                            Q(infringement_penalty__in=InfringementPenalty.objects.filter(
-                                                                Q(infringement_penalty_invoices__in=InfringementPenaltyInvoice.objects.filter(
-                                                                    Q(invoice_reverence__in=Invoice.objects.filter(
-                                                                        (Q(payment_status=SanctionOutcome.PAYMENT_STATUS_PAID) & Q(voided=False) | Q(voided=True))
-                                                                    ).values('reference'))
-                                                                ))
-                                                            ))
-                                                        ))
-                                                        # exclude(sanction_outcome__payment_status=SanctionOutcome.PAYMENT_STATUS_PAID)
+                                                        exclude(sanction_outcome__payment_status=SanctionOutcome.PAYMENT_STATUS_PAID)
 
                 count = acos.count()
                 logger.info('{} parking infringement notice(s) found to process.'.format(str(count)))

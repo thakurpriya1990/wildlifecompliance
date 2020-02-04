@@ -35,15 +35,7 @@ class Command(BaseCommand):
                 sanction_outcomes_base = SanctionOutcome.objects.filter(
                     Q(type=SanctionOutcome.TYPE_INFRINGEMENT_NOTICE) &
                     Q(status=SanctionOutcome.STATUS_AWAITING_PAYMENT) &
-                    # Q(payment_status=SanctionOutcome.PAYMENT_STATUS_UNPAID))\
-                    # Q(infringement_penalties__in=InfringementPenalty.objects.filter(
-                    #     Q(invoice__payment_status__in=(SanctionOutcome.PAYMENT_STATUS_PARTIALLY_PAID, SanctionOutcome.PAYMENT_STATUS_UNPAID)) &
-                    #     Q(invoice__voided=False)))) \
-                    Q(infringement_penalty__in=InfringementPenalty.objects.filter(
-                        Q(infringement_penalty_invoices__in=InfringementPenaltyInvoice.objects.filter(
-                            Q(invoice_reference__in=Invoice.objects.filter(payment_status__in=(SanctionOutcome.PAYMENT_STATUS_PARTIALLY_PAID, SanctionOutcome.PAYMENT_STATUS_UNPAID)).values('reference'))
-                        ))
-                    ))) \
+                    Q(payment_status=SanctionOutcome.PAYMENT_STATUS_UNPAID))\
                     .filter(due_dates__in=SanctionOutcomeDueDate.objects.filter(Q(due_date_2nd__lt=today) & Q(due_date_term_currently_applied='2st')))
 
                 if DEBUG:
@@ -52,16 +44,7 @@ class Command(BaseCommand):
                     sanction_outcomes_debug = SanctionOutcome.objects.filter(
                         Q(type=SanctionOutcome.TYPE_INFRINGEMENT_NOTICE) &
                         Q(status=SanctionOutcome.STATUS_AWAITING_PAYMENT) &
-                        # Q(payment_status=SanctionOutcome.PAYMENT_STATUS_UNPAID) &
-                        # Q(infringement_penalties__in=InfringementPenalty.objects.filter(
-                        #     Q(invoice__payment_status__in=(SanctionOutcome.PAYMENT_STATUS_PARTIALLY_PAID, SanctionOutcome.PAYMENT_STATUS_UNPAID)) &
-                        #     Q(invoice__voided=False)
-                        # )) &
-                        Q(infringement_penalty__in=InfringementPenalty.objects.filter(
-                            Q(infringement_penalty_invoices__in=InfringementPenaltyInvoice.objects.filter(
-                                Q(invoice_reference__in=Invoice.objects.filter(payment_status__in=(SanctionOutcome.PAYMENT_STATUS_PARTIALLY_PAID, SanctionOutcome.PAYMENT_STATUS_UNPAID)))
-                            ))
-                        )) &
+                        Q(payment_status=SanctionOutcome.PAYMENT_STATUS_UNPAID) &
                         Q(description__icontains='__overdue2nd__'))\
                         .filter(due_dates__in=SanctionOutcomeDueDate.objects.filter(Q(due_date_term_currently_applied='2nd')))
 

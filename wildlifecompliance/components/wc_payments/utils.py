@@ -14,10 +14,13 @@ from datetime import datetime, timedelta, date
 # from ledger.checkout.utils import create_basket_session, create_checkout_session, calculate_excl_gst
 from dateutil.relativedelta import relativedelta
 from django.db import transaction
+from django.db.models.signals import post_save
 from django.http.response import HttpResponseRedirect
 from django.urls import reverse
 
 from ledger.checkout.utils import create_basket_session, create_checkout_session
+from ledger.payments.bpoint.models import BpointTransaction
+from ledger.payments.cash.models import CashTransaction
 from ledger.payments.models import Invoice
 # from ledger.payments.utils import oracle_parser
 # import json
@@ -26,10 +29,14 @@ from decimal import Decimal
 
 import logging
 
+from oscar.apps.order.models import Order
+
 from wildlifecompliance import settings
+from wildlifecompliance.components.sanction_outcome.models import SanctionOutcome
 from wildlifecompliance.components.wc_payments.models import InfringementPenalty, InfringementPenaltyInvoice
 
 logger = logging.getLogger('payment_checkout')
+
 
 def get_session_infringement_invoice(session):
     """ Infringement Penalty session ID """
@@ -147,3 +154,33 @@ def create_invoice(sanction_outcome, payment_method='bpay'):
     order = CreateInvoiceBasket(payment_method=payment_method, system=settings.WC_PAYMENT_SYSTEM_PREFIX).create_invoice_and_order(basket, 0, None, None, user=user, invoice_text=invoice_text)
 
     return order
+
+
+def perform_status_check_cash(sender, instance, **kwargs):
+    payment_status = instance.invoice.payment_status
+    ipi = InfringementPenaltyInvoice.objects.get(invoice_reference=instance.invoice.reference)
+    so = ipi.infringement_penalty.sanction_outcome
+
+    if payment_status == SanctionOutcome.PAYMENT_STATUS_PAID:
+        so.payment_status = SanctionOutcome.PAYMENT_STATUS_PAID
+        so.close()
+    elif payment_status == SanctionOutcome.PAYMENT_STATUS_UNPAID:
+        so.payment_status = SanctionOutcome.PAYMENT_STATUS_UNPAID
+        so.save()
+    elif payment_status == SanctionOutcome.PAYMENT_STATUS_PARTIALLY_PAID:
+        so.payment_status = SanctionOutcome.PAYMENT_STATUS_PARTIALLY_PAID
+        so.save()
+    elif payment_status == SanctionOutcome.PAYMENT_STATUS_OVER_PAID:
+        so.payment_status = SanctionOutcome.PAYMENT_STATUS_OVER_PAID
+        so.save()
+
+
+# def perform_status_check_cc(sender, instance, **kwargs):
+#     inv = Invoice.objects.get(reference=instance.crn1)
+#     ipi = InfringementPenaltyInvoice.objects.get(invoice_reference=inv.reference)
+#     so = ipi.infringement_penalty.sanction_outcome
+#     pass
+
+
+post_save.connect(perform_status_check_cash, sender=CashTransaction)  # To catch 'Record Payment'
+# post_save.connect(perform_status_check_cc, sender=BpointTransaction)  # To catch CC transaction
