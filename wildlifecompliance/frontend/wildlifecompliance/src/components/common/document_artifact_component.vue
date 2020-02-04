@@ -161,7 +161,7 @@
                                             </div>
                                             <div class="col-sm-9">
                                                 <select ref="document_artifact_department_users" class="form-control" v-model="officerInterviewerEmailAddress">
-                                                    <option  v-for="option in departmentStaffList" :value="option" v-bind:key="option.pk">
+                                                    <option  v-for="option in departmentStaffList" :value="option.email" v-bind:key="option.pk">
                                                     {{ option.name }} 
                                                     </option>
                                                 </select>
@@ -255,6 +255,7 @@ export default {
             temporary_document_collection_id: null,
             documentArtifactTypes: [],
             departmentStaffList: [],
+            selectedDepartmentStaffMember: {},
             //offenderList: [],
             selectedCustodian: {},
             entity: {
@@ -494,7 +495,9 @@ export default {
         officerInterviewerEmailAddress: function() {
           let emailAddress = null;
           if (this.document_artifact && this.document_artifact.officer_interviewer) {
-              emailaddress = this.documentArtifact.officer_interviewer.email;
+          //if (this.selectedDepartmentStaffMember) {
+              emailAddress = this.document_artifact.officer_interviewer.email;
+              //emailAddress = this.selectedDepartmentStaffMember.email;
           }
           return emailAddress;
         },
@@ -742,6 +745,16 @@ export default {
             });
             //this.$parent.$parent.ok();
         },
+        setOfficerInterviewerWrapper: async function(selectedData) {
+            for (let officer of this.departmentStaffList) {
+                if (officer.email === selectedData) {
+                    //this.selectedDepartmentStaffMember = Object.assign({}, officer
+                    this.selectedDepartmentStaffMember = officer
+                }
+            }
+            await this.setOfficerInterviewer(this.selectedDepartmentStaffMember);
+        },
+
         addEventListeners: function() {
             let vm = this;
             let el_fr_date = $(vm.$refs.artifactDatePicker);
@@ -781,7 +794,7 @@ export default {
                     let selected = $(e.currentTarget);
                     let selectedData = selected.val();
                     console.log(selectedData)
-                    vm.setOfficerInterviewer(selectedData);
+                    vm.setOfficerInterviewerWrapper(selectedData);
                     //vm.setInterviewerEmail(selectedData);
                     //vm.setSelectedCustodian(selectedData);
                     //let custodianData = e.params.data

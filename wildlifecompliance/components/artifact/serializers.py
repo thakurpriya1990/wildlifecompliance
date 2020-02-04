@@ -28,6 +28,7 @@ from wildlifecompliance.components.artifact.models import (
         ArtifactUserAction,
         PhysicalArtifactFormDataRecord,
         BriefOfEvidenceRecordOfInterview,
+        BriefOfEvidenceOtherStatements,
         #LegalCaseRunningSheetArtifacts,
     )
 
@@ -285,6 +286,7 @@ class DocumentArtifactSerializer(ArtifactSerializer):
     #document_type = CustomChoiceField(read_only=True)
     document_type_display = serializers.SerializerMethodField()
     person_providing_statement = EmailUserSerializer(read_only=True)
+    officer_interviewer = EmailUserSerializer(read_only=True)
     interviewer = EmailUserSerializer(read_only=True)
     #people_attending = EmailUserSerializer(read_only=True, many=True)
     #legal_case = LegalCaseSerializer(read_only=True, many=True)
@@ -322,7 +324,8 @@ class DocumentArtifactSerializer(ArtifactSerializer):
                 'offence_id',
                 'offender_id',
                 'related_items',
-                'officer_interviewer_email',
+                #'officer_interviewer_email',
+                'officer_interviewer',
                 'document_type_display',
                 #'status',
                 'created_at',
@@ -606,21 +609,44 @@ class BriefOfEvidenceRecordOfInterviewSerializer(serializers.ModelSerializer):
     def get_label(self, obj):
         return obj.label
 
-
-
-class SaveBriefOfEvidenceRecordOfInterviewSerializer(serializers.ModelSerializer):
+class BriefOfEvidenceOtherStatementsSerializer(serializers.ModelSerializer):
+    #children = serializers.ListField(child=RecursiveField())
+    label = serializers.SerializerMethodField()
 
     class Meta:
-        model = BriefOfEvidenceRecordOfInterview
+        model = BriefOfEvidenceOtherStatements
         fields = (
                 'id',
                 'legal_case_id',
+                'person_id',
+                #'children',
+                'statement_id',
+                'associated_doc_artifact_id',
                 'ticked',
+                'label',
+                #'children',
                 )
         read_only_fields = (
                 'id',
-                'legal_case_id',
                 )
+
+    def get_label(self, obj):
+        return obj.label
+
+
+#class SaveBriefOfEvidenceRecordOfInterviewSerializer(serializers.ModelSerializer):
+#
+#    class Meta:
+#        model = BriefOfEvidenceRecordOfInterview
+#        fields = (
+#                'id',
+#                'legal_case_id',
+#                'ticked',
+#                )
+#        read_only_fields = (
+#                'id',
+#                'legal_case_id',
+#                )
 
 #class LegalCaseRunningSheetArtifactsSerializer(serializers.ModelSerializer):
 #    document_artifacts = DocumentArtifactSerializer(read_only=True, many=True)

@@ -284,6 +284,16 @@
                             </FormSection>
                             <FormSection :formCollapse="false" label="Witness Statements, Officer Statements, Expert Statements">
                                 <div class="col-sm-12 form-group"><div class="row">
+                                    <TreeSelect 
+                                    ref="other_statements_tree" 
+                                    :value="boeOtherStatementsTicked" 
+                                    :options="boeOtherStatementsOptions" 
+                                    :default-expand-level="Infinity" 
+                                    :disabled="false"
+                                    multiple
+                                    value-consists-of="LEAF_PRIORITY"
+                                    @input="setBoeOtherStatementsTicked"
+                                    />
                                 </div></div>
                             </FormSection>
                             <FormSection :formCollapse="false" label="List of Exhibits, Sensitive Unused and Non-Sensitive Unused Materials">
@@ -416,6 +426,7 @@ export default {
         return {
             //boeRoiTicked: [],
             boeRoiOptions: [],
+            boeOtherStatementsOptions: [],
             uuid: 0,
             showSpinner: false,
             showExit: false,
@@ -697,6 +708,15 @@ export default {
         }
         return ticked;
     },
+    boeOtherStatementsTicked: function() {
+        let ticked = []
+        if (this.legal_case && this.legal_case.boe_other_statements_ticked) {
+            for (let id of this.legal_case.boe_other_statements_ticked) {
+                ticked.push(id)
+            }
+        }
+        return ticked;
+    },
   },
   filters: {
     formatDate: function(data) {
@@ -716,6 +736,7 @@ export default {
       setRunningSheetEntry: 'setRunningSheetEntry',
       addToRunningSheetPersonList: 'addToRunningSheetPersonList',
       setBoeRoiTicked: 'setBoeRoiTicked',
+      setBoeOtherStatementsTicked: 'setBoeOtherStatementsTicked',
     }),
     ...mapActions({
         loadCurrentUser: 'loadCurrentUser',
@@ -1390,20 +1411,16 @@ export default {
       this.constructRunningSheetTableWrapper();
       if (this.legal_case && this.legal_case.boe_roi_options) {
           for (let item of this.legal_case.boe_roi_options) {
-      /*
-      if (this.legal_case && this.legal_case.legal_case_boe_roi) {
-          for (let item of this.legal_case.legal_case_boe_roi) {
-              */
               let cloned_item = _.cloneDeep(item);
               this.boeRoiOptions.push(cloned_item)
           }
       }
-      /*
-      // read in ticked boe_roi records
-      for (let item of this.legal_case.boe_roi_ticked) {
-          this.boeRoiTicked.push(item)
+      if (this.legal_case && this.legal_case.boe_other_statements_options) {
+          for (let item of this.legal_case.boe_other_statements_options) {
+              let cloned_item = _.cloneDeep(item);
+              this.boeOtherStatementsOptions.push(cloned_item)
+          }
       }
-      */
   },
   destroyed: function() {
       window.removeEventListener('beforeunload', this.leaving);

@@ -649,7 +649,11 @@ class BriefOfEvidenceOtherStatements(models.Model):
     legal_case = models.ForeignKey(
             LegalCase, 
             related_name='legal_case_boe_other_statements')
-    person = models.CharField(max_length=255, null=True, blank=True)
+    #person = models.CharField(max_length=255, null=True, blank=True)
+    person = models.ForeignKey(
+            EmailUser,
+            related_name='email_user_boe_other_statements',
+            )
     statement = models.ForeignKey(
             DocumentArtifact, 
             related_name='statement_boe_other_statements',
@@ -678,7 +682,8 @@ class BriefOfEvidenceOtherStatements(models.Model):
     def __str__(self):
         label_text = ''
         if not self.statement and not self.associated_doc_artifact:
-            label_text = 'Person: ' + self.person
+            full_name = self.person.get_full_name()
+            label_text = 'Person: ' + full_name
         elif not self.associated_doc_artifact:
             label_text = self.statement.document_type + ': ' + self.statement.number
         else:

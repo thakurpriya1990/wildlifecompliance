@@ -78,8 +78,9 @@ from wildlifecompliance.components.artifact.serializers import (
         ArtifactCommsLogEntrySerializer,
         ArtifactPaginatedSerializer,
         )
+from wildlifecompliance.components.users.serializers import ComplianceManagementSaveUserSerializer
 from wildlifecompliance.components.users.models import (
-    CompliancePermissionGroup,    
+    CompliancePermissionGroup,
 )
 from django.contrib.auth.models import Permission, ContentType
 #from utils import SchemaParser
@@ -226,11 +227,12 @@ class DocumentArtifactViewSet(viewsets.ModelViewSet):
             #email_address = request.data.get('email_user', {}).get('email', '')
             email_user_instance = None
             email_address = officer_interviewer.get('email')
+            first_name = officer_interviewer.get('given_name', '')
+            last_name = officer_interviewer.get('surname', '')
+            full_name = officer_interviewer.get('name', '')
             if not email_address:
                 #first_name = request.data.get('email_user', {}).get('first_name', '')
                 #last_name = request.data.get('email_user', {}).get('last_name', '')
-                first_name = officer_interviewer.get('given_name', '')
-                last_name = officer_interviewer.get('surname', '')
                 email_address = generate_dummy_email(first_name, last_name)
 
             # generate queryset to test whether user exists in EmailUser
@@ -243,13 +245,17 @@ class DocumentArtifactViewSet(viewsets.ModelViewSet):
             email_user_instance.save()
                 #request.data['email_user'].update({'email': email_address})
 
-            #email_user_serializer = SaveEmailUserSerializer(
-            #    email_user_instance,
-            #    data=request.data['email_user'],
-            #    partial=True)
+            email_user_serializer = ComplianceManagementSaveUserSerializer(
+                email_user_instance,
+                #data=request.data['email_user'],
+                data={
+                    "first_name": first_name,
+                    "surname": last_name,
+                    },
+                partial=True)
 
-            #if email_user_serializer.is_valid(raise_exception=True):
-            #    email_user_serializer.save()
+            if email_user_serializer.is_valid(raise_exception=True):
+                email_user_instance = email_user_serializer.save()
 
             return email_user_instance
         except ValidationError as e:
@@ -264,7 +270,8 @@ class DocumentArtifactViewSet(viewsets.ModelViewSet):
         try:
             if not instance:
                 instance = self.get_object()
-            temporary_document_collection_id = request_data.get('temporary_document_collection_id')
+            temporary_document_collection_dict = request_data.get('temporary_document_collection_id')
+            temporary_document_collection_id = temporary_document_collection_dict.get('temp_doc_id')
             if temporary_document_collection_id:
                 temp_doc_collection, created = TemporaryDocumentCollection.objects.get_or_create(
                         id=temporary_document_collection_id)
