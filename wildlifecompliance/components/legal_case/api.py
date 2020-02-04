@@ -100,6 +100,8 @@ from rest_framework_datatables.renderers import DatatablesRenderer
 
 from wildlifecompliance.components.legal_case.email import (
     send_mail)
+from wildlifecompliance.components.artifact.utils import build_all_boe_roi_hierarchy, update_boe_roi_ticked
+from wildlifecompliance.components.artifact.serializers import SaveBriefOfEvidenceRecordOfInterviewSerializer
 #from reversion.models import Version
 #import unicodedata
 
@@ -376,7 +378,7 @@ class LegalCaseViewSet(viewsets.ModelViewSet):
     def update(self, request, workflow=False, *args, **kwargs):
         try:
             with transaction.atomic():
-                print(request.data)
+                #print(request.data)
                 instance = self.get_object()
                 running_sheet_entries = request.data.get('running_sheet_transform')
                 #running_sheet_saved = None
@@ -393,6 +395,14 @@ class LegalCaseViewSet(viewsets.ModelViewSet):
                         running_sheet_entry_serializer.is_valid(raise_exception=True)
                         if running_sheet_entry_serializer.is_valid():
                             running_sheet_entry_serializer.save()
+                boe_roi_ticked = request.data.get('boe_roi_ticked')
+                update_boe_roi_ticked(instance, boe_roi_ticked)
+                    #for id in boe_roi_ticked:
+                    #    boe_roi_serializer = SaveBriefOfEvidenceRecordOfInterviewSerializer(
+                    #            data={
+                    #                "id": id,
+                    #                "ticked": True,
+
                 # LegalCasePerson
                 self.add_associated_persons(instance, request)
 
@@ -623,7 +633,7 @@ class LegalCaseViewSet(viewsets.ModelViewSet):
                 if not instance:
                     instance = self.get_object()
 
-                comms_log_id = request.data.get('inspection_comms_log_id')
+                comms_log_id = request.data.get('legal_case_comms_log_id')
                 if comms_log_id and comms_log_id is not 'null':
                     workflow_entry = instance.comms_logs.get(
                             id=comms_log_id)
@@ -642,7 +652,9 @@ class LegalCaseViewSet(viewsets.ModelViewSet):
                 workflow_type = request.data.get('workflow_type')
                 if workflow_type == 'close':
                     instance.close(request)
-                #if workflow_type == 'send_to_manager':
+                elif workflow_type == 'brief_of_evidence':
+                    build_all_boe_roi_hierarchy(instance)
+                    instance.generate_brief_of_evidence(request)
                 #    instance.send_to_manager(request)
                 #elif workflow_type == 'request_amendment':
                 #    instance.request_amendment(request)
