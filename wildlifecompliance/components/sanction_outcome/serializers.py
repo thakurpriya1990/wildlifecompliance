@@ -1,6 +1,8 @@
+import logging
 import re
 
 from django.db.models import Q
+from django.urls import reverse
 from rest_framework import serializers
 from rest_framework.validators import UniqueTogetherValidator
 
@@ -21,6 +23,8 @@ from wildlifecompliance.components.sanction_outcome.models import SanctionOutcom
     AmendmentRequestForRemediationAction, RemediationActionNotification, SanctionOutcomeDocumentAccessLog
 from wildlifecompliance.components.users.serializers import CompliancePermissionGroupMembersSerializer
 from wildlifecompliance.helpers import is_internal
+
+logger = logging.getLogger('payment_checkout')
 
 
 def can_user_approve(obj, user):
@@ -56,7 +60,7 @@ class RemediationActionUpdateStatusSerializer(serializers.ModelSerializer):
             else:
                 raise serializers.ValidationError('You don\'t have permission')
         elif new_status == RemediationAction.STATUS_SUBMITTED:
-            if req.user == obj.sanction_outcome.offender.person:
+            if req.user == obj.sanction_outcome.get_offender()[0]:
                 # Only the offender of the remediation action can submit it
                 return data
             else:
@@ -105,7 +109,7 @@ class RemediationActionSerializer(serializers.ModelSerializer):
     def get_action_taken_editable(self, obj):
         req = self.context.get('request', {})
 
-        if req.user == obj.sanction_outcome.offender.person and obj.status in (RemediationAction.STATUS_OPEN):
+        if req.user == obj.sanction_outcome.get_offender()[0] and obj.status in (RemediationAction.STATUS_OPEN):
             # if user is the offender
             # then editable
             return True
@@ -130,7 +134,7 @@ class RemediationActionSerializer(serializers.ModelSerializer):
                 url_list.append(accept_url)
                 url_list.append(request_amendment_url)
         else:
-            if req.user == obj.sanction_outcome.offender.person:
+            if req.user == obj.sanction_outcome.get_offender()[0]:
                 if obj.status == RemediationAction.STATUS_OPEN:
                     url_list.append(submit_url)
                 else:
@@ -255,6 +259,7 @@ class SanctionOutcomeSerializer(serializers.ModelSerializer):
     status = CustomChoiceField(read_only=True)
     type = CustomChoiceField(read_only=True)
     payment_status = CustomChoiceField(read_only=True)
+    # payment_status = serializers.ReadOnlyField()
     alleged_committed_offences = serializers.SerializerMethodField()
     offender = OffenderSerializer(read_only=True,)
     offence = OffenceSerializer(read_only=True,)
@@ -396,8 +401,9 @@ class SanctionOutcomeDocumentAccessLogSerializer(serializers.ModelSerializer):
 
 
 class SanctionOutcomeDatatableSerializer(serializers.ModelSerializer):
-    status = CustomChoiceField(read_only=True)
     payment_status = CustomChoiceField(read_only=True)
+    # payment_status = serializers.ReadOnlyField()
+    status = CustomChoiceField(read_only=True)
     type = CustomChoiceField(read_only=True)
     user_action = serializers.SerializerMethodField()
     # offender = OffenderSerializer(read_only=True,)
@@ -412,8 +418,8 @@ class SanctionOutcomeDatatableSerializer(serializers.ModelSerializer):
         fields = (
             'id',
             'type',
-            'status',
             'payment_status',
+            'status',
             'lodgement_number',
             'region',
             'district',
@@ -467,43 +473,61 @@ class SanctionOutcomeDatatableSerializer(serializers.ModelSerializer):
     def get_user_action(self, obj):
         url_list = []
 
-        inv_ref = obj.infringement_penalty_invoice_reference
-        user = self.context.get('request', {}).user
+        # Retrieve existing invoice if there is
+        inv_ref = ''
+        if obj.infringement_penalty:
+            ipi = obj.infringement_penalty.infringement_penalty_invoices.all().last()
+            if ipi:
+                inv_ref = ipi.invoice_reference
 
+        user = self.context.get('request', {}).user
         view_url = '<a href=/internal/sanction_outcome/' + str(obj.id) + '>View</a>'
         process_url = '<a href=/internal/sanction_outcome/' + str(obj.id) + '>Process</a>'
-        remediation_url = '<a href=/external/sanction_outcome/' + str(obj.id) + '>Add </a>'
         view_payment_url = '<a href="/ledger/payments/invoice/payment?invoice=' + inv_ref + '">View Payment</a>' if inv_ref else ''
-        payment_url = '<a href="#" data-pay-infringement-penalty="' + str(obj.id) + '">Pay</a>'
-        record_payment_url = '<a href="/ledger/payments/invoice/payment?invoice=">Record Payment</a>'
+        cc_payment_url = '<a href="#" data-pay-infringement-penalty="' + str(obj.id) + '">Pay</a>'
 
-        if obj.status in SanctionOutcome.FINAL_STATUSES:
-            # if object is closed, no one can process but view
-            url_list.append(view_url)
-        else:
-            if user.id == obj.assigned_to_id:
-                # if user is assigned to the object, the user can process it
-                url_list.append(process_url)
-            elif (obj.allocated_group and not obj.assigned_to_id) and user.id in [member.id for member in obj.allocated_group.members]:
-                # if user belongs to the same group of the object
-                # and no one is assigned to the object,
-                # the user can process it
-                url_list.append(process_url)
-            else:
+        record_payment_url = '<a href="' + reverse('payments:invoice-payment') + '?invoice={}'.format(inv_ref) + '">Record Payment</a>' if inv_ref \
+            else '<a href="' + reverse('preview_deferred_invoicing', kwargs={'sanction_outcome_pk': obj.id}) + '">Record Payment</a>'
+
+        if user == obj.get_offender()[0]:
+            # If offender
+            if obj.payment_status == 'unpaid' and obj.status == SanctionOutcome.STATUS_AWAITING_PAYMENT:
+                url_list.append(cc_payment_url)
+        elif is_internal(self.context.get('request')):
+            # If internal user
+            if obj.status in SanctionOutcome.FINAL_STATUSES:
+                # if object is closed, no one can process but view
                 url_list.append(view_url)
+            else:
+                if user.id == obj.assigned_to_id:
+                    # if user is assigned to the object, the user can process it
+                    url_list.append(process_url)
+                elif (obj.allocated_group and not obj.assigned_to_id) and user.id in [member.id for member in obj.allocated_group.members]:
+                    # if user belongs to the same group of the object
+                    # and no one is assigned to the object,
+                    # the user can process it
+                    url_list.append(process_url)
 
-        if is_payment_admin(user):
-            if obj.payment_status == SanctionOutcome.PAYMENT_STATUS_PAID and inv_ref:
-                # Payment admin can refund payment
-                url_list.append(view_payment_url)
-            elif obj.payment_status == SanctionOutcome.PAYMENT_STATUS_UNPAID:
-                # Payment admin can pay on behalf or record cash payment or view sanction outcome
-                url_list.append(payment_url)
-                url_list.append(record_payment_url)
+            if is_payment_admin(user):
+                if inv_ref:
+                    # There is an invoice
+                    if obj.payment_status != SanctionOutcome.PAYMENT_STATUS_PAID:
+                        # Partially paid
+                        url_list.append(record_payment_url)
+                    else:
+                        # Paid
+                        url_list.append(view_payment_url)
+                else:
+                    if obj.payment_status != SanctionOutcome.PAYMENT_STATUS_PAID and obj.status == SanctionOutcome.STATUS_AWAITING_PAYMENT:
+                        url_list.append(cc_payment_url)
+                        url_list.append(record_payment_url)
+                    else:
+                        # Should not reach here
+                        logger.warn('Sanction Outcome: {} payment status is PAID, but no invoices found.')
 
-        if not url_list:
-            # In other case user can view
-            url_list.append(view_url)
+            if not url_list:
+                # In other case user can view
+                url_list.append(view_url)
 
         urls = '<br />'.join(url_list)
         return urls

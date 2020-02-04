@@ -4,12 +4,16 @@ from django.core.management.base import BaseCommand
 from django.db.models import Q, Max
 from django.utils import timezone
 import logging
+
+from ledger.payments.invoice.models import Invoice
+
 from wildlifecompliance import settings
 from wildlifecompliance.components.sanction_outcome.email import send_unpaid_infringements_file
 from wildlifecompliance.components.sanction_outcome.models import SanctionOutcome, SanctionOutcomeUserAction, \
     UnpaidInfringementFile
 from wildlifecompliance.components.sanction_outcome.serializers import SanctionOutcomeCommsLogEntrySerializer
 from wildlifecompliance.components.sanction_outcome_due.models import SanctionOutcomeDueDate
+from wildlifecompliance.components.wc_payments.models import InfringementPenalty, InfringementPenaltyInvoice
 from wildlifecompliance.helpers import DEBUG
 from wildlifecompliance.management.classes.unpaid_infringement_file import UnpaidInfringementFileHeader, \
     UnpaidInfringementFileTrailer

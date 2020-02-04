@@ -1,4 +1,5 @@
 import datetime
+import logging
 
 from dateutil.relativedelta import relativedelta
 from django.contrib.auth.models import Permission
@@ -7,7 +8,6 @@ from django.core.exceptions import ValidationError
 from django.db import models
 from django.db.models import Q
 from django.db.models.signals import post_save
-
 from ledger.accounts.models import EmailUser, RevisionedMixin
 from wildlifecompliance.components.main.models import Document, CommunicationsLogEntry
 from wildlifecompliance.components.main.related_item import can_close_record
@@ -16,7 +16,11 @@ from wildlifecompliance.components.sanction_outcome_due.models import SanctionOu
 from wildlifecompliance.components.sanction_outcome_due.serializers import SaveSanctionOutcomeDueDateSerializer
 from wildlifecompliance.components.section_regulation.models import SectionRegulation
 from wildlifecompliance.components.users.models import RegionDistrict, CompliancePermissionGroup
+from wildlifecompliance.components.wc_payments.models import InfringementPenalty
 from wildlifecompliance.management.classes.unpaid_infringement_file import UnpaidInfringementFileBody
+
+
+logger = logging.getLogger(__name__)
 
 
 class SanctionOutcomeActiveManager(models.Manager):
@@ -51,11 +55,15 @@ class SanctionOutcome(models.Model):
     WORKFLOW_RETURN_TO_INFRINGEMENT_NOTICE_COORDINATOR = 'return_to_infringement_notice_coordinator'
     WORKFLOW_CLOSE = 'close'
 
+    PAYMENT_STATUS_PARTIALLY_PAID = 'partially_paid'
     PAYMENT_STATUS_UNPAID = 'unpaid'
     PAYMENT_STATUS_PAID = 'paid'
+    PAYMENT_STATUS_OVER_PAID = 'over_paid'
     PAYMENT_STATUS_CHOICES = (
+        (PAYMENT_STATUS_UNPAID, 'Unpaid'),
+        (PAYMENT_STATUS_PARTIALLY_PAID, 'Partially Paid'),
         (PAYMENT_STATUS_PAID, 'Paid'),
-        (PAYMENT_STATUS_UNPAID, 'Unpaid')
+        (PAYMENT_STATUS_OVER_PAID, 'Over Paid'),
     )
 
     # Status
@@ -120,7 +128,8 @@ class SanctionOutcome(models.Model):
 
     type = models.CharField(max_length=30, choices=TYPE_CHOICES, blank=True,)
     status = models.CharField(max_length=40, choices=STATUS_CHOICES, default=__original_status,)
-    payment_status = models.CharField(max_length=40, choices=PAYMENT_STATUS_CHOICES, blank=True,)
+    payment_status = models.CharField(max_length=30, choices=PAYMENT_STATUS_CHOICES, blank=True,)  # This value should always reflect ledger invoice.payment_status
+                                                                                                   # Ref: functions for endorsement and post_save function in the wc_payment/utils.py
 
     region = models.ForeignKey(RegionDistrict, related_name='sanction_outcome_region', null=True,)
     district = models.ForeignKey(RegionDistrict, related_name='sanction_outcome_district', null=True,)
@@ -130,7 +139,7 @@ class SanctionOutcome(models.Model):
     offence = models.ForeignKey(Offence, related_name='offence_sanction_outcomes', null=True, on_delete=models.SET_NULL,)
     offender = models.ForeignKey(Offender, related_name='sanction_outcome_offender', null=True, on_delete=models.SET_NULL,)  # This could be registration_holder...?
 
-    # TODO: this field is not probably used anymore.
+    # TODO: this field is probably not used anymore.
     alleged_offences = models.ManyToManyField(SectionRegulation, blank=True, related_name='sanction_outcome_alleged_offences')
 
     alleged_committed_offences = models.ManyToManyField(AllegedOffence, related_name='sanction_outcome_alleged_committed_offences', through='AllegedCommittedOffence')
@@ -159,10 +168,30 @@ class SanctionOutcome(models.Model):
 
     # This field is used once infringement notice gets overdue
     fer_case_number = models.CharField(max_length=11, blank=True)
+    infringement_penalty = models.OneToOneField(InfringementPenalty, null=True, blank=True, related_name='sanction_outcome')
 
     objects = models.Manager()
     objects_active = SanctionOutcomeActiveManager()
     objects_for_external = SanctionOutcomeExternalManager()
+
+    # @property
+    # def payment_status(self):
+    #     ret = ''
+    #     if self.infringement_penalty:
+    #         ipi = self.infringement_penalty.infringement_penalty_invoices.all().last()
+    #         if ipi:
+    #             if ipi.ledger_invoice:
+    #                 ret = ipi.ledger_invoice.payment_status
+    #
+    #     # Update status if ledger invoice's payment_status is 'paid'
+    #     if ret == 'paid' and self.status != SanctionOutcome.STATUS_CLOSED:
+    #         self.status = SanctionOutcome.STATUS_CLOSED
+    #         self.save()
+    #
+    #     if ret == '' and self.status == SanctionOutcome.STATUS_AWAITING_PAYMENT:
+    #         ret = 'unpaid'
+    #
+    #     return ret
 
     def can_close_record(self):
         can_close_record = True
@@ -253,15 +282,11 @@ class SanctionOutcome(models.Model):
         return AllegedCommittedOffence.objects.filter(sanction_outcome=self)
 
     @property
-    def infringement_penalty_invoice_reference(self):
+    def ledger_invoice(self):
         try:
-            if self.payment_status == SanctionOutcome.PAYMENT_STATUS_PAID:
-                ip = self.infringement_penalties.all().last()
-                if ip:
-                    ipv = ip.infringement_penalty_invoices.all().last()
-                    if ipv:
-                        return ipv.invoice_reference
-            return None
+            infringement_penalty = self.infringement_penalties.all().last()
+            if infringement_penalty:
+                return infringement_penalty.invoice
 
         except Exception as e:
             return None
@@ -582,6 +607,7 @@ class SanctionOutcome(models.Model):
 
     def return_to_infringement_notice_coordinator(self, request):
         self.status = self.STATUS_AWAITING_PAYMENT
+        self.payment_status = SanctionOutcome.PAYMENT_STATUS_UNPAID
         new_group = SanctionOutcome.get_compliance_permission_group(self.regionDistrictId, SanctionOutcome.WORKFLOW_RETURN_TO_INFRINGEMENT_NOTICE_COORDINATOR)
         self.allocated_group = new_group
         self.log_user_action(SanctionOutcomeUserAction.ACTION_RETURN_TO_INFRINGEMENT_NOTICE_COORDINATOR.format(self.lodgement_number), request)
@@ -672,6 +698,27 @@ class SanctionOutcome(models.Model):
                 raise ValidationError('Payment must be after the offence occurrence date.')
         except Exception as e:
             raise ValidationError('Something wrong.')
+
+    @property
+    def as_line_items(self):
+        """ Create the ledger lines - line item for infringement penalty sent to payment system """
+
+        now = datetime.datetime.now()
+        now_date = now.date()
+        penalty_amount = self.determine_penalty_amount_by_date(now_date)
+
+        line_items = [
+            {'ledger_description': 'Infringement Notice: {}, Issued: {} {}'.format(
+                self.lodgement_number,
+                self.date_of_issue.strftime("%d-%m-%Y"),
+                self.time_of_issue.strftime("%I:%M")),
+                'oracle_code': 'ABC123 GST',
+                'price_incl_tax': penalty_amount,
+                'price_excl_tax': penalty_amount,
+                'quantity': 1,
+            },
+        ]
+        return line_items
 
     class Meta:
         app_label = 'wildlifecompliance'

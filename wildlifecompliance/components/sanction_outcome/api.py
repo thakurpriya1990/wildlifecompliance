@@ -12,6 +12,7 @@ from django.core.exceptions import ValidationError
 from django.db import transaction
 from django.db.models import Q
 from django.http import HttpResponse, FileResponse, HttpResponseNotFound
+from ledger.payments.invoice.models import Invoice
 
 from rest_framework import viewsets, serializers, status
 from rest_framework.decorators import list_route, detail_route, renderer_classes
@@ -46,6 +47,7 @@ from wildlifecompliance.components.sanction_outcome.serializers import SanctionO
     SaveAmendmentRequestForRemediationAction, AllegedCommittedOffenceCreateSerializer, \
     SanctionOutcomeDocumentAccessLogSerializer
 from wildlifecompliance.components.users.models import CompliancePermissionGroup, RegionDistrict
+from wildlifecompliance.components.wc_payments.models import InfringementPenalty, InfringementPenaltyInvoice
 from wildlifecompliance.helpers import is_internal
 from wildlifecompliance.components.main.models import TemporaryDocumentCollection
 
@@ -1216,7 +1218,7 @@ class SanctionOutcomeViewSet(viewsets.ModelViewSet):
                             # Email to the offender, and bcc to the respoinsible officer, manager and infringement notice coordinators
                             inc_group = SanctionOutcome.get_compliance_permission_group(None, SanctionOutcome.WORKFLOW_ENDORSE)
                             inc_emails = [member.email for member in inc_group.members]
-                            to_address = [instance.offender.person.email, ]
+                            to_address = [instance.get_offender()[0].email, ]
                             cc = None
                             bcc = [instance.responsible_officer.email, request.user.email] + inc_emails
                             if instance.type == SanctionOutcome.TYPE_INFRINGEMENT_NOTICE:
@@ -1283,7 +1285,7 @@ class SanctionOutcomeViewSet(viewsets.ModelViewSet):
                     instance.withdraw_by_manager(request)
 
                     # Email to offender
-                    to_address = [instance.offender.person.email, ]
+                    to_address = [instance.get_offender()[0].email, ]
                     cc = [request.user.email, instance.responsible_officer.email, ] if request else None
                     bcc = None
                     email_data = send_withdraw_by_manager_email(to_address, instance, workflow_entry, request, cc, bcc)
@@ -1294,7 +1296,7 @@ class SanctionOutcomeViewSet(viewsets.ModelViewSet):
                     instance.withdraw_by_branch_manager(request)
 
                     # Email to offender
-                    to_address = [instance.offender.person.email, ]
+                    to_address = [instance.get_offender()[0].email, ]
                     cc = [request.user.email, instance.responsible_officer.email, ] if request else None
                     bcc = None
                     email_data = send_withdraw_by_branch_manager_email(to_address, instance, workflow_entry, request, cc, bcc)
