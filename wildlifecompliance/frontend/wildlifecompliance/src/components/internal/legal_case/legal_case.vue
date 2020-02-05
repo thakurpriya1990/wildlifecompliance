@@ -1114,7 +1114,7 @@ export default {
         let returnedEntry = await Vue.http.post(
             helpers.add_endpoint_join(
                 api_endpoints.legal_case,
-                this.legal_case.id + '/delete_running_sheet_entry/',
+                this.legal_case.id + '/delete_reinstate_running_sheet_entry/',
             ),
             {
                 "running_sheet_id": running_sheet_id,
@@ -1152,7 +1152,7 @@ export default {
         let returnedEntry = await Vue.http.post(
             helpers.add_endpoint_join(
                 api_endpoints.legal_case,
-                this.legal_case.id + '/reinstate_running_sheet_entry/',
+                this.legal_case.id + '/delete_reinstate_running_sheet_entry/',
             ),
             {
                 "running_sheet_id": running_sheet_id,

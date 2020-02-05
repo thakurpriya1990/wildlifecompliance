@@ -47,6 +47,13 @@ class LegalCasePriority(models.Model):
         return '{0}, v.{1}'.format(self.case_priority, self.version)
 
 
+class CourtProceedings(models.Model):
+    court_outcome_details = models.TextField(blank=True)
+
+    class Meta:
+        app_label = 'wildlifecompliance'
+
+
 class LegalCase(RevisionedMixin):
     STATUS_OPEN = 'open'
     #STATUS_WITH_MANAGER = 'with_manager'
@@ -111,6 +118,12 @@ class LegalCase(RevisionedMixin):
     associated_persons = models.ManyToManyField(
             EmailUser,
             related_name='legal_case_associated_persons',
+            )
+    court_proceedings = models.OneToOneField(
+            CourtProceedings,
+            null=True,
+            blank=True,
+            related_name="legal_case",
             )
     # Brief of evidence
     statement_of_facts = models.TextField(blank=True, null=True)
@@ -191,52 +204,6 @@ class LegalCase(RevisionedMixin):
             new_number_id = 'CS{0:06d}'.format(self.pk)
             self.number = new_number_id
             self.save()
-        # build offences, offenders and ROI hierarchy
-
-        #if self.offence_legal_case.count():
-        #    boe_list = []
-        #    for offence in self.offence_legal_case.all():
-        #        boe_list.append({
-        #            'legal_case': self.id,
-        #            'offence': offence.id,
-        #            'offender': None,
-        #            'record_of_interview': None,
-        #            'associated_doc_artifact': None
-        #            })
-        #        for offender in offence.offender_set.all():
-        #            boe_list.append({
-        #                'legal_case': self.id,
-        #                'offence': offence.id,
-        #                'offender': offender.id,
-        #                'record_of_interview': None,
-        #                'associated_doc_artifact': None
-        #                })
-        #            for document_artifact in offender.document_artifact_offender.all():
-        #                if document_artifact.offence == offence:
-        #                    boe_list.append({
-        #                        'legal_case': self.id,
-        #                        'offence': offence.id,
-        #                        'offender': offender.id,
-        #                        'record_of_interview': document_artifact.id,
-        #                        'associated_doc_artifact': None
-        #                        })
-        #                    for sub_document_artifact in document_artifact.document_artifact_statement.all():
-        #                        boe_list.append({
-        #                            'legal_case': self.id,
-        #                            'offence': offence.id,
-        #                            'offender': offender.id,
-        #                            'record_of_interview': document_artifact.id,
-        #                            'associated_doc_artifact': sub_document_artifact.id
-        #                            })
-        #                        #print("document_artifact")
-        #                        #print(document_artifact)
-        #                        #print(document_artifact.id)
-        #                else:
-        #                    print("nah not this one")
-        #    print("boe_list")
-        #    for l in boe_list:
-        #        print(l)
-
 
     def log_user_action(self, action, request):
         return LegalCaseUserAction.log_action(self, action, request.user)
@@ -288,6 +255,65 @@ class LegalCase(RevisionedMixin):
         self.save()
 
 
+class CourtProceedingsJournalEntryManager(models.Manager):
+    def create_running_sheet_entry(self, court_proceedings_id, user_id):
+        max_row_num_dict = CourtProceedingsJournalEntry.objects.filter(court_proceedings_id=court_proceedings_id).aggregate(Max('row_num'))
+        # initial value for new LegalCase
+        row_num = 1
+        # increment initial value if other entries exist for LegalCase
+        if max_row_num_dict.get('row_num__max'):
+            max_row_num = int(max_row_num_dict.get('row_num__max'))
+            row_num = max_row_num + 1
+        journal_entry = self.create(row_num=row_num, court_proceedings_id=court_proceedings_id, user_id=user_id)
+
+        return journal_entry
+
+
+class CourtProceedingsJournalEntry(RevisionedMixin):
+    court_proceedings = models.ForeignKey(CourtProceedings, related_name='journal_entries')
+    #person = models.ManyToManyField(LegalCasePerson, related_name='journal_entry_person')
+    date_modified = models.DateTimeField(auto_now=True)
+    user = models.ForeignKey(EmailUser, related_name='journal_entry_user')
+    description = models.TextField(blank=True)
+    row_num = models.SmallIntegerField(blank=False, null=False)
+    deleted = models.BooleanField(default=False)
+    objects = CourtProceedingsJournalEntryManager()
+
+    class Meta:
+        app_label = 'wildlifecompliance'
+        unique_together = ('court_proceedings', 'row_num')
+
+    #def __str__(self):
+    #    return "Number:{}, User:{}, Description:{}".format(
+    #            self.number(),
+    #            self.user,
+    #            self.description)
+
+   # def legal_case_persons(self):
+   #     persons = self.legal_case.legal_case_person.all()
+   #     return persons
+
+    def number(self):
+        #return self.court_proceedings.number + '-' + str(self.row_num)
+        number = ''
+        if self.court_proceedings.legal_case:
+            number = self.court_proceedings.legal_case.number + '-' + str(self.row_num)
+        return number
+
+    def delete_entry(self):
+        is_deleted = False
+        if not self.deleted:
+            self.deleted = True
+            is_deleted = True
+        return is_deleted
+
+    def reinstate_entry(self):
+        is_reinstated = False
+        if self.deleted:
+            self.deleted = False
+            is_reinstated = True
+        return is_reinstated
+
 class LegalCasePerson(EmailUser):
     legal_case = models.ForeignKey(LegalCase, related_name='legal_case_person')
 
@@ -301,18 +327,8 @@ class LegalCasePerson(EmailUser):
                 )
 
 class LegalCaseRunningSheetEntryManager(models.Manager):
-    #def create_running_sheet_entry(self, legal_case_id, user_id, description=None):
     def create_running_sheet_entry(self, legal_case_id, user_id):
-        #legal_case_id = validated_data.get('legal_case_id')
-        #user_id = validated_data.get('user_id')
-        print("legal_case_id")
-        print(legal_case_id)
-        print("user_id")
-        print(user_id)
-        
         max_row_num_dict = LegalCaseRunningSheetEntry.objects.filter(legal_case_id=legal_case_id).aggregate(Max('row_num'))
-        print("max_row_num_dict")
-        print(max_row_num_dict)
         # initial value for new LegalCase
         row_num = 1
         # increment initial value if other entries exist for LegalCase
@@ -457,5 +473,6 @@ class LegalCaseDocument(Document):
 
 import reversion
 reversion.register(LegalCaseRunningSheetEntry, follow=['user'])
+reversion.register(CourtProceedingsJournalEntry, follow=['user'])
 reversion.register(LegalCase)
 reversion.register(EmailUser)
