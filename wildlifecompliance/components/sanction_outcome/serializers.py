@@ -495,10 +495,10 @@ class SanctionOutcomeDatatableSerializer(serializers.ModelSerializer):
                 url_list.append(cc_payment_url)
         elif is_internal(self.context.get('request')):
             # If internal user
-            if obj.status in SanctionOutcome.FINAL_STATUSES:
-                # if object is closed, no one can process but view
-                url_list.append(view_url)
-            else:
+            url_list.append(view_url)
+
+            if obj.status not in SanctionOutcome.FINAL_STATUSES:
+                # infringement notice is not in the final statuses
                 if user.id == obj.assigned_to_id:
                     # if user is assigned to the object, the user can process it
                     url_list.append(process_url)
@@ -508,22 +508,22 @@ class SanctionOutcomeDatatableSerializer(serializers.ModelSerializer):
                     # the user can process it
                     url_list.append(process_url)
 
-            if is_payment_admin(user):
-                if inv_ref:
-                    # There is an invoice
-                    if obj.payment_status != SanctionOutcome.PAYMENT_STATUS_PAID:
-                        # Partially paid
-                        url_list.append(record_payment_url)
+                if is_payment_admin(user):
+                    if inv_ref:
+                        # There is an invoice
+                        if obj.payment_status != SanctionOutcome.PAYMENT_STATUS_PAID:
+                            # Partially paid
+                            url_list.append(record_payment_url)
+                        else:
+                            # Paid
+                            url_list.append(view_payment_url)
                     else:
-                        # Paid
-                        url_list.append(view_payment_url)
-                else:
-                    if obj.payment_status != SanctionOutcome.PAYMENT_STATUS_PAID and obj.status == SanctionOutcome.STATUS_AWAITING_PAYMENT:
-                        url_list.append(cc_payment_url)
-                        url_list.append(record_payment_url)
-                    else:
-                        # Should not reach here
-                        logger.warn('Sanction Outcome: {} payment status is PAID, but no invoices found.')
+                        if obj.payment_status != SanctionOutcome.PAYMENT_STATUS_PAID and obj.status == SanctionOutcome.STATUS_AWAITING_PAYMENT:
+                            url_list.append(cc_payment_url)
+                            url_list.append(record_payment_url)
+                        else:
+                            # Should not reach here
+                            logger.warn('Sanction Outcome: {} payment status is PAID, but no invoices found.')
 
             if not url_list:
                 # In other case user can view

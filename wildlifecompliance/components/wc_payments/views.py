@@ -131,7 +131,7 @@ class InfringementPenaltySuccessView(TemplateView):
                     #return redirect('external', args=(proposal.id,))
                     return redirect('external')
 
-                if invoice.system not in ['0999']: # TODO Change to correct VALUE
+                if invoice.system not in ['0566']: # TODO Change to correct VALUE
                     logger.error('{} tried paying an infringement penalty with an invoice from another system with reference number {}'.format(
                         'User {} with id {}'.format(request.user.get_full_name(), request.user.id) if request.user else 'An anonymous user',
                         invoice.reference
