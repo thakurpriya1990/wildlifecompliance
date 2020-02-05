@@ -35,7 +35,8 @@ from wildlifecompliance.components.artifact.serializers import (
         DocumentArtifactStatementSerializer,
         PhysicalArtifactSerializer,
         BriefOfEvidenceRecordOfInterviewSerializer,
-        SaveBriefOfEvidenceRecordOfInterviewSerializer,
+        BriefOfEvidenceOtherStatementsSerializer,
+        #SaveBriefOfEvidenceRecordOfInterviewSerializer,
         )
 #from wildlifecompliance.components.offence.serializers import OrganisationSerializer
 #from django.contrib.auth.models import Permission, ContentType
@@ -297,6 +298,9 @@ class LegalCaseSerializer(serializers.ModelSerializer):
     offence_list = serializers.SerializerMethodField()
     boe_roi_ticked = serializers.SerializerMethodField()
     boe_roi_options = serializers.SerializerMethodField()
+    boe_other_statements_ticked = serializers.SerializerMethodField()
+    boe_other_statements_options = serializers.SerializerMethodField()
+    legal_case_boe_other_statements = BriefOfEvidenceOtherStatementsSerializer(many=True)
     legal_case_boe_roi = BriefOfEvidenceRecordOfInterviewSerializer(many=True)
     #running_sheet_artifacts = LegalCaseRunningSheetArtifactsSerializer(read_only=True)
     #inspection_report = serializers.SerializerMethodField()
@@ -363,11 +367,47 @@ class LegalCaseSerializer(serializers.ModelSerializer):
                 'boe_roi_ticked',
                 'boe_roi_options',
                 'legal_case_boe_roi',
+                'boe_other_statements_ticked',
+                'boe_other_statements_options',
+                'legal_case_boe_other_statements',
 
                 )
         read_only_fields = (
                 'id',
                 )
+
+    def get_boe_other_statements_ticked(self, obj):
+        ticked_list = []
+        for record in obj.legal_case_boe_other_statements.all():
+            if record.ticked:
+                ticked_list.append(record.id)
+        return ticked_list
+
+    def get_boe_other_statements_options(self, obj):
+        person_list = []
+
+        for person_level_record in obj.legal_case_boe_other_statements.filter(statement=None):
+            person_serializer = BriefOfEvidenceOtherStatementsSerializer(
+                    person_level_record)
+            serialized_person = person_serializer.data
+            person_children = []
+            for statement_level_record in person_level_record.children.all():
+                statement_serializer = BriefOfEvidenceOtherStatementsSerializer(
+                        statement_level_record)
+                serialized_statement = statement_serializer.data
+                statement_children = []
+                for doc_level_record in statement_level_record.children.all():
+                    doc_serializer = BriefOfEvidenceOtherStatementsSerializer(
+                            doc_level_record)
+                    serialized_doc = doc_serializer.data
+                    if serialized_doc:
+                        statement_children.append(serialized_doc)
+                serialized_statement['children'] = statement_children
+                if serialized_statement:
+                    person_children.append(serialized_statement)
+            serialized_person['children'] = person_children
+            person_list.append(serialized_person)
+        return person_list
 
     def get_boe_roi_ticked(self, obj):
         ticked_list = []
