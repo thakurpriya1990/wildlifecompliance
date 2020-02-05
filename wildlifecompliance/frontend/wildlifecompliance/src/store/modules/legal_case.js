@@ -93,6 +93,12 @@ export const legalCaseStore = {
                 state.legal_case.boe_roi_ticked.push(r)
             }
         },
+        updateBoeOtherStatementsTicked(state, boeOtherStatementsTicked) {
+            Vue.set(state.legal_case, 'boe_other_statements_ticked', []);
+            for (let r of boeOtherStatementsTicked) {
+                state.legal_case.boe_other_statements_ticked.push(r)
+            }
+        },
     },
     actions: {
         async loadLegalCase({ dispatch, commit }, { legal_case_id }) {
@@ -186,6 +192,9 @@ export const legalCaseStore = {
         },
         setBoeRoiTicked({ commit }, boeRoiTicked) {
             commit("updateBoeRoiTicked", boeRoiTicked)
+        },
+        setBoeOtherStatementsTicked({ commit }, boeOtherStatementsTicked) {
+            commit("updateBoeOtherStatementsTicked", boeOtherStatementsTicked)
         },
     },
 };
