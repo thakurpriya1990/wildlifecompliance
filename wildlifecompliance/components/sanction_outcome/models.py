@@ -900,7 +900,9 @@ class SanctionOutcomeUserAction(models.Model):
     ACTION_REMEDIATION_ACTION_SUBMITTED = "Submit Remediation Action {}"
     ACTION_REMEDIATION_ACTION_ACCEPTED = "Accept Remediation Action {}"
     ACTION_REQUEST_AMENDMENT = "Request amendment for Remediation Action {}"
-    ACTION_PAY_INFRINGEMENT_PENALTY = "Pay Infringement Penalty of the Infringement {}, Amount: {}, Invoice: {}"
+    ACTION_PAY_INFRINGEMENT_PENALTY = "Pay for Infringement Penalty of the Infringement {}, Total payment amount: {}, Invoice: {}"
+    # ACTION_PAY_PARTIALLY = "Pay partially for Infringement Penalty of the Infringement {}, Amount: {}, Invoice: {}"
+    # ACTION_OVER_PAY = "Over-Pay for Infringement Penalty of the Infringement {}, Amount: {}, Invoice: {}"
 
     who = models.ForeignKey(EmailUser, null=True, blank=True)
     when = models.DateTimeField(null=False, blank=False, auto_now_add=True)
