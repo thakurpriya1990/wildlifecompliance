@@ -18,6 +18,12 @@ class SanctionOutcomeIssueNotificationEmail(TemplateEmailBase):
     txt_template = 'wildlifecompliance/emails/issue_sanction_outcome_notification.txt'
 
 
+class InfringementNoticeIssuedOnPaperEmail(TemplateEmailBase):
+    subject = 'Endorsed Issued Infringement Notice'
+    html_template = 'wildlifecompliance/emails/infringement_notice_issued_on_paper.html'
+    txt_template = 'wildlifecompliance/emails/infringement_notice_issued_on_paper.txt'
+
+
 class InfringementNoticeEmail(TemplateEmailBase):
     subject = 'Infringement Notice Issued'
     html_template = 'wildlifecompliance/emails/infringement_notice.html'
@@ -28,6 +34,12 @@ class SendToIncWithoutOffendersMail(TemplateEmailBase):
     subject = 'Parking Infringement without offenders Forwarded'
     html_template = 'wildlifecompliance/emails/send_to_inc_without_offenders.html'
     txt_template = 'wildlifecompliance/emails/send_to_inc_without_offenders.txt'
+
+
+class RemediationNoticeIssuedOnPaperEmail(TemplateEmailBase):
+    subject = 'Endorsed Remediation Notice Issued'
+    html_template = 'wildlifecompliance/emails/remediation_notice_issued_on_paper.html'
+    txt_template = 'wildlifecompliance/emails/remediation_notice_issued_on_paper.txt'
 
 
 class RemediationNoticeEmail(TemplateEmailBase):
@@ -455,6 +467,55 @@ def send_remediation_action_submitted_notice(to_address, remediation_action, req
 
     # Attach files (files from the modal, and the PDF file generated above)
     attachments = prepare_attachments(remediation_action.documents)
+
+    msg = email.send(to_address,
+                     context=context,
+                     attachments=attachments,
+                     cc=cc,
+                     bcc=bcc,
+                     )
+    sender = request.user if request else settings.DEFAULT_FROM_EMAIL
+    email_data = _extract_email_headers(msg, sender=sender)
+    return email_data
+
+def send_infringement_notice_issued_on_paper(to_address, sanction_outcome, workflow_entry, request, cc=None, bcc=None):
+    email = InfringementNoticeIssuedOnPaperEmail()
+    if request.data.get('email_subject'):
+        email.subject = request.data.get('email_subject')
+    url = request.build_absolute_uri(reverse('external'))
+    context = {
+        'url': url,
+        'sanction_outcome': sanction_outcome,
+        'workflow_entry_details': request.data.get('details'),
+    }
+
+    # Attach files (files from the modal, and the PDF file generated above)
+    attachments = prepare_attachments(workflow_entry.documents)
+
+    msg = email.send(to_address,
+                     context=context,
+                     attachments=attachments,
+                     cc=cc,
+                     bcc=bcc,
+                     )
+    sender = request.user if request else settings.DEFAULT_FROM_EMAIL
+    email_data = _extract_email_headers(msg, sender=sender)
+    return email_data
+
+
+def send_remediation_notice_issued_on_paper(to_address, sanction_outcome, workflow_entry, request, cc=None, bcc=None):
+    email = RemediationNoticeIssuedOnPaperEmail()
+    if request.data.get('email_subject'):
+        email.subject = request.data.get('email_subject')
+    url = request.build_absolute_uri(reverse('external'))
+    context = {
+        'url': url,
+        'sanction_outcome': sanction_outcome,
+        'workflow_entry_details': request.data.get('details'),
+    }
+
+    # Attach files (files from the modal, and the PDF file generated above)
+    attachments = prepare_attachments(workflow_entry.documents)
 
     msg = email.send(to_address,
                      context=context,

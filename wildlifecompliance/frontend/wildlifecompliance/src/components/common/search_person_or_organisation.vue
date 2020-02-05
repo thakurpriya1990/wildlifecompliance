@@ -361,8 +361,10 @@ export default {
             })
             .on("awesomplete-select", function(ev) {
                 let origin = $(ev.originalEvent.origin);
+                console.log('In awesomplete-select')
                 console.log(origin)
                 let originTagName = origin[0].tagName;
+                console.log('originTagName: ' + originTagName);
                 if (originTagName != "DIV") {
                     // Assuming origin is a child element of <li>
                     origin = origin.parent();

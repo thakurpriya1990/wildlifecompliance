@@ -186,6 +186,7 @@
                                             <div>
                                                 <SearchPersonOrganisation 
                                                 :excludeStaff="true" 
+                                                :personOnly="true" 
                                                 classNames="form-control" 
                                                 @entity-selected="personSelected" 
                                                 showCreateUpdate
@@ -453,7 +454,8 @@ export default {
                     },
                     {
                         mRender: function(data, type, row) {
-                            let ret_str = row.offender.number_linked_sanction_outcomes_active + '(' + row.offender.number_linked_sanction_outcomes_total + ')';
+                            //let ret_str = row.offender.number_linked_sanction_outcomes_active + '(' + row.offender.number_linked_sanction_outcomes_total + ')';
+                            let ret_str = '';
                             if (row.offence.in_editable_status && row.offence.can_user_action){
                                 if (row.offender.removed){
                                     ret_str = ret_str + '<a href="#" class="restore_button" data-offender-uuid="' + row.offender.uuid + '">Restore</a>';
@@ -520,7 +522,8 @@ export default {
                     },
                     {
                         mRender: function(data, type, row) {
-                            let ret_str = row.allegedOffence.number_linked_sanction_outcomes_active + '/' + row.allegedOffence.number_linked_sanction_outcomes_total;
+                            //let ret_str = row.allegedOffence.number_linked_sanction_outcomes_active + '/' + row.allegedOffence.number_linked_sanction_outcomes_total;
+                            let ret_str = '';
                             if (row.offence.in_editable_status && row.offence.can_user_action){
                                 if (row.allegedOffence.removed){
                                     ret_str = ret_str + '<a href="#" class="restore_button" data-alleged-offence-uuid="' + row.allegedOffence.uuid + '">Restore</a>';

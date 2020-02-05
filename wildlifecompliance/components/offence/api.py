@@ -74,10 +74,6 @@ class OffenceFilterBackend(DatatablesFilterBackend):
         if status and status != 'all':
             q_objects &= Q(status=status)
 
-        # payment_status = request.GET.get('payment_status',).lower()
-        # if payment_status and payment_status != 'all':
-        #     q_objects &= Q(payment_status=payment_status)
-
         date_from = request.GET.get('date_from',).lower()
         if date_from:
             date_from = datetime.strptime(date_from, '%d/%m/%Y')
