@@ -268,21 +268,21 @@
                                     </label>
                                 </div></div>
                             </FormSection>
-                            <FormSection :formCollapse="false" label="Offences, Offenders and Records of Interview" treeHeight="string">
+                            <FormSection :formCollapse="false" label="Offences, Offenders and Records of Interview" treeHeight="yes">
                                 <div class="col-sm-12 form-group"><div class="row">
-                                        <TreeSelect 
-                                        ref="record_of_interview_tree" 
-                                        :value="boeRoiTicked" 
-                                        :options="boeRoiOptions" 
-                                        :default-expand-level="Infinity" 
-                                        :disabled="false"
-                                        multiple
-                                        value-consists-of="LEAF_PRIORITY"
-                                        @input="setBoeRoiTicked"
-                                        />
+                                    <TreeSelect 
+                                    ref="record_of_interview_tree" 
+                                    :value="boeRoiTicked" 
+                                    :options="boeRoiOptions" 
+                                    :default-expand-level="Infinity" 
+                                    :disabled="false"
+                                    multiple
+                                    value-consists-of="LEAF_PRIORITY"
+                                    @input="setBoeRoiTicked"
+                                    />
                                 </div></div>
                             </FormSection>
-                            <FormSection :formCollapse="false" label="Witness Statements, Officer Statements, Expert Statements">
+                            <FormSection :formCollapse="false" label="Witness Statements, Officer Statements, Expert Statements" treeHeight="yes">
                                 <div class="col-sm-12 form-group"><div class="row">
                                     <TreeSelect 
                                     ref="other_statements_tree" 
@@ -293,6 +293,8 @@
                                     multiple
                                     value-consists-of="LEAF_PRIORITY"
                                     @input="setBoeOtherStatementsTicked"
+                                    alwaysOpen
+                                    :searchable="false"
                                     />
                                 </div></div>
                             </FormSection>
@@ -819,7 +821,8 @@ export default {
             this.addToRunningSheetPersonList(entity)
             //this.legal_case.runningSheetPersonList.push(entity)
         }
-        let recordDescriptionHtml = recordNumberElement[0].innerHTML.replace(this.tabSelectedKeyCombination, replacementVal).replace(/&nbsp\;/g, ' ');
+        //let recordDescriptionHtml = recordNumberElement[0].innerHTML.replace(this.tabSelectedKeyCombination, replacementVal).replace(/&nbsp\;/g, ' ');
+        let recordDescriptionHtml = recordNumberElement[0].innerHTML.replace(this.tabSelectedKeyCombination, replacementVal);
         return recordDescriptionHtml;
     },
     /*
@@ -843,14 +846,16 @@ export default {
             this.legal_case.runningSheetArtifactList.push(entity)
             */
         }
-        let recordDescriptionHtml = recordNumberElement[0].innerHTML.replace(this.tabSelectedKeyCombination, replacementVal).replace(/&nbsp\;/g, ' ');
+        //let recordDescriptionHtml = recordNumberElement[0].innerHTML.replace(this.tabSelectedKeyCombination, replacementVal).replace(/&nbsp\;/g, ' ');
+        let recordDescriptionHtml = recordNumberElement[0].innerHTML.replace(this.tabSelectedKeyCombination, replacementVal);
         console.log(recordDescriptionHtml);
         return recordDescriptionHtml;
     },
     cancelModalUrl: function(recordNumberElement) {
         console.log(recordNumberElement)
         let replacementVal = ''
-        let recordDescriptionHtml = recordNumberElement[0].innerHTML.replace(this.tabSelectedKeyCombination, replacementVal).replace(/&nbsp\;/g, ' ');
+        //let recordDescriptionHtml = recordNumberElement[0].innerHTML.replace(this.tabSelectedKeyCombination, replacementVal).replace(/&nbsp\;/g, ' ');
+        let recordDescriptionHtml = recordNumberElement[0].innerHTML.replace(this.tabSelectedKeyCombination, replacementVal);
         return recordDescriptionHtml;
     },
     insertModalUrl: function({"entity": entity, "recordNumberElement": recordNumberElement}) {
@@ -867,7 +872,8 @@ export default {
             replacementVal = `<a contenteditable="false" target="_blank" href=${fullUrl}>${entity.url}</a>`
             //replacementVal = `<a target="_blank" href=${fullUrl}>${entity.url}</a>`
         }
-        let recordDescriptionHtml = recordNumberElement[0].innerHTML.replace(this.tabSelectedKeyCombination, replacementVal).replace(/&nbsp\;/g, ' ');
+        //let recordDescriptionHtml = recordNumberElement[0].innerHTML.replace(this.tabSelectedKeyCombination, replacementVal).replace(/&nbsp\;/g, ' ');
+        let recordDescriptionHtml = recordNumberElement[0].innerHTML.replace(this.tabSelectedKeyCombination, replacementVal);
         //console.log(recordDescriptionHtml)
         return recordDescriptionHtml;
     },
@@ -1430,6 +1436,8 @@ export default {
   mounted: function() {
       this.$nextTick(() => {
           this.addEventListeners();
+          //let treeSelectElement = $('.vue-treeselect__control').css("display", "none");
+          $('.vue-treeselect__control').css("display", "none");
       });
   },
 };
