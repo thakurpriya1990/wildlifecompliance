@@ -53,7 +53,7 @@
                 <label class="">Region:</label>
                                   <!-- <select class="form-control col-sm-9" v-on:change.prevent="sanction_outcome.region_id=$event.target.value; updateDistricts('updatefromUI')" v-bind:value="sanction_outcome.region_id">
                                     <option  v-for="option in regions" :value="option.id" v-bind:key="option.id">
-                                      {{ option.display_name }} 
+                                      {{ option.display_name }}
                                     </option>
                                   </select> -->
                 <select class="form-control" v-on:change.prevent="filterRegionId=$event.target.value; updateDistricts('updatefromUI')" v-bind:value="filterRegionId">
@@ -66,7 +66,7 @@
                 <label class="">District:</label>
                                   <!-- <select class="form-control" v-model="sanction_outcome.district_id">
                                     <option  v-for="option in availableDistricts" :value="option.id" v-bind:key="option.id">
-                                      {{ option.display_name }} 
+                                      {{ option.display_name }}
                                     </option>
                                   </select> -->
                 <select class="form-control" v-model="filterDistrictId">
@@ -178,6 +178,7 @@ export default {
                         searchable: true,
                         orderable: true,
                         mRender: function (data, type, row){
+                            console.log(row);
                             let name = '';
                             let num_chars = 30;
                             if (data && data.person){
@@ -220,7 +221,7 @@ export default {
                         mRender: function (data, type, row){
                             if (data){
                                 return data;
-                            } else { 
+                            } else {
                                 return '---';
                             }
                         }
@@ -415,5 +416,8 @@ export default {
 </script>
 
 <style>
-
+.viewed-by-offender {
+    color: green;
+    font: 1.5em;
+}
 </style>

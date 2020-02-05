@@ -851,7 +851,7 @@ export default {
       el_to_date.on("dp.change", function(e) {
         if (el_to_date.data("DateTimePicker").date()) {
           vm.offence.occurrence_date_to = e.date.format("DD/MM/YYYY");
-            el_fr_date.data('DateTimePicker').minDate(e.date);
+            el_fr_date.data('DateTimePicker').maxDate(e.date);
         } else if (el_to_date.data("date") === "") {
           vm.offence.occurrence_date_to = null;
         }
