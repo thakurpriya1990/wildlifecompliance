@@ -160,7 +160,7 @@
                                                 <label >{{ interviewerLabel }}</label>
                                             </div>
                                             <div class="col-sm-9">
-                                                <select ref="document_artifact_department_users" class="form-control" v-model="document_artifact.interviewer_email">
+                                                <select ref="document_artifact_department_users" class="form-control" v-model="officerInterviewerEmailAddress">
                                                     <option  v-for="option in departmentStaffList" :value="option.email" v-bind:key="option.pk">
                                                     {{ option.name }} 
                                                     </option>
@@ -255,6 +255,7 @@ export default {
             temporary_document_collection_id: null,
             documentArtifactTypes: [],
             departmentStaffList: [],
+            selectedDepartmentStaffMember: {},
             //offenderList: [],
             selectedCustodian: {},
             entity: {
@@ -491,6 +492,15 @@ export default {
           }
           return id;
         },
+        officerInterviewerEmailAddress: function() {
+          let emailAddress = null;
+          if (this.document_artifact && this.document_artifact.officer_interviewer) {
+          //if (this.selectedDepartmentStaffMember) {
+              emailAddress = this.document_artifact.officer_interviewer.email;
+              //emailAddress = this.selectedDepartmentStaffMember.email;
+          }
+          return emailAddress;
+        },
         documentArtifactIdExists: function() {
           let recordExists = false;
           if (this.document_artifact && this.document_artifact.id) {
@@ -633,6 +643,7 @@ export default {
             setTemporaryDocumentCollectionId: 'setTemporaryDocumentCollectionId',
             //setDocumentArtifactLegalId: 'setDocumentArtifactLegalId',
             setOffenderId: 'setOffenderId',
+            setOfficerInterviewer: 'setOfficerInterviewer',
         }),
         ...mapActions('legalCaseStore', {
             loadLegalCase: 'loadLegalCase',
@@ -734,6 +745,16 @@ export default {
             });
             //this.$parent.$parent.ok();
         },
+        setOfficerInterviewerWrapper: async function(selectedData) {
+            for (let officer of this.departmentStaffList) {
+                if (officer.email === selectedData) {
+                    //this.selectedDepartmentStaffMember = Object.assign({}, officer
+                    this.selectedDepartmentStaffMember = officer
+                }
+            }
+            await this.setOfficerInterviewer(this.selectedDepartmentStaffMember);
+        },
+
         addEventListeners: function() {
             let vm = this;
             let el_fr_date = $(vm.$refs.artifactDatePicker);
@@ -772,7 +793,9 @@ export default {
                     console.log(e)
                     let selected = $(e.currentTarget);
                     let selectedData = selected.val();
-                    vm.setInterviewerEmail(selectedData);
+                    console.log(selectedData)
+                    vm.setOfficerInterviewerWrapper(selectedData);
+                    //vm.setInterviewerEmail(selectedData);
                     //vm.setSelectedCustodian(selectedData);
                     //let custodianData = e.params.data
                     //console.log(custodianData)
