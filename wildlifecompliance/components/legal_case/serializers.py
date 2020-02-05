@@ -12,6 +12,8 @@ from wildlifecompliance.components.legal_case.models import (
     LegalCasePriority,
     LegalCaseRunningSheetEntry,
     LegalCasePerson,
+    CourtProceedingsJournalEntry,
+    CourtProceedings,
     )
 from wildlifecompliance.components.call_email.serializers import EmailUserSerializer
 from wildlifecompliance.components.main.related_item import get_related_items
@@ -80,8 +82,7 @@ class CreateLegalCasePersonSerializer(serializers.ModelSerializer):
                 'id',
                 )
 
-
-class RunningSheetEntryVersionSerializer(serializers.ModelSerializer):
+class VersionSerializer(serializers.ModelSerializer):
     #serializable_value = serializers.JSONField()
     entry_fields = serializers.SerializerMethodField()
     date_modified = serializers.SerializerMethodField()
@@ -129,6 +130,187 @@ class RunningSheetEntryVersionSerializer(serializers.ModelSerializer):
         return modified_fields
 
 
+class JournalEntryHistorySerializer(serializers.ModelSerializer):
+    versions = serializers.SerializerMethodField()
+    class Meta:
+        model = CourtProceedingsJournalEntry
+        fields = (
+                'id',
+                'versions',
+                )
+    def get_versions(self, obj):
+        entry_versions = VersionSerializer(
+                Version.objects.get_for_object(obj),
+                many=True)
+        return entry_versions.data
+
+
+class CourtProceedingsJournalEntrySerializer(serializers.ModelSerializer):
+    user_full_name = serializers.SerializerMethodField()
+    date_mod = serializers.SerializerMethodField()
+    time_mod = serializers.SerializerMethodField()
+
+    class Meta:
+        model = CourtProceedingsJournalEntry
+        fields = (
+                'id',
+                'court_proceedings_id',
+                'number',
+                'date_modified',
+                'date_mod',
+                'time_mod',
+                'user_full_name',
+                'user_id',
+                'description',
+                'deleted',
+                )
+        read_only_fields = (
+                'id',
+                )
+
+    def get_date_mod(self, obj):
+        date_modified_loc = timezone.localtime(obj.date_modified)
+        return date_modified_loc.strftime('%d/%m/%Y')
+
+    def get_time_mod(self, obj):
+        date_modified_loc = timezone.localtime(obj.date_modified)
+        return date_modified_loc.strftime('%I:%M:%S %p')
+
+    def get_user_full_name(self, obj):
+        user_full_name = ''
+        if obj.user:
+            user_full_name = obj.user.get_full_name()
+        return user_full_name
+
+
+class SaveCourtProceedingsJournalEntrySerializer(serializers.ModelSerializer):
+    user_id = serializers.IntegerField(
+        required=False, write_only=True, allow_null=True)
+
+    class Meta:
+        model = CourtProceedingsJournalEntry
+        fields = (
+                'id',
+                'number',
+                #'legal_case_persons',
+                'court_proceedings_id',
+                'user_id',
+                'description',
+                #'date_modified',
+                )
+        read_only_fields = (
+                'id',
+                'number',
+                'court_proceedings_id',
+                )
+
+
+class DeleteReinstateCourtProceedingsJournalEntrySerializer(serializers.ModelSerializer):
+
+    class Meta:
+        model = CourtProceedingsJournalEntry
+        fields = (
+                'id',
+                'number',
+                'court_proceedings_id',
+                'deleted',
+                )
+        read_only_fields = (
+                'id',
+                'number',
+                'court_proceedings_id',
+                )
+
+
+class CreateCourtProceedingsJournalEntrySerializer(serializers.ModelSerializer):
+    court_proceedings_id = serializers.IntegerField(
+        required=False, write_only=True, allow_null=True)
+    user_id = serializers.IntegerField(
+        required=False, write_only=True, allow_null=True)
+
+    class Meta:
+        model = CourtProceedingsJournalEntry
+        fields = (
+                #'id',
+                #'number',
+                #'legal_case_persons',
+                'court_proceedings_id',
+                'user_id',
+                )
+
+    def create(self, validated_data):
+        print(validated_data)
+        court_proceedings_id = validated_data.get('court_proceedings_id')
+        user_id = validated_data.get('user_id')
+        new_entry = CourtProceedingsJournalEntry.objects.create_journal_entry(
+                court_proceedings_id=court_proceedings_id,
+                user_id=user_id)
+        #new_entry.save()
+        return new_entry
+
+
+class CourtProceedingsJournalSerializer(serializers.ModelSerializer):
+    journal_entries = CourtProceedingsJournalEntrySerializer(many=True)
+
+    class Meta:
+        model = CourtProceedings
+        fields = (
+                'id',
+                'journal_entries',
+                )
+        read_only_fields = (
+                'id',
+                )
+
+#######################
+#class RunningSheetEntryVersionSerializer(serializers.ModelSerializer):
+#    #serializable_value = serializers.JSONField()
+#    entry_fields = serializers.SerializerMethodField()
+#    date_modified = serializers.SerializerMethodField()
+#    class Meta:
+#        model = Version
+#        #fields = '__all__'
+#        fields = (
+#                'id',
+#                'revision',
+#                'serialized_data',
+#                'entry_fields',
+#                'date_modified',
+#                )
+#        read_only_fields = (
+#                'id',
+#                'revision',
+#                'serialized_data',
+#                'entry_fields',
+#                'date_modified',
+#                )
+#
+#    def get_date_modified(self, obj):
+#        date_modified = None
+#        modified_fields = obj.field_dict
+#        if modified_fields.get('date_modified'):
+#            date_modified_utc = modified_fields.get('date_modified')
+#            date_modified = timezone.localtime(date_modified_utc)
+#        return date_modified
+#
+#    def get_entry_fields(self, obj):
+#        modified_fields = obj.field_dict
+#        user_full_name = ''
+#        if modified_fields and obj.field_dict.get('user_id'):
+#            user_obj = EmailUser.objects.get(id=obj.field_dict.get('user_id'))
+#            user_full_name = user_obj.get_full_name()
+#        modified_fields['user_full_name'] = user_full_name
+#        if modified_fields.get('date_modified'):
+#            date_modified_utc = modified_fields.get('date_modified')
+#            date_modified = timezone.localtime(date_modified_utc)
+#            modified_fields['date_mod'] = date_modified.strftime('%d/%m/%Y')
+#            modified_fields['time_mod'] = date_modified.strftime('%I:%M:%S %p')
+#        else:
+#            modified_fields['date_mod'] = ''
+#            modified_fields['time_mod'] = ''
+#        return modified_fields
+
+
 class RunningSheetEntryHistorySerializer(serializers.ModelSerializer):
     versions = serializers.SerializerMethodField()
     class Meta:
@@ -138,6 +320,7 @@ class RunningSheetEntryHistorySerializer(serializers.ModelSerializer):
                 'versions',
                 )
     def get_versions(self, obj):
+        #entry_versions = RunningSheetEntryVersionSerializer(
         entry_versions = RunningSheetEntryVersionSerializer(
                 Version.objects.get_for_object(obj),
                 many=True)

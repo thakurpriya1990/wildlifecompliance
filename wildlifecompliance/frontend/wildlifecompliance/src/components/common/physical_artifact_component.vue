@@ -4,9 +4,12 @@
             <div class="form-group">
                 <div class="row">
                     <div v-if="!parentModal">
+                        <ul class="nav nav-pills">
+                        </ul>
                     </div>
                     <div v-else>
                         <ul class="nav nav-pills">
+                            <!--li class="nav-item active"><a data-toggle="tab" :href="'#'+newTab">New</a></li-->
                             <li class="nav-item active"><a data-toggle="tab" @click="updateTabSelected('objectTab')" :href="'#'+newTab">New</a></li>
                             <li class="nav-item"><a data-toggle="tab" :href="'#'+existingTab" >Existing</a></li>
                         </ul>
@@ -148,8 +151,8 @@
                                                     </div>
                                                     <div v-if="parentModal" class="col-sm-9">
                                                         <filefield
-                                                        ref="physical_artifact_documents"
-                                                        name="physical-artifact-documents"
+                                                        ref="default_document"
+                                                        name="default_document"
                                                         :isRepeatable="true"
                                                         documentActionUrl="temporary_document"
                                                         @update-temp-doc-coll-id="addToTemporaryDocumentCollectionList"/>
@@ -205,7 +208,7 @@
                                         </FormSection>
                                     </div>
                                     <div :id="disposalTab" :class="disposalTabClass">
-                                        <FormSection :formCollapse="false" label="Related Items">
+                                        <FormSection :formCollapse="false" label="Disposal">
                                             <div class="col-sm-12 form-group"><div class="row">
                                                 <div class="col-sm-3">
                                                   <label>Disposal Method</label>
@@ -237,15 +240,7 @@
                                             </div>
                                         </FormSection>
                                     </div>
-                                    <!--div :id="relatedItemsTab" class="tab-pane fade in"-->
-                                    <div v-if="parentModal" :id="existingTab" class="tab-pane fade in li-top-buffer">
-                                        <div class="row">
-                                            <div class="col-lg-12">
-                                                <datatable ref="existing_artifact_table" id="existing-artifact-table" :dtOptions="dtOptions" :dtHeaders="dtHeaders" />
-                                            </div>
-                                        </div>
-                                    </div>
-                                    <div v-if="!parentModal" :id="relatedItemsTab" :class="relatedItemsTabClass">
+                                    <div v-if="!parentModal" :id="relatedItemsTab" class="tab-pane fade in">
                                         <FormSection :formCollapse="false" label="Related Items">
                                             <div class="col-sm-12 form-group"><div class="row">
                                                 <div class="col-sm-12" v-if="relatedItemsVisibility">
@@ -261,8 +256,12 @@
                                     </div>
                             </div>
                         </div>
-                        <div :id="existingTab" class="tab-pane fade in li-top-buffer">
-                            existing
+                        <div v-if="parentModal" :id="existingTab" class="tab-pane fade in li-top-buffer">
+                            <div class="row">
+                                <div class="col-lg-12">
+                                    <datatable ref="existing_artifact_table" id="existing-artifact-table" :dtOptions="dtOptions" :dtHeaders="dtHeaders" />
+                                </div>
+                            </div>
                         </div>
                     </div>
                 </div>
@@ -293,7 +292,7 @@ export default {
     data: function() {
         return {
             uuid: 0,
-            relatedItemsTab: 'rTab'+this._uid,
+            relatedItemsTab: 'relatedItemsTab'+this._uid,
             newTab: 'newTab'+this._uid,
             existingTab: 'existingTab'+this._uid,
             objectTab: 'objectTab'+this._uid,
