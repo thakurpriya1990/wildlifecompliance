@@ -542,6 +542,7 @@ class SavePhysicalArtifactSerializer(ArtifactSerializer):
                 'disposal_method_id',
                 'disposal_details',
                 'statement_id',
+                'sensitive_non_disclosable',
                 )
         read_only_fields = (
                 'id',
