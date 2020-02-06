@@ -256,6 +256,7 @@ class CourtProceedingsJournalSerializer(serializers.ModelSerializer):
         model = CourtProceedings
         fields = (
                 'id',
+                'court_outcome_details',
                 'journal_entries',
                 )
         read_only_fields = (
@@ -489,6 +490,7 @@ class LegalCaseSerializer(serializers.ModelSerializer):
     #inspection_report = serializers.SerializerMethodField()
     #data = InspectionFormDataRecordSerializer(many=True)
     #location = LocationSerializer(read_only=True)
+    court_proceedings = CourtProceedingsJournalSerializer()
 
     class Meta:
         model = LegalCase
@@ -553,6 +555,8 @@ class LegalCaseSerializer(serializers.ModelSerializer):
                 'boe_other_statements_ticked',
                 'boe_other_statements_options',
                 'legal_case_boe_other_statements',
+
+                'court_proceedings',
 
                 )
         read_only_fields = (

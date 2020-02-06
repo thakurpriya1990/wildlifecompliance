@@ -15,7 +15,7 @@
 
             <FormSection :formCollapse="false" label="Court Outcome">
                 <div class="col-sm-12 form-group"><div class="row">
-
+                    <textarea :readonly="readonlyForm" class="form-control location_address_field" v-model="legal_case.court_proceedings.court_outcome_details" />
                 </div></div>
             </FormSection>
         </div>
@@ -42,51 +42,52 @@ export default {
             //boeOtherStatementsOptions: [],
             uuid: 0,
       };
-  },
-  components: {
-    FormSection,
-  },
-  computed: {
-    ...mapGetters('legalCaseStore', {
-      legal_case: "legal_case",
-    }),
-    csrf_token: function() {
-      return helpers.getCookie("csrftoken");
     },
-    readonlyForm: function() {
-        let readonly = true
-        if (this.legal_case && this.legal_case.id) {
-            readonly = !this.legal_case.can_user_action;
-        }
-        return readonly
+    components: {
+      FormSection,
     },
-    canUserAction: function() {
-        let return_val = false
-        if (this.legal_case && this.legal_case.id) {
-            return_val = this.legal_case.can_user_action;
-        }
-        return return_val
+    computed: {
+      ...mapGetters('legalCaseStore', {
+        legal_case: "legal_case",
+      }),
+
+      csrf_token: function() {
+        return helpers.getCookie("csrftoken");
+      },
+      readonlyForm: function() {
+          let readonly = true
+          if (this.legal_case && this.legal_case.id) {
+              readonly = !this.legal_case.can_user_action;
+          }
+          return readonly
+      },
+      canUserAction: function() {
+          let return_val = false
+          if (this.legal_case && this.legal_case.id) {
+              return_val = this.legal_case.can_user_action;
+          }
+          return return_val
+      },
     },
-  },
-  filters: {
-    formatDate: function(data) {
-      return data ? moment(data).format("DD/MM/YYYY HH:mm:ss") : "";
-    }
-  },
-  methods: {
-    ...mapActions('legalCaseStore', {
-      loadLegalCase: 'loadLegalCase',
-      saveLegalCase: 'saveLegalCase',
-      setLegalCase: 'setLegalCase',
-    }),
-  },
-  created: async function() {
+    filters: {
+      formatDate: function(data) {
+        return data ? moment(data).format("DD/MM/YYYY HH:mm:ss") : "";
+      }
     },
-  mounted: function() {
-      this.$nextTick(() => {
-          $('.vue-treeselect__control').css("display", "none");
-        });
-  },
+    methods: {
+      ...mapActions('legalCaseStore', {
+        loadLegalCase: 'loadLegalCase',
+        saveLegalCase: 'saveLegalCase',
+        setLegalCase: 'setLegalCase',
+      }),
+    },
+    created: async function() {
+      },
+    mounted: function() {
+        this.$nextTick(() => {
+            $('.vue-treeselect__control').css("display", "none");
+          });
+    },
 };
 </script>
 
