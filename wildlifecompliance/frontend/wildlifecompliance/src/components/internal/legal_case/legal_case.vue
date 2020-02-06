@@ -163,7 +163,7 @@
                             <BriefOfEvidence />
                         </div>
                         <div :id="cpTab" class="tab-pane fade in">
-                            <CourtProceedings />
+                            <CourtProceedings :key="legal_case.id"/>
                         </div>
                         <div :id="rTab" class="tab-pane fade in">
                             <FormSection :formCollapse="false" label="Related Items">
@@ -763,6 +763,9 @@ export default {
         console.log("constructRunningSheetTable - end")
     },
     constructRunningSheetTableEntry: function( rowNumber ){
+        console.log('rowNumber')
+        console.log(rowNumber)
+
         let actionColumn = !this.readonlyForm;
         if (this.$refs.running_sheet_table && this.$refs.running_sheet_table.vmDataTable) {
             console.log("constructRunningSheetTableEntry");
@@ -1256,6 +1259,8 @@ export default {
     },
     constructRunningSheetTableWrapper: function() {
         this.runningSheetUrl = _.cloneDeep(this.legal_case.running_sheet_entries);
+        console.log('this.runningSheetUrl');
+        console.log(this.runningSheetUrl);
         let i = 0;
         for (let r of this.legal_case.running_sheet_entries) {
             let description = this.tokenToUrl(r.description)
