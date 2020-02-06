@@ -272,11 +272,14 @@ export default {
   },
   created: async function() {
       if (this.legal_case && this.legal_case.brief_of_evidence) {
+          /*
           for (let item of this.legal_case.brief_of_evidence) {
               //let cloned_item = _.cloneDeep(item);
               //this.briefOfEvidence.push(cloned_item)
               this.briefOfEvidence.push(item)
           }
+          */
+          Object.assign(this.briefOfEvidence, this.legal_case.brief_of_evidence);
       }
   },
   mounted: function() {

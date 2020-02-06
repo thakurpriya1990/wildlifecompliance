@@ -159,7 +159,9 @@
                             </FormSection>
                         </div>
                         <div :id="bTab" class="tab-pane fade in">
-                            <BriefOfEvidence ref="brief_of_evidence"/>
+                            <div v-if="briefOfEvidenceVisibility">
+                                <BriefOfEvidence ref="brief_of_evidence"/>
+                            </div>
                         </div>
                         <div :id="rTab" class="tab-pane fade in">
                             <FormSection :formCollapse="false" label="Related Items">
@@ -531,6 +533,15 @@ export default {
         let offence_bind_id = ''
         offence_bind_id = 'offence' + parseInt(this.uuid);
         return offence_bind_id;
+    },
+    briefOfEvidenceVisibility: function() {
+        let visible = false;
+        if (this.legal_case && this.legal_case.id &&
+            (this.legal_case.brief_of_evidence || this.legal_case.status.id === 'brief_of_evidence')
+        ) {
+            visible = true;
+        }
+        return visible;
     },
     sanctionOutcomeBindId: function() {
         let sanction_outcome_bind_id = ''
