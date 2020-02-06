@@ -473,7 +473,7 @@ class BriefOfEvidenceSerializer(serializers.ModelSerializer):
         model = BriefOfEvidence
         fields = (
                 'id',
-                #'legal_case_id',
+                'legal_case_id',
                 'statement_of_facts',
                 'victim_impact_statement_taken',
                 'statements_pending',
@@ -507,6 +507,7 @@ class BriefOfEvidenceSerializer(serializers.ModelSerializer):
                 )
         read_only_fields = (
                 'id',
+                'legal_case_id',
                 )
 
 

@@ -426,20 +426,28 @@ class LegalCaseViewSet(viewsets.ModelViewSet):
                         journal_entry_serializer.is_valid(raise_exception=True)
                         if journal_entry_serializer.is_valid():
                             journal_entry_serializer.save()
+                ## Brief Of Evidence
+                #brief_of_evidence = request.data.get('brief_of_evidence')
+                #if brief_of_evidence:
+                #    boe_instance = None
+                #    if not instance.brief_of_evidence:
+                #        boe_instance = BriefOfEvidence.objects.create(legal_case=instance)
+                #        instance.brief_of_evidence = boe_instance
+                #    else:
+                #        boe_instance = instance.brief_of_evidence
+                #    boe_serializer = BriefOfEvidenceSerializer(boe_instance, data=brief_of_evidence)
+                #    if boe_serializer.is_valid():
+                #        boe_serializer.save()
+                #        # required when attaching a new BriefOfEvidence to a LegalCase
+                #        instance.save()
+
                 # Brief Of Evidence
                 brief_of_evidence = request.data.get('brief_of_evidence')
                 if brief_of_evidence:
-                    boe_instance = None
-                    if not instance.brief_of_evidence:
-                        boe_instance = BriefOfEvidence.objects.create(legal_case=instance)
-                        instance.brief_of_evidence = boe_instance
-                    else:
-                        boe_instance = instance.brief_of_evidence
+                    boe_instance, created = BriefOfEvidence.objects.get_or_create(legal_case=instance)
                     boe_serializer = BriefOfEvidenceSerializer(boe_instance, data=brief_of_evidence)
                     if boe_serializer.is_valid():
                         boe_serializer.save()
-                        # required when attaching a new BriefOfEvidence to a LegalCase
-                        instance.save()
 
                 boe_roi_ticked = request.data.get('boe_roi_ticked')
                 update_boe_roi_ticked(instance, boe_roi_ticked)
