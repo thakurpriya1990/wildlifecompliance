@@ -198,11 +198,21 @@ class LegalCase(RevisionedMixin):
 
     # Prefix "CS" char to LegalCase number.
     def save(self, *args, **kwargs):
-        
         super(LegalCase, self).save(*args,**kwargs)
+
+        need_save = False
+
         if self.number is None:
             new_number_id = 'CS{0:06d}'.format(self.pk)
             self.number = new_number_id
+            need_save = True
+
+        if not self.court_proceedings:
+            cp = CourtProceedings.objects.create()
+            self.court_proceedings = cp
+            need_save = True
+
+        if need_save:
             self.save()
 
     def log_user_action(self, action, request):
