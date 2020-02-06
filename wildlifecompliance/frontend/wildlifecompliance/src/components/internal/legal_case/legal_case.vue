@@ -159,7 +159,7 @@
                             </FormSection>
                         </div>
                         <div :id="bTab" class="tab-pane fade in">
-                            <BriefOfEvidence />
+                            <BriefOfEvidence ref="brief_of_evidence"/>
                         </div>
                         <div :id="rTab" class="tab-pane fade in">
                             <FormSection :formCollapse="false" label="Related Items">
@@ -591,6 +591,7 @@ export default {
       setAddRunningSheetEntry: 'setAddRunningSheetEntry',
       setRunningSheetEntry: 'setRunningSheetEntry',
       addToRunningSheetPersonList: 'addToRunningSheetPersonList',
+      setBriefOfEvidence: 'setBriefOfEvidence',
       //setBoeRoiTicked: 'setBoeRoiTicked',
       //setBoeOtherStatementsTicked: 'setBoeOtherStatementsTicked',
     }),
@@ -863,8 +864,8 @@ export default {
           this.showExit = true;
       }
       await this.runningSheetTransformWrapper();
-      //await this.setBoeRoiTicked(this.boeRoiTicked);
-      //if (this.legal_case.id) {
+      // add brief_of_evidence to legal_case
+      await this.setBriefOfEvidence(this.$refs.brief_of_evidence.briefOfEvidence);
       if (createNewRow) {
           //await this.saveLegalCase({ create: false, internal: true, createNewRow: true });
           await this.saveLegalCase({ internal: true, createNewRow: true });
