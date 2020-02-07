@@ -46,15 +46,6 @@ def process_generic_document(request, instance, document_type=None, *args, **kwa
                         ) for d in comms_instance.documents.all() if d._file]
             return {'filedata': returned_file_data,
                     'comms_instance_id': comms_instance.id}
-            #return Response(
-            #    [
-            #        dict(
-            #            input_name=d.input_name,
-            #            name=d.name,
-            #            file=d._file.url,
-            #            id=d.id,
-            #            can_delete=d.can_delete) for d in instance.documents.filter(
-            #            input_name=section) if d._file])
 
         elif document_type == 'renderer_documents' and input_name:
             returned_file_data = [dict(
@@ -63,6 +54,14 @@ def process_generic_document(request, instance, document_type=None, *args, **kwa
                         name=d.name,
                         input_name=d.input_name,
                         ) for d in instance.renderer_documents.filter(input_name=input_name) if d._file]
+            return {'filedata': returned_file_data}
+
+        elif document_type == 'issuance_documents':
+            returned_file_data = [dict(
+                        file=d._file.url,
+                        id=d.id,
+                        name=d.name,
+                        ) for d in instance.issuance_documents.all() if d._file]
             return {'filedata': returned_file_data}
 
         elif document_type == 'inspection_report':
@@ -91,6 +90,11 @@ def delete_document(request, instance, comms_instance, document_type, input_name
         document_id = request.data.get('document_id')
         document = instance.renderer_documents.get(id=document_id, input_name=input_name)
 
+    # Application Issuance docs delete
+    if document_type == 'issuance_documents' and 'document_id' in request.data:
+        document_id = request.data.get('document_id')
+        document = instance.issuance_documents.get(id=document_id)
+
     # inspection report delete
     if document_type == 'inspection_report' and 'document_id' in request.data:
         document_id = request.data.get('document_id')
@@ -117,6 +121,16 @@ def cancel_document(request, instance, comms_instance, document_type, input_name
         # PhysicalArtifact renderer documents cancel
         if document_type == 'renderer_documents':
             document_list = instance.renderer_documents.all()
+
+            for document in document_list:
+                if document._file and os.path.isfile(
+                        document._file.path):
+                    os.remove(document._file.path)
+                document.delete()
+
+        # Application issuance documents cancel
+        if document_type == 'issuance_documents':
+            document_list = instance.issuance_documents.all()
 
             for document in document_list:
                 if document._file and os.path.isfile(
@@ -162,8 +176,6 @@ def save_document(request, instance, comms_instance, document_type, input_name=N
 
         # PhysicalArtifact renderer document save
         if document_type == 'renderer_documents' and 'filename' in request.data and input_name:
-            print("save renderer doc")
-            print(input_name)
             filename = request.data.get('filename')
             _file = request.data.get('_file')
 
@@ -172,6 +184,20 @@ def save_document(request, instance, comms_instance, document_type, input_name=N
             path = default_storage.save(
                 'wildlifecompliance/{}/{}/renderer_documents/{}/{}'.format(
                     instance._meta.model_name, instance.id, input_name, filename), ContentFile(
+                    _file.read()))
+
+            document._file = path
+            document.save()
+        # Application issuance document save
+        if document_type == 'issuance_documents' and 'filename' in request.data:
+            filename = request.data.get('filename')
+            _file = request.data.get('_file')
+
+            document = instance.issuance_documents.get_or_create(
+                name=filename)[0]
+            path = default_storage.save(
+                'wildlifecompliance/{}/{}/issuance_documents/{}'.format(
+                    instance._meta.model_name, instance.id, filename), ContentFile(
                     _file.read()))
 
             document._file = path
