@@ -125,24 +125,6 @@ class LegalCase(RevisionedMixin):
             EmailUser,
             related_name='legal_case_associated_persons',
             )
-    # court_proceedings = models.OneToOneField(
-    #         CourtProceedings,
-    #         null=True,
-    #         blank=True,
-    #         related_name="legal_case",
-    #         )
-    #brief_of_evidence = models.OneToOneField(
-    #        BriefOfEvidence,
-    #        null=True,
-    #        blank=True,
-    #        related_name="legal_case",
-    #        )
-    #prosecution_brief = models.OneToOneField(
-    #        ProsecutionBrief,
-    #        null=True,
-    #        blank=True,
-    #        related_name="legal_case",
-    #        )
 
     class Meta:
         app_label = 'wildlifecompliance'
@@ -156,20 +138,14 @@ class LegalCase(RevisionedMixin):
     def save(self, *args, **kwargs):
         super(LegalCase, self).save(*args,**kwargs)
 
-        need_save = False
-
         if self.number is None:
             new_number_id = 'CS{0:06d}'.format(self.pk)
             self.number = new_number_id
-            need_save = True
-
-        if not self.court_proceedings:
-            cp = CourtProceedings.objects.create()
-            self.court_proceedings = cp
-            need_save = True
-
-        if need_save:
             self.save()
+
+        if not hasattr(self, 'court_proceedings'):
+            cp = CourtProceedings.objects.create(legal_case=self)
+            cp.save()
 
     def log_user_action(self, action, request):
         return LegalCaseUserAction.log_action(self, action, request.user)

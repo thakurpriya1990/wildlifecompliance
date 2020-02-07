@@ -51,17 +51,17 @@ from wildlifecompliance.components.users.serializers import (
 )
 from wildlifecompliance.helpers import is_customer, is_internal
 from wildlifecompliance.components.legal_case.models import (
-        LegalCase,
-        LegalCaseUserAction,
-        LegalCaseCommsLogEntry,
-        LegalCaseCommsLogDocument,
-        LegalCasePriority,
-        LegalCaseRunningSheetEntry,
-        LegalCasePerson,
-        CourtProceedingsJournalEntry,
-        BriefOfEvidence,
-        ProsecutionBrief,
-)
+    LegalCase,
+    LegalCaseUserAction,
+    LegalCaseCommsLogEntry,
+    LegalCaseCommsLogDocument,
+    LegalCasePriority,
+    LegalCaseRunningSheetEntry,
+    LegalCasePerson,
+    CourtProceedingsJournalEntry,
+    BriefOfEvidence,
+    ProsecutionBrief,
+    CourtProceedings)
 #from wildlifecompliance.components.artifact.models import (
 #        DocumentArtifact,
 #        PhysicalArtifact,
@@ -646,6 +646,7 @@ class LegalCaseViewSet(viewsets.ModelViewSet):
                     instance.log_user_action(
                             LegalCaseUserAction.ACTION_CREATE_LEGAL_CASE.format(
                             instance.number), request)
+
                     # Create comms_log and send mail
                     res = self.workflow_action(request, instance, create_legal_case=True)
                     if instance.call_email:

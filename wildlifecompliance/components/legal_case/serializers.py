@@ -258,12 +258,14 @@ class CourtProceedingsJournalSerializer(serializers.ModelSerializer):
         model = CourtProceedings
         fields = (
                 'id',
+                # 'legal_case_id',
                 'court_outcome_details',
                 'journal_entries',
                 )
         read_only_fields = (
                 'id',
-                )
+                # 'legal_case_id',
+        )
 
 #######################
 #class RunningSheetEntryVersionSerializer(serializers.ModelSerializer):
@@ -752,6 +754,14 @@ class SaveLegalCaseSerializer(serializers.ModelSerializer):
         required=False, write_only=True, allow_null=True)
     legal_case_priority_id = serializers.IntegerField(
         required=False, write_only=True, allow_null=True)
+
+    def create(self, validated_data):
+        instance = super(SaveLegalCaseSerializer, self).create(validated_data)
+
+        # if hasattr(instance, 'court_proceedings'):
+        #     court, created = CourtProceedings.objects.create(legal_case=instance)
+
+        return instance
 
     class Meta:
         model = LegalCase
