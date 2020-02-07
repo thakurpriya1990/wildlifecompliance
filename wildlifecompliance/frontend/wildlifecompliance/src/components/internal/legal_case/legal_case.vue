@@ -163,7 +163,7 @@
                             <BriefOfEvidence />
                         </div>
                         <div :id="cpTab" class="tab-pane fade in">
-                            <CourtProceedings :key="legal_case.id"/>
+                            <CourtProceedings v-if="legal_case.court_proceedings" />
                         </div>
                         <div :id="rTab" class="tab-pane fade in">
                             <FormSection :formCollapse="false" label="Related Items">

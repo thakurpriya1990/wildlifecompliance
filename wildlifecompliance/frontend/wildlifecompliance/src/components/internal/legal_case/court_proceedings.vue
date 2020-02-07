@@ -166,9 +166,7 @@ export default {
             return return_val
         },
         hasCourtProceedings: function() {
-            let ret = this.legal_case.court_proceedings ? true : false;
-            console.log('hasCourtProceedings: ' + ret);
-            return ret
+            return this.legal_case.court_proceedings ? true : false;
         },
     },
     filters: {
@@ -186,12 +184,13 @@ export default {
 
         },
         constructCourtProceedingsTable: function(pk){
-            console.log("constructCourtProceedingsTable")
-
-            this.$refs.court_proceedings_table.vmDataTable.clear().draw();
-
-            let actionColumn = !this.readonlyForm;
             if (this.hasCourtProceedings){
+                console.log("constructCourtProceedingsTable")
+
+                this.$refs.court_proceedings_table.vmDataTable.clear().draw();
+
+                let actionColumn = !this.readonlyForm;
+                console.log('hasCourtProceedings: ' + this.hasCourtProceedings);
                 let entries = this.legal_case.court_proceedings.journal_entries;
                 for(let i = 0;i < entries.length; i++){
                     if (!pk || entries[i].id === pk) {
