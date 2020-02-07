@@ -843,14 +843,14 @@ class LegalCaseViewSet(viewsets.ModelViewSet):
         try:
             instance = self.get_object()
             request_data = {
-                            "court_proceedings_id": instance.id,
-                            "user_id": request.user.id
+                            "court_proceedings_id": request.data.get('court_proceedings_id'),
+                            "user_id": request.data.get('user_id'),
                             }
             serializer = CreateCourtProceedingsJournalEntrySerializer(data=request_data)
             serializer.is_valid(raise_exception=True)
             if serializer.is_valid():
-                running_sheet_entry = serializer.save()
-                return_serializer = CourtProceedingsJournalEntrySerializer(running_sheet_entry)
+                court_proceedings_entry = serializer.save()
+                return_serializer = CourtProceedingsJournalEntrySerializer(court_proceedings_entry)
                 return Response(
                         return_serializer.data,
                         status=status.HTTP_201_CREATED,

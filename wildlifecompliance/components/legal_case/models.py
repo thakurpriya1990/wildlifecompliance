@@ -282,7 +282,7 @@ class ProsecutionBrief(models.Model):
 
 
 class CourtProceedingsJournalEntryManager(models.Manager):
-    def create_running_sheet_entry(self, court_proceedings_id, user_id):
+    def create_journal_entry(self, court_proceedings_id, user_id):
         max_row_num_dict = CourtProceedingsJournalEntry.objects.filter(court_proceedings_id=court_proceedings_id).aggregate(Max('row_num'))
         # initial value for new LegalCase
         row_num = 1

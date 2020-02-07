@@ -147,6 +147,9 @@ export default {
         ...mapGetters('legalCaseStore', {
             legal_case: "legal_case",
         }),
+        ...mapGetters({
+            current_user: 'current_user'
+        }),
 
         csrf_token: function() {
             return helpers.getCookie("csrftoken");
@@ -176,18 +179,36 @@ export default {
     },
     methods: {
         ...mapActions('legalCaseStore', {
+            setAddCourtProceedingsEntry: 'setAddCourtProceedingsEntry',
           //loadLegalCase: 'loadLegalCase',
           //saveLegalCase: 'saveLegalCase',
           //setLegalCase: 'setLegalCase',
         }),
-        createNewCourtProceedingsEntry: function() {
-
+        createNewCourtProceedingsEntry: async function() {
+            console.log('aho');
+            let payload = {
+                "court_proceedings_id": this.legal_case.court_proceedings.id,
+                "user_id": this.current_user.id,
+            }
+            let fetchUrl = helpers.add_endpoint_join(
+                api_endpoints.legal_case,
+                this.legal_case.id + '/create_journal_entry/'
+                )
+            let updatedCourtProceedings = await Vue.http.post(fetchUrl, payload);
+            console.log(updatedCourtProceedings)
+            if (updatedCourtProceedings.ok) {
+                await this.setAddCourtProceedingsEntry(updatedCourtProceedings.body);
+                let returnPayload = _.cloneDeep(updatedCourtProceedings.body);
+                this.constructCourtProceedingsTable(returnPayload.id);
+            }
         },
         constructCourtProceedingsTable: function(pk){
             if (this.hasCourtProceedings){
                 console.log("constructCourtProceedingsTable")
 
-                this.$refs.court_proceedings_table.vmDataTable.clear().draw();
+                if (!pk) {
+                    this.$refs.court_proceedings_table.vmDataTable.clear().draw();
+                }
 
                 let actionColumn = !this.readonlyForm;
                 console.log('hasCourtProceedings: ' + this.hasCourtProceedings);

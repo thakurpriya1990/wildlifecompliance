@@ -64,6 +64,9 @@ export const legalCaseStore = {
         updateAddRunningSheetEntry(state, running_sheet_entry) {
             state.legal_case.running_sheet_entries.push(running_sheet_entry)
         },
+        updateAddCourtProceedingsEntry(state, court_proceedings_entry) {
+            state.legal_case.court_proceedings.journal_entries.push(court_proceedings_entry)
+        },
         updateRunningSheetTransform(state, running_sheet_transform) {
             Vue.set(state.legal_case, 'running_sheet_transform', running_sheet_transform);
         },
@@ -184,6 +187,9 @@ export const legalCaseStore = {
         },
         setAddRunningSheetEntry({ commit }, running_sheet_entry ) {
             commit("updateAddRunningSheetEntry", running_sheet_entry);
+        },
+        setAddCourtProceedingsEntry({ commit }, court_proceedings_entry ) {
+            commit("updateAddCourtProceedingsEntry", court_proceedings_entry);
         },
         setRunningSheetTransform({ commit }, running_sheet_transform ) {
             commit("updateRunningSheetTransform", running_sheet_transform);
