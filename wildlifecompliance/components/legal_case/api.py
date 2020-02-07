@@ -59,6 +59,8 @@ from wildlifecompliance.components.legal_case.models import (
         LegalCaseRunningSheetEntry,
         LegalCasePerson,
         CourtProceedingsJournalEntry,
+        BriefOfEvidence,
+        ProsecutionBrief,
 )
 #from wildlifecompliance.components.artifact.models import (
 #        DocumentArtifact,
@@ -92,6 +94,7 @@ from wildlifecompliance.components.legal_case.serializers import (
         DeleteReinstateCourtProceedingsJournalEntrySerializer,
         CreateCourtProceedingsJournalEntrySerializer,
         CourtProceedingsJournalSerializer,
+        BriefOfEvidenceSerializer,
         )
 from wildlifecompliance.components.users.models import (
     CompliancePermissionGroup,    
@@ -391,7 +394,7 @@ class LegalCaseViewSet(viewsets.ModelViewSet):
     def update(self, request, workflow=False, *args, **kwargs):
         try:
             with transaction.atomic():
-                #print(request.data)
+                print(request.data)
                 instance = self.get_object()
                 # Running Sheet
                 running_sheet_entries = request.data.get('running_sheet_transform')
@@ -423,6 +426,28 @@ class LegalCaseViewSet(viewsets.ModelViewSet):
                         journal_entry_serializer.is_valid(raise_exception=True)
                         if journal_entry_serializer.is_valid():
                             journal_entry_serializer.save()
+                ## Brief Of Evidence
+                #brief_of_evidence = request.data.get('brief_of_evidence')
+                #if brief_of_evidence:
+                #    boe_instance = None
+                #    if not instance.brief_of_evidence:
+                #        boe_instance = BriefOfEvidence.objects.create(legal_case=instance)
+                #        instance.brief_of_evidence = boe_instance
+                #    else:
+                #        boe_instance = instance.brief_of_evidence
+                #    boe_serializer = BriefOfEvidenceSerializer(boe_instance, data=brief_of_evidence)
+                #    if boe_serializer.is_valid():
+                #        boe_serializer.save()
+                #        # required when attaching a new BriefOfEvidence to a LegalCase
+                #        instance.save()
+
+                # Brief Of Evidence
+                brief_of_evidence = request.data.get('brief_of_evidence')
+                if brief_of_evidence:
+                    boe_instance, created = BriefOfEvidence.objects.get_or_create(legal_case=instance)
+                    boe_serializer = BriefOfEvidenceSerializer(boe_instance, data=brief_of_evidence)
+                    if boe_serializer.is_valid():
+                        boe_serializer.save()
 
                 boe_roi_ticked = request.data.get('boe_roi_ticked')
                 update_boe_roi_ticked(instance, boe_roi_ticked)

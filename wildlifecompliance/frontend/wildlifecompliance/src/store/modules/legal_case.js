@@ -67,6 +67,10 @@ export const legalCaseStore = {
         updateRunningSheetTransform(state, running_sheet_transform) {
             Vue.set(state.legal_case, 'running_sheet_transform', running_sheet_transform);
         },
+        updateBriefOfEvidence(state, brief_of_evidence) {
+            Vue.set(state.legal_case, 'brief_of_evidence', brief_of_evidence);
+            //Vue.set(state.legal_case.brief_of_evidence, 'legal_case_id', state.legal_case.id);
+        },
         updateRunningSheetEntryDescription(state, { recordNumber, description, userId }) {
             console.log(recordNumber)
             console.log(description)
@@ -183,6 +187,10 @@ export const legalCaseStore = {
         },
         setRunningSheetTransform({ commit }, running_sheet_transform ) {
             commit("updateRunningSheetTransform", running_sheet_transform);
+        },
+        setBriefOfEvidence({ commit }, brief_of_evidence ) {
+            console.log(brief_of_evidence)
+            commit("updateBriefOfEvidence", brief_of_evidence);
         },
         setRunningSheetEntryDescription({ commit }, {recordNumber, description, userId}) {
             commit("updateRunningSheetEntryDescription", {recordNumber, description, userId})

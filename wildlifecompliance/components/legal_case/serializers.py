@@ -14,6 +14,8 @@ from wildlifecompliance.components.legal_case.models import (
     LegalCasePerson,
     CourtProceedingsJournalEntry,
     CourtProceedings,
+    BriefOfEvidence,
+    ProsecutionBrief,
     )
 from wildlifecompliance.components.call_email.serializers import EmailUserSerializer
 from wildlifecompliance.components.main.related_item import get_related_items
@@ -465,6 +467,50 @@ class LegalCaseRunningSheetSerializer(serializers.ModelSerializer):
                 )
 
 
+class BriefOfEvidenceSerializer(serializers.ModelSerializer):
+
+    class Meta:
+        model = BriefOfEvidence
+        fields = (
+                'id',
+                'legal_case_id',
+                'statement_of_facts',
+                'victim_impact_statement_taken',
+                'statements_pending',
+                'vulnerable_hostile_witnesses',
+                'witness_refusing_statement',
+                'problems_needs_prosecution_witnesses',
+                'accused_bad_character',
+                'further_persons_interviews_pending',
+                'other_interviews',
+                'relevant_persons_pending_charges',
+                'other_persons_receiving_sanction_outcome',
+                'local_public_interest',
+                'applications_orders_requests',
+                'applications_orders_required',
+                'other_legal_matters',
+
+                'victim_impact_statement_taken_details',
+                'statements_pending_details',
+                'vulnerable_hostile_witnesses_details',
+                'witness_refusing_statement_details',
+                'problems_needs_prosecution_witnesses_details',
+                'accused_bad_character_details',
+                'further_persons_interviews_pending_details',
+                'other_interviews_details',
+                'relevant_persons_pending_charges_details',
+                'other_persons_receiving_sanction_outcome_details',
+                'local_public_interest_details',
+                'applications_orders_requests_details',
+                'applications_orders_required_details',
+                'other_legal_matters_details',
+                )
+        read_only_fields = (
+                'id',
+                'legal_case_id',
+                )
+
+
 class LegalCaseSerializer(serializers.ModelSerializer):
     running_sheet_entries = LegalCaseRunningSheetEntrySerializer(many=True)
     legal_case_person = EmailUserSerializer(many=True)
@@ -485,6 +531,7 @@ class LegalCaseSerializer(serializers.ModelSerializer):
     boe_other_statements_options = serializers.SerializerMethodField()
     legal_case_boe_other_statements = BriefOfEvidenceOtherStatementsSerializer(many=True)
     legal_case_boe_roi = BriefOfEvidenceRecordOfInterviewSerializer(many=True)
+    brief_of_evidence = BriefOfEvidenceSerializer()
     #running_sheet_artifacts = LegalCaseRunningSheetArtifactsSerializer(read_only=True)
     #inspection_report = serializers.SerializerMethodField()
     #data = InspectionFormDataRecordSerializer(many=True)
@@ -517,36 +564,8 @@ class LegalCaseSerializer(serializers.ModelSerializer):
                 'legal_case_person',
                 'offence_list',
                 #'running_sheet_artifacts',
-                'statement_of_facts',
-                'victim_impact_statement_taken',
-                'statements_pending',
-                'vulnerable_hostile_witnesses',
-                'witness_refusing_statement',
-                'problems_needs_prosecution_witnesses',
-                'accused_bad_character',
-                'further_persons_interviews_pending',
-                'other_interviews',
-                'relevant_persons_pending_charges',
-                'other_persons_receiving_sanction_outcome',
-                'local_public_interest',
-                'applications_orders_requests',
-                'applications_orders_required',
-                'other_legal_matters',
+                'brief_of_evidence',
 
-                'victim_impact_statement_taken_details',
-                'statements_pending_details',
-                'vulnerable_hostile_witnesses_details',
-                'witness_refusing_statement_details',
-                'problems_needs_prosecution_witnesses_details',
-                'accused_bad_character_details',
-                'further_persons_interviews_pending_details',
-                'other_interviews_details',
-                'relevant_persons_pending_charges_details',
-                'other_persons_receiving_sanction_outcome_details',
-                'local_public_interest_details',
-                'applications_orders_requests_details',
-                'applications_orders_required_details',
-                'other_legal_matters_details',
                 'boe_roi_ticked',
                 'boe_roi_options',
                 'legal_case_boe_roi',
@@ -742,36 +761,36 @@ class SaveLegalCaseSerializer(serializers.ModelSerializer):
                 'call_email_id',
                 'legal_case_priority_id',
                 #'running_sheet_entries',
-                'victim_impact_statement_taken',
-                'statements_pending',
-                'vulnerable_hostile_witnesses',
-                'witness_refusing_statement',
-                'problems_needs_prosecution_witnesses',
-                'accused_bad_character',
-                'further_persons_interviews_pending',
-                'other_interviews',
-                'relevant_persons_pending_charges',
-                'other_persons_receiving_sanction_outcome',
-                'local_public_interest',
-                'applications_orders_requests',
-                'applications_orders_required',
-                'other_legal_matters',
-                'statement_of_facts',
+                #'victim_impact_statement_taken',
+                #'statements_pending',
+                #'vulnerable_hostile_witnesses',
+                #'witness_refusing_statement',
+                #'problems_needs_prosecution_witnesses',
+                #'accused_bad_character',
+                #'further_persons_interviews_pending',
+                #'other_interviews',
+                #'relevant_persons_pending_charges',
+                #'other_persons_receiving_sanction_outcome',
+                #'local_public_interest',
+                #'applications_orders_requests',
+                #'applications_orders_required',
+                #'other_legal_matters',
+                #'statement_of_facts',
 
-                'victim_impact_statement_taken_details',
-                'statements_pending_details',
-                'vulnerable_hostile_witnesses_details',
-                'witness_refusing_statement_details',
-                'problems_needs_prosecution_witnesses_details',
-                'accused_bad_character_details',
-                'further_persons_interviews_pending_details',
-                'other_interviews_details',
-                'relevant_persons_pending_charges_details',
-                'other_persons_receiving_sanction_outcome_details',
-                'local_public_interest_details',
-                'applications_orders_requests_details',
-                'applications_orders_required_details',
-                'other_legal_matters_details',
+                #'victim_impact_statement_taken_details',
+                #'statements_pending_details',
+                #'vulnerable_hostile_witnesses_details',
+                #'witness_refusing_statement_details',
+                #'problems_needs_prosecution_witnesses_details',
+                #'accused_bad_character_details',
+                #'further_persons_interviews_pending_details',
+                #'other_interviews_details',
+                #'relevant_persons_pending_charges_details',
+                #'other_persons_receiving_sanction_outcome_details',
+                #'local_public_interest_details',
+                #'applications_orders_requests_details',
+                #'applications_orders_required_details',
+                #'other_legal_matters_details',
 
                 )
         read_only_fields = (
