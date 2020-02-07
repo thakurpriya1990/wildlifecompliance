@@ -48,6 +48,12 @@ class LegalCasePriority(models.Model):
 
 
 class CourtProceedings(models.Model):
+    legal_case = models.OneToOneField(
+        'LegalCase',
+        null=True,
+        blank=True,
+        related_name="court_proceedings",
+    )
     court_outcome_details = models.TextField(blank=True)
 
     class Meta:
@@ -119,12 +125,12 @@ class LegalCase(RevisionedMixin):
             EmailUser,
             related_name='legal_case_associated_persons',
             )
-    court_proceedings = models.OneToOneField(
-            CourtProceedings,
-            null=True,
-            blank=True,
-            related_name="legal_case",
-            )
+    # court_proceedings = models.OneToOneField(
+    #         CourtProceedings,
+    #         null=True,
+    #         blank=True,
+    #         related_name="legal_case",
+    #         )
     #brief_of_evidence = models.OneToOneField(
     #        BriefOfEvidence,
     #        null=True,
