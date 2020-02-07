@@ -42,6 +42,20 @@
                                               </div>
                                             </div>
                                         </div>
+                                        <div class="col-sm-12 form-group"><div class="row">
+                                          <label class="col-sm-6">Object used within this case?</label>
+                                            <input :disabled="readonlyForm" class="col-sm-1" id="yes" type="radio" v-model="physical_artifact.used_within_case" v-bind:value="true">
+                                            <label class="col-sm-1" for="yes">Yes</label>
+                                            <input :disabled="readonlyForm" class="col-sm-1" id="no" type="radio" v-model="physical_artifact.used_within_case" v-bind:value="false">
+                                            <label class="col-sm-1" for="no">No</label>
+                                        </div></div>
+                                        <div class="col-sm-12 form-group"><div class="row">
+                                          <label class="col-sm-6">Object is sensitive / non-disclosable?</label>
+                                            <input :disabled="readonlyForm" class="col-sm-1" id="yes" type="radio" v-model="physical_artifact.sensitive_non_disclosable" v-bind:value="true">
+                                            <label class="col-sm-1" for="yes">Yes</label>
+                                            <input :disabled="readonlyForm" class="col-sm-1" id="no" type="radio" v-model="physical_artifact.sensitive_non_disclosable" v-bind:value="false">
+                                            <label class="col-sm-1" for="no">No</label>
+                                        </div></div>
                                         <div class="col-sm-12">
                                             <div class="form-group">
                                               <div class="row">
