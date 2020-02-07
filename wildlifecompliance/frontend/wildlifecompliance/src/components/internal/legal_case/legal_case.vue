@@ -160,7 +160,9 @@
                             </FormSection>
                         </div>
                         <div :id="bTab" class="tab-pane fade in">
-                            <BriefOfEvidence />
+                            <div v-if="briefOfEvidenceVisibility">
+                                <BriefOfEvidence ref="brief_of_evidence"/>
+                            </div>
                         </div>
                         <div :id="cpTab" class="tab-pane fade in">
                             <CourtProceedings v-if="legal_case.court_proceedings" />
@@ -539,6 +541,15 @@ export default {
         offence_bind_id = 'offence' + parseInt(this.uuid);
         return offence_bind_id;
     },
+    briefOfEvidenceVisibility: function() {
+        let visible = false;
+        if (this.legal_case && this.legal_case.id &&
+            (this.legal_case.brief_of_evidence || this.legal_case.status.id === 'brief_of_evidence')
+        ) {
+            visible = true;
+        }
+        return visible;
+    },
     sanctionOutcomeBindId: function() {
         let sanction_outcome_bind_id = ''
         sanction_outcome_bind_id = 'sanction_outcome' + parseInt(this.uuid);
@@ -598,6 +609,7 @@ export default {
       setAddRunningSheetEntry: 'setAddRunningSheetEntry',
       setRunningSheetEntry: 'setRunningSheetEntry',
       addToRunningSheetPersonList: 'addToRunningSheetPersonList',
+      setBriefOfEvidence: 'setBriefOfEvidence',
       //setBoeRoiTicked: 'setBoeRoiTicked',
       //setBoeOtherStatementsTicked: 'setBoeOtherStatementsTicked',
     }),
@@ -873,8 +885,8 @@ export default {
           this.showExit = true;
       }
       await this.runningSheetTransformWrapper();
-      //await this.setBoeRoiTicked(this.boeRoiTicked);
-      //if (this.legal_case.id) {
+      // add brief_of_evidence to legal_case
+      await this.setBriefOfEvidence(this.$refs.brief_of_evidence.briefOfEvidence);
       if (createNewRow) {
           //await this.saveLegalCase({ create: false, internal: true, createNewRow: true });
           await this.saveLegalCase({ internal: true, createNewRow: true });
