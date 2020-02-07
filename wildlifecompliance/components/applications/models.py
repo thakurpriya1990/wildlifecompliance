@@ -1863,7 +1863,13 @@ class Application(RevisionedMixin):
     def proposed_licence(self, request, details):
         with transaction.atomic():
             try:
-                activity_list = details.get('activity', [])
+                activity_list = []
+                purpose_list = details.get('purposes', [])
+                for purpose_id in purpose_list:
+                    # build activity_id list from purposes.
+                    purpose = LicencePurpose.objects.get(id=purpose_id)
+                    activity_list.append(purpose.licence_activity_id)
+                activity_list = list(set(activity_list)) # unique ids
 
                 # Correct processing status if no assessments were required.
                 for activity in activity_list:
@@ -1882,23 +1888,24 @@ class Application(RevisionedMixin):
 
                 # process any attachments which need to be emailed to internal
                 # and attachments for the applicant when issued.
-                email_attachments = get_temporary_document_collection(
-                    request.data.get('email_attachments_id')
-                )        
-                for attachment in email_attachments.documents.all():
-                    print(attachment)
+                # email_attachments = get_temporary_document_collection(
+                #    request.data.get('email_attachments_id')
+                # )        
+                # for attachment in email_attachments.documents.all():
+                #     print(attachment)
 
-                proposed_attachments = get_temporary_document_collection(
-                    request.data.get('proposed_attachments_id')
-                )
+                # proposed_attachments = get_temporary_document_collection(
+                #     request.data.get('proposed_attachments_id')
+                # )
 
-                for activity_id in activity_list:
-                    activity = self.activities.get(
-                        licence_activity_id=activity_id
-                    )
-                    # store attachment against issued activities.
-                    activity.store_proposed_attachments(proposed_attachments)
+                # for activity_id in activity_list:
+                #     activity = self.activities.get(
+                #         licence_activity_id=activity_id
+                #     )
+                #     # store attachment against issued activities.
+                #     activity.store_proposed_attachments(proposed_attachments)
 
+                # TODO: for each selected purpose add to ASA Purpose
                 if self.application_type == Application.APPLICATION_TYPE_AMENDMENT:
                     # Pre-populate proposed issue dates with dates from the currently active licence.
                     for activity_id in activity_list:
@@ -1930,6 +1937,15 @@ class Application(RevisionedMixin):
                         proposed_start_date=details.get('start_date', None),
                         proposed_end_date=details.get('expiry_date', None),
                     )
+                    for purpose_id in purpose_list:
+                        purpose = LicencePurpose.objects.get(id=purpose_id)
+                        activity = self.activities.get(
+                            licence_activity_id = purpose.licence_activity_id
+                        )
+                        ApplicationSelectedActivityPurpose.objects.get_or_create(
+                            purpose=purpose,
+                            selected_activity=activity
+                        )
 
                 # Log application action
                 self.log_user_action(
@@ -2214,6 +2230,16 @@ class Application(RevisionedMixin):
                         selected_activity.expiry_date = expiry_date
                         selected_activity.cc_email = item['cc_email']
                         selected_activity.reason = item['reason']
+
+                        proposed_purposes = selected_activity.proposed_purposes.all()
+                        for proposed_purpose in proposed_purposes:
+                            purpose = ApplicationSelectedActivityPurpose.objects.get(id=proposed_purpose.id)                         
+                            if proposed_purpose.purpose_id in item['purposes']:
+                                purpose.processing_status = ApplicationSelectedActivityPurpose.PROCESSING_STATUS_ISSUED
+                            else:
+                                purpose.processing_status = ApplicationSelectedActivityPurpose.PROCESSING_STATUS_DECLINED
+                            purpose.save()
+
                         selected_activity.save()
 
                     elif item['final_status'] == ApplicationSelectedActivity.DECISION_ACTION_DECLINED:
@@ -2223,6 +2249,13 @@ class Application(RevisionedMixin):
                         selected_activity.decision_action = ApplicationSelectedActivity.DECISION_ACTION_ISSUED
                         selected_activity.cc_email = item['cc_email']
                         selected_activity.reason = item['reason']
+
+                        proposed_purposes = selected_activity.proposed_purposes.all()
+                        for proposed_purpose in proposed_purposes:
+                            purpose = ApplicationSelectedActivityPurpose.objects.get(id=proposed_purpose.id)    
+                            purpose.processing_status = ApplicationSelectedActivityPurpose.PROCESSING_STATUS_DECLINED
+                            purpose.save()
+
                         selected_activity.save()
                         declined_activities.append(selected_activity)
                         # Log entry for application
@@ -2906,11 +2939,29 @@ class ApplicationSelectedActivity(models.Model):
 
     @property
     def purposes(self):
+        """
+        All licence purposes which are available under the Application Selected
+        Activity.
+        """
         from wildlifecompliance.components.licences.models import LicencePurpose
         return LicencePurpose.objects.filter(
             application__id=self.application_id,
             licence_activity_id=self.licence_activity_id
         ).distinct()
+
+    @property
+    def issued_purposes(self):
+        """
+        All licence purposes which have been proposed and issued.
+        """
+        from wildlifecompliance.components.licences.models import LicencePurpose
+
+        purposes = [p.purpose for p in self.proposed_purposes.filter(
+            processing_status='issue')]
+        return purposes
+        # return LicencePurpose.objects.filter(
+        #     id=purposes
+        # ).distinct()
 
     def can_action(self, purposes_in_open_applications=[]):
         # Returns a DICT object containing can_<action> Boolean results of each action check
@@ -3299,6 +3350,46 @@ class ApplicationSelectedActivity(models.Model):
             except BaseException:
                 raise
 
+class ApplicationSelectedActivityPurpose(models.Model):
+    """
+    A purpose proposed for issue on an Application Selected Activity.
+    """
+    PROCESSING_STATUS_PROPOSED = 'propose'
+    PROCESSING_STATUS_ISSUED = 'issue'
+    PROCESSING_STATUS_DECLINED = 'decline'
+    PROCESSING_STATUS_CHOICES = (
+        (PROCESSING_STATUS_PROPOSED, 'Proposed for Issue'),
+        (PROCESSING_STATUS_DECLINED, 'Declined'),
+        (PROCESSING_STATUS_ISSUED, 'Issued')
+    )
+    processing_status = models.CharField(
+        'Processing Status',
+        max_length=40,
+        choices=PROCESSING_STATUS_CHOICES,
+        default=PROCESSING_STATUS_PROPOSED)
+    selected_activity = models.ForeignKey(
+        ApplicationSelectedActivity, related_name='proposed_purposes')
+    purpose = models.ForeignKey(
+        LicencePurpose, related_name='selected_activity_proposed_purpose')
+
+    @property
+    def is_proposed(self):
+        proposed = False
+        if self.processing_status != self.PROCESSING_STATUS_DECLINED:
+            proposed = True
+        return proposed
+
+    def __str__(self):
+        return "ASA {id} Purpose: {short_name} ({status})".format(
+            id=self.selected_activity.licence_activity_id,
+            short_name=self.purpose.short_name,
+            status=self.processing_status
+        )
+
+    class Meta:
+        app_label = 'wildlifecompliance'
+        verbose_name = 'Application selected activity purpose'
+
 class ActivityInvoice(models.Model):
     PAYMENT_STATUS_NOT_REQUIRED = 'payment_not_required'
     PAYMENT_STATUS_UNPAID = 'unpaid'
@@ -3583,6 +3674,7 @@ class ApplicationStandardCondition(RevisionedMixin):
 
     class Meta:
         app_label = 'wildlifecompliance'
+        verbose_name = 'Standard condition'
 
 
 class DefaultCondition(OrderedModel):
@@ -3623,8 +3715,12 @@ class ApplicationCondition(OrderedModel):
     recurrence_schedule = models.IntegerField(null=True, blank=True)
     licence_activity = models.ForeignKey(
         'wildlifecompliance.LicenceActivity', null=True)
-    return_type = models.ForeignKey('wildlifecompliance.ReturnType', null=True, blank=True)
-    # order = models.IntegerField(default=1)
+    return_type = models.ForeignKey(
+        'wildlifecompliance.ReturnType', null=True, blank=True)
+    licence_purpose = models.ForeignKey(
+        'wildlifecompliance.LicencePurpose', null=True, blank=True)
+    source_group = models.ForeignKey(
+        ActivityPermissionGroup, blank=True, null=True)
 
     class Meta:
         app_label = 'wildlifecompliance'
@@ -3642,6 +3738,35 @@ class ApplicationCondition(OrderedModel):
             return self.default_condition.condition
         else:
             return self.free_condition
+
+    def set_source(self, user):
+        """
+        Set the condition creator as Source when with Assessor.
+        """
+        activity = self.application.activities.get(
+            # Get the Application Selected Activity for this condition.
+            licence_activity_id = self.licence_activity_id
+        )
+        if activity.processing_status ==\
+             ApplicationSelectedActivity.PROCESSING_STATUS_WITH_ASSESSOR:
+            # Set the source_group when added by the assessor.
+            group = self.get_assessor_permission_group(user)
+            self.source_group = group.activitypermissiongroup
+
+    def get_assessor_permission_group(self, user, first=True):
+        app_label = get_app_label()
+        qs = user.groups.filter(
+            permissions__codename='assessor'
+        )
+        activity_id = self.licence_activity.id
+        qs = qs.filter(
+            activitypermissiongroup__licence_activities__id__in=activity_id\
+                if isinstance(activity_id, (list, models.query.QuerySet)
+                ) else [activity_id]
+        )
+        if app_label:
+            qs = qs.filter(permissions__content_type__app_label=app_label)
+        return qs.first() if first else qs
 
 
 class ApplicationUserAction(UserAction):

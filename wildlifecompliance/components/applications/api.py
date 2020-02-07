@@ -1464,6 +1464,7 @@ class ApplicationConditionViewSet(viewsets.ModelViewSet):
             serializer.is_valid(raise_exception=True)
             with transaction.atomic():
                 instance = serializer.save()
+                instance.set_source(request.user)
                 instance.submit()
                 instance.application.log_user_action(
                     ApplicationUserAction.ACTION_ENTER_CONDITIONS.format(

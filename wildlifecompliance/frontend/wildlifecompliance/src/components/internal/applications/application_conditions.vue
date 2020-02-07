@@ -21,7 +21,7 @@
                         </div>
                     </div>
                     <ConditionDetail ref="condition_detail" :application_id="application.id" :conditions="conditions" :licence_activity_tab="selected_activity_tab_id"
-                    :condition="viewedCondition"/>
+                    :condition="viewedCondition" :purposes="purposes"/>
                 </div>       
 
             
@@ -56,7 +56,8 @@ export default {
             panelBody: "application-conditions-"+vm._uid,
             viewedCondition: {},
             conditions: [],
-            condition_headers:["Condition","Due Date","Recurrence","Action","Order"],
+            purposes: [],
+            condition_headers:["Condition","Purpose","Source","Due Date","Recurrence","Action","Order"],
             condition_options:{
                 autoWidth: false,
                 language: {
@@ -71,6 +72,17 @@ export default {
                 columns: [
                     {
                         data: "condition",
+                        mRender:function (data,type,full) {
+                            return data.substring(0, 80)
+                        },
+                        orderable: false
+                    },
+                    {
+                        data: "purpose_name",
+                        orderable: false
+                    },
+                    {
+                        data: "source_name",
                         orderable: false
                     },
                     {
@@ -227,6 +239,13 @@ export default {
                 console.log(error);
             })
         },
+        fetchPurposes(){
+            this.purposes = [];
+            var selectedActivity = this.application.activities.find(activity => {
+                return activity.licence_activity = this.selected_activity_tab_id;
+            })
+            this.purposes = selectedActivity.purposes;
+        },
         editCondition(_id){
             let vm = this;
             vm.$http.get(helpers.add_endpoint_json(api_endpoints.application_conditions,_id)).then((response) => {
@@ -298,6 +317,7 @@ export default {
     },
     mounted: function(){
         this.fetchConditions();
+        this.fetchPurposes();
         this.$nextTick(() => {
             this.eventListeners();
             this.form = document.forms.assessment_form;

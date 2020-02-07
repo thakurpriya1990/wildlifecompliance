@@ -63,6 +63,16 @@
                                                         </div>
                                                     </div>
                                                 </div>
+                                                <div class="row" v-if="finalStatus(item.id) === 'issued' && canEditLicenceDates">
+                                                    <div class="col-sm-3">
+                                                        <label class="control-label pull-left">Proposed Purposes</label>
+                                                    </div>
+                                                    <div class="col-sm-9">
+                                                        <div v-for="purpose in selectedApplicationActivity.proposed_purposes">
+                                                            <input type="checkbox" :value ="purpose.id" :id="purpose.id" v-model="getActivity(item.id).purposes">{{purpose.name}}
+                                                        </div>
+                                                    </div>
+                                                </div>
                                             </div>
                                         </div>
                                         
@@ -260,6 +270,12 @@ export default {
                 exclude_processing_statuses: ['discarded']
             });
         },
+        selectedApplicationActivity: function() {           
+            let vall = this.application.activities.find(
+                activity => { return activity.licence_activity == this.selected_activity_tab_id }
+            );
+            return vall
+        },
         isIdCheckAccepted: function(){
             return this.application.id_check_status.id == 'accepted';
         },
@@ -303,6 +319,13 @@ export default {
             ).length;
             return confirmations === required_confirmations;
         },
+        selectedActivityPurpose: function() {
+            const required_confirmations = this.visibleLicenceActivities.length
+            const confirmations = this.licence.activity.filter(
+                activity => activity.purposes.length>0
+            ).length;
+            return confirmations === required_confirmations;
+        },
         canEditLicenceDates: function() {
             return this.application.application_type && this.application.application_type.id !== 'amend_activity';
         },
@@ -333,6 +356,14 @@ export default {
                 return swal(
                     'Cannot issue/decline',
                     "One or more activity tabs hasn't been marked as ready for finalisation!",
+                    'error'
+                );
+            }
+
+            if(!this.selectedActivityPurpose) {
+                return swal(
+                    'Cannot issue/decline',
+                    "One or more purposes hasn't been selected!",
                     'error'
                 );
             }
@@ -407,6 +438,7 @@ export default {
                     cc_email: proposal.cc_email,
                     final_status: final_status,
                     confirmed: false,
+                    purposes: [],
                 });
             }
             if(this.application.id_check_status.id == 'accepted'){

@@ -103,6 +103,7 @@ class ApplicationSelectedActivitySerializer(serializers.ModelSerializer):
     licensing_officers = EmailUserSerializer(many=True)
     issuing_officers = EmailUserSerializer(many=True)
     is_with_officer = serializers.SerializerMethodField(read_only=True)
+    proposed_purposes = serializers.SerializerMethodField(read_only=True)
 
     class Meta:
         model = ApplicationSelectedActivity
@@ -127,8 +128,24 @@ class ApplicationSelectedActivitySerializer(serializers.ModelSerializer):
         from wildlifecompliance.components.licences.serializers import PurposeSerializer
         return PurposeSerializer(obj.purposes, many=True).data
 
+    def get_proposed_purposes(self, obj):
+        from wildlifecompliance.components.licences.serializers\
+             import PurposeSerializer
+        purposes = []
+        proposed_purposes = obj.proposed_purposes.all()
+        for proposed in proposed_purposes:
+            purposes.append(proposed.purpose)
+        return PurposeSerializer(obj.purposes, many=True).data
+
     def get_activity_purpose_names(self, obj):
-        return ','.join([p.name for p in obj.purposes])
+        purposes = [p.purpose for p in obj.proposed_purposes.exclude(
+            processing_status='decline')]
+
+        if obj.proposed_action \
+                == ApplicationSelectedActivity.PROPOSED_ACTION_DEFAULT:
+            purposes = obj.purposes
+
+        return ','.join([p.name for p in purposes])
 
     def get_can_pay_licence_fee(self, obj):
         return not obj.licence_fee_paid and obj.processing_status == ApplicationSelectedActivity.PROCESSING_STATUS_AWAITING_LICENCE_FEE_PAYMENT
@@ -988,6 +1005,8 @@ class ApplicationConditionSerializer(serializers.ModelSerializer):
         input_formats=['%d/%m/%Y'],
         required=False,
         allow_null=True)
+    purpose_name = serializers.SerializerMethodField(read_only=True)
+    source_name = serializers.SerializerMethodField(read_only=True)
 
     class Meta:
         model = ApplicationCondition
@@ -1006,8 +1025,19 @@ class ApplicationConditionSerializer(serializers.ModelSerializer):
             'recurrence_pattern',
             'condition',
             'licence_activity',
-            'return_type',)
+            'return_type',
+            'licence_purpose',
+            'source_group',
+            'purpose_name',
+            'source_name',
+            )
         readonly_fields = ('order', 'condition')
+
+    def get_purpose_name(self, obj):
+        return obj.licence_purpose.short_name if obj.licence_purpose else None
+
+    def get_source_name(self, obj):
+        return obj.source_group.name if obj.source_group else None
 
 
 class ApplicationStandardConditionSerializer(serializers.ModelSerializer):
@@ -1032,11 +1062,14 @@ class ApplicationProposedIssueSerializer(serializers.ModelSerializer):
 
 
 class ProposedLicenceSerializer(serializers.Serializer):
-    expiry_date = serializers.DateField(input_formats=['%d/%m/%Y'], required=False, allow_null=True)
-    start_date = serializers.DateField(input_formats=['%d/%m/%Y'], required=False, allow_null=True)
+    expiry_date = serializers.DateField(
+        input_formats=['%d/%m/%Y'], required=False, allow_null=True)
+    start_date = serializers.DateField(
+        input_formats=['%d/%m/%Y'], required=False, allow_null=True)
     reason = serializers.CharField()
     cc_email = serializers.CharField(required=False, allow_null=True)
     activity = serializers.ListField(child=serializers.IntegerField())
+    purposes = serializers.ListField(child=serializers.IntegerField())
 
 
 class ProposedDeclineSerializer(serializers.Serializer):

@@ -11,8 +11,8 @@
                                     <div class="col-sm-12">
                                         <label class="control-label" for="Name">Select licensed activities to Propose Issue</label>
                                         <div v-for="activity in visibleLicenceActivities">
-                                            <div>
-                                                <input type="checkbox" :value ="activity.id" :id="activity.id" v-model="propose_issue.activity">{{activity.name}}
+                                            <div v-for="p in activity.purpose">
+                                                <input type="checkbox" :value ="p.id" :id="p.id" v-model="propose_issue.purposes">{{p.name}}                                                
                                             </div>
                                         </div>
                                     </div>
@@ -135,6 +135,7 @@ export default {
             form:null,
             propose_issue:{
                 activity:[],
+                purposes:[],
                 cc_email:null,
                 reason:null,
                 expiry_date:null,
@@ -178,10 +179,12 @@ export default {
             return this.application.processing_status.id == 'with_approver' ? 'Issue Licence' : 'Propose to issue licence';
         },
         visibleLicenceActivities: function() {
+            console.log('visibleLicenceActivities')
             var activities = this.licenceActivities().filter(
                 // filter on activity user has perms for.
                 activity => { return this.canAssignOfficerFor(activity.id) }                
             );
+            console.log(activities)
             return activities;
         },
     },
@@ -229,7 +232,7 @@ export default {
             vm.propose_issue.email_attachments_id = this.temporary_document_email_id;
             let propose_issue = JSON.parse(JSON.stringify(vm.propose_issue));
             vm.issuingLicence = true;
-            if (propose_issue.activity.length > 0){
+            if (propose_issue.purposes.length > 0){
                 vm.$http.post(helpers.add_endpoint_json(api_endpoints.applications,vm.application_id+'/proposed_licence'),JSON.stringify(vm.propose_issue),{
                         emulateJSON:true,
                     }).then((response)=>{
@@ -253,7 +256,7 @@ export default {
                 vm.issuingLicence = false;
                 swal(
                      'Propose Issue',
-                     'Please select at least once licenced activity to Propose Issue.',
+                     'Please select at least once licenced purpose to Propose Issue.',
                      'error'
                 )
             }
