@@ -1,4 +1,5 @@
 import datetime
+import logging
 
 from dateutil.relativedelta import relativedelta
 from django.contrib.auth.models import Permission
@@ -7,7 +8,6 @@ from django.core.exceptions import ValidationError
 from django.db import models
 from django.db.models import Q
 from django.db.models.signals import post_save
-
 from ledger.accounts.models import EmailUser, RevisionedMixin
 from wildlifecompliance.components.main.models import Document, CommunicationsLogEntry
 from wildlifecompliance.components.main.related_item import can_close_record
@@ -16,7 +16,11 @@ from wildlifecompliance.components.sanction_outcome_due.models import SanctionOu
 from wildlifecompliance.components.sanction_outcome_due.serializers import SaveSanctionOutcomeDueDateSerializer
 from wildlifecompliance.components.section_regulation.models import SectionRegulation
 from wildlifecompliance.components.users.models import RegionDistrict, CompliancePermissionGroup
+from wildlifecompliance.components.wc_payments.models import InfringementPenalty
 from wildlifecompliance.management.classes.unpaid_infringement_file import UnpaidInfringementFileBody
+
+
+logger = logging.getLogger(__name__)
 
 
 class SanctionOutcomeActiveManager(models.Manager):
@@ -31,11 +35,12 @@ class SanctionOutcomeActiveManager(models.Manager):
 class SanctionOutcomeExternalManager(models.Manager):
     def get_queryset(self):
         return super(SanctionOutcomeExternalManager, self).get_queryset().filter(
-            Q(offender__removed=False) &
-            Q(status__in=(SanctionOutcome.STATUS_AWAITING_PAYMENT,
-                          SanctionOutcome.STATUS_AWAITING_REMEDIATION_ACTIONS,
-                          SanctionOutcome.STATUS_OVERDUE,
-                          SanctionOutcome.STATUS_CLOSED)))
+            (
+                (Q(offender__isnull=False) & Q(offender__removed=False) & Q(registration_holder__isnull=True) & Q(driver__isnull=True)) |
+                (Q(offender__isnull=True) & Q(registration_holder__isnull=False) & Q(driver__isnull=True)) |
+                (Q(offender__isnull=True) & Q(driver__isnull=False))
+            ) &
+            Q(status__in=SanctionOutcome.STATUSES_FOR_EXTERNAL))
 
 
 class SanctionOutcome(models.Model):
@@ -50,11 +55,15 @@ class SanctionOutcome(models.Model):
     WORKFLOW_RETURN_TO_INFRINGEMENT_NOTICE_COORDINATOR = 'return_to_infringement_notice_coordinator'
     WORKFLOW_CLOSE = 'close'
 
+    PAYMENT_STATUS_PARTIALLY_PAID = 'partially_paid'
     PAYMENT_STATUS_UNPAID = 'unpaid'
     PAYMENT_STATUS_PAID = 'paid'
+    PAYMENT_STATUS_OVER_PAID = 'over_paid'
     PAYMENT_STATUS_CHOICES = (
+        (PAYMENT_STATUS_UNPAID, 'Unpaid'),
+        (PAYMENT_STATUS_PARTIALLY_PAID, 'Partially Paid'),
         (PAYMENT_STATUS_PAID, 'Paid'),
-        (PAYMENT_STATUS_UNPAID, 'Unpaid')
+        (PAYMENT_STATUS_OVER_PAID, 'Over Paid'),
     )
 
     # Status
@@ -80,6 +89,10 @@ class SanctionOutcome(models.Model):
     FINAL_STATUSES = (STATUS_DECLINED,
                       STATUS_CLOSED,
                       STATUS_WITHDRAWN,)
+    STATUSES_FOR_EXTERNAL = (STATUS_AWAITING_PAYMENT,
+                             STATUS_AWAITING_REMEDIATION_ACTIONS,
+                             STATUS_OVERDUE,
+                             STATUS_CLOSED)
     STATUS_CHOICES = (
         (STATUS_DRAFT, 'Draft'),
         (STATUS_AWAITING_ENDORSEMENT, 'Awaiting Endorsement'),
@@ -115,7 +128,8 @@ class SanctionOutcome(models.Model):
 
     type = models.CharField(max_length=30, choices=TYPE_CHOICES, blank=True,)
     status = models.CharField(max_length=40, choices=STATUS_CHOICES, default=__original_status,)
-    payment_status = models.CharField(max_length=40, choices=PAYMENT_STATUS_CHOICES, blank=True,)
+    payment_status = models.CharField(max_length=30, choices=PAYMENT_STATUS_CHOICES, blank=True,)  # This value should always reflect ledger invoice.payment_status
+                                                                                                   # Ref: functions for endorsement and post_save function in the wc_payment/utils.py
 
     region = models.ForeignKey(RegionDistrict, related_name='sanction_outcome_region', null=True,)
     district = models.ForeignKey(RegionDistrict, related_name='sanction_outcome_district', null=True,)
@@ -125,7 +139,7 @@ class SanctionOutcome(models.Model):
     offence = models.ForeignKey(Offence, related_name='offence_sanction_outcomes', null=True, on_delete=models.SET_NULL,)
     offender = models.ForeignKey(Offender, related_name='sanction_outcome_offender', null=True, on_delete=models.SET_NULL,)  # This could be registration_holder...?
 
-    # TODO: this field is not probably used anymore.
+    # TODO: this field is probably not used anymore.
     alleged_offences = models.ManyToManyField(SectionRegulation, blank=True, related_name='sanction_outcome_alleged_offences')
 
     alleged_committed_offences = models.ManyToManyField(AllegedOffence, related_name='sanction_outcome_alleged_committed_offences', through='AllegedCommittedOffence')
@@ -154,10 +168,30 @@ class SanctionOutcome(models.Model):
 
     # This field is used once infringement notice gets overdue
     fer_case_number = models.CharField(max_length=11, blank=True)
+    infringement_penalty = models.OneToOneField(InfringementPenalty, null=True, blank=True, related_name='sanction_outcome')
 
     objects = models.Manager()
     objects_active = SanctionOutcomeActiveManager()
     objects_for_external = SanctionOutcomeExternalManager()
+
+    # @property
+    # def payment_status(self):
+    #     ret = ''
+    #     if self.infringement_penalty:
+    #         ipi = self.infringement_penalty.infringement_penalty_invoices.all().last()
+    #         if ipi:
+    #             if ipi.ledger_invoice:
+    #                 ret = ipi.ledger_invoice.payment_status
+    #
+    #     # Update status if ledger invoice's payment_status is 'paid'
+    #     if ret == 'paid' and self.status != SanctionOutcome.STATUS_CLOSED:
+    #         self.status = SanctionOutcome.STATUS_CLOSED
+    #         self.save()
+    #
+    #     if ret == '' and self.status == SanctionOutcome.STATUS_AWAITING_PAYMENT:
+    #         ret = 'unpaid'
+    #
+    #     return ret
 
     def can_close_record(self):
         can_close_record = True
@@ -201,14 +235,14 @@ class SanctionOutcome(models.Model):
         uin.offenders_organisation_name.set(offender.organisation)
         uin.party_indicator.set('I')
         uin.offenders_gender.set('U')
-        uin.offenders_address_line_1.set(offender.residential_address.line1)
-        uin.offenders_address_line_2.set(offender.residential_address.line2)
-        uin.offenders_address_line_3.set(offender.residential_address.line3)
+        uin.offenders_address_line_1.set(offender.residential_address.line1) if offender.residential_address else uin.offenders_address_line_1.set('')
+        uin.offenders_address_line_2.set(offender.residential_address.line2) if offender.residential_address else uin.offenders_address_line_2.set('')
+        uin.offenders_address_line_3.set(offender.residential_address.line3) if offender.residential_address else uin.offenders_address_line_3.set('')
         uin.offenders_address_line_4.set('')
-        uin.offenders_suburb.set(offender.residential_address.locality)
-        uin.offenders_state.set(offender.residential_address.state)
-        uin.offenders_postcode.set(offender.residential_address.postcode)
-        uin.offenders_country.set(offender.residential_address.country.name)
+        uin.offenders_suburb.set(offender.residential_address.locality) if offender.residential_address else uin.offenders_suburb.set('')
+        uin.offenders_state.set(offender.residential_address.state) if offender.residential_address else uin.offenders_state.set('')
+        uin.offenders_postcode.set(offender.residential_address.postcode) if offender.residential_address else uin.offenders_postcode.set('')
+        uin.offenders_country.set(offender.residential_address.country.name) if offender.residential_address else uin.offenders_country.set('')
         uin.date_address_known_to_be_current.set('')
         uin.acn.set('')
         uin.infringement_number.set(self.lodgement_number)
@@ -248,20 +282,17 @@ class SanctionOutcome(models.Model):
         return AllegedCommittedOffence.objects.filter(sanction_outcome=self)
 
     @property
-    def infringement_penalty_invoice_reference(self):
+    def ledger_invoice(self):
         try:
-            if self.payment_status == SanctionOutcome.PAYMENT_STATUS_PAID:
-                ip = self.infringement_penalties.all().last()
-                if ip:
-                    ipv = ip.infringement_penalty_invoices.all().last()
-                    if ipv:
-                        return ipv.invoice_reference
-            return None
+            infringement_penalty = self.infringement_penalties.all().last()
+            if infringement_penalty:
+                return infringement_penalty.invoice
 
         except Exception as e:
             return None
 
     def get_offender(self):
+        # Priority driver > resigtration_holder > offender
         if self.driver:
             return self.driver, 'driver'
         elif self.registration_holder:
@@ -436,6 +467,8 @@ class SanctionOutcome(models.Model):
 
     def is_issuable(self, raise_exception=False):
         date_window = self.issue_due_date_window
+        if not date_window:
+            raise ValidationError('Issue-due-date-window for the Section/Regulation must be set.')
         issue_due_date = self.offence_occurrence_date + relativedelta(days=date_window)
 
         today = datetime.date.today()
@@ -475,7 +508,10 @@ class SanctionOutcome(models.Model):
     def endorse(self, request):
         if self.type == SanctionOutcome.TYPE_INFRINGEMENT_NOTICE:
             if self.issued_on_paper:
-                pass
+                self.status = SanctionOutcome.STATUS_AWAITING_PAYMENT
+                self.payment_status = SanctionOutcome.PAYMENT_STATUS_UNPAID
+                self.set_penalty_amounts()
+                self.create_due_dates()
             else:
                 if self.is_issuable(raise_exception=True):
                     self.confirm_date_time_issue(raise_exception=True)
@@ -510,9 +546,11 @@ class SanctionOutcome(models.Model):
         offender, title = self.get_offender()
         recipient = ''
         if title == 'driver':
-            recipient = ' to the driver ({})'.format(offender.email)
+            recipient = ' to the {} (driver)'.format(offender.email)
         elif title == 'registration_holder':
-            recipient = ' to the registration holder ({})'.format(offender.email)
+            recipient = ' to the {} (registration holder)'.format(offender.email)
+        elif recipient == 'offender':
+            recipient = ' to the {}'.format(offender.email)
         reason_for_extension = 'Issue infringement notice on ' + self.date_of_issue.strftime("%d/%m/%Y") + recipient
 
         due_date_config = SanctionOutcomeDueDateConfiguration.get_config_by_date(self.date_of_issue)
@@ -553,7 +591,7 @@ class SanctionOutcome(models.Model):
         self.log_user_action(SanctionOutcomeUserAction.ACTION_ESCALATE_FOR_WITHDRAWAL.format(self.lodgement_number), request)
         self.save()
 
-    def withdraw_by_namager(self, request):
+    def withdraw_by_manager(self, request):
         self.status = self.STATUS_WITHDRAWN
         new_group = SanctionOutcome.get_compliance_permission_group(self.regionDistrictId, SanctionOutcome.WORKFLOW_WITHDRAW_BY_MANAGER)
         self.allocated_group = new_group
@@ -569,6 +607,7 @@ class SanctionOutcome(models.Model):
 
     def return_to_infringement_notice_coordinator(self, request):
         self.status = self.STATUS_AWAITING_PAYMENT
+        self.payment_status = SanctionOutcome.PAYMENT_STATUS_UNPAID
         new_group = SanctionOutcome.get_compliance_permission_group(self.regionDistrictId, SanctionOutcome.WORKFLOW_RETURN_TO_INFRINGEMENT_NOTICE_COORDINATOR)
         self.allocated_group = new_group
         self.log_user_action(SanctionOutcomeUserAction.ACTION_RETURN_TO_INFRINGEMENT_NOTICE_COORDINATOR.format(self.lodgement_number), request)
@@ -630,7 +669,7 @@ class SanctionOutcome(models.Model):
                 data['due_date_1st'] = self.last_due_date_1st
                 data['due_date_2nd'] = target_date
                 data['due_date_term_currently_applied'] = '2nd'
-            data['reason_for_extension'] = reason_for_extension
+            data['reason_for_extension'] = 'Extend due date: ' + reason_for_extension
             data['extended_by_id'] = extended_by_id
             data['sanction_outcome_id'] = self.id
 
@@ -644,9 +683,10 @@ class SanctionOutcome(models.Model):
     def determine_penalty_amount_by_date(self, date_payment):
         try:
             if self.offence_occurrence_date <= date_payment:
-                if date_payment <= self.last_due_date_1st:
-                    return self.penalty_amount_1st
-                elif date_payment <= self.last_due_date_2nd:
+                # if date_payment <= self.last_due_date_1st:
+                if self.last_due_date.due_date_term_currently_applied == '1st':
+                        return self.penalty_amount_1st
+                elif self.last_due_date.due_date_term_currently_applied == '2nd':
                     return self.penalty_amount_2nd
                 else:
                     # Should not reach here
@@ -658,6 +698,27 @@ class SanctionOutcome(models.Model):
                 raise ValidationError('Payment must be after the offence occurrence date.')
         except Exception as e:
             raise ValidationError('Something wrong.')
+
+    @property
+    def as_line_items(self):
+        """ Create the ledger lines - line item for infringement penalty sent to payment system """
+
+        now = datetime.datetime.now()
+        now_date = now.date()
+        penalty_amount = self.determine_penalty_amount_by_date(now_date)
+
+        line_items = [
+            {'ledger_description': 'Infringement Notice: {}, Issued: {} {}'.format(
+                self.lodgement_number,
+                self.date_of_issue.strftime("%d-%m-%Y"),
+                self.time_of_issue.strftime("%I:%M")),
+                'oracle_code': 'ABC123 GST',
+                'price_incl_tax': penalty_amount,
+                'price_excl_tax': penalty_amount,
+                'quantity': 1,
+            },
+        ]
+        return line_items
 
     class Meta:
         app_label = 'wildlifecompliance'
@@ -677,6 +738,7 @@ class AllegedCommittedOffence(RevisionedMixin):
             Q(included=True) &
             Q(alleged_offence=alleged_offence)
         ).exclude(
+            # Once sanction outcome is declined, related alleged_offence can be included in another sanction outcome.
             Q(sanction_outcome__status__in=(SanctionOutcome.STATUS_DECLINED, SanctionOutcome.STATUS_WITHDRAWN)))
 
     def retrieve_penalty_amounts_by_date(self, date_of_issue):
@@ -698,7 +760,9 @@ class AllegedCommittedOffence(RevisionedMixin):
 
 class RemediationActionExternalManager(models.Manager):
     def get_queryset(self):
-        return super(RemediationActionExternalManager, self).get_queryset()
+        return super(RemediationActionExternalManager, self).get_queryset().filter(
+            Q(sanction_outcome__in=SanctionOutcome.objects_for_external.all())
+        )
 
 
 class RemediationAction(RevisionedMixin):
@@ -778,6 +842,17 @@ class SanctionOutcomeDocument(Document):
         verbose_name_plural = 'CM_SanctionOutcomeDocuments'
 
 
+class SanctionOutcomeDocumentAccessLog(models.Model):
+    accessed_at = models.DateTimeField(auto_now_add=True)
+    accessed_by = models.ForeignKey(EmailUser,)
+    sanction_outcome_document = models.ForeignKey(SanctionOutcomeDocument, related_name='access_logs')
+
+    class Meta:
+        app_label = 'wildlifecompliance'
+        verbose_name = 'CM_SanctionOutcomeDocumentAccessLog'
+        verbose_name_plural = 'CM_SanctionOutcomeDocumentAccessLogs'
+
+
 class SanctionOutcomeCommsLogDocument(Document):
     log_entry = models.ForeignKey('SanctionOutcomeCommsLogEntry', related_name='documents')
     _file = models.FileField(max_length=255)
@@ -790,6 +865,7 @@ class SanctionOutcomeCommsLogEntry(CommunicationsLogEntry):
     sanction_outcome = models.ForeignKey(SanctionOutcome, related_name='comms_logs')
 
     def save(self, force_insert=False, force_update=False, using=None, update_fields=None):
+        print('=================')
         print('In SanctionOutcomeCommsLogEntry.save()')
         super(SanctionOutcomeCommsLogEntry, self).save(force_insert, force_update, using, update_fields)
 
@@ -816,14 +892,17 @@ class SanctionOutcomeUserAction(models.Model):
     ACTION_REMOVE_ALLEGED_COMMITTED_OFFENCE = "Remove alleged committed offence: {}"
     ACTION_RESTORE_ALLEGED_COMMITTED_OFFENCE = "Restore alleged committed offence: {}"
     ACTION_INCLUDE_ALLEGED_COMMITTED_OFFENCE = "Include alleged committed offence: {}"
-    ACTION_EXTEND_DUE_DATE = "Extend due date from {} to {}"
+    ACTION_EXTEND_DUE_DATE = "Extend due date of Sanction Outcome {} from {} to {}"
     ACTION_SEND_DETAILS_TO_INFRINGEMENT_NOTICE_COORDINATOR = "Send details of the Unpaid Infringement Notice {} to Infringement Notice Coordinator"
     ACTION_ESCALATE_FOR_WITHDRAWAL = "Escalate Infringement Notice {} for withdrawal"
-    ACTION_INCREASE_FEE_AND_EXTEND_DUE = "Increase penalty amount from {} to {} and extend due date from {} to {}"
+    ACTION_INCREASE_FEE_AND_EXTEND_DUE = "Extend due date from {} to {} and Increase penalty amount from {} to {}"
     ACTION_REMEDIATION_ACTION_OVERDUE = "Set status of Remediation Action {} to 'overdue'"
     ACTION_REMEDIATION_ACTION_SUBMITTED = "Submit Remediation Action {}"
     ACTION_REMEDIATION_ACTION_ACCEPTED = "Accept Remediation Action {}"
     ACTION_REQUEST_AMENDMENT = "Request amendment for Remediation Action {}"
+    ACTION_PAY_INFRINGEMENT_PENALTY = "Pay for Infringement Penalty of the Infringement {}, Total payment amount: {}, Invoice: {}"
+    # ACTION_PAY_PARTIALLY = "Pay partially for Infringement Penalty of the Infringement {}, Amount: {}, Invoice: {}"
+    # ACTION_OVER_PAY = "Over-Pay for Infringement Penalty of the Infringement {}, Amount: {}, Invoice: {}"
 
     who = models.ForeignKey(EmailUser, null=True, blank=True)
     when = models.DateTimeField(null=False, blank=False, auto_now_add=True)

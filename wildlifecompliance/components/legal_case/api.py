@@ -58,6 +58,9 @@ from wildlifecompliance.components.legal_case.models import (
         LegalCasePriority,
         LegalCaseRunningSheetEntry,
         LegalCasePerson,
+        CourtProceedingsJournalEntry,
+        BriefOfEvidence,
+        ProsecutionBrief,
 )
 #from wildlifecompliance.components.artifact.models import (
 #        DocumentArtifact,
@@ -81,9 +84,17 @@ from wildlifecompliance.components.legal_case.serializers import (
         LegalCaseRunningSheetSerializer,
         LegalCaseRunningSheetEntrySerializer,
         DeleteReinstateLegalCaseRunningSheetEntrySerializer,
-        RunningSheetEntryVersionSerializer,
+        #RunningSheetEntryVersionSerializer,
+        VersionSerializer,
         RunningSheetEntryHistorySerializer,
         CreateLegalCasePersonSerializer,
+        JournalEntryHistorySerializer,
+        CourtProceedingsJournalEntrySerializer,
+        SaveCourtProceedingsJournalEntrySerializer,
+        DeleteReinstateCourtProceedingsJournalEntrySerializer,
+        CreateCourtProceedingsJournalEntrySerializer,
+        CourtProceedingsJournalSerializer,
+        BriefOfEvidenceSerializer,
         )
 from wildlifecompliance.components.users.models import (
     CompliancePermissionGroup,    
@@ -100,6 +111,13 @@ from rest_framework_datatables.renderers import DatatablesRenderer
 
 from wildlifecompliance.components.legal_case.email import (
     send_mail)
+from wildlifecompliance.components.artifact.utils import (
+        build_all_boe_roi_hierarchy, 
+        update_boe_roi_ticked,
+        build_all_boe_other_statements_hierarchy,
+        update_boe_other_statements_ticked,
+        )
+#from wildlifecompliance.components.artifact.serializers import SaveBriefOfEvidenceRecordOfInterviewSerializer
 #from reversion.models import Version
 #import unicodedata
 
@@ -378,8 +396,8 @@ class LegalCaseViewSet(viewsets.ModelViewSet):
             with transaction.atomic():
                 print(request.data)
                 instance = self.get_object()
+                # Running Sheet
                 running_sheet_entries = request.data.get('running_sheet_transform')
-                #running_sheet_saved = None
                 if running_sheet_entries and len(running_sheet_entries) > 0:
                     for entry in running_sheet_entries:
                         entry_copy = dict(entry)
@@ -393,28 +411,50 @@ class LegalCaseViewSet(viewsets.ModelViewSet):
                         running_sheet_entry_serializer.is_valid(raise_exception=True)
                         if running_sheet_entry_serializer.is_valid():
                             running_sheet_entry_serializer.save()
+                # Court Proceedings
+                journal_entries = request.data.get('court_proceedings', {}).get('journal_entries')
+                if journal_entries and len(journal_entries) > 0:
+                    for entry in journal_entries:
+                        entry_copy = dict(entry)
+                        description = entry_copy.get('description', '')
+                        ascii_description = description.encode('ascii', 'xmlcharrefreplace')
+                        entry_copy.update({'description': ascii_description})
+                        entry_id = CourtProceedingsJournalEntry.objects.get(id = entry_copy.get('id'))
+                        journal_entry_serializer = SaveCourtProceedingsJournalEntrySerializer(
+                                instance=entry_id, 
+                                data=entry_copy)
+                        journal_entry_serializer.is_valid(raise_exception=True)
+                        if journal_entry_serializer.is_valid():
+                            journal_entry_serializer.save()
+                ## Brief Of Evidence
+                #brief_of_evidence = request.data.get('brief_of_evidence')
+                #if brief_of_evidence:
+                #    boe_instance = None
+                #    if not instance.brief_of_evidence:
+                #        boe_instance = BriefOfEvidence.objects.create(legal_case=instance)
+                #        instance.brief_of_evidence = boe_instance
+                #    else:
+                #        boe_instance = instance.brief_of_evidence
+                #    boe_serializer = BriefOfEvidenceSerializer(boe_instance, data=brief_of_evidence)
+                #    if boe_serializer.is_valid():
+                #        boe_serializer.save()
+                #        # required when attaching a new BriefOfEvidence to a LegalCase
+                #        instance.save()
+
+                # Brief Of Evidence
+                brief_of_evidence = request.data.get('brief_of_evidence')
+                if brief_of_evidence:
+                    boe_instance, created = BriefOfEvidence.objects.get_or_create(legal_case=instance)
+                    boe_serializer = BriefOfEvidenceSerializer(boe_instance, data=brief_of_evidence)
+                    if boe_serializer.is_valid():
+                        boe_serializer.save()
+
+                boe_roi_ticked = request.data.get('boe_roi_ticked')
+                update_boe_roi_ticked(instance, boe_roi_ticked)
+                boe_other_statements_ticked = request.data.get('boe_other_statements_ticked')
+                update_boe_other_statements_ticked(instance, boe_other_statements_ticked)
                 # LegalCasePerson
                 self.add_associated_persons(instance, request)
-
-                #new_running_sheet_artifacts = request.data.get('runningSheetArtifactList')
-                #if new_running_sheet_artifacts and len(new_running_sheet_artifacts) > 0:
-                #    # Create LegalCaseRunningSheetArtifacts instance if it does not exist
-                #    running_sheet_artifacts, created = LegalCaseRunningSheetArtifacts.objects.get_or_create(
-                #            legal_case_id=instance.id
-                #            )
-                #    for artifact in new_running_sheet_artifacts:
-                #        artifact_id = artifact.get('id')
-                #        artifact_data_type = artifact.get('data_type')
-                #        if artifact_id and artifact_data_type == 'document_artifact':
-                #            document_artifact, created = DocumentArtifact.objects.get_or_create(id=artifact_id)
-                #            if document_artifact not in running_sheet_artifacts.document_artifacts.all():
-                #                running_sheet_artifacts.document_artifacts.add(document_artifact)
-                #        elif artifact_id and artifact_data_type == 'physical_artifact':
-                #            physical_artifact, created = PhysicalArtifact.objects.get_or_create(id=artifact_id)
-                #            if physical_artifact not in running_sheet_artifacts.physical_artifacts.all():
-                #                running_sheet_artifacts.physical_artifacts.add(physical_artifact)
-                #    running_sheet_artifacts.save()
-
                 serializer = SaveLegalCaseSerializer(instance, data=request.data)
                 serializer.is_valid(raise_exception=True)
                 if serializer.is_valid():
@@ -431,6 +471,30 @@ class LegalCaseViewSet(viewsets.ModelViewSet):
                             status=status.HTTP_201_CREATED,
                             headers=headers
                             )
+        except serializers.ValidationError:
+            print(traceback.print_exc())
+            raise
+        except ValidationError as e:
+            print(traceback.print_exc())
+            raise serializers.ValidationError(repr(e.error_dict))
+        except Exception as e:
+            print(traceback.print_exc())
+            raise serializers.ValidationError(str(e))
+
+    @detail_route(methods=['POST', ])
+    @renderer_classes((JSONRenderer,))
+    def journal_entry_history(self, request, *args, **kwargs):
+        try:
+            instance = self.get_object()
+            entry_number = request.data.get("journal_entry_number")
+            row_num = entry_number.split('-')[1]
+            entry_instance = instance.journal_entries.get(row_num=row_num)
+
+            serializer = JournalEntryHistorySerializer(entry_instance)
+            return Response(
+                    serializer.data, 
+                    status=status.HTTP_200_OK,
+                    )
         except serializers.ValidationError:
             print(traceback.print_exc())
             raise
@@ -623,7 +687,7 @@ class LegalCaseViewSet(viewsets.ModelViewSet):
                 if not instance:
                     instance = self.get_object()
 
-                comms_log_id = request.data.get('inspection_comms_log_id')
+                comms_log_id = request.data.get('legal_case_comms_log_id')
                 if comms_log_id and comms_log_id is not 'null':
                     workflow_entry = instance.comms_logs.get(
                             id=comms_log_id)
@@ -642,7 +706,10 @@ class LegalCaseViewSet(viewsets.ModelViewSet):
                 workflow_type = request.data.get('workflow_type')
                 if workflow_type == 'close':
                     instance.close(request)
-                #if workflow_type == 'send_to_manager':
+                elif workflow_type == 'brief_of_evidence':
+                    build_all_boe_other_statements_hierarchy(instance)
+                    build_all_boe_roi_hierarchy(instance)
+                    instance.generate_brief_of_evidence(request)
                 #    instance.send_to_manager(request)
                 #elif workflow_type == 'request_amendment':
                 #    instance.request_amendment(request)
@@ -734,25 +801,23 @@ class LegalCaseViewSet(viewsets.ModelViewSet):
             print(traceback.print_exc())
             raise serializers.ValidationError(str(e))
 
-
     @detail_route(methods=['POST'])
     @renderer_classes((JSONRenderer,))
-    def delete_running_sheet_entry(self, request, *args, **kwargs):
+    def delete_reinstate_journal_entry(self, request, *args, **kwargs):
         try:
             instance = self.get_object()
-            print(request.data)
-            running_sheet_id = request.data.get("running_sheet_id")
+            journal_entry_id = request.data.get("journal_entry_id")
             deleted = request.data.get("deleted")
-            if running_sheet_id:
-                running_sheet_instance = LegalCaseRunningSheetEntry.objects.get(id=running_sheet_id)
+            if journal_id:
+                journal_entry_instance = CourtProceedingsJournalEntry.objects.get(id=journal_id)
                 serializer = DeleteReinstateLegalCaseRunningSheetEntrySerializer(
-                        instance=running_sheet_instance, 
+                        instance=journal_entry_instance, 
                         data=request.data)
                 serializer.is_valid(raise_exception=True)
                 if serializer.is_valid():
                     saved_instance = serializer.save()
                     #headers = self.get_success_headers(serializer.data)
-                    return_serializer = LegalCaseRunningSheetEntrySerializer(saved_instance)
+                    return_serializer = CourtProceedingsJournalEntrySerializer(saved_instance)
                     return Response(
                             return_serializer.data,
                             #status=status.HTTP_201_CREATED,
@@ -771,10 +836,41 @@ class LegalCaseViewSet(viewsets.ModelViewSet):
             print(traceback.print_exc())
             raise serializers.ValidationError(str(e))
 
-
     @detail_route(methods=['POST'])
     @renderer_classes((JSONRenderer,))
-    def reinstate_running_sheet_entry(self, request, *args, **kwargs):
+    def create_journal_entry(self, request, *args, **kwargs):
+        try:
+            instance = self.get_object()
+            request_data = {
+                            "court_proceedings_id": instance.id,
+                            "user_id": request.user.id
+                            }
+            serializer = CreateCourtProceedingsJournalEntrySerializer(data=request_data)
+            serializer.is_valid(raise_exception=True)
+            if serializer.is_valid():
+                running_sheet_entry = serializer.save()
+                return_serializer = CourtProceedingsJournalEntrySerializer(running_sheet_entry)
+                return Response(
+                        return_serializer.data,
+                        status=status.HTTP_201_CREATED,
+                        )
+
+        except serializers.ValidationError:
+            print(traceback.print_exc())
+            raise
+        except ValidationError as e:
+            if hasattr(e, 'error_dict'):
+                raise serializers.ValidationError(repr(e.error_dict))
+            else:
+                raise serializers.ValidationError(repr(e[0].encode('utf-8')))
+        except Exception as e:
+            print(traceback.print_exc())
+            raise serializers.ValidationError(str(e))
+
+###########
+    @detail_route(methods=['POST'])
+    @renderer_classes((JSONRenderer,))
+    def delete_reinstate_running_sheet_entry(self, request, *args, **kwargs):
         try:
             instance = self.get_object()
             print(request.data)

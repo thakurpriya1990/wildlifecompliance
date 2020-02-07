@@ -27,8 +27,10 @@ from wildlifecompliance.components.artifact.models import (
         ArtifactCommsLogEntry,
         ArtifactUserAction,
         PhysicalArtifactFormDataRecord,
+        BriefOfEvidenceRecordOfInterview,
+        BriefOfEvidenceOtherStatements,
         #LegalCaseRunningSheetArtifacts,
-        )
+    )
 
 from wildlifecompliance.components.offence.serializers import OffenceSerializer, OffenderSerializer
 # local EmailUser serializer req?
@@ -36,6 +38,7 @@ from wildlifecompliance.components.call_email.serializers import EmailUserSerial
 #from wildlifecompliance.components.legal_case.serializers import LegalCaseSerializer
 from reversion.models import Version
 from django.utils import timezone
+#from rest_framework_recursive.fields import RecursiveField
 
 
 #class LegalCasePrioritySerializer(serializers.ModelSerializer):
@@ -273,8 +276,8 @@ class DocumentArtifactStatementSerializer(ArtifactSerializer):
         EXPERT_STATEMENT = 'expert_statement'
         if obj.document_type in ('witness_statement', 'expert_statement') and obj.person_providing_statement:
             custodian = obj.person_providing_statement.get_full_name()
-        elif obj.document_type in ('record_of_interview', 'officer_statement') and obj.interviewer_email:
-            custodian = obj.interviewer_email
+        elif obj.document_type in ('record_of_interview', 'officer_statement') and obj.officer_interviewer_email:
+            custodian = obj.officer_interviewer_email
         return custodian
 
 class DocumentArtifactSerializer(ArtifactSerializer):
@@ -283,6 +286,7 @@ class DocumentArtifactSerializer(ArtifactSerializer):
     #document_type = CustomChoiceField(read_only=True)
     document_type_display = serializers.SerializerMethodField()
     person_providing_statement = EmailUserSerializer(read_only=True)
+    officer_interviewer = EmailUserSerializer(read_only=True)
     interviewer = EmailUserSerializer(read_only=True)
     #people_attending = EmailUserSerializer(read_only=True, many=True)
     #legal_case = LegalCaseSerializer(read_only=True, many=True)
@@ -320,7 +324,8 @@ class DocumentArtifactSerializer(ArtifactSerializer):
                 'offence_id',
                 'offender_id',
                 'related_items',
-                'interviewer_email',
+                #'officer_interviewer_email',
+                'officer_interviewer',
                 'document_type_display',
                 #'status',
                 'created_at',
@@ -367,7 +372,7 @@ class DocumentArtifactSerializer(ArtifactSerializer):
     def get_available_statement_artifacts(self, obj):
         artifact_list = []
         if obj.legal_case:
-            for artifact in obj.legal_case.legal_case_document_artifacts.all():
+            for artifact in obj.legal_case.legal_case_document_artifacts_primary.all():
                 if obj != artifact and artifact.document_type and artifact.document_type in [
                     'record_of_interview',
                     'witness_statement',
@@ -412,7 +417,7 @@ class SaveDocumentArtifactSerializer(ArtifactSerializer):
                 'interviewer_id',
                 'offence_id',
                 'offender_id',
-                'interviewer_email',
+                'officer_interviewer_email',
                 )
         read_only_fields = (
                 'id',
@@ -495,7 +500,7 @@ class PhysicalArtifactSerializer(ArtifactSerializer):
     def get_available_statement_artifacts(self, obj):
         artifact_list = []
         if obj.legal_case:
-            for artifact in obj.legal_case.legal_case_document_artifacts.all():
+            for artifact in obj.legal_case.legal_case_document_artifacts_primary.all():
                 if obj != artifact and artifact.document_type and artifact.document_type in [
                     'record_of_interview',
                     'witness_statement',
@@ -537,6 +542,7 @@ class SavePhysicalArtifactSerializer(ArtifactSerializer):
                 'disposal_method_id',
                 'disposal_details',
                 'statement_id',
+                'sensitive_non_disclosable',
                 )
         read_only_fields = (
                 'id',
@@ -572,6 +578,76 @@ class ArtifactCommsLogEntrySerializer(CommunicationLogEntrySerializer):
     def get_documents(self, obj):
         return [[d.name, d._file.url] for d in obj.documents.all()]
 
+
+#class BriefOfEvidenceRecordOfInterviewTreeSerializer(serializers.ModelSerializer):
+#class RecursiveField(serializers.Serializer):
+#    def to_representation(self, value):
+#        serializer = self.parent.parent.__class__(value, context=self.context)
+#        return serializer.data
+
+class BriefOfEvidenceRecordOfInterviewSerializer(serializers.ModelSerializer):
+    #children = serializers.ListField(child=RecursiveField())
+    label = serializers.SerializerMethodField()
+
+    class Meta:
+        model = BriefOfEvidenceRecordOfInterview
+        fields = (
+                'id',
+                'legal_case_id',
+                'offence_id',
+                #'children',
+                'offender_id',
+                'record_of_interview_id',
+                'associated_doc_artifact_id',
+                'ticked',
+                'label',
+                #'children',
+                )
+        read_only_fields = (
+                'id',
+                )
+
+    def get_label(self, obj):
+        return obj.label
+
+class BriefOfEvidenceOtherStatementsSerializer(serializers.ModelSerializer):
+    #children = serializers.ListField(child=RecursiveField())
+    label = serializers.SerializerMethodField()
+
+    class Meta:
+        model = BriefOfEvidenceOtherStatements
+        fields = (
+                'id',
+                'legal_case_id',
+                'person_id',
+                #'children',
+                'statement_id',
+                'associated_doc_artifact_id',
+                'ticked',
+                'label',
+                #'children',
+                )
+        read_only_fields = (
+                'id',
+                )
+
+    def get_label(self, obj):
+        return obj.label
+
+
+#class SaveBriefOfEvidenceRecordOfInterviewSerializer(serializers.ModelSerializer):
+#
+#    class Meta:
+#        model = BriefOfEvidenceRecordOfInterview
+#        fields = (
+#                'id',
+#                'legal_case_id',
+#                'ticked',
+#                )
+#        read_only_fields = (
+#                'id',
+#                'legal_case_id',
+#                )
 
 #class LegalCaseRunningSheetArtifactsSerializer(serializers.ModelSerializer):
 #    document_artifacts = DocumentArtifactSerializer(read_only=True, many=True)

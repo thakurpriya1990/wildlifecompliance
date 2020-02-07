@@ -6,12 +6,15 @@ from django.utils import timezone
 
 import logging
 
+from ledger.payments.invoice.models import Invoice
+
 from wildlifecompliance import settings
 from wildlifecompliance.components.sanction_outcome.email import send_remind_1st_period_overdue_mail
 from wildlifecompliance.components.sanction_outcome.models import SanctionOutcome, SanctionOutcomeUserAction
 from wildlifecompliance.components.sanction_outcome.serializers import SanctionOutcomeCommsLogEntrySerializer
 from wildlifecompliance.components.sanction_outcome_due.models import SanctionOutcomeDueDate
 from wildlifecompliance.components.sanction_outcome_due.serializers import SaveSanctionOutcomeDueDateSerializer
+from wildlifecompliance.components.wc_payments.models import InfringementPenalty, InfringementPenaltyInvoice
 from wildlifecompliance.helpers import DEBUG
 from wildlifecompliance.management.commands.cron_tasks import get_infringement_notice_coordinators
 
@@ -31,8 +34,8 @@ class Command(BaseCommand):
                 sanction_outcomes_base = SanctionOutcome.objects.filter(
                     Q(type=SanctionOutcome.TYPE_INFRINGEMENT_NOTICE) &
                     Q(status=SanctionOutcome.STATUS_AWAITING_PAYMENT) &
-                    Q(payment_status=SanctionOutcome.PAYMENT_STATUS_UNPAID))\
-                    .filter(due_dates__in=SanctionOutcomeDueDate.objects.filter(Q(due_date_1st__lt=today) & Q(due_date_term_currently_applied='1st')))\
+                    Q(payment_status=SanctionOutcome.PAYMENT_STATUS_UNPAID)) \
+                    .filter(due_dates__in=SanctionOutcomeDueDate.objects.filter(Q(due_date_1st__lt=today) & Q(due_date_term_currently_applied='1st'))) \
                     .exclude(due_dates__in=SanctionOutcomeDueDate.objects.filter(Q(due_date_term_currently_applied='2nd')))
 
                 if DEBUG:
@@ -43,7 +46,7 @@ class Command(BaseCommand):
                         Q(status=SanctionOutcome.STATUS_AWAITING_PAYMENT) &
                         Q(payment_status=SanctionOutcome.PAYMENT_STATUS_UNPAID) &
                         Q(description__icontains='__overdue1st__')) \
-                        .filter(due_dates__in=SanctionOutcomeDueDate.objects.filter(Q(due_date_term_currently_applied='1st')))\
+                        .filter(due_dates__in=SanctionOutcomeDueDate.objects.filter(Q(due_date_term_currently_applied='1st'))) \
                         .exclude(due_dates__in=SanctionOutcomeDueDate.objects.filter(Q(due_date_term_currently_applied='2nd')))
 
                 # Merge querysets
@@ -54,7 +57,8 @@ class Command(BaseCommand):
 
                 # Process each overdue sanction outcome
                 for overdue_sanction_outcome in sanction_outcomes.all():
-                    latest_due_date = SanctionOutcomeDueDate.objects.filter(sanction_outcome=overdue_sanction_outcome).order_by('id').last()
+                    latest_due_date = SanctionOutcomeDueDate.objects.filter(
+                        sanction_outcome=overdue_sanction_outcome).order_by('id').last()
 
                     # Create new due_date record
                     data = {}
@@ -84,21 +88,24 @@ class Command(BaseCommand):
                     to_address = [overdue_sanction_outcome.get_offender()[0].email, ]
                     cc = None
                     bcc = bcc_list
-                    email_data = send_remind_1st_period_overdue_mail(to_address, overdue_sanction_outcome, comms_log_entry, cc, bcc)
+                    email_data = send_remind_1st_period_overdue_mail(to_address, overdue_sanction_outcome,
+                                                                     comms_log_entry, cc, bcc)
 
                     # Add communication log
                     if email_data:
-                        serializer = SanctionOutcomeCommsLogEntrySerializer(instance=comms_log_entry, data=email_data, partial=True)
+                        serializer = SanctionOutcomeCommsLogEntrySerializer(instance=comms_log_entry, data=email_data,
+                                                                            partial=True)
                         serializer.is_valid(raise_exception=True)
                         serializer.save()
 
                     # Add action log
-                    overdue_sanction_outcome.log_user_action(SanctionOutcomeUserAction.ACTION_INCREASE_FEE_AND_EXTEND_DUE.format(
-                        overdue_sanction_outcome.penalty_amount_1st,
-                        overdue_sanction_outcome.penalty_amount_2nd,
-                        latest_due_date.due_date_1st,
-                        latest_due_date.due_date_2nd,
-                    ))
+                    overdue_sanction_outcome.log_user_action(
+                        SanctionOutcomeUserAction.ACTION_INCREASE_FEE_AND_EXTEND_DUE.format(
+                            latest_due_date.due_date_1st,
+                            latest_due_date.due_date_2nd,
+                            overdue_sanction_outcome.penalty_amount_1st,
+                            overdue_sanction_outcome.penalty_amount_2nd,
+                        ))
 
                 logger.info('Command {} completed'.format(__name__))
 

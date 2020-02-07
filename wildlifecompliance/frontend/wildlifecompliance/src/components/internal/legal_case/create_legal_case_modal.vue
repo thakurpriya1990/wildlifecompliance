@@ -319,7 +319,7 @@ export default {
           this.inspection_type_id ? payload.append('legal_case_priority_id', this.legal_case_priority_id) : null;
           this.region_id ? payload.append('region_id', this.region_id) : null;
           this.allocated_group_id ? payload.append('allocated_group_id', this.allocated_group_id) : null;
-          this.temporary_document_collection_id ? payload.append('temporary_document_collection_id', this.temporary_document_collection_id) : null;
+          this.temporary_document_collection_id ? payload.append('temporary_document_collection_id', this.temporary_document_collection_id.temp_doc_id) : null;
 
           //this.workflow_type ? payload.append('workflow_type', this.workflow_type) : null;
           //!payload.has('allocated_group') ? payload.append('allocated_group', this.allocatedGroup) : null;

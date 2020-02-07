@@ -32,7 +32,7 @@ INSTALLED_APPS += [
     'taggit',
     'rest_framework',
     'rest_framework_gis',
-    'rest_framework_datatables'
+    'rest_framework_datatables',
 ]
 
 # maximum number of days allowed for a booking
@@ -142,7 +142,11 @@ DATA_UPLOAD_MAX_NUMBER_FIELDS = None
 # Department details
 SYSTEM_NAME = env('SYSTEM_NAME', 'Wildlife Licensing System')
 SYSTEM_EMAIL = env('SYSTEM_EMAIL', 'wildlifelicensing@dbca.wa.gov.au')
-WC_PAYMENT_SYSTEM_ID = env('WC_PAYMENT_SYSTEM_ID', 'S999')
+
+WC_PAYMENT_SYSTEM_ID = env('WC_PAYMENT_SYSTEM_ID', 'S566')
+WC_PAYMENT_SYSTEM_PREFIX = env('PAYMENT_SYSTEM_PREFIX', WC_PAYMENT_SYSTEM_ID.replace('S','0')) 
+PS_PAYMENT_SYSTEM_ID = WC_PAYMENT_SYSTEM_ID
+
 COLS_ADMIN_GROUP = env('COLS_ADMIN_GROUP', 'COLS Admin')
 if not VALID_SYSTEMS:
     VALID_SYSTEMS = [WC_PAYMENT_SYSTEM_ID]
