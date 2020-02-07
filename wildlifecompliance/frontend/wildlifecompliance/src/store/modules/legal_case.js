@@ -67,6 +67,10 @@ export const legalCaseStore = {
         updateRunningSheetTransform(state, running_sheet_transform) {
             Vue.set(state.legal_case, 'running_sheet_transform', running_sheet_transform);
         },
+        updateBriefOfEvidence(state, brief_of_evidence) {
+            Vue.set(state.legal_case, 'brief_of_evidence', brief_of_evidence);
+            //Vue.set(state.legal_case.brief_of_evidence, 'legal_case_id', state.legal_case.id);
+        },
         updateRunningSheetEntryDescription(state, { recordNumber, description, userId }) {
             console.log(recordNumber)
             console.log(description)
@@ -86,6 +90,18 @@ export const legalCaseStore = {
                 Vue.set(state.legal_case, 'running_sheet_person_list', []);
             }
             state.legal_case.running_sheet_person_list.push(entity)
+        },
+        updateBoeRoiTicked(state, boeRoiTicked) {
+            Vue.set(state.legal_case, 'boe_roi_ticked', []);
+            for (let r of boeRoiTicked) {
+                state.legal_case.boe_roi_ticked.push(r)
+            }
+        },
+        updateBoeOtherStatementsTicked(state, boeOtherStatementsTicked) {
+            Vue.set(state.legal_case, 'boe_other_statements_ticked', []);
+            for (let r of boeOtherStatementsTicked) {
+                state.legal_case.boe_other_statements_ticked.push(r)
+            }
         },
     },
     actions: {
@@ -172,11 +188,21 @@ export const legalCaseStore = {
         setRunningSheetTransform({ commit }, running_sheet_transform ) {
             commit("updateRunningSheetTransform", running_sheet_transform);
         },
+        setBriefOfEvidence({ commit }, brief_of_evidence ) {
+            console.log(brief_of_evidence)
+            commit("updateBriefOfEvidence", brief_of_evidence);
+        },
         setRunningSheetEntryDescription({ commit }, {recordNumber, description, userId}) {
             commit("updateRunningSheetEntryDescription", {recordNumber, description, userId})
         },
         addToRunningSheetPersonList({ commit }, entity) {
             commit("updateRunningSheetPersonList", entity)
+        },
+        setBoeRoiTicked({ commit }, boeRoiTicked) {
+            commit("updateBoeRoiTicked", boeRoiTicked)
+        },
+        setBoeOtherStatementsTicked({ commit }, boeOtherStatementsTicked) {
+            commit("updateBoeOtherStatementsTicked", boeOtherStatementsTicked)
         },
     },
 };

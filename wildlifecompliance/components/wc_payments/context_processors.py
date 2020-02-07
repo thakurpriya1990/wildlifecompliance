@@ -12,7 +12,8 @@ def commercialoperator_url(request):
 
     if request.user.is_authenticated:
          #is_officer = helpers.is_officer(request)
-         is_admin = helpers.is_commercialoperator_admin(request)
+         # is_admin = helpers.is_commercialoperator_admin(request)
+         is_admin = helpers.is_wildlifecompliance_admin(request)
          is_customer = helpers.is_customer(request)
 
     return {

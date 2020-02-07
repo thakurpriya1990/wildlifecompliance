@@ -98,7 +98,7 @@ export default {
                 if (this.sanction_outcome.driver){
                     details = 'Driver: ' + this.sanction_outcome.driver.email;
                 } else if (this.sanction_outcome.registration_holder){
-                    details = 'Registration holder' + this.sanction_outcome.registration_holder.email;
+                    details = 'Registration holder: ' + this.sanction_outcome.registration_holder.email;
                 } else if (this.sanction_outcome.offender){
                     details = this.sanction_outcome.offender.person.email;
                 }

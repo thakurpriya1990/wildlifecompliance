@@ -9,12 +9,13 @@ from ledger.accounts.models import EmailUser, RevisionedMixin
 from ledger.payments.models import Invoice
 #from commercialoperator.components.proposals.models import Proposal
 #from commercialoperator.components.main.models import Park
-from wildlifecompliance.components.sanction_outcome.models import SanctionOutcome
+# from wildlifecompliance.components.sanction_outcome.models import SanctionOutcome
 from decimal import Decimal as D
 from ledger.checkout.utils import calculate_excl_gst
 
 import logging
 logger = logging.getLogger(__name__)
+
 
 def expiry_default():
     return timezone.now() + timedelta(minutes=30)
@@ -102,7 +103,7 @@ class Payment(RevisionedMixin):
 class InfringementPenalty(Payment):
     PAYMENT_TYPE_INTERNET = 0
     PAYMENT_TYPE_RECEPTION = 1
-    PAYMENT_TYPE_BLACK = 2
+    PAYMENT_TYPE_BLACK = 2  # Probably this is not used for infringement notices
     PAYMENT_TYPE_TEMPORARY = 3
     PAYMENT_TYPE_CHOICES = (
         (PAYMENT_TYPE_INTERNET, 'Internet booking'),
@@ -111,20 +112,21 @@ class InfringementPenalty(Payment):
         (PAYMENT_TYPE_TEMPORARY, 'Temporary reservation'),
     )
 
-    sanction_outcome = models.ForeignKey(SanctionOutcome, on_delete=models.PROTECT, blank=True, null=True, related_name='infringement_penalties')
+    # sanction_outcome = models.ForeignKey(SanctionOutcome, on_delete=models.PROTECT, blank=True, null=True, related_name='infringement_penalties')
     payment_type = models.SmallIntegerField(choices=PAYMENT_TYPE_CHOICES, default=0)
     cost = models.DecimalField(max_digits=8, decimal_places=2, default='0.00')
     created_by = models.ForeignKey(EmailUser,on_delete=models.PROTECT, blank=True, null=True,related_name='created_by_infringement_penalty')
+    # invoice = models.OneToOneField(Invoice, null=True, blank=True)
 
     def __str__(self):
-        return 'Sanction Outcome {} : Invoice {}'.format(self.sanction_outcome, self.infringement_penalty_invoices.last())
+        # return 'Sanction Outcome {} : Invoice {}'.format(self.sanction_outcome, self.infringement_penalty_invoices.last())
+        return 'Sanction Outcome {} : Invoice {}'.format(self.sanction_outcome, self.invoice)
 
     class Meta:
         app_label = 'wildlifecompliance'
 
 
 class InfringementPenaltyInvoice(RevisionedMixin):
-    #application_fee = models.ForeignKey(ApplicationFee, related_name='application_fee_invoices')
     infringement_penalty = models.ForeignKey(InfringementPenalty, related_name='infringement_penalty_invoices')
     invoice_reference = models.CharField(max_length=50, null=True, blank=True, default='')
 
@@ -142,6 +144,15 @@ class InfringementPenaltyInvoice(RevisionedMixin):
         except Invoice.DoesNotExist:
             pass
         return False
+
+    @property
+    def ledger_invoice(self):
+        try:
+            invoice = Invoice.objects.get(reference=self.invoice_reference)
+            return invoice if invoice else None
+        except Invoice.DoesNotExist:
+            pass
+        return None
 
 
 #import reversion
