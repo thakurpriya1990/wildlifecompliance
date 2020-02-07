@@ -322,7 +322,8 @@ class RunningSheetEntryHistorySerializer(serializers.ModelSerializer):
                 )
     def get_versions(self, obj):
         #entry_versions = RunningSheetEntryVersionSerializer(
-        entry_versions = RunningSheetEntryVersionSerializer(
+        # entry_versions = RunningSheetEntryVersionSerializer(
+        entry_versions = VersionSerializer(
                 Version.objects.get_for_object(obj),
                 many=True)
         return entry_versions.data
