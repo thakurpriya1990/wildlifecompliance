@@ -21,10 +21,10 @@
                                 <li :class="detailsTabListClass"><a data-toggle="tab" @click="updateTabSelected('detailsTab')" :href="'#'+detailsTab" >Details</a></li>
                                 <li :class="storageTabListClass"><a data-toggle="tab" @click="updateTabSelected('storageTab')" :href="'#'+storageTab" >Storage</a></li>
                                 <li :class="disposalTabListClass"><a data-toggle="tab" @click="updateTabSelected('disposalTab')" :href="'#'+disposalTab" >Disposal</a></li>
-                                <li v-if="!parentModal" :class="relatedItemsTabListClass"><a data-toggle="tab" @click="updateTabSelected('relatedItemsTab')" :href="'#'+relatedItemsTab" >Related Items</a></li>
+                                <li :class="relatedItemsTabListClass"><a data-toggle="tab" @click="updateTabSelected('relatedItemsTab')" :href="'#'+relatedItemsTab" >Related Items</a></li>
                             </ul>
                             <div class="tab-content">
-                                    <div :id="objectTab" :class="objectTabClass">
+                                <div :id="objectTab" :class="objectTabClass">
                                     <FormSection :formCollapse="false" :label="artifactTypeDisplay" Index="0" :hideHeader="!physicalArtifactIdExists">
                                         <div class="col-sm-12">
                                             <div class="form-group">
@@ -170,90 +170,90 @@
                                             </div>
                                         </div>
                                     </FormSection>
-                                    </div>
-                                    <!--div :id="detailsTab" class="tab-pane fade in li-top-buffer">
-                                        details
-                                    </div>
-                                    <div :id="storageTab" class="tab-pane fade in li-top-buffer">
-                                        storage
-                                    </div>
-                                    <div :id="disposalTab" class="tab-pane fade in li-top-buffer">
-                                        disposal
-                                    </div-->
-                                    <div :id="detailsTab" :class="detailsTabClass">
-                                        <FormSection :formCollapse="false" label="Checklist">
-                                            <div class="col-sm-12 form-group"><div class="row">
-                                                <div v-if="detailsSchemaVisibility" v-for="(item, index) in detailsSchema">
-                                                  <compliance-renderer-block
-                                                     :component="item"
-                                                     :readonlyForm="readonlyForm"
-                                                     v-bind:key="`compliance_renderer_block${index}`"
-                                                    @update-temp-doc-coll-id="addToTemporaryDocumentCollectionList"
-                                                    />
-                                                </div>
-                                            </div></div>
-                                        </FormSection>
-                                    </div>
-                                    <div :id="storageTab" :class="storageTabClass">
-                                        <FormSection :formCollapse="false" label="Checklist">
-                                            <div class="col-sm-12 form-group"><div class="row">
-                                                <div v-if="storageSchemaVisibility" v-for="(item, index) in storageSchema">
-                                                  <compliance-renderer-block
-                                                     :component="item"
-                                                     :readonlyForm="readonlyForm"
-                                                     v-bind:key="`compliance_renderer_block${index}`"
-                                                    />
-                                                </div>
-                                            </div></div>
-                                        </FormSection>
-                                    </div>
-                                    <div :id="disposalTab" :class="disposalTabClass">
-                                        <FormSection :formCollapse="false" label="Disposal">
-                                            <div class="col-sm-12 form-group"><div class="row">
-                                                <div class="col-sm-3">
-                                                  <label>Disposal Method</label>
-                                                </div>
-                                                <div class="col-sm-6">
-                                                  <select class="form-control" v-model="physical_artifact.disposal_method">
-                                                    <option  v-for="option in disposalMethods" :value="option" v-bind:key="option.id">
-                                                      {{ option.disposal_method }}
-                                                    </option>
-                                                  </select>
-                                                </div>
-                                            </div></div>
-                                            <div class="col-sm-12 form-group"><div class="row">
-                                                <label class="col-sm-3">Date</label>
-                                                <div class="col-sm-3">
-                                                    <div class="input-group date" ref="disposalDatePicker">
-                                                        <input :disabled="readonlyForm" type="text" class="form-control" placeholder="DD/MM/YYYY" v-model="physical_artifact.disposal_date" />
-                                                        <span class="input-group-addon">
-                                                            <span class="glyphicon glyphicon-calendar"></span>
-                                                        </span>
-                                                    </div>
-                                                </div>
-                                            </div></div>
+                                </div>
+                                <!--div :id="detailsTab" class="tab-pane fade in li-top-buffer">
+                                    details
+                                </div>
+                                <div :id="storageTab" class="tab-pane fade in li-top-buffer">
+                                    storage
+                                </div>
+                                <div :id="disposalTab" class="tab-pane fade in li-top-buffer">
+                                    disposal
+                                </div-->
+                                <div :id="detailsTab" :class="detailsTabClass">
+                                    <FormSection :formCollapse="false" label="Checklist">
+                                        <div class="col-sm-12 form-group"><div class="row">
+                                            <div v-if="detailsSchemaVisibility" v-for="(item, index) in detailsSchema">
+                                              <compliance-renderer-block
+                                                 :component="item"
+                                                 :readonlyForm="readonlyForm"
+                                                 v-bind:key="`compliance_renderer_block${index}`"
+                                                @update-temp-doc-coll-id="addToTemporaryDocumentCollectionList"
+                                                />
+                                            </div>
+                                        </div></div>
+                                    </FormSection>
+                                </div>
+                                <div :id="storageTab" :class="storageTabClass">
+                                    <FormSection :formCollapse="false" label="Checklist">
+                                        <div class="col-sm-12 form-group"><div class="row">
+                                            <div v-if="storageSchemaVisibility" v-for="(item, index) in storageSchema">
+                                              <compliance-renderer-block
+                                                 :component="item"
+                                                 :readonlyForm="readonlyForm"
+                                                 v-bind:key="`compliance_renderer_block${index}`"
+                                                />
+                                            </div>
+                                        </div></div>
+                                    </FormSection>
+                                </div>
+                                <div :id="disposalTab" :class="disposalTabClass">
+                                    <FormSection :formCollapse="false" label="Disposal">
+                                        <div class="col-sm-12 form-group"><div class="row">
                                             <div class="col-sm-3">
-                                              <label>Disposal details</label>
+                                              <label>Disposal Method</label>
                                             </div>
-                                            <div class="col-sm-9">
-                                              <textarea :readonly="readonlyForm" class="form-control" v-model="physical_artifact.disposal_details"/>
+                                            <div class="col-sm-6">
+                                              <select class="form-control" v-model="physical_artifact.disposal_method">
+                                                <option  v-for="option in disposalMethods" :value="option" v-bind:key="option.id">
+                                                  {{ option.disposal_method }}
+                                                </option>
+                                              </select>
                                             </div>
-                                        </FormSection>
-                                    </div>
-                                    <div v-if="!parentModal" :id="relatedItemsTab" class="tab-pane fade in">
-                                        <FormSection :formCollapse="false" label="Related Items">
-                                            <div class="col-sm-12 form-group"><div class="row">
-                                                <div class="col-sm-12" v-if="relatedItemsVisibility">
-                                                    <RelatedItems 
-                                                    :parent_update_related_items="setRelatedItems" 
-                                                    v-bind:key="relatedItemsBindId" 
-                                                    :readonlyForm="!canUserAction"
-                                                    parentComponentName="physical_artifact"
-                                                    />
+                                        </div></div>
+                                        <div class="col-sm-12 form-group"><div class="row">
+                                            <label class="col-sm-3">Date</label>
+                                            <div class="col-sm-3">
+                                                <div class="input-group date" ref="disposalDatePicker">
+                                                    <input :disabled="readonlyForm" type="text" class="form-control" placeholder="DD/MM/YYYY" v-model="physical_artifact.disposal_date" />
+                                                    <span class="input-group-addon">
+                                                        <span class="glyphicon glyphicon-calendar"></span>
+                                                    </span>
                                                 </div>
-                                            </div></div>
-                                        </FormSection>
-                                    </div>
+                                            </div>
+                                        </div></div>
+                                        <div class="col-sm-3">
+                                          <label>Disposal details</label>
+                                        </div>
+                                        <div class="col-sm-9">
+                                          <textarea :readonly="readonlyForm" class="form-control" v-model="physical_artifact.disposal_details"/>
+                                        </div>
+                                    </FormSection>
+                                </div>
+                                <div :id="relatedItemsTab" :class="relatedItemsTabClass">
+                                    <FormSection :formCollapse="false" label="Related Items">
+                                        <div class="col-sm-12 form-group"><div class="row">
+                                            <div class="col-sm-12" v-if="relatedItemsVisibility">
+                                                <RelatedItems
+                                                :parent_update_related_items="setRelatedItems" 
+                                                v-bind:key="relatedItemsBindId" 
+                                                :readonlyForm="!canUserAction"
+                                                parentComponentName="physical_artifact"
+                                                />
+                                            </div>
+                                        </div></div>
+                                    </FormSection>
+                                </div>
                             </div>
                         </div>
                         <div v-if="parentModal" :id="existingTab" class="tab-pane fade in li-top-buffer">
@@ -961,7 +961,7 @@ export default {
                     this.artifactTypeId.toString(),
                     url);
                     //let returnedSchema = await Vue.http.get(url);
-                    console.log(returnedSchema)
+                    //console.log(returnedSchema)
                     if (returnedSchema) {
                         Object.assign(this.detailsSchema, returnedSchema.details_schema);
                         Object.assign(this.storageSchema, returnedSchema.storage_schema);
