@@ -64,6 +64,7 @@
                             @existing-entity-selected="existingEntitySelected"
                             parentModal
                             v-bind:key="updatePhysicalArtifactBindId"
+                            :entityEdit="entityEdit"
                             />
                         </div>
                         <!--Artifact 
@@ -127,6 +128,10 @@ export default {
         },
         initialTabSelected: {
             type: String,
+        },
+        entityEdit: {
+            type: Object,
+            required: false,
         },
         //caseRunningSheet: {
         //    type: Boolean,

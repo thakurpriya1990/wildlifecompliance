@@ -446,6 +446,10 @@ export default {
             required: false,
             default: false,
         },
+        entityEdit: {
+            type: Object,
+            required: false,
+        },
     },
     watch: {
         artifactType: {
@@ -1025,6 +1029,8 @@ export default {
         console.log("created")
         if (this.$route.params.physical_artifact_id) {
             await this.loadPhysicalArtifact({ physical_artifact_id: this.$route.params.physical_artifact_id });
+        } else if (this.entityEdit && this.entityEdit.id && this.entityEdit.data_type === 'physical_artifact') {
+            await this.loadPhysicalArtifact({ physical_artifact_id: this.entityEdit.id });
         }
         /*
         // if main obj page, call loadLegalCase if document_artifact.legal_case_id exists
