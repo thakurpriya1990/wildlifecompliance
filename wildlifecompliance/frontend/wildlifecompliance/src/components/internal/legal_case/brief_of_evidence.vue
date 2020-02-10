@@ -140,12 +140,53 @@
                                     />
                                 </div></div>
                             </FormSection>
-                            <FormSection :formCollapse="false" label="List of Exhibits, Sensitive Unused and Non-Sensitive Unused Materials">
+                            <FormSection id="physical-artifacts-tree" :formCollapse="false" label="List of Exhibits, Sensitive Unused and Non-Sensitive Unused Materials" treeHeight="yes">
                                 <div class="col-sm-12 form-group"><div class="row">
+                                    <TreeSelect 
+                                    ref="physical_artifacts_tree" 
+                                    :value="boePhysicalArtifactsTicked" 
+                                    :options="boePhysicalArtifactsOptions" 
+                                    :default-expand-level="Infinity" 
+                                    :disabled="false"
+                                    multiple
+                                    value-consists-of="LEAF_PRIORITY"
+                                    @input="setBoePhysicalArtifactsTicked"
+                                    alwaysOpen
+                                    :searchable="false"
+                                    >
+                                    <!--div slot="value-label" slot-scope="{ node }">{{ node.raw.customLabel }} value label
+                                        <textarea :readonly="readonlyForm" class="form-control"/>
+                                    </div-->
+                                    <label slot="option-label" slot-scope="{ node }" >
+                                            <!--span v-if="shouldShowCount" :class="countClassName">({{ count }})</span-->
+                                            {{ node.label }}
+                                        <textarea
+                                            :id="'boe_physical_artifact_' + node.raw.physical_artifact_id"
+                                            :readonly="readonlyForm"
+                                            class="form-control boe_physical_artifacts_textarea" 
+                                        />
+                                    </label>
+                                    </TreeSelect>
+                                    <!--label slot="option-label" slot-scope="{ node, shouldShowCount, count, labelClassName, countClassName }" :class="labelClassName">
+                                        {{ node.isBranch ? 'Branch' : 'Leaf' }}: {{ node.label }} label slot
+                                            <span v-if="shouldShowCount" :class="countClassName">({{ count }})</span>
+                                    </label-->
                                 </div></div>
                             </FormSection>
-                            <FormSection :formCollapse="false" label="List of Photographic, Video and Sound Exhibits">
+                            <FormSection :formCollapse="false" label="List of Photographic, Video and Sound Exhibits" treeHeight="yes">
                                 <div class="col-sm-12 form-group"><div class="row">
+                                    <TreeSelect 
+                                    ref="document_artifacts_tree" 
+                                    :value="boeDocumentArtifactsTicked" 
+                                    :options="boeDocumentArtifactsOptions" 
+                                    :default-expand-level="Infinity" 
+                                    :disabled="false"
+                                    multiple
+                                    value-consists-of="LEAF_PRIORITY"
+                                    @input="setBoeDocumentArtifactsTicked"
+                                    alwaysOpen
+                                    :searchable="false"
+                                    />
                                 </div></div>
                             </FormSection>
                             <FormSection :formCollapse="false" label="Additional Documents">
@@ -180,6 +221,7 @@ export default {
             //boeOtherStatementsOptions: [],
             uuid: 0,
             briefOfEvidence: {},
+            physicalArtifacts: [],
       };
   },
   components: {
@@ -255,6 +297,39 @@ export default {
         }
         return options;
     },
+    boePhysicalArtifactsTicked: function() {
+        let ticked = []
+        if (this.legal_case && this.legal_case.boe_physical_artifacts_ticked) {
+            for (let id of this.legal_case.boe_physical_artifacts_ticked) {
+                ticked.push(id)
+            }
+        }
+        return ticked;
+    },
+    boePhysicalArtifactsOptions: function() {
+        let options = [];
+        if (this.legal_case && this.legal_case.boe_physical_artifacts_options) {
+            options = this.legal_case.boe_physical_artifacts_options;
+        }
+        return options;
+    },
+    boeDocumentArtifactsTicked: function() {
+        let ticked = []
+        if (this.legal_case && this.legal_case.boe_document_artifacts_ticked) {
+            for (let id of this.legal_case.boe_document_artifacts_ticked) {
+                ticked.push(id)
+            }
+        }
+        return ticked;
+    },
+    boeDocumentArtifactsOptions: function() {
+        let options = [];
+        if (this.legal_case && this.legal_case.boe_document_artifacts_options) {
+            options = this.legal_case.boe_document_artifacts_options;
+        }
+        return options;
+    },
+
   },
   filters: {
     formatDate: function(data) {
@@ -268,7 +343,56 @@ export default {
       setLegalCase: 'setLegalCase',
       setBoeRoiTicked: 'setBoeRoiTicked',
       setBoeOtherStatementsTicked: 'setBoeOtherStatementsTicked',
+      setBoePhysicalArtifactsTicked: 'setBoePhysicalArtifactsTicked',
+      setBoeDocumentArtifactsTicked: 'setBoeDocumentArtifactsTicked',
     }),
+    setPhysicalArtifactDetails: function(elemId, fieldValue) {
+        let physical_artifact_id = elemId.replace("boe_physical_artifact_", "");
+        let fieldUpdated = false;
+        for (let artifact of this.physicalArtifacts) {
+            if (artifact.physical_artifact_id === physical_artifact_id) {
+                artifact.details = fieldValue;
+                fieldUpdated = true;
+            } 
+        }
+        if (!fieldUpdated) {
+            this.physicalArtifacts.push({
+                "physical_artifact_id": physical_artifact_id,
+                "details": fieldValue,
+            });
+        }
+    },
+    addEventListeners: function() {
+      let vm = this;
+      let physicalArtifactsTree = $('#physical-artifacts-tree :input');
+      //let physicalArtifactsTree = $("#physical-artifacts-tree");
+      //let physicalArtifactsTree = $(".boe_physical_artifacts_textarea");
+      //let physicalArtifactsTree = $(":textarea");
+      //console.log(physicalArtifactsTree);
+      physicalArtifactsTree.on(
+          'input', 
+          (e) => {
+              //console.log(e)
+              this.setPhysicalArtifactDetails(e.target.id, e.target.value);
+          });
+        /*
+      physicalArtifactsTree.on(
+          'paste', 
+          (e) => {
+              console.log("plain text only");
+              // cancel paste
+              e.preventDefault();
+              // get text representation of clipboard
+              let text = (e.originalEvent || e).clipboardData.getData('text/plain');
+              let transformedText = text.replace(/\n/g,'<br/>')
+              console.log(transformedText);
+              // insert text manually
+              document.execCommand("insertHTML", false, transformedText);
+              //this.setPhysicalArtifactDetails(e.target.id, transformedText);
+          });
+        */
+    },
+
   },
   created: async function() {
       if (this.legal_case && this.legal_case.brief_of_evidence) {
@@ -277,6 +401,7 @@ export default {
   },
   mounted: function() {
       this.$nextTick(() => {
+          this.addEventListeners();
           $('.vue-treeselect__control').css("display", "none");
         });
   },
