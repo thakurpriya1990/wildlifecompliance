@@ -52,6 +52,8 @@ export default {
     data: function() {
         return {
             uuid: 0,
+            courtProceedingsEntriesUpdated: [],
+            courtProceedingsEntriesUrl: [],
             dtHeadersCourtProceedings: [
                 "id",
                 "Number",
@@ -180,10 +182,106 @@ export default {
     methods: {
         ...mapActions('legalCaseStore', {
             setAddCourtProceedingsEntry: 'setAddCourtProceedingsEntry',
+            setCourtProceedingsTransform: 'setCourtProceedingsTransform',
           //loadLegalCase: 'loadLegalCase',
           //saveLegalCase: 'saveLegalCase',
           //setLegalCase: 'setLegalCase',
         }),
+        addEventListeners: function() {
+            let vm = this;
+            let courtProceedingsTable = $('#court-proceedings-table');
+            courtProceedingsTable.on(
+                'keyup',
+                (e) => {
+                    this.courtProceedingsKeyup(e)
+                });
+            courtProceedingsTable.on(
+                'click',
+                '.row_delete',
+                (e) => {
+                    this.courtProceedingsRowDelete(e)
+                });
+            courtProceedingsTable.on(
+                'click',
+                '.row_history',
+                (e) => {
+                    this.courtProceedingsRowHistory(e)
+                });
+            courtProceedingsTable.on(
+                'click',
+                '.row_reinstate',
+                (e) => {
+                    this.courtProceedingsRowReinstate(e)
+                });
+            courtProceedingsTable.on(
+                'paste', 
+                (e) => {
+                    console.log("plain text only");
+                    // cancel paste
+                    e.preventDefault();
+                    // get text representation of clipboard
+                    let text = (e.originalEvent || e).clipboardData.getData('text/plain');
+                    let transformedText = text.replace(/\n/g,'<br/>')
+                    // insert text manually
+                    document.execCommand("insertHTML", false, transformedText);
+                });
+        },
+        courtProceedingsRowDelete: function(e){
+            console.log('TODO: delete');
+        },
+        courtProceedingsRowHistory: function(e){
+            console.log('TODO: history');
+        },
+        courtProceedingsRowReinstate: function(e){
+            console.log('TODO: reinstate');
+        },
+        courtProceedingsKeyup: function(e) {
+            console.log('courtProceedingsKeyup');
+            let rowObj = {}
+            let recordNumber = e.target.id
+            let recordDescriptionText = e.target.textContent
+            let recordDescriptionHtml = e.target.innerHTML.replace(/\&nbsp\;/g, ' ');
+            console.log('recordNumber: ' + recordNumber);
+            console.log(recordDescriptionHtml);
+
+            // add recordNumber to store rows updated
+            if (!this.courtProceedingsEntriesUpdated.includes(recordNumber)) {
+                this.courtProceedingsEntriesUpdated.push(recordNumber);
+            }
+
+        //    //const ignoreArray = [49, 50, 16]
+        //    const ignoreArray = []
+        //    if (ignoreArray.includes(e.which)) {
+        //        //pass
+        //    } else {
+            for (let r of this.courtProceedingsEntriesUrl) {
+                if (r.number === recordNumber) {
+                    this.updateCourtProceedingsUrlEntry({
+                        "recordNumber": recordNumber,
+                        "recordDescription": recordDescriptionHtml, 
+                        "redraw": false
+                    })
+                    console.log('r');
+                    console.log(r);
+                    this.setCourtProceedingsTransform(r);
+                    //this.searchPersonKeyPressed = false;
+                    //this.searchObjectKeyPressed = false;
+                }
+            }
+        //    }
+        },
+        updateCourtProceedingsUrlEntry: function({ recordNumber, recordDescription, redraw }) {
+            console.log("updateCourtProceedingsUrl")
+
+            for (let r of this.courtProceedingsEntriesUrl) {
+                if (r.number === recordNumber) {
+                    r.description = recordDescription
+                    if (redraw) {
+                        this.constructCourtProceedingsTableEntry( recordNumber );
+                    }
+                }
+            }
+        },
         createNewCourtProceedingsEntry: async function() {
             console.log('aho');
             let payload = {
@@ -199,30 +297,37 @@ export default {
             if (updatedCourtProceedings.ok) {
                 await this.setAddCourtProceedingsEntry(updatedCourtProceedings.body);
                 let returnPayload = _.cloneDeep(updatedCourtProceedings.body);
+                this.courtProceedingsEntriesUrl.push(returnPayload);
                 this.constructCourtProceedingsTable(returnPayload.id);
             }
         },
-        constructCourtProceedingsTable: function(pk){
-            if (this.hasCourtProceedings){
-                console.log("constructCourtProceedingsTable")
+        constructCourtProceedingsTableWrapper: function() {
+            this.courtProceedingsEntriesUrl = _.cloneDeep(this.legal_case.court_proceedings.journal_entries);
 
+            this.$nextTick(() => {
+                this.constructCourtProceedingsTable();
+            });
+        },
+        constructCourtProceedingsTable: function(pk){
+            console.log("constructCourtProceedingsTable")
+
+            if (this.hasCourtProceedings){
                 if (!pk) {
                     this.$refs.court_proceedings_table.vmDataTable.clear().draw();
                 }
 
                 let actionColumn = !this.readonlyForm;
-                console.log('hasCourtProceedings: ' + this.hasCourtProceedings);
-                let entries = this.legal_case.court_proceedings.journal_entries;
-                for(let i = 0;i < entries.length; i++){
-                    if (!pk || entries[i].id === pk) {
+                //let entries = this.legal_case.court_proceedings.journal_entries;
+                for(let i = 0;i < this.courtProceedingsEntriesUrl.length; i++){
+                    if (!pk || this.courtProceedingsEntriesUrl[i].id === pk) {
                         this.$refs.court_proceedings_table.vmDataTable.row.add({ 
-                            "id": entries[i].id,
-                            "number": entries[i].number,
-                            "date_mod": entries[i].date_mod,
-                            "time_mod": entries[i].time_mod,
-                            "user_full_name": entries[i].user_full_name,
-                            "description": entries[i].description,
-                            "deleted": entries[i].deleted,
+                            "id": this.courtProceedingsEntriesUrl[i].id,
+                            "number": this.courtProceedingsEntriesUrl[i].number,
+                            "date_mod": this.courtProceedingsEntriesUrl[i].date_mod,
+                            "time_mod": this.courtProceedingsEntriesUrl[i].time_mod,
+                            "user_full_name": this.courtProceedingsEntriesUrl[i].user_full_name,
+                            "description": this.courtProceedingsEntriesUrl[i].description,
+                            "deleted": this.courtProceedingsEntriesUrl[i].deleted,
                             "action": actionColumn,
                         }).draw();
                     }
@@ -235,8 +340,9 @@ export default {
     },
     mounted: function() {
         this.$nextTick(() => {
+            this.addEventListeners();
             $('.vue-treeselect__control').css("display", "none");
-            this.constructCourtProceedingsTable();
+            this.constructCourtProceedingsTableWrapper();
         });
     },
 };

@@ -412,16 +412,17 @@ class LegalCaseViewSet(viewsets.ModelViewSet):
                         if running_sheet_entry_serializer.is_valid():
                             running_sheet_entry_serializer.save()
                 # Court Proceedings
-                journal_entries = request.data.get('court_proceedings', {}).get('journal_entries')
-                if journal_entries and len(journal_entries) > 0:
-                    for entry in journal_entries:
+                journal_entries = request.data.get('court_proceedings', {}).get('journal_entries_transform')
+                # if journal_entries and len(journal_entries) > 0:
+                if journal_entries:
+                    for key, entry in journal_entries.items():
                         entry_copy = dict(entry)
                         description = entry_copy.get('description', '')
                         ascii_description = description.encode('ascii', 'xmlcharrefreplace')
                         entry_copy.update({'description': ascii_description})
                         entry_id = CourtProceedingsJournalEntry.objects.get(id = entry_copy.get('id'))
                         journal_entry_serializer = SaveCourtProceedingsJournalEntrySerializer(
-                                instance=entry_id, 
+                                instance=entry_id,
                                 data=entry_copy)
                         journal_entry_serializer.is_valid(raise_exception=True)
                         if journal_entry_serializer.is_valid():

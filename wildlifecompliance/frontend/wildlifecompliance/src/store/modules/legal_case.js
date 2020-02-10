@@ -70,6 +70,12 @@ export const legalCaseStore = {
         updateRunningSheetTransform(state, running_sheet_transform) {
             Vue.set(state.legal_case, 'running_sheet_transform', running_sheet_transform);
         },
+        updateCourtProceedingsTransform(state, journal_entry_transform) {
+            if (!state.legal_case.court_proceedings.hasOwnProperty('journal_entries_transform')){
+                state.legal_case.court_proceedings.journal_entries_transform = {};
+            }
+            state.legal_case.court_proceedings.journal_entries_transform[journal_entry_transform.number] = journal_entry_transform;
+        },
         updateBriefOfEvidence(state, brief_of_evidence) {
             Vue.set(state.legal_case, 'brief_of_evidence', brief_of_evidence);
             //Vue.set(state.legal_case.brief_of_evidence, 'legal_case_id', state.legal_case.id);
@@ -130,6 +136,7 @@ export const legalCaseStore = {
                 let payload = new Object();
                 Object.assign(payload, state.legal_case);
                 delete payload.running_sheet_entries
+                delete payload.court_proceedings.journal_entries;  // Instead, send 'journal_entries_transform', which holds only updated data.
                 console.log(payload);
                 if (payload.case_created_date) {
                     payload.case_created_date = moment(payload.planned_for_date, 'DD/MM/YYYY').format('YYYY-MM-DD');
@@ -193,6 +200,9 @@ export const legalCaseStore = {
         },
         setRunningSheetTransform({ commit }, running_sheet_transform ) {
             commit("updateRunningSheetTransform", running_sheet_transform);
+        },
+        setCourtProceedingsTransform({ commit }, journal_entry_transform) {
+            commit("updateCourtProceedingsTransform", journal_entry_transform);
         },
         setBriefOfEvidence({ commit }, brief_of_evidence ) {
             console.log(brief_of_evidence)
