@@ -76,7 +76,7 @@ class LicencePurposeDetail(OrderedModel):
     index = models.PositiveSmallIntegerField(default=0)
 
     class Meta:
-        ordering = ['index', 'purpose']
+        ordering = ['purpose', 'index']
         app_label = 'wildlifecompliance'
         verbose_name = 'Licence purpose additional information'
         verbose_name_plural = 'Licence purpose additional information'
