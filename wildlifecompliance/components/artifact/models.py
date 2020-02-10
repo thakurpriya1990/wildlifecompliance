@@ -645,6 +645,57 @@ class RendererDocument(Document):
     class Meta:
         app_label = 'wildlifecompliance'
 
+
+class BriefOfEvidenceDocumentArtifacts(models.Model):
+    legal_case = models.ForeignKey(
+            LegalCase, 
+            related_name='legal_case_boe_document_artifacts')
+    document_artifact = models.ForeignKey(
+            DocumentArtifact, 
+            related_name='document_artifacts_boe')
+    ticked = models.BooleanField(default=False)
+
+    class Meta:
+        app_label = 'wildlifecompliance'
+
+    @property
+    def label(self):
+        return self.__str__()
+
+    def __str__(self):
+        label_text = ''
+        if self.document_artifact.identifier:
+            label_text = self.document_artifact.identifier
+        else:
+            label_text = self.document_artifact.number
+        return label_text
+
+
+class BriefOfEvidencePhysicalArtifacts(models.Model):
+    legal_case = models.ForeignKey(
+            LegalCase, 
+            related_name='legal_case_boe_physical_artifacts')
+    physical_artifact = models.ForeignKey(
+            PhysicalArtifact, 
+            related_name='physical_artifacts_boe')
+    ticked = models.BooleanField(default=False)
+
+    class Meta:
+        app_label = 'wildlifecompliance'
+
+    @property
+    def label(self):
+        return self.__str__()
+
+    def __str__(self):
+        label_text = ''
+        if self.physical_artifact.identifier:
+            label_text = self.physical_artifact.identifier
+        else:
+            label_text = self.physical_artifact.number
+        return label_text
+
+
 class BriefOfEvidenceOtherStatements(models.Model):
     legal_case = models.ForeignKey(
             LegalCase, 
