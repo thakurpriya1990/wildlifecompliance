@@ -135,7 +135,7 @@ class ApplicationSelectedActivitySerializer(serializers.ModelSerializer):
         proposed_purposes = obj.proposed_purposes.all()
         for proposed in proposed_purposes:
             purposes.append(proposed.purpose)
-        return PurposeSerializer(obj.purposes, many=True).data
+        return PurposeSerializer(purposes, many=True).data
 
     def get_activity_purpose_names(self, obj):
         purposes = [p.purpose for p in obj.proposed_purposes.exclude(
