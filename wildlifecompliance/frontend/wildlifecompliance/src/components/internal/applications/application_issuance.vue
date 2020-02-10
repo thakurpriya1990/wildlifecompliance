@@ -113,22 +113,13 @@
                                         <div class="col-sm-3">
                                             <label class="control-label pull-left"  for="details">Files to be attached to email</label>
                                         </div>
-                                        <div v-if="defaultDocument" class="col-sm-9">
+                                        <div class="col-sm-9">
                                             <filefield 
-                                                ref="comms_log_file" 
-                                                name="comms-log-file" 
+                                                ref="issuance_documents" 
+                                                name="issuance-documents" 
                                                 :isRepeatable="true" 
-                                                documentActionUrl="temporary_document" 
-                                                @update-temp-doc-coll-id="setTemporaryDocumentCollectionId"/>
-                                        </div>
-                                        <div v-else class="col-sm-9">
-                                            <filefield 
-                                                ref="comms_log_file" 
-                                                name="comms-log-file" 
-                                                :isRepeatable="true" 
-                                                :documentActionUrl="defaultDocumentUrl" 
-                                                @update-temp-doc-coll-id="setTemporaryDocumentCollectionId"/>
-                                        </div>                                       
+                                                :documentActionUrl="applicationIssuanceDocumentUrl" />
+                                        </div>                                    
                                     </div>
                                 </div>
                             </div>
@@ -238,10 +229,6 @@ export default {
                 showClear:true,
                 allowInputToggle:true
             },
-            defaultDocumentUrl: helpers.add_endpoint_join(
-                api_endpoints.applications,
-                vm.application.id + "/process_default_document/"
-                )
         }
     },
     watch:{
@@ -252,6 +239,16 @@ export default {
             'licenceActivities',
             'filterActivityList',
         ]),
+        applicationIssuanceDocumentUrl: function() {
+            let url = '';
+            if (this.selectedApplicationActivityId) {
+                url = helpers.add_endpoint_join(
+                    api_endpoints.application_selected_activity,
+                    this.selectedApplicationActivityId + "/process_issuance_document/"
+                )
+            }
+            return url;
+        },
         canIssueOrDecline: function() {
             return (this.allActivitiesDeclined || (
                 this.licence.id_check && this.licence.character_check && this.licence.return_check)
@@ -270,11 +267,18 @@ export default {
                 exclude_processing_statuses: ['discarded']
             });
         },
-        selectedApplicationActivity: function() {           
-            let vall = this.application.activities.find(
+        selectedApplicationActivity: function() {       
+            let selected_activity = this.application.activities.find(
                 activity => { return activity.licence_activity == this.selected_activity_tab_id }
             );
-            return vall
+            return selected_activity
+        },
+        selectedApplicationActivityId: function() {     
+            let activity_id = null;
+            if (this.selectedApplicationActivity) {
+                activity_id = this.selectedApplicationActivity.licence_activity;
+            }
+            return activity_id
         },
         isIdCheckAccepted: function(){
             return this.application.id_check_status.id == 'accepted';
@@ -328,14 +332,6 @@ export default {
         },
         canEditLicenceDates: function() {
             return this.application.application_type && this.application.application_type.id !== 'amend_activity';
-        },
-        defaultDocument: function() {
-            this.$http.post(helpers.add_endpoint_json(api_endpoints.applications,this.application.id+'/process_default_document')).then((response)=>{
-                    return response.body
-                    //vm.refreshFromResponse(response)
-                },(error)=>{
-                    console.log(error)
-                });            
         },
     },
     methods:{

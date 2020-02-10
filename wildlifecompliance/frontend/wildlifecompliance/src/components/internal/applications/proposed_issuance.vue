@@ -76,11 +76,10 @@
                                     </div>
             			            <div class="col-sm-9">
                                         <filefield 
-                                            ref="comms_log_file" 
-                                            name="comms-log-file" 
+                                            ref="issuance_documents" 
+                                            name="issuance-documents" 
                                             :isRepeatable="true" 
-                                            documentActionUrl="temporary_document" 
-                                            @update-temp-doc-coll-id="setTemporaryDocumentCollectionId"/>
+                                            :documentActionUrl="applicationIssuanceDocumentUrl" />
                                     </div>                                                              
                                 </div>
                             </div>
@@ -180,12 +179,23 @@ export default {
         },
         visibleLicenceActivities: function() {
             console.log('visibleLicenceActivities')
+            console.log(this.licenceActivities())
             var activities = this.licenceActivities().filter(
                 // filter on activity user has perms for.
                 activity => { return this.canAssignOfficerFor(activity.id) }                
             );
             console.log(activities)
             return activities;
+        },
+        applicationIssuanceDocumentUrl: function() {
+            let url = '';
+            if (this.selected_activity_tab_id) {
+                url = helpers.add_endpoint_join(
+                    api_endpoints.application_selected_activity,
+                    this.selected_activity_tab_id + "/process_issuance_document/"
+                )
+            }
+            return url;
         },
     },
     methods:{

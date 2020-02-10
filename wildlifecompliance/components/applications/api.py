@@ -1086,32 +1086,6 @@ class ApplicationViewSet(viewsets.ModelViewSet):
         except Exception as e:
             print(traceback.print_exc())
             raise serializers.ValidationError(str(e))
-
-    @detail_route(methods=['POST', ])
-    def process_default_document(self, request, *args, **kwargs):
-        """
-        Retrieves any Temporary Storage documents existing for the requested
-        Application. Applying common process document utility.
-        """
-        try:
-            instance = self.get_object()
-            returned_data = process_generic_document(request, instance)
-            if returned_data:
-                return Response(returned_data)
-            else:
-                return Response()
-
-        except serializers.ValidationError:
-            print(traceback.print_exc())
-            raise
-        except ValidationError as e:
-            if hasattr(e, 'error_dict'):
-                raise serializers.ValidationError(repr(e.error_dict))
-            else:
-                raise serializers.ValidationError(repr(e[0].encode('utf-8')))
-        except Exception as e:
-            print(traceback.print_exc())
-            raise serializers.ValidationError(str(e))
       
     @detail_route(methods=['GET', ])
     def get_proposed_decisions(self, request, *args, **kwargs):
@@ -1512,6 +1486,39 @@ class ApplicationConditionViewSet(viewsets.ModelViewSet):
         except ValidationError as e:
             print(traceback.print_exc())
             raise serializers.ValidationError(repr(e.error_dict))
+        except Exception as e:
+            print(traceback.print_exc())
+            raise serializers.ValidationError(str(e))
+
+class ApplicationSelectedActivityViewSet(viewsets.ModelViewSet):
+    queryset = ApplicationSelectedActivity.objects.all()
+    serializer_class = ApplicationSelectedActivitySerializer
+
+    def get_queryset(self):
+        if is_internal(self.request):
+            return ApplicationSelectedActivity.objects.all()
+        elif is_customer(self.request):
+            return ApplicationSelectedActivity.objects.none()
+        return ApplicationSelectedActivity.objects.none()
+
+    @detail_route(methods=['POST', ])
+    def process_issuance_document(self, request, *args, **kwargs):
+        try:
+            instance = self.get_object()
+            returned_data = process_generic_document(request, instance, document_type="issuance_documents")
+            if returned_data:
+                return Response(returned_data)
+            else:
+                return Response()
+
+        except serializers.ValidationError:
+            print(traceback.print_exc())
+            raise
+        except ValidationError as e:
+            if hasattr(e, 'error_dict'):
+                raise serializers.ValidationError(repr(e.error_dict))
+            else:
+                raise serializers.ValidationError(repr(e[0].encode('utf-8')))
         except Exception as e:
             print(traceback.print_exc())
             raise serializers.ValidationError(str(e))

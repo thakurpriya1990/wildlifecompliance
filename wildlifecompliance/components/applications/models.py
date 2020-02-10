@@ -160,11 +160,6 @@ class ApplicationDocument(Document):
     input_name = models.CharField(max_length=255, null=True, blank=True)
     # after initial submit prevent document from being deleted
     can_delete = models.BooleanField(default=True)
-    selected_activity = models.ForeignKey(
-        'ApplicationSelectedActivity',
-        blank=True,
-        null=True,
-        related_name='proposed_attachments')
 
     def delete(self):
         if self.can_delete:
@@ -1891,19 +1886,7 @@ class Application(RevisionedMixin):
                 # email_attachments = get_temporary_document_collection(
                 #    request.data.get('email_attachments_id')
                 # )        
-                # for attachment in email_attachments.documents.all():
-                #     print(attachment)
 
-                # proposed_attachments = get_temporary_document_collection(
-                #     request.data.get('proposed_attachments_id')
-                # )
-
-                # for activity_id in activity_list:
-                #     activity = self.activities.get(
-                #         licence_activity_id=activity_id
-                #     )
-                #     # store attachment against issued activities.
-                #     activity.store_proposed_attachments(proposed_attachments)
 
                 # TODO: for each selected purpose add to ASA Purpose
                 if self.application_type == Application.APPLICATION_TYPE_AMENDMENT:
@@ -3389,6 +3372,17 @@ class ApplicationSelectedActivityPurpose(models.Model):
     class Meta:
         app_label = 'wildlifecompliance'
         verbose_name = 'Application selected activity purpose'
+
+class IssuanceDocument(Document):
+    _file = models.FileField(max_length=255)
+    # after initial submit prevent document from being deleted
+    can_delete = models.BooleanField(default=True)
+    selected_activity = models.ForeignKey(
+        'ApplicationSelectedActivity',
+        related_name='issuance_documents')
+
+    class Meta:
+        app_label = 'wildlifecompliance'
 
 class ActivityInvoice(models.Model):
     PAYMENT_STATUS_NOT_REQUIRED = 'payment_not_required'

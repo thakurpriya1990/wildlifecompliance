@@ -193,11 +193,12 @@ def save_document(request, instance, comms_instance, document_type, input_name=N
             filename = request.data.get('filename')
             _file = request.data.get('_file')
 
+            parent_application = instance.application
             document = instance.issuance_documents.get_or_create(
                 name=filename)[0]
             path = default_storage.save(
-                'wildlifecompliance/{}/{}/issuance_documents/{}'.format(
-                    instance._meta.model_name, instance.id, filename), ContentFile(
+                'wildlifecompliance/{}/{}/{}/{}/{}'.format(
+                    'applications', parent_application.id, instance._meta.model_name, instance.id, filename), ContentFile(
                     _file.read()))
 
             document._file = path
