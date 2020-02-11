@@ -327,16 +327,15 @@ class DocumentArtifact(Artifact):
                 request)
         self.save()
 
-
-class DocumentArtifactLegalCasesManager(models.Manager):
-    def create_check_primary(self, document_artifact_id, legal_case_id):
-        qs = DocumentArtifactLegalCases.objects.filter(document_artifact_id=document_artifact_id)
-        set_primary = True
-        for doc in qs:
-            if doc.primary:
-                set_primary = False
-        doc_legal_case_instance = self.create(document_artifact_id=document_artifact_id, legal_case_id=legal_case_id, primary=set_primary)
-        return doc_legal_case_instance
+#class DocumentArtifactLegalCasesManager(models.Manager):
+#    def create_check_primary(self, document_artifact_id, legal_case_id):
+#        qs = DocumentArtifactLegalCases.objects.filter(document_artifact_id=document_artifact_id)
+#        set_primary = True
+#        for doc in qs:
+#            if doc.primary:
+#                set_primary = False
+#        doc_legal_case_instance = self.create(document_artifact_id=document_artifact_id, legal_case_id=legal_case_id, primary=set_primary)
+#        return doc_legal_case_instance
 
 
 class DocumentArtifactLegalCases(models.Model):
@@ -541,16 +540,15 @@ class PhysicalArtifact(Artifact):
             return self.physical_artifact_type.storage_schema
 
 
-#class LegalCaseRunningSheetEntryManager(models.Manager):
-class PhysicalArtifactLegalCasesManager(models.Manager):
-    def create_check_primary(self, physical_artifact_id, legal_case_id):
-        qs = PhysicalArtifactLegalCases.objects.filter(physical_artifact_id=physical_artifact_id)
-        set_primary = True
-        for doc in qs:
-            if doc.primary:
-                set_primary = False
-        physical_legal_case_instance = self.create(physical_artifact_id=physical_artifact_id, legal_case_id=legal_case_id, primary=set_primary)
-        return doc_legal_case_instance
+# class PhysicalArtifactLegalCasesManager(models.Manager):
+#     def create_check_primary(self, physical_artifact_id, legal_case_id):
+#         qs = PhysicalArtifactLegalCases.objects.filter(physical_artifact_id=physical_artifact_id)
+#         set_primary = True
+#         for doc in qs:
+#             if doc.primary:
+#                 set_primary = False
+#         physical_legal_case_instance = self.create(physical_artifact_id=physical_artifact_id, legal_case_id=legal_case_id, primary=set_primary)
+#         return doc_legal_case_instance
 
 
 class PhysicalArtifactLegalCases(models.Model):
@@ -568,6 +566,22 @@ class PhysicalArtifactLegalCases(models.Model):
         app_label = 'wildlifecompliance'
         verbose_name = 'CM_PhysicalArtifactLegalCases'
         unique_together = ('physical_artifact', 'legal_case')
+
+    def save(self, *args, **kwargs):
+        super(PhysicalArtifactLegalCases, self).save(*args,**kwargs)
+        qs = PhysicalArtifactLegalCases.objects.filter(physical_artifact_id=physical_artifact_id)
+        set_primary = True
+        for doc in qs:
+            if doc.primary:
+                set_primary = False
+        #physical_legal_case_instance = self.create(physical_artifact_id=physical_artifact_id, legal_case_id=legal_case_id, primary=set_primary)
+        self.primary = set_primary
+        self.save()
+        # if self.number is None:
+        #     new_number_id = 'OB{0:06d}'.format(self.pk)
+        #     self.number = new_number_id
+        #     self.save()
+
 
 
 class BriefOfEvidencePhysicalArtifacts(models.Model):
