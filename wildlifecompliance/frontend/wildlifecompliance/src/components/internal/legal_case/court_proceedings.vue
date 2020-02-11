@@ -32,6 +32,13 @@
                 </div></div>
             </FormSection>
         </div>
+        <div v-if="courtProceedingsHistoryEntryBindId">
+            <JournalHistory 
+            ref="journal_history"
+            :journalHistoryEntryInstance="journalHistoryEntryInstance"
+            :key="courtProceedingsHistoryEntryBindId"
+            />
+        </div>
     </div>
 </template>
 <script>
@@ -45,7 +52,7 @@ import datatable from '@vue-utils/datatable.vue'
 import 'bootstrap/dist/css/bootstrap.css';
 import 'eonasdan-bootstrap-datetimepicker';
 import _ from 'lodash';
-
+import JournalHistory from './journal_history'
 
 export default {
     name: "ViewCourtProceedings",
@@ -54,6 +61,8 @@ export default {
             uuid: 0,
             courtProceedingsEntriesUpdated: [],
             courtProceedingsEntriesUrl: [],
+            courtProceedingsHistoryEntryBindId: '',
+            journalHistoryEntryInstance: '',
             dtHeadersCourtProceedings: [
                 "id",
                 "Number",
@@ -144,6 +153,7 @@ export default {
     components: {
         datatable,
         FormSection,
+        JournalHistory,
     },
     computed: {
         ...mapGetters('legalCaseStore', {
@@ -188,6 +198,13 @@ export default {
           //saveLegalCase: 'saveLegalCase',
           //setLegalCase: 'setLegalCase',
         }),
+        setCourtProceedingsHistoryEntryBindId: function() {
+            console.log('Inside setCourtProceedingsHistoryEntryBindId');
+            if (this.journalHistoryEntryInstance) {
+                this.uuid += 1;
+                this.courtProceedingsHistoryEntryBindId = this.journalHistoryEntryInstance + '_' + this.uuid;
+            }
+        },
         addEventListeners: function() {
             let vm = this;
             let courtProceedingsTable = $('#court-proceedings-table');
@@ -268,10 +285,10 @@ export default {
             let rowNumber = e.target.id.replace('H', '-');
             console.log(rowNumber)
             console.log("journalEntryRowHistory")
-            this.jounrnalHistoryEntryInstance = rowNumber;
-            this.setJounrnalHistoryEntryBindId()
+            this.journalHistoryEntryInstance = rowNumber;
+            this.setCourtProceedingsHistoryEntryBindId()
             this.$nextTick(() => {
-                this.$refs.running_sheet_history.isModalOpen = true;
+                this.$refs.journal_history.isModalOpen = true;
             });
         },
         courtProceedingsRowReinstate: async function(e){

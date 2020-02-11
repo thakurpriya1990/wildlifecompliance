@@ -489,7 +489,7 @@ class LegalCaseViewSet(viewsets.ModelViewSet):
             instance = self.get_object()
             entry_number = request.data.get("journal_entry_number")
             row_num = entry_number.split('-')[1]
-            entry_instance = instance.journal_entries.get(row_num=row_num)
+            entry_instance = instance.court_proceedings.journal_entries.get(row_num=row_num)
 
             serializer = JournalEntryHistorySerializer(entry_instance)
             return Response(
