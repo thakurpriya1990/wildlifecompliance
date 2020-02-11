@@ -229,10 +229,7 @@ export default {
         },
         courtProceedingsRowDelete: async function(e){
             this.showSpinner = true;
-            console.log(e)
             let rowNumber = e.target.id.replace('D', '-');
-            console.log(rowNumber)
-            console.log("journalEntryRowDelete")
             let journal_entry_id = null;
             for (let r of this.legal_case.court_proceedings.journal_entries) {
                 if (r.number === rowNumber) {
@@ -249,7 +246,6 @@ export default {
                     "deleted": true,
                 }
             );
-            console.log('aho');
             if (returnedEntry.ok) {
                 // required for running_sheet_history
                 await this.setCourtProceedingsJournalEntry(returnedEntry.body);
@@ -268,10 +264,51 @@ export default {
             this.showSpinner = false;
         },
         courtProceedingsRowHistory: function(e){
-            console.log('TODO: history');
+            console.log(e)
+            let rowNumber = e.target.id.replace('H', '-');
+            console.log(rowNumber)
+            console.log("journalEntryRowHistory")
+            this.jounrnalHistoryEntryInstance = rowNumber;
+            this.setJounrnalHistoryEntryBindId()
+            this.$nextTick(() => {
+                this.$refs.running_sheet_history.isModalOpen = true;
+            });
         },
-        courtProceedingsRowReinstate: function(e){
-            console.log('TODO: reinstate');
+        courtProceedingsRowReinstate: async function(e){
+            this.showSpinner = true;
+            let rowNumber = e.target.id.replace('R', '-');
+            let journal_entry_id = null;
+            for (let r of this.legal_case.court_proceedings.journal_entries) {
+                if (r.number === rowNumber) {
+                    journal_entry_id = r.id
+                }
+            }
+            let returnedEntry = await Vue.http.post(
+                helpers.add_endpoint_join(
+                    api_endpoints.legal_case,
+                    this.legal_case.id + '/delete_reinstate_journal_entry/',
+                ),
+                {
+                    "journal_entry_id": journal_entry_id,
+                    "deleted": false,
+                }
+                );
+            if (returnedEntry.ok) {
+                // required for running_sheet_history
+                await this.setCourtProceedingsJournalEntry(returnedEntry.body);
+                let i = 0;
+                for (let r of this.courtProceedingsEntriesUrl) {
+                    if (r.number === rowNumber) {
+                        console.log('update: ' + rowNumber);
+                        //this.runningSheetUrl.splice(i, 1, returnedEntry.body);
+                        //this.runningSheetUrl[i].description = this.tokenToUrl(this.runningSheetUrl[i].description);
+                        this.courtProceedingsEntriesUrl[i] = returnedEntry.body;
+                    }
+                    i++;
+                }
+                this.constructCourtProceedingsTableEntry(rowNumber);
+            }
+            this.showSpinner = false;
         },
         courtProceedingsKeyup: function(e) {
             console.log('courtProceedingsKeyup');
