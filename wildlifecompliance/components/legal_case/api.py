@@ -810,8 +810,8 @@ class LegalCaseViewSet(viewsets.ModelViewSet):
             instance = self.get_object()
             journal_entry_id = request.data.get("journal_entry_id")
             deleted = request.data.get("deleted")
-            if journal_id:
-                journal_entry_instance = CourtProceedingsJournalEntry.objects.get(id=journal_id)
+            if journal_entry_id:
+                journal_entry_instance = CourtProceedingsJournalEntry.objects.get(id=journal_entry_id)
                 serializer = DeleteReinstateLegalCaseRunningSheetEntrySerializer(
                         instance=journal_entry_instance, 
                         data=request.data)
