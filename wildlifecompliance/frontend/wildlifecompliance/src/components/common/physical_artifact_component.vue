@@ -786,18 +786,20 @@ export default {
                 await this.savePhysicalArtifact({ create: false, internal: false, legal_case_id: this.legalCaseId });
             } else {
                 await this.savePhysicalArtifact({ create: true, internal: false, legal_case_id: this.legalCaseId });
+                this.$nextTick(() => {
+                    this.$emit('entity-selected', {
+                        id: this.physical_artifact.id,
+                        data_type: 'physical_artifact',
+                        identifier: this.physical_artifact.identifier,
+                        artifact_type: this.artifactType,
+                        display: this.artifactType,
+                    });
+                });
             }
         },
+        /*
         create: async function() {
-            //let physicalArtifactEntity = null;
-            /*
-            if (this.saveButtonEnabled) {
-                savedEmailUser = await this.saveData('parentSave')
-            } else {
-                savedEmailUser = {'ok': true};
-            }
-            */
-            await this.savePhysicalArtifact({ create: true, internal: true, legal_case_id: this.legalCaseId });
+                        await this.savePhysicalArtifact({ create: true, internal: true, legal_case_id: this.legalCaseId });
             //this.entity.id = 
             this.$nextTick(() => {
                 this.$emit('entity-selected', {
@@ -810,6 +812,7 @@ export default {
             });
             //return physicalArtifactEntity;
         },
+    */
         /*
         emitDocumentArtifact: async function(e) {
             console.log(e)

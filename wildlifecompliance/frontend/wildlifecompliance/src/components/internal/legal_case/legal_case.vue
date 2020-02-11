@@ -229,6 +229,7 @@
             @modal-action="receivePersonOrArtifactEntity"
             :rowNumberSelected="rowNumberSelected"
             :initialTabSelected="tabSelected"
+            :entityEdit="entityEdit"
             />
         </div>
         <div v-if="runningSheetHistoryEntryBindId">
@@ -282,6 +283,7 @@ export default {
             //boeRoiTicked: [],
             //boeRoiOptions: [],
             //boeOtherStatementsOptions: [],
+            entityEdit: {},
             uuid: 0,
             showSpinner: false,
             showExit: false,
@@ -681,8 +683,10 @@ export default {
         console.log(entity);
         console.log(recordNumberElement);
         let replacementVal = ''
+        let urlId = entity.data_type + "-" + entity.id;
         if (entity.full_name) {
-            replacementVal = `<a contenteditable="false" target="_blank" href="/internal/users/${entity.id}">${entity.full_name}</a>`;
+            //replacementVal = `<a contenteditable="false" id="${urlId}" class="entity_edit" target="_blank" href="/internal/users/${entity.id}">${entity.full_name}</a>`;
+            replacementVal = `<span contenteditable="false" id="${urlId}" class="entity_edit">${entity.full_name}</span>`;
             // add to runningSheetPersonList
             this.addToRunningSheetPersonList(entity)
             //this.legal_case.runningSheetPersonList.push(entity)
@@ -699,11 +703,14 @@ export default {
     },
     */
     insertArtifactModalUrl: function({"entity": entity, "recordNumberElement": recordNumberElement}) {
+        console.log(entity)
         let replacementVal = '';
         let urlDescription = entity.identifier ? entity.identifier : entity.display;
+        let urlId = entity.data_type + "-" + entity.id;
 
         if (urlDescription) {
-            replacementVal = `<a contenteditable="false" target="_blank" href="/internal/object/${entity.id}">${urlDescription}</a>`;
+            //replacementVal = `<a contenteditable="false" id="${urlId}" class="entity_edit" target="_blank" href="/internal/object/${entity.id}">${urlDescription}</a>`;
+            replacementVal = `<span contenteditable="false" id="${urlId}" class="entity_edit">${urlDescription}</span>`;
             // add to runningSheetArtifactList
             /*
             if (this.legal_case && !this.legal_case.runningSheetArtifactList) {
@@ -980,6 +987,8 @@ export default {
     runningSheetKeydown: async function(e) {
         console.log(e)
         if (e.key === '!' && e.shiftKey && this.searchArtifactKeyPressed) {
+            // ensure entityEdit is empty
+            this.entityEdit = {};
             this.rowNumberSelected = e.target.id;
             this.tabSelected = 'artifact';
             this.openPersonOrArtifact();
@@ -1065,6 +1074,20 @@ export default {
         // TODO: add artifact url parsing here
         return parsedText
     },
+    openModalEntityEdit: function(e) {
+        console.log(e)
+        let entityDataType = e.target.id.split("-")[0]
+        let entityId = e.target.id.split("-")[1]
+        //this.rowNumberSelected = e.target.id.split("-")[2]
+        console.log(entityDataType)
+        console.log(entityId)
+        this.entityEdit = {
+            "data_type": entityDataType,
+            "id": entityId,
+        }
+        this.tabSelected = 'artifact';
+        this.openPersonOrArtifact();
+    },
     addEventListeners: function() {
       let vm = this;
       let runningSheetTable = $('#running-sheet-table');
@@ -1085,6 +1108,12 @@ export default {
           '.row_delete',
           (e) => {
               this.runningSheetRowDelete(e)
+          });
+      runningSheetTable.on(
+          'click',
+          '.entity_edit',
+          (e) => {
+              this.openModalEntityEdit(e)
           });
       
       runningSheetTable.on(
@@ -1317,6 +1346,9 @@ export default {
 </script>
 
 <style lang="css">
+.entity_edit {
+    color: #337ab7;
+}
 .action-button {
     margin-top: 5px;
 }

@@ -272,17 +272,20 @@ export default {
         },
         cancel: async function() {
             this.cancelArtifactComponent();
-            this.$emit('modal-action', {
-                row_number_selected: this.rowNumberSelected,
-                action: 'cancel',
-            });
+            if (!(this.entityEdit && this.entityEdit.id)) {
+                this.$emit('modal-action', {
+                    row_number_selected: this.rowNumberSelected,
+                    action: 'cancel',
+                });
+            }
             //this.isModalOpen = false;
             this.close();
         },
         emitModalAction: function() {
             console.log(this.entity)
             this.$nextTick(() => {
-                if (this.entity.id || this.urlTabSelected && this.urlText) {
+                if ((this.entity.id || this.urlTabSelected && this.urlText) && 
+                    !(this.entityEdit && this.entityEdit.id)) {
                     this.$emit('modal-action', {
                         entity: this.entity,
                         row_number_selected: this.rowNumberSelected,
@@ -298,9 +301,9 @@ export default {
         ok: async function() {
             if (this.artifactTabSelected) {
                 if (this.showDocumentArtifactComponent) {
-                    await this.$refs.document_artifact.create();
+                    await this.$refs.document_artifact.save();
                 } else if (this.showPhysicalArtifactComponent) {
-                    await this.$refs.physical_artifact.create();
+                    await this.$refs.physical_artifact.save();
                 }
             }
             if (this.urlTabSelected && this.urlText) {
@@ -355,6 +358,15 @@ export default {
     },
     */
     created: async function() {
+        // set componentType
+        if (this.entityEdit && this.entityEdit.data_type) {
+            if (this.entityEdit.data_type === 'physical_artifact') {
+                this.componentType = 'physical';
+            } else if (this.entityEdit.data_type === 'document_artifact') {
+                this.componentType === 'document';
+            }
+        }
+        // set tabSelected
         if (this.initialTabSelected === 'person') {
             this.tabSelected = 'pTab';
         } else if (this.initialTabSelected === 'artifact') {

@@ -31,6 +31,8 @@ from wildlifecompliance.components.artifact.models import (
         BriefOfEvidenceOtherStatements,
         BriefOfEvidencePhysicalArtifacts,
         BriefOfEvidenceDocumentArtifacts,
+        ProsecutionBriefPhysicalArtifacts,
+        ProsecutionBriefDocumentArtifacts,
     )
 
 from wildlifecompliance.components.offence.serializers import OffenceSerializer, OffenderSerializer
@@ -292,7 +294,7 @@ class DocumentArtifactSerializer(ArtifactSerializer):
     #people_attending = EmailUserSerializer(read_only=True, many=True)
     #legal_case = LegalCaseSerializer(read_only=True, many=True)
     people_attending_id_list = serializers.SerializerMethodField()
-    legal_case_id_list = serializers.SerializerMethodField()
+    #legal_case_id_list = serializers.SerializerMethodField()
     associated_legal_case_id_list = serializers.SerializerMethodField()
     offence = OffenceSerializer(read_only=True)
     offender = OffenderSerializer(read_only=True)
@@ -317,9 +319,9 @@ class DocumentArtifactSerializer(ArtifactSerializer):
                 'person_providing_statement',
                 'interviewer',
                 'people_attending_id_list',
-                'legal_case_id_list',
+                #'legal_case_id_list',
                 'associated_legal_case_id_list',
-                'legal_case_id',
+                #'legal_case_id',
                 'offence',
                 'offender',
                 'offence_id',
@@ -339,17 +341,17 @@ class DocumentArtifactSerializer(ArtifactSerializer):
     def get_related_items(self, obj):
         return get_related_items(obj)
 
-    def get_legal_case_id_list(self, obj):
-        legal_case_id_list = []
-        for legal_case in obj.associated_legal_cases.all():
-            legal_case_id_list.append(legal_case.id)
-        if obj.legal_case:
-            legal_case_id_list.append(obj.legal_case.id)
-        return legal_case_id_list
+    #def get_legal_case_id_list(self, obj):
+    #    legal_case_id_list = []
+    #    for legal_case in obj.associated_legal_cases.all():
+    #        legal_case_id_list.append(legal_case.id)
+    #    if obj.legal_case:
+    #        legal_case_id_list.append(obj.legal_case.id)
+    #    return legal_case_id_list
 
     def get_associated_legal_case_id_list(self, obj):
         legal_case_id_list = []
-        for legal_case in obj.associated_legal_cases.all():
+        for legal_case in obj.legal_cases.all():
             legal_case_id_list.append(legal_case.id)
         #if obj.legal_case:
          #   legal_case_id_list.append(obj.legal_case.id)
@@ -431,7 +433,7 @@ class PhysicalArtifactSerializer(ArtifactSerializer):
     officer = EmailUserSerializer(read_only=True)
     disposal_method = PhysicalArtifactDisposalMethodSerializer(read_only=True)
     related_items = serializers.SerializerMethodField()
-    legal_case_id_list = serializers.SerializerMethodField()
+    #legal_case_id_list = serializers.SerializerMethodField()
     associated_legal_case_id_list = serializers.SerializerMethodField()
     available_statement_artifacts = serializers.SerializerMethodField()
     data = PhysicalArtifactFormDataRecordSerializer(many=True)
@@ -459,7 +461,7 @@ class PhysicalArtifactSerializer(ArtifactSerializer):
                 'disposal_details',
                 'disposal_method',
                 'related_items',
-                'legal_case_id_list',
+                #'legal_case_id_list',
                 'associated_legal_case_id_list',
                 'legal_case_id',
                 'officer_email',
@@ -476,17 +478,17 @@ class PhysicalArtifactSerializer(ArtifactSerializer):
     def get_related_items(self, obj):
         return get_related_items(obj)
 
-    def get_legal_case_id_list(self, obj):
-        legal_case_id_list = []
-        for legal_case in obj.associated_legal_cases.all():
-            legal_case_id_list.append(legal_case.id)
-        if obj.legal_case:
-            legal_case_id_list.append(obj.legal_case.id)
-        return legal_case_id_list
+    #def get_legal_case_id_list(self, obj):
+    #    legal_case_id_list = []
+    #    for legal_case in obj.associated_legal_cases.all():
+    #        legal_case_id_list.append(legal_case.id)
+    #    if obj.legal_case:
+    #        legal_case_id_list.append(obj.legal_case.id)
+    #    return legal_case_id_list
 
     def get_associated_legal_case_id_list(self, obj):
         legal_case_id_list = []
-        for legal_case in obj.associated_legal_cases.all():
+        for legal_case in obj.legal_cases.all():
             legal_case_id_list.append(legal_case.id)
         #if obj.legal_case:
          #   legal_case_id_list.append(obj.legal_case.id)
