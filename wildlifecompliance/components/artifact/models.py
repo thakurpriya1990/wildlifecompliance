@@ -335,7 +335,7 @@ class DocumentArtifactLegalCasesManager(models.Manager):
         for doc in qs:
             if doc.primary:
                 set_primary = False
-        doc_legal_case_instance = self.create(document_artifact_id=document_artifact_id, legal_case_id, primary=set_primary)
+        doc_legal_case_instance = self.create(document_artifact_id=document_artifact_id, legal_case_id=legal_case_id, primary=set_primary)
         return doc_legal_case_instance
 
 
@@ -549,7 +549,7 @@ class PhysicalArtifactLegalCasesManager(models.Manager):
         for doc in qs:
             if doc.primary:
                 set_primary = False
-        physical_legal_case_instance = self.create(physical_artifact_id=physical_artifact_id, legal_case_id, primary=set_primary)
+        physical_legal_case_instance = self.create(physical_artifact_id=physical_artifact_id, legal_case_id=legal_case_id, primary=set_primary)
         return doc_legal_case_instance
 
 
