@@ -511,6 +511,17 @@ class CourtOutcomeDocument(Document):
         verbose_name_plural = 'CM_CourtOutcomeDocuments'
 
 
+class CourtDate(models.Model):
+    court_proceedings = models.ForeignKey(CourtProceedings, related_name='court_dates')
+    court_datetime = models.DateTimeField(blank=True, null=True,)
+    comments = models.TextField(blank=True)
+
+    class Meta:
+        app_label = 'wildlifecompliance'
+        verbose_name = 'CM_CourtDate'
+        verbose_name_plural = 'CM_CourtDates'
+
+
 import reversion
 reversion.register(LegalCaseRunningSheetEntry, follow=['user'])
 reversion.register(CourtProceedingsJournalEntry, follow=['user'])
