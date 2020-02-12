@@ -497,13 +497,13 @@ class LegalCaseDocument(Document):
         app_label = 'wildlifecompliance'
 
 
-def update_court_ourcome_doc_filename(instance, filename):
-    return 'wildlifecompliance/legal_case/{}/court_outcome/{}'.format(instance.legal_case.id, filename)
+def update_court_outcome_doc_filename(instance, filename):
+    return 'wildlifecompliance/legal_case/{}/court_outcome_documents/{}'.format(instance.legal_case.id, filename)
 
 
 class CourtOutcomeDocument(Document):
-    court_proceedings = models.ForeignKey(CourtProceedings, related_name='documents')
-    _file = models.FileField(max_length=255, upload_to=update_court_ourcome_doc_filename)
+    court_proceedings = models.ForeignKey(CourtProceedings, related_name='court_outcome_documents')
+    _file = models.FileField(max_length=255, upload_to=update_court_outcome_doc_filename)
 
     class Meta:
         app_label = 'wildlifecompliance'

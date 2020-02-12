@@ -21,8 +21,8 @@ class Migration(migrations.Migration):
                 ('name', models.CharField(blank=True, max_length=100, verbose_name='name')),
                 ('description', models.TextField(blank=True, verbose_name='description')),
                 ('uploaded_date', models.DateTimeField(auto_now_add=True)),
-                ('_file', models.FileField(max_length=255, upload_to=wildlifecompliance.components.legal_case.models.update_court_ourcome_doc_filename)),
-                ('court_proceedings', models.ForeignKey(on_delete=django.db.models.deletion.CASCADE, related_name='documents', to='wildlifecompliance.CourtProceedings')),
+                ('_file', models.FileField(max_length=255, upload_to=wildlifecompliance.components.legal_case.models.update_court_outcome_doc_filename)),
+                ('court_proceedings', models.ForeignKey(on_delete=django.db.models.deletion.CASCADE, related_name='court_outcome_documents', to='wildlifecompliance.CourtProceedings')),
             ],
             options={
                 'verbose_name': 'CM_CourtOutcomeDocument',

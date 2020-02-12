@@ -28,7 +28,17 @@
 
             <FormSection :formCollapse="false" label="Court Outcome">
                 <div class="col-sm-12 form-group"><div class="row">
-                    <textarea v-if="hasCourtProceedings" :readonly="readonlyForm" class="form-control location_address_field" v-model="legal_case.court_proceedings.court_outcome_details" />
+                    <div v-if="hasCourtProceedings">
+                        <filefield ref="court_outcome_document"
+                                   name="court-outcome-document"
+                                   :documentActionUrl="legal_case.processCourtOutcomeDocumentUrl"
+                                   @update-parent="courtOutcomeDocumentUploaded"
+                                   :isRepeatable="true"
+                                   :readonly="readonlyForm" />
+                        <textarea :readonly="readonlyForm" 
+                                  class="form-control location_address_field" 
+                                  v-model="legal_case.court_proceedings.court_outcome_details" />
+                    </div>
                 </div></div>
             </FormSection>
         </div>
@@ -53,6 +63,7 @@ import 'bootstrap/dist/css/bootstrap.css';
 import 'eonasdan-bootstrap-datetimepicker';
 import _ from 'lodash';
 import JournalHistory from './journal_history'
+import filefield from '@/components/common/compliance_file.vue';
 
 export default {
     name: "ViewCourtProceedings",
@@ -154,6 +165,7 @@ export default {
         datatable,
         FormSection,
         JournalHistory,
+        filefield,
     },
     computed: {
         ...mapGetters('legalCaseStore', {
@@ -198,6 +210,9 @@ export default {
           //saveLegalCase: 'saveLegalCase',
           //setLegalCase: 'setLegalCase',
         }),
+        courtOutcomeDocumentUploaded: function() {
+            console.log('courtOutcomeDocumentUploaded');
+        },
         setCourtProceedingsHistoryEntryBindId: function() {
             console.log('Inside setCourtProceedingsHistoryEntryBindId');
             if (this.journalHistoryEntryInstance) {

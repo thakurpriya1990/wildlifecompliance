@@ -44,6 +44,11 @@ export const legalCaseStore = {
                 state.legal_case.id + "/create_legal_case_process_comms_log_document/"
                 )
             Vue.set(state.legal_case, 'createLegalCaseProcessCommsLogsDocumentUrl', createLegalCaseProcessCommsLogsDocumentUrl);
+            let courtOutcomeDocumentUrl = helpers.add_endpoint_join(
+                api_endpoints.legal_case,
+                state.legal_case.id + "/process_court_outcome_document/"
+                )
+            Vue.set(state.legal_case, 'processCourtOutcomeDocumentUrl', courtOutcomeDocumentUrl);
         },
         updateRelatedItems(state, related_items) {
             Vue.set(state.legal_case, 'related_items', related_items);
