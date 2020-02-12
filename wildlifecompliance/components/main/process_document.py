@@ -64,6 +64,14 @@ def process_generic_document(request, instance, document_type=None, *args, **kwa
                         ) for d in instance.issuance_documents.all() if d._file]
             return {'filedata': returned_file_data}
 
+        elif document_type == 'court_outcome':
+            returned_file_data = [dict(
+                file=d._file.url,
+                id=d.id,
+                name=d.name,
+            ) for d in instance.court_proceedings.court_outcome_documents.all() if d._file]
+            return {'filedata': returned_file_data}
+
         elif document_type == 'inspection_report':
             returned_file_data = [dict(
                         file=d._file.url,
@@ -100,6 +108,11 @@ def delete_document(request, instance, comms_instance, document_type, input_name
         document_id = request.data.get('document_id')
         document = instance.report.get(id=document_id)
 
+    # court outcome delete
+    if document_type == 'court_outcome' and 'document_id' in request.data:
+        document_id = request.data.get('document_id')
+        document = instance.court_proceedings.court_outcome_documents.get(id=document_id)
+
     # comms_log doc store delete
     elif comms_instance and 'document_id' in request.data:
         document_id = request.data.get('document_id')
@@ -131,6 +144,16 @@ def cancel_document(request, instance, comms_instance, document_type, input_name
         # Application issuance documents cancel
         elif document_type == 'issuance_documents':
             document_list = instance.issuance_documents.all()
+
+            for document in document_list:
+                if document._file and os.path.isfile(
+                        document._file.path):
+                    os.remove(document._file.path)
+                document.delete()
+
+        # Court outcome documents cancel
+        if document_type == 'court_outcome':
+            document_list = instance.court_proceedings.court_outcome_documents.all()
 
             for document in document_list:
                 if document._file and os.path.isfile(
@@ -211,6 +234,20 @@ def save_document(request, instance, comms_instance, document_type, input_name=N
                 name=filename)[0]
             path = default_storage.save(
                 'wildlifecompliance/{}/{}/report/{}'.format(
+                    instance._meta.model_name, instance.id, filename), ContentFile(
+                    _file.read()))
+
+            document._file = path
+            document.save()
+        # inspection report save
+        elif document_type == 'court_outcome' and 'filename' in request.data:
+            filename = request.data.get('filename')
+            _file = request.data.get('_file')
+
+            document = instance.court_proceedings.court_outcome_documents.get_or_create(
+                name=filename)[0]
+            path = default_storage.save(
+                'wildlifecompliance/{}/{}/court_outcome_documents/{}'.format(
                     instance._meta.model_name, instance.id, filename), ContentFile(
                     _file.read()))
 

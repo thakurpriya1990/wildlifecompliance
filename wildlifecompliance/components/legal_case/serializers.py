@@ -86,6 +86,7 @@ class CreateLegalCasePersonSerializer(serializers.ModelSerializer):
                 'id',
                 )
 
+
 class VersionSerializer(serializers.ModelSerializer):
     #serializable_value = serializers.JSONField()
     entry_fields = serializers.SerializerMethodField()
@@ -254,17 +255,21 @@ class CreateCourtProceedingsJournalEntrySerializer(serializers.ModelSerializer):
 
 
 class CourtProceedingsJournalSerializer(serializers.ModelSerializer):
-    journal_entries = CourtProceedingsJournalEntrySerializer(many=True)
+    journal_entries = CourtProceedingsJournalEntrySerializer(many=True, read_only=True)
 
     class Meta:
         model = CourtProceedings
         fields = (
                 'id',
+                'court_outcome_details',
                 'journal_entries',
                 )
         read_only_fields = (
                 'id',
-                )
+        )
+
+    def validate(self, attrs):
+        return attrs
 
 #######################
 #class RunningSheetEntryVersionSerializer(serializers.ModelSerializer):
@@ -325,7 +330,8 @@ class RunningSheetEntryHistorySerializer(serializers.ModelSerializer):
                 )
     def get_versions(self, obj):
         #entry_versions = RunningSheetEntryVersionSerializer(
-        entry_versions = RunningSheetEntryVersionSerializer(
+        # entry_versions = RunningSheetEntryVersionSerializer(
+        entry_versions = VersionSerializer(
                 Version.objects.get_for_object(obj),
                 many=True)
         return entry_versions.data
@@ -542,6 +548,7 @@ class LegalCaseSerializer(serializers.ModelSerializer):
     #inspection_report = serializers.SerializerMethodField()
     #data = InspectionFormDataRecordSerializer(many=True)
     #location = LocationSerializer(read_only=True)
+    court_proceedings = CourtProceedingsJournalSerializer()
 
     class Meta:
         model = LegalCase
@@ -579,10 +586,13 @@ class LegalCaseSerializer(serializers.ModelSerializer):
                 'boe_other_statements_options',
                 'legal_case_boe_other_statements',
 
+
                 'boe_physical_artifacts_ticked',
                 'boe_physical_artifacts_options',
                 'boe_document_artifacts_ticked',
                 'boe_document_artifacts_options',
+                'court_proceedings',
+
 
                 )
         read_only_fields = (
@@ -788,6 +798,14 @@ class SaveLegalCaseSerializer(serializers.ModelSerializer):
         required=False, write_only=True, allow_null=True)
     legal_case_priority_id = serializers.IntegerField(
         required=False, write_only=True, allow_null=True)
+
+    def create(self, validated_data):
+        instance = super(SaveLegalCaseSerializer, self).create(validated_data)
+
+        # if hasattr(instance, 'court_proceedings'):
+        #     court, created = CourtProceedings.objects.create(legal_case=instance)
+
+        return instance
 
     class Meta:
         model = LegalCase

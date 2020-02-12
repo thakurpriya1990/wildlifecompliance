@@ -44,12 +44,25 @@ export const legalCaseStore = {
                 state.legal_case.id + "/create_legal_case_process_comms_log_document/"
                 )
             Vue.set(state.legal_case, 'createLegalCaseProcessCommsLogsDocumentUrl', createLegalCaseProcessCommsLogsDocumentUrl);
+            let courtOutcomeDocumentUrl = helpers.add_endpoint_join(
+                api_endpoints.legal_case,
+                state.legal_case.id + "/process_court_outcome_document/"
+                )
+            Vue.set(state.legal_case, 'processCourtOutcomeDocumentUrl', courtOutcomeDocumentUrl);
         },
         updateRelatedItems(state, related_items) {
             Vue.set(state.legal_case, 'related_items', related_items);
         },
         updateRunningSheetEntries(state, running_sheet_entries) {
             Vue.set(state.legal_case, 'running_sheet_entries', running_sheet_entries);
+        },
+        updateCourtProceedingsJournalEntry(state, journal_entry){
+            let i = 0;
+            for (let r of state.legal_case.court_proceedings.journal_entries) {
+                if (r.number === journal_entry.number) {
+                    state.legal_case.court_proceedings.journal_entries.splice(i++, 1, journal_entry);
+                }
+            }
         },
         updateRunningSheetEntry(state, running_sheet_entry) {
             console.log(running_sheet_entry)
@@ -64,8 +77,17 @@ export const legalCaseStore = {
         updateAddRunningSheetEntry(state, running_sheet_entry) {
             state.legal_case.running_sheet_entries.push(running_sheet_entry)
         },
+        updateAddCourtProceedingsEntry(state, court_proceedings_entry) {
+            state.legal_case.court_proceedings.journal_entries.push(court_proceedings_entry)
+        },
         updateRunningSheetTransform(state, running_sheet_transform) {
             Vue.set(state.legal_case, 'running_sheet_transform', running_sheet_transform);
+        },
+        updateCourtProceedingsTransform(state, journal_entry_transform) {
+            if (!state.legal_case.court_proceedings.hasOwnProperty('journal_entries_transform')){
+                state.legal_case.court_proceedings.journal_entries_transform = {};
+            }
+            state.legal_case.court_proceedings.journal_entries_transform[journal_entry_transform.number] = journal_entry_transform;
         },
         updateBriefOfEvidence(state, brief_of_evidence) {
             Vue.set(state.legal_case, 'brief_of_evidence', brief_of_evidence);
@@ -142,7 +164,12 @@ export const legalCaseStore = {
                 let payload = new Object();
                 Object.assign(payload, state.legal_case);
                 delete payload.running_sheet_entries
-                console.log(payload);
+
+                // Remove journal_entries from the payload
+                let temp_journal_entries = Object.create(state.legal_case.court_proceedings.journal_entries);
+                delete payload.court_proceedings.journal_entries
+                state.legal_case.court_proceedings.journal_entries = temp_journal_entries;
+
                 if (payload.case_created_date) {
                     payload.case_created_date = moment(payload.planned_for_date, 'DD/MM/YYYY').format('YYYY-MM-DD');
                 } else if (payload.case_created_date === '') {
@@ -197,11 +224,20 @@ export const legalCaseStore = {
         setRunningSheetEntry({ commit }, running_sheet_entry ) {
             commit("updateRunningSheetEntry", running_sheet_entry);
         },
+        setCourtProceedingsJournalEntry({ commit }, journal_entry ) {
+            commit("updateCourtProceedingsJournalEntry", journal_entry);
+        },
         setAddRunningSheetEntry({ commit }, running_sheet_entry ) {
             commit("updateAddRunningSheetEntry", running_sheet_entry);
         },
+        setAddCourtProceedingsEntry({ commit }, court_proceedings_entry ) {
+            commit("updateAddCourtProceedingsEntry", court_proceedings_entry);
+        },
         setRunningSheetTransform({ commit }, running_sheet_transform ) {
             commit("updateRunningSheetTransform", running_sheet_transform);
+        },
+        setCourtProceedingsTransform({ commit }, journal_entry_transform) {
+            commit("updateCourtProceedingsTransform", journal_entry_transform);
         },
         setBriefOfEvidence({ commit }, {brief_of_evidence, physical_artifacts} ) {
             //console.log(brief_of_evidence)

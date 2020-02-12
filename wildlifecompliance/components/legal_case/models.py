@@ -125,24 +125,6 @@ class LegalCase(RevisionedMixin):
             EmailUser,
             related_name='legal_case_associated_persons',
             )
-    # court_proceedings = models.OneToOneField(
-    #         CourtProceedings,
-    #         null=True,
-    #         blank=True,
-    #         related_name="legal_case",
-    #         )
-    #brief_of_evidence = models.OneToOneField(
-    #        BriefOfEvidence,
-    #        null=True,
-    #        blank=True,
-    #        related_name="legal_case",
-    #        )
-    #prosecution_brief = models.OneToOneField(
-    #        ProsecutionBrief,
-    #        null=True,
-    #        blank=True,
-    #        related_name="legal_case",
-    #        )
 
     class Meta:
         app_label = 'wildlifecompliance'
@@ -154,12 +136,16 @@ class LegalCase(RevisionedMixin):
 
     # Prefix "CS" char to LegalCase number.
     def save(self, *args, **kwargs):
-        
         super(LegalCase, self).save(*args,**kwargs)
+
         if self.number is None:
             new_number_id = 'CS{0:06d}'.format(self.pk)
             self.number = new_number_id
             self.save()
+
+        if not hasattr(self, 'court_proceedings'):
+            cp = CourtProceedings.objects.create(legal_case=self)
+            cp.save()
 
     def log_user_action(self, action, request):
         return LegalCaseUserAction.log_action(self, action, request.user)
@@ -296,7 +282,7 @@ class ProsecutionBrief(models.Model):
 
 
 class CourtProceedingsJournalEntryManager(models.Manager):
-    def create_running_sheet_entry(self, court_proceedings_id, user_id):
+    def create_journal_entry(self, court_proceedings_id, user_id):
         max_row_num_dict = CourtProceedingsJournalEntry.objects.filter(court_proceedings_id=court_proceedings_id).aggregate(Max('row_num'))
         # initial value for new LegalCase
         row_num = 1
@@ -509,6 +495,31 @@ class LegalCaseDocument(Document):
 
     class Meta:
         app_label = 'wildlifecompliance'
+
+
+def update_court_outcome_doc_filename(instance, filename):
+    return 'wildlifecompliance/legal_case/{}/court_outcome_documents/{}'.format(instance.legal_case.id, filename)
+
+
+class CourtOutcomeDocument(Document):
+    court_proceedings = models.ForeignKey(CourtProceedings, related_name='court_outcome_documents')
+    _file = models.FileField(max_length=255, upload_to=update_court_outcome_doc_filename)
+
+    class Meta:
+        app_label = 'wildlifecompliance'
+        verbose_name = 'CM_CourtOutcomeDocument'
+        verbose_name_plural = 'CM_CourtOutcomeDocuments'
+
+
+class CourtDate(models.Model):
+    court_proceedings = models.ForeignKey(CourtProceedings, related_name='court_dates')
+    court_datetime = models.DateTimeField(blank=True, null=True,)
+    comments = models.TextField(blank=True)
+
+    class Meta:
+        app_label = 'wildlifecompliance'
+        verbose_name = 'CM_CourtDate'
+        verbose_name_plural = 'CM_CourtDates'
 
 
 import reversion
