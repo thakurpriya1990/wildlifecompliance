@@ -492,18 +492,25 @@ class PhysicalArtifactViewSet(viewsets.ModelViewSet):
                             raise e
                         legal_case = LegalCase.objects.get(id=legal_case_id_int)
                         if legal_case:
-                            if not PhysicalArtifactLegalCases.objects.filter(
+                            link = None
+                            if PhysicalArtifactLegalCases.objects.filter(
                                         legal_case_id=legal_case.id,
                                         physical_artifact_id=saved_instance.id):
-                                link = PhysicalArtifactLegalCases.objects.create_with_primary(
-                                        legal_case_id=legal_case.id,
-                                        physical_artifact_id=saved_instance.id)
-                            else:
+                                # get link
+                                print("get link")
                                 link= PhysicalArtifactLegalCases.objects.get(
                                         legal_case_id=legal_case.id,
                                         physical_artifact_id=saved_instance.id)
-                            link.used_within_case = used_within_case
-                            link.sensitive_non_disclosable = sensitive_non_disclosable
+                            else:
+                                # create link
+                                print("create link")
+                                link = PhysicalArtifactLegalCases.objects.create_with_primary(
+                                        legal_case_id=legal_case.id,
+                                        physical_artifact_id=saved_instance.id)
+                            if used_within_case:
+                                link.used_within_case = used_within_case
+                            if sensitive_non_disclosable:
+                                link.sensitive_non_disclosable = sensitive_non_disclosable
                             link.save()
 
                     # save temp doc if exists

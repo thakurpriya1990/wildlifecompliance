@@ -20,7 +20,7 @@
                                 <li :class="objectTabListClass"><a data-toggle="tab" @click="updateTabSelected('objectTab')" :href="'#'+objectTab">Object</a></li>
                                 <li :class="detailsTabListClass"><a data-toggle="tab" @click="updateTabSelected('detailsTab')" :href="'#'+detailsTab" >Details</a></li>
                                 <li :class="storageTabListClass"><a data-toggle="tab" @click="updateTabSelected('storageTab')" :href="'#'+storageTab" >Storage</a></li>
-                                <li :class="disposalTabListClass"><a data-toggle="tab" @click="updateTabSelected('disposalTab')" :href="'#'+disposalTab" >Disposal</a></li>
+                                <li v-if="disposalTabVisibility" :class="disposalTabListClass"><a data-toggle="tab" @click="updateTabSelected('disposalTab')" :href="'#'+disposalTab" >Disposal</a></li>
                                 <li v-if="!parentModal" :class="relatedItemsTabListClass"><a data-toggle="tab" @click="updateTabSelected('relatedItemsTab')" :href="'#'+relatedItemsTab" >Related Items</a></li>
                             </ul>
                             <div class="tab-content">
@@ -221,7 +221,7 @@
                                         </div></div>
                                     </FormSection>
                                 </div>
-                                <div :id="disposalTab" :class="disposalTabClass">
+                                <div v-if="disposalTabVisibility" :id="disposalTab" :class="disposalTabClass">
                                     <FormSection :formCollapse="false" label="Disposal">
                                         <div class="col-sm-12 form-group"><div class="row">
                                             <div class="col-sm-3">
@@ -732,6 +732,13 @@ export default {
                 related_items_visibility = true;
             }
             return related_items_visibility;
+        },
+        disposalTabVisibility: function() {
+            let visibility = false;
+            if (this.physical_artifact && this.physical_artifact.status === 'waiting_for_disposal') {
+                visibility = true;
+            }
+            return visibility;
         },
     },
     filters: {

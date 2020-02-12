@@ -29,6 +29,7 @@
                                 v-bind:key="updateSearchPersonOrganisationBindId"
                                 addFullName
                                 :displayTitle="false"
+                                :entityEdit="entityEdit"
                                 />
                             </div>
                         </div></div>
@@ -55,6 +56,7 @@
                             @existing-entity-selected="existingEntitySelected"
                             parentModal
                             v-bind:key="updateDocumentArtifactBindId"
+                            :entityEdit="entityEdit"
                             />
                         </div>
                         <div v-if="showPhysicalArtifactComponent" class="row">
@@ -358,12 +360,13 @@ export default {
     },
     */
     created: async function() {
+        console.log(this.entityEdit)
         // set componentType
         if (this.entityEdit && this.entityEdit.data_type) {
             if (this.entityEdit.data_type === 'physical_artifact') {
                 this.componentType = 'physical';
             } else if (this.entityEdit.data_type === 'document_artifact') {
-                this.componentType === 'document';
+                this.componentType = 'document';
             }
         }
         // set tabSelected

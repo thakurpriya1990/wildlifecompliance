@@ -471,8 +471,8 @@ class PhysicalArtifactSerializer(ArtifactSerializer):
                 'statement_id',
                 'physical_artifact_type',
                 'physical_artifact_type_id',
-                'used_within_case',
-                'sensitive_non_disclosable',
+                #'used_within_case',
+                #'sensitive_non_disclosable',
                 'disposal_method',
                 'description',
                 'officer',
@@ -482,7 +482,7 @@ class PhysicalArtifactSerializer(ArtifactSerializer):
                 'related_items',
                 #'legal_case_id_list',
                 'associated_legal_case_id_list',
-                'legal_case_id',
+                #'legal_case_id',
                 'officer_email',
                 'custodian_email',
                 #'status',
@@ -564,7 +564,7 @@ class SavePhysicalArtifactSerializer(ArtifactSerializer):
                 'disposal_method_id',
                 'disposal_details',
                 'statement_id',
-                'sensitive_non_disclosable',
+                #'sensitive_non_disclosable',
                 )
         read_only_fields = (
                 'id',

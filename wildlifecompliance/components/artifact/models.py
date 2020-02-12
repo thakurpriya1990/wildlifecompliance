@@ -350,7 +350,8 @@ class DocumentArtifactLegalCasesManager(models.Manager):
                 set_primary = False
         #physical_legal_case_instance = self.create(physical_artifact_id=physical_artifact_id, legal_case_id=legal_case_id, primary=set_primary)
         #self.primary = set_primary
-        self.create(legal_case_id=legal_case_id, document_artifact_id=document_artifact_id, primary=set_primary)
+        link = self.create(legal_case_id=legal_case_id, document_artifact_id=document_artifact_id, primary=set_primary)
+        return link
 
 
 class DocumentArtifactLegalCases(models.Model):
@@ -566,6 +567,7 @@ class PhysicalArtifact(Artifact):
 #         physical_legal_case_instance = self.create(physical_artifact_id=physical_artifact_id, legal_case_id=legal_case_id, primary=set_primary)
 #         return doc_legal_case_instance
 
+
 class PhysicalArtifactLegalCasesManager(models.Manager):
     def create_with_primary(self, legal_case_id, physical_artifact_id):
         #super(DocumentArtifactLegalCases, self).save(*args,**kwargs)
@@ -576,7 +578,9 @@ class PhysicalArtifactLegalCasesManager(models.Manager):
                 set_primary = False
         #physical_legal_case_instance = self.create(physical_artifact_id=physical_artifact_id, legal_case_id=legal_case_id, primary=set_primary)
         #self.primary = set_primary
-        self.create(legal_case_id=legal_case_id, physical_artifact_id=physical_artifact_id, primary=set_primary)
+        link = self.create(legal_case_id=legal_case_id, physical_artifact_id=physical_artifact_id, primary=set_primary)
+        return link
+
 
 class PhysicalArtifactLegalCases(models.Model):
     physical_artifact = models.ForeignKey(

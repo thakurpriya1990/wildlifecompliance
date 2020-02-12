@@ -633,7 +633,7 @@ export default {
         let i = 0;
         for (let r of this.runningSheetUrl) {
             if (this.runningSheetEntriesUpdated.includes(r.number)) {
-                r.description = this.urlToToken(r.description)
+                r.description = this.htmlToToken(r.description)
                 r.user_id = this.current_user.id;
                 runningSheet.push(r);
             }
@@ -820,7 +820,7 @@ export default {
         if (updatedRunningSheet.ok) {
             await this.setAddRunningSheetEntry(updatedRunningSheet.body);
             let returnPayload = _.cloneDeep(updatedRunningSheet.body);
-            returnPayload.description = this.tokenToUrl(returnPayload.description);
+            returnPayload.description = this.tokenToHtml(returnPayload.description);
             this.runningSheetUrl.push(returnPayload);
             this.constructRunningSheetTable(returnPayload.id);
         }
@@ -1001,6 +1001,7 @@ export default {
         } else if (e.key === '@' && e.shiftKey && this.searchPersonKeyPressed) {
             //let rowElement = $('#' + e.target.id);
             //this.openSearchPersonOrganisation(e.target.id)
+            this.entityEdit = {};
             this.rowNumberSelected = e.target.id;
             this.tabSelected = 'person';
             this.openPersonOrArtifact();
@@ -1029,8 +1030,9 @@ export default {
             this.insertUrlKeyPressed = false;
         }
     },
-    urlToToken: function(description) {
+    htmlToToken: function(description) {
         let parsedText = description;
+        // person transform
         const personUrlRegex = /<a contenteditable\=\"false\" target\=\"\_blank\" href\=\"\/internal\/users\/\d+\"\>\w+(\s\w+)*\<\/a\>/g
         const personIdRegex = /\/internal\/users\/\d+/g
         const personNameRegex = /\/internal\/users\/\d+\"\>\w+(\s\w+)*/g
@@ -1047,11 +1049,15 @@ export default {
                 parsedText = parsedText.replace(match[0], replacementVal).replace(/\&nbsp\;/g, ' ');
             }
         }
-        // TODO: add artifact url parsing here
+        // artifact transform
+
+
+
         return parsedText;
     },
-    tokenToUrl: function(description) {
+    tokenToHtml: function(description) {
         let parsedText = description;
+        // Person transform
         const personTokenRegex = /\{\{ \"person\_id\"\: \"\d+\"\, \"full\_name\"\: \"\w+(\s\w+)*\" \}\}/g;
         const personIdRegex = /\{\{ \"person\_id\"\: \"\d+/g;
         // const personNameRegex = /\"full\_name\"\: \"\w+ \w+/g;
@@ -1071,7 +1077,25 @@ export default {
                 );
             }
         }
-        // TODO: add artifact url parsing here
+        // Artifact transform
+        const artifactTokenRegex = /\{\{ \"artifact\_id\"\: \"\d+\"\, \"identifier\"\: \"\w+(\s\w+)*\" \}\}/g;
+        const artifactIdRegex = /\{\{ \"artifact\_id\"\: \"\d+/g;
+        const artifactIdentifierRegex = /\"identifier\"\: \"\w+(\s\w+)*/g
+        let artifactTokenArray = [...description.matchAll(artifactTokenRegex)];
+        for (let artifactToken of artifactTokenArray) {
+            let idArray = [...artifactToken[0].matchAll(artifactIdRegex)];
+            let idStr = idArray[0][0]
+            let id = idStr.substring(19)
+            let identifierArray = [...personToken[0].matchAll(artifactIdentifierRegex)];
+            if (identifierArray && identifierArray.length > 0) {
+                let identifierStr = identifierArray[0][0]
+                let identifier = identifierStr.substr(15)
+                parsedText = parsedText.replace(
+                    artifactToken[0],
+                    `<span contenteditable="false" id="${id}" class="entity_edit">${identifier}</span>`
+                    );
+            }
+        }
         return parsedText
     },
     openModalEntityEdit: function(e) {
@@ -1081,11 +1105,19 @@ export default {
         //this.rowNumberSelected = e.target.id.split("-")[2]
         console.log(entityDataType)
         console.log(entityId)
+        if (entityId) {
+            entityId = parseInt(entityId, 10);
+        }
         this.entityEdit = {
             "data_type": entityDataType,
             "id": entityId,
         }
-        this.tabSelected = 'artifact';
+        if (['physical_artifact', 'document_artifact'].includes(entityDataType)) {
+            this.tabSelected = 'artifact';
+        } else if (entityDataType === 'individual') {
+            this.tabSelected = 'person';
+        }
+
         this.openPersonOrArtifact();
     },
     addEventListeners: function() {
@@ -1174,7 +1206,7 @@ export default {
             for (let r of this.runningSheetUrl) {
                 if (r.number === rowNumber) {
                     this.runningSheetUrl.splice(i, 1, returnedEntry.body);
-                    this.runningSheetUrl[i].description = this.tokenToUrl(this.runningSheetUrl[i].description);
+                    this.runningSheetUrl[i].description = this.tokenToHtml(this.runningSheetUrl[i].description);
                 }
                 i += 1
             }
@@ -1212,7 +1244,7 @@ export default {
             for (let r of this.runningSheetUrl) {
                 if (r.number === rowNumber) {
                     this.runningSheetUrl.splice(i, 1, returnedEntry.body);
-                    this.runningSheetUrl[i].description = this.tokenToUrl(this.runningSheetUrl[i].description);
+                    this.runningSheetUrl[i].description = this.tokenToHtml(this.runningSheetUrl[i].description);
                 }
                 i += 1
             }
@@ -1297,7 +1329,7 @@ export default {
         this.runningSheetUrl = _.cloneDeep(this.legal_case.running_sheet_entries);
         let i = 0;
         for (let r of this.legal_case.running_sheet_entries) {
-            let description = this.tokenToUrl(r.description)
+            let description = this.tokenToHtml(r.description)
             this.runningSheetUrl[i].description = description;
             i += 1;
         }
