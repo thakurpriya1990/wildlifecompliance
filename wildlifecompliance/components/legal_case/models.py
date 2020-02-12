@@ -497,6 +497,20 @@ class LegalCaseDocument(Document):
         app_label = 'wildlifecompliance'
 
 
+def update_court_ourcome_doc_filename(instance, filename):
+    return 'wildlifecompliance/legal_case/{}/court_outcome/{}'.format(instance.legal_case.id, filename)
+
+
+class CourtOutcomeDocument(Document):
+    court_proceedings = models.ForeignKey(CourtProceedings, related_name='documents')
+    _file = models.FileField(max_length=255, upload_to=update_court_ourcome_doc_filename)
+
+    class Meta:
+        app_label = 'wildlifecompliance'
+        verbose_name = 'CM_CourtOutcomeDocument'
+        verbose_name_plural = 'CM_CourtOutcomeDocuments'
+
+
 import reversion
 reversion.register(LegalCaseRunningSheetEntry, follow=['user'])
 reversion.register(CourtProceedingsJournalEntry, follow=['user'])
