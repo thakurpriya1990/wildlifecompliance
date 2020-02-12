@@ -374,17 +374,36 @@ class DocumentArtifactSerializer(ArtifactSerializer):
 
     def get_available_statement_artifacts(self, obj):
         artifact_list = []
-        if obj.legal_case:
-            for artifact in obj.legal_case.legal_case_document_artifacts_primary.all():
-                if obj != artifact and artifact.document_type and artifact.document_type in [
-                    'record_of_interview',
-                    'witness_statement',
-                    'expert_statement',
-                    'officer_statement'
-                ]:
-                    serialized_artifact = DocumentArtifactStatementSerializer(artifact)
-                    artifact_list.append(serialized_artifact.data)
-        return artifact_list
+        primary_legal_case = None
+        for link in obj.documentartifactlegalcases_set.all():
+            if link.primary:
+                primary_legal_case = link.legal_case
+        # for legal_case in obj.legal_cases.all():
+        #     if legal_case.primary:
+        #         primary_legal_case = legal_case
+        if primary_legal_case:
+            for link in primary_legal_case.documentartifactlegalcases_set.all():
+                    if (link.primary and link.document_artifact.document_type and 
+                            link.document_artifact.document_type in [
+                        'record_of_interview',
+                        'witness_statement',
+                        'expert_statement',
+                        'officer_statement'
+                    ]):
+                        serialized_artifact = DocumentArtifactStatementSerializer(link.document_artifact)
+                        artifact_list.append(serialized_artifact.data)
+            return artifact_list
+        #     #for artifact in obj.legal_case.legal_case_document_artifacts_primary.all():
+        #     for artifact in primary_legal_case.legal_case_document_artifacts_primary.all():
+        #         if obj != artifact and artifact.document_type and artifact.document_type in [
+        #             'record_of_interview',
+        #             'witness_statement',
+        #             'expert_statement',
+        #             'officer_statement'
+        #         ]:
+        #             serialized_artifact = DocumentArtifactStatementSerializer(artifact)
+        #             artifact_list.append(serialized_artifact.data)
+        # return artifact_list
 
 
 class SaveDocumentArtifactSerializer(ArtifactSerializer):
@@ -435,7 +454,7 @@ class PhysicalArtifactSerializer(ArtifactSerializer):
     related_items = serializers.SerializerMethodField()
     #legal_case_id_list = serializers.SerializerMethodField()
     associated_legal_case_id_list = serializers.SerializerMethodField()
-    available_statement_artifacts = serializers.SerializerMethodField()
+    #available_statement_artifacts = serializers.SerializerMethodField()
     data = PhysicalArtifactFormDataRecordSerializer(many=True)
     #status = CustomChoiceField(read_only=True)
 
@@ -468,7 +487,7 @@ class PhysicalArtifactSerializer(ArtifactSerializer):
                 'custodian_email',
                 #'status',
                 'created_at',
-                'available_statement_artifacts',
+                #'available_statement_artifacts',
                 'data',
                 )
         read_only_fields = (
@@ -500,19 +519,19 @@ class PhysicalArtifactSerializer(ArtifactSerializer):
     #        legal_case_id_list.append(legal_case.id)
     #    return legal_case_id_list
 
-    def get_available_statement_artifacts(self, obj):
-        artifact_list = []
-        if obj.legal_case:
-            for artifact in obj.legal_case.legal_case_document_artifacts_primary.all():
-                if obj != artifact and artifact.document_type and artifact.document_type in [
-                    'record_of_interview',
-                    'witness_statement',
-                    'expert_statement',
-                    'officer_statement'
-                ]:
-                    serialized_artifact = DocumentArtifactStatementSerializer(artifact)
-                    artifact_list.append(serialized_artifact.data)
-        return artifact_list
+    #def get_available_statement_artifacts(self, obj):
+    #    artifact_list = []
+    #    if obj.legal_case:
+    #        for artifact in obj.legal_case.legal_case_document_artifacts_primary.all():
+    #            if obj != artifact and artifact.document_type and artifact.document_type in [
+    #                'record_of_interview',
+    #                'witness_statement',
+    #                'expert_statement',
+    #                'officer_statement'
+    #            ]:
+    #                serialized_artifact = DocumentArtifactStatementSerializer(artifact)
+    #                artifact_list.append(serialized_artifact.data)
+    #    return artifact_list
 
 
 class SavePhysicalArtifactSerializer(ArtifactSerializer):
