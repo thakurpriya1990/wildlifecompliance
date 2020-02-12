@@ -412,21 +412,25 @@ class LegalCaseViewSet(viewsets.ModelViewSet):
                         if running_sheet_entry_serializer.is_valid():
                             running_sheet_entry_serializer.save()
                 # Court Proceedings
-                journal_entries = request.data.get('court_proceedings', {}).get('journal_entries_transform')
-                # if journal_entries and len(journal_entries) > 0:
-                if journal_entries:
-                    for key, entry in journal_entries.items():
-                        entry_copy = dict(entry)
-                        description = entry_copy.get('description', '')
-                        ascii_description = description.encode('ascii', 'xmlcharrefreplace')
-                        entry_copy.update({'description': ascii_description})
-                        entry_id = CourtProceedingsJournalEntry.objects.get(id = entry_copy.get('id'))
-                        journal_entry_serializer = SaveCourtProceedingsJournalEntrySerializer(
-                                instance=entry_id,
-                                data=entry_copy)
-                        journal_entry_serializer.is_valid(raise_exception=True)
-                        if journal_entry_serializer.is_valid():
-                            journal_entry_serializer.save()
+                court_proceedings = request.data.get('court_proceedings', {})
+                if court_proceedings:
+                    serializer = CourtProceedingsJournalSerializer(instance=instance.court_proceedings, data=court_proceedings)
+                    if serializer.is_valid(raise_exception=True):
+                        serializer.save()
+                    journal_entries = court_proceedings.get('journal_entries_transform')
+                    if journal_entries:
+                        for key, entry in journal_entries.items():
+                            entry_copy = dict(entry)
+                            description = entry_copy.get('description', '')
+                            ascii_description = description.encode('ascii', 'xmlcharrefreplace')
+                            entry_copy.update({'description': ascii_description})
+                            entry_id = CourtProceedingsJournalEntry.objects.get(id = entry_copy.get('id'))
+                            journal_entry_serializer = SaveCourtProceedingsJournalEntrySerializer(
+                                    instance=entry_id,
+                                    data=entry_copy)
+                            journal_entry_serializer.is_valid(raise_exception=True)
+                            if journal_entry_serializer.is_valid():
+                                journal_entry_serializer.save()
                 ## Brief Of Evidence
                 #brief_of_evidence = request.data.get('brief_of_evidence')
                 #if brief_of_evidence:

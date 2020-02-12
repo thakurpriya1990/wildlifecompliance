@@ -84,6 +84,7 @@ class CreateLegalCasePersonSerializer(serializers.ModelSerializer):
                 'id',
                 )
 
+
 class VersionSerializer(serializers.ModelSerializer):
     #serializable_value = serializers.JSONField()
     entry_fields = serializers.SerializerMethodField()
@@ -252,20 +253,21 @@ class CreateCourtProceedingsJournalEntrySerializer(serializers.ModelSerializer):
 
 
 class CourtProceedingsJournalSerializer(serializers.ModelSerializer):
-    journal_entries = CourtProceedingsJournalEntrySerializer(many=True)
+    journal_entries = CourtProceedingsJournalEntrySerializer(many=True, read_only=True)
 
     class Meta:
         model = CourtProceedings
         fields = (
                 'id',
-                # 'legal_case_id',
                 'court_outcome_details',
                 'journal_entries',
                 )
         read_only_fields = (
                 'id',
-                # 'legal_case_id',
         )
+
+    def validate(self, attrs):
+        return attrs
 
 #######################
 #class RunningSheetEntryVersionSerializer(serializers.ModelSerializer):
