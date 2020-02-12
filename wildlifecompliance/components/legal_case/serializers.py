@@ -40,6 +40,8 @@ from wildlifecompliance.components.artifact.serializers import (
         PhysicalArtifactSerializer,
         BriefOfEvidenceRecordOfInterviewSerializer,
         BriefOfEvidenceOtherStatementsSerializer,
+        BriefOfEvidenceDocumentArtifactsSerializer,
+        BriefOfEvidencePhysicalArtifactsSerializer,
         #SaveBriefOfEvidenceRecordOfInterviewSerializer,
         )
 #from wildlifecompliance.components.offence.serializers import OrganisationSerializer
@@ -538,6 +540,10 @@ class LegalCaseSerializer(serializers.ModelSerializer):
     legal_case_boe_other_statements = BriefOfEvidenceOtherStatementsSerializer(many=True)
     legal_case_boe_roi = BriefOfEvidenceRecordOfInterviewSerializer(many=True)
     brief_of_evidence = BriefOfEvidenceSerializer()
+    boe_physical_artifacts_ticked = serializers.SerializerMethodField()
+    boe_physical_artifacts_options = serializers.SerializerMethodField()
+    boe_document_artifacts_ticked = serializers.SerializerMethodField()
+    boe_document_artifacts_options = serializers.SerializerMethodField()
     #running_sheet_artifacts = LegalCaseRunningSheetArtifactsSerializer(read_only=True)
     #inspection_report = serializers.SerializerMethodField()
     #data = InspectionFormDataRecordSerializer(many=True)
@@ -580,12 +586,48 @@ class LegalCaseSerializer(serializers.ModelSerializer):
                 'boe_other_statements_options',
                 'legal_case_boe_other_statements',
 
+
+                'boe_physical_artifacts_ticked',
+                'boe_physical_artifacts_options',
+                'boe_document_artifacts_ticked',
+                'boe_document_artifacts_options',
                 'court_proceedings',
+
 
                 )
         read_only_fields = (
                 'id',
                 )
+
+    def get_boe_document_artifacts_ticked(self, obj):
+        ticked_list = []
+        for record in obj.legal_case_boe_document_artifacts.all():
+            if record.ticked:
+                ticked_list.append(record.id)
+        return ticked_list
+
+    def get_boe_document_artifacts_options(self, obj):
+        artifact_list = []
+        for artifact in obj.legal_case_boe_document_artifacts.all():
+            artifact_serializer = BriefOfEvidenceDocumentArtifactsSerializer(artifact)
+            serialized_artifact = artifact_serializer.data
+            artifact_list.append(serialized_artifact)
+        return artifact_list
+
+    def get_boe_physical_artifacts_ticked(self, obj):
+        ticked_list = []
+        for record in obj.legal_case_boe_physical_artifacts.all():
+            if record.ticked:
+                ticked_list.append(record.id)
+        return ticked_list
+
+    def get_boe_physical_artifacts_options(self, obj):
+        artifact_list = []
+        for artifact in obj.legal_case_boe_physical_artifacts.all():
+            artifact_serializer = BriefOfEvidencePhysicalArtifactsSerializer(artifact)
+            serialized_artifact = artifact_serializer.data
+            artifact_list.append(serialized_artifact)
+        return artifact_list
 
     def get_boe_other_statements_ticked(self, obj):
         ticked_list = []

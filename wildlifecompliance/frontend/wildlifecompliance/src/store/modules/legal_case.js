@@ -93,6 +93,9 @@ export const legalCaseStore = {
             Vue.set(state.legal_case, 'brief_of_evidence', brief_of_evidence);
             //Vue.set(state.legal_case.brief_of_evidence, 'legal_case_id', state.legal_case.id);
         },
+        updateBriefOfEvidencePhysicalArtifactDetailsList(state, physical_artifacts) {
+            Vue.set(state.legal_case, 'boe_physical_artifacts_details', physical_artifacts);
+        },
         updateRunningSheetEntryDescription(state, { recordNumber, description, userId }) {
             console.log(recordNumber)
             console.log(description)
@@ -123,6 +126,18 @@ export const legalCaseStore = {
             Vue.set(state.legal_case, 'boe_other_statements_ticked', []);
             for (let r of boeOtherStatementsTicked) {
                 state.legal_case.boe_other_statements_ticked.push(r)
+            }
+        },
+        updateBoePhysicalArtifactsTicked(state, boePhysicalArtifactsTicked) {
+            Vue.set(state.legal_case, 'boe_physical_artifacts_ticked', []);
+            for (let r of boePhysicalArtifactsTicked) {
+                state.legal_case.boe_physical_artifacts_ticked.push(r)
+            }
+        },
+        updateBoeDocumentArtifactsTicked(state, boeDocumentArtifactsTicked) {
+            Vue.set(state.legal_case, 'boe_document_artifacts_ticked', []);
+            for (let r of boeDocumentArtifactsTicked) {
+                state.legal_case.boe_document_artifacts_ticked.push(r)
             }
         },
     },
@@ -224,9 +239,10 @@ export const legalCaseStore = {
         setCourtProceedingsTransform({ commit }, journal_entry_transform) {
             commit("updateCourtProceedingsTransform", journal_entry_transform);
         },
-        setBriefOfEvidence({ commit }, brief_of_evidence ) {
-            console.log(brief_of_evidence)
+        setBriefOfEvidence({ commit }, {brief_of_evidence, physical_artifacts} ) {
+            //console.log(brief_of_evidence)
             commit("updateBriefOfEvidence", brief_of_evidence);
+            commit("updateBriefOfEvidencePhysicalArtifactDetailsList", physical_artifacts);
         },
         setRunningSheetEntryDescription({ commit }, {recordNumber, description, userId}) {
             commit("updateRunningSheetEntryDescription", {recordNumber, description, userId})
@@ -239,6 +255,12 @@ export const legalCaseStore = {
         },
         setBoeOtherStatementsTicked({ commit }, boeOtherStatementsTicked) {
             commit("updateBoeOtherStatementsTicked", boeOtherStatementsTicked)
+        },
+        setBoePhysicalArtifactsTicked({ commit }, boePhysicalArtifactsTicked) {
+            commit("updateBoePhysicalArtifactsTicked", boePhysicalArtifactsTicked)
+        },
+        setBoeDocumentArtifactsTicked({ commit }, boeDocumentArtifactsTicked) {
+            commit("updateBoeDocumentArtifactsTicked", boeDocumentArtifactsTicked)
         },
     },
 };

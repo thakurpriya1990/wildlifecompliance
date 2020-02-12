@@ -116,6 +116,10 @@ from wildlifecompliance.components.artifact.utils import (
         update_boe_roi_ticked,
         build_all_boe_other_statements_hierarchy,
         update_boe_other_statements_ticked,
+        generate_boe_physical_artifacts,
+        generate_boe_document_artifacts,
+        update_boe_physical_artifacts_ticked,
+        update_boe_document_artifacts_ticked,
         )
 #from wildlifecompliance.components.artifact.serializers import SaveBriefOfEvidenceRecordOfInterviewSerializer
 #from reversion.models import Version
@@ -458,6 +462,10 @@ class LegalCaseViewSet(viewsets.ModelViewSet):
                 update_boe_roi_ticked(instance, boe_roi_ticked)
                 boe_other_statements_ticked = request.data.get('boe_other_statements_ticked')
                 update_boe_other_statements_ticked(instance, boe_other_statements_ticked)
+                boe_physical_artifacts_ticked = request.data.get('boe_physical_artifacts_ticked')
+                update_boe_physical_artifacts_ticked(instance, boe_physical_artifacts_ticked)
+                boe_document_artifacts_ticked = request.data.get('boe_document_artifacts_ticked')
+                update_boe_document_artifacts_ticked(instance, boe_document_artifacts_ticked)
                 # LegalCasePerson
                 self.add_associated_persons(instance, request)
                 serializer = SaveLegalCaseSerializer(instance, data=request.data)
@@ -739,6 +747,8 @@ class LegalCaseViewSet(viewsets.ModelViewSet):
                 elif workflow_type == 'brief_of_evidence':
                     build_all_boe_other_statements_hierarchy(instance)
                     build_all_boe_roi_hierarchy(instance)
+                    generate_boe_document_artifacts(instance)
+                    generate_boe_physical_artifacts(instance)
                     instance.generate_brief_of_evidence(request)
                 #    instance.send_to_manager(request)
                 #elif workflow_type == 'request_amendment':

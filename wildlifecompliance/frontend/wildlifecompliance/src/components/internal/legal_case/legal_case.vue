@@ -887,7 +887,10 @@ export default {
       await this.runningSheetTransformWrapper();
       // add brief_of_evidence to legal_case
       if (this.$refs.brief_of_evidence) {
-          await this.setBriefOfEvidence(this.$refs.brief_of_evidence.briefOfEvidence);
+          await this.setBriefOfEvidence({
+              "brief_of_evidence": this.$refs.brief_of_evidence.briefOfEvidence,
+              "physical_artifacts": this.$refs.brief_of_evidence.physicalArtifacts,
+          });
       }
       if (createNewRow) {
           //await this.saveLegalCase({ create: false, internal: true, createNewRow: true });

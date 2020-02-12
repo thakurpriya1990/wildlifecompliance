@@ -99,12 +99,12 @@ def delete_document(request, instance, comms_instance, document_type, input_name
         document = instance.renderer_documents.get(id=document_id, input_name=input_name)
 
     # Application Issuance docs delete
-    if document_type == 'issuance_documents' and 'document_id' in request.data:
+    elif document_type == 'issuance_documents' and 'document_id' in request.data:
         document_id = request.data.get('document_id')
         document = instance.issuance_documents.get(id=document_id)
 
     # inspection report delete
-    if document_type == 'inspection_report' and 'document_id' in request.data:
+    elif document_type == 'inspection_report' and 'document_id' in request.data:
         document_id = request.data.get('document_id')
         document = instance.report.get(id=document_id)
 
@@ -142,7 +142,7 @@ def cancel_document(request, instance, comms_instance, document_type, input_name
                 document.delete()
 
         # Application issuance documents cancel
-        if document_type == 'issuance_documents':
+        elif document_type == 'issuance_documents':
             document_list = instance.issuance_documents.all()
 
             for document in document_list:
@@ -162,7 +162,7 @@ def cancel_document(request, instance, comms_instance, document_type, input_name
                 document.delete()
 
         # inspection report cancel
-        if document_type == 'inspection_report':
+        elif document_type == 'inspection_report':
             document_list = instance.report.all()
 
             for document in document_list:
@@ -212,7 +212,7 @@ def save_document(request, instance, comms_instance, document_type, input_name=N
             document._file = path
             document.save()
         # Application issuance document save
-        if document_type == 'issuance_documents' and 'filename' in request.data:
+        elif document_type == 'issuance_documents' and 'filename' in request.data:
             filename = request.data.get('filename')
             _file = request.data.get('_file')
 
