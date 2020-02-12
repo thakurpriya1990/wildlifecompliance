@@ -21,7 +21,7 @@
                                 <li :class="detailsTabListClass"><a data-toggle="tab" @click="updateTabSelected('detailsTab')" :href="'#'+detailsTab" >Details</a></li>
                                 <li :class="storageTabListClass"><a data-toggle="tab" @click="updateTabSelected('storageTab')" :href="'#'+storageTab" >Storage</a></li>
                                 <li :class="disposalTabListClass"><a data-toggle="tab" @click="updateTabSelected('disposalTab')" :href="'#'+disposalTab" >Disposal</a></li>
-                                <li :class="relatedItemsTabListClass"><a data-toggle="tab" @click="updateTabSelected('relatedItemsTab')" :href="'#'+relatedItemsTab" >Related Items</a></li>
+                                <li v-if="!parentModal" :class="relatedItemsTabListClass"><a data-toggle="tab" @click="updateTabSelected('relatedItemsTab')" :href="'#'+relatedItemsTab" >Related Items</a></li>
                             </ul>
                             <div class="tab-content">
                                 <div :id="objectTab" :class="objectTabClass">
@@ -42,6 +42,20 @@
                                               </div>
                                             </div>
                                         </div>
+                                        <div class="col-sm-12 form-group"><div class="row">
+                                          <label class="col-sm-6">Object used within this case?</label>
+                                            <input :disabled="readonlyForm" class="col-sm-1" id="yes" type="radio" v-model="physical_artifact.used_within_case" v-bind:value="true">
+                                            <label class="col-sm-1" for="yes">Yes</label>
+                                            <input :disabled="readonlyForm" class="col-sm-1" id="no" type="radio" v-model="physical_artifact.used_within_case" v-bind:value="false">
+                                            <label class="col-sm-1" for="no">No</label>
+                                        </div></div>
+                                        <div class="col-sm-12 form-group"><div class="row">
+                                          <label class="col-sm-6">Object is sensitive / non-disclosable?</label>
+                                            <input :disabled="readonlyForm" class="col-sm-1" id="yes" type="radio" v-model="physical_artifact.sensitive_non_disclosable" v-bind:value="true">
+                                            <label class="col-sm-1" for="yes">Yes</label>
+                                            <input :disabled="readonlyForm" class="col-sm-1" id="no" type="radio" v-model="physical_artifact.sensitive_non_disclosable" v-bind:value="false">
+                                            <label class="col-sm-1" for="no">No</label>
+                                        </div></div>
                                         <div class="col-sm-12">
                                             <div class="form-group">
                                               <div class="row">
@@ -240,7 +254,7 @@
                                         </div>
                                     </FormSection>
                                 </div>
-                                <div :id="relatedItemsTab" :class="relatedItemsTabClass">
+                                <div :id="relatedItemsTab" v-if="!parentModal" :class="relatedItemsTabClass">
                                     <FormSection :formCollapse="false" label="Related Items">
                                         <div class="col-sm-12 form-group"><div class="row">
                                             <div class="col-sm-12" v-if="relatedItemsVisibility">
