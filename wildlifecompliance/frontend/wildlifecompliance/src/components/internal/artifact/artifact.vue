@@ -228,8 +228,17 @@ export default {
     csrf_token: function() {
       return helpers.getCookie("csrftoken");
     },
+    /*
     artifactStatusDisplay: function() {
         return this.baseArtifact.status ? this.baseArtifact.status.name : '';
+    },
+    */
+    artifactStatusDisplay: function() {
+        if (this.componentType === 'document') {
+            return this.document_artifact.status ? this.document_artifact.status.name : '';
+        } else if (this.componentType === 'physical') {
+            return this.physical_artifact.status ? this.physical_artifact.status.name : '';
+        }
     },
     readonlyForm: function() {
         /*

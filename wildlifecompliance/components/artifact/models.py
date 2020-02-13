@@ -528,13 +528,12 @@ class PhysicalArtifact(Artifact):
 
     def dispose(self, request=None):
         print("dispose")
-        #'disposal_date',
-        #'disposal_method_id',
-        #'disposal_details',
         disposal_date = request.data.get('disposal_date')
         disposal_method_id = request.data.get('disposal_method_id')
         disposal_details = request.data.get('disposal_details')
         self.disposal_date = disposal_date
+        self.disposal_method_id = disposal_method_id
+        self.disposal_details = disposal_details
         #self.save()
         self.close()
 

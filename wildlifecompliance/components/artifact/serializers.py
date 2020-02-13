@@ -244,7 +244,8 @@ class PhysicalArtifactDisposalMethodSerializer(serializers.ModelSerializer):
                 )
 
 
-class DocumentArtifactStatementSerializer(ArtifactSerializer):
+#class DocumentArtifactStatementSerializer(ArtifactSerializer):
+class DocumentArtifactStatementSerializer(serializers.ModelSerializer):
     document_type_display = serializers.SerializerMethodField()
     custodian = serializers.SerializerMethodField()
 
@@ -283,7 +284,8 @@ class DocumentArtifactStatementSerializer(ArtifactSerializer):
             custodian = obj.officer_interviewer_email
         return custodian
 
-class DocumentArtifactSerializer(ArtifactSerializer):
+#class DocumentArtifactSerializer(ArtifactSerializer):
+class DocumentArtifactSerializer(serializers.ModelSerializer):
     statement = DocumentArtifactStatementSerializer(read_only=True)
     #document_type = DocumentArtifactTypeSerializer(read_only=True)
     #document_type = CustomChoiceField(read_only=True)
@@ -300,7 +302,7 @@ class DocumentArtifactSerializer(ArtifactSerializer):
     offender = OffenderSerializer(read_only=True)
     related_items = serializers.SerializerMethodField()
     available_statement_artifacts = serializers.SerializerMethodField()
-    #status = CustomChoiceField(read_only=True)
+    status = CustomChoiceField(read_only=True)
 
     class Meta:
         model = DocumentArtifact
@@ -330,7 +332,7 @@ class DocumentArtifactSerializer(ArtifactSerializer):
                 #'officer_interviewer_email',
                 'officer_interviewer',
                 'document_type_display',
-                #'status',
+                'status',
                 'created_at',
                 'available_statement_artifacts',
                 )
@@ -406,7 +408,8 @@ class DocumentArtifactSerializer(ArtifactSerializer):
         # return artifact_list
 
 
-class SaveDocumentArtifactSerializer(ArtifactSerializer):
+#class SaveDocumentArtifactSerializer(ArtifactSerializer):
+class SaveDocumentArtifactSerializer(serializers.ModelSerializer):
     #document_type_id = serializers.IntegerField(
      #   required=False, write_only=True, allow_null=True)
     #custodian_id = serializers.IntegerField(
@@ -446,7 +449,8 @@ class SaveDocumentArtifactSerializer(ArtifactSerializer):
                 )
 
 
-class PhysicalArtifactSerializer(ArtifactSerializer):
+#class PhysicalArtifactSerializer(ArtifactSerializer):
+class PhysicalArtifactSerializer(serializers.ModelSerializer):
     statement = DocumentArtifactSerializer(read_only=True)
     physical_artifact_type = PhysicalArtifactTypeSerializer(read_only=True)
     officer = EmailUserSerializer(read_only=True)
@@ -456,7 +460,7 @@ class PhysicalArtifactSerializer(ArtifactSerializer):
     associated_legal_case_id_list = serializers.SerializerMethodField()
     #available_statement_artifacts = serializers.SerializerMethodField()
     data = PhysicalArtifactFormDataRecordSerializer(many=True)
-    #status = CustomChoiceField(read_only=True)
+    status = CustomChoiceField(read_only=True)
 
     class Meta:
         model = PhysicalArtifact
@@ -485,7 +489,7 @@ class PhysicalArtifactSerializer(ArtifactSerializer):
                 #'legal_case_id',
                 'officer_email',
                 'custodian_email',
-                #'status',
+                'status',
                 'created_at',
                 #'available_statement_artifacts',
                 'data',
@@ -534,7 +538,8 @@ class PhysicalArtifactSerializer(ArtifactSerializer):
     #    return artifact_list
 
 
-class SavePhysicalArtifactSerializer(ArtifactSerializer):
+#class SavePhysicalArtifactSerializer(ArtifactSerializer):
+class SavePhysicalArtifactSerializer(serializers.ModelSerializer):
     statement_id = serializers.IntegerField(
         required=False, write_only=True, allow_null=True)
     physical_artifact_type_id = serializers.IntegerField(

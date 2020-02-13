@@ -946,7 +946,7 @@ export default {
             });
             disposal_date_control.on("dp.change", function(e) {
                 console.log(e)
-                if (el_fr_date.data("DateTimePicker").date()) {
+                if (disposal_date_control.data("DateTimePicker").date()) {
                   vm.physical_artifact.disposal_date = e.date.format("DD/MM/YYYY");
                 } else if (disposal_date_control.data("date") === "") {
                   vm.physical_artifact.disposal_date = "";
