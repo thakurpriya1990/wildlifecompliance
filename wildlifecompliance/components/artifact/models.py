@@ -526,6 +526,18 @@ class PhysicalArtifact(Artifact):
     #            if parent.status == 'pending_closure':
     #                parent.close(request)
 
+    def dispose(self, request=None):
+        print("dispose")
+        #'disposal_date',
+        #'disposal_method_id',
+        #'disposal_details',
+        disposal_date = request.data.get('disposal_date')
+        disposal_method_id = request.data.get('disposal_method_id')
+        disposal_details = request.data.get('disposal_details')
+        self.disposal_date = disposal_date
+        #self.save()
+        self.close()
+
     def close(self, request=None):
         # TODO: add logic to check for disposal date
         # NOTE: close_record logic moved to can_close_legal_case
@@ -536,6 +548,8 @@ class PhysicalArtifact(Artifact):
                     request)
         else:
             self.status = self.STATUS_CLOSED
+            # attempt to close parent
+            ##
             self.log_user_action(
                     ArtifactUserAction.ACTION_CLOSE.format(self.number),
                     request)

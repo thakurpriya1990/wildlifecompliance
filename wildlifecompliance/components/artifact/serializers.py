@@ -539,8 +539,8 @@ class SavePhysicalArtifactSerializer(ArtifactSerializer):
         required=False, write_only=True, allow_null=True)
     physical_artifact_type_id = serializers.IntegerField(
         required=False, write_only=True, allow_null=True)
-    disposal_method_id = serializers.IntegerField(
-        required=False, write_only=True, allow_null=True)
+    #disposal_method_id = serializers.IntegerField(
+     #required=False, write_only=True, allow_null=True)
     custodian_id = serializers.IntegerField(
         required=False, write_only=True, allow_null=True)
     #legal_case_id = serializers.IntegerField(
@@ -560,9 +560,9 @@ class SavePhysicalArtifactSerializer(ArtifactSerializer):
                 'physical_artifact_type_id',
                 'officer_email',
                 'custodian_email',
-                'disposal_date',
-                'disposal_method_id',
-                'disposal_details',
+                #'disposal_date',
+                #'disposal_method_id',
+                #'disposal_details',
                 'statement_id',
                 #'sensitive_non_disclosable',
                 )
