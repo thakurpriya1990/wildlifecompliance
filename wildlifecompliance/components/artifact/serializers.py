@@ -461,7 +461,6 @@ class PhysicalArtifactLegalCasesSerializer(serializers.ModelSerializer):
                 'primary',
                 'used_within_case',
                 'sensitive_non_disclosable',
-                'reason_sensitive_non_disclosable',
                 )
         read_only_fields = (
                 'id',
@@ -702,6 +701,7 @@ class BriefOfEvidencePhysicalArtifactsSerializer(serializers.ModelSerializer):
                 'physical_artifact_id',
                 'ticked',
                 'label',
+                'reason_sensitive_non_disclosable',
                 #'children',
                 )
         read_only_fields = (

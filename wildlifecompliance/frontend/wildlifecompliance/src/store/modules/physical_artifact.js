@@ -90,6 +90,12 @@ export const physicalArtifactStore = {
             console.log(statement_id)
             Vue.set(state.physical_artifact, 'statement_id', statement_id);
         },
+        updateUsedWithinCase(state, used_within_case) {
+            Vue.set(state.physical_artifact, 'used_within_case', used_within_case);
+        },
+        updateSensitiveNonDisclosable(state, sensitive_non_disclosable) {
+            Vue.set(state.physical_artifact, 'sensitive_non_disclosable', sensitive_non_disclosable);
+        },
         /*
         updatePhysicalArtifactLegalId(state, legal_case_id) {
             Vue.set(state.physical_artifact, 'legal_case_id', legal_case_id);
@@ -223,6 +229,12 @@ export const physicalArtifactStore = {
         },
         setStatementId({ commit }, statement_id) {
             commit("updateStatementId", statement_id);
+        },
+        setUsedWithinCase({ commit }, used_within_case) {
+            commit("updateUsedWithinCase", used_within_case);
+        },
+        setSensitiveNonDisclosable({ commit }, sensitive_non_disclosable) {
+            commit("updateSensitiveNonDisclosable", sensitive_non_disclosable);
         },
     },
 };

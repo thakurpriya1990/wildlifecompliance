@@ -454,13 +454,17 @@ class LegalCaseViewSet(viewsets.ModelViewSet):
                         boe_serializer.save()
 
                 boe_roi_ticked = request.data.get('boe_roi_ticked')
-                update_boe_roi_ticked(instance, boe_roi_ticked)
+                if boe_roi_ticked:
+                    update_boe_roi_ticked(instance, boe_roi_ticked)
                 boe_other_statements_ticked = request.data.get('boe_other_statements_ticked')
-                update_boe_other_statements_ticked(instance, boe_other_statements_ticked)
+                if boe_other_statements_ticked:
+                    update_boe_other_statements_ticked(instance, boe_other_statements_ticked)
                 boe_physical_artifacts_ticked = request.data.get('boe_physical_artifacts_ticked')
-                update_boe_physical_artifacts_ticked(instance, boe_physical_artifacts_ticked)
+                if boe_physical_artifacts_ticked:
+                    update_boe_physical_artifacts_ticked(instance, boe_physical_artifacts_ticked)
                 boe_document_artifacts_ticked = request.data.get('boe_document_artifacts_ticked')
-                update_boe_document_artifacts_ticked(instance, boe_document_artifacts_ticked)
+                if boe_document_artifacts_ticked:
+                    update_boe_document_artifacts_ticked(instance, boe_document_artifacts_ticked)
                 # LegalCasePerson
                 self.add_associated_persons(instance, request)
                 serializer = SaveLegalCaseSerializer(instance, data=request.data)

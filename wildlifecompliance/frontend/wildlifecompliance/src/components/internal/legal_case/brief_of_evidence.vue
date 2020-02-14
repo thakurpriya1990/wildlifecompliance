@@ -142,35 +142,25 @@
                             </FormSection>
                             <FormSection id="physical-artifacts-tree" :formCollapse="false" label="List of Exhibits, Sensitive Unused and Non-Sensitive Unused Materials" treeHeight="yes">
                                 <div class="col-sm-12 form-group"><div class="row">
-                                    <TreeSelect 
-                                    ref="physical_artifacts_tree" 
-                                    :value="boePhysicalArtifactsTicked" 
-                                    :options="boePhysicalArtifactsOptions" 
-                                    :default-expand-level="Infinity" 
-                                    :disabled="false"
-                                    multiple
-                                    value-consists-of="LEAF_PRIORITY"
-                                    @input="setBoePhysicalArtifactsTicked"
-                                    alwaysOpen
-                                    :searchable="false"
-                                    >
-                                    <!--div slot="value-label" slot-scope="{ node }">{{ node.raw.customLabel }} value label
-                                        <textarea :readonly="readonlyForm" class="form-control"/>
-                                    </div-->
-                                    <label slot="option-label" slot-scope="{ node }" >
-                                            <!--span v-if="shouldShowCount" :class="countClassName">({{ count }})</span-->
-                                            {{ node.label }}
-                                        <textarea
-                                            :id="'boe_physical_artifact_' + node.raw.physical_artifact_id"
-                                            :readonly="readonlyForm"
-                                            class="form-control boe_physical_artifacts_textarea" 
-                                        />
+                                    <label class="col-sm-10">Select the objects to be included on the list of exhibits
+                                        <div class="row" v-for="artifact in physicalArtifactsUsed">
+                                            <input class="col-sm-1" type="checkbox" :value="artifact.id" v-model="physicalArtifactsUsedTicked">
+                                            <label class="col-sm-4">{{ artifact.label }}</label>
+                                        </div>
                                     </label>
-                                    </TreeSelect>
-                                    <!--label slot="option-label" slot-scope="{ node, shouldShowCount, count, labelClassName, countClassName }" :class="labelClassName">
-                                        {{ node.isBranch ? 'Branch' : 'Leaf' }}: {{ node.label }} label slot
-                                            <span v-if="shouldShowCount" :class="countClassName">({{ count }})</span>
-                                    </label-->
+                                    <label class="col-sm-10">Select the objects to be included on the sensitive unused list of materials
+                                        <div class="row" v-for="artifact in physicalArtifactsSensitiveUnused">
+                                            <input class="col-sm-1" type="checkbox" :value="artifact.id" v-model="physicalArtifactsSensitiveUnusedTicked">
+                                            <label class="col-sm-4">{{ artifact.label }}</label>
+                                            <textarea class="form-control col-sm-6" :value="artifact.reason_sensitive_non_disclosable" />
+                                        </div>
+                                    </label>
+                                    <label class="col-sm-10">Select the objects to be included on the non-sensitive unused list of materials
+                                        <div class="row" v-for="artifact in physicalArtifactsNonSensitiveUnused">
+                                            <input class="col-sm-1" type="checkbox" :value="artifact.id" v-model="physicalArtifactsNonSensitiveUnusedTicked">
+                                            <label class="col-sm-4">{{ artifact.label }}</label>
+                                        </div>
+                                    </label>
                                 </div></div>
                             </FormSection>
                             <FormSection :formCollapse="false" label="List of Photographic, Video and Sound Exhibits" treeHeight="yes">
@@ -222,6 +212,12 @@ export default {
             uuid: 0,
             briefOfEvidence: {},
             physicalArtifacts: [],
+            physicalArtifactsNonSensitiveUnused: [],
+            physicalArtifactsSensitiveUnused: [],
+            physicalArtifactsUsed: [],
+            physicalArtifactsNonSensitiveUnusedTicked: [],
+            physicalArtifactsSensitiveUnusedTicked: [],
+            physicalArtifactsUsedTicked: [],
       };
   },
   components: {
@@ -244,6 +240,7 @@ export default {
         return brief;
     },
     */
+
     readonlyForm: function() {
         let readonly = true
         if (this.legal_case && this.legal_case.id) {
@@ -346,6 +343,9 @@ export default {
       setBoePhysicalArtifactsTicked: 'setBoePhysicalArtifactsTicked',
       setBoeDocumentArtifactsTicked: 'setBoeDocumentArtifactsTicked',
     }),
+    setPhysicalArtifactsUsed: function(artifact) {
+        console.log(artifact)
+    },
     setPhysicalArtifactDetails: function(elemId, fieldValue) {
         let physical_artifact_id = elemId.replace("boe_physical_artifact_", "");
         let fieldUpdated = false;
@@ -398,6 +398,37 @@ export default {
       if (this.legal_case && this.legal_case.brief_of_evidence) {
           Object.assign(this.briefOfEvidence, this.legal_case.brief_of_evidence);
       }
+      if (this.legal_case.boe_physical_artifacts_non_sensitive_unused_options &&
+          this.legal_case.boe_physical_artifacts_non_sensitive_unused_options.length > 0) {
+          for (let artifact of this.legal_case.boe_physical_artifacts_non_sensitive_unused_options) {
+              let cloned_artifact = _.cloneDeep(artifact);
+              this.physicalArtifactsNonSensitiveUnused.push(artifact)
+              if (artifact.ticked) {
+                  this.physicalArtifactsNonSensitiveUnusedTicked.push(artifact.id)
+              }
+            }
+      }
+      if (this.legal_case.boe_physical_artifacts_sensitive_unused_options &&
+          this.legal_case.boe_physical_artifacts_sensitive_unused_options.length > 0) {
+          for (let artifact of this.legal_case.boe_physical_artifacts_sensitive_unused_options) {
+              let cloned_artifact = _.cloneDeep(artifact);
+              this.physicalArtifactsSensitiveUnused.push(artifact)
+              if (artifact.ticked) {
+                  this.physicalArtifactsSensitiveUnusedTicked.push(artifact.id)
+              }
+          }
+      }
+      if (this.legal_case.boe_physical_artifacts_used_options &&
+          this.legal_case.boe_physical_artifacts_used_options.length > 0) {
+          for (let artifact of this.legal_case.boe_physical_artifacts_used_options) {
+              let cloned_artifact = _.cloneDeep(artifact);
+              this.physicalArtifactsUsed.push(artifact)
+              if (artifact.ticked) {
+                  this.physicalArtifactsUsedTicked.push(artifact.id)
+              }
+          }
+      }
+
   },
   mounted: function() {
       this.$nextTick(() => {

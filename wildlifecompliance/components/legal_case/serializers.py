@@ -618,7 +618,10 @@ class LegalCaseSerializer(serializers.ModelSerializer):
         ticked_list = []
         #for record in obj.legal_case_boe_physical_artifacts.all():
         for record in obj.briefofevidencephysicalartifacts_set.all():
-            if record.ticked and record.used_in_case:
+            legal_case_physical_artifact_link = obj.physicalartifactlegalcases_set.get(
+                    legal_case_id=obj.id,
+                    physical_artifact_id=record.physical_artifact.id)
+            if record.ticked and legal_case_physical_artifact_link.used_within_case:
                 ticked_list.append(record.id)
         return ticked_list
 
@@ -626,8 +629,11 @@ class LegalCaseSerializer(serializers.ModelSerializer):
         artifact_list = []
         #for artifact in obj.legal_case_boe_physical_artifacts.all():
         for record in obj.briefofevidencephysicalartifacts_set.all():
-            if record.used_in_case:
-                artifact_serializer = BriefOfEvidencePhysicalArtifactsSerializer(record.physical_artifact)
+            legal_case_physical_artifact_link = obj.physicalartifactlegalcases_set.get(
+                    legal_case_id=obj.id,
+                    physical_artifact_id=record.physical_artifact.id)
+            if legal_case_physical_artifact_link.used_within_case:
+                artifact_serializer = BriefOfEvidencePhysicalArtifactsSerializer(record)
                 serialized_artifact = artifact_serializer.data
                 artifact_list.append(serialized_artifact)
         return artifact_list
@@ -636,7 +642,13 @@ class LegalCaseSerializer(serializers.ModelSerializer):
         ticked_list = []
         #for record in obj.legal_case_boe_physical_artifacts.all():
         for record in obj.briefofevidencephysicalartifacts_set.all():
-            if record.ticked and not record.used_in_case and record.sensitive_non_disclosable:
+            legal_case_physical_artifact_link = obj.physicalartifactlegalcases_set.get(
+                    legal_case_id=obj.id,
+                    physical_artifact_id=record.physical_artifact.id)
+            if (record.ticked and not 
+                    legal_case_physical_artifact_link.used_within_case and 
+                    legal_case_physical_artifact_link.sensitive_non_disclosable
+                    ):
                 ticked_list.append(record.id)
         return ticked_list
 
@@ -644,8 +656,13 @@ class LegalCaseSerializer(serializers.ModelSerializer):
         artifact_list = []
         #for artifact in obj.legal_case_boe_physical_artifacts.all():
         for record in obj.briefofevidencephysicalartifacts_set.all():
-            if record.ticked and not record.used_in_case and record.sensitive_non_disclosable:
-                artifact_serializer = BriefOfEvidencePhysicalArtifactsSerializer(record.physical_artifact)
+            legal_case_physical_artifact_link = obj.physicalartifactlegalcases_set.get(
+                    legal_case_id=obj.id,
+                    physical_artifact_id=record.physical_artifact.id)
+            if (not legal_case_physical_artifact_link.used_within_case and 
+                    legal_case_physical_artifact_link.sensitive_non_disclosable
+                    ):
+                artifact_serializer = BriefOfEvidencePhysicalArtifactsSerializer(record)
                 serialized_artifact = artifact_serializer.data
                 artifact_list.append(serialized_artifact)
         return artifact_list
@@ -654,7 +671,14 @@ class LegalCaseSerializer(serializers.ModelSerializer):
         ticked_list = []
         #for record in obj.legal_case_boe_physical_artifacts.all():
         for record in obj.briefofevidencephysicalartifacts_set.all():
-            if record.ticked and not record.used_in_case and not record.sensitive_non_disclosable:
+            legal_case_physical_artifact_link = obj.physicalartifactlegalcases_set.get(
+                    legal_case_id=obj.id,
+                    physical_artifact_id=record.physical_artifact.id)
+            #if record.ticked and not record.used_within_case and not record.sensitive_non_disclosable:
+            if (record.ticked and not 
+                    legal_case_physical_artifact_link.used_within_case and not
+                    legal_case_physical_artifact_link.sensitive_non_disclosable
+                    ):
                 ticked_list.append(record.id)
         return ticked_list
 
@@ -662,8 +686,14 @@ class LegalCaseSerializer(serializers.ModelSerializer):
         artifact_list = []
         #for artifact in obj.legal_case_boe_physical_artifacts.all():
         for record in obj.briefofevidencephysicalartifacts_set.all():
-            if record.ticked and not record.used_in_case and not record.sensitive_non_disclosable:
-                artifact_serializer = BriefOfEvidencePhysicalArtifactsSerializer(record.physical_artifact)
+            legal_case_physical_artifact_link = obj.physicalartifactlegalcases_set.get(
+                    legal_case_id=obj.id,
+                    physical_artifact_id=record.physical_artifact.id)
+            #if record.ticked and not record.used_within_case and not record.sensitive_non_disclosable:
+            if (not legal_case_physical_artifact_link.used_within_case and not
+                    legal_case_physical_artifact_link.sensitive_non_disclosable
+                    ):
+                artifact_serializer = BriefOfEvidencePhysicalArtifactsSerializer(record)
                 serialized_artifact = artifact_serializer.data
                 artifact_list.append(serialized_artifact)
         return artifact_list

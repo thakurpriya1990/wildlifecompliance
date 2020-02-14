@@ -486,8 +486,11 @@ class PhysicalArtifactViewSet(viewsets.ModelViewSet):
                     headers = self.get_success_headers(serializer.data)
                     # save legal_case_id
                     legal_case_id = request_data.get('legal_case_id')
-                    used_within_case = request_data.get('used_within_case')
-                    sensitive_non_disclosable = request_data.get('sensitive_non_disclosable')
+                    used_within_case = (request_data.get('used_within_case') if 
+                            'used_within_case' in request_data.keys() else None)
+                    sensitive_non_disclosable = (request_data.get('sensitive_non_disclosable') if
+                            'sensitive_non_disclosable' in request_data.keys() else None)
+                    #reason_sensitive_non_disclosable = request_data.get('reason_sensitive_non_disclosable')
                     if legal_case_id:
                         #instance.add_legal_case(legal_case_id)
                         try:
@@ -511,10 +514,12 @@ class PhysicalArtifactViewSet(viewsets.ModelViewSet):
                                 link = PhysicalArtifactLegalCases.objects.create_with_primary(
                                         legal_case_id=legal_case.id,
                                         physical_artifact_id=saved_instance.id)
-                            if used_within_case:
+                            if used_within_case is not None:
                                 link.used_within_case = used_within_case
-                            if sensitive_non_disclosable:
+                            if sensitive_non_disclosable is not None:
                                 link.sensitive_non_disclosable = sensitive_non_disclosable
+                            #if reason_sensitive_non_disclosable:
+                             #   link.reason_sensitive_non_disclosable = reason_sensitive_non_disclosable
                             link.save()
 
                     # save temp doc if exists
