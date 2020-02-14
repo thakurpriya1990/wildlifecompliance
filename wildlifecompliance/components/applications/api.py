@@ -64,6 +64,10 @@ from wildlifecompliance.components.applications.serializers import (
     ApplicationSelectedActivitySerializer,
 )
 
+from wildlifecompliance.components.main.process_document import (
+        process_generic_document,
+        )
+
 from rest_framework_datatables.pagination import DatatablesPageNumberPagination
 from rest_framework_datatables.filters import DatatablesFilterBackend
 from rest_framework_datatables.renderers import DatatablesRenderer
@@ -621,15 +625,17 @@ class ApplicationViewSet(viewsets.ModelViewSet):
             product_lines = []
             if instance.application_fee < 1:
                 raise Exception('Checkout request for zero amount.')
-            application_submission = u'Application fee for {}'.format(
+
+            application_submission = u'Application No: {}'.format(
                 instance.lodgement_number)
+
             set_session_application(request.session, instance)
             # check activities consist of amended fees.
             activities = instance.activities if not instance.has_amended_fees\
                 else instance.amended_activities
             for activity in activities:
                 product_lines.append({
-                    'ledger_description': '{}'.format(
+                    'ledger_description': '{} (Application Fee)'.format(
                         activity.licence_activity.name),
                     'quantity': 1,
                     'price_incl_tax': str(activity.application_fee),
@@ -660,26 +666,55 @@ class ApplicationViewSet(viewsets.ModelViewSet):
             instance = self.get_object()
             activity_id = request.data.get('activity_id')
             if not activity_id:
-                raise Exception(
-                    'No activity selected for payment!')
+                raise Exception('No activity selected for payment!')
 
-            activities = ApplicationSelectedActivity.objects.filter(
-                application_id=instance.id,
-                processing_status=ApplicationSelectedActivity.PROCESSING_STATUS_AWAITING_LICENCE_FEE_PAYMENT)
+            # check whether activities consist of amended application fees.
+            activities = instance.activities if not instance.has_amended_fees\
+                else instance.amended_activities
 
             product_lines = []
-            application_submission = u'Activity licence issued for {} application {}'.format(
-                u'{} {}'.format(request.user.first_name, request.user.last_name), instance.lodgement_number)
+            application_submission = u'Application No: {}'.format(
+                instance.lodgement_number)
 
             set_session_activity(request.session, activities[0])
             for activity in activities:
                 product_lines.append({
-                    'ledger_description': '{}'.format(activity.licence_activity.name),
+                    'ledger_description': '{} (Licence Fee)'.format(
+                        activity.licence_activity.name),
                     'quantity': 1,
                     'price_incl_tax': str(activity.licence_fee),
-                    'price_excl_tax': str(calculate_excl_gst(activity.licence_fee)),
+                    'price_excl_tax': str(calculate_excl_gst(
+                            activity.licence_fee)),
                     'oracle_code': ''
                 })
+
+            # Adjustments occur only to the application fee.
+            if instance.has_amended_fees:
+                for activity in activities:
+                    product_lines.append({
+                        'ledger_description': '{} (Application Fee)'.format(
+                            activity.licence_activity.name),
+                        'quantity': 1,
+                        'price_incl_tax': str(activity.application_fee),
+                        'price_excl_tax': str(calculate_excl_gst(
+                            activity.application_fee)),
+                        'oracle_code': ''
+                    })
+
+            # Include additional fees by licence approvers.
+            has_additional = instance.has_additional_fees
+            print(has_additional)
+            # if instance.has_additional_fees:
+            #     for activity in activities:
+            #         product_lines.append({
+            #             'ledger_description': '{}'.format(
+            #                 activity.additional_fee_text),
+            #             'quantity': 1,
+            #             'price_incl_tax': str(activity.additional_fee),
+            #             'price_excl_tax': str(calculate_excl_gst(
+            #                 activity.additional_fee)),
+            #             'oracle_code': ''
+            #         })
 
             checkout_result = checkout(
                 request, instance,
@@ -1066,7 +1101,7 @@ class ApplicationViewSet(viewsets.ModelViewSet):
         except Exception as e:
             print(traceback.print_exc())
             raise serializers.ValidationError(str(e))
-
+      
     @detail_route(methods=['GET', ])
     def get_proposed_decisions(self, request, *args, **kwargs):
         try:
@@ -1418,6 +1453,7 @@ class ApplicationConditionViewSet(viewsets.ModelViewSet):
             serializer.is_valid(raise_exception=True)
             with transaction.atomic():
                 instance = serializer.save()
+                instance.set_source(request.user)
                 instance.submit()
                 instance.application.log_user_action(
                     ApplicationUserAction.ACTION_ENTER_CONDITIONS.format(
@@ -1465,6 +1501,39 @@ class ApplicationConditionViewSet(viewsets.ModelViewSet):
         except ValidationError as e:
             print(traceback.print_exc())
             raise serializers.ValidationError(repr(e.error_dict))
+        except Exception as e:
+            print(traceback.print_exc())
+            raise serializers.ValidationError(str(e))
+
+class ApplicationSelectedActivityViewSet(viewsets.ModelViewSet):
+    queryset = ApplicationSelectedActivity.objects.all()
+    serializer_class = ApplicationSelectedActivitySerializer
+
+    def get_queryset(self):
+        if is_internal(self.request):
+            return ApplicationSelectedActivity.objects.all()
+        elif is_customer(self.request):
+            return ApplicationSelectedActivity.objects.none()
+        return ApplicationSelectedActivity.objects.none()
+
+    @detail_route(methods=['POST', ])
+    def process_issuance_document(self, request, *args, **kwargs):
+        try:
+            instance = self.get_object()
+            returned_data = process_generic_document(request, instance, document_type="issuance_documents")
+            if returned_data:
+                return Response(returned_data)
+            else:
+                return Response()
+
+        except serializers.ValidationError:
+            print(traceback.print_exc())
+            raise
+        except ValidationError as e:
+            if hasattr(e, 'error_dict'):
+                raise serializers.ValidationError(repr(e.error_dict))
+            else:
+                raise serializers.ValidationError(repr(e[0].encode('utf-8')))
         except Exception as e:
             print(traceback.print_exc())
             raise serializers.ValidationError(str(e))

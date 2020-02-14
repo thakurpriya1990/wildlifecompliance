@@ -257,11 +257,13 @@ export default {
             return this.application.processing_status.id == 'draft';
         },
         selectedActivity: function(){
+            console.log('selectedAcivity')
             // Function that returns an Application Selected Activity.
             if (this.selected_activity_tab_id == null || this.selected_activity_tab_id<1) {
-
+                console.log('initial TAB')
                 this.initFirstTab()     // Each Tab is a Licence Activity.
             }
+            console.log(this.selected_activity_tab_id)
             return this.application.activities.find(activity => {
 
                 return activity.licence_activity === this.selected_activity_tab_id                
@@ -365,12 +367,12 @@ export default {
         },
         initFirstTab: function(force){
             this.isSendingToAssessor = true;
-            var first_tab = this.application.activities.find(activity => this.canAssignAssessorFor(activity.licence_activity))
+            //var first_tab = this.application.activities.find(activity => this.canAssignAssessorFor(activity.licence_activity))
+            var first_tab = this.application.assessments[0] // TODO: may require check if authorised for assessment.
             if(this.selected_activity_tab_id && !force) {
                 return;
             }            
             if (first_tab) {
-
                 this.licenceActivities().filter(activity => {
                     if (activity.id==first_tab.licence_activity) {
 

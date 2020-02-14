@@ -26,6 +26,12 @@ export const physicalArtifactStore = {
             if (state.physical_artifact.artifact_date) {
                 state.physical_artifact.artifact_date = moment(state.physical_artifact.artifact_date, 'YYYY-MM-DD').format('DD/MM/YYYY');
             }
+            // format artifact time from 24 to 12 hour
+            if (state.physical_artifact.artifact_time) {
+                state.physical_artifact.artifact_time = moment(state.physical_artifact.artifact_time, 'HH:mm').format('hh:mm A');
+            } else if (state.physical_artifact.artifact_time === '') {
+                state.physical_artifact.artifact_time = null;
+            }
             // format disposal_date for vue
             if (state.physical_artifact.disposal_date) {
                 state.physical_artifact.disposal_date = moment(state.physical_artifact.disposal_date, 'YYYY-MM-DD').format('DD/MM/YYYY');
@@ -131,6 +137,12 @@ export const physicalArtifactStore = {
                     payload.artifact_date = moment(payload.artifact_date, 'DD/MM/YYYY').format('YYYY-MM-DD');
                 } else if (payload.artifact_date === '') {
                     payload.artifact_date = null;
+                }
+                // format artifact time to 24 hours
+                if (payload.artifact_time) {
+                    payload.artifact_time = moment(payload.artifact_time, 'hh:mm A').format('HH:mm');
+                } else if (payload.artifact_time === '') {
+                    payload.artifact_time = null;
                 }
                 // format disposal date for backend save
                 if (payload.disposal_date) {

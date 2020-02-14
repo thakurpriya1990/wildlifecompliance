@@ -274,7 +274,7 @@ def _create_licence(licence_buffer, licence, application):
     purposeList = ListFlowable(
         [[Paragraph("{name}".format(
             name=purpose.name,
-        ), styles['Left'],) for purpose in selected_activity.purposes] for selected_activity in licence.current_activities],
+        ), styles['Left'],) for purpose in selected_activity.issued_purposes] for selected_activity in licence.current_activities],
         bulletFontName=BOLD_FONTNAME, bulletFontSize=MEDIUM_FONTSIZE)
     elements.append(purposeList)
     elements.append(PageBreak())

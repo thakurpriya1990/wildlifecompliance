@@ -216,11 +216,12 @@ def save_document(request, instance, comms_instance, document_type, input_name=N
             filename = request.data.get('filename')
             _file = request.data.get('_file')
 
+            parent_application = instance.application
             document = instance.issuance_documents.get_or_create(
                 name=filename)[0]
             path = default_storage.save(
-                'wildlifecompliance/{}/{}/issuance_documents/{}'.format(
-                    instance._meta.model_name, instance.id, filename), ContentFile(
+                'wildlifecompliance/{}/{}/{}/{}/{}'.format(
+                    'applications', parent_application.id, instance._meta.model_name, instance.id, filename), ContentFile(
                     _file.read()))
 
             document._file = path
@@ -311,6 +312,23 @@ def save_default_document_obj(instance, temp_document):
             temp_document.name
             ), 
             temp_document._file
+        )
+
+    document._file = path
+    document.save()
+
+# For transferring files from temp doc objs to issuance doc objs
+def save_issuance_document_obj(instance, temp_document):
+    document = instance.issuance_documents.get_or_create(
+        name=temp_document.name)[0]
+    path = default_storage.save(
+        'wildlifecompliance/applications/{}/{}/{}/{}'.format(
+            instance.application_id,
+            instance._meta.model_name,
+            instance.id,
+            temp_document.name
+            ),
+        temp_document._file
         )
 
     document._file = path
