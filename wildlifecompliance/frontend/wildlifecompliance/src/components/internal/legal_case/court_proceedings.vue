@@ -4,6 +4,18 @@
             <FormSection :formCollapse="false" label="Court Dates">
                 <div class="col-sm-12 form-group"><div class="row">
 
+                    <div class="input-group date" id="court_date" v-for="court_date_obj in legal_case.court_proceedings.court_dates">
+                        <CourtDate 
+                            :court_datetime="new Date(court_date_obj.court_datetime)"
+                            :comments="court_date_obj.comments"
+                            :court_date_id="court_date_obj.id"
+                            @date_changed="dateChanged"
+                            @time_changed="timeChanged"
+                            @comments_changed="commentsChanged"
+                            :Key="court_date_obj.id"
+                            />
+                    </div>
+
                 </div></div>
             </FormSection>
 
@@ -64,6 +76,7 @@ import 'eonasdan-bootstrap-datetimepicker';
 import _ from 'lodash';
 import JournalHistory from './journal_history'
 import filefield from '@/components/common/compliance_file.vue';
+import CourtDate from '@/components/common/court_date'
 
 export default {
     name: "ViewCourtProceedings",
@@ -166,6 +179,7 @@ export default {
         FormSection,
         JournalHistory,
         filefield,
+        CourtDate,
     },
     computed: {
         ...mapGetters('legalCaseStore', {
@@ -210,6 +224,15 @@ export default {
           //saveLegalCase: 'saveLegalCase',
           //setLegalCase: 'setLegalCase',
         }),
+        commentsChanged: function(e) {
+            console.log(e);
+        },
+        dateChanged: function(e) {
+            console.log(e);
+        },
+        timeChanged: function(e) {
+            console.log(e);
+        },
         courtOutcomeDocumentUploaded: function() {
             console.log('courtOutcomeDocumentUploaded');
         },
