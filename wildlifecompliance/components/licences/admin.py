@@ -22,3 +22,8 @@ class WildlifeLicence(admin.ModelAdmin):
 @admin.register(models.LicencePurpose)
 class LicencePurposeAdmin(admin.ModelAdmin):
     pass
+
+
+@admin.register(models.LicencePurposeDetail)
+class LicencePurposeDetailAdmin(admin.ModelAdmin):
+    list_display = ['detail', 'purpose', 'index']
