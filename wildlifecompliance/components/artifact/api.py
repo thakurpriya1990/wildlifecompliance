@@ -452,6 +452,7 @@ class PhysicalArtifactViewSet(viewsets.ModelViewSet):
         raise serializers.ValidationError(str(e))
 
     def common_save(self, request_data, instance=None):
+        print(request_data)
         try:
             with transaction.atomic():
                 #physical_artifact_type = request_data.get('physical_artifact_type')

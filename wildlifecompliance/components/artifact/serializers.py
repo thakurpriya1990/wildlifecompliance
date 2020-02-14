@@ -33,6 +33,7 @@ from wildlifecompliance.components.artifact.models import (
         BriefOfEvidenceDocumentArtifacts,
         ProsecutionBriefPhysicalArtifacts,
         ProsecutionBriefDocumentArtifacts,
+        PhysicalArtifactLegalCases,
     )
 
 from wildlifecompliance.components.offence.serializers import OffenceSerializer, OffenderSerializer
@@ -449,6 +450,24 @@ class SaveDocumentArtifactSerializer(serializers.ModelSerializer):
                 )
 
 
+class PhysicalArtifactLegalCasesSerializer(serializers.ModelSerializer):
+
+    class Meta:
+        model = PhysicalArtifactLegalCases
+        fields = (
+                'id',
+                'physical_artifact_id',
+                'legal_case_id',
+                'primary',
+                'used_within_case',
+                'sensitive_non_disclosable',
+                'reason_sensitive_non_disclosable',
+                )
+        read_only_fields = (
+                'id',
+                )
+
+
 #class PhysicalArtifactSerializer(ArtifactSerializer):
 class PhysicalArtifactSerializer(serializers.ModelSerializer):
     statement = DocumentArtifactSerializer(read_only=True)
@@ -461,6 +480,7 @@ class PhysicalArtifactSerializer(serializers.ModelSerializer):
     #available_statement_artifacts = serializers.SerializerMethodField()
     data = PhysicalArtifactFormDataRecordSerializer(many=True)
     status = CustomChoiceField(read_only=True)
+    legal_case_links = serializers.SerializerMethodField()
 
     class Meta:
         model = PhysicalArtifact
@@ -493,6 +513,7 @@ class PhysicalArtifactSerializer(serializers.ModelSerializer):
                 'created_at',
                 #'available_statement_artifacts',
                 'data',
+                'legal_case_links',
                 )
         read_only_fields = (
                 'id',
@@ -500,6 +521,13 @@ class PhysicalArtifactSerializer(serializers.ModelSerializer):
 
     def get_related_items(self, obj):
         return get_related_items(obj)
+
+    def get_legal_case_links(self, obj):
+        legal_case_links = []
+        for legal_case_link in obj.physicalartifactlegalcases_set.all():
+            serializer = PhysicalArtifactLegalCasesSerializer(legal_case_link)
+            legal_case_links.append(serializer.data)
+        return legal_case_links
 
     #def get_legal_case_id_list(self, obj):
     #    legal_case_id_list = []
