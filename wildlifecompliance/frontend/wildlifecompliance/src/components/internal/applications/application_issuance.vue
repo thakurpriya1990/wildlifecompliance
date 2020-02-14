@@ -65,10 +65,26 @@
                                                 </div>
                                                 <div class="row" v-if="finalStatus(item.id) === 'issued' && canEditLicenceDates">
                                                     <div class="col-sm-3">
+                                                        <label class="control-label pull-left">Additional Fee Text</label>
+                                                    </div>
+                                                    <div class="col-sm-9">
+                                                        <input type="text" class="form-control" name="cc_email" style="width: 70%;"  v-model="getActivity(item.id).additional_fee_text">
+                                                    </div>
+                                                </div>
+                                                <div class="row" v-if="finalStatus(item.id) === 'issued' && canEditLicenceDates">
+                                                    <div class="col-sm-3">
+                                                        <label class="control-label pull-left">Additional Fee</label>
+                                                    </div>
+                                                    <div class="col-sm-9">
+                                                        <input type="text" class="form-control" name="cc_email" style="width: 20%;"  v-model="getActivity(item.id).additional_fee">
+                                                    </div>
+                                                </div>
+                                                <div class="row" v-if="finalStatus(item.id) === 'issued' && canEditLicenceDates">
+                                                    <div class="col-sm-3">
                                                         <label class="control-label pull-left">Proposed Purposes</label>
                                                     </div>
                                                     <div class="col-sm-9">
-                                                        <div v-for="purpose in selectedApplicationActivity.proposed_purposes">
+                                                        <div v-for="(purpose, index) in selectedApplicationActivity.proposed_purposes" v-bind:key="`purpose_${index}`">
                                                             <input type="checkbox" :value ="purpose.id" :id="purpose.id" v-model="getActivity(item.id).purposes">{{purpose.name}}
                                                         </div>
                                                     </div>
@@ -276,7 +292,7 @@ export default {
         selectedApplicationActivityId: function() {     
             let activity_id = null;
             if (this.selectedApplicationActivity) {
-                activity_id = this.selectedApplicationActivity.licence_activity;
+                activity_id = this.selectedApplicationActivity.id;
             }
             return activity_id
         },
@@ -435,6 +451,8 @@ export default {
                     final_status: final_status,
                     confirmed: false,
                     purposes: [],
+                    additional_fee: proposal.additional_fee,
+                    additional_fee_text: proposal.additional_fee_text,
                 });
             }
             if(this.application.id_check_status.id == 'accepted'){
@@ -553,6 +571,7 @@ export default {
             vm.eventListeners();
             vm.initFirstTab();
         });
+        console.log(this)
     },
     updated: function() {
         this.$nextTick(() => {
