@@ -4,6 +4,19 @@
             <FormSection :formCollapse="false" label="Court Dates">
                 <div class="col-sm-12 form-group"><div class="row">
 
+                    <div class="input-group date" id="court_date" v-for="court_date_obj in legal_case.court_proceedings.court_dates">
+                        <CourtDate 
+                            :court_datetime="new Date(court_date_obj.court_datetime)"
+                            :comments="court_date_obj.comments"
+                            :court_date_id="court_date_obj.id"
+                            @data_changed="dataChanged"
+                            :Key="court_date_obj.id"
+                            />
+                    </div>
+                        <CourtDate 
+                            @data_changed="dataChanged"
+                            />
+
                 </div></div>
             </FormSection>
 
@@ -64,6 +77,7 @@ import 'eonasdan-bootstrap-datetimepicker';
 import _ from 'lodash';
 import JournalHistory from './journal_history'
 import filefield from '@/components/common/compliance_file.vue';
+import CourtDate from '@/components/common/court_date'
 
 export default {
     name: "ViewCourtProceedings",
@@ -166,6 +180,7 @@ export default {
         FormSection,
         JournalHistory,
         filefield,
+        CourtDate,
     },
     computed: {
         ...mapGetters('legalCaseStore', {
@@ -206,10 +221,16 @@ export default {
             setCourtProceedingsJournalEntry: 'setCourtProceedingsJournalEntry',
             setAddCourtProceedingsEntry: 'setAddCourtProceedingsEntry',
             setCourtProceedingsTransform: 'setCourtProceedingsTransform',
-          //loadLegalCase: 'loadLegalCase',
-          //saveLegalCase: 'saveLegalCase',
-          //setLegalCase: 'setLegalCase',
+            setCourtProceedingsDate: 'setCourtProceedingsDate',
         }),
+        dataChanged: function(court_data_obj) {
+            try {
+                court_data_obj.court_datetime = court_data_obj.court_datetime.toDate().toISOString();
+                this.setCourtProceedingsDate(court_data_obj);
+            } catch (err) {
+                console.warn('data not changed');
+            }
+        },
         courtOutcomeDocumentUploaded: function() {
             console.log('courtOutcomeDocumentUploaded');
         },

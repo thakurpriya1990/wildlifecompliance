@@ -61,7 +61,7 @@ from wildlifecompliance.components.legal_case.models import (
     CourtProceedingsJournalEntry,
     BriefOfEvidence,
     ProsecutionBrief,
-    CourtProceedings)
+    CourtProceedings, CourtDate)
 #from wildlifecompliance.components.artifact.models import (
 #        DocumentArtifact,
 #        PhysicalArtifact,
@@ -72,30 +72,30 @@ from wildlifecompliance.components.call_email.models import (
         CallEmailUserAction,
         )
 from wildlifecompliance.components.legal_case.serializers import (
-        LegalCaseSerializer,
-        SaveLegalCaseSerializer,
-        LegalCaseUserActionSerializer,
-        LegalCaseCommsLogEntrySerializer,
-        LegalCaseDatatableSerializer,
-        UpdateAssignedToIdSerializer,
-        LegalCasePrioritySerializer,
-        CreateLegalCaseRunningSheetEntrySerializer,
-        SaveLegalCaseRunningSheetEntrySerializer,
-        LegalCaseRunningSheetSerializer,
-        LegalCaseRunningSheetEntrySerializer,
-        DeleteReinstateLegalCaseRunningSheetEntrySerializer,
-        #RunningSheetEntryVersionSerializer,
-        VersionSerializer,
-        RunningSheetEntryHistorySerializer,
-        CreateLegalCasePersonSerializer,
-        JournalEntryHistorySerializer,
-        CourtProceedingsJournalEntrySerializer,
-        SaveCourtProceedingsJournalEntrySerializer,
-        DeleteReinstateCourtProceedingsJournalEntrySerializer,
-        CreateCourtProceedingsJournalEntrySerializer,
-        CourtProceedingsJournalSerializer,
-        BriefOfEvidenceSerializer,
-        )
+    LegalCaseSerializer,
+    SaveLegalCaseSerializer,
+    LegalCaseUserActionSerializer,
+    LegalCaseCommsLogEntrySerializer,
+    LegalCaseDatatableSerializer,
+    UpdateAssignedToIdSerializer,
+    LegalCasePrioritySerializer,
+    CreateLegalCaseRunningSheetEntrySerializer,
+    SaveLegalCaseRunningSheetEntrySerializer,
+    LegalCaseRunningSheetSerializer,
+    LegalCaseRunningSheetEntrySerializer,
+    DeleteReinstateLegalCaseRunningSheetEntrySerializer,
+    # RunningSheetEntryVersionSerializer,
+    VersionSerializer,
+    RunningSheetEntryHistorySerializer,
+    CreateLegalCasePersonSerializer,
+    JournalEntryHistorySerializer,
+    CourtProceedingsJournalEntrySerializer,
+    SaveCourtProceedingsJournalEntrySerializer,
+    DeleteReinstateCourtProceedingsJournalEntrySerializer,
+    CreateCourtProceedingsJournalEntrySerializer,
+    CourtProceedingsJournalSerializer,
+    BriefOfEvidenceSerializer,
+    SaveCourtDateEntrySerializer)
 from wildlifecompliance.components.users.models import (
     CompliancePermissionGroup,    
 )
@@ -428,13 +428,30 @@ class LegalCaseViewSet(viewsets.ModelViewSet):
                             description = entry_copy.get('description', '')
                             ascii_description = description.encode('ascii', 'xmlcharrefreplace')
                             entry_copy.update({'description': ascii_description})
-                            entry_id = CourtProceedingsJournalEntry.objects.get(id = entry_copy.get('id'))
+                            entry_id = CourtProceedingsJournalEntry.objects.get(id=entry_copy.get('id'))
                             journal_entry_serializer = SaveCourtProceedingsJournalEntrySerializer(
                                     instance=entry_id,
                                     data=entry_copy)
-                            journal_entry_serializer.is_valid(raise_exception=True)
-                            if journal_entry_serializer.is_valid():
+                            if journal_entry_serializer.is_valid(raise_exception=True):
                                 journal_entry_serializer.save()
+                    court_dates = court_proceedings.get('date_entries_updated')
+                    if court_dates:
+                        for key, entry in court_dates.items():
+                            entry_copy = dict(entry)
+                            comments = entry_copy.get('comments', '')
+                            ascii_comments = comments.encode('ascii', 'xmlcharrefreplace')
+                            entry_copy.update({'comments': ascii_comments})
+                            if entry_copy.get('id'):
+                                court_date = CourtDate.objects.get(id=entry_copy.get('id'))
+                                serializer = SaveCourtDateEntrySerializer(instance=court_date, data=entry_copy)
+                                if serializer.is_valid(raise_exception=True):
+                                    serializer.save()
+                            else:
+                                entry_copy['court_proceedings_id'] = instance.court_proceedings.id
+                                serializer = SaveCourtDateEntrySerializer(data=entry_copy)
+                                if serializer.is_valid(raise_exception=True):
+                                    serializer.save()
+
                 ## Brief Of Evidence
                 #brief_of_evidence = request.data.get('brief_of_evidence')
                 #if brief_of_evidence:

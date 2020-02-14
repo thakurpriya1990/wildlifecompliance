@@ -16,7 +16,7 @@ from wildlifecompliance.components.legal_case.models import (
     CourtProceedings,
     BriefOfEvidence,
     ProsecutionBrief,
-    )
+    CourtDate)
 from wildlifecompliance.components.call_email.serializers import EmailUserSerializer
 from wildlifecompliance.components.main.related_item import get_related_items
 from wildlifecompliance.components.main.serializers import CommunicationLogEntrySerializer
@@ -188,6 +188,18 @@ class CourtProceedingsJournalEntrySerializer(serializers.ModelSerializer):
         return user_full_name
 
 
+class SaveCourtDateEntrySerializer(serializers.ModelSerializer):
+    court_proceedings_id = serializers.IntegerField(required=False, write_only=True, allow_null=True)
+
+    class Meta:
+        model = CourtDate
+        fields = (
+            'court_proceedings_id',
+            'court_datetime',
+            'comments',
+        )
+
+
 class SaveCourtProceedingsJournalEntrySerializer(serializers.ModelSerializer):
     user_id = serializers.IntegerField(
         required=False, write_only=True, allow_null=True)
@@ -195,19 +207,19 @@ class SaveCourtProceedingsJournalEntrySerializer(serializers.ModelSerializer):
     class Meta:
         model = CourtProceedingsJournalEntry
         fields = (
-                'id',
-                'number',
-                #'legal_case_persons',
-                'court_proceedings_id',
-                'user_id',
-                'description',
-                #'date_modified',
-                )
+            'id',
+            'number',
+            #'legal_case_persons',
+            'court_proceedings_id',
+            'user_id',
+            'description',
+            #'date_modified',
+        )
         read_only_fields = (
-                'id',
-                'number',
-                'court_proceedings_id',
-                )
+            'id',
+            'number',
+            'court_proceedings_id',
+        )
 
 
 class DeleteReinstateCourtProceedingsJournalEntrySerializer(serializers.ModelSerializer):
@@ -254,8 +266,20 @@ class CreateCourtProceedingsJournalEntrySerializer(serializers.ModelSerializer):
         return new_entry
 
 
+class CourtProceedingsCourtDateSerializer(serializers.ModelSerializer):
+
+    class Meta:
+        model = CourtDate
+        fields = (
+            'id',
+            'court_datetime',
+            'comments',
+        )
+
+
 class CourtProceedingsJournalSerializer(serializers.ModelSerializer):
     journal_entries = CourtProceedingsJournalEntrySerializer(many=True, read_only=True)
+    court_dates = CourtProceedingsCourtDateSerializer(many=True, read_only=True)
 
     class Meta:
         model = CourtProceedings
@@ -263,6 +287,7 @@ class CourtProceedingsJournalSerializer(serializers.ModelSerializer):
                 'id',
                 'court_outcome_details',
                 'journal_entries',
+                'court_dates',
                 )
         read_only_fields = (
                 'id',
