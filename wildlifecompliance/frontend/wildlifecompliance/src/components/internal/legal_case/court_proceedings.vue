@@ -9,12 +9,13 @@
                             :court_datetime="new Date(court_date_obj.court_datetime)"
                             :comments="court_date_obj.comments"
                             :court_date_id="court_date_obj.id"
-                            @date_changed="dateChanged"
-                            @time_changed="timeChanged"
-                            @comments_changed="commentsChanged"
+                            @data_changed="dataChanged"
                             :Key="court_date_obj.id"
                             />
                     </div>
+                        <CourtDate 
+                            @data_changed="dataChanged"
+                            />
 
                 </div></div>
             </FormSection>
@@ -220,18 +221,15 @@ export default {
             setCourtProceedingsJournalEntry: 'setCourtProceedingsJournalEntry',
             setAddCourtProceedingsEntry: 'setAddCourtProceedingsEntry',
             setCourtProceedingsTransform: 'setCourtProceedingsTransform',
-          //loadLegalCase: 'loadLegalCase',
-          //saveLegalCase: 'saveLegalCase',
-          //setLegalCase: 'setLegalCase',
+            setCourtProceedingsDate: 'setCourtProceedingsDate',
         }),
-        commentsChanged: function(e) {
-            console.log(e);
-        },
-        dateChanged: function(e) {
-            console.log(e);
-        },
-        timeChanged: function(e) {
-            console.log(e);
+        dataChanged: function(court_data_obj) {
+            try {
+                court_data_obj.court_datetime = court_data_obj.court_datetime.toDate().toISOString();
+                this.setCourtProceedingsDate(court_data_obj);
+            } catch (err) {
+                console.warn('data not changed');
+            }
         },
         courtOutcomeDocumentUploaded: function() {
             console.log('courtOutcomeDocumentUploaded');
