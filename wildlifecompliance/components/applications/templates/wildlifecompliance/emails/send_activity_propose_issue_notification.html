@@ -1,0 +1,11 @@
+{%  extends 'wildlifecompliance/emails/base_email.html' %}
+
+{% block content %}
+    Wildlife Licensing application activity purposes have been proposed for issue, with below details.
+    <p><strong>Application: {{ application.id }}</strong></p>
+    <p><strong>Details: {{ detail }}</strong></p>
+
+
+    <p><strong>Link: <a href="{{url}}">{{url}}</a></strong></p>
+    <p>Note: If you haven't logged into the Wildlife Licensing System recently you may need to login first before using the provided link.</p>
+{% endblock %}
