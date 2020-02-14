@@ -82,7 +82,8 @@
                                             ref="issuance_documents" 
                                             name="issuance-documents" 
                                             :isRepeatable="true" 
-                                            :documentActionUrl="applicationIssuanceDocumentUrl" />
+                                            documentActionUrl="temporary_document" 
+                                            @update-temp-doc-coll-id="setTemporaryIssuanceDocumentsCollectionId"/>
                                     </div>                                                              
                                 </div>
                             </div>
@@ -229,16 +230,6 @@ export default {
             );
             return val
         },
-        applicationIssuanceDocumentUrl: function() {
-            let url = '';
-            if (this.applicationSelectedActivity) {
-                url = helpers.add_endpoint_join(
-                    api_endpoints.application_selected_activity,
-                    this.applicationSelectedActivity.id + "/process_issuance_document/"
-                )
-            }
-            return url;
-        },
     },
     methods:{
         ok:function () {
@@ -282,8 +273,8 @@ export default {
             
             return act
         },
-        setTemporaryDocumentCollectionId: function(val) {
-            this.propose_issue.email_attachments_id = val;
+        setTemporaryIssuanceDocumentsCollectionId: function(val) {
+            this.propose_issue.issuance_documents_id = val;
         },
         setTemporaryEmailCollectionId: function(val) {
             this.propose_issue.email_attachments_id = val;

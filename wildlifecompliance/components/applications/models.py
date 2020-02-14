@@ -37,6 +37,9 @@ from wildlifecompliance.components.main.models import (
     UserAction,
     Document
 )
+from wildlifecompliance.components.main.process_document import (
+    save_issuance_document_obj,
+)
 from wildlifecompliance.components.applications.email import (
     send_application_submitter_email_notification,
     send_application_submit_email_notification,
@@ -1960,6 +1963,22 @@ class Application(RevisionedMixin):
                 send_activity_propose_issue_notification(
                    request, self, email_text, documents
                 )
+
+                # save temporary documents to all ApplicationSelectedActivity 
+                # instances checked in the modal
+                issuance_documents_id = request.data.get('issuance_documents_id', {}).get('temp_doc_id')
+                application_selected_activities = request.data.get('activity')
+                asa = [activity for activity in self.activities if activity.id in application_selected_activities]
+                if issuance_documents_id:
+                        issuance_documents_collection, created = TemporaryDocumentCollection.objects.get_or_create(
+                                id=issuance_documents_id)
+                        if issuance_documents_collection:
+                            for doc in issuance_documents_collection.documents.all():
+                                #save_comms_log_document_obj(instance, workflow_entry, doc)
+                                for application_selected_activity in asa:
+                                    save_issuance_document_obj(application_selected_activity, doc)
+                            issuance_documents_collection.delete()
+                
                 # log proposing officers comments and documents.
 
                 # Log application action

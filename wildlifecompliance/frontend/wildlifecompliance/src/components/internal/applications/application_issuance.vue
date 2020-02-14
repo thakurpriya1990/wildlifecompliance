@@ -28,6 +28,16 @@
                                                         <input type="radio"  id="decline" name="licence_category" v-model="getActivity(item.id).final_status"  value="declined" > Decline
                                                     </div>
                                                 </div>
+                                                <div class="row" v-if="finalStatus(item.id) === 'issued' && canEditLicenceDates">
+                                                    <div class="col-sm-3">
+                                                        <label class="control-label pull-left">Proposed Purposes</label>
+                                                    </div>
+                                                    <div class="col-sm-9">
+                                                        <div v-for="(purpose, index) in selectedApplicationActivity.proposed_purposes" v-bind:key="`purpose_${index}`">
+                                                            <input type="checkbox" :value ="purpose.id" :id="purpose.id" v-model="getActivity(item.id).purposes">{{purpose.name}}
+                                                        </div>
+                                                    </div>
+                                                </div>                                                
                                                 <div class="row">
                                                     <div class="col-sm-3">
                                                         <label class="control-label pull-left">Ready for issuing?</label>
@@ -77,16 +87,6 @@
                                                     </div>
                                                     <div class="col-sm-9">
                                                         <input type="text" class="form-control" name="cc_email" style="width: 20%;"  v-model="getActivity(item.id).additional_fee">
-                                                    </div>
-                                                </div>
-                                                <div class="row" v-if="finalStatus(item.id) === 'issued' && canEditLicenceDates">
-                                                    <div class="col-sm-3">
-                                                        <label class="control-label pull-left">Proposed Purposes</label>
-                                                    </div>
-                                                    <div class="col-sm-9">
-                                                        <div v-for="(purpose, index) in selectedApplicationActivity.proposed_purposes" v-bind:key="`purpose_${index}`">
-                                                            <input type="checkbox" :value ="purpose.id" :id="purpose.id" v-model="getActivity(item.id).purposes">{{purpose.name}}
-                                                        </div>
                                                     </div>
                                                 </div>
                                             </div>

@@ -280,6 +280,23 @@ def save_default_document_obj(instance, temp_document):
     document._file = path
     document.save()
 
+# For transferring files from temp doc objs to issuance doc objs
+def save_issuance_document_obj(instance, temp_document):
+    document = instance.issuance_documents.get_or_create(
+        name=temp_document.name)[0]
+    path = default_storage.save(
+        'wildlifecompliance/applications/{}/{}/{}/{}'.format(
+            instance.application_id,
+            instance._meta.model_name,
+            instance.id,
+            temp_document.name
+            ),
+        temp_document._file
+        )
+
+    document._file = path
+    document.save()
+
 # For transferring files from temp doc objs to physical artifact renderer objs
 def save_renderer_document_obj(instance, temp_document, input_name):
     document = instance.renderer_documents.get_or_create(
