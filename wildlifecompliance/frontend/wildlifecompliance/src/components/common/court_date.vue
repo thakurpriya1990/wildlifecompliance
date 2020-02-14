@@ -1,9 +1,9 @@
 <template lang="html">
-    <div class="form-group" v-if="court_datetime"><div class="row">
+    <div class="form-group" v-if="court_date && court_time"><div class="row">
 
         <div class="col-sm-4">
             <div class="input-group date" ref="courtDatePicker">
-                <input type="text" class="form-control" placeholder="DD/MM/YYYY" v-model="court_datetime" />
+                <input type="text" class="form-control" data-date-format="DD/MM/YYYY" v-model="court_date" />
                 <span class="input-group-addon">
                     <span class="glyphicon glyphicon-calendar"></span>
                 </span>
@@ -12,7 +12,7 @@
 
         <div class="col-sm-4">
             <div class="input-group date" ref="courtTimePicker">
-                <input type="text" class="form-control" placeholder="LT" v-model="court_datetime" />
+                <input type="text" class="form-control" data-date-format="LT" v-model="court_time" />
                 <span class="input-group-addon">
                     <span class="glyphicon glyphicon-calendar"></span>
                 </span>
@@ -20,7 +20,7 @@
         </div>
 
         <div class="col-sm-4">
-            <input type="text" class="form-control" v-model="comments" />
+            <input type="text" class="form-control" v-model="court_comments" ref="courtComments" />
         </div>
 
     </div></div>
@@ -42,7 +42,9 @@ export default {
     data: function() {
         return {
             uuid: 0,
-            my_date: null,
+            court_date: null,
+            court_time: null,
+            court_comments: '',
         }
     },
     components: {
@@ -60,7 +62,16 @@ export default {
         court_date_id: {
             type: Number,
             default: null,
+        },
+        return_date_format: {
+            type: String,
+            default: 'DD/MM/YYYY',
+        },
+        return_time_format: {
+            type: String,
+            default: 'HH:mm',
         }
+
     },
     computed: {
         ...mapGetters('legalCaseStore', {
@@ -69,10 +80,6 @@ export default {
         csrf_token: function() {
             return helpers.getCookie("csrftoken");
         },
-        court_date: function() {
-            console.log('court_date formatted');
-            return moment(this.court_datetime).format('DD/MM/YYYY');
-        }
     },
     filters: {
         formatDate: function(data) {
@@ -83,6 +90,9 @@ export default {
         ...mapActions('legalCaseStore', {
 
         }),
+        commentsChanged: function() {
+            this.$emit('comments_changed', { court_date_id: vm.court_date_id, comments: this.comments });
+        },
         courtOutcomeDocumentUploaded: function() {
             console.log('courtOutcomeDocumentUploaded');
         },
@@ -97,21 +107,32 @@ export default {
                 showClear: true,
                 date: vm.court_datetime,
             });
-
             el_court_date.on("dp.change", function(e) {
-                console.log('--- date changed ---');
-                vm.$emit('date_changed', { court_date_id: vm.court_date_id, new_date: e.date });
+                vm.court_date = e.date.format('DD/MM/YYYY');
+                vm.$emit('date_changed', { court_date_id: vm.court_date_id, new_date: e.date.format(vm.return_date_format) });
+                e.preventDefault();
+                return false;
             });
 
             // Issue "Time" field
-            el_court_time.datetimepicker({ 
+            el_court_time.datetimepicker({
                 format: "LT", 
                 showClear: true,
-                date: vm.court_datetime,
+                date: vm.court_timetime,
             });
             el_court_time.on("dp.change", function(e) {
-                console.log('--- time changed ---');
-                vm.$emit('time_changed', { court_date_id: vm.court_date_id, new_date: e.date });
+                vm.court_time = e.date.format('LT');
+                vm.$emit('time_changed', { court_date_id: vm.court_date_id, new_time: e.date.format(vm.return_time_format) });
+                e.preventDefault();
+                return false;
+            });
+
+            let el_comments = $(vm.$refs.courtComments);
+            el_comments.on('keyup', function(e){
+                let comments = e.target.value
+                vm.$emit('comments_changed', { court_date_id: vm.court_date_id, comments: comments });
+                e.preventDefault();
+                return false;
             });
         },
         courtProceedingsKeyup: function(e) {
@@ -123,10 +144,16 @@ export default {
     },
     mounted: function() {
         console.log('mounted');
-        this.my_date = new Date();
         this.$nextTick(() => {
             this.addEventListeners();
         });
+        // Convert datetime representation in string to moment obj
+        let court_datetime_obj = moment(new Date(this.court_datetime.getTime()));
+        // Assign date as String type
+        this.court_date = court_datetime_obj.format('DD/MM/YYYY');
+        // Assign time as String type
+        this.court_time = court_datetime_obj.format('LT');
+        this.court_comments = this.comments;
     },
 };
 </script>

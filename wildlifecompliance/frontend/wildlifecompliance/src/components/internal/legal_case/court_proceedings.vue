@@ -4,14 +4,15 @@
             <FormSection :formCollapse="false" label="Court Dates">
                 <div class="col-sm-12 form-group"><div class="row">
 
-                    <div class="input-group date" id="court_date" v-for="court_date in legal_case.court_proceedings.court_dates">
+                    <div class="input-group date" id="court_date" v-for="court_date_obj in legal_case.court_proceedings.court_dates">
                         <CourtDate 
-                            :court_datetime="new Date(court_date.court_datetime)"
-                            :comments="court_date.comments"
-                            :court_date_id="court_date.id"
+                            :court_datetime="new Date(court_date_obj.court_datetime)"
+                            :comments="court_date_obj.comments"
+                            :court_date_id="court_date_obj.id"
                             @date_changed="dateChanged"
                             @time_changed="timeChanged"
-                            :Key="court_date.id"
+                            @comments_changed="commentsChanged"
+                            :Key="court_date_obj.id"
                             />
                     </div>
 
@@ -223,15 +224,14 @@ export default {
           //saveLegalCase: 'saveLegalCase',
           //setLegalCase: 'setLegalCase',
         }),
-        dateChanged: function(e) {
-            console.log('receive date-changed');
+        commentsChanged: function(e) {
             console.log(e);
-            console.log(e.new_date.format('DD/MM/YYYY'));
+        },
+        dateChanged: function(e) {
+            console.log(e);
         },
         timeChanged: function(e) {
-            console.log('receive time-changed');
             console.log(e);
-            console.log(e.new_date.format('LT'));
         },
         courtOutcomeDocumentUploaded: function() {
             console.log('courtOutcomeDocumentUploaded');
