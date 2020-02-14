@@ -229,6 +229,7 @@
             @modal-action="receivePersonOrArtifactEntity"
             :rowNumberSelected="rowNumberSelected"
             :initialTabSelected="tabSelected"
+            :entityEdit="entityEdit"
             />
         </div>
         <div v-if="runningSheetHistoryEntryBindId">
@@ -282,6 +283,7 @@ export default {
             //boeRoiTicked: [],
             //boeRoiOptions: [],
             //boeOtherStatementsOptions: [],
+            entityEdit: {},
             uuid: 0,
             showSpinner: false,
             showExit: false,
@@ -631,7 +633,7 @@ export default {
         let i = 0;
         for (let r of this.runningSheetUrl) {
             if (this.runningSheetEntriesUpdated.includes(r.number)) {
-                r.description = this.urlToToken(r.description)
+                r.description = this.htmlToToken(r.description)
                 r.user_id = this.current_user.id;
                 runningSheet.push(r);
             }
@@ -681,8 +683,10 @@ export default {
         console.log(entity);
         console.log(recordNumberElement);
         let replacementVal = ''
+        let urlId = entity.data_type + "-" + entity.id;
         if (entity.full_name) {
-            replacementVal = `<a contenteditable="false" target="_blank" href="/internal/users/${entity.id}">${entity.full_name}</a>`;
+            //replacementVal = `<a contenteditable="false" id="${urlId}" class="entity_edit" target="_blank" href="/internal/users/${entity.id}">${entity.full_name}</a>`;
+            replacementVal = `<span contenteditable="false" id="${urlId}" class="entity_edit">${entity.full_name}</span>`;
             // add to runningSheetPersonList
             this.addToRunningSheetPersonList(entity)
             //this.legal_case.runningSheetPersonList.push(entity)
@@ -699,11 +703,14 @@ export default {
     },
     */
     insertArtifactModalUrl: function({"entity": entity, "recordNumberElement": recordNumberElement}) {
+        console.log(entity)
         let replacementVal = '';
         let urlDescription = entity.identifier ? entity.identifier : entity.display;
+        let urlId = entity.data_type + "-" + entity.id;
 
         if (urlDescription) {
-            replacementVal = `<a contenteditable="false" target="_blank" href="/internal/object/${entity.id}">${urlDescription}</a>`;
+            //replacementVal = `<a contenteditable="false" id="${urlId}" class="entity_edit" target="_blank" href="/internal/object/${entity.id}">${urlDescription}</a>`;
+            replacementVal = `<span contenteditable="false" id="${urlId}" class="entity_edit">${urlDescription}</span>`;
             // add to runningSheetArtifactList
             /*
             if (this.legal_case && !this.legal_case.runningSheetArtifactList) {
@@ -813,7 +820,7 @@ export default {
         if (updatedRunningSheet.ok) {
             await this.setAddRunningSheetEntry(updatedRunningSheet.body);
             let returnPayload = _.cloneDeep(updatedRunningSheet.body);
-            returnPayload.description = this.tokenToUrl(returnPayload.description);
+            returnPayload.description = this.tokenToHtml(returnPayload.description);
             this.runningSheetUrl.push(returnPayload);
             this.constructRunningSheetTable(returnPayload.id);
         }
@@ -980,6 +987,8 @@ export default {
     runningSheetKeydown: async function(e) {
         console.log(e)
         if (e.key === '!' && e.shiftKey && this.searchArtifactKeyPressed) {
+            // ensure entityEdit is empty
+            this.entityEdit = {};
             this.rowNumberSelected = e.target.id;
             this.tabSelected = 'artifact';
             this.openPersonOrArtifact();
@@ -992,6 +1001,7 @@ export default {
         } else if (e.key === '@' && e.shiftKey && this.searchPersonKeyPressed) {
             //let rowElement = $('#' + e.target.id);
             //this.openSearchPersonOrganisation(e.target.id)
+            this.entityEdit = {};
             this.rowNumberSelected = e.target.id;
             this.tabSelected = 'person';
             this.openPersonOrArtifact();
@@ -1020,50 +1030,122 @@ export default {
             this.insertUrlKeyPressed = false;
         }
     },
-    urlToToken: function(description) {
+    htmlToToken: function(description) {
         let parsedText = description;
-        const personUrlRegex = /<a contenteditable\=\"false\" target\=\"\_blank\" href\=\"\/internal\/users\/\d+\"\>\w+(\s\w+)*\<\/a\>/g
-        const personIdRegex = /\/internal\/users\/\d+/g
-        const personNameRegex = /\/internal\/users\/\d+\"\>\w+(\s\w+)*/g
-        let matchArray = [...description.matchAll(personUrlRegex)];
-        if (matchArray && matchArray.length > 0) {
-            for (let match of matchArray) {
-                let idArray = [...match[0].matchAll(personIdRegex)];
-                let idStr = idArray[0][0]
-                let id = idStr.substring(16)
-                let personArray = [...match[0].matchAll(personNameRegex)];
+        // person transform
+        //const personUrlRegex = /<a contenteditable\=\"false\" target\=\"\_blank\" href\=\"\/internal\/users\/\d+\"\>\w+(\s\w+)*\<\/a\>/g
+        const personUrlRegex = /<span contenteditable\=\"false\" id=\"individual-\d+\"\ class=\"entity_edit\">\w+(\s\w+)*\<\/span\>/g
+        //const personIdRegex = /\/internal\/users\/\d+/g
+        const personIdRegex = /id=\"individual\-\d+/g
+        //const personNameRegex = /\/internal\/users\/\d+\"\>\w+(\s\w+)*/g
+        const personNameRegex = /class=\"entity_edit\"\>\w+(\s\w+)*/g
+        let personUrlArray = [...description.matchAll(personUrlRegex)];
+        if (personUrlArray && personUrlArray.length > 0) {
+            for (let personUrl of personUrlArray) {
+                let personIdArray = [...personUrl[0].matchAll(personIdRegex)];
+                let personIdStr = personIdArray[0][0]
+                let personId = personIdStr.substring(15)
+                let personArray = [...personUrl[0].matchAll(personNameRegex)];
                 let personFound = personArray[0][0]
-                let person = personFound.replace(/\/internal\/users\/\d+\"\>/g, String(''));
-                let replacementVal = `{{ "person_id": "${id}", "full_name": "${person}" }}`
-                parsedText = parsedText.replace(match[0], replacementVal).replace(/\&nbsp\;/g, ' ');
+                //let person = personFound.replace(/id=\"individual\-\d+\"\>/g, String(''));
+                let person = personFound.replace(/class=\"entity_edit\"\>/g, String(''));
+                let replacementVal = `{{ "person_id": "${personId}", "full_name": "${person}" }}`
+                parsedText = parsedText.replace(personUrl[0], replacementVal).replace(/\&nbsp\;/g, ' ');
             }
         }
-        // TODO: add artifact url parsing here
+        // artifact transform
+        const artifactUrlRegex = /\<span contenteditable\=\"false\" id=\"\w+\_artifact\-\d+\" class=\"entity_edit\"\>\w+(\s\w+)*\<\/span\>/g
+        const artifactIdRegex = /id=\"\w+\_\w+\-\d+/g
+        //const artifactIdRegex = /\w+\_\w+\-\d+/g
+        const artifactIdentifierRegex = /class=\"entity_edit\"\>\w+(\s\w+)*/g
+        let artifactUrlArray = [...description.matchAll(artifactUrlRegex)];
+        if (artifactUrlArray && artifactUrlArray.length > 0) {
+            for (let artifactUrl of artifactUrlArray) {
+                let artifactIdArray = [...artifactUrl[0].matchAll(artifactIdRegex)];
+                let artifactIdStr = artifactIdArray[0][0];
+                let artifactTypeIncludingId = artifactIdStr.split("-")[0];
+                let artifactType = artifactTypeIncludingId.substring(4)
+                let artifactId = artifactIdStr.split("-")[1];
+                //let id = idStrTrunc.substring(
+                let identifierArray = [...artifactUrl[0].matchAll(artifactIdentifierRegex)];
+                let identifierFound = identifierArray[0][0];
+                let identifier = identifierFound.replace(/class=\"entity_edit\"\>/g, String(''));
+                let replacementVal = `{{ "${artifactType}_id": "${artifactId}", "identifier": "${identifier}" }}`
+                parsedText = parsedText.replace(artifactUrl[0], replacementVal).replace(/\&nbsp\;/g, ' ');
+            }
+        }
         return parsedText;
     },
-    tokenToUrl: function(description) {
+    tokenToHtml: function(description) {
         let parsedText = description;
+        // Person transform
         const personTokenRegex = /\{\{ \"person\_id\"\: \"\d+\"\, \"full\_name\"\: \"\w+(\s\w+)*\" \}\}/g;
         const personIdRegex = /\{\{ \"person\_id\"\: \"\d+/g;
         // const personNameRegex = /\"full\_name\"\: \"\w+ \w+/g;
         const personNameRegex = /\"full\_name\"\: \"\w+(\s\w+)*/g;
         let personTokenArray = [...description.matchAll(personTokenRegex)];
         for (let personToken of personTokenArray) {
-            let idArray = [...personToken[0].matchAll(personIdRegex)];
-            let idStr = idArray[0][0]
-            let id = idStr.substring(17)
+            let personIdArray = [...personToken[0].matchAll(personIdRegex)];
+            let personIdStr = personIdArray[0][0]
+            let personId = personIdStr.substring(17)
             let nameArray = [...personToken[0].matchAll(personNameRegex)];
             if (nameArray && nameArray.length > 0) {
                 let nameStr = nameArray[0][0]
                 let fullName = nameStr.substring(14)
                 parsedText = parsedText.replace(
                     personToken[0],
-                    `<a contenteditable="false" target="_blank" href="/internal/users/${id}">${fullName}</a>`
+                    //`<a contenteditable="false" target="_blank" href="/internal/users/${id}">${fullName}</a>`
+                    `<span contenteditable="false" id="individual-${personId}" class="entity_edit">${fullName}</span>`
                 );
             }
         }
-        // TODO: add artifact url parsing here
+        // Artifact transform
+        //const artifactTokenRegex = /\{\{ \"artifact\_id\"\: \"\d+\"\, \"identifier\"\: \"\w+(\s\w+)*\" \}\}/g;
+        const artifactTokenRegex = /\{\{ \"\w+\_artifact\_id\"\: \"\d+\"\, \"identifier\"\: \"\w+(\s\w+)*\" \}\}/g;
+        const artifactIdRegex = /\w+\_artifact\_id\"\: \"\d+/g;
+        //const artifactIdRegex = /artifact\_id\"\: \"\d+/g;
+        const artifactIdentifierRegex = /\"identifier\"\: \"\w+(\s\w+)*/g
+        let artifactTokenArray = [...description.matchAll(artifactTokenRegex)];
+        for (let artifactToken of artifactTokenArray) {
+            let artifactIdArray = [...artifactToken[0].matchAll(artifactIdRegex)];
+            let artifactIdStr = artifactIdArray[0][0]
+            let artifactType = artifactIdStr.split("_")[0] + "_artifact";
+            let artifactIdStrTrunc = artifactIdStr.split("_")[2];
+            let artifactId = artifactIdStrTrunc.substring(6)
+            let identifierArray = [...artifactToken[0].matchAll(artifactIdentifierRegex)];
+            if (identifierArray && identifierArray.length > 0) {
+                let identifierStr = identifierArray[0][0]
+                let identifier = identifierStr.substr(15)
+                let elemId = artifactType + "-" + artifactId;
+                parsedText = parsedText.replace(
+                    artifactToken[0],
+                    `<span contenteditable="false" id="${elemId}" class="entity_edit">${identifier}</span>`
+                    );
+            }
+        }
         return parsedText
+    },
+    openModalEntityEdit: function(e) {
+        console.log(e)
+        let entityDataType = e.target.id.split("-")[0]
+        let entityId = e.target.id.split("-")[1]
+        //this.rowNumberSelected = e.target.id.split("-")[2]
+        console.log(entityDataType)
+        console.log(entityId)
+        if (entityId) {
+            entityId = parseInt(entityId, 10);
+        }
+        this.entityEdit = {
+            "data_type": entityDataType,
+            "id": entityId,
+        }
+        if (['physical_artifact', 'document_artifact'].includes(entityDataType)) {
+            this.tabSelected = 'artifact';
+        } else if (entityDataType === 'individual') {
+            this.tabSelected = 'person';
+        }
+
+        this.openPersonOrArtifact();
     },
     addEventListeners: function() {
       let vm = this;
@@ -1085,6 +1167,12 @@ export default {
           '.row_delete',
           (e) => {
               this.runningSheetRowDelete(e)
+          });
+      runningSheetTable.on(
+          'click',
+          '.entity_edit',
+          (e) => {
+              this.openModalEntityEdit(e)
           });
       
       runningSheetTable.on(
@@ -1145,7 +1233,7 @@ export default {
             for (let r of this.runningSheetUrl) {
                 if (r.number === rowNumber) {
                     this.runningSheetUrl.splice(i, 1, returnedEntry.body);
-                    this.runningSheetUrl[i].description = this.tokenToUrl(this.runningSheetUrl[i].description);
+                    this.runningSheetUrl[i].description = this.tokenToHtml(this.runningSheetUrl[i].description);
                 }
                 i += 1
             }
@@ -1183,7 +1271,7 @@ export default {
             for (let r of this.runningSheetUrl) {
                 if (r.number === rowNumber) {
                     this.runningSheetUrl.splice(i, 1, returnedEntry.body);
-                    this.runningSheetUrl[i].description = this.tokenToUrl(this.runningSheetUrl[i].description);
+                    this.runningSheetUrl[i].description = this.tokenToHtml(this.runningSheetUrl[i].description);
                 }
                 i += 1
             }
@@ -1268,7 +1356,7 @@ export default {
         this.runningSheetUrl = _.cloneDeep(this.legal_case.running_sheet_entries);
         let i = 0;
         for (let r of this.legal_case.running_sheet_entries) {
-            let description = this.tokenToUrl(r.description)
+            let description = this.tokenToHtml(r.description)
             this.runningSheetUrl[i].description = description;
             i += 1;
         }
@@ -1317,6 +1405,9 @@ export default {
 </script>
 
 <style lang="css">
+.entity_edit {
+    color: #337ab7;
+}
 .action-button {
     margin-top: 5px;
 }
