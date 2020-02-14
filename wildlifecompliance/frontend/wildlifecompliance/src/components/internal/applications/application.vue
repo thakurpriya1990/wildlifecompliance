@@ -772,9 +772,10 @@ export default {
             let auth_activity = this.canAssignOfficerFor(this.selected_activity_tab_id);
 
             let proposal = auth_activity && auth_activity.is_with_officer && this.licence_type_data.activity.find(activity => {
-
                     return activity.id === this.selected_activity_tab_id
-                });
+                        && activity.processing_status.name.match(/with officer/gi) // FIXME: required because of temporary status set below.
+                });                                                                // processing_status.id not related to processing_status.name
+
             // officer can Issue or Decline without conditions so set temporary status.
             return proposal ? proposal.processing_status.id = 'with_officer_conditions' : false;
         },

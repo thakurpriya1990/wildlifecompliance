@@ -701,6 +701,21 @@ class ApplicationViewSet(viewsets.ModelViewSet):
                         'oracle_code': ''
                     })
 
+            # Include additional fees by licence approvers.
+            has_additional = instance.has_additional_fees
+            print(has_additional)
+            # if instance.has_additional_fees:
+            #     for activity in activities:
+            #         product_lines.append({
+            #             'ledger_description': '{}'.format(
+            #                 activity.additional_fee_text),
+            #             'quantity': 1,
+            #             'price_incl_tax': str(activity.additional_fee),
+            #             'price_excl_tax': str(calculate_excl_gst(
+            #                 activity.additional_fee)),
+            #             'oracle_code': ''
+            #         })
+
             checkout_result = checkout(
                 request, instance,
                 lines=product_lines,

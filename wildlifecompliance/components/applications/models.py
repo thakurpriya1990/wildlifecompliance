@@ -29,8 +29,14 @@ from wildlifecompliance.components.main.utils import (
 )
 
 from wildlifecompliance.components.organisations.models import Organisation
-from wildlifecompliance.components.organisations.emails import send_org_id_update_request_notification
-from wildlifecompliance.components.main.models import CommunicationsLogEntry, UserAction, Document
+from wildlifecompliance.components.organisations.emails import (
+    send_org_id_update_request_notification
+)
+from wildlifecompliance.components.main.models import (
+    CommunicationsLogEntry,
+    UserAction,
+    Document
+)
 from wildlifecompliance.components.applications.email import (
     send_application_submitter_email_notification,
     send_application_submit_email_notification,
@@ -44,6 +50,7 @@ from wildlifecompliance.components.applications.email import (
     send_activity_invoice_email_notification,
     send_activity_invoice_issue_notification,
     send_amendment_refund_email_notification,
+    send_activity_propose_issue_notification,
 )
 from wildlifecompliance.components.main.utils import get_choice_value
 from wildlifecompliance.ordered_model import OrderedModel
@@ -51,7 +58,6 @@ from wildlifecompliance.components.licences.models import (
     LicenceCategory,
     LicenceActivity,
     LicencePurpose,
-    WildlifeLicence,
     LicenceDocument,
 )
 from wildlifecompliance.components.main.models import (
@@ -65,6 +71,7 @@ def get_app_label():
         return settings.SYSTEM_APP_LABEL
     except AttributeError:
         return ''
+
 
 def update_application_doc_filename(instance, filename):
     return 'wildlifecompliance/applications/{}/documents/{}'.format(
@@ -1574,6 +1581,16 @@ class Application(RevisionedMixin):
         return fees_amended
 
     @property
+    def has_additional_fees(self):
+        """
+        Check for additional costs manually included by officer at proposal.
+        """
+        additional_fees = [
+            a.id for a in self.activities.filter if a.additional_fee>0]
+
+        return additional_fees.length
+
+    @property
     def amended_activities(self):
         """
         Sets the application fee for each activity with a new amended amount
@@ -1881,14 +1898,6 @@ class Application(RevisionedMixin):
                     raise ValidationError(
                         'You cannot propose for licence if it is not with officer for conditions')
 
-                # process any attachments which need to be emailed to internal
-                # and attachments for the applicant when issued.
-                # email_attachments = get_temporary_document_collection(
-                #    request.data.get('email_attachments_id')
-                # )        
-
-
-                # TODO: for each selected purpose add to ASA Purpose
                 if self.application_type == Application.APPLICATION_TYPE_AMENDMENT:
                     # Pre-populate proposed issue dates with dates from the currently active licence.
                     for activity_id in activity_list:
@@ -1906,6 +1915,9 @@ class Application(RevisionedMixin):
                         activity.cc_email = details.get('cc_email', None)
                         activity.proposed_start_date = latest_activity.start_date
                         activity.proposed_end_date = latest_activity.expiry_date
+                        activity.additional_fee = details.get('additional_fee')
+                        activity.additional_fee_text = details.get(
+                            'additional_fee_text')
                         activity.save()
                 else:
                     ApplicationSelectedActivity.objects.filter(
@@ -1919,6 +1931,9 @@ class Application(RevisionedMixin):
                         cc_email=details.get('cc_email', None),
                         proposed_start_date=details.get('start_date', None),
                         proposed_end_date=details.get('expiry_date', None),
+                        additional_fee=details.get('additional_fee', 0),
+                        additional_fee_text=details.get(
+                            'additional_fee_text', None)
                     )
                     for purpose_id in purpose_list:
                         purpose = LicencePurpose.objects.get(id=purpose_id)
@@ -1929,6 +1944,23 @@ class Application(RevisionedMixin):
                             purpose=purpose,
                             selected_activity=activity
                         )
+
+                # Email licence approver group of proposed action.
+                attachments_id = request.data.get('email_attachments_id')
+                documents = []
+                if attachments_id:
+                    attachments = \
+                        get_temporary_document_collection(attachments_id)
+                    for document in attachments.documents.all():
+                        content = document._file.read()
+                        mime = mimetypes.guess_type(document.name)[0]
+                        documents.append((document.name, content, mime))                        
+
+                email_text=details.get('approver_detail', None),                 
+                send_activity_propose_issue_notification(
+                   request, self, email_text, documents
+                )
+                # log proposing officers comments and documents.
 
                 # Log application action
                 self.log_user_action(
@@ -2213,6 +2245,8 @@ class Application(RevisionedMixin):
                         selected_activity.expiry_date = expiry_date
                         selected_activity.cc_email = item['cc_email']
                         selected_activity.reason = item['reason']
+                        selected_activity.additional_fee = item['additional_fee']
+                        selected_activity.additional_fee_text = item['additional_fee_text']
 
                         proposed_purposes = selected_activity.proposed_purposes.all()
                         for proposed_purpose in proposed_purposes:
@@ -2892,6 +2926,9 @@ class ApplicationSelectedActivity(models.Model):
         max_digits=8, decimal_places=2, default='0')
     application_fee = models.DecimalField(
         max_digits=8, decimal_places=2, default='0')
+    additional_fee = models.DecimalField(
+        max_digits=8, decimal_places=2, default='0')
+    additional_fee_text = models.TextField(blank=True, null=True)
     assigned_approver = models.ForeignKey(
         EmailUser,
         blank=True,
@@ -2942,9 +2979,6 @@ class ApplicationSelectedActivity(models.Model):
         purposes = [p.purpose for p in self.proposed_purposes.filter(
             processing_status='issue')]
         return purposes
-        # return LicencePurpose.objects.filter(
-        #     id=purposes
-        # ).distinct()
 
     def can_action(self, purposes_in_open_applications=[]):
         # Returns a DICT object containing can_<action> Boolean results of each action check
@@ -3746,6 +3780,7 @@ class ApplicationCondition(OrderedModel):
             # Set the source_group when added by the assessor.
             group = self.get_assessor_permission_group(user)
             self.source_group = group.activitypermissiongroup
+            self.save()
 
     def get_assessor_permission_group(self, user, first=True):
         app_label = get_app_label()

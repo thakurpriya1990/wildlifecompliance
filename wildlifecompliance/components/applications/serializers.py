@@ -1070,6 +1070,10 @@ class ProposedLicenceSerializer(serializers.Serializer):
     cc_email = serializers.CharField(required=False, allow_null=True)
     activity = serializers.ListField(child=serializers.IntegerField())
     purposes = serializers.ListField(child=serializers.IntegerField())
+    approver_detail = serializers.CharField(required=False, allow_null=True)
+    additional_fee_text = serializers.CharField(
+        required=False, allow_null=True)
+    additional_fee = serializers.DecimalField(max_digits=7, decimal_places=2)
 
 
 class ProposedDeclineSerializer(serializers.Serializer):
