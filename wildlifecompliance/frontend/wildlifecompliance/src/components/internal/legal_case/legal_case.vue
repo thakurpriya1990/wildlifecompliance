@@ -1033,26 +1033,47 @@ export default {
     htmlToToken: function(description) {
         let parsedText = description;
         // person transform
-        const personUrlRegex = /<a contenteditable\=\"false\" target\=\"\_blank\" href\=\"\/internal\/users\/\d+\"\>\w+(\s\w+)*\<\/a\>/g
-        const personIdRegex = /\/internal\/users\/\d+/g
-        const personNameRegex = /\/internal\/users\/\d+\"\>\w+(\s\w+)*/g
-        let matchArray = [...description.matchAll(personUrlRegex)];
-        if (matchArray && matchArray.length > 0) {
-            for (let match of matchArray) {
-                let idArray = [...match[0].matchAll(personIdRegex)];
-                let idStr = idArray[0][0]
-                let id = idStr.substring(16)
-                let personArray = [...match[0].matchAll(personNameRegex)];
+        //const personUrlRegex = /<a contenteditable\=\"false\" target\=\"\_blank\" href\=\"\/internal\/users\/\d+\"\>\w+(\s\w+)*\<\/a\>/g
+        const personUrlRegex = /<span contenteditable\=\"false\" id=\"individual-\d+\"\ class=\"entity_edit\">\w+(\s\w+)*\<\/span\>/g
+        //const personIdRegex = /\/internal\/users\/\d+/g
+        const personIdRegex = /id=\"individual\-\d+/g
+        //const personNameRegex = /\/internal\/users\/\d+\"\>\w+(\s\w+)*/g
+        const personNameRegex = /class=\"entity_edit\"\>\w+(\s\w+)*/g
+        let personUrlArray = [...description.matchAll(personUrlRegex)];
+        if (personUrlArray && personUrlArray.length > 0) {
+            for (let personUrl of personUrlArray) {
+                let personIdArray = [...personUrl[0].matchAll(personIdRegex)];
+                let personIdStr = personIdArray[0][0]
+                let personId = personIdStr.substring(15)
+                let personArray = [...personUrl[0].matchAll(personNameRegex)];
                 let personFound = personArray[0][0]
-                let person = personFound.replace(/\/internal\/users\/\d+\"\>/g, String(''));
-                let replacementVal = `{{ "person_id": "${id}", "full_name": "${person}" }}`
-                parsedText = parsedText.replace(match[0], replacementVal).replace(/\&nbsp\;/g, ' ');
+                //let person = personFound.replace(/id=\"individual\-\d+\"\>/g, String(''));
+                let person = personFound.replace(/class=\"entity_edit\"\>/g, String(''));
+                let replacementVal = `{{ "person_id": "${personId}", "full_name": "${person}" }}`
+                parsedText = parsedText.replace(personUrl[0], replacementVal).replace(/\&nbsp\;/g, ' ');
             }
         }
         // artifact transform
-
-
-
+        const artifactUrlRegex = /\<span contenteditable\=\"false\" id=\"\w+\_artifact\-\d+\" class=\"entity_edit\"\>\w+(\s\w+)*\<\/span\>/g
+        const artifactIdRegex = /id=\"\w+\_\w+\-\d+/g
+        //const artifactIdRegex = /\w+\_\w+\-\d+/g
+        const artifactIdentifierRegex = /class=\"entity_edit\"\>\w+(\s\w+)*/g
+        let artifactUrlArray = [...description.matchAll(artifactUrlRegex)];
+        if (artifactUrlArray && artifactUrlArray.length > 0) {
+            for (let artifactUrl of artifactUrlArray) {
+                let artifactIdArray = [...artifactUrl[0].matchAll(artifactIdRegex)];
+                let artifactIdStr = artifactIdArray[0][0];
+                let artifactTypeIncludingId = artifactIdStr.split("-")[0];
+                let artifactType = artifactTypeIncludingId.substring(4)
+                let artifactId = artifactIdStr.split("-")[1];
+                //let id = idStrTrunc.substring(
+                let identifierArray = [...artifactUrl[0].matchAll(artifactIdentifierRegex)];
+                let identifierFound = identifierArray[0][0];
+                let identifier = identifierFound.replace(/class=\"entity_edit\"\>/g, String(''));
+                let replacementVal = `{{ "${artifactType}_id": "${artifactId}", "identifier": "${identifier}" }}`
+                parsedText = parsedText.replace(artifactUrl[0], replacementVal).replace(/\&nbsp\;/g, ' ');
+            }
+        }
         return parsedText;
     },
     tokenToHtml: function(description) {
@@ -1064,35 +1085,41 @@ export default {
         const personNameRegex = /\"full\_name\"\: \"\w+(\s\w+)*/g;
         let personTokenArray = [...description.matchAll(personTokenRegex)];
         for (let personToken of personTokenArray) {
-            let idArray = [...personToken[0].matchAll(personIdRegex)];
-            let idStr = idArray[0][0]
-            let id = idStr.substring(17)
+            let personIdArray = [...personToken[0].matchAll(personIdRegex)];
+            let personIdStr = personIdArray[0][0]
+            let personId = personIdStr.substring(17)
             let nameArray = [...personToken[0].matchAll(personNameRegex)];
             if (nameArray && nameArray.length > 0) {
                 let nameStr = nameArray[0][0]
                 let fullName = nameStr.substring(14)
                 parsedText = parsedText.replace(
                     personToken[0],
-                    `<a contenteditable="false" target="_blank" href="/internal/users/${id}">${fullName}</a>`
+                    //`<a contenteditable="false" target="_blank" href="/internal/users/${id}">${fullName}</a>`
+                    `<span contenteditable="false" id="individual-${personId}" class="entity_edit">${fullName}</span>`
                 );
             }
         }
         // Artifact transform
-        const artifactTokenRegex = /\{\{ \"artifact\_id\"\: \"\d+\"\, \"identifier\"\: \"\w+(\s\w+)*\" \}\}/g;
-        const artifactIdRegex = /\{\{ \"artifact\_id\"\: \"\d+/g;
+        //const artifactTokenRegex = /\{\{ \"artifact\_id\"\: \"\d+\"\, \"identifier\"\: \"\w+(\s\w+)*\" \}\}/g;
+        const artifactTokenRegex = /\{\{ \"\w+\_artifact\_id\"\: \"\d+\"\, \"identifier\"\: \"\w+(\s\w+)*\" \}\}/g;
+        const artifactIdRegex = /\w+\_artifact\_id\"\: \"\d+/g;
+        //const artifactIdRegex = /artifact\_id\"\: \"\d+/g;
         const artifactIdentifierRegex = /\"identifier\"\: \"\w+(\s\w+)*/g
         let artifactTokenArray = [...description.matchAll(artifactTokenRegex)];
         for (let artifactToken of artifactTokenArray) {
-            let idArray = [...artifactToken[0].matchAll(artifactIdRegex)];
-            let idStr = idArray[0][0]
-            let id = idStr.substring(19)
-            let identifierArray = [...personToken[0].matchAll(artifactIdentifierRegex)];
+            let artifactIdArray = [...artifactToken[0].matchAll(artifactIdRegex)];
+            let artifactIdStr = artifactIdArray[0][0]
+            let artifactType = artifactIdStr.split("_")[0] + "_artifact";
+            let artifactIdStrTrunc = artifactIdStr.split("_")[2];
+            let artifactId = artifactIdStrTrunc.substring(6)
+            let identifierArray = [...artifactToken[0].matchAll(artifactIdentifierRegex)];
             if (identifierArray && identifierArray.length > 0) {
                 let identifierStr = identifierArray[0][0]
                 let identifier = identifierStr.substr(15)
+                let elemId = artifactType + "-" + artifactId;
                 parsedText = parsedText.replace(
                     artifactToken[0],
-                    `<span contenteditable="false" id="${id}" class="entity_edit">${identifier}</span>`
+                    `<span contenteditable="false" id="${elemId}" class="entity_edit">${identifier}</span>`
                     );
             }
         }

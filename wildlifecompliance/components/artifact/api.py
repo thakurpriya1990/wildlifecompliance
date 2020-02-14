@@ -376,6 +376,9 @@ class PhysicalArtifactViewSet(viewsets.ModelViewSet):
                 instance.log_user_action(
                         ArtifactUserAction.ACTION_SAVE_ARTIFACT.format(
                         instance.number), request)
+                # disposal
+                if request.data.get('disposal_date'):
+                    instance.dispose(request)
                 return_serializer = PhysicalArtifactSerializer(instance, context={'request': request})
                 return Response(
                         return_serializer.data,

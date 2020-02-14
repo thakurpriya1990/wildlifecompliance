@@ -20,7 +20,8 @@
                                 <li :class="objectTabListClass"><a data-toggle="tab" @click="updateTabSelected('objectTab')" :href="'#'+objectTab">Object</a></li>
                                 <li :class="detailsTabListClass"><a data-toggle="tab" @click="updateTabSelected('detailsTab')" :href="'#'+detailsTab" >Details</a></li>
                                 <li :class="storageTabListClass"><a data-toggle="tab" @click="updateTabSelected('storageTab')" :href="'#'+storageTab" >Storage</a></li>
-                                <li v-if="disposalTabVisibility" :class="disposalTabListClass"><a data-toggle="tab" @click="updateTabSelected('disposalTab')" :href="'#'+disposalTab" >Disposal</a></li>
+                                <!--li v-if="disposalTabVisibility" :class="disposalTabListClass"><a data-toggle="tab" @click="updateTabSelected('disposalTab')" :href="'#'+disposalTab" >Disposal</a></li-->
+                                <li :class="disposalTabListClass"><a data-toggle="tab" @click="updateTabSelected('disposalTab')" :href="'#'+disposalTab" >Disposal</a></li>
                                 <li v-if="!parentModal" :class="relatedItemsTabListClass"><a data-toggle="tab" @click="updateTabSelected('relatedItemsTab')" :href="'#'+relatedItemsTab" >Related Items</a></li>
                             </ul>
                             <div class="tab-content">
@@ -221,7 +222,8 @@
                                         </div></div>
                                     </FormSection>
                                 </div>
-                                <div v-if="disposalTabVisibility" :id="disposalTab" :class="disposalTabClass">
+                                <!--div v-if="disposalTabVisibility" :id="disposalTab" :class="disposalTabClass"-->
+                                <div :id="disposalTab" :class="disposalTabClass">
                                     <FormSection :formCollapse="false" label="Disposal">
                                         <div class="col-sm-12 form-group"><div class="row">
                                             <div class="col-sm-3">
@@ -944,7 +946,7 @@ export default {
             });
             disposal_date_control.on("dp.change", function(e) {
                 console.log(e)
-                if (el_fr_date.data("DateTimePicker").date()) {
+                if (disposal_date_control.data("DateTimePicker").date()) {
                   vm.physical_artifact.disposal_date = e.date.format("DD/MM/YYYY");
                 } else if (disposal_date_control.data("date") === "") {
                   vm.physical_artifact.disposal_date = "";
