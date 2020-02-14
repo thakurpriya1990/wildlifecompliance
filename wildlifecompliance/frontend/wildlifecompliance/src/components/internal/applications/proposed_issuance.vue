@@ -10,9 +10,12 @@
                                 <div class="row">
                                     <div class="col-sm-12">
                                         <label class="control-label" for="Name">Select licensed activities to Propose Issue</label>
-                                        <div v-for="activity in visibleLicenceActivities">
+                                        <div v-for="(a, index) in applicationSelectedActivitiesForPurposes" :key="index">
+                                            <input type="checkbox" :value ="a.id" :id="a.id" v-model="checkedActivities" >{{a.activity_name_str}}
                                             <div>
-                                                <input type="checkbox" :value ="activity.id" :id="activity.id" v-model="propose_issue.activity">{{activity.name}}
+                                                <div v-for="p in a.purposes">
+                                                    &nbsp;&nbsp;&nbsp;<input type="checkbox" :value ="p.id" :id="p.id" v-model="pickedPurposes" >{{p.short_name}}
+                                                </div>
                                             </div>
                                         </div>
                                     </div>
@@ -52,7 +55,7 @@
                             <div class="form-group">
                                 <div class="row">
                                     <div class="col-sm-3">
-                                        <label class="control-label pull-left" for="Name">Proposed Details</label>
+                                        <label class="control-label pull-left" for="Name">Details for Applicant</label>
                                     </div>
                                     <div class="col-sm-9">
                                         <textarea name="licence_details" class="form-control" style="width:70%;" v-model="propose_issue.reason"></textarea>
@@ -62,13 +65,75 @@
                             <div class="form-group">
                                 <div class="row">
                                     <div class="col-sm-3">
-                                        <label class="control-label pull-left" for="Name">Proposed CC email</label>
+                                        <label class="control-label pull-left" for="Name">Copy email</label>
                                     </div>
                                     <div class="col-sm-9">
                                             <input type="text" class="form-control" name="licence_cc" style="width:70%;" v-model="propose_issue.cc_email">
                                     </div>
                                 </div>
                             </div>
+                            <div class="form-group">
+                                <div class="row">
+                                    <div class="col-sm-3">
+                                        <label class="control-label pull-left" for="Name">Documents for Applicant</label>
+                                    </div>
+            			            <div class="col-sm-9">
+                                        <filefield 
+                                            ref="issuance_documents" 
+                                            name="issuance-documents" 
+                                            :isRepeatable="true" 
+                                            documentActionUrl="temporary_document" 
+                                            @update-temp-doc-coll-id="setTemporaryIssuanceDocumentsCollectionId"/>
+                                    </div>                                                              
+                                </div>
+                            </div>
+                            <div class="form-group">
+                                <div class="row">
+                                    <div class="col-sm-3">
+                                        <label class="control-label pull-left" for="Name">Details for Approver</label>
+                                    </div>
+                                    <div class="col-sm-9">
+                                        <textarea name="licence_details" class="form-control" style="width:70%;" v-model="propose_issue.approver_detail"></textarea>
+                                    </div>
+                                </div>
+                            </div>   
+                            <div class="form-group">
+                                <div class="row">
+                                    <div class="col-sm-3">
+                                        <label class="control-label pull-left" for="Name">Documents for Approver</label>
+                                    </div>
+            			            <div class="col-sm-9">
+                                        <filefield 
+                                            ref="comms_log_file" 
+                                            name="comms-log-file" 
+                                            :isRepeatable="true" 
+                                            documentActionUrl="temporary_document" 
+                                            @update-temp-doc-coll-id="setTemporaryEmailCollectionId"/>
+                                    </div>                                                              
+                                </div>
+                            </div> 
+                            <div v-for="a in checkedActivities">
+                                <div class="form-group">
+                                    <div class="row">
+                                        <div class="col-sm-3">
+                                            <label class="control-label pull-left" for="Name">Additional Fee Description</label>
+                                        </div>
+                                        <div class="col-sm-9">
+                                            <input type="text" name="licence_cost_line" class="form-control" style="width:70%;" v-model="propose_issue.additional_fee_text" />
+                                        </div>
+                                    </div>
+                                </div>  
+                                <div class="form-group">
+                                    <div class="row">
+                                        <div class="col-sm-3">
+                                            <label class="control-label pull-left" for="Name">Additional Fee</label>
+                                        </div>
+                                        <div class="col-sm-9">
+                                            <input type="text" name="licence_cost_amount" class="form-control" style="width:20%;" v-model="propose_issue.additional_fee" />
+                                        </div>
+                                    </div>
+                                </div>
+                            </div>  
                         </div>
                     </form>
                 </div>
@@ -88,11 +153,13 @@ import modal from '@vue-utils/bootstrap-modal.vue'
 import alert from '@vue-utils/alert.vue'
 import {helpers,api_endpoints} from "@/utils/hooks.js"
 import { mapGetters } from 'vuex'
+import filefield from '@/components/common/compliance_file.vue'
 export default {
     name:'Proposed-Licence',
     components:{
         modal,
-        alert
+        alert,
+        filefield,
     },
     props:{
     },
@@ -102,11 +169,16 @@ export default {
             isModalOpen:false,
             form:null,
             propose_issue:{
-                activity:[],
+                activity: [],
+                purposes: [],
                 cc_email:null,
                 reason:null,
                 expiry_date:null,
-                start_date:null
+                start_date:null,
+                approver_detail:null,
+                additional_fee_text:null,
+                additional_fee:0,
+                temporary_document_email_id: null,
             },
             issuingLicence: false,
             validation_form: null,
@@ -121,6 +193,9 @@ export default {
                 keepInvalid:true,
                 allowInputToggle:true
             },
+            pickedPurposes: [],
+            checkedActivities: [],
+            additionalFees: []
         }
     },
     computed: {
@@ -131,6 +206,7 @@ export default {
             'hasRole',
             'licenceActivities',
             'canAssignOfficerFor',
+            'selected_activity_tab_id',
         ]),
         canEditLicenceDates: function() {
             return this.application.application_type && this.application.application_type.id !== 'amend_activity';
@@ -143,12 +219,16 @@ export default {
         // TODO: application processing_status doesnt have a "with approver" status (disturbance legacy), need to fix
             return this.application.processing_status.id == 'with_approver' ? 'Issue Licence' : 'Propose to issue licence';
         },
-        visibleLicenceActivities: function() {
-            var activities = this.licenceActivities().filter(
-                // filter on activity user has perms for.
-                activity => { return this.canAssignOfficerFor(activity.id) }                
+        applicationSelectedActivitiesForPurposes: function() {
+            return this.application.activities.filter(
+                activity => { return activity.processing_status.name.match(/with officer/gi) } // only non-processed activities.
             );
-            return activities;
+        },
+        applicationSelectedActivity: function() {
+            let val = this.application.activities.find(
+                activity => { return activity.licence_activity === this.selected_activity_tab_id } 
+            );
+            return val
         },
     },
     methods:{
@@ -168,7 +248,8 @@ export default {
                 cc_email:null,
                 reason:null,
                 expiry_date:null,
-                start_date:null
+                start_date:null,
+                purposes:[],
             };
             this.errors = false;
             $('.has-error').removeClass('has-error');
@@ -182,12 +263,32 @@ export default {
                 console.log(error);
             } );
         },
+        getCheckedActivity: function(_id){
+            let act = this.applicationSelectedActivitiesForPurposes.find(a => {return a.id===_id})
+            console.log(act)
+            return act
+        },
+        setAdditionalFees: function(_id){
+            let act = this.applicationSelectedActivitiesForPurposes.find(a => {return a.id===_id})
+            
+            return act
+        },
+        setTemporaryIssuanceDocumentsCollectionId: function(val) {
+            this.propose_issue.issuance_documents_id = val;
+        },
+        setTemporaryEmailCollectionId: function(val) {
+            this.propose_issue.email_attachments_id = val;
+        },
         sendData:function(){
             let vm = this;
             vm.errors = false;
+            vm.propose_issue.purposes = vm.pickedPurposes;
+            vm.propose_issue.activity = vm.checkedActivities;
             let propose_issue = JSON.parse(JSON.stringify(vm.propose_issue));
             vm.issuingLicence = true;
-            if (propose_issue.activity.length > 0){
+            console.log('sendData')
+            console.log(propose_issue)
+            if (propose_issue.purposes.length > 0){
                 vm.$http.post(helpers.add_endpoint_json(api_endpoints.applications,vm.application_id+'/proposed_licence'),JSON.stringify(vm.propose_issue),{
                         emulateJSON:true,
                     }).then((response)=>{
@@ -211,7 +312,7 @@ export default {
                 vm.issuingLicence = false;
                 swal(
                      'Propose Issue',
-                     'Please select at least once licenced activity to Propose Issue.',
+                     'Please select at least once licenced purpose to Propose Issue.',
                      'error'
                 )
             }

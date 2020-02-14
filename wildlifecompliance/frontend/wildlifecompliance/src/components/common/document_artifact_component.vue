@@ -390,6 +390,10 @@ export default {
             required: false,
             default: false,
         },
+        entityEdit: {
+            type: Object,
+            required: false,
+        },
     },
     watch: {
         artifactType: {
@@ -702,6 +706,24 @@ export default {
                 await this.saveDocumentArtifact({ create: false, internal: false, legal_case_id: this.legalCaseId });
             } else {
                 await this.saveDocumentArtifact({ create: true, internal: false, legal_case_id: this.legalCaseId });
+                this.$nextTick(() => {
+                    this.$emit('entity-selected', {
+                        id: this.document_artifact.id,
+                        data_type: 'document_artifact',
+                        identifier: this.document_artifact.identifier,
+                        artifact_type: this.artifactType,
+                        display: this.artifactType,
+                    });
+                });
+            }
+        },
+        /*
+
+        save: async function() {
+            if (this.document_artifact.id) {
+                await this.saveDocumentArtifact({ create: false, internal: false, legal_case_id: this.legalCaseId });
+            } else {
+                await this.saveDocumentArtifact({ create: true, internal: false, legal_case_id: this.legalCaseId });
             }
         },
         create: async function() {
@@ -716,6 +738,7 @@ export default {
                 });
             });
         },
+        */
         cancel: async function() {
             await this.$refs.default_document.cancel();
         },
@@ -868,6 +891,8 @@ export default {
         console.log("created")
         if (this.$route.params.document_artifact_id) {
             await this.loadDocumentArtifact({ document_artifact_id: this.$route.params.document_artifact_id });
+        } else if (this.entityEdit && this.entityEdit.id && this.entityEdit.data_type === 'document_artifact') {
+            await this.loadDocumentArtifact({ document_artifact_id: this.entityEdit.id });
         }
         // if main obj page, call loadLegalCase if document_artifact.legal_case_id exists
         if (this.$route.name === 'view-artifact' && this.document_artifact && this.document_artifact.legal_case_id) {

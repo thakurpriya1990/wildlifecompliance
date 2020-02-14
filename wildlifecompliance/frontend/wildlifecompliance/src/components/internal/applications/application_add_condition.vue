@@ -29,6 +29,20 @@
                                     </div>
                                 </div>
                             </div>
+                            <div class="form-group">
+                                <div class="row">
+                                    <div class="col-sm-3">
+                                        <label class="control-label pull-left"  for="Name">Purpose</label>
+                                    </div>
+                                    <div class="col-sm-9" >
+                                        <div style="width:70% !important">
+                                            <select class="form-control" name="purpoose" v-model="condition.licence_purpose" >
+                                                <option v-for="p in purposes" :value="p.id" >{{p.short_name}}</option>
+                                            </select>
+                                        </div>
+                                    </div>
+                                </div>
+                            </div>
                             <div class="form-group" v-if="!condition.standard">
                                 <div class="row">
                                     <div class="col-sm-3">
@@ -143,7 +157,11 @@ export default {
             licence_activity_tab:{
                 type:Number,
                 required:true
-            }
+            },
+            purposes: {
+                type: Array,
+                required: true
+            },
     },
     data:function () {
         let vm = this;

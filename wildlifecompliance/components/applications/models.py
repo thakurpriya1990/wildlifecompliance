@@ -14,6 +14,8 @@ from django.dispatch import receiver
 from django.contrib.postgres.fields.jsonb import JSONField
 from django.contrib.auth.models import Group
 from django.core.exceptions import ValidationError
+from django.core.files.storage import default_storage
+from django.core.files.base import ContentFile
 from django.utils import timezone
 from django.utils.encoding import python_2_unicode_compatible
 
@@ -27,8 +29,17 @@ from wildlifecompliance.components.main.utils import (
 )
 
 from wildlifecompliance.components.organisations.models import Organisation
-from wildlifecompliance.components.organisations.emails import send_org_id_update_request_notification
-from wildlifecompliance.components.main.models import CommunicationsLogEntry, UserAction, Document
+from wildlifecompliance.components.organisations.emails import (
+    send_org_id_update_request_notification
+)
+from wildlifecompliance.components.main.models import (
+    CommunicationsLogEntry,
+    UserAction,
+    Document
+)
+from wildlifecompliance.components.main.process_document import (
+    save_issuance_document_obj,
+)
 from wildlifecompliance.components.applications.email import (
     send_application_submitter_email_notification,
     send_application_submit_email_notification,
@@ -42,6 +53,7 @@ from wildlifecompliance.components.applications.email import (
     send_activity_invoice_email_notification,
     send_activity_invoice_issue_notification,
     send_amendment_refund_email_notification,
+    send_activity_propose_issue_notification,
 )
 from wildlifecompliance.components.main.utils import get_choice_value
 from wildlifecompliance.ordered_model import OrderedModel
@@ -49,8 +61,10 @@ from wildlifecompliance.components.licences.models import (
     LicenceCategory,
     LicenceActivity,
     LicencePurpose,
-    WildlifeLicence,
     LicenceDocument,
+)
+from wildlifecompliance.components.main.models import (
+    TemporaryDocumentCollection
 )
 logger = logging.getLogger(__name__)
 
@@ -60,6 +74,7 @@ def get_app_label():
         return settings.SYSTEM_APP_LABEL
     except AttributeError:
         return ''
+
 
 def update_application_doc_filename(instance, filename):
     return 'wildlifecompliance/applications/{}/documents/{}'.format(
@@ -81,6 +96,24 @@ def replace_special_chars(input_str, new_char='_'):
 def update_application_comms_log_filename(instance, filename):
     return 'wildlifecompliance/applications/{}/communications/{}/{}'.format(
         instance.log_entry.application.id, instance.id, filename)
+
+
+def get_temporary_document_collection(collection_id):
+    """
+    Utility function to retrieve stored documents from temporary storage.
+    """
+
+    temp_doc_collection = None
+    temp_doc_collection, created = \
+        TemporaryDocumentCollection.objects.get_or_create(
+            id=collection_id.get('temp_doc_id'))
+
+    # if temp_doc_collection:
+    #    for doc in temp_doc_collection.documents.all():
+    #       save_comms_log_document_obj(instance, workflow_entry, doc)
+    #    temp_doc_collection.delete()
+
+    return temp_doc_collection
 
 
 class ActivityPermissionGroup(Group):
@@ -142,7 +175,8 @@ class ApplicationDocument(Document):
         if self.can_delete:
             return super(ApplicationDocument, self).delete()
         logger.info(
-            'Cannot delete existing document object after application has been submitted (including document submitted before\
+            'Cannot delete existing document object after application has been\
+            submitted (including document submitted before\
             application pushback to status Draft): {}'.format(
                 self.name)
         )
@@ -529,9 +563,8 @@ class Application(RevisionedMixin):
             for invoice in invoices:
                 detail = Invoice.objects.get(
                     reference=invoice.invoice_reference)
-                amount += detail.amount
-        # Add previous application paid amounts.
-        # amount += self.previous_paid_amount
+                # payment_amount includes refund payment adjustments.
+                amount += detail.payment_amount
 
         return amount
 
@@ -742,6 +775,12 @@ class Application(RevisionedMixin):
         return ApplicationUserAction.log_action(self, action, request.user)
 
     def calculate_fees(self, data_source):
+        """
+        Calculates fees for Application and Licence. Application fee is
+        calculated with the base fee in all instances to allow for adjustments
+        made from form attributes. Previous attributes settings are not saved.
+        Licence fees cannot be adjusted with form attributes.
+        """
         return self.get_dynamic_schema_attributes(data_source)['fees']
 
     def get_dynamic_schema_attributes(self, data_source):
@@ -750,19 +789,18 @@ class Application(RevisionedMixin):
             Application.APPLICATION_TYPE_AMENDMENT,
             Application.APPLICATION_TYPE_REISSUE,
         ]:
-            # Licence amendment, reissue or requested amendment has
-            # no base fees.
+            # Licence amendment, reissue or already paid then no base fee is
+            # required.
             application_fees = Application.calculate_base_fees(
                     self.licence_purposes.values_list(
                         'id', flat=True))['application']
-
             dynamic_attributes = {
                 'fees': {
                     'application': application_fees,
                     'licence': Decimal(0.0),
                 },
                 'activity_attributes': {},
-            }
+            }         
         else:
             dynamic_attributes = {
                 'fees': Application.calculate_base_fees(
@@ -871,6 +909,7 @@ class Application(RevisionedMixin):
         if self.processing_status not in [
                 Application.PROCESSING_STATUS_DRAFT,
                 Application.PROCESSING_STATUS_AWAITING_APPLICANT_RESPONSE,
+                Application.PROCESSING_STATUS_UNDER_REVIEW,
         ]:
             return
 
@@ -887,26 +926,23 @@ class Application(RevisionedMixin):
             fees = field_data.pop('fees', {})
             selected_activity.licence_fee = fees['licence']
             selected_activity.application_fee = fees['application']
+
             if self.application_type in [
                 Application.APPLICATION_TYPE_AMENDMENT,
                 Application.APPLICATION_TYPE_REISSUE,
             ] or self.customer_status == \
-                    Application.CUSTOMER_STATUS_AMENDMENT_REQUIRED:
+                Application.CUSTOMER_STATUS_AMENDMENT_REQUIRED \
+                or self.processing_status == \
+                    Application.PROCESSING_STATUS_UNDER_REVIEW:
 
                 # Check amendments and reissues for changes in fees.
-                if fees['licence'] > selected_activity.base_fees['licence']:
-                    selected_activity.licence_fee = fees['licence'] \
-                        - selected_activity.base_fees['licence']
-
+                # Not applicable for Licence Fees.
                 if fees['application']\
                    > selected_activity.base_fees['application']:
                     selected_activity.application_fee = fees['application'] \
                         - selected_activity.base_fees['application']
 
                 # Check for refunds and set fee to zero.
-                if fees['licence'] < selected_activity.base_fees['licence']:
-                    selected_activity.licence_fee = Decimal(0)
-
                 if fees['application']\
                    < selected_activity.base_fees['application']:
                     selected_activity.application_fee = Decimal(0)
@@ -1542,10 +1578,20 @@ class Application(RevisionedMixin):
         # Application amendments requires a new submission and applies the
         # previous paid for adjustments.
         paid = self.total_paid_amount + self.previous_paid_amount
-        if paid > 0 and paid <= self.application_fee:
+        if paid > 0 and paid < self.application_fee:
             fees_amended = True
 
         return fees_amended
+
+    @property
+    def has_additional_fees(self):
+        """
+        Check for additional costs manually included by officer at proposal.
+        """
+        additional_fees = [
+            a.id for a in self.activities.filter if a.additional_fee>0]
+
+        return additional_fees.length
 
     @property
     def amended_activities(self):
@@ -1641,11 +1687,9 @@ class Application(RevisionedMixin):
             return False
 
         paid = self.total_paid_amount + self.previous_paid_amount
+        over_paid = paid - int(self.application_fee)
 
-        if paid - self.application_fee > 0:
-            return True
-
-        return False
+        return True if over_paid > 0 else False
 
     @property
     def previous_paid_amount(self):
@@ -1834,7 +1878,13 @@ class Application(RevisionedMixin):
     def proposed_licence(self, request, details):
         with transaction.atomic():
             try:
-                activity_list = details.get('activity', [])
+                activity_list = []
+                purpose_list = details.get('purposes', [])
+                for purpose_id in purpose_list:
+                    # build activity_id list from purposes.
+                    purpose = LicencePurpose.objects.get(id=purpose_id)
+                    activity_list.append(purpose.licence_activity_id)
+                activity_list = list(set(activity_list)) # unique ids
 
                 # Correct processing status if no assessments were required.
                 for activity in activity_list:
@@ -1868,6 +1918,9 @@ class Application(RevisionedMixin):
                         activity.cc_email = details.get('cc_email', None)
                         activity.proposed_start_date = latest_activity.start_date
                         activity.proposed_end_date = latest_activity.expiry_date
+                        activity.additional_fee = details.get('additional_fee')
+                        activity.additional_fee_text = details.get(
+                            'additional_fee_text')
                         activity.save()
                 else:
                     ApplicationSelectedActivity.objects.filter(
@@ -1881,7 +1934,52 @@ class Application(RevisionedMixin):
                         cc_email=details.get('cc_email', None),
                         proposed_start_date=details.get('start_date', None),
                         proposed_end_date=details.get('expiry_date', None),
+                        additional_fee=details.get('additional_fee', 0),
+                        additional_fee_text=details.get(
+                            'additional_fee_text', None)
                     )
+                    for purpose_id in purpose_list:
+                        purpose = LicencePurpose.objects.get(id=purpose_id)
+                        activity = self.activities.get(
+                            licence_activity_id = purpose.licence_activity_id
+                        )
+                        ApplicationSelectedActivityPurpose.objects.get_or_create(
+                            purpose=purpose,
+                            selected_activity=activity
+                        )
+
+                # Email licence approver group of proposed action.
+                attachments_id = request.data.get('email_attachments_id')
+                documents = []
+                if attachments_id:
+                    attachments = \
+                        get_temporary_document_collection(attachments_id)
+                    for document in attachments.documents.all():
+                        content = document._file.read()
+                        mime = mimetypes.guess_type(document.name)[0]
+                        documents.append((document.name, content, mime))                        
+
+                email_text=details.get('approver_detail', None),                 
+                send_activity_propose_issue_notification(
+                   request, self, email_text, documents
+                )
+
+                # save temporary documents to all ApplicationSelectedActivity 
+                # instances checked in the modal
+                issuance_documents_id = request.data.get('issuance_documents_id', {}).get('temp_doc_id')
+                application_selected_activities = request.data.get('activity')
+                asa = [activity for activity in self.activities if activity.id in application_selected_activities]
+                if issuance_documents_id:
+                        issuance_documents_collection, created = TemporaryDocumentCollection.objects.get_or_create(
+                                id=issuance_documents_id)
+                        if issuance_documents_collection:
+                            for doc in issuance_documents_collection.documents.all():
+                                #save_comms_log_document_obj(instance, workflow_entry, doc)
+                                for application_selected_activity in asa:
+                                    save_issuance_document_obj(application_selected_activity, doc)
+                            issuance_documents_collection.delete()
+                
+                # log proposing officers comments and documents.
 
                 # Log application action
                 self.log_user_action(
@@ -2166,6 +2264,18 @@ class Application(RevisionedMixin):
                         selected_activity.expiry_date = expiry_date
                         selected_activity.cc_email = item['cc_email']
                         selected_activity.reason = item['reason']
+                        selected_activity.additional_fee = item['additional_fee']
+                        selected_activity.additional_fee_text = item['additional_fee_text']
+
+                        proposed_purposes = selected_activity.proposed_purposes.all()
+                        for proposed_purpose in proposed_purposes:
+                            purpose = ApplicationSelectedActivityPurpose.objects.get(id=proposed_purpose.id)                         
+                            if proposed_purpose.purpose_id in item['purposes']:
+                                purpose.processing_status = ApplicationSelectedActivityPurpose.PROCESSING_STATUS_ISSUED
+                            else:
+                                purpose.processing_status = ApplicationSelectedActivityPurpose.PROCESSING_STATUS_DECLINED
+                            purpose.save()
+
                         selected_activity.save()
 
                     elif item['final_status'] == ApplicationSelectedActivity.DECISION_ACTION_DECLINED:
@@ -2175,6 +2285,13 @@ class Application(RevisionedMixin):
                         selected_activity.decision_action = ApplicationSelectedActivity.DECISION_ACTION_ISSUED
                         selected_activity.cc_email = item['cc_email']
                         selected_activity.reason = item['reason']
+
+                        proposed_purposes = selected_activity.proposed_purposes.all()
+                        for proposed_purpose in proposed_purposes:
+                            purpose = ApplicationSelectedActivityPurpose.objects.get(id=proposed_purpose.id)    
+                            purpose.processing_status = ApplicationSelectedActivityPurpose.PROCESSING_STATUS_DECLINED
+                            purpose.save()
+
                         selected_activity.save()
                         declined_activities.append(selected_activity)
                         # Log entry for application
@@ -2828,6 +2945,9 @@ class ApplicationSelectedActivity(models.Model):
         max_digits=8, decimal_places=2, default='0')
     application_fee = models.DecimalField(
         max_digits=8, decimal_places=2, default='0')
+    additional_fee = models.DecimalField(
+        max_digits=8, decimal_places=2, default='0')
+    additional_fee_text = models.TextField(blank=True, null=True)
     assigned_approver = models.ForeignKey(
         EmailUser,
         blank=True,
@@ -2858,11 +2978,26 @@ class ApplicationSelectedActivity(models.Model):
 
     @property
     def purposes(self):
+        """
+        All licence purposes which are available under the Application Selected
+        Activity.
+        """
         from wildlifecompliance.components.licences.models import LicencePurpose
         return LicencePurpose.objects.filter(
             application__id=self.application_id,
             licence_activity_id=self.licence_activity_id
         ).distinct()
+
+    @property
+    def issued_purposes(self):
+        """
+        All licence purposes which have been proposed and issued.
+        """
+        from wildlifecompliance.components.licences.models import LicencePurpose
+
+        purposes = [p.purpose for p in self.proposed_purposes.filter(
+            processing_status='issue')]
+        return purposes
 
     def can_action(self, purposes_in_open_applications=[]):
         # Returns a DICT object containing can_<action> Boolean results of each action check
@@ -3067,6 +3202,7 @@ class ApplicationSelectedActivity(models.Model):
             ]
         ).distinct()
 
+    @property
     def total_paid_amount(self):
         """
         Property defining the total fees already paid for this licence Activity.
@@ -3074,17 +3210,15 @@ class ApplicationSelectedActivity(models.Model):
         amount = 0
         if self.invoices.count() > 0:
             invoices = ActivityInvoice.objects.filter(
-                application_id=self.id)
+                activity_id=self.id)
             for invoice in invoices:
                 detail = Invoice.objects.get(
                     reference=invoice.invoice_reference)
-                amount += detail.amount
-
-        # Add previous application paid amounts.
-        amount += self.previous_paid_amount
-       
+                amount = self.licence_fee
+     
         return amount
 
+    @property
     def requires_refund(self):
         """
         Check on the previously paid invoice amount against Activity fee.
@@ -3098,6 +3232,7 @@ class ApplicationSelectedActivity(models.Model):
 
         return False
 
+    @property
     def previous_paid_amount(self):
         """
         Gets the paid amount from the previous application for licence Activity
@@ -3219,6 +3354,88 @@ class ApplicationSelectedActivity(models.Model):
             self.updated_by = request.user
             self.save()
 
+    def store_proposed_attachments(self, proposed_attachments):
+        """
+        Stores proposed attachments from Temporary Document Collection to the
+        Application Selected Activity.
+        """
+        with transaction.atomic():
+            INPUT_NAME = 'proposed_attachment'
+            try:
+                for attachment in proposed_attachments.documents.all():
+                    document = self.proposed_attachments.get_or_create(
+                        application_id=self.application_id,
+                        selected_activity_id=self.licence_activity_id,
+                        input_name=INPUT_NAME)[0]
+                    
+                    document.name = str(attachment.name)
+
+                    if document._file and os.path.isfile(document._file.path):
+                        os.remove(document._file.path)
+                    document.application_id = self.application_id
+                    document.selected_activity_id = self.licence_activity_id
+
+                    path = default_storage.save(
+                      'wildlifecompliance/applications/{}/documents/{}'.format(
+                          self.application_id), ContentFile(
+                          attachment._file.read()))  
+
+                    document._file = path                  
+                    document.save()
+
+            except BaseException:
+                raise
+
+class ApplicationSelectedActivityPurpose(models.Model):
+    """
+    A purpose proposed for issue on an Application Selected Activity.
+    """
+    PROCESSING_STATUS_PROPOSED = 'propose'
+    PROCESSING_STATUS_ISSUED = 'issue'
+    PROCESSING_STATUS_DECLINED = 'decline'
+    PROCESSING_STATUS_CHOICES = (
+        (PROCESSING_STATUS_PROPOSED, 'Proposed for Issue'),
+        (PROCESSING_STATUS_DECLINED, 'Declined'),
+        (PROCESSING_STATUS_ISSUED, 'Issued')
+    )
+    processing_status = models.CharField(
+        'Processing Status',
+        max_length=40,
+        choices=PROCESSING_STATUS_CHOICES,
+        default=PROCESSING_STATUS_PROPOSED)
+    selected_activity = models.ForeignKey(
+        ApplicationSelectedActivity, related_name='proposed_purposes')
+    purpose = models.ForeignKey(
+        LicencePurpose, related_name='selected_activity_proposed_purpose')
+
+    @property
+    def is_proposed(self):
+        proposed = False
+        if self.processing_status != self.PROCESSING_STATUS_DECLINED:
+            proposed = True
+        return proposed
+
+    def __str__(self):
+        return "ASA {id} Purpose: {short_name} ({status})".format(
+            id=self.selected_activity.licence_activity_id,
+            short_name=self.purpose.short_name,
+            status=self.processing_status
+        )
+
+    class Meta:
+        app_label = 'wildlifecompliance'
+        verbose_name = 'Application selected activity purpose'
+
+class IssuanceDocument(Document):
+    _file = models.FileField(max_length=255)
+    # after initial submit prevent document from being deleted
+    can_delete = models.BooleanField(default=True)
+    selected_activity = models.ForeignKey(
+        'ApplicationSelectedActivity',
+        related_name='issuance_documents')
+
+    class Meta:
+        app_label = 'wildlifecompliance'
 
 class ActivityInvoice(models.Model):
     PAYMENT_STATUS_NOT_REQUIRED = 'payment_not_required'
@@ -3504,6 +3721,7 @@ class ApplicationStandardCondition(RevisionedMixin):
 
     class Meta:
         app_label = 'wildlifecompliance'
+        verbose_name = 'Standard condition'
 
 
 class DefaultCondition(OrderedModel):
@@ -3544,8 +3762,12 @@ class ApplicationCondition(OrderedModel):
     recurrence_schedule = models.IntegerField(null=True, blank=True)
     licence_activity = models.ForeignKey(
         'wildlifecompliance.LicenceActivity', null=True)
-    return_type = models.ForeignKey('wildlifecompliance.ReturnType', null=True, blank=True)
-    # order = models.IntegerField(default=1)
+    return_type = models.ForeignKey(
+        'wildlifecompliance.ReturnType', null=True, blank=True)
+    licence_purpose = models.ForeignKey(
+        'wildlifecompliance.LicencePurpose', null=True, blank=True)
+    source_group = models.ForeignKey(
+        ActivityPermissionGroup, blank=True, null=True)
 
     class Meta:
         app_label = 'wildlifecompliance'
@@ -3563,6 +3785,36 @@ class ApplicationCondition(OrderedModel):
             return self.default_condition.condition
         else:
             return self.free_condition
+
+    def set_source(self, user):
+        """
+        Set the condition creator as Source when with Assessor.
+        """
+        activity = self.application.activities.get(
+            # Get the Application Selected Activity for this condition.
+            licence_activity_id = self.licence_activity_id
+        )
+        if activity.processing_status ==\
+             ApplicationSelectedActivity.PROCESSING_STATUS_WITH_ASSESSOR:
+            # Set the source_group when added by the assessor.
+            group = self.get_assessor_permission_group(user)
+            self.source_group = group.activitypermissiongroup
+            self.save()
+
+    def get_assessor_permission_group(self, user, first=True):
+        app_label = get_app_label()
+        qs = user.groups.filter(
+            permissions__codename='assessor'
+        )
+        activity_id = self.licence_activity.id
+        qs = qs.filter(
+            activitypermissiongroup__licence_activities__id__in=activity_id\
+                if isinstance(activity_id, (list, models.query.QuerySet)
+                ) else [activity_id]
+        )
+        if app_label:
+            qs = qs.filter(permissions__content_type__app_label=app_label)
+        return qs.first() if first else qs
 
 
 class ApplicationUserAction(UserAction):

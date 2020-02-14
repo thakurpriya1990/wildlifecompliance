@@ -1,4 +1,5 @@
 import logging
+import mimetypes
 
 from django.core.mail import EmailMultiAlternatives, EmailMessage
 from django.utils.encoding import smart_text
@@ -30,6 +31,12 @@ class ActivityInvoiceNotificationEmail(TemplateEmailBase):
     subject = 'Your payment for your licensed activity has been received.'
     html_template = 'wildlifecompliance/emails/send_activity_invoice_notification.html'
     txt_template = 'wildlifecompliance/emails/send_activity_invoice_notification.txt'
+
+
+class ActivityProposeIssueNotificationEmail(TemplateEmailBase):
+    subject = 'Your approval for a licensed activity is required.'
+    html_template = 'wildlifecompliance/emails/send_activity_propose_issue_notification.html'
+    txt_template = 'wildlifecompliance/emails/send_activity_propose_issue_notification.txt'
 
 
 class ActivityInvoiceIssueNotificationEmail(TemplateEmailBase):
@@ -248,6 +255,43 @@ def send_activity_invoice_issue_notification(
     sender = request.user if request else settings.DEFAULT_FROM_EMAIL
     _log_application_email(msg, application, sender=sender)
     return True
+
+
+def send_activity_propose_issue_notification(
+        request, application, text, documents):
+
+    application = application
+    email = ActivityProposeIssueNotificationEmail()
+    url = request.build_absolute_uri(
+        reverse(
+            'internal-application-detail',
+            kwargs={
+                'application_pk': application.id}))
+
+    if '-internal' not in url:
+        url = "{0}://{1}{2}.{3}{4}".format(request.scheme,
+                                           settings.SITE_PREFIX,
+                                           '-internal',
+                                           settings.SITE_DOMAIN,
+                                           url.split(request.get_host())[1])
+
+    context = {
+        'detail': text,
+        'url': url
+    }
+
+    recipients = [a.email for a in application.licence_approvers]
+    activity = application.activities[0]
+    email_copy = [activity.cc_email] if activity.cc_email else None
+
+    msg = email.send(
+        recipients,
+        context=context, attachments=documents,
+        bcc=email_copy,
+    )
+
+    sender = request.user if request else settings.DEFAULT_FROM_EMAIL
+    _log_application_email(msg, application, sender=sender)
 
 
 def send_application_submitter_email_notification(application, request):
