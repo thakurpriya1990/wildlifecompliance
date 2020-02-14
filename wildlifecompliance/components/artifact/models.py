@@ -592,6 +592,7 @@ class PhysicalArtifactLegalCases(models.Model):
     primary = models.BooleanField(default=False)
     used_within_case = models.BooleanField(default=False)
     sensitive_non_disclosable = models.BooleanField(default=False)
+    reason_sensitive_non_disclosable = models.TextField(blank=True, null=True)
     objects = PhysicalArtifactLegalCasesManager()
 
     class Meta:

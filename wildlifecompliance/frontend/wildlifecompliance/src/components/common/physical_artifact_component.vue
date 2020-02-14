@@ -1023,6 +1023,7 @@ export default {
     mounted: function() {
       this.$nextTick(async () => {
           this.addEventListeners();
+          console.log(this.physical_artifact)
           //this.loadSchema();
       });
     },
