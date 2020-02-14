@@ -46,6 +46,7 @@ logger = logging.getLogger(__name__)
 # API patterns
 router = routers.DefaultRouter()
 router.register(r'application', application_api.ApplicationViewSet)
+router.register(r'application_selected_activity', application_api.ApplicationSelectedActivityViewSet)
 router.register(r'application_paginated',
                 application_api.ApplicationPaginatedViewSet)
 router.register(r'application_conditions',

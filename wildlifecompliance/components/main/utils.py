@@ -180,7 +180,7 @@ def bind_application_to_invoice(request, application, invoice_ref):
                     application.submitter.id) if application.submitter else u'An anonymous user'))
         raise BindApplicationException
 
-    if inv.system not in ['0999']:
+    if inv.system not in [settings.WC_PAYMENT_SYSTEM_PREFIX]:
         logger.error(
             u'{} tried making an application with an invoice from another system with reference number {}'.format(
                 u'User {} with id {}'.format(
