@@ -89,6 +89,12 @@ export const legalCaseStore = {
             }
             state.legal_case.court_proceedings.journal_entries_transform[journal_entry_transform.number] = journal_entry_transform;
         },
+        updateCourtProceedingsDate(state, date_entry) {
+            if (!state.legal_case.court_proceedings.hasOwnProperty('date_entries_updated')){
+                state.legal_case.court_proceedings.date_entries_updated = {};
+            }
+            state.legal_case.court_proceedings.date_entries_updated[date_entry.id] = date_entry;
+        },
         updateBriefOfEvidence(state, brief_of_evidence) {
             Vue.set(state.legal_case, 'brief_of_evidence', brief_of_evidence);
             //Vue.set(state.legal_case.brief_of_evidence, 'legal_case_id', state.legal_case.id);
@@ -166,9 +172,16 @@ export const legalCaseStore = {
                 delete payload.running_sheet_entries
 
                 // Remove journal_entries from the payload
+                // They seem to be shallow-copied, so you cannot directly delete payload.court_proceedings.journal_entries
                 let temp_journal_entries = Object.create(state.legal_case.court_proceedings.journal_entries);
                 delete payload.court_proceedings.journal_entries
                 state.legal_case.court_proceedings.journal_entries = temp_journal_entries;
+
+                // Remove journal_entries from the payload
+                // They seem to be shallow-copied, so you cannot directly delete payload.court_proceedings.journal_entries
+                let temp_court_dates = Object.create(state.legal_case.court_proceedings.court_dates);
+                delete payload.court_proceedings.court_dates
+                state.legal_case.court_proceedings.court_dates = temp_court_dates;
 
                 if (payload.case_created_date) {
                     payload.case_created_date = moment(payload.planned_for_date, 'DD/MM/YYYY').format('YYYY-MM-DD');
@@ -193,6 +206,9 @@ export const legalCaseStore = {
                 }
                 //await dispatch("setLegalCase", savedLegalCase.body);
                 legalCaseId = savedLegalCase.body.id;
+
+                delete state.legal_case.court_proceedings.date_entries_updated
+                delete state.legal_case.court_proceedings.journal_entries_transform
 
             } catch (err) {
                 console.log(err);
@@ -238,6 +254,9 @@ export const legalCaseStore = {
         },
         setCourtProceedingsTransform({ commit }, journal_entry_transform) {
             commit("updateCourtProceedingsTransform", journal_entry_transform);
+        },
+        setCourtProceedingsDate({ commit }, date_entry ) {
+            commit("updateCourtProceedingsDate", date_entry);
         },
         setBriefOfEvidence({ commit }, {brief_of_evidence, physical_artifacts} ) {
             //console.log(brief_of_evidence)
