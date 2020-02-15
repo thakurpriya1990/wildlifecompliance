@@ -150,9 +150,14 @@
                                     </label>
                                     <label class="col-sm-10">Select the objects to be included on the sensitive unused list of materials
                                         <div class="row" v-for="artifact in physicalArtifactsSensitiveUnused">
-                                            <input class="col-sm-1" type="checkbox" :value="artifact.id" v-model="physicalArtifactsSensitiveUnusedTicked">
+                                            <input class="col-sm-1" :id="'tickbox_' + artifact.id" type="checkbox" :value="artifact.id" v-model="physicalArtifactsSensitiveUnusedTicked">
                                             <label class="col-sm-4">{{ artifact.label }}</label>
-                                            <textarea class="form-control col-sm-6" :value="artifact.reason_sensitive_non_disclosable" />
+                                            <textarea 
+                                                class="form-control col-sm-6" 
+                                                :value="artifact.reason_sensitive_non_disclosable" 
+                                                :id="'reason_' + artifact.id"
+                                                @input="setPhysicalArtifactSensitiveUnusedReason"
+                                                />
                                         </div>
                                     </label>
                                     <label class="col-sm-10">Select the objects to be included on the non-sensitive unused list of materials
@@ -217,6 +222,7 @@ export default {
             physicalArtifactsUsed: [],
             physicalArtifactsNonSensitiveUnusedTicked: [],
             physicalArtifactsSensitiveUnusedTicked: [],
+            physicalArtifactsSensitiveUnusedReason: [],
             physicalArtifactsUsedTicked: [],
       };
   },
@@ -342,7 +348,14 @@ export default {
       setBoeOtherStatementsTicked: 'setBoeOtherStatementsTicked',
       setBoePhysicalArtifactsTicked: 'setBoePhysicalArtifactsTicked',
       setBoeDocumentArtifactsTicked: 'setBoeDocumentArtifactsTicked',
+      setPhysicalArtifactSensitiveUnusedReason: 'setPhysicalArtifactSensitiveUnusedReason',
     }),
+    /*
+    setPhysicalArtifactSensitiveUnusedReason: function(artifact) {
+        console.log(artifact)
+        this.set
+    },
+    */
     setPhysicalArtifactsUsed: function(artifact) {
         console.log(artifact)
     },
