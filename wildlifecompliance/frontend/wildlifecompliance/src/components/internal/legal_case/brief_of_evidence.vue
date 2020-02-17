@@ -1,5 +1,5 @@
 <template lang="html">
-        <div class="col-md-9">
+        <!--div class="col-md-9"-->
             <div class="row">
                             <FormSection :formCollapse="false" label="Statement of Facts">
                                 <div class="col-sm-12 form-group"><div class="row">
@@ -172,18 +172,27 @@
                             </FormSection>
                             <FormSection :formCollapse="false" label="List of Photographic, Video and Sound Exhibits" treeHeight="yes">
                                 <div class="col-sm-12 form-group"><div class="row">
-                                    <TreeSelect 
-                                    ref="document_artifacts_tree" 
-                                    :value="boeDocumentArtifactsTicked" 
-                                    :options="boeDocumentArtifactsOptions" 
-                                    :default-expand-level="Infinity" 
-                                    :disabled="false"
-                                    multiple
-                                    value-consists-of="LEAF_PRIORITY"
-                                    @input="setBoeDocumentArtifactsTicked"
-                                    alwaysOpen
-                                    :searchable="false"
-                                    />
+                                    <div class="row" v-for="artifact in documentArtifacts">
+                                        <!--input class="col-sm-1" type="checkbox" :value="artifact.id" v-model="physicalArtifactsUsedTicked"-->
+                                        <input class="col-sm-1" type="checkbox" v-model="artifact.ticked">
+                                        <label class="col-sm-4">
+                                            {{ artifact.label }}
+                                        </label>
+                                        <div class="col-sm-12 form-group"><div class="row">
+                                            <div v-for="document in artifact.attachments">
+                                                <label> {{ document.name }}
+                                                    <div v-if="['png', 'jpg'].includes(document.type)">
+                                                        <img class="col-sm-4" :src="document.file" alt="image file"/>
+                                                    </div>
+                                                    <div v-else-if="['mp4'].includes(document.type)">
+                                                        <video width="82" height="82" controls>
+                                                            <source :src="document.file" type="video/mp4">
+                                                        </video>
+                                                    </div>
+                                                </label>
+                                            </div>
+                                        </div></div>
+                                    </div>
                                 </div></div>
                             </FormSection>
                             <FormSection :formCollapse="false" label="Additional Documents">
@@ -191,7 +200,7 @@
                                 </div></div>
                             </FormSection>
             </div>
-        </div>
+        <!--/div-->
 </template>
 <script>
 import Vue from "vue";
@@ -348,7 +357,6 @@ export default {
         }
         return options;
     },
-    */
     boeDocumentArtifactsTicked: function() {
         let ticked = []
         if (this.legal_case && this.legal_case.boe_document_artifacts_ticked) {
@@ -358,10 +366,13 @@ export default {
         }
         return ticked;
     },
-    boeDocumentArtifactsOptions: function() {
+    */
+    documentArtifacts: function() {
         let options = [];
-        if (this.legal_case && this.legal_case.boe_document_artifacts_options) {
-            options = this.legal_case.boe_document_artifacts_options;
+        if (this.legal_case && this.legal_case.boe_document_artifacts) {
+            for (let option of this.legal_case.boe_document_artifacts) {
+                options.push(option);
+            }
         }
         return options;
     },

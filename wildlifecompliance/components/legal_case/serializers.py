@@ -537,8 +537,8 @@ class LegalCaseSerializer(serializers.ModelSerializer):
     boe_physical_artifacts_used = serializers.SerializerMethodField()
     boe_physical_artifacts_sensitive_unused = serializers.SerializerMethodField()
     boe_physical_artifacts_non_sensitive_unused = serializers.SerializerMethodField()
-    boe_document_artifacts_ticked = serializers.SerializerMethodField()
-    boe_document_artifacts_options = serializers.SerializerMethodField()
+    #boe_document_artifacts_ticked = serializers.SerializerMethodField()
+    boe_document_artifacts = serializers.SerializerMethodField()
     #running_sheet_artifacts = LegalCaseRunningSheetArtifactsSerializer(read_only=True)
     #inspection_report = serializers.SerializerMethodField()
     #data = InspectionFormDataRecordSerializer(many=True)
@@ -583,23 +583,23 @@ class LegalCaseSerializer(serializers.ModelSerializer):
                 'boe_physical_artifacts_used',
                 'boe_physical_artifacts_sensitive_unused',
                 'boe_physical_artifacts_non_sensitive_unused',
-                'boe_document_artifacts_ticked',
-                'boe_document_artifacts_options',
+                #'boe_document_artifacts_ticked',
+                'boe_document_artifacts',
 
                 )
         read_only_fields = (
                 'id',
                 )
 
-    def get_boe_document_artifacts_ticked(self, obj):
-        ticked_list = []
-        #for record in obj.legal_case_boe_document_artifacts.all():
-        for record in obj.briefofevidencedocumentartifacts_set.all():
-            if record.ticked:
-                ticked_list.append(record.id)
-        return ticked_list
+    #def get_boe_document_artifacts_ticked(self, obj):
+    #    ticked_list = []
+    #    #for record in obj.legal_case_boe_document_artifacts.all():
+    #    for record in obj.briefofevidencedocumentartifacts_set.all():
+    #        if record.ticked:
+    #            ticked_list.append(record.id)
+    #    return ticked_list
 
-    def get_boe_document_artifacts_options(self, obj):
+    def get_boe_document_artifacts(self, obj):
         artifact_list = []
         #for artifact in obj.legal_case_boe_document_artifacts.all():
         for artifact in obj.briefofevidencedocumentartifacts_set.all():

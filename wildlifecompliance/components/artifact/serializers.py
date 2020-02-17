@@ -715,6 +715,7 @@ class BriefOfEvidencePhysicalArtifactsSerializer(serializers.ModelSerializer):
 class BriefOfEvidenceDocumentArtifactsSerializer(serializers.ModelSerializer):
     #children = serializers.ListField(child=RecursiveField())
     label = serializers.SerializerMethodField()
+    attachments = serializers.SerializerMethodField()
 
     class Meta:
         model = BriefOfEvidenceDocumentArtifacts
@@ -724,11 +725,22 @@ class BriefOfEvidenceDocumentArtifactsSerializer(serializers.ModelSerializer):
                 'document_artifact_id',
                 'ticked',
                 'label',
+                'attachments',
                 #'children',
                 )
         read_only_fields = (
                 'id',
                 )
+
+    def get_attachments(self, obj):
+        returned_file_data = [dict(
+                    file=d._file.url,
+                    id=d.id,
+                    name=d.name,
+                    type=d.name.split(".")[1]
+                    ) for d in obj.document_artifact.documents.all() if d._file]
+        #return {'filedata': returned_file_data}
+        return returned_file_data
 
     def get_label(self, obj):
         return obj.label
