@@ -534,12 +534,9 @@ class LegalCaseSerializer(serializers.ModelSerializer):
     legal_case_boe_other_statements = BriefOfEvidenceOtherStatementsSerializer(many=True)
     legal_case_boe_roi = BriefOfEvidenceRecordOfInterviewSerializer(many=True)
     brief_of_evidence = BriefOfEvidenceSerializer()
-    boe_physical_artifacts_used_ticked = serializers.SerializerMethodField()
-    boe_physical_artifacts_used_options = serializers.SerializerMethodField()
-    boe_physical_artifacts_sensitive_unused_ticked = serializers.SerializerMethodField()
-    boe_physical_artifacts_sensitive_unused_options = serializers.SerializerMethodField()
-    boe_physical_artifacts_non_sensitive_unused_ticked = serializers.SerializerMethodField()
-    boe_physical_artifacts_non_sensitive_unused_options = serializers.SerializerMethodField()
+    boe_physical_artifacts_used = serializers.SerializerMethodField()
+    boe_physical_artifacts_sensitive_unused = serializers.SerializerMethodField()
+    boe_physical_artifacts_non_sensitive_unused = serializers.SerializerMethodField()
     boe_document_artifacts_ticked = serializers.SerializerMethodField()
     boe_document_artifacts_options = serializers.SerializerMethodField()
     #running_sheet_artifacts = LegalCaseRunningSheetArtifactsSerializer(read_only=True)
@@ -583,12 +580,9 @@ class LegalCaseSerializer(serializers.ModelSerializer):
                 'boe_other_statements_options',
                 'legal_case_boe_other_statements',
 
-                'boe_physical_artifacts_used_ticked',
-                'boe_physical_artifacts_used_options',
-                'boe_physical_artifacts_sensitive_unused_ticked',
-                'boe_physical_artifacts_sensitive_unused_options',
-                'boe_physical_artifacts_non_sensitive_unused_ticked',
-                'boe_physical_artifacts_non_sensitive_unused_options',
+                'boe_physical_artifacts_used',
+                'boe_physical_artifacts_sensitive_unused',
+                'boe_physical_artifacts_non_sensitive_unused',
                 'boe_document_artifacts_ticked',
                 'boe_document_artifacts_options',
 
@@ -614,18 +608,7 @@ class LegalCaseSerializer(serializers.ModelSerializer):
             artifact_list.append(serialized_artifact)
         return artifact_list
     # used physical artifacts
-    def get_boe_physical_artifacts_used_ticked(self, obj):
-        ticked_list = []
-        #for record in obj.legal_case_boe_physical_artifacts.all():
-        for record in obj.briefofevidencephysicalartifacts_set.all():
-            legal_case_physical_artifact_link = obj.physicalartifactlegalcases_set.get(
-                    legal_case_id=obj.id,
-                    physical_artifact_id=record.physical_artifact.id)
-            if record.ticked and legal_case_physical_artifact_link.used_within_case:
-                ticked_list.append(record.id)
-        return ticked_list
-
-    def get_boe_physical_artifacts_used_options(self, obj):
+    def get_boe_physical_artifacts_used(self, obj):
         artifact_list = []
         #for artifact in obj.legal_case_boe_physical_artifacts.all():
         for record in obj.briefofevidencephysicalartifacts_set.all():
@@ -638,21 +621,7 @@ class LegalCaseSerializer(serializers.ModelSerializer):
                 artifact_list.append(serialized_artifact)
         return artifact_list
     # sensitive unused physical artifacts
-    def get_boe_physical_artifacts_sensitive_unused_ticked(self, obj):
-        ticked_list = []
-        #for record in obj.legal_case_boe_physical_artifacts.all():
-        for record in obj.briefofevidencephysicalartifacts_set.all():
-            legal_case_physical_artifact_link = obj.physicalartifactlegalcases_set.get(
-                    legal_case_id=obj.id,
-                    physical_artifact_id=record.physical_artifact.id)
-            if (record.ticked and not 
-                    legal_case_physical_artifact_link.used_within_case and 
-                    legal_case_physical_artifact_link.sensitive_non_disclosable
-                    ):
-                ticked_list.append(record.id)
-        return ticked_list
-
-    def get_boe_physical_artifacts_sensitive_unused_options(self, obj):
+    def get_boe_physical_artifacts_sensitive_unused(self, obj):
         artifact_list = []
         #for artifact in obj.legal_case_boe_physical_artifacts.all():
         for record in obj.briefofevidencephysicalartifacts_set.all():
@@ -667,22 +636,7 @@ class LegalCaseSerializer(serializers.ModelSerializer):
                 artifact_list.append(serialized_artifact)
         return artifact_list
     # non sensitive unused physical artifacts
-    def get_boe_physical_artifacts_non_sensitive_unused_ticked(self, obj):
-        ticked_list = []
-        #for record in obj.legal_case_boe_physical_artifacts.all():
-        for record in obj.briefofevidencephysicalartifacts_set.all():
-            legal_case_physical_artifact_link = obj.physicalartifactlegalcases_set.get(
-                    legal_case_id=obj.id,
-                    physical_artifact_id=record.physical_artifact.id)
-            #if record.ticked and not record.used_within_case and not record.sensitive_non_disclosable:
-            if (record.ticked and not 
-                    legal_case_physical_artifact_link.used_within_case and not
-                    legal_case_physical_artifact_link.sensitive_non_disclosable
-                    ):
-                ticked_list.append(record.id)
-        return ticked_list
-
-    def get_boe_physical_artifacts_non_sensitive_unused_options(self, obj):
+    def get_boe_physical_artifacts_non_sensitive_unused(self, obj):
         artifact_list = []
         #for artifact in obj.legal_case_boe_physical_artifacts.all():
         for record in obj.briefofevidencephysicalartifacts_set.all():

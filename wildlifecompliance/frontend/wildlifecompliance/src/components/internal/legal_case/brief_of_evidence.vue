@@ -144,25 +144,27 @@
                                 <div class="col-sm-12 form-group"><div class="row">
                                     <label class="col-sm-10">Select the objects to be included on the list of exhibits
                                         <div class="row" v-for="artifact in physicalArtifactsUsed">
-                                            <input class="col-sm-1" type="checkbox" :value="artifact.id" v-model="physicalArtifactsUsedTicked">
+                                            <!--input class="col-sm-1" type="checkbox" :value="artifact.id" v-model="physicalArtifactsUsedTicked"-->
+                                            <input class="col-sm-1" type="checkbox" v-model="artifact.ticked">
                                             <label class="col-sm-4">{{ artifact.label }}</label>
                                         </div>
                                     </label>
                                     <label class="col-sm-10">Select the objects to be included on the sensitive unused list of materials
                                         <div class="row" v-for="artifact in physicalArtifactsSensitiveUnused">
-                                            <input class="col-sm-1" :id="'tickbox_' + artifact.id" type="checkbox" :value="artifact.id" v-model="physicalArtifactsSensitiveUnusedTicked">
+                                            <!--input class="col-sm-1" :id="'tickbox_' + artifact.id" type="checkbox" :value="artifact.id" v-model="physicalArtifactsSensitiveUnusedTicked"-->
+                                            <input class="col-sm-1" :id="'tickbox_' + artifact.id" type="checkbox" v-model="artifact.ticked">
                                             <label class="col-sm-4">{{ artifact.label }}</label>
                                             <textarea 
                                                 class="form-control col-sm-6" 
-                                                :value="artifact.reason_sensitive_non_disclosable" 
-                                                :id="'reason_' + artifact.id"
-                                                @input="setPhysicalArtifactSensitiveUnusedReason"
+                                                v-model="artifact.reason_sensitive_non_disclosable" 
+                                                :id="'reason_' + artifact.physical_artifact_id"
                                                 />
                                         </div>
                                     </label>
                                     <label class="col-sm-10">Select the objects to be included on the non-sensitive unused list of materials
                                         <div class="row" v-for="artifact in physicalArtifactsNonSensitiveUnused">
-                                            <input class="col-sm-1" type="checkbox" :value="artifact.id" v-model="physicalArtifactsNonSensitiveUnusedTicked">
+                                            <!--input class="col-sm-1" type="checkbox" :value="artifact.id" v-model="physicalArtifactsNonSensitiveUnusedTicked"-->
+                                            <input class="col-sm-1" type="checkbox" v-model="artifact.ticked">
                                             <label class="col-sm-4">{{ artifact.label }}</label>
                                         </div>
                                     </label>
@@ -216,6 +218,7 @@ export default {
             //boeOtherStatementsOptions: [],
             uuid: 0,
             briefOfEvidence: {},
+            /*
             physicalArtifacts: [],
             physicalArtifactsNonSensitiveUnused: [],
             physicalArtifactsSensitiveUnused: [],
@@ -224,6 +227,7 @@ export default {
             physicalArtifactsSensitiveUnusedTicked: [],
             physicalArtifactsSensitiveUnusedReason: [],
             physicalArtifactsUsedTicked: [],
+            */
       };
   },
   components: {
@@ -236,6 +240,33 @@ export default {
     }),
     csrf_token: function() {
       return helpers.getCookie("csrftoken");
+    },
+    physicalArtifactsUsed: function() {
+        let options = [];
+        if (this.legal_case && this.legal_case.boe_physical_artifacts_used) {
+            for (let option of this.legal_case.boe_physical_artifacts_used) {
+                options.push(option);
+            }
+        }
+        return options;
+    },
+    physicalArtifactsSensitiveUnused: function() {
+        let options = [];
+        if (this.legal_case && this.legal_case.boe_physical_artifacts_sensitive_unused) {
+            for (let option of this.legal_case.boe_physical_artifacts_sensitive_unused) {
+                options.push(option);
+            }
+        }
+        return options;
+    },
+    physicalArtifactsNonSensitiveUnused: function() {
+        let options = [];
+        if (this.legal_case && this.legal_case.boe_physical_artifacts_non_sensitive_unused) {
+            for (let option of this.legal_case.boe_physical_artifacts_non_sensitive_unused) {
+                options.push(option);
+            }
+        }
+        return options;
     },
       /*
     briefOfEvidence: function() {
@@ -300,6 +331,7 @@ export default {
         }
         return options;
     },
+    /*
     boePhysicalArtifactsTicked: function() {
         let ticked = []
         if (this.legal_case && this.legal_case.boe_physical_artifacts_ticked) {
@@ -316,6 +348,7 @@ export default {
         }
         return options;
     },
+    */
     boeDocumentArtifactsTicked: function() {
         let ticked = []
         if (this.legal_case && this.legal_case.boe_document_artifacts_ticked) {
@@ -348,14 +381,13 @@ export default {
       setBoeOtherStatementsTicked: 'setBoeOtherStatementsTicked',
       setBoePhysicalArtifactsTicked: 'setBoePhysicalArtifactsTicked',
       setBoeDocumentArtifactsTicked: 'setBoeDocumentArtifactsTicked',
-      setPhysicalArtifactSensitiveUnusedReason: 'setPhysicalArtifactSensitiveUnusedReason',
+      //setPhysicalArtifactSensitiveUnusedReason: 'setPhysicalArtifactSensitiveUnusedReason',
     }),
-    /*
-    setPhysicalArtifactSensitiveUnusedReason: function(artifact) {
-        console.log(artifact)
-        this.set
+      /*
+    setPhysicalArtifactSensitiveUnusedReasonWrapper: async function(reasonEvent) {
+        //console.log(artifact)
+        await this.setPhysicalArtifactSensitiveUnusedReason(reasonEvent);
     },
-    */
     setPhysicalArtifactsUsed: function(artifact) {
         console.log(artifact)
     },
@@ -378,39 +410,21 @@ export default {
     addEventListeners: function() {
       let vm = this;
       let physicalArtifactsTree = $('#physical-artifacts-tree :input');
-      //let physicalArtifactsTree = $("#physical-artifacts-tree");
-      //let physicalArtifactsTree = $(".boe_physical_artifacts_textarea");
-      //let physicalArtifactsTree = $(":textarea");
-      //console.log(physicalArtifactsTree);
       physicalArtifactsTree.on(
           'input', 
           (e) => {
               //console.log(e)
               this.setPhysicalArtifactDetails(e.target.id, e.target.value);
           });
-        /*
-      physicalArtifactsTree.on(
-          'paste', 
-          (e) => {
-              console.log("plain text only");
-              // cancel paste
-              e.preventDefault();
-              // get text representation of clipboard
-              let text = (e.originalEvent || e).clipboardData.getData('text/plain');
-              let transformedText = text.replace(/\n/g,'<br/>')
-              console.log(transformedText);
-              // insert text manually
-              document.execCommand("insertHTML", false, transformedText);
-              //this.setPhysicalArtifactDetails(e.target.id, transformedText);
-          });
-        */
     },
+    */
 
   },
   created: async function() {
       if (this.legal_case && this.legal_case.brief_of_evidence) {
           Object.assign(this.briefOfEvidence, this.legal_case.brief_of_evidence);
       }
+      /*
       if (this.legal_case.boe_physical_artifacts_non_sensitive_unused_options &&
           this.legal_case.boe_physical_artifacts_non_sensitive_unused_options.length > 0) {
           for (let artifact of this.legal_case.boe_physical_artifacts_non_sensitive_unused_options) {
@@ -441,11 +455,12 @@ export default {
               }
           }
       }
+      */
 
   },
   mounted: function() {
       this.$nextTick(() => {
-          this.addEventListeners();
+          //this.addEventListeners();
           $('.vue-treeselect__control').css("display", "none");
         });
   },

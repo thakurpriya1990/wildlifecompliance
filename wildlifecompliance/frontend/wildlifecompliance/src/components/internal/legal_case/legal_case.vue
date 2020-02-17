@@ -886,7 +886,12 @@ export default {
       if (this.$refs.brief_of_evidence) {
           await this.setBriefOfEvidence({
               "brief_of_evidence": this.$refs.brief_of_evidence.briefOfEvidence,
-              "physical_artifacts": this.$refs.brief_of_evidence.physicalArtifacts,
+              /*
+              "boe_physical_artifacts": this.$refs.brief_of_evidence.physicalArtifacts,
+              "boe_physical_artifacts_sensitive_unused": this.$refs.brief_of_evidence.physicalArtifactsSensitiveUnused,
+              "boe_physical_artifacts_used": this.$refs.brief_of_evidence.physicalArtifactsUsed,
+              "boe_physical_artifacts_non_sensitive_unused": this.$refs.brief_of_evidence.physicalArtifactsNonSensitiveUnused,
+              */
           });
       }
       if (createNewRow) {

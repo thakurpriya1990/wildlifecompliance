@@ -3,6 +3,7 @@ from wildlifecompliance.components.artifact.models import (
         BriefOfEvidenceOtherStatements,
         BriefOfEvidencePhysicalArtifacts,
         BriefOfEvidenceDocumentArtifacts,
+        # PhysicalArtifactLegalCases,
         )
 
 
@@ -35,15 +36,29 @@ def generate_boe_physical_artifacts(legal_case):
                 physical_artifact=artifact
                 )
 
-def update_boe_physical_artifacts_ticked(legal_case, boe_physical_artifacts_ticked):
+#def update_boe_physical_artifacts_ticked(legal_case, boe_physical_artifacts_ticked):
+#    # get all associated BriefOfEvidencePhysicalArtifacts records
+#    print("update_boe_physical_artifacts_ticked")
+#    queryset = BriefOfEvidencePhysicalArtifacts.objects.filter(legal_case__id=legal_case.id)
+#    for record in queryset:
+#        if record.id in boe_physical_artifacts_ticked:
+#            record.ticked = True
+#        else:
+#            record.ticked = False
+#        record.save()
+
+def update_boe_physical_artifacts(legal_case, boe_sensitive_unused_reasons):
     # get all associated BriefOfEvidencePhysicalArtifacts records
-    print("update_boe_physical_artifacts_ticked")
-    queryset = BriefOfEvidencePhysicalArtifacts.objects.filter(legal_case__id=legal_case.id)
-    for record in queryset:
-        if record.id in boe_physical_artifacts_ticked:
-            record.ticked = True
-        else:
-            record.ticked = False
+    print("update_boe_sensitive_unused_reasons")
+    for reason in boe_sensitive_unused_reasons:
+        physical_artifact_id = reason.get("physical_artifact_id")
+        print("physical_artifact_id")
+        print(physical_artifact_id)
+        reason_text = reason.get("reason_sensitive_non_disclosable")
+        ticked = reason.get("ticked")
+        record = BriefOfEvidencePhysicalArtifacts.objects.get(legal_case=legal_case, physical_artifact_id=physical_artifact_id)
+        record.reason_sensitive_non_disclosable = reason_text
+        record.ticked = ticked
         record.save()
 
 # generate every node in the tree

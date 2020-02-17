@@ -383,6 +383,7 @@ class BriefOfEvidenceDocumentArtifacts(models.Model):
 
     class Meta:
         app_label = 'wildlifecompliance'
+        unique_together = ('document_artifact', 'legal_case')
 
     @property
     def label(self):
@@ -410,6 +411,7 @@ class ProsecutionBriefDocumentArtifacts(models.Model):
 
     class Meta:
         app_label = 'wildlifecompliance'
+        unique_together = ('document_artifact', 'legal_case')
 
     @property
     def label(self):
@@ -628,6 +630,7 @@ class BriefOfEvidencePhysicalArtifacts(models.Model):
 
     class Meta:
         app_label = 'wildlifecompliance'
+        unique_together = ('physical_artifact', 'legal_case')
 
     @property
     def label(self):
@@ -656,6 +659,7 @@ class ProsecutionBriefPhysicalArtifacts(models.Model):
 
     class Meta:
         app_label = 'wildlifecompliance'
+        unique_together = ('physical_artifact', 'legal_case')
 
     @property
     def label(self):

@@ -118,6 +118,32 @@ export const legalCaseStore = {
                 state.legal_case.boe_document_artifacts_ticked.push(r)
             }
         },
+        /*
+        updatePhysicalArtifactSensitiveUnusedReason(state, reasonEvent) {
+            let inserted = false;
+            let artifactIdStr = reasonEvent.target.id.substring(7)
+            let artifactId = parseInt(artifactIdStr)
+            // create empty array if it does not exist
+            if (!state.legal_case.boe_sensitive_unused_reasons) {
+                Vue.set(state.legal_case, 'boe_sensitive_unused_reasons', []);
+            }
+            // update existing record, if exists
+            for (let record of state.legal_case.boe_sensitive_unused_reasons) {
+                if (record.id === artifactId) {
+                    record.reasons = reasonEvent.target.value;
+                    inserted = true;
+                }
+            }
+            // if record does not exist, create it
+            if (inserted === false) {
+                let newRecord = {
+                    "id": artifactId, 
+                    "reasons": reasonEvent.target.value
+                }
+                state.legal_case.boe_sensitive_unused_reasons.push(newRecord);
+            }
+        },
+        */
     },
     actions: {
         async loadLegalCase({ dispatch, commit }, { legal_case_id }) {
@@ -226,5 +252,10 @@ export const legalCaseStore = {
         setBoeDocumentArtifactsTicked({ commit }, boeDocumentArtifactsTicked) {
             commit("updateBoeDocumentArtifactsTicked", boeDocumentArtifactsTicked)
         },
+        /*
+        setPhysicalArtifactSensitiveUnusedReason({ commit }, reasonEvent) {
+            commit("updatePhysicalArtifactSensitiveUnusedReason", reasonEvent)
+        },
+        */
     },
 };
