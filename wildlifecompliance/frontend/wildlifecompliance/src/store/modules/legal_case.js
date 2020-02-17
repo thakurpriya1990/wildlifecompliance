@@ -29,16 +29,25 @@ export const legalCaseStore = {
             if (state.legal_case.case_created_date) {
                 state.legal_case.case_created_date = moment(state.legal_case.case_created_date, 'YYYY-MM-DD').format('DD/MM/YYYY');
             }
+            // default doc
             let defaultDocumentUrl = helpers.add_endpoint_join(
                 api_endpoints.legal_case,
                 state.legal_case.id + "/process_default_document/"
                 )
             Vue.set(state.legal_case, 'defaultDocumentUrl', defaultDocumentUrl); 
+            // Brief of evidence
+            let briefOfEvidenceDocumentUrl = helpers.add_endpoint_join(
+                api_endpoints.legal_case,
+                state.legal_case.id + "/process_brief_of_evidence_document/"
+                )
+            Vue.set(state.legal_case, 'briefOfEvidenceDocumentUrl', briefOfEvidenceDocumentUrl); 
+            // comms logs doc
             let commsLogsDocumentUrl = helpers.add_endpoint_join(
                 api_endpoints.legal_case,
                 state.legal_case.id + "/process_comms_log_document/"
                 )
             Vue.set(state.legal_case, 'commsLogsDocumentUrl', commsLogsDocumentUrl); 
+            // createLegalCase comms logs doc - required?
             let createLegalCaseProcessCommsLogsDocumentUrl = helpers.add_endpoint_join(
                 api_endpoints.legal_case,
                 state.legal_case.id + "/create_legal_case_process_comms_log_document/"

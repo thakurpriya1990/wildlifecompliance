@@ -197,6 +197,13 @@
                             </FormSection>
                             <FormSection :formCollapse="false" label="Additional Documents">
                                 <div class="col-sm-12 form-group"><div class="row">
+                                    <filefield 
+                                    ref="brief_of_evidence_documents" 
+                                    name="brief-of-evidence-documents" 
+                                    :isRepeatable="true" 
+                                    :documentActionUrl="legal_case.briefOfEvidenceDocumentUrl" 
+                                    :readonly="readonlyForm"
+                                    />
                                 </div></div>
                             </FormSection>
             </div>
@@ -216,6 +223,7 @@ require("select2-bootstrap-theme/dist/select2-bootstrap.min.css");
 import _ from 'lodash';
 import TreeSelect from '@riophae/vue-treeselect'
 import '@riophae/vue-treeselect/dist/vue-treeselect.css'
+import filefield from '@/components/common/compliance_file.vue';
 
 
 export default {
@@ -242,6 +250,7 @@ export default {
   components: {
     FormSection,
     TreeSelect,
+    filefield,
   },
   computed: {
     ...mapGetters('legalCaseStore', {

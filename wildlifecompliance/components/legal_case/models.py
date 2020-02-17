@@ -505,6 +505,27 @@ class LegalCaseDocument(Document):
         app_label = 'wildlifecompliance'
 
 
+class BriefOfEvidenceDocument(Document):
+    brief_of_evidence = models.ForeignKey(BriefOfEvidence, related_name='documents')
+    _file = models.FileField(max_length=255)
+    input_name = models.CharField(max_length=255, blank=True, null=True)
+    # after initial submit prevent document from being deleted
+    can_delete = models.BooleanField(default=True)
+    version_comment = models.CharField(max_length=255, blank=True, null=True)
+
+    def delete(self):
+        if self.can_delete:
+            return super(LegalCaseDocument, self).delete()
+        #logger.info(
+         #   'Cannot delete existing document object after application has been submitted (including document submitted before\
+          #  application pushback to status Draft): {}'.format(
+           #     self.name)
+        #)
+
+    class Meta:
+        app_label = 'wildlifecompliance'
+
+
 import reversion
 reversion.register(LegalCaseRunningSheetEntry, follow=['user'])
 reversion.register(CourtProceedingsJournalEntry, follow=['user'])
