@@ -445,7 +445,13 @@ class LegalCaseViewSet(viewsets.ModelViewSet):
                 #        # required when attaching a new BriefOfEvidence to a LegalCase
                 #        instance.save()
 
-                # Brief Of Evidence
+                ## Brief Of Evidence
+                # create
+                create_brief_of_evidence = request.data.get('create_brief_of_evidence')
+                if create_brief_of_evidence:
+                    boe_instance, created = BriefOfEvidence.objects.get_or_create(legal_case=instance)
+                    instance.set_status_brief_of_evidence(request)
+                # update
                 brief_of_evidence = request.data.get('brief_of_evidence')
                 if brief_of_evidence:
                     boe_instance, created = BriefOfEvidence.objects.get_or_create(legal_case=instance)
@@ -477,19 +483,25 @@ class LegalCaseViewSet(viewsets.ModelViewSet):
                 serializer = SaveLegalCaseSerializer(instance, data=request.data)
                 serializer.is_valid(raise_exception=True)
                 if serializer.is_valid():
-                    # TODO: review this logic
-                    # and (not running_sheet_entries or (running_sheet_entries and running_sheet_saved)):
                     serializer.save()
                     instance.log_user_action(
                             LegalCaseUserAction.ACTION_SAVE_LEGAL_CASE.format(
                             instance.number), request)
                     headers = self.get_success_headers(serializer.data)
-                    #return_serializer = LegalCaseSerializer(instance, context={'request': request})
-                    return Response(
-                            #return_serializer.data,
-                            status=status.HTTP_201_CREATED,
-                            headers=headers
-                            )
+                    full_http_response = request.data.get('full_http_response')
+                    if full_http_response:
+                        return_serializer = LegalCaseSerializer(instance, context={'request': request})
+                        return Response(
+                                return_serializer.data,
+                                status=status.HTTP_201_CREATED,
+                                headers=headers
+                                )
+                    else:
+                        return Response(
+                                status=status.HTTP_201_CREATED,
+                                headers=headers
+                                )
+
         except serializers.ValidationError:
             print(traceback.print_exc())
             raise

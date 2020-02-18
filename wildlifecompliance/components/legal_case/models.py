@@ -193,12 +193,12 @@ class LegalCase(RevisionedMixin):
                 if parent.status == 'pending_closure':
                     parent.close(request)
 
-    def generate_brief_of_evidence(self, request):
-        print("generate brief of evidence")
+    def set_status_brief_of_evidence(self, request):
+        print("set status brief of evidence")
         self.assigned_to = None
         self.status = self.STATUS_BRIEF_OF_EVIDENCE
         self.log_user_action(
-            LegalCaseUserAction.ACTION_GENERATE_BRIEF_OF_EVIDENCE.format(self.number), 
+            LegalCaseUserAction.ACTION_STATUS_BRIEF_OF_EVIDENCE.format(self.number), 
             request)
         # set allocated group to 
         #self.allocated_group
@@ -452,7 +452,7 @@ class LegalCaseCommsLogDocument(Document):
 class LegalCaseUserAction(UserAction):
     ACTION_CREATE_LEGAL_CASE = "Create Case {}"
     ACTION_SAVE_LEGAL_CASE = "Save Case {}"
-    ACTION_GENERATE_BRIEF_OF_EVIDENCE = "Generate Brief of Evidence for Case {}"
+    ACTION_STATUS_BRIEF_OF_EVIDENCE = "Set status 'Brief of Evidence' for Case {}"
     #ACTION_OFFENCE = "Create Offence {}"
     #ACTION_SANCTION_OUTCOME = "Create Sanction Outcome {}"
     #ACTION_SEND_TO_MANAGER = "Send Inspection {} to Manager"

@@ -78,8 +78,17 @@
                         
                         <div  class="row action-button">
                           <div v-if="canUserAction" class="col-sm-12">
-                                <a @click="addWorkflow('brief_of_evidence')" class="btn btn-primary btn-block">
+                                <!--a @click="addWorkflow('brief_of_evidence')" class="btn btn-primary btn-block"-->
+                                <a @click="createBriefOfEvidence" class="btn btn-primary btn-block">
                                   Brief of Evidence
+                                </a>
+                          </div>
+                        </div>
+                        <div  class="row action-button">
+                          <div v-if="canUserAction" class="col-sm-12">
+                                <!--a @click="addWorkflow('brief_of_evidence')" class="btn btn-primary btn-block"-->
+                                <a @click="createProsecutionBrief" class="btn btn-primary btn-block">
+                                  Prosecution Brief
                                 </a>
                           </div>
                         </div>
@@ -536,11 +545,24 @@ export default {
         offence_bind_id = 'offence' + parseInt(this.uuid);
         return offence_bind_id;
     },
+      /*
     briefOfEvidenceVisibility: function() {
         let visible = false;
         if (this.legal_case && this.legal_case.id &&
             (this.legal_case.brief_of_evidence || this.legal_case.status.id === 'brief_of_evidence')
         ) {
+            visible = true;
+        }
+        return visible;
+    },
+    */
+    briefOfEvidenceVisibility: function() {
+        let visible = false;
+        if (this.legal_case && 
+            this.legal_case.id && 
+            this.legal_case.brief_of_evidence && 
+            this.legal_case.status.id === 'brief_of_evidence') 
+        {
             visible = true;
         }
         return visible;
@@ -873,10 +895,27 @@ export default {
         this.$refs.legal_case_workflow.isModalOpen = true;
       });
     },
+    createBriefOfEvidence: async function() {
+        await this.save({ 
+            "createBriefOfEvidence": true,
+            "fullHttpResponse": true
+        })
+    },
+    createProsecutionBrief: async function() {
+        await this.save({ 
+            "createProsecutionBrief": true,
+            "fullHttpResponse": true
+        })
+    },
     saveExit: async function() {
         await this.save({ "returnToDash": true })
     },
-    save: async function({ returnToDash=false, createNewRow=false } = {}) {
+    save: async function({ 
+        returnToDash=false, 
+        createBriefOfEvidence=false,
+        createProsecutionBrief=false,
+        fullHttpResponse=false,
+    } = {}) {
       this.showSpinner = true;
       if (returnToDash) {
           this.showExit = true;
@@ -894,12 +933,17 @@ export default {
               */
           });
       }
+        /*
       if (createNewRow) {
           //await this.saveLegalCase({ create: false, internal: true, createNewRow: true });
           await this.saveLegalCase({ internal: true, createNewRow: true });
-      } else {
-          await this.saveLegalCase({ internal: false });
-      }
+          */
+      await this.saveLegalCase({ 
+          internal: false, 
+          createBriefOfEvidence: createBriefOfEvidence,
+          createProsecutionBrief: createProsecutionBrief,
+          fullHttpResponse: fullHttpResponse,
+      });
       if (returnToDash) {
         // remove redundant eventListeners
         window.removeEventListener('beforeunload', this.leaving);

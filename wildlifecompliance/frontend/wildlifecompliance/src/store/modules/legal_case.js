@@ -170,7 +170,14 @@ export const legalCaseStore = {
                 console.log(err);
             }
         },
-        async saveLegalCase({ dispatch, state, rootGetters }, { create, internal, createNewRow }) {
+        async saveLegalCase({ dispatch, state, rootGetters }, { 
+            create, 
+            internal, 
+            //createNewRow, 
+            createBriefOfEvidence, 
+            createProsecutionBrief,
+            fullHttpResponse,
+        }) {
             let legalCaseId = null;
             let savedLegalCase = null;
             try {
@@ -189,8 +196,19 @@ export const legalCaseStore = {
                     fetchUrl = api_endpoints.legal_case;
                     savedLegalCase = await Vue.http.post(fetchUrl, payload);
                 } else {
+                    /*
                     if (createNewRow) {
                         payload.create_new_running_sheet_entry = true;
+                    }
+                    */
+                    if (createBriefOfEvidence) {
+                        payload.create_brief_of_evidence = true;
+                    }
+                    if (createProsecutionBrief) {
+                        payload.create_prosecution_brief = true;
+                    }
+                    if (fullHttpResponse) {
+                        payload.full_http_response = true;
                     }
                     fetchUrl = helpers.add_endpoint_join(
                         api_endpoints.legal_case,
@@ -199,7 +217,10 @@ export const legalCaseStore = {
                     console.log(payload);
                     savedLegalCase = await Vue.http.put(fetchUrl, payload);
                 }
-                //await dispatch("setLegalCase", savedLegalCase.body);
+                if (fullHttpResponse && savedLegalCase.ok) {
+                    console.log(savedLegalCase)
+                    await dispatch("setLegalCase", savedLegalCase.body);
+                }
                 legalCaseId = savedLegalCase.body.id;
 
             } catch (err) {
