@@ -103,6 +103,7 @@
                         <li class="nav-item active"><a data-toggle="tab" :href="'#'+runTab">Running Sheet</a></li>
                         <li class="nav-item"><a data-toggle="tab" :href="'#'+cTab" >Case Details</a></li>
                         <li class="nav-item"><a data-toggle="tab" :href="'#'+bTab" >Brief of Evidence</a></li>
+                        <li class="nav-item"><a data-toggle="tab" :href="'#'+cpTab" >Court Proceedings</a></li>
                         <li class="nav-item"><a data-toggle="tab" :href="'#'+rTab">Related Items</a></li>
                     </ul>
                     <div class="tab-content">
@@ -162,6 +163,9 @@
                             <div v-if="briefOfEvidenceVisibility">
                                 <BriefOfEvidence ref="brief_of_evidence"/>
                             </div>
+                        </div>
+                        <div :id="cpTab" class="tab-pane fade in">
+                            <CourtProceedings v-if="legal_case.court_proceedings" />
                         </div>
                         <div :id="rTab" class="tab-pane fade in">
                             <FormSection :formCollapse="false" label="Related Items">
@@ -274,6 +278,7 @@ import LegalCaseWorkflow from './legal_case_workflow'
 import TreeSelect from '@riophae/vue-treeselect'
 import '@riophae/vue-treeselect/dist/vue-treeselect.css'
 import BriefOfEvidence from './brief_of_evidence';
+import CourtProceedings from './court_proceedings';
 
 
 export default {
@@ -299,6 +304,7 @@ export default {
             runTab: 'runTab'+this._uid,
             rTab: 'rTab'+this._uid,
             cTab: 'cTab'+this._uid,
+            cpTab: 'cpTab'+this._uid,
             bTab: 'bTab'+this._uid,
             current_schema: [],
             workflowBindId: '',
@@ -437,6 +443,7 @@ export default {
     LegalCaseWorkflow,
     TreeSelect,
     BriefOfEvidence,
+    CourtProceedings,
   },
   computed: {
     ...mapGetters('legalCaseStore', {
@@ -775,6 +782,9 @@ export default {
         console.log("constructRunningSheetTable - end")
     },
     constructRunningSheetTableEntry: function( rowNumber ){
+        console.log('rowNumber')
+        console.log(rowNumber)
+
         let actionColumn = !this.readonlyForm;
         if (this.$refs.running_sheet_table && this.$refs.running_sheet_table.vmDataTable) {
             console.log("constructRunningSheetTableEntry");
@@ -1354,6 +1364,8 @@ export default {
     },
     constructRunningSheetTableWrapper: function() {
         this.runningSheetUrl = _.cloneDeep(this.legal_case.running_sheet_entries);
+        console.log('this.runningSheetUrl');
+        console.log(this.runningSheetUrl);
         let i = 0;
         for (let r of this.legal_case.running_sheet_entries) {
             let description = this.tokenToHtml(r.description)
