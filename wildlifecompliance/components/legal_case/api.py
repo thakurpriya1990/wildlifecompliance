@@ -446,11 +446,11 @@ class LegalCaseViewSet(viewsets.ModelViewSet):
                 #        instance.save()
 
                 ## Brief Of Evidence
-                # create
-                create_brief_of_evidence = request.data.get('create_brief_of_evidence')
-                if create_brief_of_evidence:
-                    boe_instance, created = BriefOfEvidence.objects.get_or_create(legal_case=instance)
-                    instance.set_status_brief_of_evidence(request)
+                ## create
+                #create_brief_of_evidence = request.data.get('create_brief_of_evidence')
+                #if create_brief_of_evidence:
+                #    boe_instance, created = BriefOfEvidence.objects.get_or_create(legal_case=instance)
+                #    instance.set_status_brief_of_evidence(request)
                 # update
                 brief_of_evidence = request.data.get('brief_of_evidence')
                 if brief_of_evidence:
@@ -763,11 +763,16 @@ class LegalCaseViewSet(viewsets.ModelViewSet):
                 if workflow_type == 'close':
                     instance.close(request)
                 elif workflow_type == 'brief_of_evidence':
+                    #create_brief_of_evidence = request.data.get('create_brief_of_evidence')
+                    #if create_brief_of_evidence:
+                    ## create BriefOfEvidence instance
+                    boe_instance, created = BriefOfEvidence.objects.get_or_create(legal_case=instance)
+                    instance.set_status_brief_of_evidence(request)
                     build_all_boe_other_statements_hierarchy(instance)
                     build_all_boe_roi_hierarchy(instance)
                     generate_boe_document_artifacts(instance)
                     generate_boe_physical_artifacts(instance)
-                    instance.generate_brief_of_evidence(request)
+                    #instance.generate_brief_of_evidence(request)
                 #    instance.send_to_manager(request)
                 #elif workflow_type == 'request_amendment':
                 #    instance.request_amendment(request)

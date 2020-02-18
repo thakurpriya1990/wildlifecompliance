@@ -449,6 +449,13 @@ class SaveDocumentArtifactSerializer(serializers.ModelSerializer):
                 'id',
                 )
 
+    def validate(self, data):
+        #alleged_offence = AllegedOffence.objects.get(id=data['alleged_offence_id'])
+        #acos = AllegedCommittedOffence.get_active_alleged_committed_offences(alleged_offence)
+        if not (data.get('person_providing_statement_id') or data.get('interviewer_id')):
+            raise serializers.ValidationError('Statement must have an associated Person')
+        return data
+
 
 class PhysicalArtifactLegalCasesSerializer(serializers.ModelSerializer):
 

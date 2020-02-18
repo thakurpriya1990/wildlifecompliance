@@ -237,7 +237,7 @@ export const legalCaseStore = {
                 // pass
             }
             // update legal_case
-            else if (!create) {
+            else if (!create && !internal) {
                 await swal("Saved", "The record has been saved", "success");
             }
         },

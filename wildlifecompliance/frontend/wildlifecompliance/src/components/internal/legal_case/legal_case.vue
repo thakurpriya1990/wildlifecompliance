@@ -78,16 +78,16 @@
                         
                         <div  class="row action-button">
                           <div v-if="canUserAction" class="col-sm-12">
-                                <!--a @click="addWorkflow('brief_of_evidence')" class="btn btn-primary btn-block"-->
-                                <a @click="createBriefOfEvidence" class="btn btn-primary btn-block">
+                                <a @click="addWorkflow('brief_of_evidence')" class="btn btn-primary btn-block">
+                                <!--a @click="createBriefOfEvidence" class="btn btn-primary btn-block"-->
                                   Brief of Evidence
                                 </a>
                           </div>
                         </div>
                         <div  class="row action-button">
                           <div v-if="canUserAction" class="col-sm-12">
-                                <!--a @click="addWorkflow('brief_of_evidence')" class="btn btn-primary btn-block"-->
-                                <a @click="createProsecutionBrief" class="btn btn-primary btn-block">
+                                <a @click="addWorkflow('prosecution_brief')" class="btn btn-primary btn-block">
+                                <!--a @click="createProsecutionBrief" class="btn btn-primary btn-block"-->
                                   Prosecution Brief
                                 </a>
                           </div>
@@ -888,12 +888,40 @@ export default {
             this.workflowBindId = timeNow.toString();
         }
     },
-    addWorkflow(workflow_type) {
-      this.workflow_type = workflow_type;
-      this.updateWorkflowBindId();
-      this.$nextTick(() => {
-        this.$refs.legal_case_workflow.isModalOpen = true;
-      });
+    addWorkflow: async function(workflow_type) {
+        console.log(workflow_type)
+        /*
+        if (['brief_of_evidence', 'prosecution_brief'].includes(workflow_type)) {
+            // Save legal_case first
+            await this.save({ 
+                "create": false, 
+                "internal": true 
+            })
+            // workflow_action api method
+            //let post_url = '/api/legal_case/' + this.legal_case.id + '/workflow_action/'
+            let postUrl = helpers.add_endpoint_join(
+                api_endpoints.legal_case, 
+                this.legal_case.id + '/workflow_action/'
+            );
+            let payload = new FormData();
+            workflow_type ? payload.append('workflow_type', workflow_type) : null;
+            let res = await Vue.http.post(postUrl, payload);
+
+        } else {
+            // open workflow modal
+            this.workflow_type = workflow_type;
+            this.updateWorkflowBindId();
+            this.$nextTick(() => {
+                this.$refs.legal_case_workflow.isModalOpen = true;
+            });
+        }
+        */
+        // open workflow modal
+        this.workflow_type = workflow_type;
+        this.updateWorkflowBindId();
+        this.$nextTick(() => {
+            this.$refs.legal_case_workflow.isModalOpen = true;
+        });
     },
     createBriefOfEvidence: async function() {
         await this.save({ 

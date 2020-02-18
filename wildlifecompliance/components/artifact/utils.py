@@ -12,10 +12,11 @@ def generate_boe_document_artifacts(legal_case):
     #for artifact in legal_case.legal_case_document_artifacts_primary.all():
     #for artifact in legal_case.briefofevidencedocumentartifacts_set.all():
     for artifact in legal_case.legal_case_document_artifacts.all():
-        artifact, created = BriefOfEvidenceDocumentArtifacts.objects.get_or_create(
-                legal_case=legal_case,
-                document_artifact=artifact
-                )
+        if artifact.document_type in ['photograph', 'video', 'sound', 'other']:
+            artifact, created = BriefOfEvidenceDocumentArtifacts.objects.get_or_create(
+                    legal_case=legal_case,
+                    document_artifact=artifact
+                    )
 
 def update_boe_document_artifacts_ticked(legal_case, boe_document_artifacts_ticked):
     # get all associated BriefOfEvidenceDocumentArtifacts records
@@ -84,15 +85,15 @@ def build_all_boe_other_statements_hierarchy(legal_case):
                         statement=None,
                         associated_doc_artifact=None)
                 person_level_record.children.add(statement_level_record)
-                # now find associated_doc_artifacts
-                for associated_doc in statement_document_artifact.document_artifact_statement.all():
-                    associated_doc_level_record, associated_doc_level_record_created = BriefOfEvidenceOtherStatements.objects.get_or_create(
-                            legal_case=legal_case,
-                            person=person,
-                            statement=statement_document_artifact,
-                            associated_doc_artifact=associated_doc)
-                    if associated_doc_level_record_created:
-                        statement_level_record.children.add(associated_doc_level_record)
+            # now find associated_doc_artifacts
+            for associated_doc in statement_document_artifact.document_artifact_statement.all():
+                associated_doc_level_record, associated_doc_level_record_created = BriefOfEvidenceOtherStatements.objects.get_or_create(
+                        legal_case=legal_case,
+                        person=person,
+                        statement=statement_document_artifact,
+                        associated_doc_artifact=associated_doc)
+                if associated_doc_level_record_created:
+                    statement_level_record.children.add(associated_doc_level_record)
 
 def update_boe_other_statements_ticked(legal_case, boe_other_statements_ticked):
     # get all associated BriefOfEvidenceRecordOfInterview records
