@@ -71,6 +71,20 @@ styles.add(ParagraphStyle(name='Right', alignment=enums.TA_RIGHT))
 styles.add(ParagraphStyle(name='LongString', alignment=enums.TA_LEFT,wordWrap='CJK'))
 
 
+class FlowableRect(Flowable):
+    def __init__(self, width, height):
+        Flowable.__init__(self)
+        self.width = width
+        self.height = height
+
+    def draw(self):
+        self.canv.setFont('Times-Roman', 12)
+        self.canv.drawString(0, 0, 'Is this a 2nd or subsequent offence? Yes')
+        self.canv.rect(197, -1, self.width, self.height, fill=0)
+        self.canv.drawString(220, 0, 'No')
+        self.canv.rect(237, -1, self.width, self.height, fill=0)
+
+
 class BrokenLine(Flowable):
 
     def __init__(self, width, height=0):
@@ -84,8 +98,8 @@ class BrokenLine(Flowable):
     def draw(self):
         self.canv.setDash(3,3)
         self.canv.line(0, self.height, self.width, self.height)
-        f = self.canv.getAvailableFonts()
-        pass
+        # f = self.canv.getAvailableFonts()
+        # pass
 
 
 # class Remittance(Flowable):
@@ -297,13 +311,15 @@ def _create_invoice(invoice_buffer, sanction_outcome):
 
 
     date_str = gap(10) + '/' + gap(10) + '/ 20'
-
+    rect = FlowableRect(10, 10)
 
     styles = StyleSheet1()
     styles.add(ParagraphStyle(name='Normal',
                               fontName='Times-Roman',
                               fontSize=12,
-                              leading=22))
+                              spaceBefore=7,  # space before paragraph
+                              spaceAfter=7,   # space after paragraph
+                              leading=16))       # space between lines
     styles.add(ParagraphStyle(name='BodyText',
                               parent=styles['Normal'],
                               spaceBefore=6))
@@ -315,9 +331,9 @@ def _create_invoice(invoice_buffer, sanction_outcome):
                               fontName='Times-Bold'))
     # styles = getSampleStyleSheet()
     data = []
-    data.append([[Paragraph('Biodiversity Conservation Act 2016', styles['Italic']), Paragraph('Infringement notice', styles['Bold'])],
+    data.append([Paragraph('<i>Biodiversity Conservation Act 2016</i><br /><strong>Infringement Notice</strong>', styles['Normal']),
               '',
-              [Paragraph('Infringement', styles['Normal']), Paragraph('notice no.', styles['Normal'])]])
+              Paragraph('Infringement<br />notice no.', styles['Normal'])])
 
     # Alleged offender
     data.append([Paragraph('Alleged offender', styles['Bold']), Paragraph('Name: Family name', styles['Normal']), ''])
@@ -343,7 +359,8 @@ def _create_invoice(invoice_buffer, sanction_outcome):
                      Paragraph('<u>' + gap(127) + '</u>', styles['Normal']),
                  ],
                  ''])  # row index: 8
-    data.append(['', Paragraph('Is this a 2nd or subsequent offence? Yes &#x25A1; No &#x25A1;', styles['Normal']), ''])
+    # data.append(['', rect, ''])
+    data.append(['', rect, ''])
     data.append(['', [Paragraph('Biodiversity Conservation Act 2016 s.', styles['Normal']),
                       Paragraph('or', styles['Normal']),
                       Paragraph('Biodiversity Conservation Regulations 2018 r.', styles['Normal'])], ''])
@@ -418,3 +435,5 @@ def create_in_pdf_bytes(filename, sanction_outcome):
         # END: Save
 
         return document
+
+
