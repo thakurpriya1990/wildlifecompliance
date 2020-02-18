@@ -677,7 +677,12 @@ class ApplicationViewSet(viewsets.ModelViewSet):
                 instance.lodgement_number)
 
             set_session_activity(request.session, activities[0])
-            for activity in activities:
+
+            # only fees which are greater than zero.
+            activities_with_fees = [
+                a for a in activities if a.licence_fee > 0]
+
+            for activity in activities_with_fees:
                 product_lines.append({
                     'ledger_description': '{} (Licence Fee)'.format(
                         activity.licence_activity.name),
@@ -690,7 +695,11 @@ class ApplicationViewSet(viewsets.ModelViewSet):
 
             # Adjustments occur only to the application fee.
             if instance.has_amended_fees:
-                for activity in activities:
+                # only fees which are greater than zero.
+                activities_with_fees = [
+                    a for a in activities if a.application_fee > 0]
+
+                for activity in activities_with_fees:
                     product_lines.append({
                         'ledger_description': '{} (Application Fee)'.format(
                             activity.licence_activity.name),
@@ -702,19 +711,21 @@ class ApplicationViewSet(viewsets.ModelViewSet):
                     })
 
             # Include additional fees by licence approvers.
-            has_additional = instance.has_additional_fees
-            print(has_additional)
-            # if instance.has_additional_fees:
-            #     for activity in activities:
-            #         product_lines.append({
-            #             'ledger_description': '{}'.format(
-            #                 activity.additional_fee_text),
-            #             'quantity': 1,
-            #             'price_incl_tax': str(activity.additional_fee),
-            #             'price_excl_tax': str(calculate_excl_gst(
-            #                 activity.additional_fee)),
-            #             'oracle_code': ''
-            #         })
+            if instance.has_additional_fees:
+                # only fees which are greater than zero.
+                activities_with_fees = [
+                    a for a in activities if a.additional_fee > 0]
+
+                for activity in activities_with_fees:
+                    product_lines.append({
+                        'ledger_description': '{}'.format(
+                            activity.additional_fee_text),
+                        'quantity': 1,
+                        'price_incl_tax': str(activity.additional_fee),
+                        'price_excl_tax': str(calculate_excl_gst(
+                            activity.additional_fee)),
+                        'oracle_code': ''
+                    })
 
             checkout_result = checkout(
                 request, instance,
