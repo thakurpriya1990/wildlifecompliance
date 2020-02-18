@@ -29,16 +29,25 @@ export const legalCaseStore = {
             if (state.legal_case.case_created_date) {
                 state.legal_case.case_created_date = moment(state.legal_case.case_created_date, 'YYYY-MM-DD').format('DD/MM/YYYY');
             }
+            // default doc
             let defaultDocumentUrl = helpers.add_endpoint_join(
                 api_endpoints.legal_case,
                 state.legal_case.id + "/process_default_document/"
                 )
             Vue.set(state.legal_case, 'defaultDocumentUrl', defaultDocumentUrl); 
+            // Brief of evidence
+            let briefOfEvidenceDocumentUrl = helpers.add_endpoint_join(
+                api_endpoints.legal_case,
+                state.legal_case.id + "/process_brief_of_evidence_document/"
+                )
+            Vue.set(state.legal_case, 'briefOfEvidenceDocumentUrl', briefOfEvidenceDocumentUrl); 
+            // comms logs doc
             let commsLogsDocumentUrl = helpers.add_endpoint_join(
                 api_endpoints.legal_case,
                 state.legal_case.id + "/process_comms_log_document/"
                 )
             Vue.set(state.legal_case, 'commsLogsDocumentUrl', commsLogsDocumentUrl); 
+            // createLegalCase comms logs doc - required?
             let createLegalCaseProcessCommsLogsDocumentUrl = helpers.add_endpoint_join(
                 api_endpoints.legal_case,
                 state.legal_case.id + "/create_legal_case_process_comms_log_document/"
@@ -146,6 +155,32 @@ export const legalCaseStore = {
                 state.legal_case.boe_document_artifacts_ticked.push(r)
             }
         },
+        /*
+        updatePhysicalArtifactSensitiveUnusedReason(state, reasonEvent) {
+            let inserted = false;
+            let artifactIdStr = reasonEvent.target.id.substring(7)
+            let artifactId = parseInt(artifactIdStr)
+            // create empty array if it does not exist
+            if (!state.legal_case.boe_sensitive_unused_reasons) {
+                Vue.set(state.legal_case, 'boe_sensitive_unused_reasons', []);
+            }
+            // update existing record, if exists
+            for (let record of state.legal_case.boe_sensitive_unused_reasons) {
+                if (record.id === artifactId) {
+                    record.reasons = reasonEvent.target.value;
+                    inserted = true;
+                }
+            }
+            // if record does not exist, create it
+            if (inserted === false) {
+                let newRecord = {
+                    "id": artifactId, 
+                    "reasons": reasonEvent.target.value
+                }
+                state.legal_case.boe_sensitive_unused_reasons.push(newRecord);
+            }
+        },
+        */
     },
     actions: {
         async loadLegalCase({ dispatch, commit }, { legal_case_id }) {
@@ -163,7 +198,14 @@ export const legalCaseStore = {
                 console.log(err);
             }
         },
-        async saveLegalCase({ dispatch, state, rootGetters }, { create, internal, createNewRow }) {
+        async saveLegalCase({ dispatch, state, rootGetters }, { 
+            create, 
+            internal, 
+            //createNewRow, 
+            createBriefOfEvidence, 
+            createProsecutionBrief,
+            fullHttpResponse,
+        }) {
             let legalCaseId = null;
             let savedLegalCase = null;
             try {
@@ -194,8 +236,19 @@ export const legalCaseStore = {
                     fetchUrl = api_endpoints.legal_case;
                     savedLegalCase = await Vue.http.post(fetchUrl, payload);
                 } else {
+                    /*
                     if (createNewRow) {
                         payload.create_new_running_sheet_entry = true;
+                    }
+                    */
+                    if (createBriefOfEvidence) {
+                        payload.create_brief_of_evidence = true;
+                    }
+                    if (createProsecutionBrief) {
+                        payload.create_prosecution_brief = true;
+                    }
+                    if (fullHttpResponse) {
+                        payload.full_http_response = true;
                     }
                     fetchUrl = helpers.add_endpoint_join(
                         api_endpoints.legal_case,
@@ -204,7 +257,10 @@ export const legalCaseStore = {
                     console.log(payload);
                     savedLegalCase = await Vue.http.put(fetchUrl, payload);
                 }
-                //await dispatch("setLegalCase", savedLegalCase.body);
+                if (fullHttpResponse && savedLegalCase.ok) {
+                    console.log(savedLegalCase)
+                    await dispatch("setLegalCase", savedLegalCase.body);
+                }
                 legalCaseId = savedLegalCase.body.id;
 
                 delete state.legal_case.court_proceedings.date_entries_updated
@@ -224,7 +280,7 @@ export const legalCaseStore = {
                 // pass
             }
             // update legal_case
-            else if (!create) {
+            else if (!create && !internal) {
                 await swal("Saved", "The record has been saved", "success");
             }
         },
@@ -281,5 +337,10 @@ export const legalCaseStore = {
         setBoeDocumentArtifactsTicked({ commit }, boeDocumentArtifactsTicked) {
             commit("updateBoeDocumentArtifactsTicked", boeDocumentArtifactsTicked)
         },
+        /*
+        setPhysicalArtifactSensitiveUnusedReason({ commit }, reasonEvent) {
+            commit("updatePhysicalArtifactSensitiveUnusedReason", reasonEvent)
+        },
+        */
     },
 };

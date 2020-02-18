@@ -41,7 +41,7 @@
                                             <div class="col-sm-3">
                                                 <label class="control-label pull-left" for="Name">Document</label>
                                             </div>
-                                            <div v-if="parentModal" class="col-sm-9">
+                                            <div v-if="!documentArtifactId" class="col-sm-9">
                                                 <filefield
                                                 ref="default_document"
                                                 name="default-document"
@@ -56,6 +56,7 @@
                                                 :isRepeatable="true" 
                                                 :documentActionUrl="document_artifact.defaultDocumentUrl" 
                                                 :readonly="readonlyForm"
+                                                v-bind:key="documentArtifactId"
                                                 />
                                             </div>
                                         </div>
@@ -740,7 +741,9 @@ export default {
         },
         */
         cancel: async function() {
-            await this.$refs.default_document.cancel();
+            if (this.$refs.default_document) {
+                await this.$refs.default_document.cancel();
+            }
         },
         emitDocumentArtifact: async function(e) {
             console.log(e)
