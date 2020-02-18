@@ -223,8 +223,8 @@ def _create_licence_header(canvas, doc, draw_page_number=True):
 
     if hasattr(doc, 'licence'):
         canvas.drawString(current_x,
-                          current_y - (LARGE_FONTSIZE + HEADER_SMALL_BUFFER) * 2,
-                          '{}'.format(doc.licence.id))
+                          current_y - (LARGE_FONTSIZE + HEADER_SMALL_BUFFER)*2,
+                          '{}'.format(doc.licence.licence_number))
 
 
 def _create_licence(licence_buffer, licence, application):
@@ -298,10 +298,25 @@ def _create_licence(licence_buffer, licence, application):
         elements += _layout_extracted_fields(licence.extracted_fields)
 
         # additional information
-        '''if licence.additional_information:
+        if licence.has_additional_information:
             elements.append(Spacer(1, SECTION_BUFFER_HEIGHT))
-            elements.append(Paragraph('Additional Information', styles['BoldLeft']))
-            elements += _layout_paragraphs(licence.additional_information)'''
+            elements.append(Paragraph(
+                'Additional Information', styles['BoldLeft']))
+            elements.append(Spacer(1, SECTION_BUFFER_HEIGHT))
+
+            purposes = [[p for p in a.issued_purposes] for a in licence.current_activities]
+
+            infos = []
+            for p in purposes[0]:
+                info = p.additional_information
+                infos = [i for i in info.order_by('index').all()]
+
+            infoList = ListFlowable(
+                [Paragraph("{name}".format(
+                    name=i.detail,
+                ), styles['Left'],) for i in infos],
+                bulletFontName=BOLD_FONTNAME, bulletFontSize=MEDIUM_FONTSIZE)
+            elements.append(infoList)
 
         # delegation holds the dates, licencee and issuer details.
         delegation = []
