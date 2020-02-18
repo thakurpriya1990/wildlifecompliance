@@ -51,17 +51,17 @@ from wildlifecompliance.components.users.serializers import (
 )
 from wildlifecompliance.helpers import is_customer, is_internal
 from wildlifecompliance.components.legal_case.models import (
-        LegalCase,
-        LegalCaseUserAction,
-        LegalCaseCommsLogEntry,
-        LegalCaseCommsLogDocument,
-        LegalCasePriority,
-        LegalCaseRunningSheetEntry,
-        LegalCasePerson,
-        CourtProceedingsJournalEntry,
-        BriefOfEvidence,
-        ProsecutionBrief,
-)
+    LegalCase,
+    LegalCaseUserAction,
+    LegalCaseCommsLogEntry,
+    LegalCaseCommsLogDocument,
+    LegalCasePriority,
+    LegalCaseRunningSheetEntry,
+    LegalCasePerson,
+    CourtProceedingsJournalEntry,
+    BriefOfEvidence,
+    ProsecutionBrief,
+    CourtProceedings, CourtDate)
 #from wildlifecompliance.components.artifact.models import (
 #        DocumentArtifact,
 #        PhysicalArtifact,
@@ -72,30 +72,30 @@ from wildlifecompliance.components.call_email.models import (
         CallEmailUserAction,
         )
 from wildlifecompliance.components.legal_case.serializers import (
-        LegalCaseSerializer,
-        SaveLegalCaseSerializer,
-        LegalCaseUserActionSerializer,
-        LegalCaseCommsLogEntrySerializer,
-        LegalCaseDatatableSerializer,
-        UpdateAssignedToIdSerializer,
-        LegalCasePrioritySerializer,
-        CreateLegalCaseRunningSheetEntrySerializer,
-        SaveLegalCaseRunningSheetEntrySerializer,
-        LegalCaseRunningSheetSerializer,
-        LegalCaseRunningSheetEntrySerializer,
-        DeleteReinstateLegalCaseRunningSheetEntrySerializer,
-        #RunningSheetEntryVersionSerializer,
-        VersionSerializer,
-        RunningSheetEntryHistorySerializer,
-        CreateLegalCasePersonSerializer,
-        JournalEntryHistorySerializer,
-        CourtProceedingsJournalEntrySerializer,
-        SaveCourtProceedingsJournalEntrySerializer,
-        DeleteReinstateCourtProceedingsJournalEntrySerializer,
-        CreateCourtProceedingsJournalEntrySerializer,
-        CourtProceedingsJournalSerializer,
-        BriefOfEvidenceSerializer,
-        )
+    LegalCaseSerializer,
+    SaveLegalCaseSerializer,
+    LegalCaseUserActionSerializer,
+    LegalCaseCommsLogEntrySerializer,
+    LegalCaseDatatableSerializer,
+    UpdateAssignedToIdSerializer,
+    LegalCasePrioritySerializer,
+    CreateLegalCaseRunningSheetEntrySerializer,
+    SaveLegalCaseRunningSheetEntrySerializer,
+    LegalCaseRunningSheetSerializer,
+    LegalCaseRunningSheetEntrySerializer,
+    DeleteReinstateLegalCaseRunningSheetEntrySerializer,
+    # RunningSheetEntryVersionSerializer,
+    VersionSerializer,
+    RunningSheetEntryHistorySerializer,
+    CreateLegalCasePersonSerializer,
+    JournalEntryHistorySerializer,
+    CourtProceedingsJournalEntrySerializer,
+    SaveCourtProceedingsJournalEntrySerializer,
+    DeleteReinstateCourtProceedingsJournalEntrySerializer,
+    CreateCourtProceedingsJournalEntrySerializer,
+    CourtProceedingsJournalSerializer,
+    BriefOfEvidenceSerializer,
+    SaveCourtDateEntrySerializer)
 from wildlifecompliance.components.users.models import (
     CompliancePermissionGroup,    
 )
@@ -416,20 +416,42 @@ class LegalCaseViewSet(viewsets.ModelViewSet):
                         if running_sheet_entry_serializer.is_valid():
                             running_sheet_entry_serializer.save()
                 # Court Proceedings
-                journal_entries = request.data.get('court_proceedings', {}).get('journal_entries')
-                if journal_entries and len(journal_entries) > 0:
-                    for entry in journal_entries:
-                        entry_copy = dict(entry)
-                        description = entry_copy.get('description', '')
-                        ascii_description = description.encode('ascii', 'xmlcharrefreplace')
-                        entry_copy.update({'description': ascii_description})
-                        entry_id = CourtProceedingsJournalEntry.objects.get(id = entry_copy.get('id'))
-                        journal_entry_serializer = SaveCourtProceedingsJournalEntrySerializer(
-                                instance=entry_id, 
-                                data=entry_copy)
-                        journal_entry_serializer.is_valid(raise_exception=True)
-                        if journal_entry_serializer.is_valid():
-                            journal_entry_serializer.save()
+                court_proceedings = request.data.get('court_proceedings', {})
+                if court_proceedings:
+                    serializer = CourtProceedingsJournalSerializer(instance=instance.court_proceedings, data=court_proceedings)
+                    if serializer.is_valid(raise_exception=True):
+                        serializer.save()
+                    journal_entries = court_proceedings.get('journal_entries_transform')
+                    if journal_entries:
+                        for key, entry in journal_entries.items():
+                            entry_copy = dict(entry)
+                            description = entry_copy.get('description', '')
+                            ascii_description = description.encode('ascii', 'xmlcharrefreplace')
+                            entry_copy.update({'description': ascii_description})
+                            entry_id = CourtProceedingsJournalEntry.objects.get(id=entry_copy.get('id'))
+                            journal_entry_serializer = SaveCourtProceedingsJournalEntrySerializer(
+                                    instance=entry_id,
+                                    data=entry_copy)
+                            if journal_entry_serializer.is_valid(raise_exception=True):
+                                journal_entry_serializer.save()
+                    court_dates = court_proceedings.get('date_entries_updated')
+                    if court_dates:
+                        for key, entry in court_dates.items():
+                            entry_copy = dict(entry)
+                            comments = entry_copy.get('comments', '')
+                            ascii_comments = comments.encode('ascii', 'xmlcharrefreplace')
+                            entry_copy.update({'comments': ascii_comments})
+                            if entry_copy.get('id'):
+                                court_date = CourtDate.objects.get(id=entry_copy.get('id'))
+                                serializer = SaveCourtDateEntrySerializer(instance=court_date, data=entry_copy)
+                                if serializer.is_valid(raise_exception=True):
+                                    serializer.save()
+                            else:
+                                entry_copy['court_proceedings_id'] = instance.court_proceedings.id
+                                serializer = SaveCourtDateEntrySerializer(data=entry_copy)
+                                if serializer.is_valid(raise_exception=True):
+                                    serializer.save()
+
                 ## Brief Of Evidence
                 #brief_of_evidence = request.data.get('brief_of_evidence')
                 #if brief_of_evidence:
@@ -519,7 +541,7 @@ class LegalCaseViewSet(viewsets.ModelViewSet):
             instance = self.get_object()
             entry_number = request.data.get("journal_entry_number")
             row_num = entry_number.split('-')[1]
-            entry_instance = instance.journal_entries.get(row_num=row_num)
+            entry_instance = instance.court_proceedings.journal_entries.get(row_num=row_num)
 
             serializer = JournalEntryHistorySerializer(entry_instance)
             return Response(
@@ -660,6 +682,30 @@ class LegalCaseViewSet(viewsets.ModelViewSet):
 
     @detail_route(methods=['POST'])
     @renderer_classes((JSONRenderer,))
+    def process_court_outcome_document(self, request, *args, **kwargs):
+        try:
+            instance = self.get_object()
+            returned_data = process_generic_document(request, instance, document_type='court_outcome')
+            if returned_data:
+                return Response(returned_data)
+            else:
+                return Response()
+
+        except serializers.ValidationError:
+            print(traceback.print_exc())
+            raise
+        except ValidationError as e:
+            if hasattr(e, 'error_dict'):
+                raise serializers.ValidationError(repr(e.error_dict))
+            else:
+                raise serializers.ValidationError(repr(e[0].encode('utf-8')))
+        except Exception as e:
+            print(traceback.print_exc())
+            raise serializers.ValidationError(str(e))
+
+
+    @detail_route(methods=['POST'])
+    @renderer_classes((JSONRenderer,))
     def process_comms_log_document(self, request, *args, **kwargs):
         try:
             instance = self.get_object()
@@ -702,6 +748,7 @@ class LegalCaseViewSet(viewsets.ModelViewSet):
                     instance.log_user_action(
                             LegalCaseUserAction.ACTION_CREATE_LEGAL_CASE.format(
                             instance.number), request)
+
                     # Create comms_log and send mail
                     res = self.workflow_action(request, instance, create_legal_case=True)
                     if instance.call_email:
@@ -871,8 +918,8 @@ class LegalCaseViewSet(viewsets.ModelViewSet):
             instance = self.get_object()
             journal_entry_id = request.data.get("journal_entry_id")
             deleted = request.data.get("deleted")
-            if journal_id:
-                journal_entry_instance = CourtProceedingsJournalEntry.objects.get(id=journal_id)
+            if journal_entry_id:
+                journal_entry_instance = CourtProceedingsJournalEntry.objects.get(id=journal_entry_id)
                 serializer = DeleteReinstateLegalCaseRunningSheetEntrySerializer(
                         instance=journal_entry_instance, 
                         data=request.data)
@@ -905,14 +952,14 @@ class LegalCaseViewSet(viewsets.ModelViewSet):
         try:
             instance = self.get_object()
             request_data = {
-                            "court_proceedings_id": instance.id,
-                            "user_id": request.user.id
+                            "court_proceedings_id": request.data.get('court_proceedings_id'),
+                            "user_id": request.data.get('user_id'),
                             }
             serializer = CreateCourtProceedingsJournalEntrySerializer(data=request_data)
             serializer.is_valid(raise_exception=True)
             if serializer.is_valid():
-                running_sheet_entry = serializer.save()
-                return_serializer = CourtProceedingsJournalEntrySerializer(running_sheet_entry)
+                court_proceedings_entry = serializer.save()
+                return_serializer = CourtProceedingsJournalEntrySerializer(court_proceedings_entry)
                 return Response(
                         return_serializer.data,
                         status=status.HTTP_201_CREATED,
