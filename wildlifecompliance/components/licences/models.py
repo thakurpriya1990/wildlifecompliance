@@ -685,6 +685,15 @@ class WildlifeLicence(models.Model):
                self.purposes_available_to_add.count() > 0 and\
                self.can_action.get('can_amend')
 
+    @property
+    def has_additional_information(self):
+        has_info = False
+        for a in self.current_activities:
+            for p in a.issued_purposes:
+                if p.additional_information:
+                    return True
+        return has_info
+
     def generate_doc(self):
         from wildlifecompliance.components.licences.pdf import create_licence_doc
         self.licence_document = create_licence_doc(

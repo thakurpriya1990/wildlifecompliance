@@ -294,7 +294,7 @@ export default {
                         if (full.payment_status == 'unpaid'){
                             links +=  `<a href='#${full.id}' data-pay-application-fee='${full.id}'>Pay Application Fee</a><br/>`;
                         }
-                        if (['awaiting_payment'].includes(full.customer_status.id) && full.payment_status == 'paid'){
+                        if (['awaiting_payment'].includes(full.customer_status.id) && ['paid','payment_not_required'].includes(full.payment_status)){
                             let activity = full.activities.find(activity => activity.can_pay_licence_fee=true)
                             links +=  `<a href='#${full.id}' data-pay-application-licence-fee='${full.id}' pay-licence-fee-for='${activity.id}'>Pay Licence Fee</a><br/>`;
                         }                        

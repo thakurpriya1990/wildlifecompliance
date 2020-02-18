@@ -225,13 +225,10 @@ export default {
             return this.assessment.inspection_report != null ? this.assessment.inspection_report.name: '';
         },
         applicationActivities: function() {
-            console.log('applicationActivities')
             if (this.$router.currentRoute.name=='complete-assessment'){
                 // filtered activity list for application when completing assessments.
                 return this.allCurrentActivitiesWithAssessor
             }
-            console.log(this.licenceActivities())
-            console.log(this.allCurrentActivities)
             return this.licenceActivities()
         },
         selectedActivity: function(){
