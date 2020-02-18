@@ -9,6 +9,7 @@ from django.db.models import Max
 from django.db.models import Q
 from ledger.accounts.models import EmailUser
 from ledger.licence.models import LicenceType
+from wildlifecompliance.ordered_model import OrderedModel
 from wildlifecompliance.components.main.models import (
     CommunicationsLogEntry,
     UserAction,
@@ -63,6 +64,25 @@ class LicencePurpose(models.Model):
     def get_first_record(activity_name):
         # Use filter -> first() in case of records with duplicate names (e.g. "Bioprospecting licence")
         return LicencePurpose.objects.filter(name=activity_name).first()
+
+
+class LicencePurposeDetail(OrderedModel):
+    detail = models.CharField(max_length=100)
+    purpose = models.ForeignKey(
+        LicencePurpose,
+        on_delete=models.CASCADE,
+        related_name='additional_information'
+    )
+    index = models.PositiveSmallIntegerField(default=0)
+
+    class Meta:
+        ordering = ['purpose', 'index']
+        app_label = 'wildlifecompliance'
+        verbose_name = 'Licence purpose additional information'
+        verbose_name_plural = 'Licence purpose additional information'
+
+    def __str__(self):
+        return 'Detail for purpose {}'.format(self.purpose.id)
 
 
 class LicenceActivity(models.Model):

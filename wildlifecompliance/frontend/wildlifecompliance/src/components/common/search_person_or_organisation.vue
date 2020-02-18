@@ -215,6 +215,10 @@ export default {
             required: false,
             default: true,
         },
+        entityEdit: {
+            type: Object,
+            required: false,
+        },
     },
     methods: {
         parentSave: async function() {
@@ -442,6 +446,9 @@ export default {
             }
             this.initAwesomplete();
         });
+        if (this.entityEdit) {
+            Object.assign(this.entity, this.entityEdit);
+        }
         this.object_hash = hash(this.entity);
         /*
         if (this.departmentalStaff) {

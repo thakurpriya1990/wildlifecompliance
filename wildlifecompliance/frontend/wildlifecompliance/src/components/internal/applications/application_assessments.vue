@@ -225,11 +225,14 @@ export default {
             return this.assessment.inspection_report != null ? this.assessment.inspection_report.name: '';
         },
         applicationActivities: function() {
+            console.log('applicationActivities')
             if (this.$router.currentRoute.name=='complete-assessment'){
                 // filtered activity list for application when completing assessments.
                 return this.allCurrentActivitiesWithAssessor
             }
-            return this.allCurrentActivities
+            console.log(this.licenceActivities())
+            console.log(this.allCurrentActivities)
+            return this.licenceActivities()
         },
         selectedActivity: function(){
             const activities_list = this.licence_type_data.activity;
@@ -474,7 +477,8 @@ export default {
             return this.assessorGroup.filter(assessor => assessor.id == assessor_id).length;
         },
         isActivityVisible: function(activity_id) {
-            return this.isApplicationActivityVisible({ activity_id: activity_id });
+            //return this.isApplicationActivityVisible({ activity_id: activity_id });
+            return 1
         },
         isAssessorRelevant(assessor, activity_id) {
             if(!activity_id) {

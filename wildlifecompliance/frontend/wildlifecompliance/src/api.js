@@ -22,6 +22,7 @@ module.exports = {
     countries: "https://restcountries.eu/rest/v1/?fullText=true/",
     application_type:"/api/application_type/",
     applications:"/api/application/",
+    application_selected_activity:"/api/application_selected_activity/",
     applications_paginated:"/api/application_paginated/",
     licences:"/api/licences/",
     licences_paginated:"/api/licences_paginated/",
