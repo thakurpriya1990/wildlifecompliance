@@ -515,7 +515,7 @@ class BriefOfEvidenceDocument(Document):
 
     def delete(self):
         if self.can_delete:
-            return super(LegalCaseDocument, self).delete()
+            return super(BriefOfEvidenceDocument, self).delete()
         #logger.info(
          #   'Cannot delete existing document object after application has been submitted (including document submitted before\
           #  application pushback to status Draft): {}'.format(

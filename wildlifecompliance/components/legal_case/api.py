@@ -603,7 +603,9 @@ class LegalCaseViewSet(viewsets.ModelViewSet):
     def process_brief_of_evidence_document(self, request, *args, **kwargs):
         try:
             instance = self.get_object()
-            returned_data = process_generic_document(request, instance.brief_of_evidence)
+            brief_of_evidence_instance = instance.brief_of_evidence
+            if brief_of_evidence_instance:
+                returned_data = process_generic_document(request, brief_of_evidence_instance)
             if returned_data:
                 return Response(returned_data)
             else:
