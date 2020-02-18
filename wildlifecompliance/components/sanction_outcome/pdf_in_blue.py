@@ -79,10 +79,13 @@ class FlowableRect(Flowable):
 
     def draw(self):
         self.canv.setFont('Times-Roman', 12)
-        self.canv.drawString(0, 0, 'Is this a 2nd or subsequent offence? Yes')
-        self.canv.rect(197, -1, self.width, self.height, fill=0)
-        self.canv.drawString(220, 0, 'No')
-        self.canv.rect(237, -1, self.width, self.height, fill=0)
+        self.canv.drawString(0, 5, 'Is this a 2nd or subsequent offence? Yes')
+        self.canv.rect(197, 4, self.width, self.height, fill=0)
+        self.canv.drawString(220, 5, 'No')
+        self.canv.rect(237, 4, self.width, self.height, fill=0)
+
+    def wrap(self, *args):
+        return 0, 18
 
 
 class BrokenLine(Flowable):
@@ -339,7 +342,7 @@ def _create_invoice(invoice_buffer, sanction_outcome):
     data.append([Paragraph('Alleged offender', styles['Bold']), Paragraph('Name: Family name', styles['Normal']), ''])
     data.append(['', Paragraph(gap(12) + 'Given names', styles['Normal']), ''])
     data.append(['', Paragraph(gap(12) + 'Date of Birth', styles['Normal']), ''])
-    data.append(['', [Paragraph('or', styles['Bold']), Paragraph('Body corporate name', styles['Normal']), Spacer(1, 25)], ''])
+    data.append(['', [Paragraph('<strong>or</strong><br />Body corporate name', styles['Normal']), Spacer(1, 25)], ''])
     data.append(['', [Paragraph('Address', styles['Normal']), Spacer(1, 25), Paragraph('Postcode', styles['Normal'])], ''])
 
     # When
