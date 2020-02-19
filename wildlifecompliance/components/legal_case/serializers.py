@@ -42,6 +42,10 @@ from wildlifecompliance.components.artifact.serializers import (
         BriefOfEvidenceOtherStatementsSerializer,
         BriefOfEvidenceDocumentArtifactsSerializer,
         BriefOfEvidencePhysicalArtifactsSerializer,
+        ProsecutionBriefRecordOfInterviewSerializer,
+        ProsecutionBriefOtherStatementsSerializer,
+        ProsecutionBriefDocumentArtifactsSerializer,
+        ProsecutionBriefPhysicalArtifactsSerializer,
         #SaveBriefOfEvidenceRecordOfInterviewSerializer,
         )
 #from wildlifecompliance.components.offence.serializers import OrganisationSerializer

@@ -66,6 +66,7 @@ class LegalCase(RevisionedMixin):
     #STATUS_REQUEST_AMENDMENT = 'request_amendment'
     STATUS_AWAIT_ENDORSEMENT = 'await_endorsement'
     STATUS_BRIEF_OF_EVIDENCE = 'brief_of_evidence'
+    STATUS_PROSECUTION_BRIEF = 'prosecution_brief'
     #STATUS_SANCTION_OUTCOME = 'sanction_outcome'
     STATUS_DISCARDED = 'discarded'
     STATUS_CLOSED = 'closed'
@@ -78,6 +79,7 @@ class LegalCase(RevisionedMixin):
             #(STATUS_SANCTION_OUTCOME, 'Awaiting Sanction Outcomes'),
             (STATUS_DISCARDED, 'Discarded'),
             (STATUS_BRIEF_OF_EVIDENCE, 'Brief of Evidence'),
+            (STATUS_PROSECUTION_BRIEF, 'Prosecution Brief'),
             (STATUS_CLOSED, 'Closed'),
             (STATUS_PENDING_CLOSURE, 'Pending Closure')
             )
@@ -191,6 +193,17 @@ class LegalCase(RevisionedMixin):
         self.status = self.STATUS_BRIEF_OF_EVIDENCE
         self.log_user_action(
             LegalCaseUserAction.ACTION_STATUS_BRIEF_OF_EVIDENCE.format(self.number), 
+            request)
+        # set allocated group to 
+        #self.allocated_group
+        self.save()
+
+    def set_status_prosecution_brief(self, request):
+        print("set status prosecution brief")
+        self.assigned_to = None
+        self.status = self.STATUS_PROSECUTION_BRIEF
+        self.log_user_action(
+            LegalCaseUserAction.ACTION_STATUS_PROSECUTION_BRIEF.format(self.number), 
             request)
         # set allocated group to 
         #self.allocated_group
@@ -445,6 +458,7 @@ class LegalCaseUserAction(UserAction):
     ACTION_CREATE_LEGAL_CASE = "Create Case {}"
     ACTION_SAVE_LEGAL_CASE = "Save Case {}"
     ACTION_STATUS_BRIEF_OF_EVIDENCE = "Set status 'Brief of Evidence' for Case {}"
+    ACTION_STATUS_PROSECUTION_BRIEF = "Set status 'Prosecution Brief' for Case {}"
     #ACTION_OFFENCE = "Create Offence {}"
     #ACTION_SANCTION_OUTCOME = "Create Sanction Outcome {}"
     #ACTION_SEND_TO_MANAGER = "Send Inspection {} to Manager"
@@ -508,12 +522,20 @@ class BriefOfEvidenceDocument(Document):
     def delete(self):
         if self.can_delete:
             return super(BriefOfEvidenceDocument, self).delete()
-        #logger.info(
-         #   'Cannot delete existing document object after application has been submitted (including document submitted before\
-          #  application pushback to status Draft): {}'.format(
-           #     self.name)
-        #)
+    class Meta:
+        app_label = 'wildlifecompliance'
 
+class ProsecutionBriefDocument(Document):
+    prosecution_brief = models.ForeignKey(ProsecutionBrief, related_name='documents')
+    _file = models.FileField(max_length=255)
+    input_name = models.CharField(max_length=255, blank=True, null=True)
+    # after initial submit prevent document from being deleted
+    can_delete = models.BooleanField(default=True)
+    version_comment = models.CharField(max_length=255, blank=True, null=True)
+
+    def delete(self):
+        if self.can_delete:
+            return super(ProsecutionBriefDocument, self).delete()
     class Meta:
         app_label = 'wildlifecompliance'
 

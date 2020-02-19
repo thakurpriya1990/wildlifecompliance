@@ -120,6 +120,7 @@ from wildlifecompliance.components.artifact.utils import (
         generate_boe_document_artifacts,
         update_boe_physical_artifacts,
         update_boe_document_artifacts_ticked,
+        copy_brief_of_evidence_to_prosecution_brief,
         )
 #from wildlifecompliance.components.artifact.serializers import SaveBriefOfEvidenceRecordOfInterviewSerializer
 #from reversion.models import Version
@@ -819,6 +820,8 @@ class LegalCaseViewSet(viewsets.ModelViewSet):
                     build_all_boe_roi_hierarchy(instance)
                     generate_boe_document_artifacts(instance)
                     generate_boe_physical_artifacts(instance)
+                elif workflow_type == 'prosecution_brief':
+                    self.process_prosecution_brief(instance, request)
                     #instance.generate_brief_of_evidence(request)
                 #    instance.send_to_manager(request)
                 #elif workflow_type == 'request_amendment':
@@ -879,7 +882,12 @@ class LegalCaseViewSet(viewsets.ModelViewSet):
         except Exception as e:
             print(traceback.print_exc())
             raise serializers.ValidationError(str(e))
-    
+
+    def process_prosecution_brief(self, instance, request):
+        pb_instance, created = ProsecutionBrief.objects.get_or_create(legal_case=instance)
+        copy_brief_of_evidence_to_prosecution_brief(instance)
+        instance.set_status_prosecution_brief(request)
+
     @detail_route(methods=['POST'])
     @renderer_classes((JSONRenderer,))
     def create_legal_case_process_comms_log_document(self, request, *args, **kwargs):

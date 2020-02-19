@@ -3,9 +3,78 @@ from wildlifecompliance.components.artifact.models import (
         BriefOfEvidenceOtherStatements,
         BriefOfEvidencePhysicalArtifacts,
         BriefOfEvidenceDocumentArtifacts,
+        ProsecutionBriefRecordOfInterview, 
+        ProsecutionBriefOtherStatements,
+        ProsecutionBriefPhysicalArtifacts,
+        ProsecutionBriefDocumentArtifacts,
         # PhysicalArtifactLegalCases,
         )
 
+def copy_brief_of_evidence_to_prosecution_brief(legal_case):
+    # Record of Interview
+    roi_qs = legal_case.legal_case_boe_roi.all()
+    for roi_record in roi_qs:
+        pb_roi_record, created = ProsecutionBriefRecordOfInterview.objects.get_or_create(
+                legal_case_id=roi_record.legal_case_id,
+                offence_id=roi_record.offence_id,
+                offender_id=roi_record.offender_id,
+                record_of_interview_id=roi_record.record_of_interview_id,
+                associated_doc_artifact_id=roi_record.associated_doc_artifact_id
+                )
+        pb_roi_record.ticked = roi_record.ticked
+        pb_roi_record.save()
+        for child in roi_record.children.all():
+            pb_child_roi_record, created = ProsecutionBriefRecordOfInterview.objects.get_or_create(
+                    legal_case_id=child.legal_case_id,
+                    offence_id=child.offence_id,
+                    offender_id=child.offender_id,
+                    record_of_interview_id=child.record_of_interview_id,
+                    associated_doc_artifact_id=child.associated_doc_artifact_id
+                    )
+            pb_child_roi_record.ticked = child.ticked
+            pb_child_roi_record.save()
+            pb_roi_record.children.add(pb_child_roi_record)
+
+    # Other Statements
+    os_qs = legal_case.legal_case_boe_other_statements.all()
+    for os_record in os_qs:
+        pb_os_record, created = ProsecutionBriefOtherStatements.objects.get_or_create(
+                legal_case_id=os_record.legal_case_id,
+                person_id=os_record.person_id,
+                statement_id=os_record.statement_id,
+                associated_doc_artifact_id=os_record.associated_doc_artifact_id,
+                ticked=os_record.ticked
+                )
+        pb_os_record.save()
+        for child in os_record.children.all():
+            pb_child_os_record, created = ProsecutionBriefOtherStatements.objects.get_or_create(
+                    legal_case_id=child.legal_case_id,
+                    person_id=child.person_id,
+                    statement_id=child.statement_id,
+                    associated_doc_artifact_id=child.associated_doc_artifact_id
+                    )
+            pb_child_os_record.ticked = child.ticked
+            pb_child_os_record.save()
+            pb_os_record.children.add(pb_child_os_record)
+
+    # Physical Artifacts
+    pa_qs = legal_case.briefofevidencephysicalartifacts_set.all()
+    for pa_record in pa_qs:
+        pb_pa_record, created = ProsecutionBriefPhysicalArtifacts.objects.get_or_create(
+                legal_case_id=pa_record.legal_case_id,
+                document_artifact_id=pa_record.physical_artifact_id
+                )
+        pb_pa_record.ticked=pa_record.ticked,
+        pb_pa_record.reason_sensitive_non_disclosable=pa_record.reason_sensitive_non_disclosable
+
+    # Document Artifacts
+    da_qs = legal_case.briefofevidencedocumentartifacts_set.all()
+    for da_record in da_qs:
+        pb_da_record, created = ProsecutionBriefDocumentArtifacts.objects.get_or_create(
+                legal_case_id=da_record.legal_case_id,
+                document_artifact_id=da_record.document_artifact_id,
+                )
+        pb_da_record.ticked=da_record.ticked,
 
 def generate_boe_document_artifacts(legal_case):
     # get all associated primary DocumentArtifacts

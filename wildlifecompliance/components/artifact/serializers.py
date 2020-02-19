@@ -33,6 +33,8 @@ from wildlifecompliance.components.artifact.models import (
         BriefOfEvidenceDocumentArtifacts,
         ProsecutionBriefPhysicalArtifacts,
         ProsecutionBriefDocumentArtifacts,
+        ProsecutionBriefRecordOfInterview,
+        ProsecutionBriefOtherStatements,
         PhysicalArtifactLegalCases,
     )
 
@@ -726,6 +728,113 @@ class BriefOfEvidenceDocumentArtifactsSerializer(serializers.ModelSerializer):
 
     class Meta:
         model = BriefOfEvidenceDocumentArtifacts
+        fields = (
+                'id',
+                'legal_case_id',
+                'document_artifact_id',
+                'ticked',
+                'label',
+                'attachments',
+                #'children',
+                )
+        read_only_fields = (
+                'id',
+                )
+
+    def get_attachments(self, obj):
+        returned_file_data = [dict(
+                    file=d._file.url,
+                    id=d.id,
+                    name=d.name,
+                    type=d.name.split(".")[1]
+                    ) for d in obj.document_artifact.documents.all() if d._file]
+        #return {'filedata': returned_file_data}
+        return returned_file_data
+
+    def get_label(self, obj):
+        return obj.label
+
+
+class ProsecutionBriefRecordOfInterviewSerializer(serializers.ModelSerializer):
+    #children = serializers.ListField(child=RecursiveField())
+    label = serializers.SerializerMethodField()
+
+    class Meta:
+        model = ProsecutionBriefRecordOfInterview
+        fields = (
+                'id',
+                'legal_case_id',
+                'offence_id',
+                #'children',
+                'offender_id',
+                'record_of_interview_id',
+                'associated_doc_artifact_id',
+                'ticked',
+                'label',
+                #'children',
+                )
+        read_only_fields = (
+                'id',
+                )
+
+    def get_label(self, obj):
+        return obj.label
+
+class ProsecutionBriefOtherStatementsSerializer(serializers.ModelSerializer):
+    #children = serializers.ListField(child=RecursiveField())
+    label = serializers.SerializerMethodField()
+
+    class Meta:
+        model = ProsecutionBriefOtherStatements
+        fields = (
+                'id',
+                'legal_case_id',
+                'person_id',
+                #'children',
+                'statement_id',
+                'associated_doc_artifact_id',
+                'ticked',
+                'label',
+                #'children',
+                )
+        read_only_fields = (
+                'id',
+                )
+
+    def get_label(self, obj):
+        return obj.label
+
+
+class ProsecutionBriefPhysicalArtifactsSerializer(serializers.ModelSerializer):
+    #children = serializers.ListField(child=RecursiveField())
+    label = serializers.SerializerMethodField()
+
+    class Meta:
+        model = ProsecutionBriefPhysicalArtifacts
+        fields = (
+                'id',
+                'legal_case_id',
+                'physical_artifact_id',
+                'ticked',
+                'label',
+                'reason_sensitive_non_disclosable',
+                #'children',
+                )
+        read_only_fields = (
+                'id',
+                )
+
+    def get_label(self, obj):
+        return obj.label
+
+
+class ProsecutionBriefDocumentArtifactsSerializer(serializers.ModelSerializer):
+    #children = serializers.ListField(child=RecursiveField())
+    label = serializers.SerializerMethodField()
+    attachments = serializers.SerializerMethodField()
+
+    class Meta:
+        model = ProsecutionBriefDocumentArtifacts
         fields = (
                 'id',
                 'legal_case_id',
