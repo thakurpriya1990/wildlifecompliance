@@ -97,6 +97,7 @@ from wildlifecompliance.components.legal_case.serializers import (
     CreateCourtProceedingsJournalEntrySerializer,
     CourtProceedingsJournalSerializer,
     BriefOfEvidenceSerializer,
+    ProsecutionBriefSerializer,
     SaveCourtDateEntrySerializer)
 from wildlifecompliance.components.users.models import (
     CompliancePermissionGroup,    
@@ -116,12 +117,16 @@ from wildlifecompliance.components.legal_case.email import (
 from wildlifecompliance.components.artifact.utils import (
         build_all_boe_roi_hierarchy, 
         update_boe_roi_ticked,
+        update_pb_roi_ticked,
         build_all_boe_other_statements_hierarchy,
         update_boe_other_statements_ticked,
+        update_pb_other_statements_ticked,
         generate_boe_physical_artifacts,
         generate_boe_document_artifacts,
         update_boe_physical_artifacts,
         update_boe_document_artifacts_ticked,
+        update_pb_physical_artifacts,
+        update_pb_document_artifacts_ticked,
         copy_brief_of_evidence_to_prosecution_brief,
         )
 #from wildlifecompliance.components.artifact.serializers import SaveBriefOfEvidenceRecordOfInterviewSerializer
@@ -263,12 +268,13 @@ class LegalCaseViewSet(viewsets.ModelViewSet):
             serializer = LegalCaseBriefOfEvidenceSerializer
         elif instance.status == 'prosecution_brief':
             serializer = LegalCaseProsecutionBriefSerializer
+        else:
+            serializer = BaseLegalCaseSerializer
         serialized_instance = serializer(instance, context={'request': request})
         return serialized_instance
 
     def retrieve(self, request, *args, **kwargs):
         #qs = self.get_queryset()
-        print("RETRIEVE")
         instance = self.get_object()
         serializer = BaseLegalCaseSerializer
         serialized_instance = self.variable_serializer(request, instance)
@@ -442,33 +448,15 @@ class LegalCaseViewSet(viewsets.ModelViewSet):
                                     serializer.save()
 
                 ## Brief Of Evidence
-                # update
                 brief_of_evidence = request.data.get('brief_of_evidence')
                 if brief_of_evidence:
-                    boe_instance, created = BriefOfEvidence.objects.get_or_create(legal_case=instance)
-                    boe_serializer = BriefOfEvidenceSerializer(boe_instance, data=brief_of_evidence)
-                    if boe_serializer.is_valid():
-                        boe_serializer.save()
+                    self.save_brief_of_evidence(request, instance)
 
-                boe_roi_ticked = request.data.get('boe_roi_ticked')
-                if boe_roi_ticked:
-                    update_boe_roi_ticked(instance, boe_roi_ticked)
-                boe_other_statements_ticked = request.data.get('boe_other_statements_ticked')
-                if boe_other_statements_ticked:
-                    update_boe_other_statements_ticked(instance, boe_other_statements_ticked)
-                boe_document_artifacts_ticked = request.data.get('boe_document_artifacts_ticked')
-                if boe_document_artifacts_ticked:
-                    update_boe_document_artifacts_ticked(instance, boe_document_artifacts_ticked)
-                # physical artifacts
-                boe_physical_artifacts_used = request.data.get('boe_physical_artifacts_used')
-                if boe_physical_artifacts_used:
-                    update_boe_physical_artifacts(instance, boe_physical_artifacts_used)
-                boe_physical_artifacts_sensitive_unused = request.data.get('boe_physical_artifacts_sensitive_unused')
-                if boe_physical_artifacts_sensitive_unused:
-                    update_boe_physical_artifacts(instance, boe_physical_artifacts_sensitive_unused)
-                boe_physical_artifacts_non_sensitive_unused = request.data.get('boe_physical_artifacts_non_sensitive_unused')
-                if boe_physical_artifacts_non_sensitive_unused:
-                    update_boe_physical_artifacts(instance, boe_physical_artifacts_non_sensitive_unused)
+                ## Prosecution Brief
+                prosecution_brief = request.data.get('prosecution_brief')
+                if prosecution_brief:
+                    self.save_prosecution_brief(request, instance)
+
                 # LegalCasePerson
                 self.add_associated_persons(instance, request)
                 serializer = SaveLegalCaseSerializer(instance, data=request.data)
@@ -481,12 +469,11 @@ class LegalCaseViewSet(viewsets.ModelViewSet):
                     headers = self.get_success_headers(serializer.data)
                     full_http_response = request.data.get('full_http_response')
                     if full_http_response:
-                        return_serializer = None
-                        if instance.status == 'brief_of_evidence':
-                            print("BRIEF OF EVIDENCE SERIALIZER")
-                            return_serializer = LegalCaseBriefOfEvidenceSerializer(instance, context={'request': request})
-                        else:
-                            return_serializer = BaseLegalCaseSerializer(instance, context={'request': request})
+                        return_serializer = self.variable_serializer(request, instance)
+                        #if instance.status == 'brief_of_evidence':
+                        #    return_serializer = LegalCaseBriefOfEvidenceSerializer(instance, context={'request': request})
+                        #else:
+                         #   return_serializer = BaseLegalCaseSerializer(instance, context={'request': request})
                         return Response(
                                 return_serializer.data,
                                 status=status.HTTP_201_CREATED,
@@ -507,6 +494,62 @@ class LegalCaseViewSet(viewsets.ModelViewSet):
         except Exception as e:
             print(traceback.print_exc())
             raise serializers.ValidationError(str(e))
+
+    def save_brief_of_evidence(self, request, instance):
+        brief_of_evidence = request.data.get('brief_of_evidence')
+        if brief_of_evidence:
+            boe_instance, created = BriefOfEvidence.objects.get_or_create(legal_case=instance)
+            boe_serializer = BriefOfEvidenceSerializer(boe_instance, data=brief_of_evidence)
+            if boe_serializer.is_valid():
+                boe_serializer.save()
+
+        boe_roi_ticked = request.data.get('boe_roi_ticked')
+        if boe_roi_ticked:
+            update_boe_roi_ticked(instance, boe_roi_ticked)
+        boe_other_statements_ticked = request.data.get('boe_other_statements_ticked')
+        if boe_other_statements_ticked:
+            update_boe_other_statements_ticked(instance, boe_other_statements_ticked)
+        boe_document_artifacts_ticked = request.data.get('boe_document_artifacts_ticked')
+        if boe_document_artifacts_ticked:
+            update_boe_document_artifacts_ticked(instance, boe_document_artifacts_ticked)
+        # physical artifacts
+        boe_physical_artifacts_used = request.data.get('boe_physical_artifacts_used')
+        if boe_physical_artifacts_used:
+            update_boe_physical_artifacts(instance, boe_physical_artifacts_used)
+        boe_physical_artifacts_sensitive_unused = request.data.get('boe_physical_artifacts_sensitive_unused')
+        if boe_physical_artifacts_sensitive_unused:
+            update_boe_physical_artifacts(instance, boe_physical_artifacts_sensitive_unused)
+        boe_physical_artifacts_non_sensitive_unused = request.data.get('boe_physical_artifacts_non_sensitive_unused')
+        if boe_physical_artifacts_non_sensitive_unused:
+            update_boe_physical_artifacts(instance, boe_physical_artifacts_non_sensitive_unused)
+
+    def save_prosecution_brief(self, request, instance):
+        prosecution_brief = request.data.get('prosecution_brief')
+        if prosecution_brief:
+            pb_instance, created = ProsecutionBrief.objects.get_or_create(legal_case=instance)
+            pb_serializer = ProsecutionBriefSerializer(pb_instance, data=prosecution_brief)
+            if pb_serializer.is_valid():
+                pb_serializer.save()
+
+        pb_roi_ticked = request.data.get('pb_roi_ticked')
+        if pb_roi_ticked:
+            update_pb_roi_ticked(instance, pb_roi_ticked)
+        pb_other_statements_ticked = request.data.get('pb_other_statements_ticked')
+        if pb_other_statements_ticked:
+            update_pb_other_statements_ticked(instance, pb_other_statements_ticked)
+        pb_document_artifacts_ticked = request.data.get('pb_document_artifacts_ticked')
+        if pb_document_artifacts_ticked:
+            update_pb_document_artifacts_ticked(instance, pb_document_artifacts_ticked)
+        # physical artifacts
+        pb_physical_artifacts_used = request.data.get('pb_physical_artifacts_used')
+        if pb_physical_artifacts_used:
+            update_pb_physical_artifacts(instance, pb_physical_artifacts_used)
+        pb_physical_artifacts_sensitive_unused = request.data.get('pb_physical_artifacts_sensitive_unused')
+        if pb_physical_artifacts_sensitive_unused:
+            update_pb_physical_artifacts(instance, pb_physical_artifacts_sensitive_unused)
+        pb_physical_artifacts_non_sensitive_unused = request.data.get('pb_physical_artifacts_non_sensitive_unused')
+        if pb_physical_artifacts_non_sensitive_unused:
+            update_pb_physical_artifacts(instance, pb_physical_artifacts_non_sensitive_unused)
 
     @detail_route(methods=['POST', ])
     @renderer_classes((JSONRenderer,))

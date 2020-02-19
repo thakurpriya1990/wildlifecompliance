@@ -114,9 +114,15 @@ export const legalCaseStore = {
             Vue.set(state.legal_case, 'brief_of_evidence', brief_of_evidence);
             //Vue.set(state.legal_case.brief_of_evidence, 'legal_case_id', state.legal_case.id);
         },
+        updateProsecutionBrief(state, prosecution_brief) {
+            Vue.set(state.legal_case, 'prosecution_brief', prosecution_brief);
+            //Vue.set(state.legal_case.brief_of_evidence, 'legal_case_id', state.legal_case.id);
+        },
+        /*
         updateBriefOfEvidencePhysicalArtifactDetailsList(state, physical_artifacts) {
             Vue.set(state.legal_case, 'boe_physical_artifacts_details', physical_artifacts);
         },
+        */
         updateRunningSheetEntryDescription(state, { recordNumber, description, userId }) {
             console.log(recordNumber)
             console.log(description)
@@ -345,10 +351,14 @@ export const legalCaseStore = {
         setCourtProceedingsDate({ commit }, date_entry ) {
             commit("updateCourtProceedingsDate", date_entry);
         },
-        setBriefOfEvidence({ commit }, {brief_of_evidence, physical_artifacts} ) {
+        //setBriefOfEvidence({ commit }, {brief_of_evidence, physical_artifacts} ) {
+        setBriefOfEvidence({ commit }, brief_of_evidence ) {
             //console.log(brief_of_evidence)
             commit("updateBriefOfEvidence", brief_of_evidence);
-            commit("updateBriefOfEvidencePhysicalArtifactDetailsList", physical_artifacts);
+            //commit("updateBriefOfEvidencePhysicalArtifactDetailsList", physical_artifacts);
+        },
+        setProsecutionBrief({ commit }, prosecution_brief ) {
+            commit("updateProsecutionBrief", prosecution_brief);
         },
         setRunningSheetEntryDescription({ commit }, {recordNumber, description, userId}) {
             commit("updateRunningSheetEntryDescription", {recordNumber, description, userId})

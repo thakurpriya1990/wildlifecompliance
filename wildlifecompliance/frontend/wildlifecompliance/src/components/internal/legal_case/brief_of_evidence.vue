@@ -18,6 +18,7 @@
                                         <textarea :readonly="readonlyForm" class="form-control location_address_field" v-model="briefOfEvidence.victim_impact_statement_taken_details" />
                                     </label>
                                     <label class="col-sm-10">
+                                    <!--input :onclick="readonlyBriefOfEvidence" type="checkbox" data-parsley-required v-model="briefOfEvidence.statements_pending" /-->
                                     <input :onclick="readonlyBriefOfEvidence" type="checkbox" data-parsley-required v-model="briefOfEvidence.statements_pending" />
                                     Witness (including expert statements) still to be taken?
                                     </label>

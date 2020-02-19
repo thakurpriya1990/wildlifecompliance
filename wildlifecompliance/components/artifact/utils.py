@@ -62,7 +62,7 @@ def copy_brief_of_evidence_to_prosecution_brief(legal_case):
     for pa_record in pa_qs:
         pb_pa_record, created = ProsecutionBriefPhysicalArtifacts.objects.get_or_create(
                 legal_case_id=pa_record.legal_case_id,
-                document_artifact_id=pa_record.physical_artifact_id
+                physical_artifact_id=pa_record.physical_artifact_id
                 )
         pb_pa_record.ticked=pa_record.ticked,
         pb_pa_record.reason_sensitive_non_disclosable=pa_record.reason_sensitive_non_disclosable
@@ -217,8 +217,6 @@ def build_all_boe_roi_hierarchy(legal_case):
                             roi_level_record.children.add(doc_level_record)
 
 def update_boe_roi_ticked(legal_case, boe_roi_ticked):
-    #print("boe_roi_ticked")
-    #print(boe_roi_ticked)
     # get all associated BriefOfEvidenceRecordOfInterview records
     queryset = BriefOfEvidenceRecordOfInterview.objects.filter(legal_case__id=legal_case.id)
     for record in queryset:
@@ -228,4 +226,44 @@ def update_boe_roi_ticked(legal_case, boe_roi_ticked):
             record.ticked = False
         record.save()
 
+# Prosecution Brief updates
+def update_pb_roi_ticked(legal_case, pb_roi_ticked):
+    queryset = ProsecutionBriefRecordOfInterview.objects.filter(legal_case__id=legal_case.id)
+    for record in queryset:
+        if record.id in pb_roi_ticked:
+            record.ticked = True
+        else:
+            record.ticked = False
+        record.save()
+
+def update_pb_other_statements_ticked(legal_case, pb_other_statements_ticked):
+    queryset = ProsecutionBriefOtherStatements.objects.filter(legal_case__id=legal_case.id)
+    for record in queryset:
+        if record.id in pb_other_statements_ticked:
+            record.ticked = True
+        else:
+            record.ticked = False
+        record.save()
+
+def update_pb_physical_artifacts(legal_case, pb_sensitive_unused_reasons):
+    print("update_pb_sensitive_unused_reasons")
+    for reason in pb_sensitive_unused_reasons:
+        physical_artifact_id = reason.get("physical_artifact_id")
+        print("physical_artifact_id")
+        print(physical_artifact_id)
+        reason_text = reason.get("reason_sensitive_non_disclosable")
+        ticked = reason.get("ticked")
+        record = ProsecutionBriefPhysicalArtifacts.objects.get(legal_case=legal_case, physical_artifact_id=physical_artifact_id)
+        record.reason_sensitive_non_disclosable = reason_text
+        record.ticked = ticked
+        record.save()
+
+def update_pb_document_artifacts_ticked(legal_case, boe_document_artifacts_ticked):
+    queryset = ProsecutionBriefDocumentArtifacts.objects.filter(legal_case__id=legal_case.id)
+    for record in queryset:
+        if record.id in boe_document_artifacts_ticked:
+            record.ticked = True
+        else:
+            record.ticked = False
+        record.save()
 

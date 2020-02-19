@@ -109,15 +109,15 @@
 
                 <div class="container-fluid">
                     <ul class="nav nav-pills aho2">
-                        <li class="nav-item active"><a data-toggle="tab" :href="'#'+runTab">Running Sheet</a></li>
+                        <li v-if="runningSheetVisibility" :class="runningSheetTabListClass"><a data-toggle="tab" :href="'#'+runTab">Running Sheet</a></li>
                         <li class="nav-item"><a data-toggle="tab" :href="'#'+cTab" >Case Details</a></li>
-                        <li class="nav-item"><a data-toggle="tab" :href="'#'+bTab" >Brief of Evidence</a></li>
-                        <li class="nav-item"><a data-toggle="tab" :href="'#'+pTab" >Prosecution Brief</a></li>
+                        <li v-if="briefOfEvidenceVisibility" :class="briefOfEvidenceTabListClass"><a data-toggle="tab" :href="'#'+bTab" >Brief of Evidence</a></li>
+                        <li v-if="prosecutionBriefVisibility" :class="prosecutionBriefTabListClass"><a data-toggle="tab" :href="'#'+pTab" >Prosecution Brief</a></li>
                         <li class="nav-item"><a data-toggle="tab" :href="'#'+cpTab" >Court Proceedings</a></li>
                         <li class="nav-item"><a data-toggle="tab" :href="'#'+rTab">Related Items</a></li>
                     </ul>
                     <div class="tab-content">
-                        <div :id="runTab" class="tab-pane fade in active">
+                        <div v-if="runningSheetVisibility" :id="runTab" class="runningSheetTabClass">
                           <FormSection :formCollapse="false" label="Running Sheet" Index="0">
                             <div class="col-sm-12 form-group"><div class="row">
                                 <div>
@@ -169,15 +169,11 @@
                                 </div></div>
                             </FormSection>
                         </div>
-                        <div :id="bTab" class="tab-pane fade in">
-                            <div v-if="briefOfEvidenceVisibility">
-                                <BriefOfEvidence ref="brief_of_evidence"/>
-                            </div>
+                        <div v-if="briefOfEvidenceVisibility" :id="bTab" class="briefOfEvidenceTabClass">
+                            <BriefOfEvidence ref="brief_of_evidence"/>
                         </div>
-                        <div :id="pTab" class="tab-pane fade in">
-                            <div v-if="prosecutionBriefVisibility">
-                                <ProsecutionBrief ref="prosecution_brief"/>
-                            </div>
+                        <div v-if="prosecutionBriefVisibility"  :id="pTab" class="prosecutionBriefTabClass">
+                            <ProsecutionBrief ref="prosecution_brief"/>
                         </div>
                         <div :id="cpTab" class="tab-pane fade in">
                             <CourtProceedings v-if="legal_case.court_proceedings" />
@@ -486,6 +482,69 @@ export default {
         }
         return readonly
     },
+    briefOfEvidenceStatus: function() {
+        let returnStatus = false
+        if (this.legal_case && this.legal_case.status && this.legal_case.status.id === 'brief_of_evidence') {
+            returnStatus = true
+        }
+        return returnStatus
+    },
+    prosecutionBriefStatus: function() {
+        let returnStatus = false
+        if (this.legal_case && this.legal_case.status && this.legal_case.status.id === 'prosecution_brief') {
+            returnStatus = true
+        }
+        return returnStatus
+    },
+    openStatus: function() {
+        let returnStatus = false
+        if (this.legal_case && this.legal_case.status && this.legal_case.status.id === 'open') {
+            returnStatus = true
+        }
+        return returnStatus
+    },
+    runningSheetTabListClass: function() {
+        let tabClass = 'nav-item';
+        if (this.openStatus) {
+            tabClass += ' active';
+        }
+        return tabClass;
+    },
+    briefOfEvidenceTabListClass: function() {
+        let tabClass = 'nav-item';
+        if (this.briefOfEvidenceStatus) {
+            tabClass += ' active';
+        }
+        return tabClass;
+    },
+    prosecutionBriefTabListClass: function() {
+        let tabClass = 'nav-item';
+        if (this.prosecutionBriefStatus) {
+            tabClass += ' active';
+        }
+        return tabClass;
+    },
+    runningSheetTabClass: function() {
+        let tabClass = 'tab-pane fade in';
+        if (this.openStatus) {
+            tabClass += ' active';
+        }
+        return tabClass;
+    },
+    briefOfEvidenceTabClass: function() {
+        let tabClass = 'tab-pane fade in';
+        if (this.briefOfEvidenceStatus) {
+            tabClass += ' active';
+        }
+        return tabClass;
+    },
+    prosecutionBriefTabClass: function() {
+        let tabClass = 'tab-pane fade in';
+        if (this.prosecutionBriefStatus) {
+            tabClass += ' active';
+        }
+        return tabClass;
+    },
     readonlyBriefOfEvidence: function() {
         let readonly = true
         if (this.legal_case && this.legal_case.id) {
@@ -551,6 +610,14 @@ export default {
         }
         return related_items_visibility;
     },
+    runningSheetVisibility: function() {
+        let running_sheet_visibility = false;
+        if (this.legal_case && this.legal_case.id && ['open'].includes(this.legal_case.status)) {
+            running_sheet_visibility = true;
+        }
+        return running_sheet_visibility;
+    },
+
     personOrArtifactBindId: function() {
         let person_or_artifact_id = ''
         person_or_artifact_id = this.tabSelected + parseInt(this.uuid);
@@ -587,7 +654,7 @@ export default {
         let visible = false;
         if (this.legal_case && 
             this.legal_case.id && 
-            this.legal_case.brief_of_evidence && 
+            this.legal_case.prosecution_brief && 
             this.legal_case.status.id === 'prosecution_brief') 
         {
             visible = true;
@@ -654,6 +721,7 @@ export default {
       setRunningSheetEntry: 'setRunningSheetEntry',
       addToRunningSheetPersonList: 'addToRunningSheetPersonList',
       setBriefOfEvidence: 'setBriefOfEvidence',
+      setProsecutionBrief: 'setProsecutionBrief',
       //setBoeRoiTicked: 'setBoeRoiTicked',
       //setBoeOtherStatementsTicked: 'setBoeOtherStatementsTicked',
     }),
@@ -981,15 +1049,11 @@ export default {
       await this.runningSheetTransformWrapper();
       // add brief_of_evidence to legal_case
       if (this.$refs.brief_of_evidence) {
-          await this.setBriefOfEvidence({
-              "brief_of_evidence": this.$refs.brief_of_evidence.briefOfEvidence,
-              /*
-              "boe_physical_artifacts": this.$refs.brief_of_evidence.physicalArtifacts,
-              "boe_physical_artifacts_sensitive_unused": this.$refs.brief_of_evidence.physicalArtifactsSensitiveUnused,
-              "boe_physical_artifacts_used": this.$refs.brief_of_evidence.physicalArtifactsUsed,
-              "boe_physical_artifacts_non_sensitive_unused": this.$refs.brief_of_evidence.physicalArtifactsNonSensitiveUnused,
-              */
-          });
+          await this.setBriefOfEvidence(this.$refs.brief_of_evidence.briefOfEvidence);
+      }
+      // add prosecution_brief to legal_case
+      if (this.$refs.prosecution_brief) {
+          await this.setProsecutionBrief(this.$refs.prosecution_brief.prosecutionBrief);
       }
         /*
       if (createNewRow) {
@@ -1482,7 +1546,7 @@ export default {
       console.log(this)
 
       this.calculateHash();
-      this.constructRunningSheetTableWrapper();
+      //this.constructRunningSheetTableWrapper();
       /*
       if (this.legal_case && this.legal_case.boe_roi_options) {
           for (let item of this.legal_case.boe_roi_options) {
@@ -1506,6 +1570,9 @@ export default {
   mounted: function() {
       this.$nextTick(() => {
           this.addEventListeners();
+          if (this.runningSheetVisibility) {
+              this.constructRunningSheetTableWrapper();
+          }
           //let treeSelectElement = $('.vue-treeselect__control').css("display", "none");
           //$('.vue-treeselect__control').css("display", "none");
       });

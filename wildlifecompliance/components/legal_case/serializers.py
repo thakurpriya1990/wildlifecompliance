@@ -548,6 +548,50 @@ class BriefOfEvidenceSerializer(serializers.ModelSerializer):
                 )
 
 
+class ProsecutionBriefSerializer(serializers.ModelSerializer):
+
+    class Meta:
+        model = ProsecutionBrief
+        fields = (
+                'id',
+                'legal_case_id',
+                'statement_of_facts',
+                'victim_impact_statement_taken',
+                'statements_pending',
+                'vulnerable_hostile_witnesses',
+                'witness_refusing_statement',
+                'problems_needs_prosecution_witnesses',
+                'accused_bad_character',
+                'further_persons_interviews_pending',
+                'other_interviews',
+                'relevant_persons_pending_charges',
+                'other_persons_receiving_sanction_outcome',
+                'local_public_interest',
+                'applications_orders_requests',
+                'applications_orders_required',
+                'other_legal_matters',
+
+                'victim_impact_statement_taken_details',
+                'statements_pending_details',
+                'vulnerable_hostile_witnesses_details',
+                'witness_refusing_statement_details',
+                'problems_needs_prosecution_witnesses_details',
+                'accused_bad_character_details',
+                'further_persons_interviews_pending_details',
+                'other_interviews_details',
+                'relevant_persons_pending_charges_details',
+                'other_persons_receiving_sanction_outcome_details',
+                'local_public_interest_details',
+                'applications_orders_requests_details',
+                'applications_orders_required_details',
+                'other_legal_matters_details',
+                )
+        read_only_fields = (
+                'id',
+                'legal_case_id',
+                )
+
+
 class BaseLegalCaseSerializer(serializers.ModelSerializer):
     running_sheet_entries = LegalCaseRunningSheetEntrySerializer(many=True)
     legal_case_person = EmailUserSerializer(many=True)
@@ -563,6 +607,7 @@ class BaseLegalCaseSerializer(serializers.ModelSerializer):
     legal_case_priority = LegalCasePrioritySerializer()
     offence_list = serializers.SerializerMethodField()
     brief_of_evidence = BriefOfEvidenceSerializer()
+    prosecution_brief = ProsecutionBriefSerializer()
     court_proceedings = CourtProceedingsJournalSerializer()
 
     class Meta:
@@ -592,6 +637,7 @@ class BaseLegalCaseSerializer(serializers.ModelSerializer):
                 'legal_case_person',
                 'offence_list',
                 'brief_of_evidence',
+                'prosecution_brief',
                 'court_proceedings',
 
                 )
@@ -675,8 +721,8 @@ class BaseLegalCaseSerializer(serializers.ModelSerializer):
 
 
 class LegalCaseBriefOfEvidenceSerializer(BaseLegalCaseSerializer):
-    running_sheet_entries = LegalCaseRunningSheetEntrySerializer(many=True)
-    legal_case_person = EmailUserSerializer(many=True)
+    #running_sheet_entries = LegalCaseRunningSheetEntrySerializer(many=True)
+    #legal_case_person = EmailUserSerializer(many=True)
     allocated_group = serializers.SerializerMethodField()
     user_in_group = serializers.SerializerMethodField()
     can_user_action = serializers.SerializerMethodField()
@@ -684,8 +730,8 @@ class LegalCaseBriefOfEvidenceSerializer(BaseLegalCaseSerializer):
     status = CustomChoiceField(read_only=True)
     related_items = serializers.SerializerMethodField()
     statement_artifacts = serializers.SerializerMethodField()
-    legal_case_priority = LegalCasePrioritySerializer()
-    offence_list = serializers.SerializerMethodField()
+    #legal_case_priority = LegalCasePrioritySerializer()
+    #offence_list = serializers.SerializerMethodField()
     brief_of_evidence = BriefOfEvidenceSerializer()
     court_proceedings = CourtProceedingsJournalSerializer()
 
@@ -705,8 +751,8 @@ class LegalCaseBriefOfEvidenceSerializer(BaseLegalCaseSerializer):
         model = LegalCase
         fields = (
                 'id',
-                'running_sheet_entries',
-                'legal_case_person',
+                #'running_sheet_entries',
+                #'legal_case_person',
                 'allocated_group',
                 'user_in_group',
                 'can_user_action',
@@ -714,8 +760,8 @@ class LegalCaseBriefOfEvidenceSerializer(BaseLegalCaseSerializer):
                 'status',
                 'related_items',
                 'statement_artifacts',
-                'legal_case_priority',
-                'offence_list',
+                #'legal_case_priority',
+                #'offence_list',
                 'brief_of_evidence',
                 'court_proceedings',
 
@@ -873,8 +919,8 @@ class LegalCaseBriefOfEvidenceSerializer(BaseLegalCaseSerializer):
 
 
 class LegalCaseProsecutionBriefSerializer(BaseLegalCaseSerializer):
-    running_sheet_entries = LegalCaseRunningSheetEntrySerializer(many=True)
-    legal_case_person = EmailUserSerializer(many=True)
+    #running_sheet_entries = LegalCaseRunningSheetEntrySerializer(many=True)
+    #legal_case_person = EmailUserSerializer(many=True)
     allocated_group = serializers.SerializerMethodField()
     user_in_group = serializers.SerializerMethodField()
     can_user_action = serializers.SerializerMethodField()
@@ -882,9 +928,10 @@ class LegalCaseProsecutionBriefSerializer(BaseLegalCaseSerializer):
     status = CustomChoiceField(read_only=True)
     related_items = serializers.SerializerMethodField()
     statement_artifacts = serializers.SerializerMethodField()
-    legal_case_priority = LegalCasePrioritySerializer()
-    offence_list = serializers.SerializerMethodField()
-    brief_of_evidence = BriefOfEvidenceSerializer()
+    #legal_case_priority = LegalCasePrioritySerializer()
+    #offence_list = serializers.SerializerMethodField()
+    #brief_of_evidence = BriefOfEvidenceSerializer()
+    prosecution_brief = ProsecutionBriefSerializer()
     court_proceedings = CourtProceedingsJournalSerializer()
 
     pb_roi_ticked = serializers.SerializerMethodField()
@@ -903,8 +950,8 @@ class LegalCaseProsecutionBriefSerializer(BaseLegalCaseSerializer):
         model = LegalCase
         fields = (
                 'id',
-                'running_sheet_entries',
-                'legal_case_person',
+                #'running_sheet_entries',
+                #'legal_case_person',
                 'allocated_group',
                 'user_in_group',
                 'can_user_action',
@@ -912,9 +959,10 @@ class LegalCaseProsecutionBriefSerializer(BaseLegalCaseSerializer):
                 'status',
                 'related_items',
                 'statement_artifacts',
-                'legal_case_priority',
-                'offence_list',
-                'brief_of_evidence',
+                #'legal_case_priority',
+                #'offence_list',
+                #'brief_of_evidence',
+                'prosecution_brief',
                 'court_proceedings',
 
                 'pb_roi_ticked',
