@@ -112,6 +112,7 @@
                         <li class="nav-item active"><a data-toggle="tab" :href="'#'+runTab">Running Sheet</a></li>
                         <li class="nav-item"><a data-toggle="tab" :href="'#'+cTab" >Case Details</a></li>
                         <li class="nav-item"><a data-toggle="tab" :href="'#'+bTab" >Brief of Evidence</a></li>
+                        <li class="nav-item"><a data-toggle="tab" :href="'#'+pTab" >Prosecution Brief</a></li>
                         <li class="nav-item"><a data-toggle="tab" :href="'#'+cpTab" >Court Proceedings</a></li>
                         <li class="nav-item"><a data-toggle="tab" :href="'#'+rTab">Related Items</a></li>
                     </ul>
@@ -171,6 +172,11 @@
                         <div :id="bTab" class="tab-pane fade in">
                             <div v-if="briefOfEvidenceVisibility">
                                 <BriefOfEvidence ref="brief_of_evidence"/>
+                            </div>
+                        </div>
+                        <div :id="pTab" class="tab-pane fade in">
+                            <div v-if="prosecutionBriefVisibility">
+                                <ProsecutionBrief ref="prosecution_brief"/>
                             </div>
                         </div>
                         <div :id="cpTab" class="tab-pane fade in">
@@ -287,6 +293,7 @@ import LegalCaseWorkflow from './legal_case_workflow'
 import TreeSelect from '@riophae/vue-treeselect'
 import '@riophae/vue-treeselect/dist/vue-treeselect.css'
 import BriefOfEvidence from './brief_of_evidence';
+import ProsecutionBrief from './prosecution_brief';
 import CourtProceedings from './court_proceedings';
 
 
@@ -315,6 +322,7 @@ export default {
             cTab: 'cTab'+this._uid,
             cpTab: 'cpTab'+this._uid,
             bTab: 'bTab'+this._uid,
+            pTab: 'pTab'+this._uid,
             current_schema: [],
             workflowBindId: '',
             workflow_type: '',
@@ -453,6 +461,7 @@ export default {
     TreeSelect,
     BriefOfEvidence,
     CourtProceedings,
+    ProsecutionBrief,
   },
   computed: {
     ...mapGetters('legalCaseStore', {
@@ -569,6 +578,17 @@ export default {
             this.legal_case.id && 
             this.legal_case.brief_of_evidence && 
             this.legal_case.status.id === 'brief_of_evidence') 
+        {
+            visible = true;
+        }
+        return visible;
+    },
+    prosecutionBriefVisibility: function() {
+        let visible = false;
+        if (this.legal_case && 
+            this.legal_case.id && 
+            this.legal_case.brief_of_evidence && 
+            this.legal_case.status.id === 'prosecution_brief') 
         {
             visible = true;
         }

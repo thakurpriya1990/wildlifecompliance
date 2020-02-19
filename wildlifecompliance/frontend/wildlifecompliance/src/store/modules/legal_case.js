@@ -41,6 +41,12 @@ export const legalCaseStore = {
                 state.legal_case.id + "/process_brief_of_evidence_document/"
                 )
             Vue.set(state.legal_case, 'briefOfEvidenceDocumentUrl', briefOfEvidenceDocumentUrl); 
+            // Prosecution Brief
+            let prosecutionBriefDocumentUrl = helpers.add_endpoint_join(
+                api_endpoints.legal_case,
+                state.legal_case.id + "/process_prosecution_brief_document/"
+                )
+            Vue.set(state.legal_case, 'prosecutionBriefDocumentUrl', prosecutionBriefDocumentUrl); 
             // comms logs doc
             let commsLogsDocumentUrl = helpers.add_endpoint_join(
                 api_endpoints.legal_case,
@@ -155,6 +161,31 @@ export const legalCaseStore = {
                 state.legal_case.boe_document_artifacts_ticked.push(r)
             }
         },
+        updatePbRoiTicked(state, pbRoiTicked) {
+            Vue.set(state.legal_case, 'pb_roi_ticked', []);
+            for (let r of pbRoiTicked) {
+                state.legal_case.pb_roi_ticked.push(r)
+            }
+        },
+        updatePbOtherStatementsTicked(state, pbOtherStatementsTicked) {
+            Vue.set(state.legal_case, 'pb_other_statements_ticked', []);
+            for (let r of pbOtherStatementsTicked) {
+                state.legal_case.pb_other_statements_ticked.push(r)
+            }
+        },
+        updatePbPhysicalArtifactsTicked(state, pbPhysicalArtifactsTicked) {
+            Vue.set(state.legal_case, 'pb_physical_artifacts_ticked', []);
+            for (let r of pbPhysicalArtifactsTicked) {
+                state.legal_case.pb_physical_artifacts_ticked.push(r)
+            }
+        },
+        updatePbDocumentArtifactsTicked(state, pbDocumentArtifactsTicked) {
+            Vue.set(state.legal_case, 'pb_document_artifacts_ticked', []);
+            for (let r of pbDocumentArtifactsTicked) {
+                state.legal_case.pb_document_artifacts_ticked.push(r)
+            }
+        },
+
         /*
         updatePhysicalArtifactSensitiveUnusedReason(state, reasonEvent) {
             let inserted = false;
@@ -337,6 +368,19 @@ export const legalCaseStore = {
         setBoeDocumentArtifactsTicked({ commit }, boeDocumentArtifactsTicked) {
             commit("updateBoeDocumentArtifactsTicked", boeDocumentArtifactsTicked)
         },
+        setPbRoiTicked({ commit }, pbRoiTicked) {
+            commit("updatePbRoiTicked", pbRoiTicked)
+        },
+        setPbOtherStatementsTicked({ commit }, pbOtherStatementsTicked) {
+            commit("updatePbOtherStatementsTicked", pbOtherStatementsTicked)
+        },
+        setPbPhysicalArtifactsTicked({ commit }, pbPhysicalArtifactsTicked) {
+            commit("updatePbPhysicalArtifactsTicked", pbPhysicalArtifactsTicked)
+        },
+        setPbDocumentArtifactsTicked({ commit }, pbDocumentArtifactsTicked) {
+            commit("updatePbDocumentArtifactsTicked", pbDocumentArtifactsTicked)
+        },
+
         /*
         setPhysicalArtifactSensitiveUnusedReason({ commit }, reasonEvent) {
             commit("updatePhysicalArtifactSensitiveUnusedReason", reasonEvent)
