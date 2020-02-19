@@ -7,6 +7,7 @@ from io import BytesIO
 from django.core.files.storage import default_storage
 from oscar.templatetags.currency_filters import currency
 from reportlab.lib import enums
+from reportlab.lib.colors import Color
 from reportlab.lib.pagesizes import A4
 from reportlab.platypus import BaseDocTemplate, PageTemplate, Frame, Paragraph, Spacer, Table, TableStyle, ListFlowable, \
     KeepTogether, PageBreak, Flowable, NextPageTemplate, FrameBreak
@@ -33,8 +34,7 @@ BPAY_LOGO = os.path.join(settings.BASE_DIR, 'staticfiles', 'payments', 'img', 'B
 HEADER_MARGIN = 10
 HEADER_SMALL_BUFFER = 3
 
-PAGE_MARGIN = 30
-PAGE_TOP_MARGIN = 200
+PAGE_MARGIN = 20 * mm  # mm?
 
 PAGE_WIDTH, PAGE_HEIGHT = A4
 
@@ -88,6 +88,23 @@ class FlowableRect(Flowable):
         return 0, 18
 
 
+class SolidLine(Flowable):
+
+    def __init__(self, width, height=0):
+        Flowable.__init__(self)
+        self.width = width
+        self.height = height
+
+    def wrap(self, *args):
+        return 0, 25
+
+    def __repr__(self):
+        return 'Line {}'.format(self.width)
+
+    def draw(self):
+        self.canv.line(5, self.height + 5, self.width, self.height + 5)
+
+
 class BrokenLine(Flowable):
 
     def __init__(self, width, height=0):
@@ -105,160 +122,13 @@ class BrokenLine(Flowable):
         # pass
 
 
-# class Remittance(Flowable):
-#     def __init__(self,current_x,current_y,invoice):
-#         Flowable.__init__(self)
-#         self.current_x = current_x
-#         self.current_y = current_y
-#         self.invoice = invoice
-#
-#     def __repr__(self):
-#         return 'remittance'
-#
-#     def __logo_line(self):
-#         canvas = self.canv
-#         current_y, current_x = self.current_y, self.current_x
-#         canvas.setFont(DEFAULT_FONTNAME, MEDIUM_FONTSIZE)
-#         dpaw_header_logo = ImageReader(DPAW_HEADER_LOGO_SM)
-#
-#         dpaw_header_logo_size = dpaw_header_logo.getSize()
-#         canvas.drawImage(dpaw_header_logo, HEADER_MARGIN, current_y - (dpaw_header_logo_size[1]/1.8),height=dpaw_header_logo_size[1]/1.8, mask='auto', width=dpaw_header_logo_size[0]/1.8)
-#
-#         current_y = -20
-#         canvas.setFont(BOLD_FONTNAME, MEDIUM_FONTSIZE)
-#         canvas.drawRightString(current_x * 45,current_y,'Remittance Advice')
-#
-#         current_y -= 20
-#         canvas.setFont(DEFAULT_FONTNAME, MEDIUM_FONTSIZE)
-#         canvas.drawString(current_x * 27,current_y,'PLEASE DETACH AND RETURN WITH YOUR PAYMENT')
-#
-#         current_y -= 20
-#         canvas.setFont(DEFAULT_FONTNAME, MEDIUM_FONTSIZE)
-#         canvas.drawString(current_x, current_y, 'ABN: 38 052 249 024')
-#         self.current_y = current_y
-#
-#     def __payment_line(self):
-#         canvas = self.canv
-#         current_y, current_x = self.current_y, self.current_x
-#         bpay_logo = ImageReader(BPAY_LOGO)
-#         #current_y -= 40
-#         # Pay By Cheque
-#         cheque_x = current_x + 4 * inch
-#         cheque_y = current_y -30
-#         canvas.setFont(BOLD_FONTNAME, MEDIUM_FONTSIZE)
-#         canvas.drawString(cheque_x, cheque_y, 'Pay By Cheque:')
-#         canvas.setFont(DEFAULT_FONTNAME, 9)
-#         cheque_y -= 15
-#         canvas.drawString(cheque_x, cheque_y, 'Make cheque payable to: Department of Biodiversity, Conservation and Attractions')
-#         cheque_y -= 15
-#         canvas.drawString(cheque_x, cheque_y, 'Mail to: Department of Biodiversity, Conservation and Attractions')
-#         cheque_y -= 15
-#         canvas.drawString(cheque_x + 32, cheque_y, 'Locked Bag 30')
-#         cheque_y -= 15
-#         canvas.drawString(cheque_x + 32, cheque_y, 'Bentley Delivery Centre WA 6983')
-#         if settings.BPAY_ALLOWED:
-#             # Outer BPAY Box
-#             canvas.rect(current_x,current_y - 25,2.3*inch,-1.2*inch)
-#             canvas.setFillColorCMYK(0.8829,0.6126,0.0000,0.5647)
-#             # Move into bpay box
-#             current_y += 5
-#             box_pos = current_x + 0.1 * inch
-#             bpay_logo_size = bpay_logo.getSize()
-#             canvas.drawImage(bpay_logo, box_pos, current_y - (bpay_logo_size[1]/12 * 1.7), height= bpay_logo_size[1]/12,width=bpay_logo_size[0]/12, mask='auto')
-#             # Create biller information box
-#             biller_x = box_pos + bpay_logo_size[0]/12 + 1
-#             canvas.rect(biller_x,(current_y - (bpay_logo_size[1]/12 * 1.7)) + 3,1.65*inch,(bpay_logo_size[1]/12)-5)
-#             # Bpay info
-#             canvas.setFont(BOLD_FONTNAME, MEDIUM_FONTSIZE)
-#             info_y = ((current_y - (bpay_logo_size[1]/12 * 1.7)) + 3) + (0.35 * inch)
-#             canvas.drawString(biller_x + 5, info_y, 'Biller Code: {}'.format(self.invoice.biller_code))
-#             canvas.drawString(biller_x + 5, info_y - 20, 'Ref: {}'.format(self.invoice.reference))
-#             # Bpay Info string
-#             canvas.setFont(BOLD_FONTNAME,SMALL_FONTSIZE)
-#             canvas.drawString(box_pos, info_y - 0.55 * inch, 'Telephone & Internet Banking - BPAY')
-#             canvas.setFont(DEFAULT_FONTNAME,6.5)
-#             canvas.drawString(box_pos, info_y - 0.65 * inch, 'Contact your bank or financial institution to make')
-#             canvas.drawString(box_pos, info_y - 0.75 * inch, 'this payment from your cheque, savings, debit or')
-#             canvas.drawString(box_pos, info_y - 0.85 * inch, 'transaction account. More info: www.bpay.com.au')
-#
-#         self.current_y = current_y
-#
-#     def __footer_line(self):
-#         canvas = self.canv
-#         current_y, current_x = self.current_y, self.current_x
-#         current_y -= 2 * inch
-#         canvas.setFont(DEFAULT_FONTNAME, LARGE_FONTSIZE)
-#         canvas.setFillColor(colors.black)
-#         canvas.drawString(current_x, current_y, 'Invoice Number')
-#         canvas.drawString(PAGE_WIDTH/4, current_y, 'Invoice Date')
-#         canvas.drawString((PAGE_WIDTH/4) * 2, current_y, 'GST included')
-#         canvas.drawString((PAGE_WIDTH/4) * 3, current_y, 'Invoice Total')
-#         current_y -= 20
-#         canvas.setFont(DEFAULT_FONTNAME, MEDIUM_FONTSIZE)
-#         # canvas.drawString(current_x, current_y, self.invoice.reference)
-#         # canvas.drawString(PAGE_WIDTH/4, current_y, self.invoice.created.strftime(DATE_FORMAT))
-#         # canvas.drawString((PAGE_WIDTH/4) * 2, current_y, currency(self.invoice.amount - calculate_excl_gst(self.invoice.amount)))
-#         # canvas.drawString((PAGE_WIDTH/4) * 3, current_y, currency(self.invoice.amount))
-#
-#     def draw(self):
-#         if settings.BPAY_ALLOWED:
-#             self.__logo_line()
-#             self.__payment_line()
-#         self.__footer_line()
-
-
-# def _create_header(canvas, doc, draw_page_number=True):
-#     canvas.saveState()
-#     canvas.setTitle('Invoice')
-#     canvas.setFont(BOLD_FONTNAME, LARGE_FONTSIZE)
-#
-#     current_y = PAGE_HEIGHT - HEADER_MARGIN
-#
-#     dpaw_header_logo = ImageReader(DPAW_HEADER_LOGO)
-#     dpaw_header_logo_size = dpaw_header_logo.getSize()
-#     canvas.drawImage(dpaw_header_logo, PAGE_WIDTH / 3, current_y - (dpaw_header_logo_size[1]/2),width=dpaw_header_logo_size[0]/2, height=dpaw_header_logo_size[1]/2, mask='auto')
-#
-#     current_y -= 70
-#     canvas.drawCentredString(PAGE_WIDTH / 2, current_y - LARGE_FONTSIZE, 'INFRINGEMENT NOTICE')
-#
-#     current_y -= 20
-#     canvas.drawCentredString(PAGE_WIDTH / 2, current_y - LARGE_FONTSIZE, 'ABN: 38 052 249 024')
-#
-#     # Invoice address details
-#     invoice_details_offset = 37
-#     current_y -= 20
-#     # invoice = doc.invoice
-#     sanction_outcome = doc.sanction_outcome
-#     canvas.setFont(BOLD_FONTNAME, SMALL_FONTSIZE)
-#     current_x = PAGE_MARGIN + 5
-#     canvas.drawString(current_x, current_y - (SMALL_FONTSIZE + HEADER_SMALL_BUFFER), sanction_outcome.get_offender()[0].get_full_name())
-#     # canvas.drawString(current_x, current_y - (SMALL_FONTSIZE + HEADER_SMALL_BUFFER), invoice.owner.get_full_name())
-#     # canvas.drawString(current_x, current_y - (SMALL_FONTSIZE + HEADER_SMALL_BUFFER) * 2,invoice.owner.username)
-#     current_x += 452
-#     #write Invoice details
-#     canvas.drawString(current_x, current_y - (SMALL_FONTSIZE + HEADER_SMALL_BUFFER),'Date')
-#     # canvas.drawString(current_x + invoice_details_offset, current_y - (SMALL_FONTSIZE + HEADER_SMALL_BUFFER),invoice.created.strftime(DATE_FORMAT))
-#     canvas.drawString(current_x, current_y - (SMALL_FONTSIZE + HEADER_SMALL_BUFFER) * 2, 'Page')
-#     canvas.drawString(current_x + invoice_details_offset, current_y - (SMALL_FONTSIZE + HEADER_SMALL_BUFFER) * 2, str(canvas.getPageNumber()))
-#     canvas.drawRightString(current_x + 20, current_y - (SMALL_FONTSIZE + HEADER_SMALL_BUFFER) * 3, 'Invoice Number')
-#     # canvas.drawString(current_x + invoice_details_offset, current_y - (SMALL_FONTSIZE + HEADER_SMALL_BUFFER) * 3, invoice.reference)
-#     canvas.drawRightString(current_x + 20, current_y - (SMALL_FONTSIZE + HEADER_SMALL_BUFFER) * 4, 'Total (AUD)')
-#     # canvas.drawString(current_x + invoice_details_offset, current_y - (SMALL_FONTSIZE + HEADER_SMALL_BUFFER) * 4, currency(invoice.amount))
-#     canvas.drawRightString(current_x + 20, current_y - (SMALL_FONTSIZE + HEADER_SMALL_BUFFER) * 5, 'GST included (AUD)')
-#     # canvas.drawString(current_x + invoice_details_offset, current_y - (SMALL_FONTSIZE + HEADER_SMALL_BUFFER) * 5, currency(invoice.amount - calculate_excl_gst(invoice.amount)))
-#     canvas.drawRightString(current_x + 20, current_y - (SMALL_FONTSIZE + HEADER_SMALL_BUFFER) * 6, 'Paid (AUD)')
-#     # canvas.drawString(current_x + invoice_details_offset, current_y - (SMALL_FONTSIZE + HEADER_SMALL_BUFFER) * 6, currency(invoice.payment_amount))
-#     canvas.drawRightString(current_x + 20, current_y - (SMALL_FONTSIZE + HEADER_SMALL_BUFFER) * 7, 'Outstanding (AUD)')
-#     # canvas.drawString(current_x + invoice_details_offset, current_y - (SMALL_FONTSIZE + HEADER_SMALL_BUFFER) * 7, currency(invoice.balance))
-#     canvas.restoreState()
-
-
 def _create_invoice(invoice_buffer, sanction_outcome):
-    every_page_frame = Frame(PAGE_MARGIN, PAGE_MARGIN, PAGE_WIDTH - 2 * PAGE_MARGIN,
-                             PAGE_HEIGHT - 2 * PAGE_MARGIN, id='EveryPagesFrame', showBoundary=0)
+    every_page_frame = Frame(PAGE_MARGIN, PAGE_MARGIN, PAGE_WIDTH - 2 * PAGE_MARGIN, PAGE_HEIGHT - 2 * PAGE_MARGIN, id='EveryPagesFrame', showBoundary=Color(0, 1, 0))
+    every_page_frame2 = Frame(PAGE_MARGIN, PAGE_MARGIN, PAGE_WIDTH - 2 * PAGE_MARGIN, PAGE_HEIGHT - 2 * PAGE_MARGIN, id='EveryPagesFrame2', showBoundary=Color(0, 0, 1))
     # every_page_template = PageTemplate(id='EveryPages', frames=[every_page_frame,], onPage=_create_header)
-    every_page_template = PageTemplate(id='EveryPages', frames=[every_page_frame,],)
-    doc = BaseDocTemplate(invoice_buffer, pageTemplates=[every_page_template], pagesize=A4)
+    every_page_template = PageTemplate(id='EveryPages', frames=[every_page_frame,], )
+    every_page_template2 = PageTemplate(id='EveryPages2', frames=[every_page_frame2,], )
+    doc = BaseDocTemplate(invoice_buffer, pageTemplates=[every_page_template, every_page_template2,], pagesize=A4,)  # showBoundary=Color(1, 0, 0))
 
     col_width = [40*mm, 60*mm, 80*mm,]
 
@@ -336,7 +206,7 @@ def _create_invoice(invoice_buffer, sanction_outcome):
     data = []
     data.append([Paragraph('<i>Biodiversity Conservation Act 2016</i><br /><strong>Infringement Notice</strong>', styles['Normal']),
               '',
-              Paragraph('Infringement<br />notice no.', styles['Normal'])])
+              Paragraph(u'Infringement<br />notice no. <font face="Helvetica"><strong>' + sanction_outcome.lodgement_number + u'</strong></font>', styles['Normal'])])
 
     # Alleged offender
     data.append([Paragraph('Alleged offender', styles['Bold']), Paragraph('Name: Family name', styles['Normal']), ''])
@@ -355,11 +225,11 @@ def _create_invoice(invoice_buffer, sanction_outcome):
     data.append([Paragraph('Alleged offence', styles['Bold']),
                  [
                      Paragraph('Description of offence', styles['Normal']),
-                     Paragraph('<u>' + gap(127) + '</u>', styles['Normal']),
-                     Paragraph('<u>' + gap(127) + '</u>', styles['Normal']),
-                     Paragraph('<u>' + gap(127) + '</u>', styles['Normal']),
-                     Paragraph('<u>' + gap(127) + '</u>', styles['Normal']),
-                     Paragraph('<u>' + gap(127) + '</u>', styles['Normal']),
+                     SolidLine(370, 0),
+                     SolidLine(370, 0),
+                     SolidLine(370, 0),
+                     SolidLine(370, 0),
+                     SolidLine(370, 0),
                  ],
                  ''])  # row index: 8
     # data.append(['', rect, ''])
@@ -408,6 +278,7 @@ def _create_invoice(invoice_buffer, sanction_outcome):
     t2 = Table(data_tbl2, style=invoice_table_style2, colWidths=col_width)
 
     elements = []
+    # elements.append(NextPageTemplate('EveryPages2'))
     elements.append(t1)
     elements.append(PageBreak())
     elements.append(t2)
