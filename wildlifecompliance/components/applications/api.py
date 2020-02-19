@@ -62,6 +62,7 @@ from wildlifecompliance.components.applications.serializers import (
     ApplicationProposedIssueSerializer,
     DTAssessmentSerializer,
     ApplicationSelectedActivitySerializer,
+    ValidCompleteAssessmentSerializer,
 )
 
 from wildlifecompliance.components.main.process_document import (
@@ -518,6 +519,8 @@ class ApplicationViewSet(viewsets.ModelViewSet):
     @detail_route(methods=['POST', ])
     def complete_application_assessments(self, request, *args, **kwargs):
         try:
+            validator = ValidCompleteAssessmentSerializer(data=request.data)
+            validator.is_valid(raise_exception=True)
             instance = self.get_object()
             instance.complete_application_assessments_by_user(request)
             serializer = InternalApplicationSerializer(

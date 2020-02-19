@@ -360,6 +360,20 @@ class SaveAssessmentSerializer(serializers.ModelSerializer):
         return data
 
 
+class ValidCompleteAssessmentSerializer(serializers.Serializer):
+    activity_id = serializers.ListField(child=serializers.IntegerField())
+    final_comment = serializers.CharField(required=False, allow_null=True)
+
+    def validate(self, data):
+        # validate licence activity selected.
+        activities = len(data.get('activity_id'))
+        if activities < 1:
+            raise serializers.ValidationError(
+                'Please select a licence activity.')
+
+        return data
+
+
 class AmendmentRequestSerializer(serializers.ModelSerializer):
     reason = CustomChoiceField()
 

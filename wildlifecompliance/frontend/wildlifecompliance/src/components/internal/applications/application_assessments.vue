@@ -224,8 +224,11 @@ export default {
         inspection_report_file_name: function() {
             return this.assessment.inspection_report != null ? this.assessment.inspection_report.name: '';
         },
+        isCompleteAssessmentAction: function() {
+            return this.$router.currentRoute.name==='complete-assessment'
+        },
         applicationActivities: function() {
-            if (this.$router.currentRoute.name=='complete-assessment'){
+            if (this.isCompleteAssessmentAction){
                 // filtered activity list for application when completing assessments.
                 return this.allCurrentActivitiesWithAssessor
             }
@@ -622,9 +625,12 @@ export default {
                                         <a data-assessmentid='${full.id}' class="assessment-action assessment_recall">Recall</a>
                                     `;
                                 }
-                                links +=  `
-                                    <a data-assessmentid='${full.id}' class="assessment-action assessment_view">${pending && vm.canEditAssessment(full)? 'Edit' : 'View'}</a>
-                                `;
+                                if (!vm.isCompleteAssessmentAction) {
+                                    links +=  `
+                                        <a data-assessmentid='${full.id}' class="assessment-action assessment_view">${pending && vm.canEditAssessment(full)? 'Edit' : 'View'}</a>
+                                    `;
+                                }
+
                                 return links;
                             }}
                     ],

@@ -1390,10 +1390,11 @@ class Application(RevisionedMixin):
         with transaction.atomic():
             try:
                 activity_id = request.data.get('activity_id', None)
+                final_comment = request.data.get('final_comment', None)
                 assessments = Assessment.objects.filter(
                     status=Assessment.STATUS_AWAITING_ASSESSMENT,
                     application=self,
-                    licence_activity=activity_id
+                    licence_activity_id__in=activity_id
                 )
 
                 # select each assessment on application.
@@ -1409,6 +1410,7 @@ class Application(RevisionedMixin):
                     if not assessor_group:
                         continue
 
+                    assessment.final_comment = final_comment
                     assessment.status = Assessment.STATUS_COMPLETED
                     assessment.actioned_by = request.user
                     assessment.save()
