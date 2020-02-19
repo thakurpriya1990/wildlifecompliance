@@ -63,6 +63,8 @@ from wildlifecompliance.components.artifact.models import (
         PhysicalArtifactDisposalMethod,
         ArtifactUserAction,
         PhysicalArtifactFormDataRecord,
+        DocumentArtifactLegalCases,
+        PhysicalArtifactLegalCases,
         )
 from wildlifecompliance.components.artifact.serializers import (
         ArtifactSerializer,
@@ -91,6 +93,7 @@ from rest_framework_datatables.renderers import DatatablesRenderer
 
 from wildlifecompliance.components.legal_case.email import (
     send_mail)
+from wildlifecompliance.components.legal_case.models import LegalCase
 from reversion.models import Version
 #import unicodedata
 
@@ -194,23 +197,34 @@ class DocumentArtifactViewSet(viewsets.ModelViewSet):
                 if serializer.is_valid():
                     print("serializer.validated_data")
                     print(serializer.validated_data)
-                    instance = serializer.save()
+                    saved_instance = serializer.save()
                     headers = self.get_success_headers(serializer.data)
                     # save legal_case_id
                     legal_case_id = request_data.get('legal_case_id')
                     if legal_case_id:
-                        instance.add_legal_case(legal_case_id)
+                        try:
+                            legal_case_id_int = int(legal_case_id)
+                        except Exception as e:
+                            raise e
+                        legal_case = LegalCase.objects.get(id=legal_case_id_int)
+                        if legal_case:
+                            if not DocumentArtifactLegalCases.objects.filter(
+                                        legal_case_id=legal_case.id,
+                                        document_artifact_id=saved_instance.id):
+                                DocumentArtifactLegalCases.objects.create_with_primary(
+                                        legal_case_id=legal_case.id,
+                                        document_artifact_id=saved_instance.id)
                     # save temp doc if exists
                     if request_data.get('temporary_document_collection_id'):
-                        self.handle_document(request_data, instance)
+                        self.handle_document(request_data, saved_instance)
                     # create officer_interviewer_email_user if required and attach to DocumentArtifact
                     if request_data.get('officer_interviewer'):
                         officer_interviewer = request_data.get('officer_interviewer')
                         email_user_instance = self.create_officer_interviewer_email_user(officer_interviewer)
-                        instance.officer_interviewer = email_user_instance
-                        instance.save()
+                        saved_instance.officer_interviewer = email_user_instance
+                        saved_instance.save()
 
-                    return (instance, headers)
+                    return (saved_instance, headers)
         except serializers.ValidationError:
             print(traceback.print_exc())
             raise
@@ -362,6 +376,9 @@ class PhysicalArtifactViewSet(viewsets.ModelViewSet):
                 instance.log_user_action(
                         ArtifactUserAction.ACTION_SAVE_ARTIFACT.format(
                         instance.number), request)
+                # disposal
+                if request.data.get('disposal_date'):
+                    instance.dispose(request)
                 return_serializer = PhysicalArtifactSerializer(instance, context={'request': request})
                 return Response(
                         return_serializer.data,
@@ -464,19 +481,48 @@ class PhysicalArtifactViewSet(viewsets.ModelViewSet):
                 if serializer.is_valid():
                     print("serializer.validated_data")
                     print(serializer.validated_data)
-                    instance = serializer.save()
+                    saved_instance = serializer.save()
                     headers = self.get_success_headers(serializer.data)
                     # save legal_case_id
                     legal_case_id = request_data.get('legal_case_id')
+                    used_within_case = request_data.get('used_within_case')
+                    sensitive_non_disclosable = request_data.get('sensitive_non_disclosable')
                     if legal_case_id:
-                        instance.add_legal_case(legal_case_id)
+                        #instance.add_legal_case(legal_case_id)
+                        try:
+                            legal_case_id_int = int(legal_case_id)
+                        except Exception as e:
+                            raise e
+                        legal_case = LegalCase.objects.get(id=legal_case_id_int)
+                        if legal_case:
+                            link = None
+                            if PhysicalArtifactLegalCases.objects.filter(
+                                        legal_case_id=legal_case.id,
+                                        physical_artifact_id=saved_instance.id):
+                                # get link
+                                print("get link")
+                                link= PhysicalArtifactLegalCases.objects.get(
+                                        legal_case_id=legal_case.id,
+                                        physical_artifact_id=saved_instance.id)
+                            else:
+                                # create link
+                                print("create link")
+                                link = PhysicalArtifactLegalCases.objects.create_with_primary(
+                                        legal_case_id=legal_case.id,
+                                        physical_artifact_id=saved_instance.id)
+                            if used_within_case:
+                                link.used_within_case = used_within_case
+                            if sensitive_non_disclosable:
+                                link.sensitive_non_disclosable = sensitive_non_disclosable
+                            link.save()
+
                     # save temp doc if exists
                     if request_data.get('temporary_document_collection_list'):
-                        self.handle_document(request_data, instance)
+                        self.handle_document(request_data, saved_instance)
                     # renderer data
                     if request_data.get('renderer_data'):
-                        self.form_data(instance, request_data)
-                    return (instance, headers)
+                        self.form_data(saved_instance, request_data)
+                    return (saved_instance, headers)
         except serializers.ValidationError:
             print(traceback.print_exc())
             raise

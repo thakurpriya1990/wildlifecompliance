@@ -20,6 +20,7 @@
                                 <li :class="objectTabListClass"><a data-toggle="tab" @click="updateTabSelected('objectTab')" :href="'#'+objectTab">Object</a></li>
                                 <li :class="detailsTabListClass"><a data-toggle="tab" @click="updateTabSelected('detailsTab')" :href="'#'+detailsTab" >Details</a></li>
                                 <li :class="storageTabListClass"><a data-toggle="tab" @click="updateTabSelected('storageTab')" :href="'#'+storageTab" >Storage</a></li>
+                                <!--li v-if="disposalTabVisibility" :class="disposalTabListClass"><a data-toggle="tab" @click="updateTabSelected('disposalTab')" :href="'#'+disposalTab" >Disposal</a></li-->
                                 <li :class="disposalTabListClass"><a data-toggle="tab" @click="updateTabSelected('disposalTab')" :href="'#'+disposalTab" >Disposal</a></li>
                                 <li v-if="!parentModal" :class="relatedItemsTabListClass"><a data-toggle="tab" @click="updateTabSelected('relatedItemsTab')" :href="'#'+relatedItemsTab" >Related Items</a></li>
                             </ul>
@@ -221,6 +222,7 @@
                                         </div></div>
                                     </FormSection>
                                 </div>
+                                <!--div v-if="disposalTabVisibility" :id="disposalTab" :class="disposalTabClass"-->
                                 <div :id="disposalTab" :class="disposalTabClass">
                                     <FormSection :formCollapse="false" label="Disposal">
                                         <div class="col-sm-12 form-group"><div class="row">
@@ -445,6 +447,10 @@ export default {
             type: Boolean,
             required: false,
             default: false,
+        },
+        entityEdit: {
+            type: Object,
+            required: false,
         },
     },
     watch: {
@@ -729,6 +735,13 @@ export default {
             }
             return related_items_visibility;
         },
+        disposalTabVisibility: function() {
+            let visibility = false;
+            if (this.physical_artifact && this.physical_artifact.status === 'waiting_for_disposal') {
+                visibility = true;
+            }
+            return visibility;
+        },
     },
     filters: {
       formatDate: function(data) {
@@ -782,18 +795,20 @@ export default {
                 await this.savePhysicalArtifact({ create: false, internal: false, legal_case_id: this.legalCaseId });
             } else {
                 await this.savePhysicalArtifact({ create: true, internal: false, legal_case_id: this.legalCaseId });
+                this.$nextTick(() => {
+                    this.$emit('entity-selected', {
+                        id: this.physical_artifact.id,
+                        data_type: 'physical_artifact',
+                        identifier: this.physical_artifact.identifier,
+                        artifact_type: this.artifactType,
+                        display: this.artifactType,
+                    });
+                });
             }
         },
+        /*
         create: async function() {
-            //let physicalArtifactEntity = null;
-            /*
-            if (this.saveButtonEnabled) {
-                savedEmailUser = await this.saveData('parentSave')
-            } else {
-                savedEmailUser = {'ok': true};
-            }
-            */
-            await this.savePhysicalArtifact({ create: true, internal: true, legal_case_id: this.legalCaseId });
+                        await this.savePhysicalArtifact({ create: true, internal: true, legal_case_id: this.legalCaseId });
             //this.entity.id = 
             this.$nextTick(() => {
                 this.$emit('entity-selected', {
@@ -806,6 +821,7 @@ export default {
             });
             //return physicalArtifactEntity;
         },
+    */
         /*
         emitDocumentArtifact: async function(e) {
             console.log(e)
@@ -930,7 +946,7 @@ export default {
             });
             disposal_date_control.on("dp.change", function(e) {
                 console.log(e)
-                if (el_fr_date.data("DateTimePicker").date()) {
+                if (disposal_date_control.data("DateTimePicker").date()) {
                   vm.physical_artifact.disposal_date = e.date.format("DD/MM/YYYY");
                 } else if (disposal_date_control.data("date") === "") {
                   vm.physical_artifact.disposal_date = "";
@@ -1009,6 +1025,7 @@ export default {
     mounted: function() {
       this.$nextTick(async () => {
           this.addEventListeners();
+          console.log(this.physical_artifact)
           //this.loadSchema();
       });
     },
@@ -1025,6 +1042,8 @@ export default {
         console.log("created")
         if (this.$route.params.physical_artifact_id) {
             await this.loadPhysicalArtifact({ physical_artifact_id: this.$route.params.physical_artifact_id });
+        } else if (this.entityEdit && this.entityEdit.id && this.entityEdit.data_type === 'physical_artifact') {
+            await this.loadPhysicalArtifact({ physical_artifact_id: this.entityEdit.id });
         }
         /*
         // if main obj page, call loadLegalCase if document_artifact.legal_case_id exists

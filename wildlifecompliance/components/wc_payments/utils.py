@@ -154,39 +154,3 @@ def create_invoice(sanction_outcome, payment_method='bpay'):
     order = CreateInvoiceBasket(payment_method=payment_method, system=settings.WC_PAYMENT_SYSTEM_PREFIX).create_invoice_and_order(basket, 0, None, None, user=user, invoice_text=invoice_text)
 
     return order
-
-
-def perform_status_check_cash(sender, instance, **kwargs):
-    if hasattr(instance, 'invoice'):
-        payment_status = instance.invoice.payment_status
-        ipi = InfringementPenaltyInvoice.objects.get(invoice_reference=instance.invoice.reference)
-        so = ipi.infringement_penalty.sanction_outcome
-
-        if payment_status == SanctionOutcome.PAYMENT_STATUS_PAID:
-            so.payment_status = SanctionOutcome.PAYMENT_STATUS_PAID
-            so.log_user_action(SanctionOutcomeUserAction.ACTION_PAY_INFRINGEMENT_PENALTY.format(so.lodgement_number, instance.amount, instance.invoice.reference), '(internal)')
-            so.close()
-        elif payment_status == SanctionOutcome.PAYMENT_STATUS_UNPAID:
-            so.payment_status = SanctionOutcome.PAYMENT_STATUS_UNPAID
-            so.save()
-        elif payment_status == SanctionOutcome.PAYMENT_STATUS_PARTIALLY_PAID:
-            so.payment_status = SanctionOutcome.PAYMENT_STATUS_PARTIALLY_PAID
-            so.save()
-            so.log_user_action(SanctionOutcomeUserAction.ACTION_PAY_INFRINGEMENT_PENALTY.format(so.lodgement_number, instance.amount, instance.invoice.reference), '(internal)')
-        elif payment_status == SanctionOutcome.PAYMENT_STATUS_OVER_PAID:
-            so.payment_status = SanctionOutcome.PAYMENT_STATUS_OVER_PAID
-            so.save()
-            so.log_user_action(SanctionOutcomeUserAction.ACTION_PAY_INFRINGEMENT_PENALTY.format(so.lodgement_number, instance.amount, instance.invoice.reference), '(internal)')
-    else:
-        logger.warn('CashTransaction: {} saved without any invoice'.format(instance))
-
-
-# def perform_status_check_cc(sender, instance, **kwargs):
-#     inv = Invoice.objects.get(reference=instance.crn1)
-#     ipi = InfringementPenaltyInvoice.objects.get(invoice_reference=inv.reference)
-#     so = ipi.infringement_penalty.sanction_outcome
-#     pass
-
-
-post_save.connect(perform_status_check_cash, sender=CashTransaction)  # To catch 'Record Payment'
-# post_save.connect(perform_status_check_cc, sender=BpointTransaction)  # To catch CC transaction
