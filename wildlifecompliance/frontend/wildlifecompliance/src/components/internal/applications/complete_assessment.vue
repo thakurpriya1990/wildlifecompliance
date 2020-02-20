@@ -185,7 +185,7 @@
                                     </div>
                                     <div v-show="showAssessmentConditionButton" class="row">
                                         <div class="col-sm-12">
-                                            <button class="btn btn-primary top-buffer-s col-xs-12" @click.prevent="togglesendtoAssessor()">Assessments &amp; Conditions</button><br/>
+                                            <button class="btn btn-primary top-buffer-s col-xs-12" @click.prevent="toggleAssessments()">Assessments &amp; Conditions</button><br/>
                                         </div>
                                     </div>   
                                 </template>
@@ -218,6 +218,39 @@
                 <div class="row">
 
                     <ApplicationAssessments v-if="!applicationDetailsVisible" />
+
+                    <template v-if="applicationDetailsVisible">
+                        <a ref="applicantTab" class="nav-link" data-toggle="pill" :href="'#'+applicantTab"></a>
+                        <a ref="applicationTab" class="nav-link" data-toggle="pill" :href="'#'+applicationTab"></a>
+                        <div :id="applicationTab" class="tab-pane fade in active">
+                            <div class="col-md-12">
+                                <div class="row">
+                                    <form :action="application_form_url" method="post" name="new_application" enctype="multipart/form-data">
+
+                                        <Application form_width="inherit" :withSectionsSelector="false" v-if="isApplicationLoaded">
+                                            <input type="hidden" name="csrfmiddlewaretoken" :value="csrf_token"/>
+                                            <input type='hidden' name="schema" :value="JSON.stringify(application)" />
+                                            <input type='hidden' name="application_id" :value="1" />
+                                            <input type='hidden' id="selected_activity_tab_id" v-model="selected_activity_tab_id" />
+                                            <div v-if="showNavBarBottom" class="row" style="margin-bottom:50px;">
+                                                <div class="navbar navbar-fixed-bottom" style="background-color: #f5f5f5 ">
+                                                    <div class="navbar-inner">
+                                                        <div class="container">
+                                                            <p class="pull-right" style="margin-top:5px;">
+                                                                <button v-if="!applicationIsDraft && canSaveApplication" class="btn btn-primary" @click.prevent="save()">Save Changes</button>
+                                                            </p>
+                                                        </div>
+                                                    </div>
+                                                </div>
+                                            </div>
+                                        </Application>
+
+                                    </form>
+                                </div>
+                            </div>
+                        </div>
+
+                    </template>
 
                 </div>
             </div>
@@ -368,6 +401,9 @@ export default {
                 break;
             }
         },
+        showNavBarBottom: function() {
+            return !this.applicationIsDraft && this.canSaveApplication
+        },
         showCompleteAssessmentsButton: function() {
             return this.isWithAssessor && this.activeAssessments.find(assessment => {
                 // Only unassigned or active assessments assigned to user.
@@ -382,7 +418,7 @@ export default {
             return this.showingApplication && this.canAssignAssessorFor(this.selectedActivity.licence_activity)
         },
         isWithAssessor: function() {
-            return this.selectedActivity.processing_status.id === 'with_assessor' ? true : false;
+            return this.selectedActivity.processing_status.id === 'with_assessor';
         },
         activeAssessments: function() {
             return this.application.assessments.filter(assessment => {
@@ -449,14 +485,10 @@ export default {
             }
             return this.selected_activity_tab_id && this.selectedActivity.processing_status.id == 'with_assessor' ? true : false;
         },
-        togglesendtoAssessor:function(){
-            this.save_wo();
+        toggleAssessments:function(){
             $('#tabs-main li').removeClass('active');
             this.isSendingToAssessor = !this.isSendingToAssessor;
             this.showingApplication = false;
-        },
-        save_wo: function() {
-            return this.save({ showNotification: false });
         },
         toggleApplication: function({show=false, showFinalised=false}){
             this.showingApplication = show;

@@ -1362,10 +1362,11 @@ class Application(RevisionedMixin):
                     raise Exception("Missing assessor permissions for Activity \
                         ID: %s" % (assessment.licence_activity_id))
 
-                # Set the actioner to the assessor
+                # Set the actioner and assessor for the action.
                 assessor = EmailUser.objects \
                     .get(id=assessor_id) if assessor_id else assessor_id
-                assessment.actioned_by = assessor
+                assessment.actioned_by = request.user
+                assessment.assigned_assessor = assessor
                 assessment.save()
                 # Log application action
                 if (assessor):
@@ -1413,6 +1414,7 @@ class Application(RevisionedMixin):
                     assessment.final_comment = final_comment
                     assessment.status = Assessment.STATUS_COMPLETED
                     assessment.actioned_by = request.user
+                    assessment.assigned_assessor = None
                     assessment.save()
 
                     # Log application action
@@ -2754,8 +2756,16 @@ class Assessment(ApplicationRequest):
     final_comment = models.TextField(blank=True)
     purpose = models.TextField(blank=True)
     inspection_date = models.DateField(null=True, blank=True)
-    inspection_report = models.FileField(upload_to=update_assessment_inspection_report_filename, blank=True, null=True)
+    inspection_report = models.FileField(
+        upload_to=update_assessment_inspection_report_filename,
+        blank=True, 
+        null=True)
     actioned_by = models.ForeignKey(EmailUser, null=True)
+    assigned_assessor = models.ForeignKey(
+        EmailUser,
+        blank=True,
+        null=True,
+        related_name='wildlifecompliance_assessor')
 
     class Meta:
         app_label = 'wildlifecompliance'
@@ -2860,9 +2870,6 @@ class Assessment(ApplicationRequest):
     def assessors(self):
         return self.assessor_group.members.all()
 
-    @property
-    def assigned_assessor(self):
-        return self.actioned_by
 
 class ApplicationSelectedActivity(models.Model):
     PROPOSED_ACTION_DEFAULT = 'default'
@@ -3809,6 +3816,9 @@ class ApplicationCondition(OrderedModel):
         """
         Set the condition creator as Source when with Assessor.
         """
+        if not self.get_assessor_permission_group(user):
+            return
+
         activity = self.application.activities.get(
             # Get the Application Selected Activity for this condition.
             licence_activity_id = self.licence_activity_id
