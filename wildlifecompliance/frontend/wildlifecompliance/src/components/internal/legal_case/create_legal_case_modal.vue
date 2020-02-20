@@ -4,7 +4,7 @@
           <div class="container-fluid">
             <div class="row">
                 <div class="col-sm-12">
-                        <div class="form-group">
+                        <!--div class="form-group">
                           <div class="row">
                             <div class="col-sm-3">
                               <label>Region</label>
@@ -31,7 +31,7 @@
                               </select>
                             </div>
                           </div>
-                        </div>
+                        </div-->
                         <div class="form-group">
                           <div class="row">
                             <div class="col-sm-3">
@@ -45,6 +45,13 @@
                               </select>
                             </div>
                           </div>
+                        </div>
+                        <div class="col-sm-12 form-group">
+                            <div class="row">
+                                <label class="col-sm-10">Title
+                                    <input :readonly="readonlyForm" type="text" class="form-control" v-model="legalCaseTitle" />
+                                </label>
+                            </div>
                         </div>
 
                         <div class="form-group">
@@ -130,6 +137,7 @@ export default {
             legalCasePriorities: [],
             externalOrganisations: [],
             legalCaseDetails: '',
+            legalCaseTitle: '',
             errorResponse: "",
             region_id: null,
             district_id: null,
@@ -312,13 +320,14 @@ export default {
           
           let payload = new FormData();
           payload.append('details', this.legalCaseDetails);
+          payload.append('title', this.legalCaseTitle);
           this.$refs.comms_log_file.commsLogId ? payload.append('legal_case_comms_log_id', this.$refs.comms_log_file.commsLogId) : null;
           this.parent_call_email ? payload.append('call_email_id', this.call_email.id) : null;
-          this.district_id ? payload.append('district_id', this.district_id) : null;
+          //this.district_id ? payload.append('district_id', this.district_id) : null;
           this.assigned_to_id ? payload.append('assigned_to_id', this.assigned_to_id) : null;
           this.inspection_type_id ? payload.append('legal_case_priority_id', this.legal_case_priority_id) : null;
-          this.region_id ? payload.append('region_id', this.region_id) : null;
-          this.allocated_group_id ? payload.append('allocated_group_id', this.allocated_group_id) : null;
+          //this.region_id ? payload.append('region_id', this.region_id) : null;
+          //this.allocated_group_id ? payload.append('allocated_group_id', this.allocated_group_id) : null;
           this.temporary_document_collection_id ? payload.append('temporary_document_collection_id', this.temporary_document_collection_id.temp_doc_id) : null;
 
           //this.workflow_type ? payload.append('workflow_type', this.workflow_type) : null;
