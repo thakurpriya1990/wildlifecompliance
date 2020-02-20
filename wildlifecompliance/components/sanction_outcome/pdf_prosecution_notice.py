@@ -25,65 +25,28 @@ from django.conf import settings
 from ledger.accounts.models import Document
 from ledger.checkout.utils import calculate_excl_gst
 
-#DPAW_HEADER_LOGO = os.path.join(settings.BASE_DIR, 'ledger', 'payments','static', 'payments', 'img','dbca_logo.jpg')
-#DPAW_HEADER_LOGO_SM = os.path.join(settings.BASE_DIR, 'ledger', 'payments','static', 'payments', 'img','dbca_logo_small.png')
-#BPAY_LOGO = os.path.join(settings.BASE_DIR, 'ledger', 'payments','static', 'payments', 'img', 'BPAY_2012_PORT_BLUE.png')
-DPAW_HEADER_LOGO = os.path.join(settings.BASE_DIR, 'staticfiles', 'payments', 'img','dbca_logo.jpg')
-DPAW_HEADER_LOGO_SM = os.path.join(settings.BASE_DIR, 'staticfiles', 'payments', 'img','dbca_logo_small.png')
-BPAY_LOGO = os.path.join(settings.BASE_DIR, 'staticfiles', 'payments', 'img', 'BPAY_2012_PORT_BLUE.png')
 
-HEADER_MARGIN = 10
-HEADER_SMALL_BUFFER = 3
-
-PAGE_MARGIN = 20 * mm
-
+PAGE_MARGIN = 5 * mm
 PAGE_WIDTH, PAGE_HEIGHT = A4
-
-DEFAULT_FONTNAME = 'Helvetica'
-BOLD_FONTNAME = 'Helvetica-Bold'
-
-VERY_LARGE_FONTSIZE = 14
-LARGE_FONTSIZE = 12
-MEDIUM_FONTSIZE = 10
-SMALL_FONTSIZE = 8
-
-PARAGRAPH_BOTTOM_MARGIN = 5
-
-SECTION_BUFFER_HEIGHT = 10
-
-DATE_FORMAT = '%d/%m/%Y'
-
-styles = getSampleStyleSheet()
-styles.add(ParagraphStyle(name='InfoTitleLargeCenter', fontName=BOLD_FONTNAME, fontSize=LARGE_FONTSIZE,
-                          spaceAfter=PARAGRAPH_BOTTOM_MARGIN, alignment=enums.TA_CENTER))
-styles.add(ParagraphStyle(name='InfoTitleVeryLargeCenter', fontName=BOLD_FONTNAME, fontSize=VERY_LARGE_FONTSIZE,
-                          spaceAfter=PARAGRAPH_BOTTOM_MARGIN * 2, alignment=enums.TA_CENTER))
-styles.add(ParagraphStyle(name='InfoTitleLargeLeft', fontName=BOLD_FONTNAME, fontSize=LARGE_FONTSIZE,
-                          spaceAfter=PARAGRAPH_BOTTOM_MARGIN, alignment=enums.TA_LEFT,
-                          leftIndent=PAGE_WIDTH / 10, rightIndent=PAGE_WIDTH / 10))
-styles.add(ParagraphStyle(name='InfoTitleLargeRight', fontName=BOLD_FONTNAME, fontSize=LARGE_FONTSIZE,
-                          spaceAfter=PARAGRAPH_BOTTOM_MARGIN, alignment=enums.TA_RIGHT,
-                          rightIndent=PAGE_WIDTH / 10))
-styles.add(ParagraphStyle(name='BoldLeft', fontName=BOLD_FONTNAME, fontSize=MEDIUM_FONTSIZE, alignment=enums.TA_LEFT))
-styles.add(ParagraphStyle(name='BoldRight', fontName=BOLD_FONTNAME, fontSize=MEDIUM_FONTSIZE, alignment=enums.TA_RIGHT))
-styles.add(ParagraphStyle(name='Center', alignment=enums.TA_CENTER))
-styles.add(ParagraphStyle(name='Left', alignment=enums.TA_LEFT))
-styles.add(ParagraphStyle(name='Right', alignment=enums.TA_RIGHT))
-styles.add(ParagraphStyle(name='LongString', alignment=enums.TA_LEFT,wordWrap='CJK'))
 
 
 def _create_pdf(invoice_buffer, sanction_outcome):
-    every_page_frame = Frame(PAGE_MARGIN, PAGE_MARGIN, PAGE_WIDTH - 2 * PAGE_MARGIN, PAGE_HEIGHT - 2 * PAGE_MARGIN, id='EveryPagesFrame', showBoundary=Color(0, 1, 0))
+    every_page_frame = Frame(PAGE_MARGIN, PAGE_MARGIN, PAGE_WIDTH - 2 * PAGE_MARGIN, PAGE_HEIGHT - 2 * PAGE_MARGIN, id='EveryPagesFrame', )  #showBoundary=Color(0, 1, 0))
     every_page_template = PageTemplate(id='EveryPages', frames=[every_page_frame,], )
     doc = BaseDocTemplate(invoice_buffer, pageTemplates=[every_page_template, ], pagesize=A4,)  # showBoundary=Color(1, 0, 0))
 
     # Common
-    col_width_details = [25*mm, 25*mm, 71*mm, 25*mm, 40*mm]
+    col_width_head = [85*mm, 25*mm, 85*mm,]
+    col_width_details = [27*mm, 27*mm, 71*mm, 30*mm, 36*mm]
+    col_width_for_court = [27*mm, 24*mm, 18*mm, 58*mm, 47*mm, 17*mm]
+    FONT_SIZE_L = 11
+    FONT_SIZE_M = 10
+    FONT_SIZE_S = 8
 
     styles = StyleSheet1()
     styles.add(ParagraphStyle(name='Normal',
                               fontName='Helvetica',
-                              fontSize=9,
+                              fontSize=FONT_SIZE_M,
                               spaceBefore=7,  # space before paragraph
                               spaceAfter=7,   # space after paragraph
                               leading=12))       # space between lines
@@ -92,10 +55,11 @@ def _create_pdf(invoice_buffer, sanction_outcome):
                               spaceBefore=6))
     styles.add(ParagraphStyle(name='Italic',
                               parent=styles['BodyText'],
-                              fontName='Times-Italic'))
+                              fontName='Helvetica-Italic'))
     styles.add(ParagraphStyle(name='Bold',
                               parent=styles['BodyText'],
-                              fontName='Times-Bold'))
+                              fontName='Helvetica-Bold',
+                              alignment = TA_CENTER))
     styles.add(ParagraphStyle(name='Right',
                               parent=styles['BodyText'],
                               alignment=TA_RIGHT))
@@ -115,24 +79,24 @@ def _create_pdf(invoice_buffer, sanction_outcome):
         ('ALIGN', (0, 0), (-1, -1), 'LEFT'),
     ])
     style_tbl_right = TableStyle([
-        ('VALIGN', (0, 0), (-1, -1), 'TOP'),
+        ('VALIGN', (0, 0), (-1, -1), 'MIDDLE'),
         ('GRID', (0, 0), (-1, -1), 0.5, colors.black),
         ('ALIGN', (0, 0), (-1, -1), 'LEFT'),
     ])
-    col_width_head = [85*mm, 20*mm, 85*mm,]
     data_left = Table([[Paragraph('MAGISTRATES COURT of WESTERN<br />'
                           'AUSTRALIA<br />'
-                          '<strong>PROSECUTION NOTICE</strong><br />'
+                          '<strong><font size="' + str(FONT_SIZE_L) + '">PROSECUTION NOTICE</font></strong><br />'
                           '<i>Criminal Procedure Act 2004</i><br />'
                           'Criminal Procedure Regulations 2005 - Form 3', styles['Centre']),]], style=style_tbl_left)
     data_right = Table([
         [Paragraph('Court number', styles['Normal']), ''],
         [Paragraph('Magistrates court at', styles['Normal']), ''],
         [Paragraph('Date lodged', styles['Normal']), ''],
-    ], style=style_tbl_right, rowHeights=[7.5*mm, 7.5*mm, 7.5*mm,])
+    ], style=style_tbl_right, rowHeights=[7.8*mm, 7.8*mm, 7.8*mm,])
     tbl_head = Table([[data_left, '', data_right]], style=invoice_table_style, colWidths=col_width_head, )
 
     # Details of alleged offence
+    rowHeights = [6*mm, 6*mm, 6*mm, 30*mm, 6*mm]
     style_tbl_details = TableStyle([
         ('VALIGN', (0, 0), (0, 0), 'TOP'),
         ('VALIGN', (1, 0), (-1, -1), 'MIDDLE'),
@@ -147,7 +111,8 @@ def _create_pdf(invoice_buffer, sanction_outcome):
     ])
     data = []
     data.append([
-        Paragraph('<strong>Details of alleged offence</strong><br /><i>[This description must comply with the CPA Schedule 1 clause 5.]</i>', styles['Normal']),
+        Paragraph('<strong>Details of alleged offence</strong><br />'
+                  '<i><font size="' + str(FONT_SIZE_S) + '">[This description must comply with the CPA Schedule 1 clause 5.]</font></i>', styles['Normal']),
         Paragraph('Accused', styles['Normal']),
         '',
         '',
@@ -157,7 +122,7 @@ def _create_pdf(invoice_buffer, sanction_outcome):
     data.append(['', Paragraph('Place', styles['Normal']), '', '', ''])
     data.append(['', Paragraph('Description', styles['Normal']), '', '', ''])
     data.append(['', Paragraph('Written law', styles['Normal']), '', '', ''])
-    tbl_details = Table(data, style=style_tbl_details, colWidths=col_width_details)
+    tbl_details = Table(data, style=style_tbl_details, colWidths=col_width_details, rowHeights=rowHeights)
 
     # Notice to accused
     style_tbl_notice = TableStyle([
@@ -177,6 +142,7 @@ def _create_pdf(invoice_buffer, sanction_outcome):
     tbl_notice = Table(data, style=style_tbl_notice, colWidths=col_width_details)
 
     # Accused's Details
+    rowHeights = [4.5*mm, 6*mm, 6*mm]
     style_tbl_accused = TableStyle([
         ('VALIGN', (0, 0), (0, -1), 'TOP'),
         ('VALIGN', (1, 0), (-1, -1), 'MIDDLE'),
@@ -190,7 +156,7 @@ def _create_pdf(invoice_buffer, sanction_outcome):
     data = []
     data.append([
         Paragraph('<strong>Accused\'s Details</strong>', styles['Normal']),
-        Paragraph('<i>[This description must comply with the CPA Schedule 1 clause 4.]</i>', styles['Normal']),
+        Paragraph('<i><font size="' + str(FONT_SIZE_S) + '">[This description must comply with the CPA Schedule 1 clause 4.]</font></i>', styles['Normal']),
         '',
         '',
         '',
@@ -209,9 +175,10 @@ def _create_pdf(invoice_buffer, sanction_outcome):
         '',
         '',
     ])
-    tbl_accused = Table(data, style=style_tbl_accused, colWidths=col_width_details)
+    tbl_accused = Table(data, style=style_tbl_accused, colWidths=col_width_details, rowHeights=rowHeights)
 
     # Prosecutor
+    rowHeights = [4.5*mm, 6*mm, 6*mm, 6*mm, 15*mm, 4.5*mm, 15*mm, 6*mm]
     style_tbl_prosecutor = TableStyle([
         ('VALIGN', (0, 0), (0, -1), 'TOP'),
         ('VALIGN', (1, 0), (-1, -1), 'MIDDLE'),
@@ -231,7 +198,7 @@ def _create_pdf(invoice_buffer, sanction_outcome):
     data = []
     data.append([
         Paragraph('<strong>Prosecutor</strong>', styles['Normal']),
-        Paragraph('<i>[Identify the prosecutor in accordance with the CPA Schedule 1 clause 3.]</i>', styles['Normal']),
+        Paragraph('<i><font size="' + str(FONT_SIZE_S) + '">[Identify the prosecutor in accordance with the CPA Schedule 1 clause 3.]</font></i>', styles['Normal']),
         '',
         '',
         '',
@@ -267,14 +234,14 @@ def _create_pdf(invoice_buffer, sanction_outcome):
     data.append([
         '',
         Paragraph('Witness\'s Signature', styles['Normal']),
-        Paragraph('<i>[A witness may not be needed. See the CPA section 23.]</i>', styles['Normal']),
+        Paragraph('<i><font size="' + str(FONT_SIZE_S) + '">[A witness may not be needed. See the CPA section 23.]</font></i>', styles['Normal']),
         '',
         '',
     ])
     data.append([
         '',
         '',
-        Paragraph('Justice of the Peace or Prescribed Court Officer', styles['Normal']),
+        Paragraph('<font size="' + str(FONT_SIZE_S) + '">Justice of the Peace or Prescribed Court Officer</font>', styles['Normal']),
         '',
         '',
     ])
@@ -285,7 +252,76 @@ def _create_pdf(invoice_buffer, sanction_outcome):
         '',
         '',
     ])
-    tbl_prosecutor = Table(data, style=style_tbl_prosecutor, colWidths=col_width_details)
+    tbl_prosecutor = Table(data, style=style_tbl_prosecutor, colWidths=col_width_details, rowHeights=rowHeights)
+
+    # For Court Use Only
+    rowHeights = [6*mm, 10*mm, 6*mm, 6*mm, 6*mm, 6*mm, 6*mm, 6*mm, 6*mm, 6*mm, 23*mm, 17*mm]
+    style_tbl_for_court = TableStyle([
+        ('VALIGN', (0, 0), (-1, -1), 'MIDDLE'),
+        ('VALIGN', (3, 11), (5, 11), 'BOTTOM'),
+        ('VALIGN', (0, 10), (2, 11), 'TOP'),
+        ('GRID', (0, 0), (-1, -1), 0.5, colors.black),
+        ('SPAN', (0, 0), (5, 0)),
+        ('SPAN', (3, 1), (4, 1)),
+        ('SPAN', (3, 2), (4, 2)),
+        ('SPAN', (3, 3), (4, 3)),
+        ('SPAN', (3, 4), (4, 4)),
+        ('SPAN', (3, 5), (4, 5)),
+        ('SPAN', (3, 6), (4, 6)),
+        ('SPAN', (1, 7), (2, 7)),  # Guilty / not guilty
+        ('SPAN', (1, 8), (2, 8)),
+        ('SPAN', (1, 9), (2, 9)),  # Convicted / acquitted
+        ('SPAN', (3, 7), (5, 10)),  # Penalty and other orders
+        ('SPAN', (4, 11), (5, 11)),
+        ('SPAN', (0, 10), (2, 11)),  # <== This has a bug...?
+    ])
+    data = []
+    data.append([
+        Paragraph('<i>For Court User Only</i>', styles['Bold']),
+        '', '', '', '', ''])
+    data.append([
+        Paragraph('Date', styles['Centre']),
+        Paragraph('Appearance by accused', styles['Centre']),
+        Paragraph('Counsel', styles['Centre']),
+        Paragraph('Record of court proceedings', styles['Centre']),
+        '',
+        Paragraph('Judicial officer', styles['Centre']),
+    ])
+    data.append(['', Paragraph('Y / N', styles['Bold']), '', '', '', ''])
+    data.append(['', Paragraph('Y / N', styles['Bold']), '', '', '', ''])
+    data.append(['', Paragraph('Y / N', styles['Bold']), '', '', '', ''])
+    data.append(['', Paragraph('Y / N', styles['Bold']), '', '', '', ''])
+    data.append(['', Paragraph('Y / N', styles['Bold']), '', '', '', ''])
+    data.append([
+        Paragraph('Plea', styles['Bold']),
+        Paragraph('Guilty / not guilty', styles['Bold']),
+        '',
+        [Paragraph('Penalty and other orders', styles['Centre']),
+         Paragraph('<strong>Fine</strong>', styles['Normal']),
+         Paragraph('<strong>Costs</strong>', styles['Normal']),
+         Paragraph('<strong>Other</strong>', styles['Normal'])],
+        '',
+        '',
+    ])
+    data.append([
+        Paragraph('Date of plea', styles['Bold']),
+        '', '', '', '', '',
+    ])
+    data.append([
+        Paragraph('<strong>Judgement</strong>', styles['Centre']),
+        Paragraph('<strong>Conficted / acquitted</strong>', styles['Centre']),
+        '', '', '', '',
+    ])
+    data.append([Paragraph('<strong>Victim impact statement available</strong>', styles['Centre']), '', '', '', '', ''])
+    data.append([
+        '',
+        '',
+        '',
+        Paragraph('<strong>Judicial officer</strong>', styles['Centre']),
+        Paragraph('<strong>Date:</strong>', styles['Normal']),
+        '',
+    ])
+    tbl_for_court = Table(data, style=style_tbl_for_court, colWidths=col_width_for_court, rowHeights=rowHeights)
 
     # Append tables to the elements to build
     gap_between_tables = 1.5*mm
@@ -298,6 +334,8 @@ def _create_pdf(invoice_buffer, sanction_outcome):
     elements.append(tbl_accused)
     elements.append(Spacer(0, gap_between_tables))
     elements.append(tbl_prosecutor)
+    elements.append(Spacer(0, gap_between_tables))
+    elements.append(tbl_for_court)
     doc.build(elements)
     return invoice_buffer
 
