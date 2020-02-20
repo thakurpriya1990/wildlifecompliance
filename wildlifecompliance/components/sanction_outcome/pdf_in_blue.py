@@ -122,7 +122,7 @@ class BrokenLine(Flowable):
         # pass
 
 
-def _create_invoice(invoice_buffer, sanction_outcome):
+def _create_pdf(invoice_buffer, sanction_outcome):
     every_page_frame = Frame(PAGE_MARGIN, PAGE_MARGIN, PAGE_WIDTH - 2 * PAGE_MARGIN, PAGE_HEIGHT - 2 * PAGE_MARGIN, id='EveryPagesFrame', showBoundary=Color(0, 1, 0))
     every_page_frame2 = Frame(PAGE_MARGIN, PAGE_MARGIN, PAGE_WIDTH - 2 * PAGE_MARGIN, PAGE_HEIGHT - 2 * PAGE_MARGIN, id='EveryPagesFrame2', showBoundary=Color(0, 0, 1))
     # every_page_template = PageTemplate(id='EveryPages', frames=[every_page_frame,], onPage=_create_header)
@@ -296,7 +296,7 @@ def gap(num):
 
 def create_in_pdf_bytes(filename, sanction_outcome):
     with BytesIO() as invoice_buffer:
-        _create_invoice(invoice_buffer, sanction_outcome)
+        _create_pdf(invoice_buffer, sanction_outcome)
 
         # Get the value of the BytesIO buffer
         value = invoice_buffer.getvalue()
