@@ -51,21 +51,21 @@
                     </div>
                     <div class="panel-body panel-collapse">
                         <div class="row action-button">
-                            <div v-if="canUserAction" class="col-sm-12">
+                            <div v-if="canUserAction && openStatus" class="col-sm-12">
                                   <a @click="openInspection()" class="btn btn-primary btn-block" >
                                     Inspection
                                   </a>
                             </div>
                         </div>
                         <div class="row action-button">
-                          <div v-if="canUserAction && offenceVisibility" class="col-sm-12">
+                          <div v-if="canUserAction && openStatus" class="col-sm-12">
                                 <a @click="openOffence()" class="btn btn-primary btn-block">
                                   Offence
                                 </a>
                           </div>
                         </div>
                         <div class="row action-button">
-                          <div v-if="canUserAction" class="col-sm-12">
+                          <div v-if="canUserAction && openStatus" class="col-sm-12">
                                 <input 
                                 :disabled="!sanctionOutcomeVisibility" 
                                 type="button" 
@@ -77,7 +77,7 @@
                         </div>
                         
                         <div  class="row action-button">
-                          <div v-if="canUserAction" class="col-sm-12">
+                          <div v-if="canUserAction && openStatus" class="col-sm-12">
                                 <a @click="addWorkflow('brief_of_evidence')" class="btn btn-primary btn-block">
                                 <!--a @click="createBriefOfEvidence" class="btn btn-primary btn-block"-->
                                   Brief of Evidence
@@ -85,7 +85,7 @@
                           </div>
                         </div>
                         <div  class="row action-button">
-                          <div v-if="canUserAction" class="col-sm-12">
+                          <div v-if="canUserAction && briefOfEvidenceStatus" class="col-sm-12">
                                 <a @click="addWorkflow('prosecution_brief')" class="btn btn-primary btn-block">
                                 <!--a @click="createProsecutionBrief" class="btn btn-primary btn-block"-->
                                   Prosecution Brief
@@ -108,16 +108,16 @@
             <div class="row">
 
                 <div class="container-fluid">
-                    <ul class="nav nav-pills aho2">
-                        <li v-if="runningSheetVisibility" :class="runningSheetTabListClass"><a data-toggle="tab" :href="'#'+runTab">Running Sheet</a></li>
+                    <ul class="nav nav-pills">
+                        <li class="nav-item active"><a data-toggle="tab" :href="'#'+runTab">Running Sheet</a></li>
                         <li class="nav-item"><a data-toggle="tab" :href="'#'+cTab" >Case Details</a></li>
-                        <li v-if="briefOfEvidenceVisibility" :class="briefOfEvidenceTabListClass"><a data-toggle="tab" :href="'#'+bTab" >Brief of Evidence</a></li>
-                        <li v-if="prosecutionBriefVisibility" :class="prosecutionBriefTabListClass"><a data-toggle="tab" :href="'#'+pTab" >Prosecution Brief</a></li>
+                        <li v-if="briefOfEvidenceStatus" class="nav-item"><a data-toggle="tab" :href="'#'+bTab" >Brief of Evidence</a></li>
+                        <li v-if="prosecutionBriefStatus" class="nav-item"><a data-toggle="tab" :href="'#'+pTab" >Prosecution Brief</a></li>
                         <li class="nav-item"><a data-toggle="tab" :href="'#'+cpTab" >Court Proceedings</a></li>
                         <li class="nav-item"><a data-toggle="tab" :href="'#'+rTab">Related Items</a></li>
                     </ul>
                     <div class="tab-content">
-                        <div v-if="runningSheetVisibility" :id="runTab" class="runningSheetTabClass">
+                        <div :id="runTab" class="tab-pane fade in active">
                           <FormSection :formCollapse="false" label="Running Sheet" Index="0">
                             <div class="col-sm-12 form-group"><div class="row">
                                 <div>
@@ -169,11 +169,15 @@
                                 </div></div>
                             </FormSection>
                         </div>
-                        <div v-if="briefOfEvidenceVisibility" :id="bTab" class="briefOfEvidenceTabClass">
-                            <BriefOfEvidence ref="brief_of_evidence"/>
+                        <div :id="bTab" class="tab-pane fade in">
+                            <BriefOfEvidence 
+                            ref="brief_of_evidence"
+                            :readonly="briefOfEvidenceVisibility"/>
                         </div>
-                        <div v-if="prosecutionBriefVisibility"  :id="pTab" class="prosecutionBriefTabClass">
-                            <ProsecutionBrief ref="prosecution_brief"/>
+                        <div :id="pTab" class="tab-pane fade in">
+                            <ProsecutionBrief 
+                            ref="prosecution_brief"
+                            :readonly="prosecutionBriefVisibility"/>
                         </div>
                         <div :id="cpTab" class="tab-pane fade in">
                             <CourtProceedings v-if="legal_case.court_proceedings" />
@@ -579,6 +583,7 @@ export default {
         return oList;
     },
     */
+    /*
     offenceVisibility: function() {
         let offence_visibility = false;
         if (this.legal_case.status && this.legal_case.can_user_action) {
@@ -586,6 +591,7 @@ export default {
         }
         return offence_visibility;
     },
+    */
     sanctionOutcomeVisibility: function() {
         let sanction_outcome_visibility = false;
         if (this.legal_case.status && this.offenceExists && this.legal_case.can_user_action) {

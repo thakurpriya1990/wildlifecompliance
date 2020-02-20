@@ -62,7 +62,7 @@ class CourtProceedings(models.Model):
 
 class LegalCase(RevisionedMixin):
     STATUS_OPEN = 'open'
-    #STATUS_WITH_MANAGER = 'with_manager'
+    STATUS_WITH_MANAGER = 'with_manager'
     #STATUS_REQUEST_AMENDMENT = 'request_amendment'
     STATUS_AWAIT_ENDORSEMENT = 'await_endorsement'
     STATUS_BRIEF_OF_EVIDENCE = 'brief_of_evidence'
@@ -73,7 +73,7 @@ class LegalCase(RevisionedMixin):
     STATUS_PENDING_CLOSURE = 'pending_closure'
     STATUS_CHOICES = (
             (STATUS_OPEN, 'Open'),
-            #(STATUS_WITH_MANAGER, 'With Manager'),
+            (STATUS_WITH_MANAGER, 'With Manager'),
             #(STATUS_REQUEST_AMENDMENT, 'Request Amendment'),
             (STATUS_AWAIT_ENDORSEMENT, 'Awaiting Endorsement'),
             #(STATUS_SANCTION_OUTCOME, 'Awaiting Sanction Outcomes'),
@@ -204,6 +204,17 @@ class LegalCase(RevisionedMixin):
         self.status = self.STATUS_PROSECUTION_BRIEF
         self.log_user_action(
             LegalCaseUserAction.ACTION_STATUS_PROSECUTION_BRIEF.format(self.number), 
+            request)
+        # set allocated group to 
+        #self.allocated_group
+        self.save()
+
+    def send_to_manager(self, request):
+        print("send to manager")
+        self.assigned_to = None
+        self.status = self.STATUS_WITH_MANAGER
+        self.log_user_action(
+            LegalCaseUserAction.ACTION_SEND_TO_MANAGER.format(self.number), 
             request)
         # set allocated group to 
         #self.allocated_group
@@ -461,7 +472,7 @@ class LegalCaseUserAction(UserAction):
     ACTION_STATUS_PROSECUTION_BRIEF = "Set status 'Prosecution Brief' for Case {}"
     #ACTION_OFFENCE = "Create Offence {}"
     #ACTION_SANCTION_OUTCOME = "Create Sanction Outcome {}"
-    #ACTION_SEND_TO_MANAGER = "Send Inspection {} to Manager"
+    ACTION_SEND_TO_MANAGER = "Send Case {} to Manager"
     ACTION_CLOSE = "Close Legal Case {}"
     ACTION_PENDING_CLOSURE = "Mark Inspection {} as pending closure"
     #ACTION_REQUEST_AMENDMENT = "Request amendment for {}"
