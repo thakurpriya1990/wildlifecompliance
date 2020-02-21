@@ -104,6 +104,10 @@ class ApplicationSelectedActivitySerializer(serializers.ModelSerializer):
     issuing_officers = EmailUserSerializer(many=True)
     is_with_officer = serializers.SerializerMethodField(read_only=True)
     proposed_purposes = serializers.SerializerMethodField(read_only=True)
+    additional_fee_text = serializers.CharField(
+        required=False, allow_null=True)
+    additional_fee = serializers.DecimalField(
+        max_digits=7, decimal_places=2, required=False, allow_null=True)
 
     class Meta:
         model = ApplicationSelectedActivity
@@ -135,6 +139,13 @@ class ApplicationSelectedActivitySerializer(serializers.ModelSerializer):
         proposed_purposes = obj.proposed_purposes.all()
         for proposed in proposed_purposes:
             purposes.append(proposed.purpose)
+        return PurposeSerializer(purposes, many=True).data
+
+    def get_issued_purposes(self, obj):
+        from wildlifecompliance.components.licences.serializers\
+             import PurposeSerializer
+        purposes = obj.issued_purposes
+
         return PurposeSerializer(purposes, many=True).data
 
     def get_activity_purpose_names(self, obj):
@@ -1052,13 +1063,26 @@ class ApplicationStandardConditionSerializer(serializers.ModelSerializer):
 
 
 class ApplicationProposedIssueSerializer(serializers.ModelSerializer):
+    """
+    Application Selected Activities which have been proposed for issue.
+    """
     proposed_action = CustomChoiceField(read_only=True)
     decision_action = CustomChoiceField(read_only=True)
     licence_activity = ActivitySerializer()
+    issued_purposes_id = serializers.SerializerMethodField(read_only=True)
+    additional_fee_text = serializers.CharField(
+        required=False, allow_null=True)
+    additional_fee = serializers.DecimalField(
+        max_digits=7, decimal_places=2, required=False, allow_null=True)
 
     class Meta:
         model = ApplicationSelectedActivity
         fields = '__all__'
+
+    def get_issued_purposes_id(self, obj):
+        purposes = [p.id for p in obj.issued_purposes]
+
+        return purposes
 
 
 class ProposedLicenceSerializer(serializers.Serializer):
@@ -1069,11 +1093,19 @@ class ProposedLicenceSerializer(serializers.Serializer):
     reason = serializers.CharField()
     cc_email = serializers.CharField(required=False, allow_null=True)
     activity = serializers.ListField(child=serializers.IntegerField())
-    purposes = serializers.ListField(child=serializers.IntegerField())
     approver_detail = serializers.CharField(required=False, allow_null=True)
-    additional_fee_text = serializers.CharField(
-        required=False, allow_null=True)
-    additional_fee = serializers.DecimalField(max_digits=7, decimal_places=2)
+
+    def validate(self, obj):
+        # validate additional fees.
+        activities = self.initial_data['activities']
+        incomplete_fees = [a for a in activities if a[
+            'additional_fee'] > 0 and not a['additional_fee_text']]
+
+        if incomplete_fees:
+            raise serializers.ValidationError(
+                'Please provide description for all additional fee amounts more than zero.')
+
+        return obj
 
 
 class ProposedDeclineSerializer(serializers.Serializer):

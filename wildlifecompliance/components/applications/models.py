@@ -2,6 +2,7 @@ from __future__ import unicode_literals
 
 import datetime
 import logging
+import mimetypes
 import six
 import re
 from decimal import Decimal
@@ -1588,10 +1589,9 @@ class Application(RevisionedMixin):
         """
         Check for additional costs manually included by officer at proposal.
         """
-        additional_fees = [
-            a.id for a in self.activities.filter if a.additional_fee>0]
+        additional_fees = [a.id for a in self.activities if a.additional_fee>0]
 
-        return additional_fees.length
+        return True if additional_fees.__len__ > 0 else False
 
     @property
     def amended_activities(self):
@@ -1879,10 +1879,10 @@ class Application(RevisionedMixin):
         with transaction.atomic():
             try:
                 activity_list = []
-                purpose_list = details.get('purposes', [])
-                for purpose_id in purpose_list:
+                purpose_list = request.data.get('purposes')
+                for p in purpose_list:
                     # build activity_id list from purposes.
-                    purpose = LicencePurpose.objects.get(id=purpose_id)
+                    purpose = LicencePurpose.objects.get(id=p['id'])
                     activity_list.append(purpose.licence_activity_id)
                 activity_list = list(set(activity_list)) # unique ids
 
@@ -1918,9 +1918,6 @@ class Application(RevisionedMixin):
                         activity.cc_email = details.get('cc_email', None)
                         activity.proposed_start_date = latest_activity.start_date
                         activity.proposed_end_date = latest_activity.expiry_date
-                        activity.additional_fee = details.get('additional_fee')
-                        activity.additional_fee_text = details.get(
-                            'additional_fee_text')
                         activity.save()
                 else:
                     ApplicationSelectedActivity.objects.filter(
@@ -1934,23 +1931,36 @@ class Application(RevisionedMixin):
                         cc_email=details.get('cc_email', None),
                         proposed_start_date=details.get('start_date', None),
                         proposed_end_date=details.get('expiry_date', None),
-                        additional_fee=details.get('additional_fee', 0),
-                        additional_fee_text=details.get(
-                            'additional_fee_text', None)
                     )
-                    for purpose_id in purpose_list:
-                        purpose = LicencePurpose.objects.get(id=purpose_id)
+                    # update Additional fees for selected proposed activities.
+                    proposed_activities = request.data.get('activities')
+                    for p_activity in proposed_activities:
+                        activity = self.activities.get(id=p_activity['id'])
+                        activity.additional_fee=p_activity[
+                            'additional_fee'] if p_activity[
+                                'additional_fee'] else 0
+                        activity.additional_fee_text=p_activity[
+                            'additional_fee_text']
+                        activity.save()
+
+                    # update Application Selected Activity Purposes
+                    for p in purpose_list:
+                        purpose = LicencePurpose.objects.get(id=p['id'])
                         activity = self.activities.get(
                             licence_activity_id = purpose.licence_activity_id
                         )
-                        ApplicationSelectedActivityPurpose.objects.get_or_create(
+                        status = 'issue' if p['isProposed'] else 'decline'
+                        activity_purpose = ApplicationSelectedActivityPurpose.objects.get_or_create(
                             purpose=purpose,
-                            selected_activity=activity
+                            selected_activity=activity,
                         )
+                        activity_purpose[0].processing_status = status
+                        activity_purpose[0].save()
 
                 # Email licence approver group of proposed action.
                 attachments_id = request.data.get('email_attachments_id')
                 documents = []
+                attachments = None
                 if attachments_id:
                     attachments = \
                         get_temporary_document_collection(attachments_id)
@@ -1963,6 +1973,8 @@ class Application(RevisionedMixin):
                 send_activity_propose_issue_notification(
                    request, self, email_text, documents
                 )
+                if attachments:
+                    attachments.delete()
 
                 # save temporary documents to all ApplicationSelectedActivity 
                 # instances checked in the modal
@@ -3140,7 +3152,7 @@ class ApplicationSelectedActivity(models.Model):
 
     @property
     def payment_status(self):
-        if self.licence_fee == 0:
+        if self.licence_fee == 0 and self.additional_fee > 0:
             return ActivityInvoice.PAYMENT_STATUS_NOT_REQUIRED
         else:
             if self.invoices.count() == 0:
@@ -3252,6 +3264,11 @@ class ApplicationSelectedActivity(models.Model):
             previous_paid += previous_activity.total_paid_amount
 
         return previous_paid
+
+    def process_licence_fee_payment(self, request, application):
+        from ledger.payments.models import BpointToken
+        if self.licence_fee_paid:
+            return True
 
     def process_licence_fee_payment(self, request, application):
         from ledger.payments.models import BpointToken
