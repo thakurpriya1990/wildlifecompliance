@@ -1112,8 +1112,13 @@ class ProposedLicenceSerializer(serializers.Serializer):
     def validate(self, obj):
         # validate additional fees.
         activities = self.initial_data['activities']
-        incomplete_fees = [a for a in activities if a[
-            'additional_fee'] > 0 and not a['additional_fee_text']]
+        try:
+            incomplete_fees = [a for a in activities if int(a[
+                'additional_fee']) > 0 and not a['additional_fee_text']]
+        except (TypeError):
+            incomplete_fees = False  # Allow for NoneTypes in Fees.
+        except (ValueError):
+            incomplete_fees = True
 
         if incomplete_fees:
             raise serializers.ValidationError(

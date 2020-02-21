@@ -412,11 +412,9 @@ export default {
         },
    },
    mounted:function () {
-       console.log('mounted')
         this.form = document.forms.licenceForm;
         this.addFormValidations();
         this.$nextTick(()=>{
-            console.log('$nextTick')
             this.eventListeners();
         });
         this.initialiseAttributes();
