@@ -118,7 +118,7 @@ from wildlifecompliance.components.artifact.utils import (
         update_boe_other_statements_ticked,
         generate_boe_physical_artifacts,
         generate_boe_document_artifacts,
-        update_boe_physical_artifacts_ticked,
+        update_boe_physical_artifacts,
         update_boe_document_artifacts_ticked,
         )
 #from wildlifecompliance.components.artifact.serializers import SaveBriefOfEvidenceRecordOfInterviewSerializer
@@ -467,7 +467,13 @@ class LegalCaseViewSet(viewsets.ModelViewSet):
                 #        # required when attaching a new BriefOfEvidence to a LegalCase
                 #        instance.save()
 
-                # Brief Of Evidence
+                ## Brief Of Evidence
+                ## create
+                #create_brief_of_evidence = request.data.get('create_brief_of_evidence')
+                #if create_brief_of_evidence:
+                #    boe_instance, created = BriefOfEvidence.objects.get_or_create(legal_case=instance)
+                #    instance.set_status_brief_of_evidence(request)
+                # update
                 brief_of_evidence = request.data.get('brief_of_evidence')
                 if brief_of_evidence:
                     boe_instance, created = BriefOfEvidence.objects.get_or_create(legal_case=instance)
@@ -476,31 +482,48 @@ class LegalCaseViewSet(viewsets.ModelViewSet):
                         boe_serializer.save()
 
                 boe_roi_ticked = request.data.get('boe_roi_ticked')
-                update_boe_roi_ticked(instance, boe_roi_ticked)
+                if boe_roi_ticked:
+                    update_boe_roi_ticked(instance, boe_roi_ticked)
                 boe_other_statements_ticked = request.data.get('boe_other_statements_ticked')
-                update_boe_other_statements_ticked(instance, boe_other_statements_ticked)
-                boe_physical_artifacts_ticked = request.data.get('boe_physical_artifacts_ticked')
-                update_boe_physical_artifacts_ticked(instance, boe_physical_artifacts_ticked)
+                if boe_other_statements_ticked:
+                    update_boe_other_statements_ticked(instance, boe_other_statements_ticked)
                 boe_document_artifacts_ticked = request.data.get('boe_document_artifacts_ticked')
-                update_boe_document_artifacts_ticked(instance, boe_document_artifacts_ticked)
+                if boe_document_artifacts_ticked:
+                    update_boe_document_artifacts_ticked(instance, boe_document_artifacts_ticked)
+                # physical artifacts
+                boe_physical_artifacts_used = request.data.get('boe_physical_artifacts_used')
+                if boe_physical_artifacts_used:
+                    update_boe_physical_artifacts(instance, boe_physical_artifacts_used)
+                boe_physical_artifacts_sensitive_unused = request.data.get('boe_physical_artifacts_sensitive_unused')
+                if boe_physical_artifacts_sensitive_unused:
+                    update_boe_physical_artifacts(instance, boe_physical_artifacts_sensitive_unused)
+                boe_physical_artifacts_non_sensitive_unused = request.data.get('boe_physical_artifacts_non_sensitive_unused')
+                if boe_physical_artifacts_non_sensitive_unused:
+                    update_boe_physical_artifacts(instance, boe_physical_artifacts_non_sensitive_unused)
                 # LegalCasePerson
                 self.add_associated_persons(instance, request)
                 serializer = SaveLegalCaseSerializer(instance, data=request.data)
                 serializer.is_valid(raise_exception=True)
                 if serializer.is_valid():
-                    # TODO: review this logic
-                    # and (not running_sheet_entries or (running_sheet_entries and running_sheet_saved)):
                     serializer.save()
                     instance.log_user_action(
                             LegalCaseUserAction.ACTION_SAVE_LEGAL_CASE.format(
                             instance.number), request)
                     headers = self.get_success_headers(serializer.data)
-                    #return_serializer = LegalCaseSerializer(instance, context={'request': request})
-                    return Response(
-                            #return_serializer.data,
-                            status=status.HTTP_201_CREATED,
-                            headers=headers
-                            )
+                    full_http_response = request.data.get('full_http_response')
+                    if full_http_response:
+                        return_serializer = LegalCaseSerializer(instance, context={'request': request})
+                        return Response(
+                                return_serializer.data,
+                                status=status.HTTP_201_CREATED,
+                                headers=headers
+                                )
+                    else:
+                        return Response(
+                                status=status.HTTP_201_CREATED,
+                                headers=headers
+                                )
+
         except serializers.ValidationError:
             print(traceback.print_exc())
             raise
@@ -605,6 +628,31 @@ class LegalCaseViewSet(viewsets.ModelViewSet):
         except ValidationError as e:
             print(traceback.print_exc())
             raise serializers.ValidationError(repr(e.error_dict))
+        except Exception as e:
+            print(traceback.print_exc())
+            raise serializers.ValidationError(str(e))
+
+    @detail_route(methods=['POST'])
+    @renderer_classes((JSONRenderer,))
+    def process_brief_of_evidence_document(self, request, *args, **kwargs):
+        try:
+            instance = self.get_object()
+            brief_of_evidence_instance = instance.brief_of_evidence
+            if brief_of_evidence_instance:
+                returned_data = process_generic_document(request, brief_of_evidence_instance)
+            if returned_data:
+                return Response(returned_data)
+            else:
+                return Response()
+
+        except serializers.ValidationError:
+            print(traceback.print_exc())
+            raise
+        except ValidationError as e:
+            if hasattr(e, 'error_dict'):
+                raise serializers.ValidationError(repr(e.error_dict))
+            else:
+                raise serializers.ValidationError(repr(e[0].encode('utf-8')))
         except Exception as e:
             print(traceback.print_exc())
             raise serializers.ValidationError(str(e))
@@ -762,11 +810,16 @@ class LegalCaseViewSet(viewsets.ModelViewSet):
                 if workflow_type == 'close':
                     instance.close(request)
                 elif workflow_type == 'brief_of_evidence':
+                    #create_brief_of_evidence = request.data.get('create_brief_of_evidence')
+                    #if create_brief_of_evidence:
+                    ## create BriefOfEvidence instance
+                    boe_instance, created = BriefOfEvidence.objects.get_or_create(legal_case=instance)
+                    instance.set_status_brief_of_evidence(request)
                     build_all_boe_other_statements_hierarchy(instance)
                     build_all_boe_roi_hierarchy(instance)
                     generate_boe_document_artifacts(instance)
                     generate_boe_physical_artifacts(instance)
-                    instance.generate_brief_of_evidence(request)
+                    #instance.generate_brief_of_evidence(request)
                 #    instance.send_to_manager(request)
                 #elif workflow_type == 'request_amendment':
                 #    instance.request_amendment(request)

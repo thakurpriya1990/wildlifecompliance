@@ -228,7 +228,9 @@ export default {
             return this.$router.currentRoute.name==='complete-assessment'
         },
         applicationActivities: function() {
+
             if (this.isCompleteAssessmentAction){
+
                 // filtered activity list for application when completing assessments.
                 return this.allCurrentActivitiesWithAssessor
             }

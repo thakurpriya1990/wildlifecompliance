@@ -16,6 +16,7 @@
                                     <div class="col-sm-12" v-for="(a, index) in applicationSelectedActivitiesForPurposes" v-bind:key="`a_${index}`">
                                         <input type="checkbox" name="licence_activity" :value ="a.id" :id="a.id" v-model="checkedActivities" > {{a.activity_name_str}}
                                         <table border=0 width='80%'>
+
                                             <div v-show="checkedActivities.find(checked => checked===a.id)">    
                                                 <div v-for="p in a.purposes">
                                                     <div><tr><td width="40%">  
@@ -26,6 +27,7 @@
                                                     </div>
                                                 </div>
                                             </div>
+
                                         </table>
                                     </div>
                                 </div>
@@ -272,6 +274,7 @@ export default {
             this.errors = false;
             $('.has-error').removeClass('has-error');
             this.validation_form.resetForm();
+
             this.application.activities.forEach(a => {
                 a.additional_fee = null
                 a.additional_fee_text = null
@@ -365,6 +368,12 @@ export default {
                 }
             });
        },
+       initialiseAttributes: function() {
+            this.application.activities.forEach(a => {
+                a.additional_fee = null
+                a.additional_fee_text = null
+            })
+       },
        eventListeners:function () {
             let vm = this;
             // Initialise Date Picker
@@ -403,11 +412,14 @@ export default {
         },
    },
    mounted:function () {
+       console.log('mounted')
         this.form = document.forms.licenceForm;
         this.addFormValidations();
         this.$nextTick(()=>{
+            console.log('$nextTick')
             this.eventListeners();
         });
+        this.initialiseAttributes();
    }
 }
 </script>
