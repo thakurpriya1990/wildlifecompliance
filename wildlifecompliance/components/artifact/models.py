@@ -383,6 +383,7 @@ class BriefOfEvidenceDocumentArtifacts(models.Model):
 
     class Meta:
         app_label = 'wildlifecompliance'
+        unique_together = ('document_artifact', 'legal_case')
 
     @property
     def label(self):
@@ -410,6 +411,7 @@ class ProsecutionBriefDocumentArtifacts(models.Model):
 
     class Meta:
         app_label = 'wildlifecompliance'
+        unique_together = ('document_artifact', 'legal_case')
 
     @property
     def label(self):
@@ -605,7 +607,7 @@ class PhysicalArtifactLegalCases(models.Model):
     primary = models.BooleanField(default=False)
     used_within_case = models.BooleanField(default=False)
     sensitive_non_disclosable = models.BooleanField(default=False)
-    reason_sensitive_non_disclosable = models.TextField(blank=True, null=True)
+    #reason_sensitive_non_disclosable = models.TextField(blank=True, null=True)
     objects = PhysicalArtifactLegalCasesManager()
 
     class Meta:
@@ -624,10 +626,11 @@ class BriefOfEvidencePhysicalArtifacts(models.Model):
             #related_name='physical_artifacts_boe'
             )
     ticked = models.BooleanField(default=False)
-    details = models.TextField(blank=True, null=True)
+    reason_sensitive_non_disclosable = models.TextField(blank=True, null=True)
 
     class Meta:
         app_label = 'wildlifecompliance'
+        unique_together = ('physical_artifact', 'legal_case')
 
     @property
     def label(self):
@@ -652,10 +655,11 @@ class ProsecutionBriefPhysicalArtifacts(models.Model):
             #related_name='physical_artifacts_boe'
             )
     ticked = models.BooleanField(default=False)
-    details = models.TextField(blank=True, null=True)
+    reason_sensitive_non_disclosable = models.TextField(blank=True, null=True)
 
     class Meta:
         app_label = 'wildlifecompliance'
+        unique_together = ('physical_artifact', 'legal_case')
 
     @property
     def label(self):

@@ -185,12 +185,12 @@ class LegalCase(RevisionedMixin):
                 if parent.status == 'pending_closure':
                     parent.close(request)
 
-    def generate_brief_of_evidence(self, request):
-        print("generate brief of evidence")
+    def set_status_brief_of_evidence(self, request):
+        print("set status brief of evidence")
         self.assigned_to = None
         self.status = self.STATUS_BRIEF_OF_EVIDENCE
         self.log_user_action(
-            LegalCaseUserAction.ACTION_GENERATE_BRIEF_OF_EVIDENCE.format(self.number), 
+            LegalCaseUserAction.ACTION_STATUS_BRIEF_OF_EVIDENCE.format(self.number), 
             request)
         # set allocated group to 
         #self.allocated_group
@@ -444,7 +444,7 @@ class LegalCaseCommsLogDocument(Document):
 class LegalCaseUserAction(UserAction):
     ACTION_CREATE_LEGAL_CASE = "Create Case {}"
     ACTION_SAVE_LEGAL_CASE = "Save Case {}"
-    ACTION_GENERATE_BRIEF_OF_EVIDENCE = "Generate Brief of Evidence for Case {}"
+    ACTION_STATUS_BRIEF_OF_EVIDENCE = "Set status 'Brief of Evidence' for Case {}"
     #ACTION_OFFENCE = "Create Offence {}"
     #ACTION_SANCTION_OUTCOME = "Create Sanction Outcome {}"
     #ACTION_SEND_TO_MANAGER = "Send Inspection {} to Manager"
@@ -487,6 +487,27 @@ class LegalCaseDocument(Document):
     def delete(self):
         if self.can_delete:
             return super(LegalCaseDocument, self).delete()
+        #logger.info(
+         #   'Cannot delete existing document object after application has been submitted (including document submitted before\
+          #  application pushback to status Draft): {}'.format(
+           #     self.name)
+        #)
+
+    class Meta:
+        app_label = 'wildlifecompliance'
+
+
+class BriefOfEvidenceDocument(Document):
+    brief_of_evidence = models.ForeignKey(BriefOfEvidence, related_name='documents')
+    _file = models.FileField(max_length=255)
+    input_name = models.CharField(max_length=255, blank=True, null=True)
+    # after initial submit prevent document from being deleted
+    can_delete = models.BooleanField(default=True)
+    version_comment = models.CharField(max_length=255, blank=True, null=True)
+
+    def delete(self):
+        if self.can_delete:
+            return super(BriefOfEvidenceDocument, self).delete()
         #logger.info(
          #   'Cannot delete existing document object after application has been submitted (including document submitted before\
           #  application pushback to status Draft): {}'.format(
