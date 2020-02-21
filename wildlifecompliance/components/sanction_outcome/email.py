@@ -7,6 +7,7 @@ from wildlifecompliance.components.main.email import prepare_attachments, _extra
 from wildlifecompliance.components.sanction_outcome.pdf import create_infringement_notice_pdf_bytes
 from wildlifecompliance.components.sanction_outcome.pdf_in_blue import create_in_pdf_bytes
 # from wildlifecompliance.components.sanction_outcome.serializers import SanctionOutcomeCommsLogEntrySerializer
+from wildlifecompliance.components.sanction_outcome.pdf_prosecution_notice import create_prosecution_notice_pdf_bytes
 
 logger = logging.getLogger(__name__)
 
@@ -542,7 +543,8 @@ def send_infringement_notice(to_address, sanction_outcome, workflow_entry, reque
 
     pdf_file_name = 'infringement_notice_{}_{}.pdf'.format(sanction_outcome.lodgement_number, datetime.datetime.now().strftime("%Y%m%d%H%M%S"))
     # document = create_infringement_notice_pdf_bytes(pdf_file_name, sanction_outcome)
-    document = create_in_pdf_bytes(pdf_file_name, sanction_outcome)
+    # document = create_in_pdf_bytes(pdf_file_name, sanction_outcome)
+    document = create_prosecution_notice_pdf_bytes(pdf_file_name, sanction_outcome)
 
     # Attach files (files from the modal, and the PDF file generated above)
     attachments = prepare_attachments(workflow_entry.documents)
