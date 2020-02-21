@@ -255,7 +255,7 @@ def _create_pdf(invoice_buffer, sanction_outcome):
     tbl_prosecutor = Table(data, style=style_tbl_prosecutor, colWidths=col_width_details, rowHeights=rowHeights)
 
     # For Court Use Only
-    rowHeights = [6*mm, 10*mm, 6*mm, 6*mm, 6*mm, 6*mm, 6*mm, 6*mm, 6*mm, 6*mm, 23*mm, 17*mm]
+    rowHeights_court = [6*mm, 10*mm, 6*mm, 6*mm, 6*mm, 6*mm, 6*mm, 6*mm, 6*mm, 6*mm, 23*mm, 17*mm]
     style_tbl_for_court = TableStyle([
         ('VALIGN', (0, 0), (-1, -1), 'MIDDLE'),
         ('VALIGN', (3, 11), (5, 11), 'BOTTOM'),
@@ -321,7 +321,64 @@ def _create_pdf(invoice_buffer, sanction_outcome):
         Paragraph('<strong>Date:</strong>', styles['Normal']),
         '',
     ])
-    tbl_for_court = Table(data, style=style_tbl_for_court, colWidths=col_width_for_court, rowHeights=rowHeights)
+    tbl_for_court = Table(data, style=style_tbl_for_court, colWidths=col_width_for_court, rowHeights=rowHeights_court)
+
+    #############
+    # PageBreak #
+    #############
+
+    # Court Number
+    rowHeights = [10*mm,]
+    col_width_court_number = [30*mm, 70*mm,]
+    style_tbl_for_court_number = TableStyle([
+        ('VALIGN', (0, 0), (-1, -1), 'MIDDLE'),
+        ('GRID', (0, 0), (-1, -1), 0.5, colors.black),
+    ])
+    data = []
+    data.append([Paragraph('Court number', styles['Normal']), ''])
+    tbl_for_court_number = OffsetTable(data, x_offset=45.5 * mm, style=style_tbl_for_court_number, colWidths=col_width_court_number, rowHeights=rowHeights)
+
+    # Table above
+    style_array = [
+        ('VALIGN', (0, 0), (-1, -1), 'MIDDLE'),
+        ('GRID', (0, 0), (-1, -1), 0.5, colors.black),
+    ]
+    for row_num in range(0, 29):
+        style_array.append(('SPAN', (3, row_num), (4, row_num)))
+    style_tbl_above = TableStyle(style_array)
+    data = []
+    data.append([
+        Paragraph('Date', styles['Centre']),
+        Paragraph('Appearance by accused', styles['Centre']),
+        Paragraph('Counsel', styles['Centre']),
+        Paragraph('Record of court proceedings', styles['Centre']),
+        '',
+        Paragraph('Judicial officer', styles['Centre']),
+    ])
+    for row_num in range(0, 28):
+        data.append(['', Paragraph('<strong>Y / N</strong>', styles['Centre']), '', '', '', ''])
+    tbl_above = Table(data, style=style_tbl_above, colWidths=col_width_for_court)
+
+    # Table below
+    style_array = [
+        ('VALIGN', (0, 0), (-1, -1), 'MIDDLE'),
+        ('GRID', (0, 0), (-1, -1), 0.5, colors.black),
+    ]
+    for row_num in range(0, 8):
+        style_array.append(('SPAN', (2, row_num), (5, row_num)))
+    style_tbl_below = TableStyle(style_array)
+    data = []
+    data.append([
+        Paragraph('Date', styles['Centre']),
+        Paragraph('Clerk\'s Initial', styles['Centre']),
+        Paragraph('Registry record', styles['Centre']),
+        '',
+        '',
+        '',
+    ])
+    for row_num in range(0, 7):
+        data.append(['', '', '', '', '', ''])
+    tbl_below = Table(data, style=style_tbl_below, colWidths=col_width_for_court, rowHeights=8.5*mm)
 
     # Append tables to the elements to build
     gap_between_tables = 1.5*mm
@@ -336,6 +393,13 @@ def _create_pdf(invoice_buffer, sanction_outcome):
     elements.append(tbl_prosecutor)
     elements.append(Spacer(0, gap_between_tables))
     elements.append(tbl_for_court)
+    elements.append(PageBreak())
+    elements.append(tbl_for_court_number)
+    elements.append(Spacer(0, gap_between_tables))
+    elements.append(tbl_above)
+    elements.append(Spacer(0, gap_between_tables))
+    elements.append(tbl_below)
+
     doc.build(elements)
     return invoice_buffer
 
@@ -362,5 +426,24 @@ def create_prosecution_notice_pdf_bytes(filename, sanction_outcome):
         # END: Save
 
         return document
+
+
+class OffsetTable(Table, object):
+
+    def __init__(self, data, colWidths=None, rowHeights=None, style=None,
+                 repeatRows=0, repeatCols=0, splitByRow=1, emptyTableAction=None, ident=None,
+                 hAlign=None, vAlign=None, normalizedData=0, cellStyles=None, rowSplitRange=None,
+                 spaceBefore=None, spaceAfter=None, longTableOptimize=None, minRowHeights=None, x_offset=0, y_offset=0):
+        self.x_offset = x_offset
+        self.y_offset = y_offset
+        super(OffsetTable, self).__init__(data, colWidths, rowHeights, style,
+                                          repeatRows, repeatCols, splitByRow, emptyTableAction, ident,
+                                          hAlign, vAlign, normalizedData, cellStyles, rowSplitRange,
+                                          spaceBefore, spaceAfter, longTableOptimize, minRowHeights)
+
+    def drawOn(self, canvas, x, y, _sW=0):
+        x = x + self.x_offset
+        y = y + self.y_offset
+        super(OffsetTable, self).drawOn(canvas, x, y, _sW)
 
 
