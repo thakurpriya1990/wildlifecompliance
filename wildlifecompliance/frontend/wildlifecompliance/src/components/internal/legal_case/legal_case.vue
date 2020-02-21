@@ -197,8 +197,12 @@
                                         <!--div v-if="canUserAction" class="col-sm-12"-->
                                         <!--div class="col-sm-1 pull-right" /-->
                                         <div v-if="canUserAction">
-                                              <!--a @click="createNewRunningSheetEntry()" class="btn btn-primary btn-block" -->
-                                              <a @click="createNewRunningSheetEntry()" :disabled="!openStatus" class="btn btn-primary pull-right new-row-button" >
+                                              <a @click="createNewRunningSheetEntry()" class="btn btn-primary pull-right new-row-button" >
+                                                New Row
+                                              </a>
+                                        </div>
+                                        <div v-else>
+                                              <a class="btn btn-primary pull-right new-row-button" disabled>
                                                 New Row
                                               </a>
                                         </div>
@@ -483,9 +487,10 @@ export default {
                                 retStr = '<strike>' + 
                                     `<div id=${row.number} style="min-height:20px" contenteditable="false">${row.description}</div>`
                                     '</strike>';
+                            } else if (!row.action) {
+                                retStr = `<div id=${row.number} style="min-height:20px" contenteditable="false">${row.description}</div>`
                             }
                             return retStr;
-
                         }
                     },
                     {
@@ -500,8 +505,9 @@ export default {
                             let rowIdDel = row.number.replace('-', 'D')
                             let rowIdHist = row.number.replace('-', 'H')
                             let rowIdReinstate = row.number.replace('-', 'R')
+                            retStr += `<a id=${rowIdHist} class="row_history" href="#">History</a><br/><br/>`
                             if (row.action) {
-                                retStr += `<a id=${rowIdHist} class="row_history" href="#">History</a><br/><br/>`
+                                //retStr += `<a id=${rowIdHist} class="row_history" href="#">History</a><br/><br/>`
                                 if (!row.deleted) {
                                     retStr += `<a id=${rowIdDel} class="row_delete" href="#">Delete</a><br/>`
                                 } else {

@@ -11,98 +11,98 @@
                             <FormSection :formCollapse="false" label="Case Information Form">
                                 <div class="col-sm-12 form-group"><div class="row">
                                     <label class="col-sm-10">
-                                    <input :onclick="readonlyProsecutionBrief" type="checkbox" data-parsley-required v-model="prosecutionBrief.victim_impact_statement_taken" />
+                                    <input :disabled="readonlyForm" type="checkbox" data-parsley-required v-model="prosecutionBrief.victim_impact_statement_taken" />
                                     Victim impact statement to be taken?
                                     </label>
                                     <label v-if="prosecutionBrief.victim_impact_statement_taken" class="col-sm-10">Details
                                         <textarea :readonly="readonlyForm" class="form-control location_address_field" v-model="prosecutionBrief.victim_impact_statement_taken_details" />
                                     </label>
                                     <label class="col-sm-10">
-                                    <input :onclick="readonlyProsecutionBrief" type="checkbox" data-parsley-required v-model="prosecutionBrief.statements_pending" />
+                                    <input :disabled="readonlyForm" type="checkbox" data-parsley-required v-model="prosecutionBrief.statements_pending" />
                                     Witness (including expert statements) still to be taken?
                                     </label>
                                     <label v-if="prosecutionBrief.statements_pending" class="col-sm-10">Details
                                         <textarea :readonly="readonlyForm" class="form-control location_address_field" v-model="prosecutionBrief.statements_pending_details" />
                                     </label>
                                     <label class="col-sm-10">
-                                    <input :onclick="readonlyProsecutionBrief" type="checkbox" data-parsley-required v-model="prosecutionBrief.vulnerable_hostile_witnesses" />
+                                    <input :disabled="readonlyForm" type="checkbox" data-parsley-required v-model="prosecutionBrief.vulnerable_hostile_witnesses" />
                                     Vulnerable / hostile witnesses?
                                     </label>
                                     <label v-if="prosecutionBrief.vulnerable_hostile_witnesses" class="col-sm-10">Details
                                         <textarea :readonly="readonlyForm" class="form-control location_address_field" v-model="prosecutionBrief.vulnerable_hostile_witnesses_details" />
                                     </label>
                                     <label class="col-sm-10">
-                                    <input :onclick="readonlyProsecutionBrief" type="checkbox" data-parsley-required v-model="prosecutionBrief.witness_refusing_statement" />
+                                    <input :disabled="readonlyForm" type="checkbox" data-parsley-required v-model="prosecutionBrief.witness_refusing_statement" />
                                     Witnesses refusing to make statements?
                                     </label>
                                     <label v-if="prosecutionBrief.witness_refusing_statement" class="col-sm-10">Details
                                         <textarea :readonly="readonlyForm" class="form-control location_address_field" v-model="prosecutionBrief.witness_refusing_statement_details" />
                                     </label>
                                     <label class="col-sm-10">
-                                    <input :onclick="readonlyProsecutionBrief" type="checkbox" data-parsley-required v-model="prosecutionBrief.problems_needs_prosecution_witnesses" />
+                                    <input :disabled="readonlyForm" type="checkbox" data-parsley-required v-model="prosecutionBrief.problems_needs_prosecution_witnesses" />
                                     Specific problems / needs of prosecution witnesses, e.g. interpreters?
                                     </label>
                                     <label v-if="prosecutionBrief.problems_needs_prosecution_witnesses" class="col-sm-10">Details
                                         <textarea :readonly="readonlyForm" class="form-control location_address_field" v-model="prosecutionBrief.problems_needs_prosecution_witnesses" />
                                     </label>
                                     <label class="col-sm-10">
-                                    <input :onclick="readonlyProsecutionBrief" type="checkbox" data-parsley-required v-model="prosecutionBrief.accused_bad_character" />
+                                    <input :disabled="readonlyForm" type="checkbox" data-parsley-required v-model="prosecutionBrief.accused_bad_character" />
                                     History of bad character / propensity (similar fact) evidence involving accused?
                                     </label>
                                     <label v-if="prosecutionBrief.accused_bad_character" class="col-sm-10">Details
                                         <textarea :readonly="readonlyForm" class="form-control location_address_field" v-model="prosecutionBrief.accused_bad_character_details" />
                                     </label>
                                     <label class="col-sm-10">
-                                    <input :onclick="readonlyProsecutionBrief" type="checkbox" data-parsley-required v-model="prosecutionBrief.further_persons_interviews_pending" />
+                                    <input :disabled="readonlyForm" type="checkbox" data-parsley-required v-model="prosecutionBrief.further_persons_interviews_pending" />
                                     Further persons (witness or suspect) to be interviewed?
                                     </label>
                                     <label v-if="prosecutionBrief.further_persons_interviews_pending" class="col-sm-10">Details
                                         <textarea :readonly="readonlyForm" class="form-control location_address_field" v-model="prosecutionBrief.further_persons_interviews_pending_details" />
                                     </label>
                                     <label class="col-sm-10">
-                                    <input :onclick="readonlyProsecutionBrief" type="checkbox" data-parsley-required v-model="prosecutionBrief.other_interviews" />
+                                    <input :disabled="readonlyForm" type="checkbox" data-parsley-required v-model="prosecutionBrief.other_interviews" />
                                     Other persons whose details do not appear on this brief who have been interviewed?
                                     </label>
                                     <label v-if="prosecutionBrief.other_interviews" class="col-sm-10">Details
                                         <textarea :readonly="readonlyForm" class="form-control location_address_field" v-model="prosecutionBrief.other_interviews_details" />
                                     </label>
                                     <label class="col-sm-10">
-                                    <input :onclick="readonlyProsecutionBrief" type="checkbox" data-parsley-required v-model="prosecutionBrief.relevant_persons_pending_charges" />
+                                    <input :disabled="readonlyForm" type="checkbox" data-parsley-required v-model="prosecutionBrief.relevant_persons_pending_charges" />
                                     Other relevant persons charged or yet to be charged?
                                     </label>
                                     <label v-if="prosecutionBrief.relevant_persons_pending_charges" class="col-sm-10">Details
                                         <textarea :readonly="readonlyForm" class="form-control location_address_field" v-model="prosecutionBrief.relevant_persons_pending_charges_details" />
                                     </label>
                                     <label class="col-sm-10">
-                                    <input :onclick="readonlyProsecutionBrief" type="checkbox" data-parsley-required v-model="prosecutionBrief.other_persons_receiving_sanction_outcome" />
+                                    <input :disabled="readonlyForm" type="checkbox" data-parsley-required v-model="prosecutionBrief.other_persons_receiving_sanction_outcome" />
                                     Others receiving Infringement / Warning arising out of the same incident?
                                     </label>
                                     <label v-if="prosecutionBrief.other_persons_receiving_sanction_outcome" class="col-sm-10">Details
                                         <textarea :readonly="readonlyForm" class="form-control location_address_field" v-model="prosecutionBrief.other_persons_receiving_sanction_outcome_details" />
                                     </label>
                                     <label class="col-sm-10">
-                                    <input :onclick="readonlyProsecutionBrief" type="checkbox" data-parsley-required v-model="prosecutionBrief.local_public_interest" />
+                                    <input :disabled="readonlyForm" type="checkbox" data-parsley-required v-model="prosecutionBrief.local_public_interest" />
                                     Matters of local / public interest?
                                     </label>
                                     <label v-if="prosecutionBrief.local_public_interest" class="col-sm-10">Details
                                         <textarea :readonly="readonlyForm" class="form-control location_address_field" v-model="prosecutionBrief.local_public_interest_details" />
                                     </label>
                                     <label class="col-sm-10">
-                                    <input :onclick="readonlyProsecutionBrief" type="checkbox" data-parsley-required v-model="prosecutionBrief.applications_orders_requests" />
+                                    <input :disabled="readonlyForm" type="checkbox" data-parsley-required v-model="prosecutionBrief.applications_orders_requests" />
                                     Other applications / orders on conviction requests?
                                     </label>
                                     <label v-if="prosecutionBrief.applications_orders_requests" class="col-sm-10">Details
                                         <textarea :readonly="readonlyForm" class="form-control location_address_field" v-model="prosecutionBrief.applications_orders_requests_details" />
                                     </label>
                                     <label class="col-sm-10">
-                                    <input :onclick="readonlyProsecutionBrief" type="checkbox" data-parsley-required v-model="prosecutionBrief.applications_orders_required" />
+                                    <input :disabled="readonlyForm" type="checkbox" data-parsley-required v-model="prosecutionBrief.applications_orders_required" />
                                     Are there any other applications / orders on conviction required?
                                     </label>
                                     <label v-if="prosecutionBrief.applications_orders_required" class="col-sm-10">Details
                                         <textarea :readonly="readonlyForm" class="form-control location_address_field" v-model="prosecutionBrief.applications_orders_required_details" />
                                     </label>
                                     <label class="col-sm-10">
-                                    <input :onclick="readonlyProsecutionBrief" type="checkbox" data-parsley-required v-model="prosecutionBrief.other_legal_matters" />
+                                    <input :disabled="readonlyForm" type="checkbox" data-parsley-required v-model="prosecutionBrief.other_legal_matters" />
                                     Is there any statutory notice, DEC licence, ministerial statement or policy etc. re the matter, premise or person subject to this brief?
                                     </label>
                                     <label v-if="prosecutionBrief.other_legal_matters" class="col-sm-10">Details
