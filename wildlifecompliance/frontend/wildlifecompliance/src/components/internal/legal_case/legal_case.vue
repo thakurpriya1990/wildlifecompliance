@@ -51,21 +51,21 @@
                     </div>
                     <div class="panel-body panel-collapse">
                         <div class="row action-button">
-                            <div v-if="canUserAction" class="col-sm-12">
+                            <div v-if="canUserAction && openStatus" class="col-sm-12">
                                   <a @click="openInspection()" class="btn btn-primary btn-block" >
                                     Inspection
                                   </a>
                             </div>
                         </div>
                         <div class="row action-button">
-                          <div v-if="canUserAction && offenceVisibility" class="col-sm-12">
+                          <div v-if="canUserAction && openStatus" class="col-sm-12">
                                 <a @click="openOffence()" class="btn btn-primary btn-block">
                                   Offence
                                 </a>
                           </div>
                         </div>
                         <div class="row action-button">
-                          <div v-if="canUserAction" class="col-sm-12">
+                          <div v-if="canUserAction && openStatus" class="col-sm-12">
                                 <input 
                                 :disabled="!sanctionOutcomeVisibility" 
                                 type="button" 
@@ -77,7 +77,7 @@
                         </div>
                         
                         <div  class="row action-button">
-                          <div v-if="canUserAction" class="col-sm-12">
+                          <div v-if="canUserAction && openStatus" class="col-sm-12">
                                 <a @click="addWorkflow('brief_of_evidence')" class="btn btn-primary btn-block">
                                 <!--a @click="createBriefOfEvidence" class="btn btn-primary btn-block"-->
                                   Brief of Evidence
@@ -85,7 +85,23 @@
                           </div>
                         </div>
                         <div  class="row action-button">
-                          <div v-if="canUserAction" class="col-sm-12">
+                          <div v-if="canUserAction && briefOfEvidenceStatus" class="col-sm-12">
+                                <a @click="addWorkflow('back_to_case')" class="btn btn-primary btn-block">
+                                <!--a @click="createProsecutionBrief" class="btn btn-primary btn-block"-->
+                                  Back To Case
+                                </a>
+                          </div>
+                        </div>
+                        <div  class="row action-button">
+                          <div v-if="canUserAction && briefOfEvidenceStatus" class="col-sm-12">
+                                <a @click="addWorkflow('send_to_manager')" class="btn btn-primary btn-block">
+                                <!--a @click="createProsecutionBrief" class="btn btn-primary btn-block"-->
+                                  Send To Manager
+                                </a>
+                          </div>
+                        </div>
+                        <div  class="row action-button">
+                          <div v-if="canUserAction && briefOfEvidenceStatus" class="col-sm-12">
                                 <a @click="addWorkflow('prosecution_brief')" class="btn btn-primary btn-block">
                                 <!--a @click="createProsecutionBrief" class="btn btn-primary btn-block"-->
                                   Prosecution Brief
@@ -108,10 +124,11 @@
             <div class="row">
 
                 <div class="container-fluid">
-                    <ul class="nav nav-pills aho2">
+                    <ul class="nav nav-pills">
                         <li class="nav-item active"><a data-toggle="tab" :href="'#'+runTab">Running Sheet</a></li>
                         <li class="nav-item"><a data-toggle="tab" :href="'#'+cTab" >Case Details</a></li>
-                        <li class="nav-item"><a data-toggle="tab" :href="'#'+bTab" >Brief of Evidence</a></li>
+                        <li v-if="briefOfEvidenceStatus" class="nav-item"><a data-toggle="tab" :href="'#'+bTab" >Brief of Evidence</a></li>
+                        <li v-if="prosecutionBriefStatus" class="nav-item"><a data-toggle="tab" :href="'#'+pTab" >Prosecution Brief</a></li>
                         <li class="nav-item"><a data-toggle="tab" :href="'#'+cpTab" >Court Proceedings</a></li>
                         <li class="nav-item"><a data-toggle="tab" :href="'#'+rTab">Related Items</a></li>
                     </ul>
@@ -125,7 +142,7 @@
                                         <!--div class="col-sm-1 pull-right" /-->
                                         <div v-if="canUserAction">
                                               <!--a @click="createNewRunningSheetEntry()" class="btn btn-primary btn-block" -->
-                                              <a @click="createNewRunningSheetEntry()" class="btn btn-primary pull-right new-row-button" >
+                                              <a @click="createNewRunningSheetEntry()" :disabled="!openStatus" class="btn btn-primary pull-right new-row-button" >
                                                 New Row
                                               </a>
                                         </div>
@@ -169,9 +186,14 @@
                             </FormSection>
                         </div>
                         <div :id="bTab" class="tab-pane fade in">
-                            <div v-if="briefOfEvidenceVisibility">
-                                <BriefOfEvidence ref="brief_of_evidence"/>
-                            </div>
+                            <BriefOfEvidence 
+                            ref="brief_of_evidence"
+                            :readonly="briefOfEvidenceVisibility"/>
+                        </div>
+                        <div :id="pTab" class="tab-pane fade in">
+                            <ProsecutionBrief 
+                            ref="prosecution_brief"
+                            :readonly="prosecutionBriefVisibility"/>
                         </div>
                         <div :id="cpTab" class="tab-pane fade in">
                             <CourtProceedings v-if="legal_case.court_proceedings" />
@@ -287,6 +309,7 @@ import LegalCaseWorkflow from './legal_case_workflow'
 import TreeSelect from '@riophae/vue-treeselect'
 import '@riophae/vue-treeselect/dist/vue-treeselect.css'
 import BriefOfEvidence from './brief_of_evidence';
+import ProsecutionBrief from './prosecution_brief';
 import CourtProceedings from './court_proceedings';
 
 
@@ -315,6 +338,7 @@ export default {
             cTab: 'cTab'+this._uid,
             cpTab: 'cpTab'+this._uid,
             bTab: 'bTab'+this._uid,
+            pTab: 'pTab'+this._uid,
             current_schema: [],
             workflowBindId: '',
             workflow_type: '',
@@ -453,6 +477,7 @@ export default {
     TreeSelect,
     BriefOfEvidence,
     CourtProceedings,
+    ProsecutionBrief,
   },
   computed: {
     ...mapGetters('legalCaseStore', {
@@ -476,6 +501,69 @@ export default {
             readonly = !this.legal_case.can_user_action;
         }
         return readonly
+    },
+    briefOfEvidenceStatus: function() {
+        let returnStatus = false
+        if (this.legal_case && this.statusId === 'brief_of_evidence') {
+            returnStatus = true
+        }
+        return returnStatus
+    },
+    prosecutionBriefStatus: function() {
+        let returnStatus = false
+        if (this.legal_case && this.statusId === 'prosecution_brief') {
+            returnStatus = true
+        }
+        return returnStatus
+    },
+    openStatus: function() {
+        let returnStatus = false
+        if (this.legal_case && this.statusId === 'open') {
+            returnStatus = true
+        }
+        return returnStatus
+    },
+    runningSheetTabListClass: function() {
+        let tabClass = 'nav-item';
+        if (this.openStatus) {
+            tabClass += ' active';
+        }
+        return tabClass;
+    },
+    briefOfEvidenceTabListClass: function() {
+        let tabClass = 'nav-item';
+        if (this.briefOfEvidenceStatus) {
+            tabClass += ' active';
+        }
+        return tabClass;
+    },
+    prosecutionBriefTabListClass: function() {
+        let tabClass = 'nav-item';
+        if (this.prosecutionBriefStatus) {
+            tabClass += ' active';
+        }
+        return tabClass;
+    },
+    runningSheetTabClass: function() {
+        let tabClass = 'tab-pane fade in';
+        if (this.openStatus) {
+            tabClass += ' active';
+        }
+        return tabClass;
+    },
+    briefOfEvidenceTabClass: function() {
+        let tabClass = 'tab-pane fade in';
+        if (this.briefOfEvidenceStatus) {
+            tabClass += ' active';
+        }
+        return tabClass;
+    },
+    prosecutionBriefTabClass: function() {
+        let tabClass = 'tab-pane fade in';
+        if (this.prosecutionBriefStatus) {
+            tabClass += ' active';
+        }
+        return tabClass;
     },
     readonlyBriefOfEvidence: function() {
         let readonly = true
@@ -511,6 +599,7 @@ export default {
         return oList;
     },
     */
+    /*
     offenceVisibility: function() {
         let offence_visibility = false;
         if (this.legal_case.status && this.legal_case.can_user_action) {
@@ -518,6 +607,7 @@ export default {
         }
         return offence_visibility;
     },
+    */
     sanctionOutcomeVisibility: function() {
         let sanction_outcome_visibility = false;
         if (this.legal_case.status && this.offenceExists && this.legal_case.can_user_action) {
@@ -542,6 +632,16 @@ export default {
         }
         return related_items_visibility;
     },
+      /*
+    runningSheetVisibility: function() {
+        let running_sheet_visibility = false;
+        if (this.legal_case && this.legal_case.id && ['open'].includes(this.legal_case.status)) {
+            running_sheet_visibility = true;
+        }
+        return running_sheet_visibility;
+    },
+    */
+
     personOrArtifactBindId: function() {
         let person_or_artifact_id = ''
         person_or_artifact_id = this.tabSelected + parseInt(this.uuid);
@@ -569,6 +669,17 @@ export default {
             this.legal_case.id && 
             this.legal_case.brief_of_evidence && 
             this.legal_case.status.id === 'brief_of_evidence') 
+        {
+            visible = true;
+        }
+        return visible;
+    },
+    prosecutionBriefVisibility: function() {
+        let visible = false;
+        if (this.legal_case && 
+            this.legal_case.id && 
+            this.legal_case.prosecution_brief && 
+            this.legal_case.status.id === 'prosecution_brief') 
         {
             visible = true;
         }
@@ -634,6 +745,7 @@ export default {
       setRunningSheetEntry: 'setRunningSheetEntry',
       addToRunningSheetPersonList: 'addToRunningSheetPersonList',
       setBriefOfEvidence: 'setBriefOfEvidence',
+      setProsecutionBrief: 'setProsecutionBrief',
       //setBoeRoiTicked: 'setBoeRoiTicked',
       //setBoeOtherStatementsTicked: 'setBoeOtherStatementsTicked',
     }),
@@ -898,7 +1010,7 @@ export default {
             this.workflowBindId = timeNow.toString();
         }
     },
-    addWorkflow: async function(workflow_type) {
+    addWorkflow: function(workflow_type) {
         console.log(workflow_type)
         /*
         if (['brief_of_evidence', 'prosecution_brief'].includes(workflow_type)) {
@@ -929,10 +1041,12 @@ export default {
         // open workflow modal
         this.workflow_type = workflow_type;
         this.updateWorkflowBindId();
-        this.$nextTick(() => {
+        this.$nextTick(async () => {
+            await this.saveLegalCase({create: false, internal: true })
             this.$refs.legal_case_workflow.isModalOpen = true;
         });
     },
+    /*
     createBriefOfEvidence: async function() {
         await this.save({ 
             "createBriefOfEvidence": true,
@@ -945,6 +1059,7 @@ export default {
             "fullHttpResponse": true
         })
     },
+    */
     saveExit: async function() {
         await this.save({ "returnToDash": true })
     },
@@ -958,18 +1073,15 @@ export default {
       if (returnToDash) {
           this.showExit = true;
       }
+      // prepare running sheet for save
       await this.runningSheetTransformWrapper();
       // add brief_of_evidence to legal_case
       if (this.$refs.brief_of_evidence) {
-          await this.setBriefOfEvidence({
-              "brief_of_evidence": this.$refs.brief_of_evidence.briefOfEvidence,
-              /*
-              "boe_physical_artifacts": this.$refs.brief_of_evidence.physicalArtifacts,
-              "boe_physical_artifacts_sensitive_unused": this.$refs.brief_of_evidence.physicalArtifactsSensitiveUnused,
-              "boe_physical_artifacts_used": this.$refs.brief_of_evidence.physicalArtifactsUsed,
-              "boe_physical_artifacts_non_sensitive_unused": this.$refs.brief_of_evidence.physicalArtifactsNonSensitiveUnused,
-              */
-          });
+          await this.setBriefOfEvidence(this.$refs.brief_of_evidence.briefOfEvidence);
+      }
+      // add prosecution_brief to legal_case
+      if (this.$refs.prosecution_brief) {
+          await this.setProsecutionBrief(this.$refs.prosecution_brief.prosecutionBrief);
       }
         /*
       if (createNewRow) {
@@ -1459,7 +1571,7 @@ export default {
           await this.loadLegalCase({ legal_case_id: this.$route.params.legal_case_id });
       }
       await this.loadCurrentUser({ url: `/api/my_compliance_user_details` });
-      console.log(this)
+      //console.log(this)
 
       this.calculateHash();
       this.constructRunningSheetTableWrapper();
@@ -1486,6 +1598,16 @@ export default {
   mounted: function() {
       this.$nextTick(() => {
           this.addEventListeners();
+          /*
+          if (this.openStatus) {
+              this.constructRunningSheetTableWrapper();
+          }
+          */
+          /*
+          if (this.runningSheetVisibility) {
+              this.constructRunningSheetTableWrapper();
+          }
+          */
           //let treeSelectElement = $('.vue-treeselect__control').css("display", "none");
           //$('.vue-treeselect__control').css("display", "none");
       });

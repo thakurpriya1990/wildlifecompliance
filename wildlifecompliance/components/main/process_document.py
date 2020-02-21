@@ -7,12 +7,15 @@ from wildlifecompliance.components.main.models import TemporaryDocument
 
 def process_generic_document(request, instance, document_type=None, *args, **kwargs):
     print("process_generic_document")
+    print(request.data)
     try:
         action = request.data.get('action')
         input_name = request.data.get('input_name')
         comms_log_id = request.data.get('comms_log_id')
         comms_instance = None
         # returned_file_data = None
+        print("ACTION")
+        print(action)
 
         if document_type == 'comms_log' and comms_log_id and comms_log_id is not 'null':
             comms_instance = instance.comms_logs.get(
@@ -86,6 +89,8 @@ def process_generic_document(request, instance, document_type=None, *args, **kwa
                         id=d.id,
                         name=d.name,
                         ) for d in instance.documents.all() if d._file]
+            print("RETURNED_FILE_DATA")
+            print(returned_file_data)
             return {'filedata': returned_file_data}
 
     except Exception as e:
