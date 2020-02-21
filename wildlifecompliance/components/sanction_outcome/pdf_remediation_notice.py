@@ -50,11 +50,8 @@ DATE_FORMAT = '%d/%m/%Y'
 def _create_pdf(invoice_buffer, sanction_outcome):
     PAGE_MARGIN = 5 * mm
     page_frame_1 = Frame(PAGE_MARGIN, PAGE_MARGIN, PAGE_WIDTH - 2 * PAGE_MARGIN, PAGE_HEIGHT - 2 * PAGE_MARGIN, id='PagesFrame1', )  #showBoundary=Color(0, 1, 0))
-    PAGE_MARGIN2 = 17 * mm
-    page_frame_2 = Frame(PAGE_MARGIN2, PAGE_MARGIN2, PAGE_WIDTH - 2 * PAGE_MARGIN2, PAGE_HEIGHT - 2 * PAGE_MARGIN2, id='PagesFrame2', )  #showBoundary=Color(0, 0, 1))
     page_template_1 = PageTemplate(id='Page1', frames=[page_frame_1, ], )
-    page_template_2 = PageTemplate(id='Page2', frames=[page_frame_2, ], )
-    doc = BaseDocTemplate(invoice_buffer, pageTemplates=[page_template_1, page_template_2], pagesize=A4,)  # showBoundary=Color(1, 0, 0))
+    doc = BaseDocTemplate(invoice_buffer, pageTemplates=[page_template_1, ], pagesize=A4,)  # showBoundary=Color(1, 0, 0))
 
     # Common
     FONT_SIZE_L = 11
@@ -91,6 +88,9 @@ def _create_pdf(invoice_buffer, sanction_outcome):
     width = dpaw_header_logo_size[0]/2
     height = dpaw_header_logo_size[1]/2
     dbca_logo = Image(DPAW_HEADER_LOGO, width=width, height=height)
+
+    # Title
+    title_remediation_notice = Paragraph('<font size="' + str(FONT_SIZE_L) + '"><strong>REMEDIATION NOTICE</strong></font>', styles['Centre'])
 
     # Table
     invoice_table_style = TableStyle([
@@ -141,68 +141,12 @@ def _create_pdf(invoice_buffer, sanction_outcome):
                  '',
                  Paragraph(u'Caution<br />notice no. <font face="Helvetica"><strong>' + sanction_outcome.lodgement_number + u'</strong></font>', styles['Normal'])])
 
-    # Alleged offender
-    data.append([Paragraph('Alleged offender', styles['Bold']), Paragraph('Name: Family name', styles['Normal']), ''])
-    data.append(['', Paragraph(gap(12) + 'Given names', styles['Normal']), ''])
-    data.append(['', Paragraph(gap(12) + 'Date of Birth', styles['Normal']), ''])
-    data.append(['', [Paragraph('<strong>or</strong><br />Body corporate name', styles['Normal']), Spacer(1, 25)], ''])
-    data.append(['', [Paragraph('Address', styles['Normal']), Spacer(1, 25), Paragraph('Postcode', styles['Normal'])], ''])
-
-    # When
-    data.append([Paragraph('When', styles['Bold']), Paragraph('Date' + date_str + gap(5) + 'Time' + gap(10) + 'am/pm', styles['Normal']), ''])
-
-    # Where
-    data.append([Paragraph('Where', styles['Bold']), [Paragraph('Location of offence', styles['Normal']), Spacer(1, 25)], ''])
-
-    # Alleged offence
-    data.append([Paragraph('Alleged offence', styles['Bold']),
-                 [
-                     Paragraph('Description of offence', styles['Normal']),
-                     SolidLine(370, 0),
-                     SolidLine(370, 0),
-                     SolidLine(370, 0),
-                     SolidLine(370, 0),
-                 ],
-                 ''])  # row index: 8
-    # data.append(['', rect, ''])
-    # data.append(['', '?', ''])
-    data.append(['', Paragraph('<i>Biodiversity Conservation Act 2016 s.</i>' + gap(10) + 'or<br /><i>Biodiversity Conservation Regulations 2018 r.</i>', styles['Normal']), ''])
-
-    # Officer issuing notice
-    data.append([Paragraph('Officer issuing notice', styles['Bold']), Paragraph('Name', styles['Normal']), ''])  # row index: 12
-    data.append(['', Paragraph('Signature', styles['Normal']), ''])
-    data.append(['', Paragraph('Officer no.', styles['Normal']), ''])
-
-    # Date
-    data.append([Paragraph('Date', styles['Bold']), Paragraph('Date of notice:' + date_str, styles['Normal']), ''])
-
-    # Notice to alleged offender
-    body = []
-    body.append(Paragraph('It is alleged that you have committed the above offence.</p>', styles['Normal']))
-    body.append(Paragraph('If you object to the issue of this notice you can apply in writing to the Approved Officer at the below address for a review within 28 days after the date of this notice.', styles['Normal']))
-    body.append(Paragraph('Approved Officer — <i>Biodiversity Conservation Act 2016</i><br />Department of Biodiversity, Conservation and Attractions<br />Locked Bag 104<br />Bentley Delivery Centre WA 6983', styles['Normal']))
-    data.append([Paragraph('Notice to alleged offender', styles['Bold']), body, ''])
-
-    # Create 1st table
-    t1 = Table(data, style=invoice_table_style, colWidths=col_width)
 
     # Append tables to the elements to build
     gap_between_tables = 1.5*mm
     elements = []
     elements.append(dbca_logo)
-    elements.append(Spacer(0, 5*mm))
-    elements.append(t1)
-    elements.append(NextPageTemplate(['Page2', ]))
-    elements.append(PageBreak())
-    elements.append(dbca_logo)
-    elements.append(Spacer(0, 5*mm))
-    # ORIGINAL NOTES OF INCIDENT:
-    title_original_notes = Paragraph('<font size="' + str(FONT_SIZE_L) + '"><strong>ORIGINAL NOTES OF INCIDENT:</strong></font>', styles['Normal'])
-    elements.append(title_original_notes)
-    elements.append(Spacer(0, 10*mm))
-    for i in range(0, 25):
-        elements.append(BrokenLine(170*mm, 8*mm))
-    elements.append(Paragraph('<font size="' + str(FONT_SIZE_L) + '"><strong>Signature: ' + gap(80) + 'Date:</strong></font>', styles['Normal']))
+    elements.append(title_remediation_notice)
 
     doc.build(elements)
     return invoice_buffer
@@ -215,7 +159,7 @@ def gap(num):
     return ret
 
 
-def create_caution_notice_pdf_bytes(filename, sanction_outcome):
+def create_remediation_notice_pdf_bytes(filename, sanction_outcome):
     with BytesIO() as invoice_buffer:
         _create_pdf(invoice_buffer, sanction_outcome)
 
