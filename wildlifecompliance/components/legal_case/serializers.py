@@ -721,7 +721,7 @@ class BaseLegalCaseSerializer(serializers.ModelSerializer):
 
 
 class LegalCaseBriefOfEvidenceSerializer(BaseLegalCaseSerializer):
-    #running_sheet_entries = LegalCaseRunningSheetEntrySerializer(many=True)
+    running_sheet_entries = LegalCaseRunningSheetEntrySerializer(many=True)
     #legal_case_person = EmailUserSerializer(many=True)
     allocated_group = serializers.SerializerMethodField()
     user_in_group = serializers.SerializerMethodField()
@@ -730,9 +730,10 @@ class LegalCaseBriefOfEvidenceSerializer(BaseLegalCaseSerializer):
     status = CustomChoiceField(read_only=True)
     related_items = serializers.SerializerMethodField()
     statement_artifacts = serializers.SerializerMethodField()
-    #legal_case_priority = LegalCasePrioritySerializer()
-    #offence_list = serializers.SerializerMethodField()
+    legal_case_priority = LegalCasePrioritySerializer()
+    offence_list = serializers.SerializerMethodField()
     brief_of_evidence = BriefOfEvidenceSerializer()
+    prosecution_brief = ProsecutionBriefSerializer()
     court_proceedings = CourtProceedingsJournalSerializer()
 
     boe_roi_ticked = serializers.SerializerMethodField()
@@ -751,7 +752,7 @@ class LegalCaseBriefOfEvidenceSerializer(BaseLegalCaseSerializer):
         model = LegalCase
         fields = (
                 'id',
-                #'running_sheet_entries',
+                'running_sheet_entries',
                 #'legal_case_person',
                 'allocated_group',
                 'user_in_group',
@@ -760,10 +761,13 @@ class LegalCaseBriefOfEvidenceSerializer(BaseLegalCaseSerializer):
                 'status',
                 'related_items',
                 'statement_artifacts',
-                #'legal_case_priority',
-                #'offence_list',
+                'legal_case_priority',
+                'offence_list',
                 'brief_of_evidence',
+                'prosecution_brief',
                 'court_proceedings',
+                'district_id',
+                'region_id',
 
                 'boe_roi_ticked',
                 'boe_roi_options',
@@ -919,7 +923,7 @@ class LegalCaseBriefOfEvidenceSerializer(BaseLegalCaseSerializer):
 
 
 class LegalCaseProsecutionBriefSerializer(BaseLegalCaseSerializer):
-    #running_sheet_entries = LegalCaseRunningSheetEntrySerializer(many=True)
+    running_sheet_entries = LegalCaseRunningSheetEntrySerializer(many=True)
     #legal_case_person = EmailUserSerializer(many=True)
     allocated_group = serializers.SerializerMethodField()
     user_in_group = serializers.SerializerMethodField()
@@ -928,9 +932,9 @@ class LegalCaseProsecutionBriefSerializer(BaseLegalCaseSerializer):
     status = CustomChoiceField(read_only=True)
     related_items = serializers.SerializerMethodField()
     statement_artifacts = serializers.SerializerMethodField()
-    #legal_case_priority = LegalCasePrioritySerializer()
-    #offence_list = serializers.SerializerMethodField()
-    #brief_of_evidence = BriefOfEvidenceSerializer()
+    legal_case_priority = LegalCasePrioritySerializer()
+    offence_list = serializers.SerializerMethodField()
+    brief_of_evidence = BriefOfEvidenceSerializer()
     prosecution_brief = ProsecutionBriefSerializer()
     court_proceedings = CourtProceedingsJournalSerializer()
 
@@ -950,7 +954,7 @@ class LegalCaseProsecutionBriefSerializer(BaseLegalCaseSerializer):
         model = LegalCase
         fields = (
                 'id',
-                #'running_sheet_entries',
+                'running_sheet_entries',
                 #'legal_case_person',
                 'allocated_group',
                 'user_in_group',
@@ -959,11 +963,13 @@ class LegalCaseProsecutionBriefSerializer(BaseLegalCaseSerializer):
                 'status',
                 'related_items',
                 'statement_artifacts',
-                #'legal_case_priority',
-                #'offence_list',
-                #'brief_of_evidence',
+                'legal_case_priority',
+                'offence_list',
+                'brief_of_evidence',
                 'prosecution_brief',
                 'court_proceedings',
+                'district_id',
+                'region_id',
 
                 'pb_roi_ticked',
                 'pb_roi_options',

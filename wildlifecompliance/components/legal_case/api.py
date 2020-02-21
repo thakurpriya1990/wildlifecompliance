@@ -270,13 +270,14 @@ class LegalCaseViewSet(viewsets.ModelViewSet):
             serializer = LegalCaseProsecutionBriefSerializer
         else:
             serializer = BaseLegalCaseSerializer
+        print(serializer)
         serialized_instance = serializer(instance, context={'request': request})
         return serialized_instance
 
     def retrieve(self, request, *args, **kwargs):
         #qs = self.get_queryset()
         instance = self.get_object()
-        serializer = BaseLegalCaseSerializer
+        #serializer = BaseLegalCaseSerializer
         serialized_instance = self.variable_serializer(request, instance)
         return Response(serialized_instance.data)
 
@@ -857,6 +858,8 @@ class LegalCaseViewSet(viewsets.ModelViewSet):
                     self.process_prosecution_brief(instance, request)
                 elif workflow_type == 'send_to_manager':
                     instance.send_to_manager(request)
+                elif workflow_type == 'back_to_case':
+                    instance.back_to_case(request)
                 #elif workflow_type == 'request_amendment':
                 #    instance.request_amendment(request)
                 #elif workflow_type == 'endorse':

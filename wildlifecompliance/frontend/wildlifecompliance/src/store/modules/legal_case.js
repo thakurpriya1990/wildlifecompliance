@@ -90,6 +90,11 @@ export const legalCaseStore = {
             }
         },
         updateAddRunningSheetEntry(state, running_sheet_entry) {
+            /*
+            if (!state.legal_case.running_sheet_entries) {
+                Vue.set(state.legal_case, 'running_sheet_entries', []);
+            }
+            */
             state.legal_case.running_sheet_entries.push(running_sheet_entry)
         },
         updateAddCourtProceedingsEntry(state, court_proceedings_entry) {

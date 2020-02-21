@@ -202,7 +202,7 @@ export default {
                   }
           }
           */
-          let legalCaseResponse = await this.saveLegalCase({create: false, internal: true })
+          //let legalCaseResponse = await this.saveLegalCase({create: false, internal: true })
           try {
               let res = await Vue.http.post(post_url, payload);
               console.log(res);

@@ -86,6 +86,22 @@
                         </div>
                         <div  class="row action-button">
                           <div v-if="canUserAction && briefOfEvidenceStatus" class="col-sm-12">
+                                <a @click="addWorkflow('back_to_case')" class="btn btn-primary btn-block">
+                                <!--a @click="createProsecutionBrief" class="btn btn-primary btn-block"-->
+                                  Back To Case
+                                </a>
+                          </div>
+                        </div>
+                        <div  class="row action-button">
+                          <div v-if="canUserAction && briefOfEvidenceStatus" class="col-sm-12">
+                                <a @click="addWorkflow('send_to_manager')" class="btn btn-primary btn-block">
+                                <!--a @click="createProsecutionBrief" class="btn btn-primary btn-block"-->
+                                  Send To Manager
+                                </a>
+                          </div>
+                        </div>
+                        <div  class="row action-button">
+                          <div v-if="canUserAction && briefOfEvidenceStatus" class="col-sm-12">
                                 <a @click="addWorkflow('prosecution_brief')" class="btn btn-primary btn-block">
                                 <!--a @click="createProsecutionBrief" class="btn btn-primary btn-block"-->
                                   Prosecution Brief
@@ -126,7 +142,7 @@
                                         <!--div class="col-sm-1 pull-right" /-->
                                         <div v-if="canUserAction">
                                               <!--a @click="createNewRunningSheetEntry()" class="btn btn-primary btn-block" -->
-                                              <a @click="createNewRunningSheetEntry()" class="btn btn-primary pull-right new-row-button" >
+                                              <a @click="createNewRunningSheetEntry()" :disabled="!openStatus" class="btn btn-primary pull-right new-row-button" >
                                                 New Row
                                               </a>
                                         </div>
@@ -488,21 +504,21 @@ export default {
     },
     briefOfEvidenceStatus: function() {
         let returnStatus = false
-        if (this.legal_case && this.legal_case.status && this.legal_case.status.id === 'brief_of_evidence') {
+        if (this.legal_case && this.statusId === 'brief_of_evidence') {
             returnStatus = true
         }
         return returnStatus
     },
     prosecutionBriefStatus: function() {
         let returnStatus = false
-        if (this.legal_case && this.legal_case.status && this.legal_case.status.id === 'prosecution_brief') {
+        if (this.legal_case && this.statusId === 'prosecution_brief') {
             returnStatus = true
         }
         return returnStatus
     },
     openStatus: function() {
         let returnStatus = false
-        if (this.legal_case && this.legal_case.status && this.legal_case.status.id === 'open') {
+        if (this.legal_case && this.statusId === 'open') {
             returnStatus = true
         }
         return returnStatus
@@ -616,6 +632,7 @@ export default {
         }
         return related_items_visibility;
     },
+      /*
     runningSheetVisibility: function() {
         let running_sheet_visibility = false;
         if (this.legal_case && this.legal_case.id && ['open'].includes(this.legal_case.status)) {
@@ -623,6 +640,7 @@ export default {
         }
         return running_sheet_visibility;
     },
+    */
 
     personOrArtifactBindId: function() {
         let person_or_artifact_id = ''
@@ -992,7 +1010,7 @@ export default {
             this.workflowBindId = timeNow.toString();
         }
     },
-    addWorkflow: async function(workflow_type) {
+    addWorkflow: function(workflow_type) {
         console.log(workflow_type)
         /*
         if (['brief_of_evidence', 'prosecution_brief'].includes(workflow_type)) {
@@ -1023,10 +1041,12 @@ export default {
         // open workflow modal
         this.workflow_type = workflow_type;
         this.updateWorkflowBindId();
-        this.$nextTick(() => {
+        this.$nextTick(async () => {
+            await this.saveLegalCase({create: false, internal: true })
             this.$refs.legal_case_workflow.isModalOpen = true;
         });
     },
+    /*
     createBriefOfEvidence: async function() {
         await this.save({ 
             "createBriefOfEvidence": true,
@@ -1039,6 +1059,7 @@ export default {
             "fullHttpResponse": true
         })
     },
+    */
     saveExit: async function() {
         await this.save({ "returnToDash": true })
     },
@@ -1052,6 +1073,7 @@ export default {
       if (returnToDash) {
           this.showExit = true;
       }
+      // prepare running sheet for save
       await this.runningSheetTransformWrapper();
       // add brief_of_evidence to legal_case
       if (this.$refs.brief_of_evidence) {
@@ -1549,10 +1571,10 @@ export default {
           await this.loadLegalCase({ legal_case_id: this.$route.params.legal_case_id });
       }
       await this.loadCurrentUser({ url: `/api/my_compliance_user_details` });
-      console.log(this)
+      //console.log(this)
 
       this.calculateHash();
-      //this.constructRunningSheetTableWrapper();
+      this.constructRunningSheetTableWrapper();
       /*
       if (this.legal_case && this.legal_case.boe_roi_options) {
           for (let item of this.legal_case.boe_roi_options) {
@@ -1576,9 +1598,16 @@ export default {
   mounted: function() {
       this.$nextTick(() => {
           this.addEventListeners();
+          /*
+          if (this.openStatus) {
+              this.constructRunningSheetTableWrapper();
+          }
+          */
+          /*
           if (this.runningSheetVisibility) {
               this.constructRunningSheetTableWrapper();
           }
+          */
           //let treeSelectElement = $('.vue-treeselect__control').css("display", "none");
           //$('.vue-treeselect__control').css("display", "none");
       });
