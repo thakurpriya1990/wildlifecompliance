@@ -72,7 +72,7 @@ styles.add(ParagraphStyle(name='LongString', alignment=enums.TA_LEFT,wordWrap='C
 
 class BrokenLine(Flowable):
 
-    def __init__(self, width,height=0):
+    def __init__(self, width, height=0):
         Flowable.__init__(self)
         self.width = width
         self.height = height
@@ -81,8 +81,8 @@ class BrokenLine(Flowable):
         return 'Line {}'.format(self.width)
 
     def draw(self):
-        self.canv.setDash(3,3)
-        self.canv.line(0, self.height,self.width,self.height)
+        self.canv.setDash(3, 3)
+        self.canv.line(0, self.height, self.width, self.height)
 
 
 class Remittance(Flowable):

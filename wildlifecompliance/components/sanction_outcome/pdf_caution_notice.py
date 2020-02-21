@@ -25,9 +25,9 @@ from django.conf import settings
 from ledger.accounts.models import Document
 from ledger.checkout.utils import calculate_excl_gst
 
+from wildlifecompliance.components.sanction_outcome.pdf import BrokenLine
 from wildlifecompliance.components.sanction_outcome.pdf_in_blue import SolidLine
 
-PAGE_MARGIN = 5 * mm
 PAGE_WIDTH, PAGE_HEIGHT = A4
 DEFAULT_FONTNAME = 'Helvetica'
 BOLD_FONTNAME = 'Helvetica-Bold'
@@ -48,9 +48,13 @@ DATE_FORMAT = '%d/%m/%Y'
 
 
 def _create_pdf(invoice_buffer, sanction_outcome):
-    every_page_frame = Frame(PAGE_MARGIN, PAGE_MARGIN, PAGE_WIDTH - 2 * PAGE_MARGIN, PAGE_HEIGHT - 2 * PAGE_MARGIN, id='EveryPagesFrame', )  #showBoundary=Color(0, 1, 0))
-    every_page_template = PageTemplate(id='EveryPages', frames=[every_page_frame,], )
-    doc = BaseDocTemplate(invoice_buffer, pageTemplates=[every_page_template, ], pagesize=A4,)  # showBoundary=Color(1, 0, 0))
+    PAGE_MARGIN = 5 * mm
+    page_frame_1 = Frame(PAGE_MARGIN, PAGE_MARGIN, PAGE_WIDTH - 2 * PAGE_MARGIN, PAGE_HEIGHT - 2 * PAGE_MARGIN, id='PagesFrame1', )  #showBoundary=Color(0, 1, 0))
+    PAGE_MARGIN2 = 17 * mm
+    page_frame_2 = Frame(PAGE_MARGIN2, PAGE_MARGIN2, PAGE_WIDTH - 2 * PAGE_MARGIN2, PAGE_HEIGHT - 2 * PAGE_MARGIN2, id='PagesFrame2', )  #showBoundary=Color(0, 0, 1))
+    page_template_1 = PageTemplate(id='Page1', frames=[page_frame_1, ], )
+    page_template_2 = PageTemplate(id='Page2', frames=[page_frame_2, ], )
+    doc = BaseDocTemplate(invoice_buffer, pageTemplates=[page_template_1, page_template_2], pagesize=A4,)  # showBoundary=Color(1, 0, 0))
 
     # Common
     FONT_SIZE_L = 11
@@ -143,7 +147,7 @@ def _create_pdf(invoice_buffer, sanction_outcome):
     col_width = [40*mm, 60*mm, 80*mm, ]
 
     data = []
-    data.append([Paragraph('<i>Biodiversity Conservation Act 2016</i><br /><strong>Caution Notice</strong>', styles['Normal']),
+    data.append([Paragraph('<i>Biodiversity Conservation Act 2016</i><br /><strong><font size="' + str(FONT_SIZE_L) + '">Caution Notice</font></strong>', styles['Normal']),
                  '',
                  Paragraph(u'Caution<br />notice no. <font face="Helvetica"><strong>' + sanction_outcome.lodgement_number + u'</strong></font>', styles['Normal'])])
 
@@ -164,6 +168,7 @@ def _create_pdf(invoice_buffer, sanction_outcome):
     data.append([Paragraph('Alleged offence', styles['Bold']),
                  [
                      Paragraph('Description of offence', styles['Normal']),
+                     SolidLine(370, 0),
                      SolidLine(370, 0),
                      SolidLine(370, 0),
                      SolidLine(370, 0),
@@ -190,12 +195,24 @@ def _create_pdf(invoice_buffer, sanction_outcome):
 
     # Create 1st table
     t1 = Table(data, style=invoice_table_style, colWidths=col_width)
+
     # Append tables to the elements to build
     gap_between_tables = 1.5*mm
     elements = []
     elements.append(dbca_logo)
     elements.append(Spacer(0, 5*mm))
     elements.append(t1)
+    elements.append(NextPageTemplate(['Page2', ]))
+    elements.append(PageBreak())
+    elements.append(dbca_logo)
+    elements.append(Spacer(0, 5*mm))
+    # ORIGINAL NOTES OF INCIDENT:
+    title_original_notes = Paragraph('<font size="' + str(FONT_SIZE_L) + '"><strong>ORIGINAL NOTES OF INCIDENT:</strong></font>', styles['Normal'])
+    elements.append(title_original_notes)
+    elements.append(Spacer(0, 10*mm))
+    for i in range(0, 25):
+        elements.append(BrokenLine(170*mm, 8*mm))
+    elements.append(Paragraph('<font size="' + str(FONT_SIZE_L) + '"><strong>Signature: ' + gap(80) + 'Date:</strong></font>', styles['Normal']))
 
     doc.build(elements)
     return invoice_buffer
