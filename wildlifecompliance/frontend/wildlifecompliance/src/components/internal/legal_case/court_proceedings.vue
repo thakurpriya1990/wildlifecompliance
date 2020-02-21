@@ -1,5 +1,5 @@
 <template lang="html">
-    <div class="col-md-9">
+    <div>
         <div class="row">
             <FormSection :formCollapse="false" label="Court Dates">
                 <div class="col-sm-12 form-group"><div class="row">

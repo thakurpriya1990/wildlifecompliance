@@ -16,14 +16,18 @@
                                     <div class="col-sm-12" v-for="(a, index) in applicationSelectedActivitiesForPurposes" v-bind:key="`a_${index}`">
                                         <input type="checkbox" name="licence_activity" :value ="a.id" :id="a.id" v-model="checkedActivities" > {{a.activity_name_str}}
                                         <table border=0 width='80%'>
-                                        <div v-for="p in a.purposes">
-                                            <div><tr><td width="40%">  
-                                            &nbsp;&nbsp;&nbsp;&nbsp;{{p.short_name}}</td>
-                                            <td width="10%">Issue <input type="radio" :value ="true" :id="p.id" v-model="getPickedPurpose(p.id).isProposed" ></td>
-                                            <td width="10%">Decline <input type="radio" :value ="false" :id="p.id" v-model="getPickedPurpose(p.id).isProposed" ></td>
-                                            </tr>
+
+                                            <div v-show="checkedActivities.find(checked => checked===a.id)">    
+                                                <div v-for="p in a.purposes">
+                                                    <div><tr><td width="40%">  
+                                                    &nbsp;&nbsp;&nbsp;&nbsp;{{p.short_name}}</td>
+                                                    <td width="10%">Issue <input type="radio" :value ="true" :id="p.id" v-model="getPickedPurpose(p.id).isProposed" ></td>
+                                                    <td width="10%">Decline <input type="radio" :value ="false" :id="p.id" v-model="getPickedPurpose(p.id).isProposed" ></td>
+                                                    </tr>
+                                                    </div>
+                                                </div>
                                             </div>
-                                        </div>
+
                                         </table>
                                     </div>
                                 </div>
@@ -153,9 +157,9 @@
                 </div>
             </div>
             <div slot="footer">
-                <button type="button" v-if="issuingLicence" disabled class="btn btn-default" @click="ok"><i class="fa fa-spinner fa-spin"></i>Proposing Issue</button>
-                <button type="button" v-else class="btn btn-success" @click="ok">Propose Issue</button>
-                <button type="button" class="btn btn-default" @click="cancel">Cancel</button>
+                <button type="button" v-if="issuingLicence" disabled class="btn btn-primary" @click="ok"><i class="fa fa-spinner fa-spin"></i>Proposing Issue</button>
+                <button type="button" v-else class="btn btn-primary" @click="ok">Propose Issue</button>
+                <button type="button" class="btn btn-primary" @click="cancel">Cancel</button>
             </div>
         </modal>
     </div>
@@ -270,7 +274,13 @@ export default {
             this.errors = false;
             $('.has-error').removeClass('has-error');
             this.validation_form.resetForm();
-            this.initialiseAttributes();
+
+            this.application.activities.forEach(a => {
+                a.additional_fee = null
+                a.additional_fee_text = null
+            });
+            this.checkedActivities = [];
+            this.pickedPurposes = [];
         },
         fetchContact: function(id){
             let vm = this;
@@ -283,11 +293,6 @@ export default {
         getCheckedActivity: function(_id){
             return this.applicationSelectedActivitiesForPurposes.find(a => {
                 return a.id===_id
-            });
-        },
-        isCheckedActivity: function(_id){
-            return this.checkedActivities.find(a => {
-                return a === _id
             });
         },
         getPickedPurpose: function(_id){
@@ -407,11 +412,9 @@ export default {
         },
    },
    mounted:function () {
-       console.log('mounted')
         this.form = document.forms.licenceForm;
         this.addFormValidations();
         this.$nextTick(()=>{
-            console.log('$nextTick')
             this.eventListeners();
         });
         this.initialiseAttributes();

@@ -62,22 +62,30 @@ class CourtProceedings(models.Model):
 
 class LegalCase(RevisionedMixin):
     STATUS_OPEN = 'open'
-    #STATUS_WITH_MANAGER = 'with_manager'
+    STATUS_WITH_MANAGER = 'with_manager'
+    STATUS_WITH_PROSECUTION_COORDINATOR = 'with_prosecution_coordinator'
+    STATUS_WITH_PROSECUTION_COUNCIL = 'with_prosecution_council'
+    STATUS_WITH_PROSECUTION_MANAGER = 'with_prosecution_manager'
     #STATUS_REQUEST_AMENDMENT = 'request_amendment'
     STATUS_AWAIT_ENDORSEMENT = 'await_endorsement'
     STATUS_BRIEF_OF_EVIDENCE = 'brief_of_evidence'
+    STATUS_PROSECUTION_BRIEF = 'prosecution_brief'
     #STATUS_SANCTION_OUTCOME = 'sanction_outcome'
     STATUS_DISCARDED = 'discarded'
     STATUS_CLOSED = 'closed'
     STATUS_PENDING_CLOSURE = 'pending_closure'
     STATUS_CHOICES = (
             (STATUS_OPEN, 'Open'),
-            #(STATUS_WITH_MANAGER, 'With Manager'),
+            (STATUS_WITH_MANAGER, 'With Manager'),
+            (STATUS_WITH_PROSECUTION_COORDINATOR, 'With Prosecution Coordinator'),
+            (STATUS_WITH_PROSECUTION_COUNCIL, 'With Prosecution Council'),
+            (STATUS_WITH_PROSECUTION_MANAGER, 'With Prosecution Manager'),
             #(STATUS_REQUEST_AMENDMENT, 'Request Amendment'),
             (STATUS_AWAIT_ENDORSEMENT, 'Awaiting Endorsement'),
             #(STATUS_SANCTION_OUTCOME, 'Awaiting Sanction Outcomes'),
             (STATUS_DISCARDED, 'Discarded'),
             (STATUS_BRIEF_OF_EVIDENCE, 'Brief of Evidence'),
+            (STATUS_PROSECUTION_BRIEF, 'Prosecution Brief'),
             (STATUS_CLOSED, 'Closed'),
             (STATUS_PENDING_CLOSURE, 'Pending Closure')
             )
@@ -192,8 +200,61 @@ class LegalCase(RevisionedMixin):
         self.log_user_action(
             LegalCaseUserAction.ACTION_STATUS_BRIEF_OF_EVIDENCE.format(self.number), 
             request)
+        self.save()
+
+    def set_status_prosecution_brief(self, request):
+        print("set status prosecution brief")
+        self.assigned_to = None
+        self.status = self.STATUS_PROSECUTION_BRIEF
+        self.log_user_action(
+            LegalCaseUserAction.ACTION_STATUS_PROSECUTION_BRIEF.format(self.number), 
+            request)
+        self.save()
+
+    def send_to_prosecution_coordinator(self, request):
+        print("send to prosecution coordinator")
+        self.assigned_to = None
+        self.status = self.STATUS_PROSECUTION_COORDINATOR
+        self.log_user_action(
+            LegalCaseUserAction.ACTION_STATUS_PROSECUTION_COORDINATOR.format(self.number), 
+            request)
         # set allocated group to 
-        #self.allocated_group
+        self.allocated_group = CompliancePermissionGroup.objects.get(permissions__codename="prosecution_coordinator")
+        self.save()
+
+    def send_to_prosecution_council(self, request):
+        print("send to prosecution council")
+        self.assigned_to = None
+        self.status = self.STATUS_PROSECUTION_COUNCIL
+        self.log_user_action(
+            LegalCaseUserAction.ACTION_STATUS_PROSECUTION_COUNCIL.format(self.number), 
+            request)
+        # set allocated group to 
+        self.allocated_group = CompliancePermissionGroup.objects.get(permissions__codename="prosecution_council")
+        self.save()
+
+    def send_to_prosecution_manager(self, request):
+        print("send to prosecution coordinator")
+        self.assigned_to = None
+        self.status = self.STATUS_PROSECUTION_MANAGER
+        self.log_user_action(
+            LegalCaseUserAction.ACTION_STATUS_PROSECUTION_MANAGER.format(self.number), 
+            request)
+        # set allocated group to 
+        self.allocated_group = CompliancePermissionGroup.objects.get(permissions__codename="prosecution_manager")
+        self.save()
+
+    def send_to_manager(self, request):
+        print("send to manager")
+        self.assigned_to = None
+        self.status = self.STATUS_WITH_MANAGER
+        self.log_user_action(
+            LegalCaseUserAction.ACTION_SEND_TO_MANAGER.format(self.number), 
+            request)
+        # set allocated group to 
+        region_district_id = self.district_id if self.district_id else self.region_id
+        region_district = RegionDistrict.objects.get(id=region_district_id)
+        self.allocated_group = CompliancePermissionGroup.objects.get(region_district=region_district, permissions__codename="manager")
         self.save()
 
 
@@ -444,10 +505,14 @@ class LegalCaseCommsLogDocument(Document):
 class LegalCaseUserAction(UserAction):
     ACTION_CREATE_LEGAL_CASE = "Create Case {}"
     ACTION_SAVE_LEGAL_CASE = "Save Case {}"
-    ACTION_STATUS_BRIEF_OF_EVIDENCE = "Set status 'Brief of Evidence' for Case {}"
+    ACTION_STATUS_BRIEF_OF_EVIDENCE = "Generate 'Brief of Evidence' for Case {}"
+    ACTION_STATUS_PROSECUTION_BRIEF = "Generate 'Prosecution Brief' for Case {}"
+    ACTION_STATUS_PROSECUTION_COORDINATOR = "Send Case {} to Prosecution Coordinator"
+    ACTION_STATUS_PROSECUTION_COUNCIL = "Send Case {} to Prosecution Council"
+    ACTION_STATUS_PROSECUTION_MANAGER = "Send Case {} to Prosecution Manager"
     #ACTION_OFFENCE = "Create Offence {}"
     #ACTION_SANCTION_OUTCOME = "Create Sanction Outcome {}"
-    #ACTION_SEND_TO_MANAGER = "Send Inspection {} to Manager"
+    ACTION_SEND_TO_MANAGER = "Send Case {} to Manager"
     ACTION_CLOSE = "Close Legal Case {}"
     ACTION_PENDING_CLOSURE = "Mark Inspection {} as pending closure"
     #ACTION_REQUEST_AMENDMENT = "Request amendment for {}"
@@ -508,12 +573,20 @@ class BriefOfEvidenceDocument(Document):
     def delete(self):
         if self.can_delete:
             return super(BriefOfEvidenceDocument, self).delete()
-        #logger.info(
-         #   'Cannot delete existing document object after application has been submitted (including document submitted before\
-          #  application pushback to status Draft): {}'.format(
-           #     self.name)
-        #)
+    class Meta:
+        app_label = 'wildlifecompliance'
 
+class ProsecutionBriefDocument(Document):
+    prosecution_brief = models.ForeignKey(ProsecutionBrief, related_name='documents')
+    _file = models.FileField(max_length=255)
+    input_name = models.CharField(max_length=255, blank=True, null=True)
+    # after initial submit prevent document from being deleted
+    can_delete = models.BooleanField(default=True)
+    version_comment = models.CharField(max_length=255, blank=True, null=True)
+
+    def delete(self):
+        if self.can_delete:
+            return super(ProsecutionBriefDocument, self).delete()
     class Meta:
         app_label = 'wildlifecompliance'
 

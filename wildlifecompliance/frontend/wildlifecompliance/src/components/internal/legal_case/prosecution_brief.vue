@@ -4,110 +4,109 @@
                             <FormSection :formCollapse="false" label="Statement of Facts">
                                 <div class="col-sm-12 form-group"><div class="row">
                                     <label class="col-sm-10">Statement of facts
-                                        <textarea :readonly="readonlyForm" class="form-control location_address_field" v-model="briefOfEvidence.statement_of_facts" />
+                                        <textarea :readonly="readonlyForm" class="form-control location_address_field" v-model="prosecutionBrief.statement_of_facts" />
                                     </label>
                                 </div></div>
                             </FormSection>
                             <FormSection :formCollapse="false" label="Case Information Form">
                                 <div class="col-sm-12 form-group"><div class="row">
                                     <label class="col-sm-10">
-                                    <input :onclick="readonlyBriefOfEvidence" type="checkbox" data-parsley-required v-model="briefOfEvidence.victim_impact_statement_taken" />
+                                    <input :onclick="readonlyProsecutionBrief" type="checkbox" data-parsley-required v-model="prosecutionBrief.victim_impact_statement_taken" />
                                     Victim impact statement to be taken?
                                     </label>
-                                    <label v-if="briefOfEvidence.victim_impact_statement_taken" class="col-sm-10">Details
-                                        <textarea :readonly="readonlyForm" class="form-control location_address_field" v-model="briefOfEvidence.victim_impact_statement_taken_details" />
+                                    <label v-if="prosecutionBrief.victim_impact_statement_taken" class="col-sm-10">Details
+                                        <textarea :readonly="readonlyForm" class="form-control location_address_field" v-model="prosecutionBrief.victim_impact_statement_taken_details" />
                                     </label>
                                     <label class="col-sm-10">
-                                    <!--input :onclick="readonlyBriefOfEvidence" type="checkbox" data-parsley-required v-model="briefOfEvidence.statements_pending" /-->
-                                    <input :onclick="readonlyBriefOfEvidence" type="checkbox" data-parsley-required v-model="briefOfEvidence.statements_pending" />
+                                    <input :onclick="readonlyProsecutionBrief" type="checkbox" data-parsley-required v-model="prosecutionBrief.statements_pending" />
                                     Witness (including expert statements) still to be taken?
                                     </label>
-                                    <label v-if="briefOfEvidence.statements_pending" class="col-sm-10">Details
-                                        <textarea :readonly="readonlyForm" class="form-control location_address_field" v-model="briefOfEvidence.statements_pending_details" />
+                                    <label v-if="prosecutionBrief.statements_pending" class="col-sm-10">Details
+                                        <textarea :readonly="readonlyForm" class="form-control location_address_field" v-model="prosecutionBrief.statements_pending_details" />
                                     </label>
                                     <label class="col-sm-10">
-                                    <input :onclick="readonlyBriefOfEvidence" type="checkbox" data-parsley-required v-model="briefOfEvidence.vulnerable_hostile_witnesses" />
+                                    <input :onclick="readonlyProsecutionBrief" type="checkbox" data-parsley-required v-model="prosecutionBrief.vulnerable_hostile_witnesses" />
                                     Vulnerable / hostile witnesses?
                                     </label>
-                                    <label v-if="briefOfEvidence.vulnerable_hostile_witnesses" class="col-sm-10">Details
-                                        <textarea :readonly="readonlyForm" class="form-control location_address_field" v-model="briefOfEvidence.vulnerable_hostile_witnesses_details" />
+                                    <label v-if="prosecutionBrief.vulnerable_hostile_witnesses" class="col-sm-10">Details
+                                        <textarea :readonly="readonlyForm" class="form-control location_address_field" v-model="prosecutionBrief.vulnerable_hostile_witnesses_details" />
                                     </label>
                                     <label class="col-sm-10">
-                                    <input :onclick="readonlyBriefOfEvidence" type="checkbox" data-parsley-required v-model="briefOfEvidence.witness_refusing_statement" />
+                                    <input :onclick="readonlyProsecutionBrief" type="checkbox" data-parsley-required v-model="prosecutionBrief.witness_refusing_statement" />
                                     Witnesses refusing to make statements?
                                     </label>
-                                    <label v-if="briefOfEvidence.witness_refusing_statement" class="col-sm-10">Details
-                                        <textarea :readonly="readonlyForm" class="form-control location_address_field" v-model="briefOfEvidence.witness_refusing_statement_details" />
+                                    <label v-if="prosecutionBrief.witness_refusing_statement" class="col-sm-10">Details
+                                        <textarea :readonly="readonlyForm" class="form-control location_address_field" v-model="prosecutionBrief.witness_refusing_statement_details" />
                                     </label>
                                     <label class="col-sm-10">
-                                    <input :onclick="readonlyBriefOfEvidence" type="checkbox" data-parsley-required v-model="briefOfEvidence.problems_needs_prosecution_witnesses" />
+                                    <input :onclick="readonlyProsecutionBrief" type="checkbox" data-parsley-required v-model="prosecutionBrief.problems_needs_prosecution_witnesses" />
                                     Specific problems / needs of prosecution witnesses, e.g. interpreters?
                                     </label>
-                                    <label v-if="briefOfEvidence.problems_needs_prosecution_witnesses" class="col-sm-10">Details
-                                        <textarea :readonly="readonlyForm" class="form-control location_address_field" v-model="briefOfEvidence.problems_needs_prosecution_witnesses" />
+                                    <label v-if="prosecutionBrief.problems_needs_prosecution_witnesses" class="col-sm-10">Details
+                                        <textarea :readonly="readonlyForm" class="form-control location_address_field" v-model="prosecutionBrief.problems_needs_prosecution_witnesses" />
                                     </label>
                                     <label class="col-sm-10">
-                                    <input :onclick="readonlyBriefOfEvidence" type="checkbox" data-parsley-required v-model="briefOfEvidence.accused_bad_character" />
+                                    <input :onclick="readonlyProsecutionBrief" type="checkbox" data-parsley-required v-model="prosecutionBrief.accused_bad_character" />
                                     History of bad character / propensity (similar fact) evidence involving accused?
                                     </label>
-                                    <label v-if="briefOfEvidence.accused_bad_character" class="col-sm-10">Details
-                                        <textarea :readonly="readonlyForm" class="form-control location_address_field" v-model="briefOfEvidence.accused_bad_character_details" />
+                                    <label v-if="prosecutionBrief.accused_bad_character" class="col-sm-10">Details
+                                        <textarea :readonly="readonlyForm" class="form-control location_address_field" v-model="prosecutionBrief.accused_bad_character_details" />
                                     </label>
                                     <label class="col-sm-10">
-                                    <input :onclick="readonlyBriefOfEvidence" type="checkbox" data-parsley-required v-model="briefOfEvidence.further_persons_interviews_pending" />
+                                    <input :onclick="readonlyProsecutionBrief" type="checkbox" data-parsley-required v-model="prosecutionBrief.further_persons_interviews_pending" />
                                     Further persons (witness or suspect) to be interviewed?
                                     </label>
-                                    <label v-if="briefOfEvidence.further_persons_interviews_pending" class="col-sm-10">Details
-                                        <textarea :readonly="readonlyForm" class="form-control location_address_field" v-model="briefOfEvidence.further_persons_interviews_pending_details" />
+                                    <label v-if="prosecutionBrief.further_persons_interviews_pending" class="col-sm-10">Details
+                                        <textarea :readonly="readonlyForm" class="form-control location_address_field" v-model="prosecutionBrief.further_persons_interviews_pending_details" />
                                     </label>
                                     <label class="col-sm-10">
-                                    <input :onclick="readonlyBriefOfEvidence" type="checkbox" data-parsley-required v-model="briefOfEvidence.other_interviews" />
+                                    <input :onclick="readonlyProsecutionBrief" type="checkbox" data-parsley-required v-model="prosecutionBrief.other_interviews" />
                                     Other persons whose details do not appear on this brief who have been interviewed?
                                     </label>
-                                    <label v-if="briefOfEvidence.other_interviews" class="col-sm-10">Details
-                                        <textarea :readonly="readonlyForm" class="form-control location_address_field" v-model="briefOfEvidence.other_interviews_details" />
+                                    <label v-if="prosecutionBrief.other_interviews" class="col-sm-10">Details
+                                        <textarea :readonly="readonlyForm" class="form-control location_address_field" v-model="prosecutionBrief.other_interviews_details" />
                                     </label>
                                     <label class="col-sm-10">
-                                    <input :onclick="readonlyBriefOfEvidence" type="checkbox" data-parsley-required v-model="briefOfEvidence.relevant_persons_pending_charges" />
+                                    <input :onclick="readonlyProsecutionBrief" type="checkbox" data-parsley-required v-model="prosecutionBrief.relevant_persons_pending_charges" />
                                     Other relevant persons charged or yet to be charged?
                                     </label>
-                                    <label v-if="briefOfEvidence.relevant_persons_pending_charges" class="col-sm-10">Details
-                                        <textarea :readonly="readonlyForm" class="form-control location_address_field" v-model="briefOfEvidence.relevant_persons_pending_charges_details" />
+                                    <label v-if="prosecutionBrief.relevant_persons_pending_charges" class="col-sm-10">Details
+                                        <textarea :readonly="readonlyForm" class="form-control location_address_field" v-model="prosecutionBrief.relevant_persons_pending_charges_details" />
                                     </label>
                                     <label class="col-sm-10">
-                                    <input :onclick="readonlyBriefOfEvidence" type="checkbox" data-parsley-required v-model="briefOfEvidence.other_persons_receiving_sanction_outcome" />
+                                    <input :onclick="readonlyProsecutionBrief" type="checkbox" data-parsley-required v-model="prosecutionBrief.other_persons_receiving_sanction_outcome" />
                                     Others receiving Infringement / Warning arising out of the same incident?
                                     </label>
-                                    <label v-if="briefOfEvidence.other_persons_receiving_sanction_outcome" class="col-sm-10">Details
-                                        <textarea :readonly="readonlyForm" class="form-control location_address_field" v-model="briefOfEvidence.other_persons_receiving_sanction_outcome_details" />
+                                    <label v-if="prosecutionBrief.other_persons_receiving_sanction_outcome" class="col-sm-10">Details
+                                        <textarea :readonly="readonlyForm" class="form-control location_address_field" v-model="prosecutionBrief.other_persons_receiving_sanction_outcome_details" />
                                     </label>
                                     <label class="col-sm-10">
-                                    <input :onclick="readonlyBriefOfEvidence" type="checkbox" data-parsley-required v-model="briefOfEvidence.local_public_interest" />
+                                    <input :onclick="readonlyProsecutionBrief" type="checkbox" data-parsley-required v-model="prosecutionBrief.local_public_interest" />
                                     Matters of local / public interest?
                                     </label>
-                                    <label v-if="briefOfEvidence.local_public_interest" class="col-sm-10">Details
-                                        <textarea :readonly="readonlyForm" class="form-control location_address_field" v-model="briefOfEvidence.local_public_interest_details" />
+                                    <label v-if="prosecutionBrief.local_public_interest" class="col-sm-10">Details
+                                        <textarea :readonly="readonlyForm" class="form-control location_address_field" v-model="prosecutionBrief.local_public_interest_details" />
                                     </label>
                                     <label class="col-sm-10">
-                                    <input :onclick="readonlyBriefOfEvidence" type="checkbox" data-parsley-required v-model="briefOfEvidence.applications_orders_requests" />
+                                    <input :onclick="readonlyProsecutionBrief" type="checkbox" data-parsley-required v-model="prosecutionBrief.applications_orders_requests" />
                                     Other applications / orders on conviction requests?
                                     </label>
-                                    <label v-if="briefOfEvidence.applications_orders_requests" class="col-sm-10">Details
-                                        <textarea :readonly="readonlyForm" class="form-control location_address_field" v-model="briefOfEvidence.applications_orders_requests_details" />
+                                    <label v-if="prosecutionBrief.applications_orders_requests" class="col-sm-10">Details
+                                        <textarea :readonly="readonlyForm" class="form-control location_address_field" v-model="prosecutionBrief.applications_orders_requests_details" />
                                     </label>
                                     <label class="col-sm-10">
-                                    <input :onclick="readonlyBriefOfEvidence" type="checkbox" data-parsley-required v-model="briefOfEvidence.applications_orders_required" />
+                                    <input :onclick="readonlyProsecutionBrief" type="checkbox" data-parsley-required v-model="prosecutionBrief.applications_orders_required" />
                                     Are there any other applications / orders on conviction required?
                                     </label>
-                                    <label v-if="briefOfEvidence.applications_orders_required" class="col-sm-10">Details
-                                        <textarea :readonly="readonlyForm" class="form-control location_address_field" v-model="briefOfEvidence.applications_orders_required_details" />
+                                    <label v-if="prosecutionBrief.applications_orders_required" class="col-sm-10">Details
+                                        <textarea :readonly="readonlyForm" class="form-control location_address_field" v-model="prosecutionBrief.applications_orders_required_details" />
                                     </label>
                                     <label class="col-sm-10">
-                                    <input :onclick="readonlyBriefOfEvidence" type="checkbox" data-parsley-required v-model="briefOfEvidence.other_legal_matters" />
+                                    <input :onclick="readonlyProsecutionBrief" type="checkbox" data-parsley-required v-model="prosecutionBrief.other_legal_matters" />
                                     Is there any statutory notice, DEC licence, ministerial statement or policy etc. re the matter, premise or person subject to this brief?
                                     </label>
-                                    <label v-if="briefOfEvidence.other_legal_matters" class="col-sm-10">Details
-                                        <textarea :readonly="readonlyForm" class="form-control location_address_field" v-model="briefOfEvidence.other_legal_matters_details" />
+                                    <label v-if="prosecutionBrief.other_legal_matters" class="col-sm-10">Details
+                                        <textarea :readonly="readonlyForm" class="form-control location_address_field" v-model="prosecutionBrief.other_legal_matters_details" />
                                     </label>
                                 </div></div>
                             </FormSection>
@@ -115,13 +114,13 @@
                                 <div class="col-sm-12 form-group"><div class="row">
                                     <TreeSelect 
                                     ref="record_of_interview_tree" 
-                                    :value="boeRoiTicked" 
-                                    :options="boeRoiOptions" 
+                                    :value="pbRoiTicked" 
+                                    :options="pbRoiOptions" 
                                     :default-expand-level="Infinity" 
                                     :disabled="false"
                                     multiple
                                     value-consists-of="LEAF_PRIORITY"
-                                    @input="setBoeRoiTicked"
+                                    @input="setPbRoiTicked"
                                     />
                                 </div></div>
                             </FormSection>
@@ -129,13 +128,13 @@
                                 <div class="col-sm-12 form-group"><div class="row">
                                     <TreeSelect 
                                     ref="other_statements_tree" 
-                                    :value="boeOtherStatementsTicked" 
-                                    :options="boeOtherStatementsOptions" 
+                                    :value="pbOtherStatementsTicked" 
+                                    :options="pbOtherStatementsOptions" 
                                     :default-expand-level="Infinity" 
                                     :disabled="false"
                                     multiple
                                     value-consists-of="LEAF_PRIORITY"
-                                    @input="setBoeOtherStatementsTicked"
+                                    @input="setPbOtherStatementsTicked"
                                     alwaysOpen
                                     :searchable="false"
                                     />
@@ -199,10 +198,10 @@
                             <FormSection :formCollapse="false" label="Additional Documents">
                                 <div class="col-sm-12 form-group"><div class="row">
                                     <filefield 
-                                    ref="brief_of_evidence_documents" 
-                                    name="brief-of-evidence-documents" 
+                                    ref="prosecution_brief_documents" 
+                                    name="prosecution-brief-documents" 
                                     :isRepeatable="true" 
-                                    :documentActionUrl="legal_case.briefOfEvidenceDocumentUrl" 
+                                    :documentActionUrl="legal_case.prosecutionBriefDocumentUrl" 
                                     :readonly="readonlyForm"
                                     />
                                 </div></div>
@@ -228,14 +227,14 @@ import filefield from '@/components/common/compliance_file.vue';
 
 
 export default {
-    name: "ViewBriefOfEvidence",
+    name: "ViewProsecutionBrief",
     data: function() {
         return {
             //boeRoiTicked: [],
             //boeRoiOptions: [],
             //boeOtherStatementsOptions: [],
             uuid: 0,
-            briefOfEvidence: {},
+            prosecutionBrief: {},
             /*
             physicalArtifacts: [],
             physicalArtifactsNonSensitiveUnused: [],
@@ -262,8 +261,8 @@ export default {
     },
     physicalArtifactsUsed: function() {
         let options = [];
-        if (this.legal_case && this.legal_case.boe_physical_artifacts_used) {
-            for (let option of this.legal_case.boe_physical_artifacts_used) {
+        if (this.legal_case && this.legal_case.pb_physical_artifacts_used) {
+            for (let option of this.legal_case.pb_physical_artifacts_used) {
                 options.push(option);
             }
         }
@@ -271,8 +270,8 @@ export default {
     },
     physicalArtifactsSensitiveUnused: function() {
         let options = [];
-        if (this.legal_case && this.legal_case.boe_physical_artifacts_sensitive_unused) {
-            for (let option of this.legal_case.boe_physical_artifacts_sensitive_unused) {
+        if (this.legal_case && this.legal_case.pb_physical_artifacts_sensitive_unused) {
+            for (let option of this.legal_case.pb_physical_artifacts_sensitive_unused) {
                 options.push(option);
             }
         }
@@ -280,8 +279,8 @@ export default {
     },
     physicalArtifactsNonSensitiveUnused: function() {
         let options = [];
-        if (this.legal_case && this.legal_case.boe_physical_artifacts_non_sensitive_unused) {
-            for (let option of this.legal_case.boe_physical_artifacts_non_sensitive_unused) {
+        if (this.legal_case && this.legal_case.pb_physical_artifacts_non_sensitive_unused) {
+            for (let option of this.legal_case.pb_physical_artifacts_non_sensitive_unused) {
                 options.push(option);
             }
         }
@@ -304,7 +303,7 @@ export default {
         }
         return readonly
     },
-    readonlyBriefOfEvidence: function() {
+    readonlyProsecutionBrief: function() {
         let readonly = true
         if (this.legal_case && this.legal_case.id) {
             readonly = !this.legal_case.can_user_action;
@@ -318,35 +317,35 @@ export default {
         }
         return return_val
     },
-    boeRoiTicked: function() {
+    pbRoiTicked: function() {
         let ticked = []
-        if (this.legal_case && this.legal_case.boe_roi_ticked) {
-            for (let id of this.legal_case.boe_roi_ticked) {
+        if (this.legal_case && this.legal_case.pb_roi_ticked) {
+            for (let id of this.legal_case.pb_roi_ticked) {
                 ticked.push(id)
             }
         }
         return ticked;
     },
-    boeOtherStatementsTicked: function() {
+    pbOtherStatementsTicked: function() {
         let ticked = []
-        if (this.legal_case && this.legal_case.boe_other_statements_ticked) {
-            for (let id of this.legal_case.boe_other_statements_ticked) {
+        if (this.legal_case && this.legal_case.pb_other_statements_ticked) {
+            for (let id of this.legal_case.pb_other_statements_ticked) {
                 ticked.push(id)
             }
         }
         return ticked;
     },
-    boeOtherStatementsOptions: function() {
+    pbOtherStatementsOptions: function() {
         let options = [];
-        if (this.legal_case && this.legal_case.boe_other_statements_options) {
-            options = this.legal_case.boe_other_statements_options;
+        if (this.legal_case && this.legal_case.pb_other_statements_options) {
+            options = this.legal_case.pb_other_statements_options;
         }
         return options;
     },
-    boeRoiOptions: function() {
+    pbRoiOptions: function() {
         let options = [];
-        if (this.legal_case && this.legal_case.boe_roi_options) {
-            options = this.legal_case.boe_roi_options;
+        if (this.legal_case && this.legal_case.pb_roi_options) {
+            options = this.legal_case.pb_roi_options;
         }
         return options;
     },
@@ -379,8 +378,8 @@ export default {
     */
     documentArtifacts: function() {
         let options = [];
-        if (this.legal_case && this.legal_case.boe_document_artifacts) {
-            for (let option of this.legal_case.boe_document_artifacts) {
+        if (this.legal_case && this.legal_case.pb_document_artifacts) {
+            for (let option of this.legal_case.pb_document_artifacts) {
                 options.push(option);
             }
         }
@@ -398,10 +397,10 @@ export default {
       loadLegalCase: 'loadLegalCase',
       saveLegalCase: 'saveLegalCase',
       setLegalCase: 'setLegalCase',
-      setBoeRoiTicked: 'setBoeRoiTicked',
-      setBoeOtherStatementsTicked: 'setBoeOtherStatementsTicked',
-      setBoePhysicalArtifactsTicked: 'setBoePhysicalArtifactsTicked',
-      setBoeDocumentArtifactsTicked: 'setBoeDocumentArtifactsTicked',
+      setPbRoiTicked: 'setBoeRoiTicked',
+      setPbOtherStatementsTicked: 'setPbOtherStatementsTicked',
+      setPbPhysicalArtifactsTicked: 'setPbPhysicalArtifactsTicked',
+      setPbDocumentArtifactsTicked: 'setPbDocumentArtifactsTicked',
       //setPhysicalArtifactSensitiveUnusedReason: 'setPhysicalArtifactSensitiveUnusedReason',
     }),
       /*
@@ -442,8 +441,8 @@ export default {
 
   },
   created: async function() {
-      if (this.legal_case && this.legal_case.brief_of_evidence) {
-          Object.assign(this.briefOfEvidence, this.legal_case.brief_of_evidence);
+      if (this.legal_case && this.legal_case.prosecution_brief) {
+          Object.assign(this.prosecutionBrief, this.legal_case.prosecution_brief);
       }
       /*
       if (this.legal_case.boe_physical_artifacts_non_sensitive_unused_options &&
