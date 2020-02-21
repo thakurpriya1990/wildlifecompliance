@@ -33,6 +33,7 @@ from wildlifecompliance.components.artifact.models import (
         BriefOfEvidenceDocumentArtifacts,
         ProsecutionBriefPhysicalArtifacts,
         ProsecutionBriefDocumentArtifacts,
+        PhysicalArtifactLegalCases,
     )
 
 from wildlifecompliance.components.offence.serializers import OffenceSerializer, OffenderSerializer
@@ -448,6 +449,30 @@ class SaveDocumentArtifactSerializer(serializers.ModelSerializer):
                 'id',
                 )
 
+    def validate(self, data):
+        #alleged_offence = AllegedOffence.objects.get(id=data['alleged_offence_id'])
+        #acos = AllegedCommittedOffence.get_active_alleged_committed_offences(alleged_offence)
+        if not (data.get('person_providing_statement_id') or data.get('interviewer_id')):
+            raise serializers.ValidationError('Statement must have an associated Person')
+        return data
+
+
+class PhysicalArtifactLegalCasesSerializer(serializers.ModelSerializer):
+
+    class Meta:
+        model = PhysicalArtifactLegalCases
+        fields = (
+                'id',
+                'physical_artifact_id',
+                'legal_case_id',
+                'primary',
+                'used_within_case',
+                'sensitive_non_disclosable',
+                )
+        read_only_fields = (
+                'id',
+                )
+
 
 #class PhysicalArtifactSerializer(ArtifactSerializer):
 class PhysicalArtifactSerializer(serializers.ModelSerializer):
@@ -461,6 +486,7 @@ class PhysicalArtifactSerializer(serializers.ModelSerializer):
     #available_statement_artifacts = serializers.SerializerMethodField()
     data = PhysicalArtifactFormDataRecordSerializer(many=True)
     status = CustomChoiceField(read_only=True)
+    legal_case_links = serializers.SerializerMethodField()
 
     class Meta:
         model = PhysicalArtifact
@@ -493,6 +519,7 @@ class PhysicalArtifactSerializer(serializers.ModelSerializer):
                 'created_at',
                 #'available_statement_artifacts',
                 'data',
+                'legal_case_links',
                 )
         read_only_fields = (
                 'id',
@@ -500,6 +527,13 @@ class PhysicalArtifactSerializer(serializers.ModelSerializer):
 
     def get_related_items(self, obj):
         return get_related_items(obj)
+
+    def get_legal_case_links(self, obj):
+        legal_case_links = []
+        for legal_case_link in obj.physicalartifactlegalcases_set.all():
+            serializer = PhysicalArtifactLegalCasesSerializer(legal_case_link)
+            legal_case_links.append(serializer.data)
+        return legal_case_links
 
     #def get_legal_case_id_list(self, obj):
     #    legal_case_id_list = []
@@ -674,6 +708,7 @@ class BriefOfEvidencePhysicalArtifactsSerializer(serializers.ModelSerializer):
                 'physical_artifact_id',
                 'ticked',
                 'label',
+                'reason_sensitive_non_disclosable',
                 #'children',
                 )
         read_only_fields = (
@@ -687,6 +722,7 @@ class BriefOfEvidencePhysicalArtifactsSerializer(serializers.ModelSerializer):
 class BriefOfEvidenceDocumentArtifactsSerializer(serializers.ModelSerializer):
     #children = serializers.ListField(child=RecursiveField())
     label = serializers.SerializerMethodField()
+    attachments = serializers.SerializerMethodField()
 
     class Meta:
         model = BriefOfEvidenceDocumentArtifacts
@@ -696,11 +732,22 @@ class BriefOfEvidenceDocumentArtifactsSerializer(serializers.ModelSerializer):
                 'document_artifact_id',
                 'ticked',
                 'label',
+                'attachments',
                 #'children',
                 )
         read_only_fields = (
                 'id',
                 )
+
+    def get_attachments(self, obj):
+        returned_file_data = [dict(
+                    file=d._file.url,
+                    id=d.id,
+                    name=d.name,
+                    type=d.name.split(".")[1]
+                    ) for d in obj.document_artifact.documents.all() if d._file]
+        #return {'filedata': returned_file_data}
+        return returned_file_data
 
     def get_label(self, obj):
         return obj.label

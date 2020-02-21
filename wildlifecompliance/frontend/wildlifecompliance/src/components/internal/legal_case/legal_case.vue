@@ -79,7 +79,16 @@
                         <div  class="row action-button">
                           <div v-if="canUserAction" class="col-sm-12">
                                 <a @click="addWorkflow('brief_of_evidence')" class="btn btn-primary btn-block">
+                                <!--a @click="createBriefOfEvidence" class="btn btn-primary btn-block"-->
                                   Brief of Evidence
+                                </a>
+                          </div>
+                        </div>
+                        <div  class="row action-button">
+                          <div v-if="canUserAction" class="col-sm-12">
+                                <a @click="addWorkflow('prosecution_brief')" class="btn btn-primary btn-block">
+                                <!--a @click="createProsecutionBrief" class="btn btn-primary btn-block"-->
+                                  Prosecution Brief
                                 </a>
                           </div>
                         </div>
@@ -543,11 +552,24 @@ export default {
         offence_bind_id = 'offence' + parseInt(this.uuid);
         return offence_bind_id;
     },
+      /*
     briefOfEvidenceVisibility: function() {
         let visible = false;
         if (this.legal_case && this.legal_case.id &&
             (this.legal_case.brief_of_evidence || this.legal_case.status.id === 'brief_of_evidence')
         ) {
+            visible = true;
+        }
+        return visible;
+    },
+    */
+    briefOfEvidenceVisibility: function() {
+        let visible = false;
+        if (this.legal_case && 
+            this.legal_case.id && 
+            this.legal_case.brief_of_evidence && 
+            this.legal_case.status.id === 'brief_of_evidence') 
+        {
             visible = true;
         }
         return visible;
@@ -876,17 +898,62 @@ export default {
             this.workflowBindId = timeNow.toString();
         }
     },
-    addWorkflow(workflow_type) {
-      this.workflow_type = workflow_type;
-      this.updateWorkflowBindId();
-      this.$nextTick(() => {
-        this.$refs.legal_case_workflow.isModalOpen = true;
-      });
+    addWorkflow: async function(workflow_type) {
+        console.log(workflow_type)
+        /*
+        if (['brief_of_evidence', 'prosecution_brief'].includes(workflow_type)) {
+            // Save legal_case first
+            await this.save({ 
+                "create": false, 
+                "internal": true 
+            })
+            // workflow_action api method
+            //let post_url = '/api/legal_case/' + this.legal_case.id + '/workflow_action/'
+            let postUrl = helpers.add_endpoint_join(
+                api_endpoints.legal_case, 
+                this.legal_case.id + '/workflow_action/'
+            );
+            let payload = new FormData();
+            workflow_type ? payload.append('workflow_type', workflow_type) : null;
+            let res = await Vue.http.post(postUrl, payload);
+
+        } else {
+            // open workflow modal
+            this.workflow_type = workflow_type;
+            this.updateWorkflowBindId();
+            this.$nextTick(() => {
+                this.$refs.legal_case_workflow.isModalOpen = true;
+            });
+        }
+        */
+        // open workflow modal
+        this.workflow_type = workflow_type;
+        this.updateWorkflowBindId();
+        this.$nextTick(() => {
+            this.$refs.legal_case_workflow.isModalOpen = true;
+        });
+    },
+    createBriefOfEvidence: async function() {
+        await this.save({ 
+            "createBriefOfEvidence": true,
+            "fullHttpResponse": true
+        })
+    },
+    createProsecutionBrief: async function() {
+        await this.save({ 
+            "createProsecutionBrief": true,
+            "fullHttpResponse": true
+        })
     },
     saveExit: async function() {
         await this.save({ "returnToDash": true })
     },
-    save: async function({ returnToDash=false, createNewRow=false } = {}) {
+    save: async function({ 
+        returnToDash=false, 
+        createBriefOfEvidence=false,
+        createProsecutionBrief=false,
+        fullHttpResponse=false,
+    } = {}) {
       this.showSpinner = true;
       if (returnToDash) {
           this.showExit = true;
@@ -896,15 +963,25 @@ export default {
       if (this.$refs.brief_of_evidence) {
           await this.setBriefOfEvidence({
               "brief_of_evidence": this.$refs.brief_of_evidence.briefOfEvidence,
-              "physical_artifacts": this.$refs.brief_of_evidence.physicalArtifacts,
+              /*
+              "boe_physical_artifacts": this.$refs.brief_of_evidence.physicalArtifacts,
+              "boe_physical_artifacts_sensitive_unused": this.$refs.brief_of_evidence.physicalArtifactsSensitiveUnused,
+              "boe_physical_artifacts_used": this.$refs.brief_of_evidence.physicalArtifactsUsed,
+              "boe_physical_artifacts_non_sensitive_unused": this.$refs.brief_of_evidence.physicalArtifactsNonSensitiveUnused,
+              */
           });
       }
+        /*
       if (createNewRow) {
           //await this.saveLegalCase({ create: false, internal: true, createNewRow: true });
           await this.saveLegalCase({ internal: true, createNewRow: true });
-      } else {
-          await this.saveLegalCase({ internal: false });
-      }
+          */
+      await this.saveLegalCase({ 
+          internal: false, 
+          createBriefOfEvidence: createBriefOfEvidence,
+          createProsecutionBrief: createProsecutionBrief,
+          fullHttpResponse: fullHttpResponse,
+      });
       if (returnToDash) {
         // remove redundant eventListeners
         window.removeEventListener('beforeunload', this.leaving);

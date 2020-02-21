@@ -43,14 +43,14 @@
                                               </div>
                                             </div>
                                         </div>
-                                        <div class="col-sm-12 form-group"><div class="row">
+                                        <div v-if="parentModal" class="col-sm-12 form-group"><div class="row">
                                           <label class="col-sm-6">Object used within this case?</label>
                                             <input :disabled="readonlyForm" class="col-sm-1" id="yes" type="radio" v-model="physical_artifact.used_within_case" v-bind:value="true">
                                             <label class="col-sm-1" for="yes">Yes</label>
                                             <input :disabled="readonlyForm" class="col-sm-1" id="no" type="radio" v-model="physical_artifact.used_within_case" v-bind:value="false">
                                             <label class="col-sm-1" for="no">No</label>
                                         </div></div>
-                                        <div class="col-sm-12 form-group"><div class="row">
+                                        <div v-if="parentModal" class="col-sm-12 form-group"><div class="row">
                                           <label class="col-sm-6">Object is sensitive / non-disclosable?</label>
                                             <input :disabled="readonlyForm" class="col-sm-1" id="yes" type="radio" v-model="physical_artifact.sensitive_non_disclosable" v-bind:value="true">
                                             <label class="col-sm-1" for="yes">Yes</label>
@@ -759,6 +759,8 @@ export default {
             //setTemporaryDocumentCollectionId: 'setTemporaryDocumentCollectionId',
             addToTemporaryDocumentCollectionList: 'addToTemporaryDocumentCollectionList',
             setStatementId: 'setStatementId',
+            setUsedWithinCase: 'setUsedWithinCase',
+            setSensitiveNonDisclosable: 'setSensitiveNonDisclosable',
         }),
         setStatementVisibility: function() {
             if (
@@ -1025,8 +1027,18 @@ export default {
     mounted: function() {
       this.$nextTick(async () => {
           this.addEventListeners();
-          console.log(this.physical_artifact)
-          //this.loadSchema();
+          /*
+          // special processing for PhysicalArtifactLegalCases link
+          if (this.legalCaseId && this.physical_artifact.legal_case_links && this.physical_artifact.legal_case_links.length > 0) {
+              console.log("mounted links")
+              for (let link of this.physical_artifact.legal_case_links) {
+                  if (link.legal_case_id === this.legalCaseId) {
+                      this.setUsedWithinCase(link.used_within_case);
+                      this.setSensitiveNonDisclosable(link.sensitive_non_disclosable);
+                  }
+              }
+          }
+          */
       });
     },
     beforeDestroy: async function() {
@@ -1044,7 +1056,9 @@ export default {
             await this.loadPhysicalArtifact({ physical_artifact_id: this.$route.params.physical_artifact_id });
         } else if (this.entityEdit && this.entityEdit.id && this.entityEdit.data_type === 'physical_artifact') {
             await this.loadPhysicalArtifact({ physical_artifact_id: this.entityEdit.id });
+            console.log("artifact loaded");
         }
+
         /*
         // if main obj page, call loadLegalCase if document_artifact.legal_case_id exists
         if (this.$route.name === 'view-artifact' && this.physical_artifact && this.physical_artifact.legal_case_id) {
@@ -1090,6 +1104,18 @@ export default {
       this.$nextTick(async () => {
           //this.addEventListeners();
           await this.loadSchema();
+      });
+      this.$nextTick(() => {
+          // special processing for PhysicalArtifactLegalCases link
+          if (this.legalCaseId && this.physical_artifact.legal_case_links && this.physical_artifact.legal_case_links.length > 0) {
+              console.log("created links")
+              for (let link of this.physical_artifact.legal_case_links) {
+                  if (link.legal_case_id === this.legalCaseId) {
+                      this.setUsedWithinCase(link.used_within_case);
+                      this.setSensitiveNonDisclosable(link.sensitive_non_disclosable);
+                  }
+              }
+          }
       });
         /*
         if (this.physical_artifact && this.physical_artifact.officer_email) {
