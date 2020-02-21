@@ -33,8 +33,8 @@
                                                         <label class="control-label pull-left">Proposed Purposes</label>
                                                     </div>
                                                     <div class="col-sm-9">
-                                                        <div v-for="(purpose, index) in selectedApplicationActivity.proposed_purposes" v-bind:key="`purpose_${index}`">
-                                                            <input type="checkbox" :value ="purpose.id" :id="purpose.id" v-model="getActivity(item.id).purposes">{{purpose.name}}
+                                                        <div v-for="(purpose, index) in applicationSelectedActivitiesForPurposes" v-bind:key="`purpose_${index}`">
+                                                            <input type="checkbox" :value ="purpose.id" :id="purpose.id" v-model="getActivity(item.id).purposes">{{purpose.short_name}}
                                                         </div>
                                                     </div>
                                                 </div>                                                
@@ -75,7 +75,7 @@
                                                 </div>
                                                 <div class="row" v-if="finalStatus(item.id) === 'issued' && canEditLicenceDates">
                                                     <div class="col-sm-3">
-                                                        <label class="control-label pull-left">Additional Fee Text</label>
+                                                        <label class="control-label pull-left">Additional Fee Details</label>
                                                     </div>
                                                     <div class="col-sm-9">
                                                         <input type="text" class="form-control" name="cc_email" style="width: 70%;"  v-model="getActivity(item.id).additional_fee_text">
@@ -239,6 +239,7 @@ export default {
                 character_check:false,
                 return_check:false,
                 current_application: vm.application.id,
+                purposes: [],
                 },
             datepickerOptions:{
                 format: 'DD/MM/YYYY',
@@ -264,6 +265,9 @@ export default {
                 )
             }
             return url;
+        },
+        applicationSelectedActivitiesForPurposes: function() {
+            return this.selectedApplicationActivity.proposed_purposes
         },
         canIssueOrDecline: function() {
             return (this.allActivitiesDeclined || (
@@ -322,6 +326,13 @@ export default {
             return this.application.return_check_status.id == 'not_checked'
                 || this.application.return_check_status.id == 'updated' ;
         },
+        isValidAdditionalFee: function(){
+            let invalid = this.licence.activity.filter(function(e) {
+                return (e.additional_fee.substring(0)!=='0.00' && e.additional_fee.substring(0)!=='0' && e.additional_fee.substring(0)!=='')
+                    && (e.additional_fee_text == null || e.additional_fee_text === '')
+            });        
+            return invalid.length < 1 ? true : false
+        },
         finalStatus: function() {
             return (id) => {
                 return this.getActivity(id).final_status;
@@ -363,6 +374,14 @@ export default {
         },
         ok: function () {
             let vm = this;
+
+            if(!this.isValidAdditionalFee) {
+                return swal(
+                    'Cannot issue/decline',
+                    "One or more activity tabs has additional fee amount without description",
+                    'error'
+                );
+            }
 
             if(!this.canSubmit) {
                 return swal(
@@ -450,7 +469,7 @@ export default {
                     cc_email: proposal.cc_email,
                     final_status: final_status,
                     confirmed: false,
-                    purposes: [],
+                    purposes: proposal.issued_purposes_id,
                     additional_fee: proposal.additional_fee,
                     additional_fee_text: proposal.additional_fee_text,
                 });

@@ -10,14 +10,21 @@
                                 <div class="row">
                                     <div class="col-sm-12">
                                         <label class="control-label" for="Name">Select licensed activities to Propose Issue</label>
-                                        <div v-for="(a, index) in applicationSelectedActivitiesForPurposes" :key="index">
-                                            <input type="checkbox" :value ="a.id" :id="a.id" v-model="checkedActivities" >{{a.activity_name_str}}
-                                            <div>
-                                                <div v-for="p in a.purposes">
-                                                    &nbsp;&nbsp;&nbsp;<input type="checkbox" :value ="p.id" :id="p.id" v-model="pickedPurposes" >{{p.short_name}}
-                                                </div>
+                                    </div>
+                                </div>
+                                <div class="row">
+                                    <div class="col-sm-12" v-for="(a, index) in applicationSelectedActivitiesForPurposes" v-bind:key="`a_${index}`">
+                                        <input type="checkbox" name="licence_activity" :value ="a.id" :id="a.id" v-model="checkedActivities" > {{a.activity_name_str}}
+                                        <table border=0 width='80%'>
+                                        <div v-for="p in a.purposes">
+                                            <div><tr><td width="40%">  
+                                            &nbsp;&nbsp;&nbsp;&nbsp;{{p.short_name}}</td>
+                                            <td width="10%">Issue <input type="radio" :value ="true" :id="p.id" v-model="getPickedPurpose(p.id).isProposed" ></td>
+                                            <td width="10%">Decline <input type="radio" :value ="false" :id="p.id" v-model="getPickedPurpose(p.id).isProposed" ></td>
+                                            </tr>
                                             </div>
                                         </div>
+                                        </table>
                                     </div>
                                 </div>
                             </div>
@@ -112,24 +119,31 @@
                                     </div>                                                              
                                 </div>
                             </div> 
-                            <div v-for="a in checkedActivities">
+                            <div v-for="a, idx in checkedActivities">
+                                <div class="form-group">
+                                    <div class="row">
+                                        <div class="col-sm-12">
+                                            <label class="control-label pull-left" >Additional Fees for {{ getCheckedActivity(a).activity_name_str }}</label>
+                                        </div>
+                                    </div>
+                                </div>                                 
                                 <div class="form-group">
                                     <div class="row">
                                         <div class="col-sm-3">
-                                            <label class="control-label pull-left" for="Name">Additional Fee Description</label>
+                                            <label class="control-label pull-left" for="Name">Description</label>
                                         </div>
                                         <div class="col-sm-9">
-                                            <input type="text" name="licence_cost_line" class="form-control" style="width:70%;" v-model="propose_issue.additional_fee_text" />
+                                            <input type="text" :name='"licence_fee_text_" + idx' class="form-control" style="width:70%;" v-model="getCheckedActivity(a).additional_fee_text" />
                                         </div>
                                     </div>
                                 </div>  
                                 <div class="form-group">
                                     <div class="row">
                                         <div class="col-sm-3">
-                                            <label class="control-label pull-left" for="Name">Additional Fee</label>
+                                            <label class="control-label pull-left" for="Name">Fee</label>
                                         </div>
                                         <div class="col-sm-9">
-                                            <input type="text" name="licence_cost_amount" class="form-control" style="width:20%;" v-model="propose_issue.additional_fee" />
+                                            <input type="text" ref="licence_fee" class="form-control" style="width:20%;" v-model="getCheckedActivity(a).additional_fee" />
                                         </div>
                                     </div>
                                 </div>
@@ -179,6 +193,7 @@ export default {
                 additional_fee_text:null,
                 additional_fee:0,
                 temporary_document_email_id: null,
+                activities: null,
             },
             issuingLicence: false,
             validation_form: null,
@@ -220,8 +235,9 @@ export default {
             return this.application.processing_status.id == 'with_approver' ? 'Issue Licence' : 'Propose to issue licence';
         },
         applicationSelectedActivitiesForPurposes: function() {
-            return this.application.activities.filter(
-                activity => { return activity.processing_status.name.match(/with officer/gi) } // only non-processed activities.
+            return this.application.activities.filter( activity => { 
+                return activity.processing_status.name.match(/with officer/gi) 
+                } // only non-processed activities.
             );
         },
         applicationSelectedActivity: function() {
@@ -254,6 +270,7 @@ export default {
             this.errors = false;
             $('.has-error').removeClass('has-error');
             this.validation_form.resetForm();
+            this.initialiseAttributes();
         },
         fetchContact: function(id){
             let vm = this;
@@ -264,14 +281,28 @@ export default {
             } );
         },
         getCheckedActivity: function(_id){
-            let act = this.applicationSelectedActivitiesForPurposes.find(a => {return a.id===_id})
-            console.log(act)
-            return act
+            return this.applicationSelectedActivitiesForPurposes.find(a => {
+                return a.id===_id
+            });
         },
-        setAdditionalFees: function(_id){
-            let act = this.applicationSelectedActivitiesForPurposes.find(a => {return a.id===_id})
-            
-            return act
+        isCheckedActivity: function(_id){
+            return this.checkedActivities.find(a => {
+                return a === _id
+            });
+        },
+        getPickedPurpose: function(_id){
+            let picked = this.pickedPurposes.find(p => {return p.id===_id})
+            if (!picked) {
+                picked = {id: _id, isProposed: false}
+                this.pickedPurposes.push(picked)
+            }
+            return picked
+        },
+        isPickedPurpose: function(_id){
+            let activities = this.applicationSelectedActivitiesForPurposes.filter( a => {return this.checkedActivities.includes(a.id)})
+            return activities.find(a => { 
+                return a.purposes.find(p => p.id === _id)
+            })
         },
         setTemporaryIssuanceDocumentsCollectionId: function(val) {
             this.propose_issue.issuance_documents_id = val;
@@ -282,40 +313,23 @@ export default {
         sendData:function(){
             let vm = this;
             vm.errors = false;
-            vm.propose_issue.purposes = vm.pickedPurposes;
+            vm.propose_issue.purposes = vm.pickedPurposes.filter(p => { return this.isPickedPurpose(p.id)} );
             vm.propose_issue.activity = vm.checkedActivities;
+            vm.propose_issue.activities = vm.applicationSelectedActivitiesForPurposes.filter( a => {return vm.checkedActivities.includes(a.id)});
             let propose_issue = JSON.parse(JSON.stringify(vm.propose_issue));
             vm.issuingLicence = true;
-            console.log('sendData')
-            console.log(propose_issue)
-            if (propose_issue.purposes.length > 0){
-                vm.$http.post(helpers.add_endpoint_json(api_endpoints.applications,vm.application_id+'/proposed_licence'),JSON.stringify(vm.propose_issue),{
-                        emulateJSON:true,
-                    }).then((response)=>{
-                        //swal(
-                        //        'Propose Issue',
-                        //        'The selected licenced activities have been proposed for Issue.',
-                        //        'success'
-                        //)
-                        //vm.issuingLicence = false;
-                        //vm.close();
-                        //vm.$emit('refreshFromResponse',response);
-                        vm.$router.push({
-                            name:"internal-dash",
-                        });     
-                    },(error)=>{
-                        vm.errors = true;
-                        vm.issuingLicence = false;
-                        vm.errorString = helpers.apiVueResourceError(error);
-                    });
-            } else {
-                vm.issuingLicence = false;
-                swal(
-                     'Propose Issue',
-                     'Please select at least once licenced purpose to Propose Issue.',
-                     'error'
-                )
-            }
+            vm.$http.post(helpers.add_endpoint_json(api_endpoints.applications,vm.application_id+'/proposed_licence'),JSON.stringify(vm.propose_issue),{
+                    emulateJSON:true,
+                }).then((response)=>{
+
+                    vm.$router.push({name:"internal-dash",});     
+
+                },(error)=>{
+                    vm.errors = true;
+                    vm.issuingLicence = false;
+                    vm.errorString = helpers.apiVueResourceError(error);
+                });
+
             
         },
         addFormValidations: function() {
@@ -325,6 +339,7 @@ export default {
                     start_date: { required: this.canEditLicenceDates },
                     due_date: { required: this.canEditLicenceDates },
                     licence_details: "required",
+                    licence_activity: { required: true},
                 },
                 messages: {
                 },
@@ -347,6 +362,12 @@ export default {
                     }
                 }
             });
+       },
+       initialiseAttributes: function() {
+            this.application.activities.forEach(a => {
+                a.additional_fee = null
+                a.additional_fee_text = null
+            })
        },
        eventListeners:function () {
             let vm = this;
@@ -386,11 +407,14 @@ export default {
         },
    },
    mounted:function () {
+       console.log('mounted')
         this.form = document.forms.licenceForm;
         this.addFormValidations();
         this.$nextTick(()=>{
+            console.log('$nextTick')
             this.eventListeners();
         });
+        this.initialiseAttributes();
    }
 }
 </script>
