@@ -590,7 +590,7 @@ export default {
             vm.eventListeners();
             vm.initFirstTab();
         });
-        console.log(this)
+
     },
     updated: function() {
         this.$nextTick(() => {

@@ -264,8 +264,8 @@ export default {
         fetchPurposes(){
             this.purposes = [];
             var selectedActivity = this.application.activities.find(activity => {
-                return activity.licence_activity = this.selected_activity_tab_id;
-            })
+                return activity.licence_activity === this.selected_activity_tab_id;
+            });
             this.purposes = selectedActivity.purposes;
         },
         editCondition(_id){
