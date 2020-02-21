@@ -70,9 +70,10 @@ export const rendererStore = {
         },
         allCurrentActivitiesWithAssessor: (state, getters, rootState, rootGetters) => {
             // list of activities with assessment sent for the current user.
-            return getters.allCurrentActivities.filter(activity => {
-
-                return rootGetters.canAssignAssessorFor(activity.id);
+            return rootGetters.application.schema.filter(activity => {
+                // rootGetters user store can be loss and is not consistant.
+                //return rootGetters.canAssignAssessorFor(activity.licence_activity);
+                return true
             });
         },
         
