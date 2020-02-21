@@ -235,7 +235,7 @@ export default {
             //boeRoiOptions: [],
             //boeOtherStatementsOptions: [],
             uuid: 0,
-            briefOfEvidence: {},
+            //briefOfEvidence: {},
             /*
             physicalArtifacts: [],
             physicalArtifactsNonSensitiveUnused: [],
@@ -259,6 +259,13 @@ export default {
     }),
     csrf_token: function() {
       return helpers.getCookie("csrftoken");
+    },
+    briefOfEvidence: function() {
+        if (this.legal_case && this.legal_case.brief_of_evidence) {
+            return this.legal_case.brief_of_evidence;
+        } else {
+            return {}
+        }
     },
     physicalArtifactsUsed: function() {
         let options = [];
@@ -442,9 +449,11 @@ export default {
 
   },
   created: async function() {
+      /*
       if (this.legal_case && this.legal_case.brief_of_evidence) {
           Object.assign(this.briefOfEvidence, this.legal_case.brief_of_evidence);
       }
+      */
       /*
       if (this.legal_case.boe_physical_artifacts_non_sensitive_unused_options &&
           this.legal_case.boe_physical_artifacts_non_sensitive_unused_options.length > 0) {
