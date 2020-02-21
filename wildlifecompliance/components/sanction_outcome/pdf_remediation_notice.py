@@ -97,56 +97,59 @@ def _create_pdf(invoice_buffer, sanction_outcome):
         ('VALIGN', (0, 0), (-1, -1), 'TOP'),
         ('GRID', (0, 0), (-1, -1), 1, colors.black),
         ('ALIGN', (0, 0), (-1, -1), 'LEFT'),
-
-        ('SPAN', (0, 0), (1, 0)),
-
-        # Alleged offender
-        ('SPAN', (0, 1), (0, 5)),
-        ('SPAN', (1, 1), (2, 1)),
-        ('SPAN', (1, 2), (2, 2)),
-        ('SPAN', (1, 3), (2, 3)),
-        ('SPAN', (1, 4), (2, 4)),
-        ('SPAN', (1, 5), (2, 5)),
-
-        # When
-        ('SPAN', (1, 6), (2, 6)),
-
-        # Where
-        ('SPAN', (1, 7), (2, 7)),
-
-        # Alleged offence
-        ('SPAN', (0, 8), (0, 9)),
-        ('SPAN', (1, 8), (2, 8)),
-        # ('SPAN', (1, 9), (2, 9)),
-        ('SPAN', (1, 9), (2, 9)),
-        # ('SPAN', (1, 10), (2, 10)),
-
-        # Officer issuing notice
-        ('SPAN', (0, 10), (0, 12)),
-        ('SPAN', (1, 10), (2, 10)),
-        ('SPAN', (1, 11), (2, 11)),
-        ('SPAN', (1, 12), (2, 12)),
-
-        # Date
-        ('SPAN', (1, 13), (2, 13)),
-
-        # Notice to alleged offender
-        ('SPAN', (1, 14), (2, 14)),
     ])
     date_str = gap(10) + '/' + gap(10) + '/ 20'
-    col_width = [40*mm, 60*mm, 80*mm, ]
+    col_width = [180*mm, ]
 
     data = []
-    data.append([Paragraph('<i>Biodiversity Conservation Act 2016</i><br /><strong><font size="' + str(FONT_SIZE_L) + '">Caution Notice</font></strong>', styles['Normal']),
-                 '',
-                 Paragraph(u'Caution<br />notice no. <font face="Helvetica"><strong>' + sanction_outcome.lodgement_number + u'</strong></font>', styles['Normal'])])
+    data.append([[
+        Paragraph('Pursuant to the <i>Biodiversity Conservation Act 2016</i>, the CEO considers that you are a person bound by a relevant instrument.<br />'
+                           '<strong>Contact details of person to whom this Notice is issued:</strong>', styles['Normal']),
+        Paragraph('Full name:' + gap(80) + 'Date of Birth:', styles['Normal']),
+        Paragraph('Postal/Residential address:', styles['Normal']),
+        Paragraph('Telephone number:', styles['Normal']),
+        Paragraph('Email address:', styles['Normal']),
+    ], ])
+    data.append([[
+        Paragraph('The CEO is of the opinion that you have contravened the relevant instrument listed below:', styles['Normal']),
+        Table([
+            [Paragraph('<strong>Relevant Instrument</strong>', styles['Normal']), Paragraph('<strong>Reference Number of Instrument/Notice</strong>', styles['Normal'])],
+            [Paragraph('Biodiversity Conservation Covenant', styles['Normal']), ''],
+            [Paragraph('Environment Pest Notice', styles['Normal']), ''],
+            [Paragraph('Habitat Conservation Notice', styles['Normal']), ''],
 
+        ], style=invoice_table_style, rowHeights=[6*mm, 12*mm, 12*mm, 12*mm])
+    ], ])
+    data.append([[
+        Paragraph('You are required to undertake one or more of the following action(s) to comply with the named instrument:', styles['Normal']),
+        Paragraph('a) Stop anything that is being done in contravention of the instrument; and<br />'
+                  'b) Do anything required by the instrument to be done that has not been done; and<br />'
+                  'c) Carry out work that is necessary to remedy anything done in contravention of the instrument; and<br />'
+                  'd) Do anything incidental to action referred to in (a), (b), or (c) above', styles['Normal'])
+    ], ])
+    data.append([
+        Paragraph('List the remedial actions necessary to afford compliance with the relevant instrument:', styles['Normal'])
+    ])
+    data.append([[
+        Paragraph('<strong>IMPORTANT</strong>: You must comply with the remediation action(s) listed above within the period specified in this notice.', styles['Normal']),
+        Paragraph('If you do not comply within the specified period, the CEO may take any necessary remedial action and may recover the reasonable costs incurred in taking remedial action from you, as a person(s) bound by the relevant instrument, in a court of competent jurisdiction as a debt to the State.', styles['Normal']),
+        Paragraph('Postal Address of the CEO:<br />Department of Biodiversity, Conservation and Attractions<br />Locked Bag 104<br />Bentley Delivery Centre WA 6983', styles['Normal']),
+    ], ])
+    data.append([[
+        Paragraph('<strong>Notes:</strong>:', styles['Normal']),
+        Paragraph('A separate Remediation Notice must be issued to each person bound by the instrument.:', styles['Normal'], bulletText='-'),
+        Paragraph('For the purpose of taking remedial action a wildlife officer may enter on land with or without vehicles, plant or equipment and remain on that land for as long as is necessary to complete the remedial action.', styles['Normal'], bulletText='-'),
+        Paragraph('A wildlife officer must not exercise a power to enter unless they first obtain the consent of the owner or occupier of the land, or the owner/occupier has been given reasonable notice of the proposed entry and has not objected to the entry, or the entry is in accordance with an entry warrant. Section 202 of the Biodiversity Conservation Act 2016 applies. (Occupiers Rights)', styles['Normal'], bulletText='-',)
+    ], ])
+
+    t1 = Table(data, style=invoice_table_style, colWidths=col_width, rowHeights=[60*mm, 60*mm, 40*mm, 90*mm, 60*mm, 60*mm,])
 
     # Append tables to the elements to build
     gap_between_tables = 1.5*mm
     elements = []
     elements.append(dbca_logo)
     elements.append(title_remediation_notice)
+    elements.append(t1)
 
     doc.build(elements)
     return invoice_buffer
