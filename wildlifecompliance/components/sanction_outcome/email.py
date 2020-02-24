@@ -8,6 +8,7 @@ from wildlifecompliance.components.sanction_outcome.pdf import create_infringeme
 from wildlifecompliance.components.sanction_outcome.pdf_caution_notice import create_caution_notice_pdf_bytes
 from wildlifecompliance.components.sanction_outcome.pdf_in_blue import create_in_pdf_bytes
 # from wildlifecompliance.components.sanction_outcome.serializers import SanctionOutcomeCommsLogEntrySerializer
+from wildlifecompliance.components.sanction_outcome.pdf_letter_of_advice import create_letter_of_advice_pdf_bytes
 from wildlifecompliance.components.sanction_outcome.pdf_prosecution_notice import create_prosecution_notice_pdf_bytes
 from wildlifecompliance.components.sanction_outcome.pdf_remediation_notice import create_remediation_notice_pdf_bytes
 
@@ -548,7 +549,8 @@ def send_infringement_notice(to_address, sanction_outcome, workflow_entry, reque
     # document = create_in_pdf_bytes(pdf_file_name, sanction_outcome)
     # document = create_prosecution_notice_pdf_bytes(pdf_file_name, sanction_outcome)
     # document = create_caution_notice_pdf_bytes(pdf_file_name, sanction_outcome)
-    document = create_remediation_notice_pdf_bytes(pdf_file_name, sanction_outcome)
+    # document = create_remediation_notice_pdf_bytes(pdf_file_name, sanction_outcome)
+    document = create_letter_of_advice_pdf_bytes(pdf_file_name, sanction_outcome)
 
     # Attach files (files from the modal, and the PDF file generated above)
     attachments = prepare_attachments(workflow_entry.documents)
