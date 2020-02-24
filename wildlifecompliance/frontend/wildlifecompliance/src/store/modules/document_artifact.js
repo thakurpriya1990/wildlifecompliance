@@ -67,6 +67,9 @@ export const documentArtifactStore = {
             officerInterviewerConcise.surname = officer_interviewer.surname
             Vue.set(state.document_artifact, 'officer_interviewer', officerInterviewerConcise);
         },
+        updateErrorMessage(state, errorMessage) {
+            Vue.set(state.document_artifact, 'error_message', errorMessage);
+        },
         /*
         updateDocumentArtifactLegalId(state, legal_case_id) {
             console.log(legal_case_id)
@@ -90,7 +93,8 @@ export const documentArtifactStore = {
                 console.log(err);
             }
         },
-        async saveDocumentArtifact({ dispatch, state, rootGetters }, { create, internal, legal_case_id }) {
+        async saveDocumentArtifact({ commit, dispatch, state, rootGetters }, { create, internal, legal_case_id }) {
+            commit("updateErrorMessage", "");
             let documentArtifactId = null;
             let savedDocumentArtifact = null;
             try {
@@ -115,7 +119,7 @@ export const documentArtifactStore = {
                         api_endpoints.document_artifact,
                         state.document_artifact.id + '/'
                         )
-                    console.log(payload);
+                    //console.log(payload);
                     savedDocumentArtifact = await Vue.http.put(fetchUrl, payload);
                 }
                 await dispatch("setDocumentArtifact", savedDocumentArtifact.body);
@@ -127,11 +131,16 @@ export const documentArtifactStore = {
                     // return "There was an error saving the record";
                     return err;
                 } else {
+                    let errorMessage = ''
                     if (err.statusText && err.data && err.data.non_field_errors && err.data.non_field_errors.length > 0) {
-                        await swal("Error", err.data.non_field_errors[0], "error");
+                        //await swal("Error", err.data.non_field_errors[0], "error");
+                        errorMessage = err.data.non_field_errors[0];
                     } else {
-                        await swal("Error", "There was an error saving the record", "error");
+                        //await swal("Error", "There was an error saving the record", "error");
+                        errorMessage = "There was an error saving the record";
                     }
+                    commit("updateErrorMessage", errorMessage);
+                    await swal("Error", errorMessage, "error");
                 }
             }
             // internal arg used when file upload triggers record creation
