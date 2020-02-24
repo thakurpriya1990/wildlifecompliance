@@ -362,7 +362,10 @@ class SaveAssessmentSerializer(serializers.ModelSerializer):
 
 class ValidCompleteAssessmentSerializer(serializers.Serializer):
     activity_id = serializers.ListField(child=serializers.IntegerField())
-    final_comment = serializers.CharField(required=False, allow_null=True)
+    final_comment = serializers.CharField(
+        required=False,
+        allow_blank=True, 
+        allow_null=True)
 
     def validate(self, data):
         # validate licence activity selected.

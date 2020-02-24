@@ -310,7 +310,7 @@ export default {
             },
             savingAssessment: false,
             checkedActivities: [],
-            final_comment: null,
+            final_comment: "",
         }
     },
     components: {
