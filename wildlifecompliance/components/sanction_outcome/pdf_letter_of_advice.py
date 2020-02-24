@@ -92,6 +92,7 @@ def _create_pdf(invoice_buffer, sanction_outcome):
     # Table
     invoice_table_style = TableStyle([
         ('VALIGN', (0, 0), (-1, -1), 'TOP'),
+        ('VALIGN', (1, 3), (1, 3), 'MIDDLE'),
         ('GRID', (0, 0), (-1, -1), 0.5, colors.black),
         ('ALIGN', (0, 0), (-1, -1), 'LEFT'),
         ('SPAN', (1, 1), (2, 1)),
@@ -113,40 +114,52 @@ def _create_pdf(invoice_buffer, sanction_outcome):
     ])
     data.append([
         Paragraph('<strong>To</strong>', styles['Normal']),
-        Paragraph('Given names:<br />Surname:', styles['Normal']),
+        [
+            Paragraph('Given names:', styles['Normal']),
+            Paragraph('Surname:', styles['Normal']),
+            Spacer(0, 3*mm),
+        ],
         '',
     ])
     data.append([
         Paragraph('<strong>Address</strong>', styles['Normal']),
-        Paragraph('No and Street:<br />Town/Suburb:', styles['Normal']),
+        [
+            Paragraph('No and Street:', styles['Normal']),
+            Paragraph('Town/Suburb:', styles['Normal']),
+            Spacer(0, 3*mm)
+        ],
         Paragraph('Post Code', styles['Normal']),
     ])
     data.append(([
         '',
         Paragraph('Date of Birth' + date_str, styles['Normal']),
-        Paragraph('Gender:<br />M' + gap(3) + 'F' + gap(3) + 'U', styles['Normal']),
+        [
+            Paragraph('Gender:', styles['Normal']),
+            Paragraph('M' + gap(3) + 'F' + gap(3) + 'U', styles['Normal']),
+        ],
     ]))
     data.append([
-        Paragraph('<strong>Direction<br />* Delete as appropriate.<br /># Enter details of direction given.</strong>', styles['Normal']),
+        Paragraph('<strong>Direction<br /><br />* Delete as appropriate.<br /><br /># Enter details of direction given.</strong>', styles['Normal']),
         [Paragraph('Under the <strong><i>Biodiversity Conservation Act 2016 s204(2) (a), (b), (d)*</i></strong>, I direct you to - #<br />', styles['Normal']),
          Spacer(0, 20*mm),
          Paragraph('Under the <strong><i>Biodiversity Conservation Act 2016 s205(2)</i></strong>, I direct you to - #', styles['Normal']),
          Spacer(0, 20*mm),
          ],
-        ''
+        '',
     ])
     data.append([
         Paragraph('<strong>Warning</strong>', styles['Normal']),
         Paragraph('<strong>If you do not obey this direction you may be liable to a fine of $10,000.00.</strong>', styles['Normal']),
-        ''
+        '',
     ])
     data.append([
         Paragraph('<strong>Issuing officer’s signature and details</strong>', styles['Normal']),
         [
-            Paragraph('I issue this direction on this date and at this time Date:' + date_str + '<br />' + gap(80) + 'Time:' + gap(10) + 'am / pm', styles['Normal']),
+            Paragraph('I issue this direction on this date and at this time Date:' + date_str + '<br />' + gap(77) + 'Time:' + gap(10) + 'am / pm', styles['Normal']),
             Paragraph('Name and AO Number:', styles['Normal']),
             Paragraph('Signature', styles['Normal']),
             Paragraph('District/Region:', styles['Normal']),
+            Spacer(0, 3 * mm),
         ],
         '',
     ])
@@ -156,6 +169,7 @@ def _create_pdf(invoice_buffer, sanction_outcome):
             Paragraph('Name and AO Number:', styles['Normal']),
             Paragraph('Signature', styles['Normal']),
             Paragraph('District/Region:', styles['Normal']),
+            Spacer(0, 3 * mm),
         ],
         '',
     ])
@@ -173,10 +187,12 @@ def _create_pdf(invoice_buffer, sanction_outcome):
         ('VALIGN', (0, 0), (-1, -1), 'TOP'),
         ('GRID', (0, 0), (-1, -1), 0.5, colors.black),
         ('ALIGN', (0, 0), (-1, -1), 'LEFT'),
+        ('TOPPADDING', (0, 0), (-1, -1), 2),
+        ('BOTTOMPADDING', (0, 0), (-1, -1), 2),
         ('BACKGROUND', (0, 0), (1, 0), (0.8, 0.8, 0.8)),
         ('SPAN', (0, 0), (1, 0)),
         ('SPAN', (0, 1), (1, 1)),
-        ('BACKGROUND', (0, 5), (1, 5), colors.gray),
+        ('BACKGROUND', (0, 5), (1, 5), (0.8, 0.8, 0.8)),
         ('SPAN', (0, 5), (1, 5)),
         ('SPAN', (0, 6), (1, 6)),
     ])
@@ -306,6 +322,7 @@ def _create_pdf(invoice_buffer, sanction_outcome):
     elements.append(Spacer(0, 5*mm))
     elements.append(t1)
     elements.append(PageBreak())
+    elements.append(Spacer(0, 10*mm))
     elements.append(t2)
 
     doc.build(elements)
