@@ -267,17 +267,29 @@ def format_url(model_name, obj_id):
     if model_name:
         lower_model_name = model_name.lower()
         obj_id_str = str(obj_id)
+        #switcher = {
+        #        'callemail': '<a href=/internal/call_email/' + obj_id_str + ' target="_blank">View</a>',
+        #        'inspection': '<a href=/internal/inspection/' + obj_id_str + ' target="_blank">View</a>',
+        #        'offence': '<a href=/internal/offence/' + obj_id_str + ' target="_blank">View</a>',
+        #        'sanctionoutcome': '<a href=/internal/sanction_outcome/' + obj_id_str + ' target="_blank">View</a>',
+        #        'legalcase': '<a href=/internal/legal_case/' + obj_id_str + ' target="_blank">View</a>',
+        #        'emailuser': '<a href=/internal/users/' + obj_id_str + ' target="_blank">View</a>',
+        #        'organisation': '<a href=/internal/organisations/' + obj_id_str + ' target="_blank">View</a>',
+        #        'documentartifact': '<a href=/internal/object/' + obj_id_str + ' target="_blank">View</a>',
+        #        'physicalartifact': '<a href=/internal/object/' + obj_id_str + ' target="_blank">View</a>',
+        #        }
         switcher = {
-                'callemail': '<a href=/internal/call_email/' + obj_id_str + ' target="_blank">View</a>',
-                'inspection': '<a href=/internal/inspection/' + obj_id_str + ' target="_blank">View</a>',
-                'offence': '<a href=/internal/offence/' + obj_id_str + ' target="_blank">View</a>',
+                'callemail': '<a href=/internal/call_email/' + obj_id_str + ' target="_blank">Edit</a>',
+                'inspection': '<a href=/internal/inspection/' + obj_id_str + ' target="_blank">Edit</a>',
+                'offence': '<a href=/internal/offence/' + obj_id_str + ' target="_blank">Edit</a>',
                 'sanctionoutcome': '<a href=/internal/sanction_outcome/' + obj_id_str + ' target="_blank">View</a>',
-                'legalcase': '<a href=/internal/legal_case/' + obj_id_str + ' target="_blank">View</a>',
-                'emailuser': '<a href=/internal/users/' + obj_id_str + ' target="_blank">View</a>',
-                'organisation': '<a href=/internal/organisations/' + obj_id_str + ' target="_blank">View</a>',
-                'documentartifact': '<a href=/internal/object/' + obj_id_str + ' target="_blank">View</a>',
-                'physicalartifact': '<a href=/internal/object/' + obj_id_str + ' target="_blank">View</a>',
+                'legalcase': '<a href=/internal/legal_case/' + obj_id_str + ' target="_blank">Edit</a>',
+                'emailuser': '<a href=/internal/users/' + obj_id_str + ' target="_blank">Edit</a>',
+                'organisation': '<a href=/internal/organisations/' + obj_id_str + ' target="_blank">Edit</a>',
+                'documentartifact': '<a href=/internal/object/' + obj_id_str + ' target="_blank">Edit</a>',
+                'physicalartifact': '<a href=/internal/object/' + obj_id_str + ' target="_blank">Edit</a>',
                 }
+
         return switcher.get(lower_model_name, '')
 
 def get_related_offenders(entity, **kwargs):
