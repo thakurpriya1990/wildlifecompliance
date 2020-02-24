@@ -127,7 +127,11 @@ export const documentArtifactStore = {
                     // return "There was an error saving the record";
                     return err;
                 } else {
-                    await swal("Error", "There was an error saving the record", "error");
+                    if (err.statusText && err.data && err.data.non_field_errors && err.data.non_field_errors.length > 0) {
+                        await swal("Error", err.data.non_field_errors[0], "error");
+                    } else {
+                        await swal("Error", "There was an error saving the record", "error");
+                    }
                 }
             }
             // internal arg used when file upload triggers record creation

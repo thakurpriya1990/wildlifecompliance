@@ -46,6 +46,16 @@
                             </div>
                           </div>
                         </div>
+                        <div class="form-group">
+                            <div class="row">
+                                <div class="col-sm-3">
+                                  <label>Title</label>
+                                </div>
+                                <div class="col-sm-9">
+                                    <input type="text" class="form-control" v-model="legalCaseTitle" />
+                                </div>
+                            </div>
+                        </div>
 
                         <div class="form-group">
                           <div class="row">
@@ -130,6 +140,7 @@ export default {
             legalCasePriorities: [],
             externalOrganisations: [],
             legalCaseDetails: '',
+            legalCaseTitle: '',
             errorResponse: "",
             region_id: null,
             district_id: null,
@@ -312,6 +323,7 @@ export default {
           
           let payload = new FormData();
           payload.append('details', this.legalCaseDetails);
+          payload.append('title', this.legalCaseTitle);
           this.$refs.comms_log_file.commsLogId ? payload.append('legal_case_comms_log_id', this.$refs.comms_log_file.commsLogId) : null;
           this.parent_call_email ? payload.append('call_email_id', this.call_email.id) : null;
           this.district_id ? payload.append('district_id', this.district_id) : null;
@@ -367,7 +379,7 @@ export default {
             );
         Object.assign(this.regionDistricts, returned_region_districts);
 
-        // inspection_types
+        // legal_case_priorities
         let returned_legal_case_priorities = await cache_helper.getSetCacheList(
             'LegalCasePriorities',
             api_endpoints.legal_case_priorities

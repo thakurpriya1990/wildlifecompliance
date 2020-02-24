@@ -974,6 +974,98 @@ class BriefOfEvidenceRecordOfInterview(models.Model):
             label_text = 'Associated Document Object: ' + self.associated_doc_artifact.number
         return label_text
 
+class ProsecutionBriefOtherStatements(models.Model):
+    legal_case = models.ForeignKey(
+            LegalCase, 
+            related_name='legal_case_pb_other_statements')
+    #person = models.CharField(max_length=255, null=True, blank=True)
+    person = models.ForeignKey(
+            EmailUser,
+            related_name='email_user_pb_other_statements',
+            )
+    statement = models.ForeignKey(
+            DocumentArtifact, 
+            related_name='statement_pb_other_statements',
+            blank=True,
+            null=True
+            )
+    associated_doc_artifact = models.ForeignKey(
+            DocumentArtifact, 
+            related_name='document_artifact_pb_other_statements', 
+            blank=True, 
+            null=True)
+    ticked = models.BooleanField(default=False)
+    children = models.ManyToManyField(
+            'self',
+            related_name='parents',
+            symmetrical=False)
+
+
+    class Meta:
+        app_label = 'wildlifecompliance'
+
+    @property
+    def label(self):
+        return self.__str__()
+
+    def __str__(self):
+        label_text = ''
+        if not self.statement and not self.associated_doc_artifact:
+            full_name = self.person.get_full_name()
+            label_text = 'Person: ' + full_name
+        elif not self.associated_doc_artifact:
+            label_text = self.statement.document_type + ': ' + self.statement.number
+        else:
+            label_text = 'Associated Document Object: ' + self.associated_doc_artifact.number
+        return label_text
+
+
+class ProsecutionBriefRecordOfInterview(models.Model):
+    legal_case = models.ForeignKey(
+            LegalCase, 
+            related_name='legal_case_pb_roi')
+    offence = models.ForeignKey(
+            Offence, 
+            related_name='offence_pb_roi')
+    offender = models.ForeignKey(
+            Offender, 
+            related_name='offender_pb_roi', 
+            blank=True, 
+            null=True)
+    record_of_interview = models.ForeignKey(
+            DocumentArtifact, 
+            related_name='record_of_interview_pb_roi', 
+            blank=True, 
+            null=True)
+    associated_doc_artifact = models.ForeignKey(
+            DocumentArtifact, 
+            related_name='document_artifact_pb_roi', 
+            blank=True, 
+            null=True)
+    ticked = models.BooleanField(default=False)
+    children = models.ManyToManyField(
+            'self',
+            related_name='parents',
+            symmetrical=False)
+
+    class Meta:
+        app_label = 'wildlifecompliance'
+
+    @property
+    def label(self):
+        return self.__str__()
+
+    def __str__(self):
+        label_text = ''
+        if not self.offender and not self.record_of_interview and not self.associated_doc_artifact:
+            label_text = 'Offence: ' + self.offence.lodgement_number
+        elif not self.record_of_interview and not self.associated_doc_artifact:
+            label_text = 'Offender: ' + str(self.offender.id)
+        elif not self.associated_doc_artifact:
+            label_text = 'Record of Interview: ' + self.record_of_interview.number
+        else:
+            label_text = 'Associated Document Object: ' + self.associated_doc_artifact.number
+        return label_text
 
 #import reversion
 #reversion.register(LegalCaseRunningSheetEntry, follow=['user'])
