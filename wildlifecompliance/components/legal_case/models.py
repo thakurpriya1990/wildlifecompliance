@@ -69,7 +69,9 @@ class LegalCase(RevisionedMixin):
     #STATUS_REQUEST_AMENDMENT = 'request_amendment'
     STATUS_AWAIT_ENDORSEMENT = 'await_endorsement'
     STATUS_BRIEF_OF_EVIDENCE = 'brief_of_evidence'
-    STATUS_PROSECUTION_BRIEF = 'prosecution_brief'
+    #STATUS_PROSECUTION_BRIEF = 'prosecution_brief'
+    STATUS_WITH_PROSECUTION_COORDINATOR_PROSECUTION_BRIEF = 'with_prosecution_coordinator_prosecution_brief'
+    STATUS_WITH_PROSECUTION_COORDINATOR_COURT = 'with_prosecution_coordinator_court'
     #STATUS_SANCTION_OUTCOME = 'sanction_outcome'
     STATUS_DISCARDED = 'discarded'
     STATUS_CLOSED = 'closed'
@@ -78,6 +80,8 @@ class LegalCase(RevisionedMixin):
             (STATUS_OPEN, 'Open'),
             (STATUS_WITH_MANAGER, 'With Manager'),
             (STATUS_WITH_PROSECUTION_COORDINATOR, 'With Prosecution Coordinator'),
+            (STATUS_WITH_PROSECUTION_COORDINATOR_PROSECUTION_BRIEF, 'With Prosecution Coordinator (Prosecution Brief)'),
+            (STATUS_WITH_PROSECUTION_COORDINATOR_COURT, 'With Prosecution Coordinator (Court)'),
             (STATUS_WITH_PROSECUTION_COUNCIL, 'With Prosecution Council'),
             (STATUS_WITH_PROSECUTION_MANAGER, 'With Prosecution Manager'),
             #(STATUS_REQUEST_AMENDMENT, 'Request Amendment'),
@@ -85,7 +89,7 @@ class LegalCase(RevisionedMixin):
             #(STATUS_SANCTION_OUTCOME, 'Awaiting Sanction Outcomes'),
             (STATUS_DISCARDED, 'Discarded'),
             (STATUS_BRIEF_OF_EVIDENCE, 'Brief of Evidence'),
-            (STATUS_PROSECUTION_BRIEF, 'Prosecution Brief'),
+            #(STATUS_PROSECUTION_BRIEF, 'Prosecution Brief'),
             (STATUS_CLOSED, 'Closed'),
             (STATUS_PENDING_CLOSURE, 'Pending Closure')
             )
@@ -202,21 +206,32 @@ class LegalCase(RevisionedMixin):
             request)
         self.save()
 
-    def set_status_prosecution_brief(self, request):
-        print("set status prosecution brief")
+    def set_status_generate_prosecution_brief(self, request):
+        print("set status generate prosecution brief")
         self.assigned_to = None
-        self.status = self.STATUS_PROSECUTION_BRIEF
+        self.status = self.STATUS_WITH_PROSECUTION_COORDINATOR_PROSECUTION_BRIEF
         self.log_user_action(
-            LegalCaseUserAction.ACTION_STATUS_PROSECUTION_BRIEF.format(self.number), 
+            LegalCaseUserAction.ACTION_GENERATE_PROSECUTION_BRIEF.format(self.number), 
             request)
         self.save()
 
     def send_to_prosecution_coordinator(self, request):
         print("send to prosecution coordinator")
         self.assigned_to = None
-        self.status = self.STATUS_PROSECUTION_COORDINATOR
+        self.status = self.STATUS_WITH_PROSECUTION_COORDINATOR
         self.log_user_action(
-            LegalCaseUserAction.ACTION_STATUS_PROSECUTION_COORDINATOR.format(self.number), 
+            LegalCaseUserAction.ACTION_STATUS_WITH_PROSECUTION_COORDINATOR.format(self.number), 
+            request)
+        # set allocated group to 
+        self.allocated_group = CompliancePermissionGroup.objects.get(permissions__codename="prosecution_coordinator")
+        self.save()
+
+    def back_to_prosecution_coordinator(self, request):
+        print("back to prosecution coordinator")
+        self.assigned_to = None
+        self.status = self.STATUS_WITH_PROSECUTION_COORDINATOR_PROSECUTION_BRIEF
+        self.log_user_action(
+            LegalCaseUserAction.ACTION_STATUS_WITH_PROSECUTION_COORDINATOR_PROSECUTION_BRIEF.format(self.number), 
             request)
         # set allocated group to 
         self.allocated_group = CompliancePermissionGroup.objects.get(permissions__codename="prosecution_coordinator")
@@ -225,9 +240,20 @@ class LegalCase(RevisionedMixin):
     def send_to_prosecution_council(self, request):
         print("send to prosecution council")
         self.assigned_to = None
-        self.status = self.STATUS_PROSECUTION_COUNCIL
+        self.status = self.STATUS_WITH_PROSECUTION_COUNCIL
         self.log_user_action(
-            LegalCaseUserAction.ACTION_STATUS_PROSECUTION_COUNCIL.format(self.number), 
+            LegalCaseUserAction.ACTION_STATUS_WITH_PROSECUTION_COUNCIL.format(self.number), 
+            request)
+        # set allocated group to 
+        self.allocated_group = CompliancePermissionGroup.objects.get(permissions__codename="prosecution_council")
+        self.save()
+
+    def approve_for_court(self, request):
+        print("approve for court")
+        self.assigned_to = None
+        self.status = self.STATUS_WITH_PROSECUTION_COORDINATOR_COURT
+        self.log_user_action(
+            LegalCaseUserAction.ACTION_APPROVE_FOR_COURT.format(self.number), 
             request)
         # set allocated group to 
         self.allocated_group = CompliancePermissionGroup.objects.get(permissions__codename="prosecution_council")
@@ -236,9 +262,9 @@ class LegalCase(RevisionedMixin):
     def send_to_prosecution_manager(self, request):
         print("send to prosecution coordinator")
         self.assigned_to = None
-        self.status = self.STATUS_PROSECUTION_MANAGER
+        self.status = self.STATUS_WITH_PROSECUTION_MANAGER
         self.log_user_action(
-            LegalCaseUserAction.ACTION_STATUS_PROSECUTION_MANAGER.format(self.number), 
+            LegalCaseUserAction.ACTION_STATUS_WITH_PROSECUTION_MANAGER.format(self.number), 
             request)
         # set allocated group to 
         self.allocated_group = CompliancePermissionGroup.objects.get(permissions__codename="prosecution_manager")
@@ -255,6 +281,28 @@ class LegalCase(RevisionedMixin):
         region_district_id = self.district_id if self.district_id else self.region_id
         region_district = RegionDistrict.objects.get(id=region_district_id)
         self.allocated_group = CompliancePermissionGroup.objects.get(region_district=region_district, permissions__codename="manager")
+        self.save()
+
+    def back_to_case(self, request):
+        print("back to case")
+        self.assigned_to = None
+        self.status = self.STATUS_OPEN
+        self.log_user_action(
+            LegalCaseUserAction.ACTION_BACK_TO_CASE.format(self.number), 
+            request)
+        self.save()
+
+    def back_to_officer(self, request):
+        print("back to officer")
+        self.assigned_to = None
+        self.status = self.STATUS_BRIEF_OF_EVIDENCE
+        self.log_user_action(
+            LegalCaseUserAction.ACTION_BACK_TO_OFFICER.format(self.number), 
+            request)
+        # set allocated group to 
+        region_district_id = self.district_id if self.district_id else self.region_id
+        region_district = RegionDistrict.objects.get(id=region_district_id)
+        self.allocated_group = CompliancePermissionGroup.objects.get(region_district=region_district, permissions__codename="officer")
         self.save()
 
 
@@ -506,13 +554,17 @@ class LegalCaseUserAction(UserAction):
     ACTION_CREATE_LEGAL_CASE = "Create Case {}"
     ACTION_SAVE_LEGAL_CASE = "Save Case {}"
     ACTION_STATUS_BRIEF_OF_EVIDENCE = "Generate 'Brief of Evidence' for Case {}"
-    ACTION_STATUS_PROSECUTION_BRIEF = "Generate 'Prosecution Brief' for Case {}"
-    ACTION_STATUS_PROSECUTION_COORDINATOR = "Send Case {} to Prosecution Coordinator"
-    ACTION_STATUS_PROSECUTION_COUNCIL = "Send Case {} to Prosecution Council"
-    ACTION_STATUS_PROSECUTION_MANAGER = "Send Case {} to Prosecution Manager"
+    ACTION_GENERATE_PROSECUTION_BRIEF = "Generate 'Prosecution Brief' for Case {}"
+    ACTION_STATUS_WITH_PROSECUTION_COORDINATOR = "Send Case {} to Prosecution Coordinator"
+    ACTION_STATUS_WITH_PROSECUTION_COORDINATOR_PROSECUTION_BRIEF = "Change status of Case {} to Prosecution Coordinator (Prosecution Brief)"
+    ACTION_STATUS_WITH_PROSECUTION_COUNCIL = "Send Case {} to Prosecution Council"
+    ACTION_STATUS_WITH_PROSECUTION_MANAGER = "Send Case {} to Prosecution Manager"
+    ACTION_APPROVE_FOR_COURT = "Approve Case {} for Court"
     #ACTION_OFFENCE = "Create Offence {}"
     #ACTION_SANCTION_OUTCOME = "Create Sanction Outcome {}"
     ACTION_SEND_TO_MANAGER = "Send Case {} to Manager"
+    ACTION_BACK_TO_CASE = "Return Case {} to Open status"
+    ACTION_BACK_TO_OFFICER = "Return Case {} to Officer"
     ACTION_CLOSE = "Close Legal Case {}"
     ACTION_PENDING_CLOSURE = "Mark Inspection {} as pending closure"
     #ACTION_REQUEST_AMENDMENT = "Request amendment for {}"

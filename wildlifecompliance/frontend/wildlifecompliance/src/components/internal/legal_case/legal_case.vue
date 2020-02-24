@@ -101,10 +101,66 @@
                           </div>
                         </div>
                         <div  class="row action-button">
-                          <div v-if="canUserAction && briefOfEvidenceStatus" class="col-sm-12">
+                          <div v-if="backToOfficerVisibility" class="col-sm-12">
+                                <a @click="addWorkflow('back_to_officer')" class="btn btn-primary btn-block">
+                                <!--a @click="createProsecutionBrief" class="btn btn-primary btn-block"-->
+                                  Back To Officer
+                                </a>
+                          </div>
+                        </div>
+                        <div class="row action-button">
+                          <div v-if="canUserAction && withManagerStatus" class="col-sm-12">
+                                <a @click="addWorkflow('approve_brief_of_evidence')" class="btn btn-primary btn-block">
+                                <!--a @click="createProsecutionBrief" class="btn btn-primary btn-block"-->
+                                  Approve
+                                </a>
+                          </div>
+                        </div>
+                        <div class="row action-button">
+                          <div v-if="canUserAction && withProsecutionCoordinatorStatus" class="col-sm-12">
                                 <a @click="addWorkflow('prosecution_brief')" class="btn btn-primary btn-block">
                                 <!--a @click="createProsecutionBrief" class="btn btn-primary btn-block"-->
                                   Prosecution Brief
+                                </a>
+                          </div>
+                        </div>
+                        <div class="row action-button">
+                          <div v-if="canUserAction && withProsecutionCoordinatorProsecutionBriefStatus" class="col-sm-12">
+                                <a @click="addWorkflow('send_to_prosecution_council')" class="btn btn-primary btn-block">
+                                <!--a @click="createProsecutionBrief" class="btn btn-primary btn-block"-->
+                                  Send To Prosecution Council
+                                </a>
+                          </div>
+                        </div>
+                        <div class="row action-button">
+                          <div v-if="canUserAction && withProsecutionCouncilStatus" class="col-sm-12">
+                                <a @click="addWorkflow('back_to_prosecution_coordinator')" class="btn btn-primary btn-block">
+                                <!--a @click="createProsecutionBrief" class="btn btn-primary btn-block"-->
+                                  Back to Prosecution Coordinator
+                                </a>
+                          </div>
+                        </div>
+                        <div class="row action-button">
+                          <div v-if="canUserAction && withProsecutionCouncilStatus" class="col-sm-12">
+                                <a @click="addWorkflow('endorse_prosecution_brief')" class="btn btn-primary btn-block">
+                                <!--a @click="createProsecutionBrief" class="btn btn-primary btn-block"-->
+                                  Endorse Prosecution Brief
+                                </a>
+                          </div>
+                        </div>
+                        <div class="row action-button">
+                          <div v-if="canUserAction && withProsecutionManagerStatus" class="col-sm-12">
+                                <a @click="addWorkflow('approve_for_court')" class="btn btn-primary btn-block">
+                                <!--a @click="createProsecutionBrief" class="btn btn-primary btn-block"-->
+                                  Approve for Court
+                                </a>
+                          </div>
+                        </div>
+                        <div class="row action-button">
+                          <div v-if="canUserAction && withProsecutionManagerStatus" class="col-sm-12">
+                                <a @click="addWorkflow('back_to_prosecution_council')" class="btn btn-primary btn-block">
+                                <!--a @click="createProsecutionBrief" class="btn btn-primary btn-block"-->
+                                  Back to Prosecution Council
                                 </a>
                           </div>
                         </div>
@@ -128,8 +184,8 @@
                         <li class="nav-item active"><a data-toggle="tab" :href="'#'+runTab">Running Sheet</a></li>
                         <li class="nav-item"><a data-toggle="tab" :href="'#'+cTab" >Case Details</a></li>
                         <li v-if="briefOfEvidenceStatus" class="nav-item"><a data-toggle="tab" :href="'#'+bTab" >Brief of Evidence</a></li>
-                        <li v-if="prosecutionBriefStatus" class="nav-item"><a data-toggle="tab" :href="'#'+pTab" >Prosecution Brief</a></li>
-                        <li class="nav-item"><a data-toggle="tab" :href="'#'+cpTab" >Court Proceedings</a></li>
+                        <li v-if="prosecutionBriefVisibility" class="nav-item"><a data-toggle="tab" :href="'#'+pTab" >Prosecution Brief</a></li>
+                        <li v-if="withProsecutionCoordinatorCourtStatus" class="nav-item"><a data-toggle="tab" :href="'#'+cpTab" >Court Proceedings</a></li>
                         <li class="nav-item"><a data-toggle="tab" :href="'#'+rTab">Related Items</a></li>
                     </ul>
                     <div class="tab-content">
@@ -141,8 +197,12 @@
                                         <!--div v-if="canUserAction" class="col-sm-12"-->
                                         <!--div class="col-sm-1 pull-right" /-->
                                         <div v-if="canUserAction">
-                                              <!--a @click="createNewRunningSheetEntry()" class="btn btn-primary btn-block" -->
-                                              <a @click="createNewRunningSheetEntry()" :disabled="!openStatus" class="btn btn-primary pull-right new-row-button" >
+                                              <a @click="createNewRunningSheetEntry()" class="btn btn-primary pull-right new-row-button" >
+                                                New Row
+                                              </a>
+                                        </div>
+                                        <div v-else>
+                                              <a class="btn btn-primary pull-right new-row-button" disabled>
                                                 New Row
                                               </a>
                                         </div>
@@ -427,9 +487,10 @@ export default {
                                 retStr = '<strike>' + 
                                     `<div id=${row.number} style="min-height:20px" contenteditable="false">${row.description}</div>`
                                     '</strike>';
+                            } else if (!row.action) {
+                                retStr = `<div id=${row.number} style="min-height:20px" contenteditable="false">${row.description}</div>`
                             }
                             return retStr;
-
                         }
                     },
                     {
@@ -444,8 +505,9 @@ export default {
                             let rowIdDel = row.number.replace('-', 'D')
                             let rowIdHist = row.number.replace('-', 'H')
                             let rowIdReinstate = row.number.replace('-', 'R')
+                            retStr += `<a id=${rowIdHist} class="row_history" href="#">History</a><br/><br/>`
                             if (row.action) {
-                                retStr += `<a id=${rowIdHist} class="row_history" href="#">History</a><br/><br/>`
+                                //retStr += `<a id=${rowIdHist} class="row_history" href="#">History</a><br/><br/>`
                                 if (!row.deleted) {
                                     retStr += `<a id=${rowIdDel} class="row_delete" href="#">Delete</a><br/>`
                                 } else {
@@ -501,6 +563,60 @@ export default {
             readonly = !this.legal_case.can_user_action;
         }
         return readonly
+    },
+    backToOfficerVisibility: function() {
+        let visibility = false;
+        if (this.canUserAction && (
+            this.withProsecutionCoordinatorStatus || 
+            this.withProsecutionCoordinatorProsecutionBriefStatus ||
+            this.withManagerStatus)
+            //this.withProsecutionCouncilStatus)
+        ) {
+            visibility = true;
+        }
+        return visibility;
+    },
+    withProsecutionCoordinatorCourtStatus: function() {
+        let returnStatus = false
+        if (this.legal_case && this.statusId === 'with_prosecution_coordinator_court') {
+            returnStatus = true
+        }
+        return returnStatus
+    },
+    withProsecutionManagerStatus: function() {
+        let returnStatus = false
+        if (this.legal_case && this.statusId === 'with_prosecution_manager') {
+            returnStatus = true
+        }
+        return returnStatus
+    },
+    withProsecutionCouncilStatus: function() {
+        let returnStatus = false
+        if (this.legal_case && this.statusId === 'with_prosecution_council') {
+            returnStatus = true
+        }
+        return returnStatus
+    },
+    withProsecutionCoordinatorProsecutionBriefStatus: function() {
+        let returnStatus = false
+        if (this.legal_case && this.statusId === 'with_prosecution_coordinator_prosecution_brief') {
+            returnStatus = true
+        }
+        return returnStatus
+    },
+    withProsecutionCoordinatorStatus: function() {
+        let returnStatus = false
+        if (this.legal_case && this.statusId === 'with_prosecution_coordinator') {
+            returnStatus = true
+        }
+        return returnStatus
+    },
+    withManagerStatus: function() {
+        let returnStatus = false
+        if (this.legal_case && this.statusId === 'with_manager') {
+            returnStatus = true
+        }
+        return returnStatus
     },
     briefOfEvidenceStatus: function() {
         let returnStatus = false
@@ -676,11 +792,7 @@ export default {
     },
     prosecutionBriefVisibility: function() {
         let visible = false;
-        if (this.legal_case && 
-            this.legal_case.id && 
-            this.legal_case.prosecution_brief && 
-            this.legal_case.status.id === 'prosecution_brief') 
-        {
+        if (this.withProsecutionCoordinatorProsecutionBriefStatus) {
             visible = true;
         }
         return visible;
