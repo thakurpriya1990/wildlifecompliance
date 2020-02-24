@@ -11,7 +11,20 @@
                 <strong>Are you sure you want to generate the Prosecution Brief?
                 </strong>
             </div>
+            <div v-else-if="workflow_type==='back_to_case'" class="row">
+                <strong>Are you sure you want to re-open the Case?
+                </strong>
+            </div>
             <div v-else class="row">
+                <div v-if="workflow_type==='approve_brief_of_evidence'" class="form-group">
+                      <div class="row">
+                          <div class="col-sm-9">
+                              <strong>
+                                  This will forward the Case for possible legal action
+                              </strong>
+                          </div>
+                      </div>
+                </div>
                 <div class="col-sm-12">
                         <div class="form-group">
                           <div class="row">
@@ -114,6 +127,22 @@ export default {
               return "Generate the Prosecution Brief";
           } else if (this.workflow_type === 'send_to_manager') {
               return "Send to Manager for approval";
+          } else if (this.workflow_type === 'back_to_case') {
+              return "Re-open the Case";
+          } else if (this.workflow_type === 'back_to_officer') {
+              return "Return to Officer";
+          } else if (this.workflow_type === 'approve_brief_of_evidence') {
+              return "Approve the Brief of Evidence";
+          } else if (this.workflow_type === 'send_to_prosecution_council') {
+              return "Send To Prosecution Council";
+          } else if (this.workflow_type === 'back_to_prosecution_coordinator') {
+              return "Back to Prosecution Coordinator";
+          } else if (this.workflow_type === 'endorse_prosecution_brief') {
+              return "Endorse Prosecution Brief";
+          } else if (this.workflow_type === 'approve_for_court') {
+              return "Approve for Court";
+          } else if (this.workflow_type === 'back_to_prosecution_council') {
+              return "Back to Prosecution Council";
           }
       },
         /*
@@ -172,7 +201,9 @@ export default {
           }
       },
       cancel: async function() {
-          await this.$refs.comms_log_file.cancel();
+          if (this.$refs.comms_log_file) {
+              await this.$refs.comms_log_file.cancel();
+          }
           this.isModalOpen = false;
           this.close();
       },

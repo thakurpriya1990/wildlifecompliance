@@ -497,60 +497,80 @@ class LegalCaseViewSet(viewsets.ModelViewSet):
             raise serializers.ValidationError(str(e))
 
     def save_brief_of_evidence(self, request, instance):
-        brief_of_evidence = request.data.get('brief_of_evidence')
-        if brief_of_evidence:
-            boe_instance, created = BriefOfEvidence.objects.get_or_create(legal_case=instance)
-            boe_serializer = BriefOfEvidenceSerializer(boe_instance, data=brief_of_evidence)
-            if boe_serializer.is_valid():
-                boe_serializer.save()
+        try:
+            brief_of_evidence = request.data.get('brief_of_evidence')
+            if brief_of_evidence:
+                boe_instance, created = BriefOfEvidence.objects.get_or_create(legal_case=instance)
+                boe_serializer = BriefOfEvidenceSerializer(boe_instance, data=brief_of_evidence)
+                if boe_serializer.is_valid():
+                    boe_serializer.save()
 
-        boe_roi_ticked = request.data.get('boe_roi_ticked')
-        if boe_roi_ticked:
-            update_boe_roi_ticked(instance, boe_roi_ticked)
-        boe_other_statements_ticked = request.data.get('boe_other_statements_ticked')
-        if boe_other_statements_ticked:
-            update_boe_other_statements_ticked(instance, boe_other_statements_ticked)
-        boe_document_artifacts_ticked = request.data.get('boe_document_artifacts_ticked')
-        if boe_document_artifacts_ticked:
-            update_boe_document_artifacts_ticked(instance, boe_document_artifacts_ticked)
-        # physical artifacts
-        boe_physical_artifacts_used = request.data.get('boe_physical_artifacts_used')
-        if boe_physical_artifacts_used:
-            update_boe_physical_artifacts(instance, boe_physical_artifacts_used)
-        boe_physical_artifacts_sensitive_unused = request.data.get('boe_physical_artifacts_sensitive_unused')
-        if boe_physical_artifacts_sensitive_unused:
-            update_boe_physical_artifacts(instance, boe_physical_artifacts_sensitive_unused)
-        boe_physical_artifacts_non_sensitive_unused = request.data.get('boe_physical_artifacts_non_sensitive_unused')
-        if boe_physical_artifacts_non_sensitive_unused:
-            update_boe_physical_artifacts(instance, boe_physical_artifacts_non_sensitive_unused)
+            boe_roi_ticked = request.data.get('boe_roi_ticked')
+            if boe_roi_ticked:
+                update_boe_roi_ticked(instance, boe_roi_ticked)
+            boe_other_statements_ticked = request.data.get('boe_other_statements_ticked')
+            if boe_other_statements_ticked:
+                update_boe_other_statements_ticked(instance, boe_other_statements_ticked)
+            boe_document_artifacts_ticked = request.data.get('boe_document_artifacts_ticked')
+            if boe_document_artifacts_ticked:
+                update_boe_document_artifacts_ticked(instance, boe_document_artifacts_ticked)
+            # physical artifacts
+            boe_physical_artifacts_used = request.data.get('boe_physical_artifacts_used')
+            if boe_physical_artifacts_used:
+                update_boe_physical_artifacts(instance, boe_physical_artifacts_used)
+            boe_physical_artifacts_sensitive_unused = request.data.get('boe_physical_artifacts_sensitive_unused')
+            if boe_physical_artifacts_sensitive_unused:
+                update_boe_physical_artifacts(instance, boe_physical_artifacts_sensitive_unused)
+            boe_physical_artifacts_non_sensitive_unused = request.data.get('boe_physical_artifacts_non_sensitive_unused')
+            if boe_physical_artifacts_non_sensitive_unused:
+                update_boe_physical_artifacts(instance, boe_physical_artifacts_non_sensitive_unused)
+        except serializers.ValidationError:
+            print(traceback.print_exc())
+            raise
+        except ValidationError as e:
+            print(traceback.print_exc())
+            raise serializers.ValidationError(repr(e.error_dict))
+        except Exception as e:
+            print(traceback.print_exc())
+            raise serializers.ValidationError(str(e))
 
     def save_prosecution_brief(self, request, instance):
-        prosecution_brief = request.data.get('prosecution_brief')
-        if prosecution_brief:
-            pb_instance, created = ProsecutionBrief.objects.get_or_create(legal_case=instance)
-            pb_serializer = ProsecutionBriefSerializer(pb_instance, data=prosecution_brief)
-            if pb_serializer.is_valid():
-                pb_serializer.save()
+        try:
+            prosecution_brief = request.data.get('prosecution_brief')
+            if prosecution_brief:
+                pb_instance, created = ProsecutionBrief.objects.get_or_create(legal_case=instance)
+                pb_serializer = ProsecutionBriefSerializer(pb_instance, data=prosecution_brief)
+                if pb_serializer.is_valid():
+                    pb_serializer.save()
 
-        pb_roi_ticked = request.data.get('pb_roi_ticked')
-        if pb_roi_ticked:
-            update_pb_roi_ticked(instance, pb_roi_ticked)
-        pb_other_statements_ticked = request.data.get('pb_other_statements_ticked')
-        if pb_other_statements_ticked:
-            update_pb_other_statements_ticked(instance, pb_other_statements_ticked)
-        pb_document_artifacts_ticked = request.data.get('pb_document_artifacts_ticked')
-        if pb_document_artifacts_ticked:
-            update_pb_document_artifacts_ticked(instance, pb_document_artifacts_ticked)
-        # physical artifacts
-        pb_physical_artifacts_used = request.data.get('pb_physical_artifacts_used')
-        if pb_physical_artifacts_used:
-            update_pb_physical_artifacts(instance, pb_physical_artifacts_used)
-        pb_physical_artifacts_sensitive_unused = request.data.get('pb_physical_artifacts_sensitive_unused')
-        if pb_physical_artifacts_sensitive_unused:
-            update_pb_physical_artifacts(instance, pb_physical_artifacts_sensitive_unused)
-        pb_physical_artifacts_non_sensitive_unused = request.data.get('pb_physical_artifacts_non_sensitive_unused')
-        if pb_physical_artifacts_non_sensitive_unused:
-            update_pb_physical_artifacts(instance, pb_physical_artifacts_non_sensitive_unused)
+            pb_roi_ticked = request.data.get('pb_roi_ticked')
+            if pb_roi_ticked:
+                update_pb_roi_ticked(instance, pb_roi_ticked)
+            pb_other_statements_ticked = request.data.get('pb_other_statements_ticked')
+            if pb_other_statements_ticked:
+                update_pb_other_statements_ticked(instance, pb_other_statements_ticked)
+            pb_document_artifacts_ticked = request.data.get('pb_document_artifacts_ticked')
+            if pb_document_artifacts_ticked:
+                update_pb_document_artifacts_ticked(instance, pb_document_artifacts_ticked)
+            # physical artifacts
+            pb_physical_artifacts_used = request.data.get('pb_physical_artifacts_used')
+            if pb_physical_artifacts_used:
+                update_pb_physical_artifacts(instance, pb_physical_artifacts_used)
+            pb_physical_artifacts_sensitive_unused = request.data.get('pb_physical_artifacts_sensitive_unused')
+            if pb_physical_artifacts_sensitive_unused:
+                update_pb_physical_artifacts(instance, pb_physical_artifacts_sensitive_unused)
+            pb_physical_artifacts_non_sensitive_unused = request.data.get('pb_physical_artifacts_non_sensitive_unused')
+            if pb_physical_artifacts_non_sensitive_unused:
+                update_pb_physical_artifacts(instance, pb_physical_artifacts_non_sensitive_unused)
+        except serializers.ValidationError:
+            print(traceback.print_exc())
+            raise
+        except ValidationError as e:
+            print(traceback.print_exc())
+            raise serializers.ValidationError(repr(e.error_dict))
+        except Exception as e:
+            print(traceback.print_exc())
+            raise serializers.ValidationError(str(e))
 
     @detail_route(methods=['POST', ])
     @renderer_classes((JSONRenderer,))
@@ -854,12 +874,26 @@ class LegalCaseViewSet(viewsets.ModelViewSet):
                     instance.close(request)
                 elif workflow_type == 'brief_of_evidence':
                     self.process_brief_of_evidence(instance, request)
-                elif workflow_type == 'prosecution_brief':
-                    self.process_prosecution_brief(instance, request)
                 elif workflow_type == 'send_to_manager':
                     instance.send_to_manager(request)
                 elif workflow_type == 'back_to_case':
                     instance.back_to_case(request)
+                elif workflow_type == 'back_to_officer':
+                    instance.back_to_officer(request)
+                elif workflow_type == 'approve_brief_of_evidence':
+                    instance.send_to_prosecution_coordinator(request)
+                elif workflow_type == 'prosecution_brief':
+                    self.process_prosecution_brief(instance, request)
+                elif workflow_type == 'send_to_prosecution_council':
+                    instance.send_to_prosecution_council(request)
+                elif workflow_type == 'back_to_prosecution_coordinator':
+                    instance.back_to_prosecution_coordinator(request)
+                elif workflow_type == 'endorse_prosecution_brief':
+                    instance.send_to_prosecution_manager(request)
+                elif workflow_type == 'approve_for_court':
+                    instance.approve_for_court(request)
+                elif workflow_type == 'back_to_prosecution_council':
+                    instance.send_to_prosecution_council(request)
                 #elif workflow_type == 'request_amendment':
                 #    instance.request_amendment(request)
                 #elif workflow_type == 'endorse':
@@ -932,7 +966,7 @@ class LegalCaseViewSet(viewsets.ModelViewSet):
     def process_prosecution_brief(self, instance, request):
         pb_instance, created = ProsecutionBrief.objects.get_or_create(legal_case=instance)
         copy_brief_of_evidence_to_prosecution_brief(instance)
-        instance.set_status_prosecution_brief(request)
+        instance.set_status_generate_prosecution_brief(request)
 
     @detail_route(methods=['POST'])
     @renderer_classes((JSONRenderer,))
