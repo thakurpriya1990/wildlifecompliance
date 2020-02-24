@@ -120,12 +120,25 @@ def _create_pdf(invoice_buffer, sanction_outcome):
 
     # Hearing details, etc
     style_tbl_accused_details = TableStyle([
-        ('VALIGN', (0, 0), (0, 0), 'MIDDLE'),
+        ('VALIGN', (0, 0), (-1, -1), 'MIDDLE'),
         # ('VALIGN', (1, 0), (-1, -1), 'MIDDLE'),
         ('GRID', (0, 0), (-1, -1), 0.5, colors.black),
         ('ALIGN', (0, 0), (-1, -1), 'LEFT'),
         ('SPAN', (1, 0), (4, 0)),
         ('SPAN', (1, 2), (4, 2)),
+    ])
+    data = []
+    data.append([
+        Paragraph('<strong>Hearing details</strong>', styles['Normal']),
+        Paragraph('The charge(s) in the attached prosecution notice dated [insert date]<br />will be first dealt with by the above court at the time, date and place stated below.', styles['Normal']),
+        '', '', '',
+    ])
+    data.append([
+        Paragraph('<strong>Date and time</strong>', styles['Normal']),
+        Paragraph('Date', styles['Normal']),
+        '',
+        Paragraph('Time', styles['Normal']),
+        '',
     ])
 
     gap_between_tables = 1.5*mm

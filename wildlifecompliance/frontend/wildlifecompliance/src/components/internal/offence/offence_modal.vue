@@ -900,6 +900,7 @@ export default {
               vm.suggest_list.push(persons[i]);
             }
           }
+
           vm.awe.list = vm.suggest_list;
           vm.awe.evaluate();
         },
@@ -972,23 +973,37 @@ export default {
           return false;
         })
         .on("awesomplete-select", function(ev) {
-          /* Retrieve element id of the selected item from the list
-           * By parsing it, we can get the order-number of the item in the list
-           */
-          let origin = $(ev.originalEvent.origin);
-            console.log('alleged offence selected');
-          let originTagName = origin[0].tagName;
-          if (originTagName != "DIV") {
-            // Assuming origin is a child element of <li>
-            origin = origin.parent();
-          }
-          let elem_id = origin[0].getAttribute("data-item-id");
-          for (let i = 0; i < self.suggest_list.length; i++) {
-            if (self.suggest_list[i].id == parseInt(elem_id)) {
-              self.setCurrentOffenceSelected(self.suggest_list[i]);
-              break;
+            /* Retrieve element id of the selected item from the list
+             * By parsing it, we can get the order-number of the item in the list
+             * 
+             * Structure of the awesomplete list
+             * <ul>
+             *     <li>
+             *         <div data-item-id="id_number">
+             *             <strong>
+             *                 <mark>
+             * User can click either <li>/<div>/<strong>/<mark>.
+             */
+            let origin = $(ev.originalEvent.origin);
+            let originTagName = origin[0].tagName;
+            switch(originTagName){
+                case "STRONG":
+                    origin = origin.parent();
+                    break;
+                case "MARK":
+                    origin = origin.parent().parent();
+                    break;
+                case "LI":
+                    origin = origin.children().first();
+                    break;
             }
-          }
+            let elem_id = origin[0].getAttribute("data-item-id");
+            for (let i = 0; i < self.suggest_list.length; i++) {
+                if (self.suggest_list[i].id == parseInt(elem_id)) {
+                    self.setCurrentOffenceSelected(self.suggest_list[i]);
+                    break;
+                }
+            }
         });
     },
     searchOrganisation: function(id) {
