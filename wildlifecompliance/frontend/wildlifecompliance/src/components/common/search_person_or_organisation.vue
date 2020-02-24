@@ -369,9 +369,16 @@ export default {
                 console.log(origin)
                 let originTagName = origin[0].tagName;
                 console.log('originTagName: ' + originTagName);
-                if (originTagName != "DIV") {
-                    // Assuming origin is a child element of <li>
-                    origin = origin.parent();
+                switch(originTagName){
+                    case "STRONG":
+                        origin = origin.parent();
+                        break;
+                    case "MARK":
+                        origin = origin.parent().parent();
+                        break;
+                    case "LI":
+                        origin = origin.children().first();
+                        break;
                 }
                 let data_item_id = origin[0].getAttribute("data-item-id");
                 let data_type = origin[0].getAttribute("data-type");
