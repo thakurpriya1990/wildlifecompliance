@@ -983,6 +983,7 @@ export default {
              *             <strong>
              *                 <mark>
              * User can click either <li>/<div>/<strong>/<mark>.
+             * Therefore to get the <div> element, which has an item id, you need a bit of calculation.
              */
             let origin = $(ev.originalEvent.origin);
             let originTagName = origin[0].tagName;
