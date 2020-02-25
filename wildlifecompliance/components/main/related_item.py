@@ -582,7 +582,8 @@ def process_many_to_many(f, children, return_list, field_objects, pending_closur
                                 obj_id=field_object.id
                                 )
                         )
-                return_list.append(related_item)
+                if related_item not in return_list:
+                    return_list.append(related_item)
     return children, return_list
 
 def can_close_legal_case(entity, request=None):

@@ -221,8 +221,15 @@ class DocumentArtifactViewSet(viewsets.ModelViewSet):
                     if request_data.get('officer_interviewer'):
                         officer_interviewer = request_data.get('officer_interviewer')
                         email_user_instance = self.create_officer_interviewer_email_user(officer_interviewer)
-                        saved_instance.officer_interviewer = email_user_instance
-                        saved_instance.save()
+                        if email_user_instance:
+                            saved_instance.officer_interviewer = email_user_instance
+                            saved_instance.save()
+                    #import ipdb; ipdb.set_trace()
+                    if not (saved_instance.officer_interviewer or saved_instance.person_providing_statement):
+                        print("raise serializers.ValidationError('Statement must have an associated Person'")
+                        raise serializers.ValidationError('Statement must have an associated Person')
+                    #else:
+                     #   saved_instance.save()
 
                     return (saved_instance, headers)
         except serializers.ValidationError:
@@ -241,37 +248,42 @@ class DocumentArtifactViewSet(viewsets.ModelViewSet):
             #email_address = request.data.get('email_user', {}).get('email', '')
             email_user_instance = None
             email_address = officer_interviewer.get('email')
+            #first_name = officer_interviewer.get('given_name') if officer_interviewer.get('given_name') else officer_interviewer.get('first_name')
+            #last_name = officer_interviewer.get('surname') if officer_interviewer.get('surname') else officer_interviewer.get('last_name')
             first_name = officer_interviewer.get('given_name', '')
             last_name = officer_interviewer.get('surname', '')
-            full_name = officer_interviewer.get('name', '')
-            if not email_address:
-                #first_name = request.data.get('email_user', {}).get('first_name', '')
-                #last_name = request.data.get('email_user', {}).get('last_name', '')
-                email_address = generate_dummy_email(first_name, last_name)
-
-            # generate queryset to test whether user exists in EmailUser
-            qs = EmailUser.objects.filter(email=email_address)
-            if qs and qs.first():
-                email_user_instance = qs.first()
+            ## only write new value if new person selected in front end
+            if not (first_name and last_name):
+                return None
             else:
-                email_user_instance = EmailUser.objects.create_user(email_address, '')
-                email_user_instance.is_staff = True
-            email_user_instance.save()
-                #request.data['email_user'].update({'email': email_address})
+                if not email_address:
+                    #first_name = request.data.get('email_user', {}).get('first_name', '')
+                    #last_name = request.data.get('email_user', {}).get('last_name', '')
+                    email_address = generate_dummy_email(first_name, last_name)
 
-            email_user_serializer = ComplianceManagementSaveUserSerializer(
-                email_user_instance,
-                #data=request.data['email_user'],
-                data={
-                    "first_name": first_name,
-                    "surname": last_name,
-                    },
-                partial=True)
+                # generate queryset to test whether user exists in EmailUser
+                qs = EmailUser.objects.filter(email=email_address)
+                if qs and qs.first():
+                    email_user_instance = qs.first()
+                else:
+                    email_user_instance = EmailUser.objects.create_user(email_address, '')
+                    email_user_instance.is_staff = True
+                email_user_instance.save()
+                    #request.data['email_user'].update({'email': email_address})
 
-            if email_user_serializer.is_valid(raise_exception=True):
-                email_user_instance = email_user_serializer.save()
+                email_user_serializer = ComplianceManagementSaveUserSerializer(
+                    email_user_instance,
+                    #data=request.data['email_user'],
+                    data={
+                        "first_name": first_name,
+                        "surname": last_name,
+                        },
+                    partial=True)
 
-            return email_user_instance
+                if email_user_serializer.is_valid(raise_exception=True):
+                    email_user_instance = email_user_serializer.save()
+
+                return email_user_instance
         except ValidationError as e:
             print(traceback.print_exc())
             raise serializers.ValidationError(repr(e.error_dict))
