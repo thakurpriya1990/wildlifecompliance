@@ -353,7 +353,7 @@ export default {
         selectedActivityPurpose: function() {
             const required_confirmations = this.visibleLicenceActivities.length
             const confirmations = this.licence.activity.filter(
-                activity => activity.purposes.length>0
+                activity => activity.purposes.length>0 && activity.confirmed
             ).length;
             return confirmations === required_confirmations;
         },
