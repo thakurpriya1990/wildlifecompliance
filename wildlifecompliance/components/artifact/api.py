@@ -225,9 +225,15 @@ class DocumentArtifactViewSet(viewsets.ModelViewSet):
                             saved_instance.officer_interviewer = email_user_instance
                             saved_instance.save()
                     #import ipdb; ipdb.set_trace()
-                    if not (saved_instance.officer_interviewer or saved_instance.person_providing_statement):
-                        print("raise serializers.ValidationError('Statement must have an associated Person'")
-                        raise serializers.ValidationError('Statement must have an associated Person')
+                    #if not (saved_instance.officer_interviewer or saved_instance.person_providing_statement):
+                    if saved_instance.document_type == 'record_of_interview' and not saved_instance.offender:
+                        raise serializers.ValidationError('Record of Interview must have an associated Offender')
+                    if saved_instance.document_type == 'witness_statement' and not saved_instance.person_providing_statement:
+                        raise serializers.ValidationError('Witness Statement must have an associated Witness')
+                    if saved_instance.document_type == 'expert_statement' and not saved_instance.person_providing_statement:
+                        raise serializers.ValidationError('Expert Statement must have an associated Expert')
+                    if saved_instance.document_type == 'officer_statement' and not saved_instance.officer_interviewer:
+                        raise serializers.ValidationError('Officer Statement must have an associated Officer')
                     #else:
                      #   saved_instance.save()
 
