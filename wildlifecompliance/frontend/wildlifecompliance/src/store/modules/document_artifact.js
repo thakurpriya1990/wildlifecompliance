@@ -61,6 +61,7 @@ export const documentArtifactStore = {
             Vue.set(state.document_artifact, 'offender_id', offender_id);
         },
         updateOfficerInterviewer(state, officer_interviewer) {
+            console.log(officer_interviewer)
             let officerInterviewerConcise = {}
             officerInterviewerConcise.email = officer_interviewer.email
             officerInterviewerConcise.given_name = officer_interviewer.given_name
@@ -135,6 +136,9 @@ export const documentArtifactStore = {
                     if (err.statusText && err.data && err.data.non_field_errors && err.data.non_field_errors.length > 0) {
                         //await swal("Error", err.data.non_field_errors[0], "error");
                         errorMessage = err.data.non_field_errors[0];
+                    } else if (err.bodyText) {
+                        //await swal("Error", err.data.non_field_errors[0], "error");
+                        errorMessage = err.bodyText;
                     } else {
                         //await swal("Error", "There was an error saving the record", "error");
                         errorMessage = "There was an error saving the record";
@@ -148,7 +152,7 @@ export const documentArtifactStore = {
                 // pass
             }
             // update legal_case
-            else if (!create) {
+            else if (!create && !state.document_artifact.error_message) {
                 await swal("Saved", "The record has been saved", "success");
             }
         },
