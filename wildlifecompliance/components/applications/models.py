@@ -775,182 +775,186 @@ class Application(RevisionedMixin):
     def log_user_action(self, action, request):
         return ApplicationUserAction.log_action(self, action, request.user)
 
-    def calculate_fees(self, data_source):
-        """
-        Calculates fees for Application and Licence. Application fee is
-        calculated with the base fee in all instances to allow for adjustments
-        made from form attributes. Previous attributes settings are not saved.
-        Licence fees cannot be adjusted with form attributes.
-        """
-        return self.get_dynamic_schema_attributes(data_source)['fees']
+    # def calculate_fees1(self, data_source):
+    #     """
+    #     Calculates fees for Application and Licence. Application fee is
+    #     calculated with the base fee in all instances to allow for adjustments
+    #     made from form attributes. Previous attributes settings are not saved.
+    #     Licence fees cannot be adjusted with form attributes.
 
-    def get_dynamic_schema_attributes(self, data_source):
+    #     FIXME: Remove this function it is replaced with ApplicationService.
+    #     """
+    #     return self.get_dynamic_schema_attributes(data_source)['fees']
 
-        if self.application_type in [
-            Application.APPLICATION_TYPE_AMENDMENT,
-            Application.APPLICATION_TYPE_REISSUE,
-        ]:
-            # Licence amendment, reissue or already paid then no base fee is
-            # required.
-            application_fees = Application.calculate_base_fees(
-                    self.licence_purposes.values_list(
-                        'id', flat=True))['application']
-            dynamic_attributes = {
-                'fees': {
-                    'application': application_fees,
-                    'licence': Decimal(0.0),
-                },
-                'activity_attributes': {},
-            }         
-        else:
-            dynamic_attributes = {
-                'fees': Application.calculate_base_fees(
-                    self.licence_purposes.values_list('id', flat=True)
-                ),
-                'activity_attributes': {},
-            }
+    # def get_dynamic_schema_attributes1(self, data_source):
 
-        def parse_modifiers(dynamic_attributes, component, schema_name, adjusted_by_fields, activity):
-            def increase_fee(fees, field, amount):
-                fees[field] += amount
-                fees[field] = fees[field] if fees[field] >= 0 else 0
-                return True
+    #     if self.application_type in [
+    #         Application.APPLICATION_TYPE_AMENDMENT,
+    #         Application.APPLICATION_TYPE_REISSUE,
+    #     ]:
+    #         # Licence amendment, reissue or already paid then no base fee is
+    #         # required.
+    #         application_fees = Application.calculate_base_fees(
+    #                 self.licence_purposes.values_list(
+    #                     'id', flat=True))['application']
+    #         dynamic_attributes = {
+    #             'fees': {
+    #                 'application': application_fees,
+    #                 'licence': Decimal(0.0),
+    #             },
+    #             'activity_attributes': {},
+    #         }         
+    #     else:
+    #         dynamic_attributes = {
+    #             'fees': Application.calculate_base_fees(
+    #                 self.licence_purposes.values_list('id', flat=True)
+    #             ),
+    #             'activity_attributes': {},
+    #         }
 
-            fee_modifier_keys = {
-                'IncreaseLicenceFee': 'licence',
-                'IncreaseApplicationFee': 'application',
-            }
-            increase_limit_key = 'IncreaseTimesLimit'
-            try:
-                increase_count = adjusted_by_fields[schema_name]
-            except KeyError:
-                increase_count = adjusted_by_fields[schema_name] = 0
+    #     def parse_modifiers(dynamic_attributes, component, schema_name, adjusted_by_fields, activity):
+    #         def increase_fee(fees, field, amount):
+    #             fees[field] += amount
+    #             fees[field] = fees[field] if fees[field] >= 0 else 0
+    #             return True
 
-            # Does this component / selected option enable the inspection requirement?
-            try:
-                # If at least one component has a positive value - require inspection for the entire activity.
-                if component['InspectionRequired']:
-                    dynamic_attributes['activity_attributes'][activity]['is_inspection_required'] = True
-            except KeyError:
-                pass
+    #         fee_modifier_keys = {
+    #             'IncreaseLicenceFee': 'licence',
+    #             'IncreaseApplicationFee': 'application',
+    #         }
+    #         increase_limit_key = 'IncreaseTimesLimit'
+    #         try:
+    #             increase_count = adjusted_by_fields[schema_name]
+    #         except KeyError:
+    #             increase_count = adjusted_by_fields[schema_name] = 0
 
-            if increase_limit_key in component:
-                max_increases = int(component[increase_limit_key])
-                if increase_count >= max_increases:
-                    return
+    #         # Does this component / selected option enable the inspection requirement?
+    #         try:
+    #             # If at least one component has a positive value - require inspection for the entire activity.
+    #             if component['InspectionRequired']:
+    #                 dynamic_attributes['activity_attributes'][activity]['is_inspection_required'] = True
+    #         except KeyError:
+    #             pass
 
-            adjustments_performed = sum(key in component and increase_fee(
-                dynamic_attributes['fees'],
-                field,
-                component[key]
-            ) and increase_fee(
-                dynamic_attributes['activity_attributes'][activity]['fees'],
-                field,
-                component[key]
-            ) for key, field in fee_modifier_keys.items())
+    #         if increase_limit_key in component:
+    #             max_increases = int(component[increase_limit_key])
+    #             if increase_count >= max_increases:
+    #                 return
 
-            if adjustments_performed:
-                adjusted_by_fields[schema_name] += 1
+    #         adjustments_performed = sum(key in component and increase_fee(
+    #             dynamic_attributes['fees'],
+    #             field,
+    #             component[key]
+    #         ) and increase_fee(
+    #             dynamic_attributes['activity_attributes'][activity]['fees'],
+    #             field,
+    #             component[key]
+    #         ) for key, field in fee_modifier_keys.items())
 
-        for selected_activity in self.activities:
-            schema_fields = self.get_schema_fields_for_purposes(
-                selected_activity.purposes.values_list('id', flat=True)
-            )
-            dynamic_attributes['activity_attributes'][selected_activity] = {
-                'is_inspection_required': False,
-                'fees': selected_activity.base_fees,
-            }
+    #         if adjustments_performed:
+    #             adjusted_by_fields[schema_name] += 1
 
-            # Adjust fees based on selected options (radios and checkboxes)
-            adjusted_by_fields = {}
-            for form_data_record in data_source:
-                try:
-                    # Retrieve dictionary of fields from a model instance
-                    data_record = form_data_record.__dict__
-                except AttributeError:
-                    # If a raw form data (POST) is supplied, form_data_record 
-                    # is a key
-                    data_record = data_source[form_data_record]
+    #     for selected_activity in self.activities:
+    #         schema_fields = self.get_schema_fields_for_purposes(
+    #             selected_activity.purposes.values_list('id', flat=True)
+    #         )
+    #         dynamic_attributes['activity_attributes'][selected_activity] = {
+    #             'is_inspection_required': False,
+    #             'fees': selected_activity.base_fees,
+    #         }
 
-                schema_name = data_record['schema_name']
-                if schema_name not in schema_fields:
-                    continue
-                schema_data = schema_fields[schema_name]
+    #         # Adjust fees based on selected options (radios and checkboxes)
+    #         adjusted_by_fields = {}
+    #         for form_data_record in data_source:
+    #             try:
+    #                 # Retrieve dictionary of fields from a model instance
+    #                 data_record = form_data_record.__dict__
+    #             except AttributeError:
+    #                 # If a raw form data (POST) is supplied, form_data_record 
+    #                 # is a key
+    #                 data_record = data_source[form_data_record]
 
-                if 'options' in schema_data:
-                    for option in schema_data['options']:
-                        # Only consider fee modifications if the current option
-                        # is selected.
-                        if option['value'] != data_record['value']:
-                            continue
-                        parse_modifiers(
-                            dynamic_attributes=dynamic_attributes,
-                            component=option,
-                            schema_name=schema_name,
-                            adjusted_by_fields=adjusted_by_fields,
-                            activity=selected_activity
-                        )
+    #             schema_name = data_record['schema_name']
+    #             if schema_name not in schema_fields:
+    #                 continue
+    #             schema_data = schema_fields[schema_name]
 
-                # If this is a checkbox - skip unchecked ones
-                elif data_record['value'] == 'on':
-                    parse_modifiers(
-                        dynamic_attributes=dynamic_attributes,
-                        component=schema_data,
-                        schema_name=schema_name,
-                        adjusted_by_fields=adjusted_by_fields,
-                        activity=selected_activity
-                    )
+    #             if 'options' in schema_data:
+    #                 for option in schema_data['options']:
+    #                     # Only consider fee modifications if the current option
+    #                     # is selected.
+    #                     if option['value'] != data_record['value']:
+    #                         continue
+    #                     parse_modifiers(
+    #                         dynamic_attributes=dynamic_attributes,
+    #                         component=option,
+    #                         schema_name=schema_name,
+    #                         adjusted_by_fields=adjusted_by_fields,
+    #                         activity=selected_activity
+    #                     )
 
-        return dynamic_attributes
+    #             # If this is a checkbox - skip unchecked ones
+    #             elif data_record['value'] == 'on':
+    #                 parse_modifiers(
+    #                     dynamic_attributes=dynamic_attributes,
+    #                     component=schema_data,
+    #                     schema_name=schema_name,
+    #                     adjusted_by_fields=adjusted_by_fields,
+    #                     activity=selected_activity
+    #                 )
 
-    def update_dynamic_attributes(self):
-        """ Update application and activity attributes based on selected JSON
-            schema options.
-        """
-        if self.processing_status not in [
-                Application.PROCESSING_STATUS_DRAFT,
-                Application.PROCESSING_STATUS_AWAITING_APPLICANT_RESPONSE,
-                Application.PROCESSING_STATUS_UNDER_REVIEW,
-        ]:
-            return
+    #     return dynamic_attributes
 
-        dynamic_attributes = self.get_dynamic_schema_attributes(self.data)
+    # def update_dynamic_attributes1(self):
+    #     """ Update application and activity attributes based on selected JSON
+    #         schema options.
 
-        # Update application and licence fees
-        fees = dynamic_attributes['fees']
-        self.application_fee = fees['application']
-        self.save()
+    #     FIXME: Remove this function it is replaced with ApplicationService.
+    #     """
+    #     if self.processing_status not in [
+    #             Application.PROCESSING_STATUS_DRAFT,
+    #             Application.PROCESSING_STATUS_AWAITING_APPLICANT_RESPONSE,
+    #             Application.PROCESSING_STATUS_UNDER_REVIEW,
+    #     ]:
+    #         return
 
-        # Save any parsed per-activity modifiers
-        for selected_activity, field_data in \
-                dynamic_attributes['activity_attributes'].items():
-            fees = field_data.pop('fees', {})
-            selected_activity.licence_fee = fees['licence']
-            selected_activity.application_fee = fees['application']
+    #     dynamic_attributes = self.get_dynamic_schema_attributes(self.data)
 
-            if self.application_type in [
-                Application.APPLICATION_TYPE_AMENDMENT,
-                Application.APPLICATION_TYPE_REISSUE,
-            ] or self.customer_status == \
-                Application.CUSTOMER_STATUS_AMENDMENT_REQUIRED \
-                or self.processing_status == \
-                    Application.PROCESSING_STATUS_UNDER_REVIEW:
+    #     # Update application and licence fees
+    #     fees = dynamic_attributes['fees']
+    #     self.application_fee = fees['application']
+    #     self.save()
 
-                # Check amendments and reissues for changes in fees.
-                # Not applicable for Licence Fees.
-                if fees['application']\
-                   > selected_activity.base_fees['application']:
-                    selected_activity.application_fee = fees['application'] \
-                        - selected_activity.base_fees['application']
+    #     # Save any parsed per-activity modifiers
+    #     for selected_activity, field_data in \
+    #             dynamic_attributes['activity_attributes'].items():
+    #         fees = field_data.pop('fees', {})
+    #         selected_activity.licence_fee = fees['licence']
+    #         selected_activity.application_fee = fees['application']
 
-                # Check for refunds and set fee to zero.
-                if fees['application']\
-                   < selected_activity.base_fees['application']:
-                    selected_activity.application_fee = Decimal(0)
+    #         if self.application_type in [
+    #             Application.APPLICATION_TYPE_AMENDMENT,
+    #             Application.APPLICATION_TYPE_REISSUE,
+    #         ] or self.customer_status == \
+    #             Application.CUSTOMER_STATUS_AMENDMENT_REQUIRED \
+    #             or self.processing_status == \
+    #                 Application.PROCESSING_STATUS_UNDER_REVIEW:
 
-            for field, value in field_data.items():
-                setattr(selected_activity, field, value)
-                selected_activity.save()
+    #             # Check amendments and reissues for changes in fees.
+    #             # Not applicable for Licence Fees.
+    #             if fees['application']\
+    #                > selected_activity.base_fees['application']:
+    #                 selected_activity.application_fee = fees['application'] \
+    #                     - selected_activity.base_fees['application']
+
+    #             # Check for refunds and set fee to zero.
+    #             if fees['application']\
+    #                < selected_activity.base_fees['application']:
+    #                 selected_activity.application_fee = Decimal(0)
+
+    #         for field, value in field_data.items():
+    #             setattr(selected_activity, field, value)
+    #             selected_activity.save()
 
     def copy_application_purposes_for_status(self, purpose_ids_list, new_activity_status):
         '''
@@ -1117,8 +1121,7 @@ class Application(RevisionedMixin):
                         ApplicationUserAction.ACTION_ID_REQUEST_AMENDMENTS_SUBMIT.format(
                             self.id), request)
                     if self.requires_refund:
-                        send_amendment_refund_email_notification(
-                            group_users, self, request)
+                        self.alert_for_refund(request)
                     else:
                         send_amendment_submit_email_notification(
                             group_users, self, request)
@@ -1145,9 +1148,7 @@ class Application(RevisionedMixin):
 
                     # notify linked officer groups of submission.
                     if self.requires_refund:  
-                        # notify of refund on amended licence activity purpose.
-                        send_amendment_refund_email_notification(
-                            group_users, self, request)
+                        self.alert_for_refund(request)
                     else:
                         send_application_submit_email_notification(
                             group_users, self, request)
@@ -1695,6 +1696,20 @@ class Application(RevisionedMixin):
 
         return True if over_paid > 0 else False
 
+    def alert_for_refund(self, request):
+        """
+        Send notification if refund exists.
+        """
+        if self.requires_refund:           
+            officer_groups = ActivityPermissionGroup.objects.filter(
+                permissions__codename='licensing_officer',
+                licence_activities__purpose__licence_category__id=self.licence_type_data["id"]
+            )
+            group_users = EmailUser.objects.filter(
+                groups__id__in=officer_groups.values_list('id', flat=True)
+            ).distinct()
+            send_amendment_refund_email_notification(group_users, self, request)
+
     @property
     def previous_paid_amount(self):
         """
@@ -1944,7 +1959,8 @@ class Application(RevisionedMixin):
                             'additional_fee'] if p_activity[
                                 'additional_fee'] else 0
                         activity.additional_fee_text=p_activity[
-                            'additional_fee_text']
+                            'additional_fee_text'] if p_activity[
+                                'additional_fee'] > 0 else None
                         activity.save()
 
                     # update Application Selected Activity Purposes
@@ -3580,159 +3596,165 @@ class ApplicationFormDataRecord(models.Model):
         app_label = 'wildlifecompliance'
         unique_together = ('application', 'field_name',)
 
-    @staticmethod
-    def process_form(request, application, form_data, action=ACTION_TYPE_ASSIGN_VALUE):
-        from wildlifecompliance.components.applications.utils import MissingFieldsException
-        can_edit_officer_comments = request.user.has_perm(
-            'wildlifecompliance.licensing_officer'
-        )
-        can_edit_assessor_comments = request.user.has_perm(
-            'wildlifecompliance.assessor'
-        )
-        can_edit_comments = can_edit_officer_comments or can_edit_assessor_comments
-        can_edit_deficiencies = request.user.has_perm(
-            'wildlifecompliance.licensing_officer'
-        )
+    # @staticmethod
+    # def process_form1(request, application, form_data, action=ACTION_TYPE_ASSIGN_VALUE):
+    #     """
+    #     FIXME: Remove this function it is replaced with ApplicationService.
+    #     """
+    #     from wildlifecompliance.components.applications.utils import MissingFieldsException
+    #     can_edit_officer_comments = request.user.has_perm(
+    #         'wildlifecompliance.licensing_officer'
+    #     )
+    #     can_edit_assessor_comments = request.user.has_perm(
+    #         'wildlifecompliance.assessor'
+    #     )
+    #     can_edit_comments = can_edit_officer_comments or can_edit_assessor_comments
+    #     can_edit_deficiencies = request.user.has_perm(
+    #         'wildlifecompliance.licensing_officer'
+    #     )
 
-        if action == ApplicationFormDataRecord.ACTION_TYPE_ASSIGN_COMMENT and\
-                not can_edit_comments and not can_edit_deficiencies:
-            raise Exception(
-                'You are not authorised to perform this action!')
+    #     if action == ApplicationFormDataRecord.ACTION_TYPE_ASSIGN_COMMENT and\
+    #             not can_edit_comments and not can_edit_deficiencies:
+    #         raise Exception(
+    #             'You are not authorised to perform this action!')
 
-        is_draft = form_data.pop('__draft', False)
-        visible_data_tree = application.get_visible_form_data_tree(form_data.items())
-        required_fields = application.required_fields
-        missing_fields = []
+    #     is_draft = form_data.pop('__draft', False)
+    #     visible_data_tree = application.get_visible_form_data_tree(form_data.items())
+    #     required_fields = application.required_fields
+    #     missing_fields = []
 
-        for field_name, field_data in form_data.items():
-            schema_name = field_data.get('schema_name', '')
-            instance_name = field_data.get('instance_name', '')
-            component_type = field_data.get('component_type', '')
-            value = field_data.get('value', '')
-            officer_comment = field_data.get('officer_comment', '')
-            assessor_comment = field_data.get('assessor_comment', '')
-            deficiency = field_data.get('deficiency_value', '')
-            activity_id = field_data.get('licence_activity_id', '')
-            purpose_id = field_data.get('licence_purpose_id', '')
+    #     for field_name, field_data in form_data.items():
+    #         schema_name = field_data.get('schema_name', '')
+    #         instance_name = field_data.get('instance_name', '')
+    #         component_type = field_data.get('component_type', '')
+    #         value = field_data.get('value', '')
+    #         officer_comment = field_data.get('officer_comment', '')
+    #         assessor_comment = field_data.get('assessor_comment', '')
+    #         deficiency = field_data.get('deficiency_value', '')
+    #         activity_id = field_data.get('licence_activity_id', '')
+    #         purpose_id = field_data.get('licence_purpose_id', '')
 
-            if ApplicationFormDataRecord.INSTANCE_ID_SEPARATOR in field_name:
-                [parsed_schema_name, parsed_instance_name] = field_name.split(
-                    ApplicationFormDataRecord.INSTANCE_ID_SEPARATOR
-                )
-                schema_name = schema_name if schema_name else parsed_schema_name
-                instance_name = instance_name if instance_name else parsed_instance_name
+    #         if ApplicationFormDataRecord.INSTANCE_ID_SEPARATOR in field_name:
+    #             [parsed_schema_name, parsed_instance_name] = field_name.split(
+    #                 ApplicationFormDataRecord.INSTANCE_ID_SEPARATOR
+    #             )
+    #             schema_name = schema_name if schema_name else parsed_schema_name
+    #             instance_name = instance_name if instance_name else parsed_instance_name
 
-            try:
-                visible_data_tree[instance_name][schema_name]
-            except KeyError:
-                continue
+    #         try:
+    #             visible_data_tree[instance_name][schema_name]
+    #         except KeyError:
+    #             continue
 
-            form_data_record = ApplicationFormDataRecord.objects.filter(
-                application_id=application.id,
-                field_name=field_name,
-                licence_activity_id=activity_id,
-                licence_purpose_id=purpose_id,
-            ).first()
+    #         form_data_record = ApplicationFormDataRecord.objects.filter(
+    #             application_id=application.id,
+    #             field_name=field_name,
+    #             licence_activity_id=activity_id,
+    #             licence_purpose_id=purpose_id,
+    #         ).first()
 
-            if not form_data_record:
-                form_data_record = ApplicationFormDataRecord.objects.create(
-                    application_id=application.id,
-                    field_name=field_name,
-                    schema_name=schema_name,
-                    instance_name=instance_name,
-                    component_type=component_type,
-                    licence_activity_id=activity_id,
-                    licence_purpose_id=purpose_id
-                )
-            if action == ApplicationFormDataRecord.ACTION_TYPE_ASSIGN_VALUE:
-                if not is_draft and not value and schema_name in required_fields:
-                    missing_item = {'field_name': field_name}
-                    missing_item.update(required_fields[schema_name])
-                    missing_fields.append(missing_item)
-                    continue
-                form_data_record.value = value
-            elif action == ApplicationFormDataRecord.ACTION_TYPE_ASSIGN_COMMENT:
-                if can_edit_officer_comments:
-                    form_data_record.officer_comment = officer_comment
-                if can_edit_assessor_comments:
-                    form_data_record.assessor_comment = assessor_comment
-                if can_edit_deficiencies:
-                    form_data_record.deficiency = deficiency
-            form_data_record.save()
+    #         if not form_data_record:
+    #             form_data_record = ApplicationFormDataRecord.objects.create(
+    #                 application_id=application.id,
+    #                 field_name=field_name,
+    #                 schema_name=schema_name,
+    #                 instance_name=instance_name,
+    #                 component_type=component_type,
+    #                 licence_activity_id=activity_id,
+    #                 licence_purpose_id=purpose_id
+    #             )
+    #         if action == ApplicationFormDataRecord.ACTION_TYPE_ASSIGN_VALUE:
+    #             if not is_draft and not value and schema_name in required_fields:
+    #                 missing_item = {'field_name': field_name}
+    #                 missing_item.update(required_fields[schema_name])
+    #                 missing_fields.append(missing_item)
+    #                 continue
+    #             form_data_record.value = value
+    #         elif action == ApplicationFormDataRecord.ACTION_TYPE_ASSIGN_COMMENT:
+    #             if can_edit_officer_comments:
+    #                 form_data_record.officer_comment = officer_comment
+    #             if can_edit_assessor_comments:
+    #                 form_data_record.assessor_comment = assessor_comment
+    #             if can_edit_deficiencies:
+    #                 form_data_record.deficiency = deficiency
+    #         form_data_record.save()
 
-        if action == ApplicationFormDataRecord.ACTION_TYPE_ASSIGN_VALUE:
-            application.update_dynamic_attributes()
-            for existing_field in ApplicationFormDataRecord.objects.filter(application_id=application.id):
-                if existing_field.field_name not in form_data.keys():
-                    existing_field.delete()
+    #     if action == ApplicationFormDataRecord.ACTION_TYPE_ASSIGN_VALUE:
+    #         application.update_dynamic_attributes()
+    #         for existing_field in ApplicationFormDataRecord.objects.filter(application_id=application.id):
+    #             if existing_field.field_name not in form_data.keys():
+    #                 existing_field.delete()
 
-        if missing_fields:
-            raise MissingFieldsException(
-                [{'name': item['field_name'], 'label': '{label}'.format(
-                    label=item['label']
-                )} for item in missing_fields]
-            )
+    #     if missing_fields:
+    #         raise MissingFieldsException(
+    #             [{'name': item['field_name'], 'label': '{label}'.format(
+    #                 label=item['label']
+    #             )} for item in missing_fields]
+    #         )
 
-    @staticmethod
-    def render_defined_conditions(application, data_source):
+    # @staticmethod
+    # def render_defined_conditions1(application, data_source):
+    #     """
+    #     FIXME: Remove this function it is replaced with ApplicationService.
+    #     """
 
-        def parse_component(component, schema_name, adjusted_by_fields, activity):    
+    #     def parse_component(component, schema_name, adjusted_by_fields, activity):    
 
-            if set(['StandardCondition']).issubset(component):
-                condition = ApplicationStandardCondition.objects.filter(code=component['StandardCondition'],
-                                                                        obsolete=False ).first()
-                if condition:
-                    ApplicationCondition.objects.create(standard_condition=condition,
-                                                        is_rendered=True,
-                                                        standard=True,
-                                                        application=application,
-                                                        licence_activity=LicenceActivity.objects.get(id=activity.licence_activity_id),
-                                                        return_type=condition.return_type)
+    #         if set(['StandardCondition']).issubset(component):
+    #             condition = ApplicationStandardCondition.objects.filter(code=component['StandardCondition'],
+    #                                                                     obsolete=False ).first()
+    #             if condition:
+    #                 ApplicationCondition.objects.create(standard_condition=condition,
+    #                                                     is_rendered=True,
+    #                                                     standard=True,
+    #                                                     application=application,
+    #                                                     licence_activity=LicenceActivity.objects.get(id=activity.licence_activity_id),
+    #                                                     return_type=condition.return_type)
 
-        for selected_activity in application.activities:
-            schema_fields = application.get_schema_fields_for_purposes(
-                selected_activity.purposes.values_list('id', flat=True)
-            )
-            renderedConditions = ApplicationCondition.objects.filter(application_id=application.id, 
-                                                                 licence_activity_id=selected_activity.licence_activity_id, 
-                                                                 is_rendered=True 
-                                                                ).delete()        
+    #     for selected_activity in application.activities:
+    #         schema_fields = application.get_schema_fields_for_purposes(
+    #             selected_activity.purposes.values_list('id', flat=True)
+    #         )
+    #         renderedConditions = ApplicationCondition.objects.filter(application_id=application.id, 
+    #                                                              licence_activity_id=selected_activity.licence_activity_id, 
+    #                                                              is_rendered=True 
+    #                                                             ).delete()        
 
-            # Adjustments based on selected options (radios and checkboxes)
-            adjusted_by_fields = {}
-            for form_data_record in data_source:
-                try:
-                    # Retrieve dictionary of fields from a model instance
-                    data_record = form_data_record.__dict__
-                except AttributeError:
-                    # If a raw form data (POST) is supplied, form_data_record is a key
-                    data_record = data_source[form_data_record]
+    #         # Adjustments based on selected options (radios and checkboxes)
+    #         adjusted_by_fields = {}
+    #         for form_data_record in data_source:
+    #             try:
+    #                 # Retrieve dictionary of fields from a model instance
+    #                 data_record = form_data_record.__dict__
+    #             except AttributeError:
+    #                 # If a raw form data (POST) is supplied, form_data_record is a key
+    #                 data_record = data_source[form_data_record]
 
-                schema_name = data_record['schema_name']
-                if schema_name not in schema_fields:
-                    continue
-                schema_data = schema_fields[schema_name]
+    #             schema_name = data_record['schema_name']
+    #             if schema_name not in schema_fields:
+    #                 continue
+    #             schema_data = schema_fields[schema_name]
 
-                if 'options' in schema_data:
-                    for option in schema_data['options']:
-                        # Only modifications if the current option is selected
-                        if option['value'] != data_record['value']:
-                            continue
-                        parse_component(
-                            component=option,
-                            schema_name=schema_name,
-                            adjusted_by_fields=adjusted_by_fields,
-                            activity=selected_activity
-                        )
+    #             if 'options' in schema_data:
+    #                 for option in schema_data['options']:
+    #                     # Only modifications if the current option is selected
+    #                     if option['value'] != data_record['value']:
+    #                         continue
+    #                     parse_component(
+    #                         component=option,
+    #                         schema_name=schema_name,
+    #                         adjusted_by_fields=adjusted_by_fields,
+    #                         activity=selected_activity
+    #                     )
 
-                # If this is a checkbox - skip unchecked ones
-                elif data_record['value'] == 'on':
-                    parse_component(
-                        component=schema_data,
-                        schema_name=schema_name,
-                        adjusted_by_fields=adjusted_by_fields,
-                        activity=selected_activity
-                    )
+    #             # If this is a checkbox - skip unchecked ones
+    #             elif data_record['value'] == 'on':
+    #                 parse_component(
+    #                     component=schema_data,
+    #                     schema_name=schema_name,
+    #                     adjusted_by_fields=adjusted_by_fields,
+    #                     activity=selected_activity
+    #                 )
 
 
 @python_2_unicode_compatible

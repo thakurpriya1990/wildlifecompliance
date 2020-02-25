@@ -40,6 +40,9 @@ from wildlifecompliance.components.applications.models import (
     ApplicationFormDataRecord,
     ActivityInvoice,
 )
+from wildlifecompliance.components.applications.services import (
+    ApplicationService
+)
 from wildlifecompliance.components.applications.serializers import (
     ApplicationSerializer,
     InternalApplicationSerializer,
@@ -555,7 +558,8 @@ class ApplicationViewSet(viewsets.ModelViewSet):
         if application_id is not None:
             application = Application.objects.get(id=application_id)
             return Response({
-                'fees': application.calculate_fees(request.data.get('field_data', {}))
+                'fees': ApplicationService.calculate_fees(
+                    application, request.data.get('field_data', {}))
             })
         return Response({
             'fees': Application.calculate_base_fees(purpose_ids)
@@ -1204,7 +1208,7 @@ class ApplicationViewSet(viewsets.ModelViewSet):
     def officer_comments(self, request, *args, **kwargs):
         try:
             instance = self.get_object()
-            ApplicationFormDataRecord.process_form(
+            ApplicationService.process_form(
                 request,
                 instance,
                 request.data,
@@ -1220,14 +1224,18 @@ class ApplicationViewSet(viewsets.ModelViewSet):
     def form_data(self, request, *args, **kwargs):
         try:
             instance = self.get_object()
-            ApplicationFormDataRecord.process_form(
+            ApplicationService.process_form(
                 request,
                 instance,
                 request.data,
                 action=ApplicationFormDataRecord.ACTION_TYPE_ASSIGN_VALUE
             )
             # Render any Application Standard Conditions triggered from Form.
-            ApplicationFormDataRecord.render_defined_conditions(instance, request.data)
+            ApplicationService.render_defined_conditions(
+                instance, request.data)
+
+            # Send any relevant notifications.
+            instance.alert_for_refund(request)
             return Response({'success': True})
         except MissingFieldsException as e:
             return Response({
@@ -1346,7 +1354,9 @@ class ApplicationViewSet(viewsets.ModelViewSet):
                     serializer.instance.previous_application_id = latest_active_licence.current_application.id
                     serializer.instance.save()
 
-                serializer.instance.update_dynamic_attributes()
+                # serializer.instance.update_dynamic_attributes()
+                ApplicationService.update_dynamic_attributes(
+                    serializer.instance)
                 response = Response(serializer.data)
 
             return response
