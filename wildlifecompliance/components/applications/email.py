@@ -316,6 +316,9 @@ def send_application_submitter_email_notification(application, request):
 def send_amendment_refund_email_notification(
         group_email, application, request):
     # An email to internal users notifying about required refund.
+    paid = application.total_paid_amount + application.previous_paid_amount
+    over_paid = paid - int(application.application_fee) 
+
     email = ApplicationRefundNotificationEmail()
     url = request.build_absolute_uri(
         reverse(
@@ -332,6 +335,7 @@ def send_amendment_refund_email_notification(
 
     context = {
         'application': application,
+        'amount': over_paid,
         'url': url
     }
     email_group = [item.email for item in group_email]

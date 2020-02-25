@@ -1393,7 +1393,7 @@ export default {
             vm.eventListeners();
         });
         if ((this.application.application_type.id=='amend_activity') // licence activity amendments.
-        || (this.application.customer_status.id=='amendment_required')) { // requested amendments.
+        || (this.application.customer_status.id=='amendment_required' || this.application.customer_status.id=='under_review')) { // requested amendments.
             // fees can be adjusted from selected components for requested amendments.
             this.adjusted_application_fee = this.application.application_fee - this.application.total_paid_amount
         } else {
