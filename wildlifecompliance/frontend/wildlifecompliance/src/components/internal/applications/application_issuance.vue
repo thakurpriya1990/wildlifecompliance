@@ -28,7 +28,7 @@
                                                         <input type="radio"  id="decline" name="licence_category" v-model="getActivity(item.id).final_status"  value="declined" > Decline
                                                     </div>
                                                 </div>
-                                                <div class="row" v-if="finalStatus(item.id) === 'issued' && canEditLicenceDates">
+                                                <div class="row">
                                                     <div class="col-sm-3">
                                                         <label class="control-label pull-left">Proposed Purposes</label>
                                                     </div>
