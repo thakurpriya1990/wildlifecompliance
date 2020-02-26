@@ -199,3 +199,4 @@ class ComplianceManagementEmailUser(EmailUser):
     @property
     def get_related_items_descriptor(self):
         return self.get_full_name()
+
