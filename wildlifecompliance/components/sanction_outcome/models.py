@@ -297,8 +297,11 @@ class SanctionOutcome(models.Model):
             return self.driver, 'driver'
         elif self.registration_holder:
             return self.registration_holder, 'registration_holder'
-        else:
+        elif self.offender:
             return self.offender.person, 'offender'
+        else:
+            print('SanctionOutcome: ' + self.lodgement_number + ' has no offenders.')
+            return None, ''
 
     @property
     def prefix_lodgement_nubmer(self):

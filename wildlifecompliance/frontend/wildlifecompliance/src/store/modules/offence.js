@@ -85,6 +85,12 @@ export const offenceStore = {
             if (offence.occurrence_date_to) {
                 offence.occurrence_date_to = moment(offence.occurrence_date_to, 'YYYY-MM-DD').format('DD/MM/YYYY');
             }
+            if (offence.occurrence_time_from) {
+                offence.occurrence_time_from = moment(offence.occurrence_time_from, 'HH:mm:ss').format('LT');
+            }
+            if (offence.occurrence_time_to) {
+                offence.occurrence_time_to = moment(offence.occurrence_time_to, 'HH:mm:ss').format('LT');
+            }
             Vue.set(state, 'offence', offence);
         },
         updateOffenceEmpty(state){
@@ -182,6 +188,13 @@ export const offenceStore = {
                 if (payload.occurrence_date_to) {
                     payload.occurrence_date_to = moment(payload.occurrence_date_to, 'DD/MM/YYYY').format('YYYY-MM-DD');
                 }
+                // Format time
+                if (payload.occurrence_time_from) {
+                    payload.occurrence_time_from = moment(payload.occurrence_time_from, 'LT').format('HH:mm');
+                }
+                if (payload.occurrence_time_to) {
+                    payload.occurrence_time_to = moment(payload.occurrence_time_to, 'LT').format('HH:mm');
+                }
 
                 console.log('payload offence');
                 console.log(payload);
@@ -227,10 +240,15 @@ export const offenceStore = {
                 payload.occurrence_date_to = null
             }
 
-            if (!payload.occurrence_time_from) {
+            if (payload.occurrence_time_from) {
+                payload.occurrence_time_from = moment(payload.occurrence_time_from, 'LT').format('HH:mm')
+            } else {
                 payload.occurrence_time_from = null;
             }
-            if (!payload.occurrence_time_to) {
+
+            if (payload.occurrence_time_to) {
+                payload.occurrence_time_to = moment(payload.occurrence_time_to, 'LT').format('HH:mm')
+            } else {
                 payload.occurrence_time_to = null;
             }
 

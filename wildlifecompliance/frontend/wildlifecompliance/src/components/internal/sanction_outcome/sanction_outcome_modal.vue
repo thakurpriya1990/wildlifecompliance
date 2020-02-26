@@ -857,25 +857,25 @@ export default {
             let payload = new Object();
             Object.assign(payload, vm.sanction_outcome);
             if (payload.date_of_issue) {
-                if (moment(payload.date_of_issue, "DD/MM/YYYY").isValid()){
-                    // Format date only when it is not formatted yet.
-                    payload.date_of_issue = moment(payload.date_of_issue, "DD/MM/YYYY").format("YYYY-MM-DD");
-                }
+                payload.date_of_issue = moment(payload.date_of_issue, "DD/MM/YYYY").format("YYYY-MM-DD");
+                payload.time_of_issue = moment(payload.time_of_issue, 'LT').format('HH:mm');
             }
             payload.alleged_offence_ids_included = alleged_offence_ids_included;
             payload.alleged_offence_ids_excluded = alleged_offence_ids_excluded;
             // temporary doc
             //this.temporary_document_collection_id ? payload.temporary_document_collection_id = this.temporary_document_collection_id : null;
-            this.temporary_document_collection_id ? payload.append('temporary_document_collection_id', this.temporary_document_collection_id.temp_doc_id) : null;
+            //this.temporary_document_collection_id ? payload.append('temporary_document_collection_id', this.temporary_document_collection_id.temp_doc_id) : null;
+            if (this.temporary_document_collection_id) {
+                payload.temporary_document_collection_id = this.temporary_document_collection_id.temp_doc_id;
+            } else {
+                payload.temporary_document_collection_id = null;
+            }
   
             // Retrieve remediation actions and set them to the payload
             let remediation_actions = vm.$refs.tbl_remediation_actions.vmDataTable.rows().data().toArray();
             payload.remediation_actions = remediation_actions;
             for (let i = 0; i < payload.remediation_actions.length; i++) {
-                if (moment(payload.remediation_actions[i].due_date, "DD/MM/YYYY").isValid()){
-                    // Format date only when it is not formatted yet.
-                    payload.remediation_actions[i].due_date = moment(payload.remediation_actions[i].due_date, "DD/MM/YYYY").format("YYYY-MM-DD");
-                }
+                payload.remediation_actions[i].due_date = moment(payload.remediation_actions[i].due_date, "DD/MM/YYYY").format("YYYY-MM-DD");
             }
   
             payload.call_email_id = this.$parent.call_email ? this.$parent.call_email.id : null;

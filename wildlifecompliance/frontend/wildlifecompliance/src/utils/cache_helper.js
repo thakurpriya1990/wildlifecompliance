@@ -98,7 +98,7 @@ module.exports = {
                 }
                 // ensure cached value is not stale
                 if (timeDiff > expiryDiff) {
-                    storeInstance.clear();
+                    await storeInstance.clear();
                 } else {
                     for (let store_key of store_keys) {
                         let this_val = await storeInstance.getItem(store_key);
