@@ -1,47 +1,20 @@
 # -*- coding: utf-8 -*-
-import os
 
-from decimal import Decimal as D
 from io import BytesIO
 
 from django.core.files.storage import default_storage
 from ledger.payments.pdf import BrokenLine
-from oscar.templatetags.currency_filters import currency
-from reportlab.lib import enums
-from reportlab.lib.colors import Color
 from reportlab.lib.enums import TA_RIGHT, TA_CENTER
 from reportlab.lib.pagesizes import A4
-from reportlab.platypus import BaseDocTemplate, PageTemplate, Frame, Paragraph, Spacer, Table, TableStyle, ListFlowable, \
-    KeepTogether, PageBreak, Flowable, NextPageTemplate, FrameBreak
-from reportlab.lib.styles import getSampleStyleSheet, ParagraphStyle, StyleSheet1
-from reportlab.lib.utils import ImageReader
-from reportlab.pdfgen.canvas import Canvas
-from reportlab.pdfbase import pdfmetrics
-from reportlab.lib.units import inch, mm
+from reportlab.platypus import BaseDocTemplate, PageTemplate, Frame, Paragraph, Spacer, Table, TableStyle, PageBreak
+from reportlab.lib.styles import ParagraphStyle, StyleSheet1
+from reportlab.lib.units import mm
 from reportlab.lib import colors
 
-from django.core.files import File
-from django.conf import settings
-
-from ledger.accounts.models import Document
-from ledger.checkout.utils import calculate_excl_gst
-
+from wildlifecompliance.components.main.pdf_utils import gap, ParagraphOffeset, ParagraphCheckbox
 
 PAGE_MARGIN = 5 * mm
 PAGE_WIDTH, PAGE_HEIGHT = A4
-
-
-class ParagraphOffeset(Paragraph, object):
-
-    def __init__(self, text, style, bulletText=None, frags=None, caseSensitive=1, encoding='utf8', x_offset=0, y_offset=0):
-        self.x_offset = x_offset
-        self.y_offset = y_offset
-        super(ParagraphOffeset, self).__init__(text, style, bulletText, frags, caseSensitive, encoding)
-
-    def drawOn(self, canvas, x, y, _sW=0):
-        x = x + self.x_offset
-        y = y + self.y_offset
-        super(ParagraphOffeset, self).drawOn(canvas, x, y, _sW)
 
 
 def _create_pdf(invoice_buffer, sanction_outcome):
@@ -50,11 +23,13 @@ def _create_pdf(invoice_buffer, sanction_outcome):
     doc = BaseDocTemplate(invoice_buffer, pageTemplates=[every_page_template, ], pagesize=A4,)  # showBoundary=Color(1, 0, 0))
 
     # Common
-    col_width_head = [85*mm, 25*mm, 85*mm,]
+    col_width_head = [95*mm, 15*mm, 85*mm,]
     col_width_details = [28*mm, 28*mm, 71*mm, 23*mm, 41*mm]
-    FONT_SIZE_L = 11
+    FONT_SIZE_L = 12
     FONT_SIZE_M = 10
     FONT_SIZE_S = 8
+    topLeftTableRowHeights = [23.5*mm, ]
+    topRightTableRowHeights = [7.8*mm, 15.6*mm, ]
 
     styles = StyleSheet1()
     styles.add(ParagraphStyle(name='Normal',
@@ -80,6 +55,10 @@ def _create_pdf(invoice_buffer, sanction_outcome):
                               parent=styles['BodyText'],
                               alignment=TA_CENTER))
 
+    ###
+    # 1st page
+    ###
+
     # Header small text
     header_small_text_p1 = ParagraphOffeset('<font size="' + str(FONT_SIZE_S) + '">Copy to be attached to court copy of prosecution notice</font>',
                                             styles['Right'],
@@ -92,7 +71,7 @@ def _create_pdf(invoice_buffer, sanction_outcome):
         ('ALIGN', (0, 0), (-1, -1), 'LEFT'),
     ])
     style_tbl_left = TableStyle([
-        ('VALIGN', (0, 0), (-1, -1), 'TOP'),
+        ('VALIGN', (0, 0), (-1, -1), 'MIDDLE'),
         ('GRID', (0, 0), (-1, -1), 0.5, colors.black),
         ('ALIGN', (0, 0), (-1, -1), 'LEFT'),
     ])
@@ -101,15 +80,17 @@ def _create_pdf(invoice_buffer, sanction_outcome):
         ('GRID', (0, 0), (-1, -1), 0.5, colors.black),
         ('ALIGN', (0, 0), (-1, -1), 'LEFT'),
     ])
-    data_left = Table([[Paragraph('MAGISTRATES COURT of WESTERN<br />'
-                          'AUSTRALIA<br />'
-                          '<strong><font size="' + str(FONT_SIZE_L) + '">COURT HEARING NOTICE</font></strong><br />'
-                          '<i>Criminal Procedure Act 2004</i><br />'
-                          'Criminal Procedure Regulations 2005 - Form 5', styles['Centre']),]], style=style_tbl_left)
+    data_left = Table([
+        [Paragraph('MAGISTRATES COURT of WESTERN<br />'
+                   'AUSTRALIA<br />'
+                   '<strong><font size="' + str(FONT_SIZE_L) + '">COURT HEARING NOTICE</font></strong><br />'
+                   '<i>Criminal Procedure Act 2004</i><br />'
+                   'Criminal Procedure Regulations 2005 - Form 5', styles['Centre']),]
+    ], style=style_tbl_left, rowHeights=topLeftTableRowHeights)
     data_right = Table([
         [Paragraph('Court number', styles['Normal']), ''],
         [Paragraph('Magistrates court at', styles['Normal']), ''],
-    ], style=style_tbl_right, rowHeights=[7.8*mm, 15.6*mm, ])
+    ], style=style_tbl_right, rowHeights=topRightTableRowHeights)
     tbl_head = Table([[data_left, '', data_right]], style=invoice_table_style, colWidths=col_width_head, )
 
     # Accused's Details, etc
@@ -275,8 +256,78 @@ def _create_pdf(invoice_buffer, sanction_outcome):
     ])
     tbl_service_details = Table(data, style=style_tbl_service_details, colWidths=col_width_service_details)
 
+    ###
+    # 2nd page
+    ###
+    # Head (col, row)
+    data_left_p2 = Table([
+        [Paragraph('MAGISTRATES COURT of WESTERN<br />'
+                   'AUSTRALIA<br />'
+                   '<strong><font size="' + str(FONT_SIZE_L) + '">WRITTEN PLEA BY ACCUSED</font></strong><br />'
+                   '<i>Criminal Procedure Act 2004</i><br />'
+                   'Criminal Procedure Regulations 2005 - Form 5 page 2', styles['Centre']),]
+    ], style=style_tbl_left, rowHeights=topLeftTableRowHeights)
+    data_right_p2 = Table([
+        [Paragraph('Court number', styles['Normal']), ''],
+        [Paragraph('Magistrates court at', styles['Normal']), ''],
+    ], style=style_tbl_right, rowHeights=topRightTableRowHeights)
+    tbl_head_p2 = Table([[data_left_p2, '', data_right_p2]], style=invoice_table_style, colWidths=col_width_head, )
+
+    # Accused's Details
+    # This is common among the pages
+    col_width_p2 = [28*mm, 28*mm, 71*mm, 23*mm, 41*mm]
+    tbl_style_p2 = (
+        ('VALIGN', (0, 0), (-1, -1), 'MIDDLE'),
+        ('GRID', (0, 0), (-1, -1), 0.5, colors.black),
+        ('ALIGN', (0, 0), (-1, -1), 'LEFT'),
+        ('SPAN', (1, 0), (4, 0))
+    )
+    data = []
+    data.append([
+        Paragraph('<strong>Accused\'s plea</strong>', styles['Normal']),
+        [
+            Paragraph('I have received a prosecution notice dated' + gap(40) + 'and a court hearing notice advising me of the hearing on [date]', styles['Normal']),
+            Paragraph('I understand or have had explained to me the charge(s) in the prosecution notice and the contents of the court hearing notice and I understand the effect of this written plea I am sending to the court.', styles['Normal']),
+        ],
+        '', '', '',
+    ])
+    data.append([
+        [
+            Paragraph('<strong>Plea of guilty</strong>', styles['Normal']),
+            Paragraph('[Tick on box]', styles['Normal']),
+            Spacer(0, 10*mm),
+            Paragraph('[Tick on box]', styles['Normal']),
+        ],
+        [
+            ParagraphCheckbox('aho', styles['Normal']),
+        ],
+        '', '', '',
+    ])
+    tbl_main_p2 = Table(data, style=tbl_style_p2, colWidths=col_width_p2, )
+
+
+
+    # Accused's plea
+
+    ###
+    # 3rd page
+    ###
+
+    ###
+    # 4th page
+    ###
+
+    ###
+    # 5th page
+    ###
+
+    ###
+    # 6th page
+    ###
+
     gap_between_tables = 1.5*mm
     elements = []
+    # 1st page
     elements.append(header_small_text_p1)
     elements.append(tbl_head)
     elements.append(tbl_accused_details)
@@ -288,16 +339,15 @@ def _create_pdf(invoice_buffer, sanction_outcome):
     elements.append(tbl_issuing_details)
     elements.append(Spacer(0, gap_between_tables))
     elements.append(tbl_service_details)
+    elements.append(PageBreak())
+    # 2nd page
+    elements.append(tbl_head_p2)
+    elements.append(tbl_accused_details)
+    elements.append(Spacer(0, gap_between_tables))
+    elements.append(tbl_main_p2)
 
     doc.build(elements)
     return invoice_buffer
-
-
-def gap(num):
-    ret = ''
-    for i in range(num):
-        ret = ret + '&nbsp;'
-    return ret
 
 
 def create_court_hearing_notice_pdf_bytes(filename, sanction_outcome):
@@ -315,24 +365,5 @@ def create_court_hearing_notice_pdf_bytes(filename, sanction_outcome):
         # END: Save
 
         return document
-
-
-class OffsetTable(Table, object):
-
-    def __init__(self, data, colWidths=None, rowHeights=None, style=None,
-                 repeatRows=0, repeatCols=0, splitByRow=1, emptyTableAction=None, ident=None,
-                 hAlign=None, vAlign=None, normalizedData=0, cellStyles=None, rowSplitRange=None,
-                 spaceBefore=None, spaceAfter=None, longTableOptimize=None, minRowHeights=None, x_offset=0, y_offset=0):
-        self.x_offset = x_offset
-        self.y_offset = y_offset
-        super(OffsetTable, self).__init__(data, colWidths, rowHeights, style,
-                                          repeatRows, repeatCols, splitByRow, emptyTableAction, ident,
-                                          hAlign, vAlign, normalizedData, cellStyles, rowSplitRange,
-                                          spaceBefore, spaceAfter, longTableOptimize, minRowHeights)
-
-    def drawOn(self, canvas, x, y, _sW=0):
-        x = x + self.x_offset
-        y = y + self.y_offset
-        super(OffsetTable, self).drawOn(canvas, x, y, _sW)
 
 

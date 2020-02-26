@@ -25,6 +25,7 @@ from django.conf import settings
 from ledger.accounts.models import Document
 from ledger.checkout.utils import calculate_excl_gst
 
+from wildlifecompliance.components.main.pdf_utils import OffsetTable
 
 PAGE_MARGIN = 5 * mm
 PAGE_WIDTH, PAGE_HEIGHT = A4
@@ -404,13 +405,6 @@ def _create_pdf(invoice_buffer, sanction_outcome):
     return invoice_buffer
 
 
-def gap(num):
-    ret = ''
-    for i in range(num):
-        ret = ret + '&nbsp;'
-    return ret
-
-
 def create_prosecution_notice_pdf_bytes(filename, sanction_outcome):
     with BytesIO() as invoice_buffer:
         _create_pdf(invoice_buffer, sanction_outcome)
@@ -426,24 +420,3 @@ def create_prosecution_notice_pdf_bytes(filename, sanction_outcome):
         # END: Save
 
         return document
-
-
-class OffsetTable(Table, object):
-
-    def __init__(self, data, colWidths=None, rowHeights=None, style=None,
-                 repeatRows=0, repeatCols=0, splitByRow=1, emptyTableAction=None, ident=None,
-                 hAlign=None, vAlign=None, normalizedData=0, cellStyles=None, rowSplitRange=None,
-                 spaceBefore=None, spaceAfter=None, longTableOptimize=None, minRowHeights=None, x_offset=0, y_offset=0):
-        self.x_offset = x_offset
-        self.y_offset = y_offset
-        super(OffsetTable, self).__init__(data, colWidths, rowHeights, style,
-                                          repeatRows, repeatCols, splitByRow, emptyTableAction, ident,
-                                          hAlign, vAlign, normalizedData, cellStyles, rowSplitRange,
-                                          spaceBefore, spaceAfter, longTableOptimize, minRowHeights)
-
-    def drawOn(self, canvas, x, y, _sW=0):
-        x = x + self.x_offset
-        y = y + self.y_offset
-        super(OffsetTable, self).drawOn(canvas, x, y, _sW)
-
-
