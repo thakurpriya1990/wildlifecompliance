@@ -107,7 +107,7 @@
                                         <label class="col-sm-3">{{ occurrenceDateLabel }}</label>
                                         <div class="col-sm-3">
                                             <div class="input-group date" ref="occurrenceDateFromPicker">
-                                                <input :readonly="readonlyForm" type="text" class="form-control" placeholder="DD/MM/YYYY" v-model="offence.occurrence_date_from" />
+                                                <input :readonly="readonlyForm" type="text" class="form-control" placeholder="DD/MM/YYYY" :value="offence.occurrence_date_from" />
                                                 <span class="input-group-addon">
                                                     <span class="glyphicon glyphicon-calendar"></span>
                                                 </span>
@@ -116,7 +116,7 @@
                                         <div v-show="offence.occurrence_from_to">
                                             <div class="col-sm-3">
                                                 <div class="input-group date" ref="occurrenceDateToPicker">
-                                                    <input :readonly="readonlyForm" type="text" class="form-control" placeholder="DD/MM/YYYY" v-model="offence.occurrence_date_to" />
+                                                    <input :readonly="readonlyForm" type="text" class="form-control" placeholder="DD/MM/YYYY" :value="offence.occurrence_date_to" />
                                                     <span class="input-group-addon">
                                                         <span class="glyphicon glyphicon-calendar"></span>
                                                     </span>
@@ -129,7 +129,7 @@
                                         <label class="col-sm-3">{{ occurrenceTimeLabel }}</label>
                                         <div class="col-sm-3">
                                             <div class="input-group date" ref="occurrenceTimeFromPicker">
-                                                <input :readonly="readonlyForm" type="text" class="form-control" placeholder="HH:MM" v-model="offence.occurrence_time_from" />
+                                                <input :readonly="readonlyForm" type="text" class="form-control" placeholder="HH:MM" :value="offence.occurrence_time_from" />
                                                 <span class="input-group-addon">
                                                     <span class="glyphicon glyphicon-calendar"></span>
                                                 </span>
@@ -138,7 +138,7 @@
                                         <div v-show="offence.occurrence_from_to">
                                             <div class="col-sm-3">
                                                 <div class="input-group date" ref="occurrenceTimeToPicker">
-                                                    <input :readonly="readonlyForm" type="text" class="form-control" placeholder="HH:MM" v-model="offence.occurrence_time_to" />
+                                                    <input :readonly="readonlyForm" type="text" class="form-control" placeholder="HH:MM" :value="offence.occurrence_time_to" />
                                                     <span class="input-group-addon">
                                                         <span class="glyphicon glyphicon-calendar"></span>
                                                     </span>
@@ -1363,40 +1363,58 @@ export default {
             let el_to_date = $(vm.$refs.occurrenceDateToPicker);
             let el_to_time = $(vm.$refs.occurrenceTimeToPicker);
 
-            // "From" field
-            el_fr_date.datetimepicker({ format: "DD/MM/YYYY", maxDate: moment().millisecond(0).second(0).minute(0).hour(0), showClear: true });
-            el_fr_date.on("dp.change", function(e) {
-              if (el_fr_date.data("DateTimePicker").date()) {
-                vm.offence.occurrence_date_from = e.date.format("DD/MM/YYYY");
-              } else if (el_fr_date.data("date") === "") {
-                vm.offence.occurrence_date_from = null;
-              }
+            // "From" Date field
+            el_fr_date.datetimepicker({ 
+                format: "DD/MM/YYYY", 
+                maxDate: moment().millisecond(0).second(0).minute(0).hour(0), showClear: true,
+                date: vm.offence.occurrence_date_from,
             });
-            el_fr_time.datetimepicker({ format: "LT", showClear: true });
+            el_fr_date.on("dp.change", function(e) {
+                if (el_fr_date.data("DateTimePicker").date()) {
+                  vm.offence.occurrence_date_from = e.date.format("DD/MM/YYYY");
+                } else if (el_fr_date.data("date") === "") {
+                  vm.offence.occurrence_date_from = null;
+                }
+            });
+            // "From" Time field
+            el_fr_time.datetimepicker({ 
+                format: "LT",
+                showClear: true,
+                date: vm.offence.occurrence_time_from,
+            });
             el_fr_time.on("dp.change", function(e) {
-              if (el_fr_time.data("DateTimePicker").date()) {
-                vm.offence.occurrence_time_from = e.date.format("LT");
-              } else if (el_fr_time.data("date") === "") {
-                vm.offence.occurrence_time_from = null;
-              }
+                if (el_fr_time.data("DateTimePicker").date()) {
+                  vm.offence.occurrence_time_from = e.date.format("LT");
+                } else if (el_fr_time.data("date") === "") {
+                  vm.offence.occurrence_time_from = null;
+                }
             });
 
-            // "To" field
-            el_to_date.datetimepicker({ format: "DD/MM/YYYY", maxDate: moment().millisecond(0).second(0).minute(0).hour(0), showClear: true });
-            el_to_date.on("dp.change", function(e) {
-              if (el_to_date.data("DateTimePicker").date()) {
-                vm.offence.occurrence_date_to = e.date.format("DD/MM/YYYY");
-              } else if (el_to_date.data("date") === "") {
-                vm.offence.occurrence_date_to = null;
-              }
+            // "To" Date field
+            el_to_date.datetimepicker({ 
+                format: "DD/MM/YYYY", 
+                maxDate: moment().millisecond(0).second(0).minute(0).hour(0), showClear: true,
+                date: vm.offence.occurrence_date_to,
             });
-            el_to_time.datetimepicker({ format: "LT", showClear: true });
+            el_to_date.on("dp.change", function(e) {
+                if (el_to_date.data("DateTimePicker").date()) {
+                  vm.offence.occurrence_date_to = e.date.format("DD/MM/YYYY");
+                } else if (el_to_date.data("date") === "") {
+                  vm.offence.occurrence_date_to = null;
+                }
+            });
+            // "To" Time field
+            el_to_time.datetimepicker({ 
+                format: "LT", 
+                showClear: true,
+                date: vm.offence.occurrence_time_to,
+            });
             el_to_time.on("dp.change", function(e) {
-              if (el_to_time.data("DateTimePicker").date()) {
-                vm.offence.occurrence_time_to = e.date.format("LT");
-              } else if (el_to_time.data("date") === "") {
-                vm.offence.occurrence_time_to = null;
-              }
+                if (el_to_time.data("DateTimePicker").date()) {
+                  vm.offence.occurrence_time_to = e.date.format("LT");
+                } else if (el_to_time.data("date") === "") {
+                  vm.offence.occurrence_time_to = null;
+                }
             });
 
             $("#alleged-offence-table").on("click", ".remove_button", vm.removeAllegedOffenceClicked);
