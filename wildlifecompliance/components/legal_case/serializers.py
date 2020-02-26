@@ -923,7 +923,8 @@ class LegalCaseBriefOfEvidenceSerializer(BaseLegalCaseSerializer):
         return offence_list
 
 
-class LegalCaseProsecutionBriefSerializer(BaseLegalCaseSerializer):
+#class LegalCaseProsecutionBriefSerializer(BaseLegalCaseSerializer):
+class LegalCaseProsecutionBriefSerializer(LegalCaseBriefOfEvidenceSerializer):
     running_sheet_entries = LegalCaseRunningSheetEntrySerializer(many=True)
     #legal_case_person = EmailUserSerializer(many=True)
     allocated_group = serializers.SerializerMethodField()
@@ -984,6 +985,17 @@ class LegalCaseProsecutionBriefSerializer(BaseLegalCaseSerializer):
                 'pb_physical_artifacts_sensitive_unused',
                 'pb_physical_artifacts_non_sensitive_unused',
                 'pb_document_artifacts',
+                'boe_roi_ticked',
+                'boe_roi_options',
+                'legal_case_boe_roi',
+                'boe_other_statements_ticked',
+                'boe_other_statements_options',
+                'legal_case_boe_other_statements',
+
+                'boe_physical_artifacts_used',
+                'boe_physical_artifacts_sensitive_unused',
+                'boe_physical_artifacts_non_sensitive_unused',
+                'boe_document_artifacts',
 
                 )
         read_only_fields = (

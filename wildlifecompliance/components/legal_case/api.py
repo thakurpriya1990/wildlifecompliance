@@ -264,9 +264,17 @@ class LegalCaseViewSet(viewsets.ModelViewSet):
         return LegalCase.objects.none()
 
     def variable_serializer(self, request, instance):
-        if instance.status == 'brief_of_evidence':
+        if instance.status == 'open':
+            serializer = BaseLegalCaseSerializer
+        elif instance.status in ['brief_of_evidence', 'with_manager', 'with_prosecution_coordinator']:
             serializer = LegalCaseBriefOfEvidenceSerializer
-        elif instance.status == 'prosecution_brief':
+        elif instance.status in [
+                'with_prosecution_coordinator_prosecution_brief', 
+                'with_prosecution_council', 
+                'with_prosecution_manager',
+                'with_prosecution_coordinator_court',
+                'closed',
+                ]:
             serializer = LegalCaseProsecutionBriefSerializer
         else:
             serializer = BaseLegalCaseSerializer
