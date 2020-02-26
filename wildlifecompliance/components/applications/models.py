@@ -1615,7 +1615,7 @@ class Application(RevisionedMixin):
             latest_inv = previous.latest_invoice
             app_inv = ApplicationInvoice.objects.filter(
                 invoice_reference=latest_inv.reference).first()
-            for activity in self.activities:
+            for activity in self.selected_activities.all():
                 invoice_line = ApplicationInvoiceLine.objects.filter(
                     invoice=app_inv,
                     licence_activity=activity.licence_activity).first()
@@ -1643,7 +1643,7 @@ class Application(RevisionedMixin):
             app_inv = ApplicationInvoice.objects.filter(
                 invoice_reference=latest_inv.reference).first()
 
-            for activity in self.activities:
+            for activity in self.selected_activities.all():
                 invoice_line = ApplicationInvoiceLine.objects.filter(
                     invoice=app_inv,
                     licence_activity=activity.licence_activity).first()

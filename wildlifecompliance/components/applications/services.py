@@ -263,6 +263,8 @@ def do_render_defined_conditions(application, data_source):
 def get_dynamic_schema_attributes(application, data_source):
 
     fee_policy = ApplicationFeePolicy.get_fee_policy_for(application)
+    if not data_source:  # No form data set fee from previous.
+        fee_policy.set_application_fee()
     dynamic_attributes = fee_policy.get_dynamic_attributes()
 
     def parse_modifiers(
@@ -438,17 +440,32 @@ class ApplicationFeePolicy(object):
         AMEND = Application.APPLICATION_TYPE_AMENDMENT
         RENEW = Application.APPLICATION_TYPE_RENEWAL
         NEW = Application.APPLICATION_TYPE_NEW_LICENCE
+        # New Activity is set for multiple activities on application.
+        NEW_ACTIVITY = Application.APPLICATION_TYPE_ACTIVITY
 
         get_policy = {
             AMEND: AmendApplicationFeePolicy(application),
             RENEW: RenewApplicationFeePolicy(application),
             NEW: NewApplicationFeePolicy(application),
+            NEW_ACTIVITY: NewApplicationFeePolicy(application),
         }
+        policy = get_policy.get(
+            application.application_type, NewApplicationFeePolicy(application))
 
-        return get_policy.get(application.application_type, NEW)
+        return policy
 
     @abc.abstractmethod
     def get_dynamic_attributes(self):
+        """
+        Gets a new application fee based on attributes set.
+        """
+        pass
+
+    @abc.abstractmethod
+    def set_application_fee(self):
+        """
+        Sets the application fee from what was previously saved on the model.
+        """
         pass
 
 
@@ -459,6 +476,26 @@ class AmendApplicationFeePolicy(ApplicationFeePolicy):
     def __init__(self, application):
         self._application = application
         self.set_dynamic_attributes()
+
+    def set_application_fee(self):
+        """
+        Set Application fee from the saved model.
+        """
+        application_fees = Application.calculate_base_fees(
+                self._application.licence_purposes.values_list('id', flat=True)
+            )['application']
+        licence_fees = Application.calculate_base_fees(
+                self._application.licence_purposes.values_list('id', flat=True)
+            )['licence']
+
+        application_fees = self._application.application_fee
+        self._dynamic_attributes = {
+            'fees': {
+                'application': application_fees,
+                'licence': licence_fees,
+                },
+            'activity_attributes': {},
+        }
 
     def set_dynamic_attributes(self):
         """
@@ -489,6 +526,26 @@ class RenewApplicationFeePolicy(ApplicationFeePolicy):
         self._application = application
         self.set_dynamic_attributes()
 
+    def set_application_fee(self):
+        """
+        Set Application fee from the saved model.
+        """
+        application_fees = Application.calculate_base_fees(
+                self._application.licence_purposes.values_list('id', flat=True)
+            )['application']
+        licence_fees = Application.calculate_base_fees(
+                self._application.licence_purposes.values_list('id', flat=True)
+            )['licence']
+
+        application_fees = self._application.application_fee
+        self._dynamic_attributes = {
+            'fees': {
+                'application': application_fees,
+                'licence': licence_fees,
+                },
+            'activity_attributes': {},
+        }
+
     def set_dynamic_attributes(self):
         self._dynamic_attributes = {
             'fees': Application.calculate_base_fees(
@@ -512,6 +569,26 @@ class NewApplicationFeePolicy(ApplicationFeePolicy):
     def __init__(self, application):
         self._application = application
         self.set_dynamic_attributes()
+
+    def set_application_fee(self):
+        """
+        Set Application fee from the saved model.
+        """
+        application_fees = Application.calculate_base_fees(
+                self._application.licence_purposes.values_list('id', flat=True)
+            )['application']
+        licence_fees = Application.calculate_base_fees(
+                self._application.licence_purposes.values_list('id', flat=True)
+            )['licence']
+
+        application_fees = self._application.application_fee
+        self._dynamic_attributes = {
+            'fees': {
+                'application': application_fees,
+                'licence': licence_fees,
+                },
+            'activity_attributes': {},
+        }
 
     def set_dynamic_attributes(self):
         self._dynamic_attributes = {

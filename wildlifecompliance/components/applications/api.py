@@ -669,25 +669,27 @@ class ApplicationViewSet(viewsets.ModelViewSet):
     @detail_route(methods=['post'])
     @renderer_classes((JSONRenderer,))
     def licence_fee_checkout(self, request, *args, **kwargs):
+        PAY_STATUS = ApplicationSelectedActivity.PROCESSING_STATUS_AWAITING_LICENCE_FEE_PAYMENT
         try:
             instance = self.get_object()
             activity_id = request.data.get('activity_id')
             if not activity_id:
                 raise Exception('No activity selected for payment!')
 
-            # check whether activities consist of amended application fees.
-            activities = instance.activities if not instance.has_amended_fees\
-                else instance.amended_activities
-
             product_lines = []
             application_submission = u'Application No: {}'.format(
                 instance.lodgement_number)
 
-            set_session_activity(request.session, activities[0])
-
+            activities = instance.selected_activities.all()
+            activities_with_payments = [
+                a for a in activities if a.processing_status == PAY_STATUS
+            ]
             # only fees which are greater than zero.
             activities_with_fees = [
-                a for a in activities if a.licence_fee > 0]
+                a for a in activities_with_payments if a.licence_fee > 0]
+
+            # store first activity on session for id.
+            set_session_activity(request.session, activities[0])
 
             for activity in activities_with_fees:
                 product_lines.append({
@@ -700,11 +702,18 @@ class ApplicationViewSet(viewsets.ModelViewSet):
                     'oracle_code': ''
                 })
 
-            # Adjustments occur only to the application fee.
+            # Adjustments occuring only to the application fee.
+            activities = instance.selected_activities.all()
             if instance.has_amended_fees:
+                activities = instance.amended_activities
+                # only fees awaiting payment
+                activities_with_payments = [
+                    a for a in activities if a.processing_status == PAY_STATUS
+                ]
                 # only fees which are greater than zero.
                 activities_with_fees = [
-                    a for a in activities if a.application_fee > 0]
+                   a for a in activities_with_payments if a.application_fee > 0
+                ]
 
                 for activity in activities_with_fees:
                     product_lines.append({
@@ -717,11 +726,17 @@ class ApplicationViewSet(viewsets.ModelViewSet):
                         'oracle_code': ''
                     })
 
+            activities = instance.selected_activities.all()
             # Include additional fees by licence approvers.
             if instance.has_additional_fees:
+                # only fees awaiting payment
+                activities_with_payments = [
+                    a for a in activities if a.processing_status == PAY_STATUS
+                ]
                 # only fees which are greater than zero.
                 activities_with_fees = [
-                    a for a in activities if a.additional_fee > 0]
+                    a for a in activities_with_payments if a.additional_fee > 0
+                ]
 
                 for activity in activities_with_fees:
                     product_lines.append({
