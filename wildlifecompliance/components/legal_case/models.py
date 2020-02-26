@@ -643,6 +643,16 @@ class ProsecutionBriefDocument(Document):
         app_label = 'wildlifecompliance'
 
 
+class LegalCaseGeneratedDocument(Document):
+    legal_case = models.ForeignKey(LegalCase, related_name='generated_documents')
+    _file = models.FileField(max_length=255)
+
+    class Meta:
+        app_label = 'wildlifecompliance'
+        verbose_name = 'CM_LegalCaseGeneratedDocument'
+        verbose_name_plural = 'CM_LegalCaseGeneratedDocuments'
+
+
 def update_court_outcome_doc_filename(instance, filename):
     return 'wildlifecompliance/legal_case/{}/court_outcome_documents/{}'.format(instance.legal_case.id, filename)
 

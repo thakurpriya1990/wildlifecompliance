@@ -62,6 +62,7 @@ from wildlifecompliance.components.legal_case.models import (
     BriefOfEvidence,
     ProsecutionBrief,
     CourtProceedings, CourtDate)
+#from wildlifecompliance.components.legal_case.pdf_brief_of_evidence import
 #from wildlifecompliance.components.artifact.models import (
 #        DocumentArtifact,
 #        PhysicalArtifact,
@@ -686,6 +687,31 @@ class LegalCaseViewSet(viewsets.ModelViewSet):
             brief_of_evidence_instance = instance.brief_of_evidence
             if brief_of_evidence_instance:
                 returned_data = process_generic_document(request, brief_of_evidence_instance)
+            if returned_data:
+                return Response(returned_data)
+            else:
+                return Response()
+
+        except serializers.ValidationError:
+            print(traceback.print_exc())
+            raise
+        except ValidationError as e:
+            if hasattr(e, 'error_dict'):
+                raise serializers.ValidationError(repr(e.error_dict))
+            else:
+                raise serializers.ValidationError(repr(e[0].encode('utf-8')))
+        except Exception as e:
+            print(traceback.print_exc())
+            raise serializers.ValidationError(str(e))
+
+    @detail_route(methods=['POST'])
+    @renderer_classes((JSONRenderer,))
+    def generate_brief_of_evidence_document(self, request, *args, **kwargs):
+        try:
+            instance = self.get_object()
+            brief_of_evidence_instance = instance.brief_of_evidence
+            if brief_of_evidence_instance:
+                returned_data = process_generic_document(request, brief_of_evidence_instance, document_type="generated_documents")
             if returned_data:
                 return Response(returned_data)
             else:
