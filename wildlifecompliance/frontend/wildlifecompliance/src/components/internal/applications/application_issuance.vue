@@ -73,7 +73,7 @@
                                                         </div>
                                                     </div>
                                                 </div>
-                                                <div class="row" v-if="finalStatus(item.id) === 'issued' && canEditLicenceDates">
+                                                <div class="row">
                                                     <div class="col-sm-3">
                                                         <label class="control-label pull-left">Additional Fee Details</label>
                                                     </div>
@@ -81,7 +81,7 @@
                                                         <input type="text" class="form-control" name="cc_email" style="width: 70%;"  v-model="getActivity(item.id).additional_fee_text">
                                                     </div>
                                                 </div>
-                                                <div class="row" v-if="finalStatus(item.id) === 'issued' && canEditLicenceDates">
+                                                <div class="row">
                                                     <div class="col-sm-3">
                                                         <label class="control-label pull-left">Additional Fee</label>
                                                     </div>

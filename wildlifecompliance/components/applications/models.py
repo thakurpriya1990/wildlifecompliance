@@ -1937,7 +1937,33 @@ class Application(RevisionedMixin):
                         activity.cc_email = details.get('cc_email', None)
                         activity.proposed_start_date = latest_activity.start_date
                         activity.proposed_end_date = latest_activity.expiry_date
+
+                        # update Additional fees for selected proposed 
+                        # activities.
+                        proposed_activities = request.data.get('activities')
+                        proposed = [a for a in proposed_activities if a[
+                            'id'] == activity.id]
+
+                        if proposed[0]:
+                            activity.additional_fee=proposed[0][
+                                'additional_fee'] if proposed[0][
+                                    'additional_fee'] else 0
+                            activity.additional_fee_text=proposed[0][
+                                'additional_fee_text'] if proposed[0][
+                                    'additional_fee'] > 0 else None
+
                         activity.save()
+
+                        # update Application Selected Activity Purposes
+                        for p in purpose_list:
+                            purpose = LicencePurpose.objects.get(id=p['id'])
+                            status = 'issue' if p['isProposed'] else 'decline'
+                            activity_purpose = ApplicationSelectedActivityPurpose.objects.get_or_create(
+                                purpose=purpose,
+                                selected_activity=activity,
+                            )
+                            activity_purpose[0].processing_status = status
+                            activity_purpose[0].save()                                    
                 else:
                     ApplicationSelectedActivity.objects.filter(
                         application_id=self.id,
