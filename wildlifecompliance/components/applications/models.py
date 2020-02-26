@@ -1989,7 +1989,7 @@ class Application(RevisionedMixin):
                         mime = mimetypes.guess_type(document.name)[0]
                         documents.append((document.name, content, mime))                        
 
-                email_text=details.get('approver_detail', None),                 
+                email_text=str(details.get('approver_detail'))
                 send_activity_propose_issue_notification(
                    request, self, email_text, documents
                 )
