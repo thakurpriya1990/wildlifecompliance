@@ -54,6 +54,7 @@
                             ref="document_artifact"
                             @entity-selected="entitySelected"
                             @existing-entity-selected="existingEntitySelected"
+                            @error-message="setDocumentArtifactErrorMessage"
                             parentModal
                             v-bind:key="updateDocumentArtifactBindId"
                             :entityEdit="entityEdit"
@@ -114,6 +115,7 @@ export default {
         aTab: 'aTab' + this._uid,
         uTab: 'uTab' + this._uid,
         componentType: '',
+        documentArtifactErrorMessage: '',
         //image: "/static/wildlifecompliance_vue/img/shibaken.jpg"
         //image: "/static/wildlifecompliance_vue/img/shibaken.c4c9d81.jpg"
         //image: "../../../assets/img/shibaken.jpg"
@@ -300,7 +302,12 @@ export default {
                 this.close();
             });
         },
+        setDocumentArtifactErrorMessage: function(errorMessage) {
+            console.log(errorMessage);
+            this.documentArtifactErrorMessage = errorMessage.error_message;
+        },
         ok: async function() {
+            this.documentArtifactErrorMessage = ''
             if (this.artifactTabSelected) {
                 if (this.showDocumentArtifactComponent) {
                     await this.$refs.document_artifact.save();
@@ -311,7 +318,9 @@ export default {
             if (this.urlTabSelected && this.urlText) {
                 this.submitUrl();
             }
-            this.emitModalAction();
+            if (!this.documentArtifactErrorMessage) {
+                this.emitModalAction();
+            }
             // For Artifact Dashboard
             if (this.$parent.$refs.artifact_table) {
                 this.$parent.$refs.artifact_table.vmDataTable.ajax.reload()
