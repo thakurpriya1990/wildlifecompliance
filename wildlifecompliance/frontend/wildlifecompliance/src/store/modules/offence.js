@@ -227,10 +227,15 @@ export const offenceStore = {
                 payload.occurrence_date_to = null
             }
 
-            if (!payload.occurrence_time_from) {
+            if (payload.occurrence_time_from) {
+                payload.occurrence_time_from = moment(payload.occurrence_time_from, 'LT').format('HH:mm')
+            } else {
                 payload.occurrence_time_from = null;
             }
-            if (!payload.occurrence_time_to) {
+
+            if (payload.occurrence_time_to) {
+                payload.occurrence_time_to = moment(payload.occurrence_time_to, 'LT').format('HH:mm')
+            } else {
                 payload.occurrence_time_to = null;
             }
 
