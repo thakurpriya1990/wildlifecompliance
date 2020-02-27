@@ -25,6 +25,7 @@ from django.conf import settings
 from ledger.accounts.models import Document
 from ledger.checkout.utils import calculate_excl_gst
 
+from wildlifecompliance.components.main.pdf_utils import gap
 from wildlifecompliance.components.sanction_outcome.pdf import BrokenLine
 from wildlifecompliance.components.sanction_outcome.pdf_in_blue import SolidLine
 
@@ -327,13 +328,6 @@ def _create_pdf(invoice_buffer, sanction_outcome):
 
     doc.build(elements)
     return invoice_buffer
-
-
-def gap(num):
-    ret = ''
-    for i in range(num):
-        ret = ret + '&nbsp;'
-    return ret
 
 
 def create_letter_of_advice_pdf_bytes(filename, sanction_outcome):

@@ -27,6 +27,8 @@ from ledger.checkout.utils import calculate_excl_gst
 #DPAW_HEADER_LOGO = os.path.join(settings.BASE_DIR, 'ledger', 'payments','static', 'payments', 'img','dbca_logo.jpg')
 #DPAW_HEADER_LOGO_SM = os.path.join(settings.BASE_DIR, 'ledger', 'payments','static', 'payments', 'img','dbca_logo_small.png')
 #BPAY_LOGO = os.path.join(settings.BASE_DIR, 'ledger', 'payments','static', 'payments', 'img', 'BPAY_2012_PORT_BLUE.png')
+from wildlifecompliance.components.main.pdf_utils import gap
+
 DPAW_HEADER_LOGO = os.path.join(settings.BASE_DIR, 'staticfiles', 'payments', 'img','dbca_logo.jpg')
 DPAW_HEADER_LOGO_SM = os.path.join(settings.BASE_DIR, 'staticfiles', 'payments', 'img','dbca_logo_small.png')
 BPAY_LOGO = os.path.join(settings.BASE_DIR, 'staticfiles', 'payments', 'img', 'BPAY_2012_PORT_BLUE.png')
@@ -285,13 +287,6 @@ def _create_pdf(invoice_buffer, sanction_outcome):
 
     doc.build(elements)
     return invoice_buffer
-
-
-def gap(num):
-    ret = ''
-    for i in range(num):
-        ret = ret + '&nbsp;'
-    return ret
 
 
 def create_in_pdf_bytes(filename, sanction_outcome):
