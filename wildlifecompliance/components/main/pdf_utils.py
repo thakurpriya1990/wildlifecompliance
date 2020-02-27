@@ -1,4 +1,6 @@
-from reportlab.lib.colors import Color, blue
+from uuid import uuid4
+
+from reportlab.lib.colors import Color, blue, red, green, black, white
 from reportlab.platypus import Table, Paragraph
 
 
@@ -43,27 +45,38 @@ class ParagraphOffeset(Paragraph, object):
 
 class ParagraphCheckbox(Paragraph, object):
 
-    def __init__(self, text, style, bulletText=None, frags=None, caseSensitive=1, encoding='utf8', x_offset=0, y_offset=0):
+    def __init__(self, text, style, checked=False, name='', gap=6, checkboxSize=11, bulletText=None, frags=None, caseSensitive=1, encoding='utf8', x_offset=0, y_offset=0):
         self.x_offset = x_offset
         self.y_offset = y_offset
+        self.checked = checked
+        self.checkboxSize = checkboxSize
+        self.gap = gap
+        if not name:
+            self.name = str(uuid4())
         super(ParagraphCheckbox, self).__init__(text, style, bulletText, frags, caseSensitive, encoding)
 
     def drawOn(self, canvas, x, y, _sW=0):
-        canvas.saveState()
-        canvas.acroForm.checkbox(
-            name='CB0',
-            tooltip='Field CB0',
-            checked=True,
-            x=x,
-            y=y,
+        # test
+        ret = canvas.absolutePosition(x, y)
+        form = canvas.acroForm
+        form.checkbox(
+            name=self.name,
+            tooltip='',
+            size=self.checkboxSize,
+            checked=self.checked,
+            x=ret[0]+self.x_offset,  # the horizontal position on the page (absolute coordinates)
+            y=ret[1]+self.y_offset-2,  # the vertical position on the page (absolute coordinates)
             buttonStyle='check',
-            shape='square',
             borderStyle='solid',
             borderWidth=1,
-            borderColor=blue,
+            borderColor=black,
+            fillColor=white,
+            # textColor=blue,
             forceBorder=True,
         )
-        x = x + self.x_offset
+        # test: end
+
+        x = x + self.x_offset + self.checkboxSize + self.gap
         y = y + self.y_offset
-        canvas.restoreState()
+        # canvas.restoreState()
         super(ParagraphCheckbox, self).drawOn(canvas, x, y, _sW)

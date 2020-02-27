@@ -4,8 +4,10 @@ from io import BytesIO
 
 from django.core.files.storage import default_storage
 from ledger.payments.pdf import BrokenLine
+from reportlab.lib.colors import red, green, blue
 from reportlab.lib.enums import TA_RIGHT, TA_CENTER
 from reportlab.lib.pagesizes import A4
+from reportlab.pdfgen import canvas
 from reportlab.platypus import BaseDocTemplate, PageTemplate, Frame, Paragraph, Spacer, Table, TableStyle, PageBreak
 from reportlab.lib.styles import ParagraphStyle, StyleSheet1
 from reportlab.lib.units import mm
@@ -160,8 +162,8 @@ def _create_pdf(invoice_buffer, sanction_outcome):
         Paragraph('<strong>Options</strong>', styles['Normal']),
         Paragraph('1. You can attend the above hearing. <br />'
                   '2. You can do nothing. <br />'
-                  '3. You can plead not guilty in writing. <br />'
-                  '4. You can plead guilty in writing. <br />'
+                  '3. You can plead <u>not guilty</u> in writing. <br />'
+                  '4. You can plead <u>guilty</u> in writing. <br />'
                   '<strong>Options 2, 3 and 4 are explained below.</strong>', styles['Normal']),
     ])
     data.append([
@@ -275,12 +277,23 @@ def _create_pdf(invoice_buffer, sanction_outcome):
 
     # Accused's Details
     # This is common among the pages
+
+    # Accused's plea
     col_width_p2 = [28*mm, 28*mm, 71*mm, 23*mm, 41*mm]
     tbl_style_p2 = (
         ('VALIGN', (0, 0), (-1, -1), 'MIDDLE'),
+        ('VALIGN', (0, 0), (0, -1), 'TOP'),
         ('GRID', (0, 0), (-1, -1), 0.5, colors.black),
         ('ALIGN', (0, 0), (-1, -1), 'LEFT'),
-        ('SPAN', (1, 0), (4, 0))
+        ('SPAN', (1, 0), (4, 0)),
+        ('SPAN', (1, 1), (4, 1)),
+        ('SPAN', (1, 2), (4, 2)),
+        ('SPAN', (1, 3), (4, 3)),
+        ('SPAN', (1, 4), (4, 4)),
+        ('SPAN', (1, 5), (4, 5)),
+        ('SPAN', (1, 6), (2, 6)),
+        ('SPAN', (1, 7), (4, 7)),
+        ('SPAN', (0, 5), (0, 6)),
     )
     data = []
     data.append([
@@ -299,19 +312,86 @@ def _create_pdf(invoice_buffer, sanction_outcome):
             Paragraph('[Tick on box]', styles['Normal']),
         ],
         [
-            ParagraphCheckbox('aho', styles['Normal']),
+            ParagraphCheckbox('I plead <u>guilty</u> to the charge(s) in the prosecution notice.', styles['Normal']),
+            ParagraphCheckbox('I plead <u>guilty</u> to the following charges in the prosecution notice.', styles['Normal']),
+            Paragraph('<i>[If the prosecution notice contains more than one charge and you want to plead guilty to only some of them, write the numbers of the charges here.]</i>', styles['Normal']),
+            Spacer(0, 8*mm),
+            Paragraph('Attendance at court:', styles['Normal']),
+            ParagraphCheckbox('I will be attending the hearing on the above date.', styles['Normal']),
+            ParagraphCheckbox('I will not be attending the hearing on the above date.', styles['Normal']),
+            Paragraph('I would like the court to take account of the following:', styles['Normal']),
+            Paragraph('<i>[If you are pleading guilty you can (but need not) explain why you committed the offence(s) and give any information that you want the court to consider when deciding what sentence to impose on you.]</i>', styles['Normal']),
+            Spacer(0, 10 * mm),
+        ],
+        '', '', '',
+    ])
+    data.append([
+        [
+            Paragraph('<strong>Plea of not guilty</strong>', styles['Normal']),
+            Paragraph('[Tick on box]', styles['Normal']),
+            Spacer(0, 10 * mm),
+            Paragraph('[Tick on box]', styles['Normal']),
+        ],
+        [
+            ParagraphCheckbox('I plead not guilty to the charge(s) in the prosecution notice.', styles['Normal']),
+            ParagraphCheckbox('I plead not guilty to the following charges in the prosecution notice.', styles['Normal']),
+            Paragraph('<i>[If the prosecution notice contains more than one charge and you want to plead not guilty to only some of them, write the numbers of them here]</i>', styles['Normal']),
+            Spacer(0, 8 * mm),
+            Paragraph('Attendance at court:', styles['Normal']),
+            ParagraphCheckbox('I will be attending the hearing on the above date.', styles['Normal']),
+            ParagraphCheckbox('I will not be attending the hearing on the above date.', styles['Normal']),
+            Paragraph('At the trial of the charge(s) I intend to call' + gap(40) + 'witnesses (including myself).', styles['Normal']),
+            Paragraph('<i>[Please insert the number of witnesses to assist the court in deciding how long the trial might last]</i>', styles['Normal']),
+            Paragraph('When setting a date for the trial please take account of the following:', styles['Normal']),
+            Paragraph('<i>[Please provide any information that might assist the court when setting the date for the trial such as dates when you will be overseas or in hospital.]</i>', styles['Normal']), Spacer(0, 10 * mm),
+        ],
+        '', '', '',
+    ])
+    data.append([
+        Paragraph('<strong>Contact details</strong>', styles['Normal']),
+        [
+            Paragraph('My contact details are:', styles['Normal']),
+            Paragraph('Address (if different to the one above):', styles['Normal']),
+            Paragraph('Telephone no.' + gap(40) + 'Fax no.' + gap(40) + 'Mobile no.', styles['Normal']),
+        ],
+        '', '', '',
+    ])
+    data.append([
+        [
+            Paragraph('<strong>Lawyer\'s details</strong>', styles['Normal']),
+            Paragraph('[If a lawyer will appear for you]', styles['Normal']),
+        ],
+        [
+            Paragraph('Name:', styles['Normal']),
+            Paragraph('Firm name', styles['Normal']),
+        ],
+        '', '', '',
+    ])
+    data.append([
+        Paragraph('<strong>Accused\'s signature</strong>', styles['Normal']),
+        Paragraph('<i>This may be signed by the accused’s lawyer or, if the accused is a corporation, made in accordance with the Criminal Procedure Act 2004 section 154(1).</i>', styles['Normal']),
+        '', '', '',
+    ])
+    data.append([
+        '',
+        '',
+        '',
+        Paragraph('Date', styles['Normal']),
+        '',
+    ])
+    data.append([
+        Paragraph('<strong>Court address</strong>', styles['Normal']),
+        [
+            Paragraph('Send this document to:', styles['Normal']),
+            Paragraph('at:', styles['Normal']),
         ],
         '', '', '',
     ])
     tbl_main_p2 = Table(data, style=tbl_style_p2, colWidths=col_width_p2, )
 
-
-
-    # Accused's plea
-
     ###
     # 3rd page
-    ###
+    ### Head (col, row)
 
     ###
     # 4th page
@@ -345,6 +425,11 @@ def _create_pdf(invoice_buffer, sanction_outcome):
     elements.append(tbl_accused_details)
     elements.append(Spacer(0, gap_between_tables))
     elements.append(tbl_main_p2)
+    elements.append(PageBreak())
+    # 3rd page
+    # 4th page
+    # 5th page
+    # 6th page
 
     doc.build(elements)
     return invoice_buffer
@@ -362,8 +447,5 @@ def create_court_hearing_notice_pdf_bytes(filename, sanction_outcome):
         path = default_storage.save('wildlifecompliance/{}/{}/documents/{}'.format(sanction_outcome._meta.model_name, sanction_outcome.id, filename), invoice_buffer)
         document._file = path
         document.save()
-        # END: Save
 
         return document
-
-
