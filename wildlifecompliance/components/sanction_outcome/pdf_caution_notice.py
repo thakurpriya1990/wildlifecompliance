@@ -1,33 +1,24 @@
 # -*- coding: utf-8 -*-
 import os
 
-from decimal import Decimal as D
 from io import BytesIO
 
 from django.core.files.storage import default_storage
-from oscar.templatetags.currency_filters import currency
-from reportlab.lib import enums
-from reportlab.lib.colors import Color
+# from ledger.payments.pdf import BrokenLine
+# from ledger.payments.pdf import BrokenLine
+from ledger.payments.pdf import BrokenLine
 from reportlab.lib.enums import TA_RIGHT, TA_CENTER
 from reportlab.lib.pagesizes import A4
-from reportlab.platypus import BaseDocTemplate, PageTemplate, Frame, Paragraph, Spacer, Table, TableStyle, ListFlowable, \
-    KeepTogether, PageBreak, Flowable, NextPageTemplate, FrameBreak, Image
-from reportlab.lib.styles import getSampleStyleSheet, ParagraphStyle, StyleSheet1
+from reportlab.platypus import BaseDocTemplate, PageTemplate, Frame, Paragraph, Spacer, Table, TableStyle, PageBreak, \
+    NextPageTemplate, Image
+from reportlab.lib.styles import ParagraphStyle, StyleSheet1
 from reportlab.lib.utils import ImageReader
-from reportlab.pdfgen.canvas import Canvas
-from reportlab.pdfbase import pdfmetrics
-from reportlab.lib.units import inch, mm
+from reportlab.lib.units import mm
 from reportlab.lib import colors
 
-from django.core.files import File
 from django.conf import settings
 
-from ledger.accounts.models import Document
-from ledger.checkout.utils import calculate_excl_gst
-
-from wildlifecompliance.components.main.pdf_utils import gap
-from wildlifecompliance.components.sanction_outcome.pdf import BrokenLine
-from wildlifecompliance.components.sanction_outcome.pdf_in_blue import SolidLine
+from wildlifecompliance.components.main.pdf_utils import gap, SolidLine
 
 PAGE_WIDTH, PAGE_HEIGHT = A4
 DEFAULT_FONTNAME = 'Helvetica'
@@ -225,11 +216,4 @@ def create_caution_notice_pdf_bytes(filename, sanction_outcome):
 
         return document
 
-
-class DbcaLogo(Image, object):
-
-    def __init__(self, filename, x_offset=0, y_offset=0, width=None, height=None, kind='direct', mask="auto", lazy=1, hAlign='CENTER'):
-        self.x_offset = x_offset
-        self.y_offset = y_offset
-        super(DbcaLogo, self).__init__(filename, width, height, kind, mask, lazy, hAlign)
 
