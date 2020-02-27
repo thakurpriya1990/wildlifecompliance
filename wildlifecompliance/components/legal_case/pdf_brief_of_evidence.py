@@ -411,19 +411,27 @@ def gap(num):
     return ret
 
 
-def create_prosecution_notice_pdf_bytes(filename, legal_case):
+def create_document_pdf_bytes(filename, legal_case):
     with BytesIO() as invoice_buffer:
-        _create_pdf(invoice_buffer, sanction_outcome)
+        _create_pdf(invoice_buffer, legal_case)
 
         # Get the value of the BytesIO buffer
         value = invoice_buffer.getvalue()
 
         # START: Save the pdf file to the database
-        document = legal_case.generated_documents.create(name=filename)
-        path = default_storage.save('wildlifecompliance/{}/{}/documents/{}'.format(sanction_outcome._meta.model_name, sanction_outcome.id, filename), invoice_buffer)
-        document._file = path
+        ## delete existing document
+        document = None
+        path = 'wildlifecompliance/{}/{}/generated_documents/{}'.format(legal_case._meta.model_name, legal_case.id, filename)
+        document_exists = default_storage.exists(path)
+        if document_exists:
+            print("delete " + path)
+            # delete file
+            default_storage.delete(path)
+        document, created = legal_case.generated_documents.get_or_create(name=filename)
+        stored_file = default_storage.save(path, invoice_buffer)
+        document._file = stored_file
+        # save file object
         document.save()
-        # END: Save
 
         return document
 

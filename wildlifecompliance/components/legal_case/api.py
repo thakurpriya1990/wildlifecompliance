@@ -62,7 +62,7 @@ from wildlifecompliance.components.legal_case.models import (
     BriefOfEvidence,
     ProsecutionBrief,
     CourtProceedings, CourtDate)
-#from wildlifecompliance.components.legal_case.pdf_brief_of_evidence import
+from wildlifecompliance.components.legal_case.pdf_brief_of_evidence import create_document_pdf_bytes
 #from wildlifecompliance.components.artifact.models import (
 #        DocumentArtifact,
 #        PhysicalArtifact,
@@ -706,14 +706,17 @@ class LegalCaseViewSet(viewsets.ModelViewSet):
 
     @detail_route(methods=['POST'])
     @renderer_classes((JSONRenderer,))
-    def generate_brief_of_evidence_document(self, request, *args, **kwargs):
+    def generate_document(self, request, *args, **kwargs):
         try:
+            print(request.data)
             instance = self.get_object()
-            brief_of_evidence_instance = instance.brief_of_evidence
-            if brief_of_evidence_instance:
-                returned_data = process_generic_document(request, brief_of_evidence_instance, document_type="generated_documents")
-            if returned_data:
-                return Response(returned_data)
+            document_type = request.data.get("document_type")
+            #brief_of_evidence_instance = instance.brief_of_evidence
+            filename = document_type + '_' + instance.number + '.pdf'
+            returned_document = create_document_pdf_bytes(filename, instance)
+                #returned_data = process_generic_document(request, brief_of_evidence_instance, document_type="generated_documents")
+            if returned_document:
+                return Response(status=status.HTTP_201_CREATED)
             else:
                 return Response()
 
