@@ -99,7 +99,6 @@ def _create_pdf(invoice_buffer, sanction_outcome):
     rowHeights = [6*mm, 6*mm, 6*mm, 30*mm, 6*mm]
     style_tbl_accused_details = TableStyle([
         ('VALIGN', (0, 0), (0, 0), 'MIDDLE'),
-        # ('VALIGN', (1, 0), (-1, -1), 'MIDDLE'),
         ('GRID', (0, 0), (-1, -1), 0.5, colors.black),
         ('ALIGN', (0, 0), (-1, -1), 'LEFT'),
         ('SPAN', (0, 0), (0, 1)),
@@ -150,6 +149,7 @@ def _create_pdf(invoice_buffer, sanction_outcome):
     col_width_notice_to_accused = [28*mm, 163*mm, ]
     style_tbl_notice_to_accused = TableStyle([
         ('VALIGN', (0, 0), (-1, -1), 'MIDDLE'),
+        ('VALIGN', (0, 0), (0, -1), 'TOP'),
         ('GRID', (0, 0), (-1, -1), 0.5, colors.black),
         ('ALIGN', (0, 0), (-1, -1), 'LEFT'),
     ])
@@ -308,7 +308,7 @@ def _create_pdf(invoice_buffer, sanction_outcome):
         [
             Paragraph('<strong>Plea of guilty</strong>', styles['Normal']),
             Paragraph('[Tick on box]', styles['Normal']),
-            Spacer(0, 10*mm),
+            Spacer(0, 20*mm),
             Paragraph('[Tick on box]', styles['Normal']),
         ],
         [
@@ -329,7 +329,7 @@ def _create_pdf(invoice_buffer, sanction_outcome):
         [
             Paragraph('<strong>Plea of not guilty</strong>', styles['Normal']),
             Paragraph('[Tick on box]', styles['Normal']),
-            Spacer(0, 10 * mm),
+            Spacer(0, 20 * mm),
             Paragraph('[Tick on box]', styles['Normal']),
         ],
         [
@@ -351,7 +351,9 @@ def _create_pdf(invoice_buffer, sanction_outcome):
         Paragraph('<strong>Contact details</strong>', styles['Normal']),
         [
             Paragraph('My contact details are:', styles['Normal']),
+            Spacer(0, 2*mm),
             Paragraph('Address (if different to the one above):', styles['Normal']),
+            Spacer(0, 2*mm),
             Paragraph('Telephone no.' + gap(40) + 'Fax no.' + gap(40) + 'Mobile no.', styles['Normal']),
         ],
         '', '', '',
@@ -383,7 +385,9 @@ def _create_pdf(invoice_buffer, sanction_outcome):
         Paragraph('<strong>Court address</strong>', styles['Normal']),
         [
             Paragraph('Send this document to:', styles['Normal']),
+            Spacer(0, 2*mm),
             Paragraph('at:', styles['Normal']),
+            Spacer(0, 2 * mm),
         ],
         '', '', '',
     ])
@@ -391,45 +395,66 @@ def _create_pdf(invoice_buffer, sanction_outcome):
 
     ###
     # 3rd page
-    ### Head (col, row)
+    ###
+    header_small_text_p3 = ParagraphOffeset('<font size="' + str(FONT_SIZE_S) + '">Copy to be attached to accused copy of prosecution notice</font>',
+                                            styles['Right'],
+                                            x_offset=-3*mm, y_offset=0)
 
     ###
     # 4th page
     ###
+    # Same as 2nd page
 
     ###
     # 5th page
     ###
+    header_small_text_p5 = ParagraphOffeset('<font size="' + str(FONT_SIZE_S) + '">Return of service copy</font>',
+                                            styles['Right'],
+                                            x_offset=-3*mm, y_offset=0)
 
     ###
     # 6th page
     ###
 
     gap_between_tables = 1.5*mm
+    odd_page = []
+    odd_page.append(tbl_head)
+    odd_page.append(tbl_accused_details)
+    odd_page.append(Spacer(0, gap_between_tables))
+    odd_page.append(tbl_hearing_details)
+    odd_page.append(Spacer(0, gap_between_tables))
+    odd_page.append(tbl_notice_to_accused)
+    odd_page.append(Spacer(0, gap_between_tables))
+    odd_page.append(tbl_issuing_details)
+    odd_page.append(Spacer(0, gap_between_tables))
+    odd_page.append(tbl_service_details)
+    even_page = []
+    even_page.append(tbl_head_p2)
+    even_page.append(tbl_accused_details)
+    even_page.append(Spacer(0, gap_between_tables))
+    even_page.append(tbl_main_p2)
+
     elements = []
     # 1st page
     elements.append(header_small_text_p1)
-    elements.append(tbl_head)
-    elements.append(tbl_accused_details)
-    elements.append(Spacer(0, gap_between_tables))
-    elements.append(tbl_hearing_details)
-    elements.append(Spacer(0, gap_between_tables))
-    elements.append(tbl_notice_to_accused)
-    elements.append(Spacer(0, gap_between_tables))
-    elements.append(tbl_issuing_details)
-    elements.append(Spacer(0, gap_between_tables))
-    elements.append(tbl_service_details)
+    elements += odd_page
     elements.append(PageBreak())
     # 2nd page
-    elements.append(tbl_head_p2)
-    elements.append(tbl_accused_details)
-    elements.append(Spacer(0, gap_between_tables))
-    elements.append(tbl_main_p2)
+    elements += even_page
     elements.append(PageBreak())
     # 3rd page
+    elements.append(header_small_text_p3)
+    elements += odd_page
+    elements.append(PageBreak())
     # 4th page
+    elements += even_page
+    elements.append(PageBreak())
     # 5th page
+    elements.append(header_small_text_p5)
+    elements += odd_page
+    elements.append(PageBreak())
     # 6th page
+    elements += even_page
 
     doc.build(elements)
     return invoice_buffer
