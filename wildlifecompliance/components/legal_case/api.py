@@ -62,7 +62,7 @@ from wildlifecompliance.components.legal_case.models import (
     BriefOfEvidence,
     ProsecutionBrief,
     CourtProceedings, CourtDate)
-from wildlifecompliance.components.legal_case.pdf_brief_of_evidence import create_document_pdf_bytes
+from wildlifecompliance.components.legal_case.generate_pdf import create_document_pdf_bytes
 #from wildlifecompliance.components.artifact.models import (
 #        DocumentArtifact,
 #        PhysicalArtifact,
@@ -710,9 +710,9 @@ class LegalCaseViewSet(viewsets.ModelViewSet):
         try:
             print(request.data)
             instance = self.get_object()
-            document_type = request.data.get("document_type")
+            #document_type = request.data.get("document_type")
             #returned_document = create_document_pdf_bytes(filename, instance)
-            returned_document = create_document_pdf_bytes(instance, document_type)
+            returned_document = create_document_pdf_bytes(instance, request.data)
             if returned_document:
                 return Response(status=status.HTTP_201_CREATED)
             else:

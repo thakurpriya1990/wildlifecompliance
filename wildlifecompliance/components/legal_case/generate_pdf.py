@@ -32,9 +32,16 @@ PAGE_MARGIN = 5 * mm
 PAGE_WIDTH, PAGE_HEIGHT = A4
 
 
-def _create_pdf(invoice_buffer, legal_case, document_type):
+def _create_pdf(invoice_buffer, legal_case, request_data):
     # 'report' variable set according to whether document_type is 'brief_of_evidence' or 'prosecution_brief'
     # 'report_document_artifacts' variable set according to whether document_type is 'brief_of_evidence' or 'prosecution_brief'
+    document_type = request_data.get('document_type')
+    include_statement_of_facts = request_data.get('include_statement_of_facts')
+    include_case_information_form = request_data.get('include_case_information_form')
+    include_offences_offenders_roi = request_data.get('include_offences_offenders_roi')
+    include_witness_officer_other_statements = request_data.get('include_witness_officer_other_statements')
+    include_physical_artifacts = request_data.get('include_physical_artifacts')
+    include_document_artifacts = request_data.get('include_document_artifacts')
     report = None
     report_document_artifacts = None
     if document_type == 'brief_of_evidence':
@@ -336,62 +343,6 @@ def _create_pdf(invoice_buffer, legal_case, document_type):
     ])
     tbl_for_court = Table(data, style=style_tbl_for_court, colWidths=col_width_for_court, rowHeights=rowHeights_court)
 
-    #############
-    # PageBreak #
-    #############
-
-    # Court Number
-    rowHeights = [10*mm,]
-    col_width_court_number = [30*mm, 70*mm,]
-    style_tbl_for_court_number = TableStyle([
-        ('VALIGN', (0, 0), (-1, -1), 'MIDDLE'),
-        ('GRID', (0, 0), (-1, -1), 0.5, colors.black),
-    ])
-    data = []
-    data.append([Paragraph('Court number', styles['Normal']), ''])
-    tbl_for_court_number = OffsetTable(data, x_offset=45.5 * mm, style=style_tbl_for_court_number, colWidths=col_width_court_number, rowHeights=rowHeights)
-
-    # Table above
-    style_array = [
-        ('VALIGN', (0, 0), (-1, -1), 'MIDDLE'),
-        ('GRID', (0, 0), (-1, -1), 0.5, colors.black),
-    ]
-    for row_num in range(0, 29):
-        style_array.append(('SPAN', (3, row_num), (4, row_num)))
-    style_tbl_above = TableStyle(style_array)
-    data = []
-    data.append([
-        Paragraph('Date', styles['Centre']),
-        Paragraph('Appearance by accused', styles['Centre']),
-        Paragraph('Counsel', styles['Centre']),
-        Paragraph('Record of court proceedings', styles['Centre']),
-        '',
-        Paragraph('Judicial officer', styles['Centre']),
-    ])
-    for row_num in range(0, 28):
-        data.append(['', Paragraph('<strong>Y / N</strong>', styles['Centre']), '', '', '', ''])
-    tbl_above = Table(data, style=style_tbl_above, colWidths=col_width_for_court)
-
-    # Table below
-    style_array = [
-        ('VALIGN', (0, 0), (-1, -1), 'MIDDLE'),
-        ('GRID', (0, 0), (-1, -1), 0.5, colors.black),
-    ]
-    for row_num in range(0, 8):
-        style_array.append(('SPAN', (2, row_num), (5, row_num)))
-    style_tbl_below = TableStyle(style_array)
-    data = []
-    data.append([
-        Paragraph('Date', styles['Centre']),
-        Paragraph('Clerk\'s Initial', styles['Centre']),
-        Paragraph('Registry record', styles['Centre']),
-        '',
-        '',
-        '',
-    ])
-    for row_num in range(0, 7):
-        data.append(['', '', '', '', '', ''])
-    tbl_below = Table(data, style=style_tbl_below, colWidths=col_width_for_court, rowHeights=8.5*mm)
 
     # Append tables to the elements to build
     gap_between_tables = 1.5*mm
@@ -424,9 +375,10 @@ def gap(num):
     return ret
 
 
-def create_document_pdf_bytes(legal_case, document_type):
+def create_document_pdf_bytes(legal_case, request_data):
     with BytesIO() as invoice_buffer:
-        _create_pdf(invoice_buffer, legal_case, document_type)
+        _create_pdf(invoice_buffer, legal_case, request_data)
+        document_type = request_data.get('document_type')
         filename = document_type + '_' + legal_case.number + '.pdf'
 
         # Get the value of the BytesIO buffer
