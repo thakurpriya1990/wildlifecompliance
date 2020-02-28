@@ -717,6 +717,17 @@ export default {
                     });
                 });
             }
+            console.log(this.document_artifact.error_message)
+            this.$emit('error-message', {
+                /*
+                id: this.document_artifact.id,
+                data_type: 'document_artifact',
+                identifier: this.document_artifact.identifier,
+                artifact_type: this.artifactType,
+                display: this.artifactType,
+                */
+                error_message: this.document_artifact.error_message
+            });
         },
         /*
 

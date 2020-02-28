@@ -11,7 +11,7 @@
                 <div class="row">
                     <div class="panel panel-default">
                         <div class="panel-heading">
-                            Workflow 
+                            Workflow
                         </div>
                         <div class="panel-body panel-collapse">
                             <div class="row">
@@ -31,7 +31,7 @@
                                 <div class="col-sm-12">
                                     <select :disabled="!offence.user_in_group" class="form-control" v-model="offence.assigned_to_id" @change="updateAssignedToId()">
                                         <option  v-for="option in offence.allocated_group" :value="option.id" v-bind:key="option.id">
-                                        {{ option.full_name }} 
+                                        {{ option.full_name }}
                                         </option>
                                     </select>
                                 </div>
@@ -48,7 +48,7 @@
                 <div class="row">
                     <div class="panel panel-default">
                         <div class="panel-heading">
-                            Action 
+                            Action
                         </div>
                         <div class="panel-body panel-collapse">
                             <div v-if="visibilitySanctionOutcomeButton" class="row action-button">
@@ -70,7 +70,7 @@
                     </div>
                 </div>
             </div>
-            <div class="col-md-9" id="main-column">  
+            <div class="col-md-9" id="main-column">
                 <div class="row">
                     <div class="container-fluid">
                         <ul class="nav nav-pills aho2">
@@ -107,7 +107,7 @@
                                         <label class="col-sm-3">{{ occurrenceDateLabel }}</label>
                                         <div class="col-sm-3">
                                             <div class="input-group date" ref="occurrenceDateFromPicker">
-                                                <input :readonly="readonlyForm" type="text" class="form-control" placeholder="DD/MM/YYYY" v-model="offence.occurrence_date_from" />
+                                                <input :readonly="readonlyForm" type="text" class="form-control" placeholder="DD/MM/YYYY" :value="offence.occurrence_date_from" />
                                                 <span class="input-group-addon">
                                                     <span class="glyphicon glyphicon-calendar"></span>
                                                 </span>
@@ -116,7 +116,7 @@
                                         <div v-show="offence.occurrence_from_to">
                                             <div class="col-sm-3">
                                                 <div class="input-group date" ref="occurrenceDateToPicker">
-                                                    <input :readonly="readonlyForm" type="text" class="form-control" placeholder="DD/MM/YYYY" v-model="offence.occurrence_date_to" />
+                                                    <input :readonly="readonlyForm" type="text" class="form-control" placeholder="DD/MM/YYYY" :value="offence.occurrence_date_to" />
                                                     <span class="input-group-addon">
                                                         <span class="glyphicon glyphicon-calendar"></span>
                                                     </span>
@@ -129,7 +129,7 @@
                                         <label class="col-sm-3">{{ occurrenceTimeLabel }}</label>
                                         <div class="col-sm-3">
                                             <div class="input-group date" ref="occurrenceTimeFromPicker">
-                                                <input :readonly="readonlyForm" type="text" class="form-control" placeholder="HH:MM" v-model="offence.occurrence_time_from" />
+                                                <input :readonly="readonlyForm" type="text" class="form-control" placeholder="HH:MM" :value="offence.occurrence_time_from" />
                                                 <span class="input-group-addon">
                                                     <span class="glyphicon glyphicon-calendar"></span>
                                                 </span>
@@ -138,7 +138,7 @@
                                         <div v-show="offence.occurrence_from_to">
                                             <div class="col-sm-3">
                                                 <div class="input-group date" ref="occurrenceTimeToPicker">
-                                                    <input :readonly="readonlyForm" type="text" class="form-control" placeholder="HH:MM" v-model="offence.occurrence_time_to" />
+                                                    <input :readonly="readonlyForm" type="text" class="form-control" placeholder="HH:MM" :value="offence.occurrence_time_to" />
                                                     <span class="input-group-addon">
                                                         <span class="glyphicon glyphicon-calendar"></span>
                                                     </span>
@@ -184,11 +184,11 @@
                                         <label class="col-sm-2">Offender</label>
                                         <div v-show="!readonlyForm">
                                             <div>
-                                                <SearchPersonOrganisation 
-                                                :excludeStaff="true" 
-                                                :personOnly="true" 
-                                                classNames="form-control" 
-                                                @entity-selected="personSelected" 
+                                                <SearchPersonOrganisation
+                                                :excludeStaff="true"
+                                                :personOnly="true"
+                                                classNames="form-control"
+                                                @entity-selected="personSelected"
                                                 showCreateUpdate
                                                 ref="search_offender"
                                                 domIdHelper="offender"
@@ -391,9 +391,9 @@ export default {
                 this.$route.params.offence_id + "/action_log"
             ),
             dtHeadersOffender: [
-                "id", 
-                "Individual/Organisation", 
-                "Details", 
+                "id",
+                "Individual/Organisation",
+                "Details",
                 "Action",
                 "Reason for removal",
             ],
@@ -424,7 +424,7 @@ export default {
                             }
                             if(row.offender.removed){
                                 data_type = '<strike>' + data_type + '</strike>';
-                            } 
+                            }
                             return data_type;
                         }
                     },
@@ -1111,10 +1111,10 @@ export default {
 
                 if (!already_exists) {
                     let offender_obj = {
-                        id: '', 
-                        can_user_action: true, 
-                        removed: false, 
-                        reason_for_removal: '', 
+                        id: '',
+                        can_user_action: true,
+                        removed: false,
+                        reason_for_removal: '',
                         person: null,
                         organisation: null,
                         number_linked_sanction_outcomes_total: 0,
@@ -1148,9 +1148,9 @@ export default {
 
                 if (!already_exists) {
                     let alleged_offence_obj = {
-                        id: '', 
-                        removed: false, 
-                        reason_for_removal: '', 
+                        id: '',
+                        removed: false,
+                        reason_for_removal: '',
                         removed_by_id: null,
                         section_regulation: this.current_alleged_offence,
                         number_linked_sanction_outcomes_total: 0,
@@ -1256,10 +1256,17 @@ export default {
                */
               let origin = $(ev.originalEvent.origin);
               let originTagName = origin[0].tagName;
-              if (originTagName != "DIV") {
-                // Assuming origin is a child element of <li>
-                origin = origin.parent();
-              }
+                switch(originTagName){
+                    case "STRONG":
+                        origin = origin.parent();
+                        break;
+                    case "MARK":
+                        origin = origin.parent().parent();
+                        break;
+                    case "LI":
+                        origin = origin.children().first();
+                        break;
+                }
               let elem_id = origin[0].getAttribute("data-item-id");
               for (let i = 0; i < self.suggest_list.length; i++) {
                 if (self.suggest_list[i].id == parseInt(elem_id)) {
@@ -1356,40 +1363,58 @@ export default {
             let el_to_date = $(vm.$refs.occurrenceDateToPicker);
             let el_to_time = $(vm.$refs.occurrenceTimeToPicker);
 
-            // "From" field
-            el_fr_date.datetimepicker({ format: "DD/MM/YYYY", maxDate: moment().millisecond(0).second(0).minute(0).hour(0), showClear: true });
-            el_fr_date.on("dp.change", function(e) {
-              if (el_fr_date.data("DateTimePicker").date()) {
-                vm.offence.occurrence_date_from = e.date.format("DD/MM/YYYY");
-              } else if (el_fr_date.data("date") === "") {
-                vm.offence.occurrence_date_from = null;
-              }
+            // "From" Date field
+            el_fr_date.datetimepicker({ 
+                format: "DD/MM/YYYY", 
+                maxDate: moment().millisecond(0).second(0).minute(0).hour(0), showClear: true,
+                date: vm.offence.occurrence_date_from,
             });
-            el_fr_time.datetimepicker({ format: "LT", showClear: true });
+            el_fr_date.on("dp.change", function(e) {
+                if (el_fr_date.data("DateTimePicker").date()) {
+                  vm.offence.occurrence_date_from = e.date.format("DD/MM/YYYY");
+                } else if (el_fr_date.data("date") === "") {
+                  vm.offence.occurrence_date_from = null;
+                }
+            });
+            // "From" Time field
+            el_fr_time.datetimepicker({ 
+                format: "LT",
+                showClear: true,
+                date: vm.offence.occurrence_time_from,
+            });
             el_fr_time.on("dp.change", function(e) {
-              if (el_fr_time.data("DateTimePicker").date()) {
-                vm.offence.occurrence_time_from = e.date.format("LT");
-              } else if (el_fr_time.data("date") === "") {
-                vm.offence.occurrence_time_from = null;
-              }
+                if (el_fr_time.data("DateTimePicker").date()) {
+                  vm.offence.occurrence_time_from = e.date.format("LT");
+                } else if (el_fr_time.data("date") === "") {
+                  vm.offence.occurrence_time_from = null;
+                }
             });
 
-            // "To" field
-            el_to_date.datetimepicker({ format: "DD/MM/YYYY", maxDate: moment().millisecond(0).second(0).minute(0).hour(0), showClear: true });
-            el_to_date.on("dp.change", function(e) {
-              if (el_to_date.data("DateTimePicker").date()) {
-                vm.offence.occurrence_date_to = e.date.format("DD/MM/YYYY");
-              } else if (el_to_date.data("date") === "") {
-                vm.offence.occurrence_date_to = null;
-              }
+            // "To" Date field
+            el_to_date.datetimepicker({ 
+                format: "DD/MM/YYYY", 
+                maxDate: moment().millisecond(0).second(0).minute(0).hour(0), showClear: true,
+                date: vm.offence.occurrence_date_to,
             });
-            el_to_time.datetimepicker({ format: "LT", showClear: true });
+            el_to_date.on("dp.change", function(e) {
+                if (el_to_date.data("DateTimePicker").date()) {
+                  vm.offence.occurrence_date_to = e.date.format("DD/MM/YYYY");
+                } else if (el_to_date.data("date") === "") {
+                  vm.offence.occurrence_date_to = null;
+                }
+            });
+            // "To" Time field
+            el_to_time.datetimepicker({ 
+                format: "LT", 
+                showClear: true,
+                date: vm.offence.occurrence_time_to,
+            });
             el_to_time.on("dp.change", function(e) {
-              if (el_to_time.data("DateTimePicker").date()) {
-                vm.offence.occurrence_time_to = e.date.format("LT");
-              } else if (el_to_time.data("date") === "") {
-                vm.offence.occurrence_time_to = null;
-              }
+                if (el_to_time.data("DateTimePicker").date()) {
+                  vm.offence.occurrence_time_to = e.date.format("LT");
+                } else if (el_to_time.data("date") === "") {
+                  vm.offence.occurrence_time_to = null;
+                }
             });
 
             $("#alleged-offence-table").on("click", ".remove_button", vm.removeAllegedOffenceClicked);

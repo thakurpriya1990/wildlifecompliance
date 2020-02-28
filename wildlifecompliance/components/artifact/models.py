@@ -235,18 +235,18 @@ class DocumentArtifact(Artifact):
             through_fields=('document_artifact', 'legal_case'),
             related_name='legal_case_document_artifacts',
             )
-    brief_of_evidence_legal_cases = models.ManyToManyField(
-            LegalCase,
-            through='BriefOfEvidenceDocumentArtifacts',
-            through_fields=('document_artifact', 'legal_case'),
-            related_name='legal_case_document_artifacts_brief_of_evidence',
-            )
-    prosecution_brief_legal_cases = models.ManyToManyField(
-            LegalCase,
-            through='ProsecutionBriefDocumentArtifacts',
-            through_fields=('document_artifact', 'legal_case'),
-            related_name='legal_case_document_artifacts_prosecution_brief',
-            )
+    #brief_of_evidence_legal_cases = models.ManyToManyField(
+    #        LegalCase,
+    #        through='BriefOfEvidenceDocumentArtifacts',
+    #        through_fields=('document_artifact', 'legal_case'),
+    #        related_name='legal_case_document_artifacts_brief_of_evidence',
+    #        )
+    #prosecution_brief_legal_cases = models.ManyToManyField(
+    #        LegalCase,
+    #        through='ProsecutionBriefDocumentArtifacts',
+    #        through_fields=('document_artifact', 'legal_case'),
+    #        related_name='legal_case_document_artifacts_prosecution_brief',
+    #        )
 
     statement = models.ForeignKey(
         'self', 
@@ -448,18 +448,18 @@ class PhysicalArtifact(Artifact):
             through_fields=('physical_artifact', 'legal_case'),
             related_name='legal_case_physical_artifacts',
             )
-    brief_of_evidence_legal_cases = models.ManyToManyField(
-            LegalCase,
-            through='BriefOfEvidencePhysicalArtifacts',
-            through_fields=('physical_artifact', 'legal_case'),
-            related_name='legal_case_physical_artifacts_brief_of_evidence',
-            )
-    prosecution_brief_legal_cases = models.ManyToManyField(
-            LegalCase,
-            through='ProsecutionBriefPhysicalArtifacts',
-            through_fields=('physical_artifact', 'legal_case'),
-            related_name='legal_case_physical_artifacts_prosecution_brief',
-            )
+    #brief_of_evidence_legal_cases = models.ManyToManyField(
+    #        LegalCase,
+    #        through='BriefOfEvidencePhysicalArtifacts',
+    #        through_fields=('physical_artifact', 'legal_case'),
+    #        related_name='legal_case_physical_artifacts_brief_of_evidence',
+    #        )
+    #prosecution_brief_legal_cases = models.ManyToManyField(
+    #        LegalCase,
+    #        through='ProsecutionBriefPhysicalArtifacts',
+    #        through_fields=('physical_artifact', 'legal_case'),
+    #        related_name='legal_case_physical_artifacts_prosecution_brief',
+    #        )
     #_file = models.FileField(max_length=255)
     #identifier = models.CharField(max_length=255, blank=True, null=True)
     #description = models.TextField(blank=True, null=True)
