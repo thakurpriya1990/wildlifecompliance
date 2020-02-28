@@ -67,6 +67,7 @@
                                         </span>
                                     </div>
                                 </div>
+                                <label v-show="offence.occurrence_from_to" class="col-sm-1">to</label>
                                 <div v-show="offence.occurrence_from_to">
                                     <div class="col-sm-3">
                                         <div class="input-group date" ref="occurrenceDateToPicker">
@@ -89,6 +90,7 @@
                                         </span>
                                     </div>
                                 </div>
+                                <label v-show="offence.occurrence_from_to" class="col-sm-1">to</label>
                                 <div v-show="offence.occurrence_from_to">
                                     <div class="col-sm-3">
                                         <div class="input-group date" ref="occurrenceTimeToPicker">
