@@ -25,8 +25,7 @@ from django.conf import settings
 from ledger.accounts.models import Document
 from ledger.checkout.utils import calculate_excl_gst
 
-from wildlifecompliance.components.sanction_outcome.pdf import BrokenLine
-from wildlifecompliance.components.sanction_outcome.pdf_in_blue import SolidLine
+from wildlifecompliance.components.main.pdf_utils import gap, SolidLine
 
 PAGE_WIDTH, PAGE_HEIGHT = A4
 DEFAULT_FONTNAME = 'Helvetica'
@@ -155,13 +154,6 @@ def _create_pdf(invoice_buffer, sanction_outcome):
     return invoice_buffer
 
 
-def gap(num):
-    ret = ''
-    for i in range(num):
-        ret = ret + '&nbsp;'
-    return ret
-
-
 def create_remediation_notice_pdf_bytes(filename, sanction_outcome):
     with BytesIO() as invoice_buffer:
         _create_pdf(invoice_buffer, sanction_outcome)
@@ -177,12 +169,3 @@ def create_remediation_notice_pdf_bytes(filename, sanction_outcome):
         # END: Save
 
         return document
-
-
-class DbcaLogo(Image, object):
-
-    def __init__(self, filename, x_offset=0, y_offset=0, width=None, height=None, kind='direct', mask="auto", lazy=1, hAlign='CENTER'):
-        self.x_offset = x_offset
-        self.y_offset = y_offset
-        super(DbcaLogo, self).__init__(filename, width, height, kind, mask, lazy, hAlign)
-
