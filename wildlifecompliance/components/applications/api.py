@@ -637,9 +637,7 @@ class ApplicationViewSet(viewsets.ModelViewSet):
                 instance.lodgement_number)
 
             set_session_application(request.session, instance)
-            # check activities consist of amended fees.
-            activities = instance.activities if not instance.has_amended_fees\
-                else instance.amended_activities
+            activities = instance.activities
             for activity in activities:
                 product_lines.append({
                     'ledger_description': '{} (Application Fee)'.format(

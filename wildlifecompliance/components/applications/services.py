@@ -399,23 +399,24 @@ def do_update_dynamic_attributes(application):
         selected_activity.licence_fee = fees['licence']
         selected_activity.application_fee = fees['application']
 
-        # Adjustments to Application Fees
+        # Check when under review for changes in fee amount.
+        # Application fees can also be adjusted by internal officer.
+        UNDER_REVIEW = Application.PROCESSING_STATUS_UNDER_REVIEW
+        if application.processing_status == UNDER_REVIEW\
+            and fees['application']\
+                > selected_activity.base_fees['application']:
+            selected_activity.application_fee = fees['application'] \
+                - selected_activity.base_fees['application']
+
+        # Check for refunds to Application Amendment, Renewals and Requested
+        # Amendment Fees.
+        REQUEST_AMEND = Application.CUSTOMER_STATUS_AMENDMENT_REQUIRED
         if application.application_type in [
             Application.APPLICATION_TYPE_AMENDMENT,
             Application.APPLICATION_TYPE_RENEWAL,
-        ] or application.customer_status == \
-            Application.CUSTOMER_STATUS_AMENDMENT_REQUIRED \
-            or application.processing_status == \
-                Application.PROCESSING_STATUS_UNDER_REVIEW:
+        ] or application.customer_status == REQUEST_AMEND:
 
-            # Check amendments and reissues for changes in fee amount.
-            # Application fees can be adjusted by officer when under review.
-            if fees['application']\
-                    > selected_activity.base_fees['application']:
-                selected_activity.application_fee = fees['application'] \
-                    - selected_activity.base_fees['application']
-
-            # Check for refunds and set fee to zero.
+            # set fee to zero when refund exists.
             if fees['application']\
                     < selected_activity.base_fees['application']:
                 selected_activity.application_fee = Decimal(0.0)
