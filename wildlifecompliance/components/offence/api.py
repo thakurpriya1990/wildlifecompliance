@@ -68,7 +68,9 @@ class OffenceFilterBackend(DatatablesFilterBackend):
 
         type = request.GET.get('type',).lower()
         if type and type != 'all':
-            q_objects &= Q(type=type)
+            # q_objects &= Q(type=type)
+            offence_ids = SanctionOutcome.objects.filter(type=type).values_list('offence__id', flat=True).distinct()
+            q_objects &= Q(id__in=offence_ids)
 
         status = request.GET.get('status',).lower()
         if status and status != 'all':

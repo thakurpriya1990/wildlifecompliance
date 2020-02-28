@@ -291,7 +291,8 @@ export default {
         },
         constructOptionsType: async function() {
             console.log('constructOptionsType');
-            let returned = await cache_helper.getSetCacheList('OffenceTypes', '/api/offence/types.json');
+            let returned = await cache_helper.getSetCacheList('SanctionOutcome_TypeChoices', '/api/sanction_outcome/types');
+            //let returned = await cache_helper.getSetCacheList('OffenceTypes', '/api/offence/types.json');
             Object.assign(this.offence_types, returned);
             this.offence_types.splice(0, 0, {id: 'all', display: 'All'});
         },
