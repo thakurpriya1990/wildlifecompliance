@@ -1687,7 +1687,9 @@ class Application(RevisionedMixin):
         """
         Check on the previously paid invoice amount against application fee.
         """
-        if self.customer_status == Application.CUSTOMER_STATUS_ACCEPTED \
+        ACCEPT = Application.CUSTOMER_STATUS_ACCEPTED
+        AWAIT = Application.CUSTOMER_STATUS_AWAITING_PAYMENT
+        if self.customer_status == ACCEPT or self.customer_status == AWAIT \
            or self.application_fee < 1:
             return False
 
@@ -1715,12 +1717,34 @@ class Application(RevisionedMixin):
         """
         Gets the paid amount from the previous application for application
         amendments which require a new submission.
+
+        NOTE: New application fee is required for ammendments.
         """
+        def previous_paid_under_review(previous_paid):
+            """
+            Under Review an Application Ammendment cannot get a refund amount
+            triggered by internal officers change to Application. Previous
+            paid will be zero.
+            """
+            if self.processing_status ==\
+                Application.PROCESSING_STATUS_UNDER_REVIEW:
+                # apply the total_paid_amount as application fee is paid.
+                if not previous_paid > self.total_paid_amount:
+                    previous_paid = self.total_paid_amount - previous_paid
+                else:
+                    previous_paid = 0
+                
+            return previous_paid
+
         previous_paid = 0
         # check for Customer licence amendment.
         if self.application_type == Application.APPLICATION_TYPE_AMENDMENT:
-            previous = Application.objects.get(id=self.previous_application.id)
-            previous_paid += previous.total_paid_amount if previous else 0
+            # only check previous amount for selected activities requiring
+            # amendment.
+            for activity in self.selected_activities.all():
+                previous_paid += activity.previous_paid_amount
+
+            previous_paid = previous_paid_under_review(previous_paid)
 
         return previous_paid
 
@@ -3203,7 +3227,7 @@ class ApplicationSelectedActivity(models.Model):
 
     @property
     def payment_status(self):
-        if self.licence_fee == 0 and self.additional_fee > 0:
+        if self.licence_fee == 0 and self.additional_fee < 1:
             return ActivityInvoice.PAYMENT_STATUS_NOT_REQUIRED
         else:
             if self.invoices.count() == 0:
@@ -3300,26 +3324,38 @@ class ApplicationSelectedActivity(models.Model):
         """
         Gets the paid amount from the previous application for licence Activity
         amendments.
-        """
-        previous_paid = 0
-        # check for both Requested Amendements and Customer licence amendment.
-        application = Application.objects.get(id=self.application.id)        
-        if application.application_type == \
-            Application.APPLICATION_TYPE_AMENDMENT \
-            or application.customer_status \
-            == Application.CUSTOMER_STATUS_AMENDMENT_REQUIRED:
 
-            previous_activity = ApplicationSelectedActivity.objects.filter(
-                application_id=application.previous_application.id
-            )
-            previous_paid += previous_activity.total_paid_amount
+        NOTE: Application Fee is required for ammendments.
+        """
+        def previous_paid_under_review(previous_paid):
+            """
+            Under Review an Application Ammendment cannot get a refund amount
+            triggered by internal officers change to Application. Previous
+            paid will be zero.
+            """
+            if self.application.processing_status ==\
+                Application.PROCESSING_STATUS_UNDER_REVIEW:
+                # apply the total_paid_amount as application fee is paid.
+                if not previous_paid > self.total_paid_amount:
+                    previous_paid = self.total_paid_amount - previous_paid
+                else:
+                    previous_paid = 0
+                
+            return previous_paid
+
+        previous_paid = 0
+        # check for Customer licence amendment.
+        if self.application.application_type ==\
+                Application.APPLICATION_TYPE_AMENDMENT:
+            previous = ApplicationSelectedActivity.objects.get(
+                application_id=self.application.previous_application.id,
+                licence_activity=self.licence_activity
+            )            
+            previous_paid += previous.application_fee if previous else 0
+
+            previous_paid = previous_paid_under_review(previous_paid)
 
         return previous_paid
-
-    def process_licence_fee_payment(self, request, application):
-        from ledger.payments.models import BpointToken
-        if self.licence_fee_paid:
-            return True
 
     def process_licence_fee_payment(self, request, application):
         from ledger.payments.models import BpointToken

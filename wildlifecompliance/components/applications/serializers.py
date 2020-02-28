@@ -108,6 +108,7 @@ class ApplicationSelectedActivitySerializer(serializers.ModelSerializer):
         required=False, allow_null=True)
     additional_fee = serializers.DecimalField(
         max_digits=7, decimal_places=2, required=False, allow_null=True)
+    previous_paid_amount = serializers.SerializerMethodField(read_only=True)
 
     class Meta:
         model = ApplicationSelectedActivity
@@ -167,6 +168,10 @@ class ApplicationSelectedActivitySerializer(serializers.ModelSerializer):
     def get_is_with_officer(self, obj):
         return True if obj.processing_status in [
             'with_officer', 'with_officer_conditions'] else False
+
+    def get_previous_paid_amount(self, obj):
+        return obj.previous_paid_amount if obj.previous_paid_amount else None
+
 
 class ExternalApplicationSelectedActivitySerializer(serializers.ModelSerializer):
     activity_name_str = serializers.SerializerMethodField(read_only=True)
@@ -650,6 +655,11 @@ class BaseApplicationSerializer(serializers.ModelSerializer):
         """
         paid = None
         paid = obj.total_paid_amount + obj.previous_paid_amount
+
+        if obj.processing_status == Application.PROCESSING_STATUS_UNDER_REVIEW:
+            # when Under Review fee for amendment is paid and included in 
+            # previous paid amount as well as total paid amount.
+            paid = paid - obj.previous_paid_amount
 
         return paid
 
