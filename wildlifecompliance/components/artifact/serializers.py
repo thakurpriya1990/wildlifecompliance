@@ -283,8 +283,10 @@ class DocumentArtifactStatementSerializer(serializers.ModelSerializer):
         EXPERT_STATEMENT = 'expert_statement'
         if obj.document_type in ('witness_statement', 'expert_statement') and obj.person_providing_statement:
             custodian = obj.person_providing_statement.get_full_name()
-        elif obj.document_type in ('record_of_interview', 'officer_statement') and obj.officer_interviewer_email:
-            custodian = obj.officer_interviewer_email
+        #elif obj.document_type in ('record_of_interview', 'officer_statement') and obj.officer_interviewer_email:
+         #   custodian = obj.officer_interviewer_email
+        elif obj.document_type in ('record_of_interview', 'officer_statement') and obj.officer_interviewer:
+            custodian = obj.officer_interviewer.get_full_name()
         return custodian
 
 #class DocumentArtifactSerializer(ArtifactSerializer):
@@ -421,8 +423,10 @@ class SaveDocumentArtifactSerializer(serializers.ModelSerializer):
         required=False, write_only=True, allow_null=True)
     person_providing_statement_id = serializers.IntegerField(
         required=False, write_only=True, allow_null=True)
-    interviewer_id = serializers.IntegerField(
-        required=False, write_only=True, allow_null=True)
+    #officer_interviewer_id = serializers.IntegerField(
+     #   required=False, write_only=True, allow_null=True)
+    #officer_interviewer = serializers.IntegerField(
+     #   required=False, read_only=True, allow_null=True)
     offence_id = serializers.IntegerField(
         required=False, write_only=True, allow_null=True)
     offender_id = serializers.IntegerField(
@@ -442,7 +446,7 @@ class SaveDocumentArtifactSerializer(serializers.ModelSerializer):
                 #'document_type_id',
                 'document_type',
                 'person_providing_statement_id',
-                'interviewer_id',
+                #'officer_interviewer',
                 'offence_id',
                 'offender_id',
                 'officer_interviewer_email',
@@ -451,12 +455,19 @@ class SaveDocumentArtifactSerializer(serializers.ModelSerializer):
                 'id',
                 )
 
-    def validate(self, data):
-        #alleged_offence = AllegedOffence.objects.get(id=data['alleged_offence_id'])
-        #acos = AllegedCommittedOffence.get_active_alleged_committed_offences(alleged_offence)
-        if not (data.get('person_providing_statement_id') or data.get('interviewer_id')):
-            raise serializers.ValidationError('Statement must have an associated Person')
-        return data
+    #def validate(self, data):
+    #    #alleged_offence = AllegedOffence.objects.get(id=data['alleged_offence_id'])
+    #    #acos = AllegedCommittedOffence.get_active_alleged_committed_offences(alleged_offence)
+    #    print("validation data")
+    #    print(data)
+    #    document_type = data.get('document_type')
+    #    if (document_type in ('witness_statement', 'record_of_interview', 'officer_statement', 'expert_statement') 
+    #            and not (data.get('person_providing_statement_id') or 
+    #                data.get('officer_interviewer')
+    #                )
+    #            ):
+    #        raise serializers.ValidationError('Statement must have an associated Person')
+    #    return data
 
 
 class PhysicalArtifactLegalCasesSerializer(serializers.ModelSerializer):

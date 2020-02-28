@@ -183,9 +183,10 @@
                     <ul class="nav nav-pills">
                         <li class="nav-item active"><a data-toggle="tab" :href="'#'+runTab">Running Sheet</a></li>
                         <li class="nav-item"><a data-toggle="tab" :href="'#'+cTab" >Case Details</a></li>
-                        <li v-if="briefOfEvidenceStatus" class="nav-item"><a data-toggle="tab" :href="'#'+bTab" >Brief of Evidence</a></li>
+                        <li v-if="briefOfEvidenceVisibility" class="nav-item"><a data-toggle="tab" :href="'#'+bTab" >Brief of Evidence</a></li>
                         <li v-if="prosecutionBriefVisibility" class="nav-item"><a data-toggle="tab" :href="'#'+pTab" >Prosecution Brief</a></li>
-                        <li v-if="withProsecutionCoordinatorCourtStatus" class="nav-item"><a data-toggle="tab" :href="'#'+cpTab" >Court Proceedings</a></li>
+                        <!--li v-if="withProsecutionCoordinatorCourtStatus" class="nav-item"><a data-toggle="tab" :href="'#'+cpTab" >Court Proceedings</a></li-->
+                        <li v-if="courtProceedingsVisibility" class="nav-item"><a data-toggle="tab" :href="'#'+cpTab" >Court Proceedings</a></li>
                         <li class="nav-item"><a data-toggle="tab" :href="'#'+rTab">Related Items</a></li>
                     </ul>
                     <div class="tab-content">
@@ -196,7 +197,7 @@
                                     <div class="row action-button">
                                         <!--div v-if="canUserAction" class="col-sm-12"-->
                                         <!--div class="col-sm-1 pull-right" /-->
-                                        <div v-if="canUserAction">
+                                        <div v-if="!readonlyRunningSheet">
                                               <a @click="createNewRunningSheetEntry()" class="btn btn-primary pull-right new-row-button" >
                                                 New Row
                                               </a>
@@ -564,6 +565,13 @@ export default {
         }
         return readonly
     },
+    readonlyRunningSheet: function() {
+        let readonly = true
+        if (this.legal_case && this.legal_case.id && this.legal_case.can_user_action && this.openStatus) {
+            readonly = false;
+        }
+        return readonly
+    },
     backToOfficerVisibility: function() {
         let visibility = false;
         if (this.canUserAction && (
@@ -784,7 +792,9 @@ export default {
         if (this.legal_case && 
             this.legal_case.id && 
             this.legal_case.brief_of_evidence && 
-            this.legal_case.status.id === 'brief_of_evidence') 
+            //this.legal_case.status.id === 'brief_of_evidence'
+            this.legal_case.status.id !== this.openStatus
+        ) 
         {
             visible = true;
         }
@@ -792,7 +802,38 @@ export default {
     },
     prosecutionBriefVisibility: function() {
         let visible = false;
-        if (this.withProsecutionCoordinatorProsecutionBriefStatus) {
+        if (this.legal_case &&
+            this.legal_case.id &&
+            this.legal_case.brief_of_evidence && 
+            this.legal_case.prosecution_brief &&
+            // following status values are excluded
+            !([
+                'open', 
+                'brief_of_evidence',
+                'with_manager',
+                'with_prosecution_coordinator',
+            ].includes(this.statusId))
+        )
+        {
+            visible = true;
+        }
+        return visible;
+    },
+    courtProceedingsVisibility: function() {
+        let visible = false;
+        if (this.legal_case &&
+            this.legal_case.id &&
+            this.legal_case.brief_of_evidence && 
+            this.legal_case.prosecution_brief &&
+            this.legal_case.court_proceedings &&
+            // following status values are included
+            [
+                'with_prosecution_coordinator_court',
+                'with_prosecution_council',
+                'with_prosecution_manager',
+            ].includes(this.statusId)
+        )
+        {
             visible = true;
         }
         return visible;
@@ -1008,7 +1049,8 @@ export default {
         if (!pk) {
             this.$refs.running_sheet_table.vmDataTable.clear().draw();
         }
-        let actionColumn = !this.readonlyForm;
+        //let actionColumn = !this.readonlyForm;
+        let actionColumn = !this.readonlyRunningSheet;
         if (this.runningSheetUrl){
             for(let i = 0;i < this.runningSheetUrl.length; i++){
                 if (!pk || this.runningSheetUrl[i].id === pk) {
@@ -1466,11 +1508,13 @@ export default {
           'keydown',
           (e) => {
               //this.runningSheetKeydown(e, window.getSelection().getRangeAt(0).startOffset);
+              //e.preventDefault();
               this.runningSheetKeydown(e);
           });
       runningSheetTable.on(
           'keyup',
           (e) => {
+              //e.preventDefault();
               this.runningSheetKeyup(e)
           });
       runningSheetTable.on(

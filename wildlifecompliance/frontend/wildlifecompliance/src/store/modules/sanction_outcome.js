@@ -109,6 +109,9 @@ export const sanctionOutcomeStore = {
             if(payload.date_of_issue){
                 payload.date_of_issue = moment(payload.date_of_issue, "DD/MM/YYYY").format("YYYY-MM-DD");
             }
+            if(payload.time_of_issue){
+                payload.time_of_issue = moment(payload.time_of_issue, "LT").format("HH:mm");
+            }
 
             // format 'type'
             payload.type = payload.type.id;

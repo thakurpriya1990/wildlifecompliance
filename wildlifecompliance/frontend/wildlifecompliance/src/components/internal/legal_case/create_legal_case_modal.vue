@@ -379,7 +379,7 @@ export default {
             );
         Object.assign(this.regionDistricts, returned_region_districts);
 
-        // inspection_types
+        // legal_case_priorities
         let returned_legal_case_priorities = await cache_helper.getSetCacheList(
             'LegalCasePriorities',
             api_endpoints.legal_case_priorities
