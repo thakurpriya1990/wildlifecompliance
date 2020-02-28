@@ -31,7 +31,9 @@ export const sanctionOutcomeStore = {
             if (state.sanction_outcome.date_of_issue) {
                 state.sanction_outcome.date_of_issue = moment(state.sanction_outcome.date_of_issue, 'YYYY-MM-DD').format('DD/MM/YYYY');
             }
-
+            if (state.sanction_outcome.time_of_issue) {
+                state.sanction_outcome.time_of_issue = moment(state.sanction_outcome.time_of_issue, 'HH:mm:ss').format('LT');
+            }
             let sanctionOutcomeDocumentUrl = helpers.add_endpoint_join(
                 api_endpoints.sanction_outcome,
                 state.sanction_outcome.id + "/process_default_document/"

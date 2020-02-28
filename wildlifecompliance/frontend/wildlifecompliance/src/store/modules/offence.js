@@ -85,6 +85,12 @@ export const offenceStore = {
             if (offence.occurrence_date_to) {
                 offence.occurrence_date_to = moment(offence.occurrence_date_to, 'YYYY-MM-DD').format('DD/MM/YYYY');
             }
+            if (offence.occurrence_time_from) {
+                offence.occurrence_time_from = moment(offence.occurrence_time_from, 'HH:mm:ss').format('LT');
+            }
+            if (offence.occurrence_time_to) {
+                offence.occurrence_time_to = moment(offence.occurrence_time_to, 'HH:mm:ss').format('LT');
+            }
             Vue.set(state, 'offence', offence);
         },
         updateOffenceEmpty(state){
