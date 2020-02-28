@@ -93,7 +93,7 @@
                           </div>
                         </div>
                         <div  class="row action-button">
-                          <div v-if="canUserAction && briefOfEvidenceStatus" class="col-sm-12">
+                          <div v-if="canUserAction && briefOfEvidenceVisibility" class="col-sm-12">
                                 <a @click="printDocument('brief_of_evidence')" class="btn btn-primary btn-block">
                                 <!--a @click="createProsecutionBrief" class="btn btn-primary btn-block"-->
                                   Print Brief of Evidence
@@ -141,7 +141,7 @@
                           </div>
                         </div>
                         <div  class="row action-button">
-                          <div v-if="canUserAction && withProsecutionCoordinatorProsecutionBriefStatus" class="col-sm-12">
+                          <div v-if="canUserAction && prosecutionBriefVisibility" class="col-sm-12">
                                 <a @click="printDocument('prosecution_brief')" class="btn btn-primary btn-block">
                                 <!--a @click="createProsecutionBrief" class="btn btn-primary btn-block"-->
                                   Print Prosecution Brief

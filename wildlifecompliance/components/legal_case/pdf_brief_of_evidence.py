@@ -24,13 +24,26 @@ from django.conf import settings
 
 from ledger.accounts.models import Document
 from ledger.checkout.utils import calculate_excl_gst
-
+#from wildlifecompliance.components.legal_case.models import (
+ #       LegalCase,
+  #      )
 
 PAGE_MARGIN = 5 * mm
 PAGE_WIDTH, PAGE_HEIGHT = A4
 
 
-def _create_pdf(invoice_buffer, legal_case):
+def _create_pdf(invoice_buffer, legal_case, document_type):
+    # 'report' variable set according to whether document_type is 'brief_of_evidence' or 'prosecution_brief'
+    # 'report_document_artifacts' variable set according to whether document_type is 'brief_of_evidence' or 'prosecution_brief'
+    report = None
+    report_document_artifacts = None
+    if document_type == 'brief_of_evidence':
+        report = legal_case.brief_of_evidence
+        report_document_artifacts = legal_case.briefofevidencedocumentartifacts_set.all()
+    elif document_type == 'prosecution_brief':
+        report = legal_case.prosecution_brief
+        report_document_artifacts = legal_case.prosecutionbriefdocumentartifacts_set.all()
+
     every_page_frame = Frame(PAGE_MARGIN, PAGE_MARGIN, PAGE_WIDTH - 2 * PAGE_MARGIN, PAGE_HEIGHT - 2 * PAGE_MARGIN, id='EveryPagesFrame', )  #showBoundary=Color(0, 1, 0))
     every_page_template = PageTemplate(id='EveryPages', frames=[every_page_frame,], )
     doc = BaseDocTemplate(invoice_buffer, pageTemplates=[every_page_template, ], pagesize=A4,)  # showBoundary=Color(1, 0, 0))
@@ -89,7 +102,7 @@ def _create_pdf(invoice_buffer, legal_case):
                           '<i>Criminal Procedure Act 2004</i><br />'
                           'Criminal Procedure Regulations 2005 - Form 3', styles['Centre']),]], style=style_tbl_left)
     data_right = Table([
-        [Paragraph('Court number', styles['Normal']), ''],
+        [Paragraph('Court number', styles['Normal']), report.statement_of_facts],
         [Paragraph('Magistrates court at', styles['Normal']), ''],
         [Paragraph('Date lodged', styles['Normal']), ''],
     ], style=style_tbl_right, rowHeights=[7.8*mm, 7.8*mm, 7.8*mm,])
@@ -411,9 +424,10 @@ def gap(num):
     return ret
 
 
-def create_document_pdf_bytes(filename, legal_case):
+def create_document_pdf_bytes(legal_case, document_type):
     with BytesIO() as invoice_buffer:
-        _create_pdf(invoice_buffer, legal_case)
+        _create_pdf(invoice_buffer, legal_case, document_type)
+        filename = document_type + '_' + legal_case.number + '.pdf'
 
         # Get the value of the BytesIO buffer
         value = invoice_buffer.getvalue()
@@ -433,7 +447,7 @@ def create_document_pdf_bytes(filename, legal_case):
         # save file object
         document.save()
 
-        return document
+    return document
 
 
 class OffsetTable(Table, object):

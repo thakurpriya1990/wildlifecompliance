@@ -711,10 +711,8 @@ class LegalCaseViewSet(viewsets.ModelViewSet):
             print(request.data)
             instance = self.get_object()
             document_type = request.data.get("document_type")
-            #brief_of_evidence_instance = instance.brief_of_evidence
-            filename = document_type + '_' + instance.number + '.pdf'
-            returned_document = create_document_pdf_bytes(filename, instance)
-                #returned_data = process_generic_document(request, brief_of_evidence_instance, document_type="generated_documents")
+            #returned_document = create_document_pdf_bytes(filename, instance)
+            returned_document = create_document_pdf_bytes(instance, document_type)
             if returned_document:
                 return Response(status=status.HTTP_201_CREATED)
             else:
