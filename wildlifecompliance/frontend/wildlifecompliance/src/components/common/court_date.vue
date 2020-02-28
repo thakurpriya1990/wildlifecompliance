@@ -124,7 +124,7 @@ export default {
             el_court_time.datetimepicker({
                 format: "LT", 
                 showClear: true,
-                date: vm.court_timetime,
+                date: vm.court_datetime,
             });
             el_court_time.on("dp.change", function(e) {
                 if (el_court_time.data("DateTimePicker").date()) {

@@ -70,21 +70,6 @@ styles.add(ParagraphStyle(name='Right', alignment=enums.TA_RIGHT))
 styles.add(ParagraphStyle(name='LongString', alignment=enums.TA_LEFT,wordWrap='CJK'))
 
 
-class BrokenLine(Flowable):
-
-    def __init__(self, width, height=0):
-        Flowable.__init__(self)
-        self.width = width
-        self.height = height
-
-    def __repr__(self):
-        return 'Line {}'.format(self.width)
-
-    def draw(self):
-        self.canv.setDash(3, 3)
-        self.canv.line(0, self.height, self.width, self.height)
-
-
 class Remittance(Flowable):
     def __init__(self,current_x,current_y,invoice):
         Flowable.__init__(self)
