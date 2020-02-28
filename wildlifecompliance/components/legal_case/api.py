@@ -62,6 +62,7 @@ from wildlifecompliance.components.legal_case.models import (
     BriefOfEvidence,
     ProsecutionBrief,
     CourtProceedings, CourtDate)
+from wildlifecompliance.components.legal_case.pdf_brief_of_evidence import create_document_pdf_bytes
 #from wildlifecompliance.components.artifact.models import (
 #        DocumentArtifact,
 #        PhysicalArtifact,
@@ -264,9 +265,17 @@ class LegalCaseViewSet(viewsets.ModelViewSet):
         return LegalCase.objects.none()
 
     def variable_serializer(self, request, instance):
-        if instance.status == 'brief_of_evidence':
+        if instance.status == 'open':
+            serializer = BaseLegalCaseSerializer
+        elif instance.status in ['brief_of_evidence', 'with_manager', 'with_prosecution_coordinator']:
             serializer = LegalCaseBriefOfEvidenceSerializer
-        elif instance.status == 'prosecution_brief':
+        elif instance.status in [
+                'with_prosecution_coordinator_prosecution_brief', 
+                'with_prosecution_council', 
+                'with_prosecution_manager',
+                'with_prosecution_coordinator_court',
+                'closed',
+                ]:
             serializer = LegalCaseProsecutionBriefSerializer
         else:
             serializer = BaseLegalCaseSerializer
@@ -680,6 +689,34 @@ class LegalCaseViewSet(viewsets.ModelViewSet):
                 returned_data = process_generic_document(request, brief_of_evidence_instance)
             if returned_data:
                 return Response(returned_data)
+            else:
+                return Response()
+
+        except serializers.ValidationError:
+            print(traceback.print_exc())
+            raise
+        except ValidationError as e:
+            if hasattr(e, 'error_dict'):
+                raise serializers.ValidationError(repr(e.error_dict))
+            else:
+                raise serializers.ValidationError(repr(e[0].encode('utf-8')))
+        except Exception as e:
+            print(traceback.print_exc())
+            raise serializers.ValidationError(str(e))
+
+    @detail_route(methods=['POST'])
+    @renderer_classes((JSONRenderer,))
+    def generate_document(self, request, *args, **kwargs):
+        try:
+            print(request.data)
+            instance = self.get_object()
+            document_type = request.data.get("document_type")
+            #brief_of_evidence_instance = instance.brief_of_evidence
+            filename = document_type + '_' + instance.number + '.pdf'
+            returned_document = create_document_pdf_bytes(filename, instance)
+                #returned_data = process_generic_document(request, brief_of_evidence_instance, document_type="generated_documents")
+            if returned_document:
+                return Response(status=status.HTTP_201_CREATED)
             else:
                 return Response()
 

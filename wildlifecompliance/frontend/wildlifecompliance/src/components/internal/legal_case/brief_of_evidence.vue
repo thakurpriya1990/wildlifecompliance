@@ -122,6 +122,8 @@
                                     multiple
                                     value-consists-of="LEAF_PRIORITY"
                                     @input="setBoeRoiTicked"
+                                    alwaysOpen
+                                    :searchable="false"
                                     />
                                 </div></div>
                             </FormSection>
@@ -143,14 +145,14 @@
                             </FormSection>
                             <FormSection id="physical-artifacts-tree" :formCollapse="false" label="List of Exhibits, Sensitive Unused and Non-Sensitive Unused Materials" treeHeight="yes">
                                 <div class="col-sm-12 form-group"><div class="row">
-                                    <label class="col-sm-10">Select the objects to be included on the list of exhibits
+                                    <label v-if="physicalArtifactsUsedVisibility" class="col-sm-10">Select the objects to be included on the list of exhibits
                                         <div class="row" v-for="artifact in physicalArtifactsUsed">
                                             <!--input class="col-sm-1" type="checkbox" :value="artifact.id" v-model="physicalArtifactsUsedTicked"-->
                                             <input class="col-sm-1" type="checkbox" v-model="artifact.ticked">
                                             <label class="col-sm-4">{{ artifact.label }}</label>
                                         </div>
                                     </label>
-                                    <label class="col-sm-10">Select the objects to be included on the sensitive unused list of materials
+                                    <label v-if="physicalArtifactsSensitiveUnusedVisibility" class="col-sm-10">Select the objects to be included on the sensitive unused list of materials
                                         <div class="row" v-for="artifact in physicalArtifactsSensitiveUnused">
                                             <!--input class="col-sm-1" :id="'tickbox_' + artifact.id" type="checkbox" :value="artifact.id" v-model="physicalArtifactsSensitiveUnusedTicked"-->
                                             <input class="col-sm-1" :id="'tickbox_' + artifact.id" type="checkbox" v-model="artifact.ticked">
@@ -162,7 +164,7 @@
                                                 />
                                         </div>
                                     </label>
-                                    <label class="col-sm-10">Select the objects to be included on the non-sensitive unused list of materials
+                                    <label v-if="physicalArtifactsNonSensitiveUnusedVisibility" class="col-sm-10">Select the objects to be included on the non-sensitive unused list of materials
                                         <div class="row" v-for="artifact in physicalArtifactsNonSensitiveUnused">
                                             <!--input class="col-sm-1" type="checkbox" :value="artifact.id" v-model="physicalArtifactsNonSensitiveUnusedTicked"-->
                                             <input class="col-sm-1" type="checkbox" v-model="artifact.ticked">
@@ -276,6 +278,13 @@ export default {
         }
         return options;
     },
+    physicalArtifactsUsedVisibility: function() {
+        let visible = false;
+        if (this.physicalArtifactsUsed && this.physicalArtifactsUsed.length > 0) {
+            visible = true;
+        }
+        return visible
+    },
     physicalArtifactsSensitiveUnused: function() {
         let options = [];
         if (this.legal_case && this.legal_case.boe_physical_artifacts_sensitive_unused) {
@@ -285,6 +294,13 @@ export default {
         }
         return options;
     },
+    physicalArtifactsSensitiveUnusedVisibility: function() {
+        let visible = false;
+        if (this.physicalArtifactsSensitiveUnused && this.physicalArtifactsSensitiveUnused.length > 0) {
+            visible = true;
+        }
+        return visible
+    },
     physicalArtifactsNonSensitiveUnused: function() {
         let options = [];
         if (this.legal_case && this.legal_case.boe_physical_artifacts_non_sensitive_unused) {
@@ -293,6 +309,13 @@ export default {
             }
         }
         return options;
+    },
+    physicalArtifactsNonSensitiveUnusedVisibility: function() {
+        let visible = false;
+        if (this.physicalArtifactsNonSensitiveUnused && this.physicalArtifactsNonSensitiveUnused.length > 0) {
+            visible = true;
+        }
+        return visible
     },
       /*
     briefOfEvidence: function() {
