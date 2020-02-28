@@ -77,12 +77,14 @@ class OffenceFilterBackend(DatatablesFilterBackend):
         date_from = request.GET.get('date_from',).lower()
         if date_from:
             date_from = datetime.strptime(date_from, '%d/%m/%Y')
-            q_objects &= Q(date_of_issue__gte=date_from)
+            q_objects &= Q(occurrence_date_from__gte=date_from)
+            q_objects &= Q(occurrence_date_to__gte=date_from)
 
         date_to = request.GET.get('date_to',).lower()
         if date_to:
             date_to = datetime.strptime(date_to, '%d/%m/%Y')
-            q_objects &= Q(date_of_issue__lte=date_to)
+            q_objects &= Q(occurrence_date_from__lte=date_to)
+            q_objects &= Q(occurrence_date_to__lte=date_to)
 
         # perform filters
         queryset = queryset.filter(q_objects)
