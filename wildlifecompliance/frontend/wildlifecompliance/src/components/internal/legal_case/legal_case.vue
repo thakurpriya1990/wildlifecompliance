@@ -94,6 +94,14 @@
                         </div>
                         <div  class="row action-button">
                           <div v-if="canUserAction && briefOfEvidenceStatus" class="col-sm-12">
+                                <a @click="printDocument('brief_of_evidence')" class="btn btn-primary btn-block">
+                                <!--a @click="createProsecutionBrief" class="btn btn-primary btn-block"-->
+                                  Print Brief of Evidence
+                                </a>
+                          </div>
+                        </div>
+                        <div  class="row action-button">
+                          <div v-if="canUserAction && briefOfEvidenceStatus" class="col-sm-12">
                                 <a @click="addWorkflow('send_to_manager')" class="btn btn-primary btn-block">
                                 <!--a @click="createProsecutionBrief" class="btn btn-primary btn-block"-->
                                   Send To Manager
@@ -129,6 +137,14 @@
                                 <a @click="addWorkflow('send_to_prosecution_council')" class="btn btn-primary btn-block">
                                 <!--a @click="createProsecutionBrief" class="btn btn-primary btn-block"-->
                                   Send To Prosecution Council
+                                </a>
+                          </div>
+                        </div>
+                        <div  class="row action-button">
+                          <div v-if="canUserAction && withProsecutionCoordinatorProsecutionBriefStatus" class="col-sm-12">
+                                <a @click="printDocument('prosecution_brief')" class="btn btn-primary btn-block">
+                                <!--a @click="createProsecutionBrief" class="btn btn-primary btn-block"-->
+                                  Print Prosecution Brief
                                 </a>
                           </div>
                         </div>
@@ -183,9 +199,10 @@
                     <ul class="nav nav-pills">
                         <li class="nav-item active"><a data-toggle="tab" :href="'#'+runTab">Running Sheet</a></li>
                         <li class="nav-item"><a data-toggle="tab" :href="'#'+cTab" >Case Details</a></li>
-                        <li v-if="briefOfEvidenceStatus" class="nav-item"><a data-toggle="tab" :href="'#'+bTab" >Brief of Evidence</a></li>
+                        <li v-if="briefOfEvidenceVisibility" class="nav-item"><a data-toggle="tab" :href="'#'+bTab" >Brief of Evidence</a></li>
                         <li v-if="prosecutionBriefVisibility" class="nav-item"><a data-toggle="tab" :href="'#'+pTab" >Prosecution Brief</a></li>
-                        <li v-if="withProsecutionCoordinatorCourtStatus" class="nav-item"><a data-toggle="tab" :href="'#'+cpTab" >Court Proceedings</a></li>
+                        <!--li v-if="withProsecutionCoordinatorCourtStatus" class="nav-item"><a data-toggle="tab" :href="'#'+cpTab" >Court Proceedings</a></li-->
+                        <li v-if="courtProceedingsVisibility" class="nav-item"><a data-toggle="tab" :href="'#'+cpTab" >Court Proceedings</a></li>
                         <li class="nav-item"><a data-toggle="tab" :href="'#'+rTab">Related Items</a></li>
                     </ul>
                     <div class="tab-content">
@@ -196,7 +213,7 @@
                                     <div class="row action-button">
                                         <!--div v-if="canUserAction" class="col-sm-12"-->
                                         <!--div class="col-sm-1 pull-right" /-->
-                                        <div v-if="canUserAction">
+                                        <div v-if="!readonlyRunningSheet">
                                               <a @click="createNewRunningSheetEntry()" class="btn btn-primary pull-right new-row-button" >
                                                 New Row
                                               </a>
@@ -338,6 +355,10 @@
         ref="legal_case_workflow"
         :workflow_type="workflow_type"
         />
+        <GenerateDocument 
+        ref="generate_document"
+        :document_type="documentTypeToGenerate"
+        />
     </div>
 </template>
 <script>
@@ -371,6 +392,7 @@ import '@riophae/vue-treeselect/dist/vue-treeselect.css'
 import BriefOfEvidence from './brief_of_evidence';
 import ProsecutionBrief from './prosecution_brief';
 import CourtProceedings from './court_proceedings';
+import GenerateDocument from './generate_document';
 
 
 export default {
@@ -380,6 +402,7 @@ export default {
             //boeRoiTicked: [],
             //boeRoiOptions: [],
             //boeOtherStatementsOptions: [],
+            documentTypeToGenerate: '',
             entityEdit: {},
             uuid: 0,
             showSpinner: false,
@@ -540,6 +563,7 @@ export default {
     BriefOfEvidence,
     CourtProceedings,
     ProsecutionBrief,
+    GenerateDocument,
   },
   computed: {
     ...mapGetters('legalCaseStore', {
@@ -561,6 +585,13 @@ export default {
         let readonly = true
         if (this.legal_case && this.legal_case.id) {
             readonly = !this.legal_case.can_user_action;
+        }
+        return readonly
+    },
+    readonlyRunningSheet: function() {
+        let readonly = true
+        if (this.legal_case && this.legal_case.id && this.legal_case.can_user_action && this.openStatus) {
+            readonly = false;
         }
         return readonly
     },
@@ -784,7 +815,9 @@ export default {
         if (this.legal_case && 
             this.legal_case.id && 
             this.legal_case.brief_of_evidence && 
-            this.legal_case.status.id === 'brief_of_evidence') 
+            //this.legal_case.status.id === 'brief_of_evidence'
+            this.legal_case.status.id !== this.openStatus
+        ) 
         {
             visible = true;
         }
@@ -792,7 +825,38 @@ export default {
     },
     prosecutionBriefVisibility: function() {
         let visible = false;
-        if (this.withProsecutionCoordinatorProsecutionBriefStatus) {
+        if (this.legal_case &&
+            this.legal_case.id &&
+            this.legal_case.brief_of_evidence && 
+            this.legal_case.prosecution_brief &&
+            // following status values are excluded
+            !([
+                'open', 
+                'brief_of_evidence',
+                'with_manager',
+                'with_prosecution_coordinator',
+            ].includes(this.statusId))
+        )
+        {
+            visible = true;
+        }
+        return visible;
+    },
+    courtProceedingsVisibility: function() {
+        let visible = false;
+        if (this.legal_case &&
+            this.legal_case.id &&
+            this.legal_case.brief_of_evidence && 
+            this.legal_case.prosecution_brief &&
+            this.legal_case.court_proceedings &&
+            // following status values are included
+            [
+                'with_prosecution_coordinator_court',
+                'with_prosecution_council',
+                'with_prosecution_manager',
+            ].includes(this.statusId)
+        )
+        {
             visible = true;
         }
         return visible;
@@ -1008,7 +1072,8 @@ export default {
         if (!pk) {
             this.$refs.running_sheet_table.vmDataTable.clear().draw();
         }
-        let actionColumn = !this.readonlyForm;
+        //let actionColumn = !this.readonlyForm;
+        let actionColumn = !this.readonlyRunningSheet;
         if (this.runningSheetUrl){
             for(let i = 0;i < this.runningSheetUrl.length; i++){
                 if (!pk || this.runningSheetUrl[i].id === pk) {
@@ -1158,6 +1223,14 @@ export default {
             this.$refs.legal_case_workflow.isModalOpen = true;
         });
     },
+    printDocument: function(documentType) {
+        this.documentTypeToGenerate = documentType
+        this.$nextTick(async () => {
+            await this.saveLegalCase({create: false, internal: true })
+            this.$refs.generate_document.isModalOpen = true;
+        });
+    },
+
     /*
     createBriefOfEvidence: async function() {
         await this.save({ 
@@ -1466,11 +1539,13 @@ export default {
           'keydown',
           (e) => {
               //this.runningSheetKeydown(e, window.getSelection().getRangeAt(0).startOffset);
+              //e.preventDefault();
               this.runningSheetKeydown(e);
           });
       runningSheetTable.on(
           'keyup',
           (e) => {
+              //e.preventDefault();
               this.runningSheetKeyup(e)
           });
       runningSheetTable.on(
