@@ -44,12 +44,21 @@ def _create_pdf(invoice_buffer, legal_case, request_data):
     include_document_artifacts = request_data.get('include_document_artifacts')
     report = None
     report_document_artifacts = None
+    report_physical_artifacts = None
+    records_of_interview = None
+    other_statements = None
     if document_type == 'brief_of_evidence':
         report = legal_case.brief_of_evidence
         report_document_artifacts = legal_case.briefofevidencedocumentartifacts_set.all()
+        report_physical_artifacts = legal_case.briefofevidencephysicalartifacts_set.all()
+        records_of_interview = legal_case.legal_case_boe_roi.all()
+        other_statements = legal_case.legal_case_boe_other_statements.all()
     elif document_type == 'prosecution_brief':
         report = legal_case.prosecution_brief
         report_document_artifacts = legal_case.prosecutionbriefdocumentartifacts_set.all()
+        report_physical_artifacts = legal_case.prosecutionbriefphysicalartifacts_set.all()
+        records_of_interview = legal_case.legal_case_pb_roi.all()
+        other_statements = legal_case.legal_case_pb_other_statements.all()
 
     every_page_frame = Frame(PAGE_MARGIN, PAGE_MARGIN, PAGE_WIDTH - 2 * PAGE_MARGIN, PAGE_HEIGHT - 2 * PAGE_MARGIN, id='EveryPagesFrame', )  #showBoundary=Color(0, 1, 0))
     every_page_template = PageTemplate(id='EveryPages', frames=[every_page_frame,], )
@@ -101,29 +110,81 @@ def _create_pdf(invoice_buffer, legal_case, request_data):
     #    ('SPAN', (2, 3), (4, 3)),
     #    ('SPAN', (2, 4), (4, 4)),
     #])
-    data = []
-    data.append([
-        Paragraph('<strong>Details of alleged offence</strong><br />'
-                  '<i><font size="' + str(FONT_SIZE_S) + '">[This description must comply with the CPA Schedule 1 clause 5.]</font></i>', styles['Normal']),
-        Paragraph('Accused', styles['Normal']),
-        '',
-        '',
-        '',
-    ])
-    data.append(['', Paragraph('Date or period', styles['Normal']), '', '', ''])
-    data.append(['', Paragraph('Place', styles['Normal']), '', '', ''])
-    data.append(['', Paragraph('Description', styles['Normal']), '', '', ''])
-    data.append(['', Paragraph('Written law', styles['Normal']), '', '', ''])
+
+    #case_information_header_data = []
+    #case_information_header_data.append([
+     #   Paragraph('Case Information Form', styles['Bold']),
+    #])
+
     #tbl_details = Table(data, style=style_tbl_details, colWidths=col_width_details, rowHeights=rowHeights)
-    tbl_statement = Table(data, style=style_tbl_details, colWidths=col_width_details, rowHeights=rowHeights)
+    #tbl_statement = Table(data, style=style_tbl_details, colWidths=col_width_details, rowHeights=rowHeights)
+    #tbl_case_information_header = Table(case_information_header_data)
 
+    #tbl_case_information_data = ListFlowable(
+     #       [
+      #          Paragraph
+    case_information_data = []
+    case_information_data.append([
+        Paragraph('Case Information Form', styles['Bold']),
+    ])
+    case_information_data.append([
+            Paragraph(report.statement_of_facts, styles['Normal'])
+            ])
+    tbl_case_information = Table(case_information_data)
 
+    records_of_interview_data = []
+    records_of_interview_data.append([
+        Paragraph('Offences, Offenders and Records of Interview', styles['Bold']),
+    ])
+    for record in records_of_interview:
+        records_of_interview_data.append([
+            Paragraph(
+                record.label,
+                styles['Normal']
+                )
+            ])
+    tbl_records_of_interview = Table(records_of_interview_data)
+
+    other_statements_data = []
+    other_statements_data.append([
+        Paragraph('Witness Statements, Officer Statements, Expert Statements', styles['Bold']),
+    ])
+    for statement in other_statements:
+        other_statements_data.append([
+            Paragraph(
+                statement.label,
+                styles['Normal']
+                )
+            ])
+    tbl_other_statements = Table(other_statements_data)
+
+    physical_artifacts_data = []
+    physical_artifacts_data.append([
+        Paragraph('List of Exhibits, Sensitive Unused and Non-sensitive Unused Materials', styles['Bold']),
+    ])
+    for artifact in report_physical_artifacts:
+        physical_artifacts_data.append([
+            Paragraph(
+                artifact.physical_artifact.number, 
+                styles['Normal']
+                )
+            ])
+    tbl_physical_artifacts = Table(physical_artifacts_data)
 
     # Append tables to the elements to build
     gap_between_tables = 1.5*mm
     elements = []
+    #elements.append(tbl_case_information_header)
+    #elements.append(Spacer(0, gap_between_tables))
+    elements.append(tbl_case_information)
+    elements.append(Spacer(0, gap_between_tables))
+    elements.append(tbl_records_of_interview)
+    elements.append(Spacer(0, gap_between_tables))
+    elements.append(tbl_other_statements)
+    elements.append(tbl_physical_artifacts)
+    elements.append(Spacer(0, gap_between_tables))
     #elements.append(tbl_head)
-    elements.append(tbl_statement)
+    #elements.append(tbl_statement)
     #elements.append(Spacer(0, gap_between_tables))
     #elements.append(tbl_notice)
     #elements.append(Spacer(0, gap_between_tables))
