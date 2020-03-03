@@ -10,8 +10,22 @@ from reportlab.lib import enums
 from reportlab.lib.colors import Color
 from reportlab.lib.enums import TA_RIGHT, TA_CENTER
 from reportlab.lib.pagesizes import A4
-from reportlab.platypus import BaseDocTemplate, PageTemplate, Frame, Paragraph, Spacer, Table, TableStyle, ListFlowable, \
-    KeepTogether, PageBreak, Flowable, NextPageTemplate, FrameBreak
+from reportlab.platypus import (
+        BaseDocTemplate, 
+        PageTemplate, 
+        Frame, 
+        Paragraph, 
+        Spacer, 
+        Table, 
+        TableStyle, 
+        ListFlowable,
+        KeepTogether, 
+        PageBreak, 
+        Flowable, 
+        NextPageTemplate, 
+        FrameBreak,
+        ListItem,
+        )
 from reportlab.lib.styles import getSampleStyleSheet, ParagraphStyle, StyleSheet1
 from reportlab.lib.utils import ImageReader
 from reportlab.pdfgen.canvas import Canvas
@@ -24,9 +38,7 @@ from django.conf import settings
 
 from ledger.accounts.models import Document
 from ledger.checkout.utils import calculate_excl_gst
-#from wildlifecompliance.components.legal_case.models import (
- #       LegalCase,
-  #      )
+from wildlifecompliance.components.main.pdf_utils import FlowableRect, ParagraphCheckbox
 
 PAGE_MARGIN = 5 * mm
 PAGE_WIDTH, PAGE_HEIGHT = A4
@@ -45,19 +57,19 @@ def _create_pdf(invoice_buffer, legal_case, request_data):
     report = None
     report_document_artifacts = None
     report_physical_artifacts = None
-    records_of_interview = None
+    record_of_interviews = None
     other_statements = None
     if document_type == 'brief_of_evidence':
         report = legal_case.brief_of_evidence
         report_document_artifacts = legal_case.briefofevidencedocumentartifacts_set.all()
         report_physical_artifacts = legal_case.briefofevidencephysicalartifacts_set.all()
-        records_of_interview = legal_case.legal_case_boe_roi.all()
+        record_of_interviews = legal_case.legal_case_boe_roi.all()
         other_statements = legal_case.legal_case_boe_other_statements.all()
     elif document_type == 'prosecution_brief':
         report = legal_case.prosecution_brief
         report_document_artifacts = legal_case.prosecutionbriefdocumentartifacts_set.all()
         report_physical_artifacts = legal_case.prosecutionbriefphysicalartifacts_set.all()
-        records_of_interview = legal_case.legal_case_pb_roi.all()
+        record_of_interviews = legal_case.legal_case_pb_roi.all()
         other_statements = legal_case.legal_case_pb_other_statements.all()
 
     every_page_frame = Frame(PAGE_MARGIN, PAGE_MARGIN, PAGE_WIDTH - 2 * PAGE_MARGIN, PAGE_HEIGHT - 2 * PAGE_MARGIN, id='EveryPagesFrame', )  #showBoundary=Color(0, 1, 0))
@@ -89,6 +101,9 @@ def _create_pdf(invoice_buffer, legal_case, request_data):
                               parent=styles['BodyText'],
                               fontName='Helvetica-Bold',
                               alignment = TA_CENTER))
+    styles.add(ParagraphStyle(name='BoldLeft',
+                              parent=styles['BodyText'],
+                              fontName='Helvetica-Bold'))
     styles.add(ParagraphStyle(name='Right',
                               parent=styles['BodyText'],
                               alignment=TA_RIGHT))
@@ -125,43 +140,67 @@ def _create_pdf(invoice_buffer, legal_case, request_data):
       #          Paragraph
     case_information_data = []
     case_information_data.append([
-        Paragraph('Case Information Form', styles['Bold']),
+        Paragraph('Case Information Form', styles['BoldLeft']),
     ])
     case_information_data.append([
             Paragraph(report.statement_of_facts, styles['Normal'])
             ])
     tbl_case_information = Table(case_information_data)
 
-    records_of_interview_data = []
-    records_of_interview_data.append([
-        Paragraph('Offences, Offenders and Records of Interview', styles['Bold']),
+    record_of_interviews_data = []
+    record_of_interviews_data.append([
+        Paragraph('Offences, Offenders and Records of Interview', styles['BoldLeft']),
     ])
-    for record in records_of_interview:
-        records_of_interview_data.append([
-            Paragraph(
-                record.label,
-                styles['Normal']
-                )
+    #offence_list = []
+    for offence_level_record in record_of_interviews.filter(offender=None):
+
+        record_of_interviews_data.append([
+        ParagraphCheckbox(offence_level_record.label, x_offset=5, checked=offence_level_record.ticked, style=styles['Normal']),
+        ])
+        for offender_level_record in offence_level_record.children.all():
+
+            record_of_interviews_data.append([
+            ParagraphCheckbox(offender_level_record.label, x_offset=15, checked=offender_level_record.ticked, style=styles['Normal']),
             ])
-    tbl_records_of_interview = Table(records_of_interview_data)
+            for roi_level_record in offender_level_record.children.all():
+
+                record_of_interviews_data.append([
+                ParagraphCheckbox(roi_level_record.label, x_offset=25, checked=roi_level_record.ticked, style=styles['Normal']),
+                ])
+
+                for doc_artifact_level_record in roi_level_record.children.all():
+                    record_of_interviews_data.append([
+                    ParagraphCheckbox(doc_artifact_level_record.label, x_offset=35, checked=doc_artifact_level_record.ticked, style=styles['Normal']),
+                    ])
+
+    tbl_record_of_interviews = Table(record_of_interviews_data)
 
     other_statements_data = []
     other_statements_data.append([
-        Paragraph('Witness Statements, Officer Statements, Expert Statements', styles['Bold']),
+        Paragraph('Witness Statements, Officer Statements, Expert Statements', styles['BoldLeft']),
     ])
-    for statement in other_statements:
+    for person_level_record in other_statements.filter(statement=None):
+
         other_statements_data.append([
-            Paragraph(
-                statement.label,
-                styles['Normal']
-                )
+        ParagraphCheckbox(person_level_record.label, x_offset=5, checked=person_level_record.ticked, style=styles['Normal']),
+        ])
+        for statement_level_record in person_level_record.children.all():
+
+            other_statements_data.append([
+            ParagraphCheckbox(statement_level_record.label, x_offset=15, checked=statement_level_record.ticked, style=styles['Normal']),
             ])
+
+            for doc_artifact_level_record in statement_level_record.children.all():
+                other_statements_data.append([
+                ParagraphCheckbox(doc_artifact_level_record.label, x_offset=35, checked=doc_artifact_level_record.ticked, style=styles['Normal']),
+                ])
     tbl_other_statements = Table(other_statements_data)
 
     physical_artifacts_data = []
     physical_artifacts_data.append([
-        Paragraph('List of Exhibits, Sensitive Unused and Non-sensitive Unused Materials', styles['Bold']),
+        Paragraph('List of Exhibits, Sensitive Unused and Non-sensitive Unused Materials', styles['BoldLeft']),
     ])
+
     for artifact in report_physical_artifacts:
         physical_artifacts_data.append([
             Paragraph(
@@ -178,7 +217,9 @@ def _create_pdf(invoice_buffer, legal_case, request_data):
     #elements.append(Spacer(0, gap_between_tables))
     elements.append(tbl_case_information)
     elements.append(Spacer(0, gap_between_tables))
-    elements.append(tbl_records_of_interview)
+    elements.append(tbl_record_of_interviews)
+    #elements.append(offence_list_flowable)
+    #elements.append(records_of_interview_data)
     elements.append(Spacer(0, gap_between_tables))
     elements.append(tbl_other_statements)
     elements.append(tbl_physical_artifacts)
