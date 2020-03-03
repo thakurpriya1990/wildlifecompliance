@@ -252,6 +252,9 @@ export const offenceStore = {
                 payload.occurrence_time_to = null;
             }
 
+            console.log('payload');
+            console.log(payload);
+
             const savedOffence = await Vue.http.post(fetchUrl, payload);
             await dispatch("setOffence", savedOffence.body);
             return savedOffence;
