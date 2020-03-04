@@ -161,7 +161,7 @@ def _create_pdf(invoice_buffer, legal_case, request_data):
                 ParagraphOffeset(
                     string_field,
                     styles['Normal'],
-                    x_offset=15,
+                    x_offset=25,
                     )
                 ])
     case_information_data.append([
@@ -173,7 +173,7 @@ def _create_pdf(invoice_buffer, legal_case, request_data):
                 ParagraphOffeset(
                     string_field,
                     styles['Normal'],
-                    x_offset=15,
+                    x_offset=25,
                     )
                 ])
     case_information_data.append([
@@ -185,7 +185,7 @@ def _create_pdf(invoice_buffer, legal_case, request_data):
                 ParagraphOffeset(
                     string_field,
                     styles['Normal'],
-                    x_offset=15,
+                    x_offset=25,
                     )
                 ])
     case_information_data.append([
@@ -197,7 +197,7 @@ def _create_pdf(invoice_buffer, legal_case, request_data):
                 ParagraphOffeset(
                     string_field,
                     styles['Normal'],
-                    x_offset=15,
+                    x_offset=25,
                     )
                 ])
     case_information_data.append([
@@ -212,7 +212,7 @@ def _create_pdf(invoice_buffer, legal_case, request_data):
                 ParagraphOffeset(
                     string_field,
                     styles['Normal'],
-                    x_offset=15,
+                    x_offset=25,
                     )
                 ])
     case_information_data.append([
@@ -227,7 +227,7 @@ def _create_pdf(invoice_buffer, legal_case, request_data):
                 ParagraphOffeset(
                     string_field,
                     styles['Normal'],
-                    x_offset=15,
+                    x_offset=25,
                     )
                 ])
     case_information_data.append([
@@ -242,7 +242,7 @@ def _create_pdf(invoice_buffer, legal_case, request_data):
                 ParagraphOffeset(
                     string_field,
                     styles['Normal'],
-                    x_offset=15,
+                    x_offset=25,
                     )
                 ])
     case_information_data.append([
@@ -257,7 +257,7 @@ def _create_pdf(invoice_buffer, legal_case, request_data):
                 ParagraphOffeset(
                     string_field,
                     styles['Normal'],
-                    x_offset=15,
+                    x_offset=25,
                     )
                 ])
     case_information_data.append([
@@ -272,7 +272,7 @@ def _create_pdf(invoice_buffer, legal_case, request_data):
                 ParagraphOffeset(
                     string_field,
                     styles['Normal'],
-                    x_offset=15,
+                    x_offset=25,
                     )
                 ])
     case_information_data.append([
@@ -287,7 +287,7 @@ def _create_pdf(invoice_buffer, legal_case, request_data):
                 ParagraphOffeset(
                     string_field,
                     styles['Normal'],
-                    x_offset=15,
+                    x_offset=25,
                     )
                 ])
     case_information_data.append([
@@ -302,7 +302,7 @@ def _create_pdf(invoice_buffer, legal_case, request_data):
                 ParagraphOffeset(
                     string_field,
                     styles['Normal'],
-                    x_offset=15,
+                    x_offset=25,
                     )
                 ])
     case_information_data.append([
@@ -317,7 +317,7 @@ def _create_pdf(invoice_buffer, legal_case, request_data):
                 ParagraphOffeset(
                     string_field,
                     styles['Normal'],
-                    x_offset=15,
+                    x_offset=25,
                     )
                 ])
     case_information_data.append([
@@ -332,7 +332,7 @@ def _create_pdf(invoice_buffer, legal_case, request_data):
                 ParagraphOffeset(
                     string_field,
                     styles['Normal'],
-                    x_offset=15,
+                    x_offset=25,
                     )
                 ])
     case_information_data.append([
@@ -347,7 +347,7 @@ def _create_pdf(invoice_buffer, legal_case, request_data):
                 ParagraphOffeset(
                     string_field,
                     styles['Normal'],
-                    x_offset=15,
+                    x_offset=25,
                     )
                 ])
 
@@ -439,7 +439,7 @@ def _create_pdf(invoice_buffer, legal_case, request_data):
                 ParagraphOffeset(
                     artifact.reason_sensitive_non_disclosable,
                     styles['Normal'],
-                    x_offset=15,
+                    x_offset=25,
                     )
                 ])
     physical_artifacts_data.append([
@@ -466,6 +466,16 @@ def _create_pdf(invoice_buffer, legal_case, request_data):
         document_artifacts_data.append([
             ParagraphCheckbox(artifact.document_artifact.identifier, x_offset=5, checked=artifact.ticked, style=styles['Normal'])
             ])
+        for attachment in artifact.document_artifact.documents.all():
+            print(attachment.name)
+            if attachment.name:
+                document_artifacts_data.append([
+                    ParagraphOffeset(
+                        attachment.name,
+                        styles['Normal'],
+                        x_offset=25,
+                        )
+                    ])
 
     tbl_document_artifacts = Table(document_artifacts_data)
 
