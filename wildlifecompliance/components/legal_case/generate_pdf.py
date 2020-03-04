@@ -5,6 +5,7 @@ from decimal import Decimal as D
 from io import BytesIO
 
 from django.core.files.storage import default_storage
+from django.core.files.base import ContentFile
 from oscar.templatetags.currency_filters import currency
 from reportlab.lib import enums
 from reportlab.lib.colors import Color
@@ -142,8 +143,9 @@ def _create_pdf(invoice_buffer, legal_case, request_data):
     statement_of_facts_data.append([
         Paragraph('Statement of Facts', styles['BoldLeft']),
     ])
+    string_field = report.statement__of_facts if report.statement_of_facts else ''
     statement_of_facts_data.append([
-            Paragraph(report.statement_of_facts, styles['Normal'])
+            Paragraph(string_field, styles['Normal'])
             ])
     tbl_statement_of_facts = Table(statement_of_facts_data)
 
@@ -526,31 +528,62 @@ def gap(num):
 
 
 def create_document_pdf_bytes(legal_case, request_data):
+    try:
+        with BytesIO() as invoice_buffer:
+            #invoice_buffer = BytesIO()
+            _create_pdf(invoice_buffer, legal_case, request_data)
+            document_type = request_data.get('document_type')
+            filename = document_type + '_' + legal_case.number + '.pdf'
+
+            # Get the value of the BytesIO buffer
+            value = invoice_buffer.getvalue()
+            #invoice_buffer.close()
+
+            # START: Save the pdf file to the database
+            ## delete existing document
+            document = None
+            path = 'wildlifecompliance/{}/{}/generated_documents/{}'.format(legal_case._meta.model_name, legal_case.id, filename)
+            document_exists = default_storage.exists(path)
+            if document_exists:
+                print("delete " + path)
+                # delete file
+                default_storage.delete(path)
+                # overwrite file
+                default_storage.save(path, invoice_buffer)
+            else:
+                # create document for first time
+                document, created = legal_case.generated_documents.get_or_create(name=filename)
+                stored_file = default_storage.save(path, invoice_buffer)
+                document._file = stored_file
+                # save file object
+                document.save()
+
+            #return document
+    #except io.
+    except Exception as e:
+        print(e)
+            #print(traceback.print_exc())
+            #raise serializers.ValidationError(str(e))
+
+def create_document_pdf_bytes_alt(legal_case, request_data):
     with BytesIO() as invoice_buffer:
         _create_pdf(invoice_buffer, legal_case, request_data)
+        #_create_invoice(invoice_buffer, legal_case)
+
         document_type = request_data.get('document_type')
         filename = document_type + '_' + legal_case.number + '.pdf'
-
         # Get the value of the BytesIO buffer
         value = invoice_buffer.getvalue()
 
         # START: Save the pdf file to the database
-        ## delete existing document
-        document = None
+        document = legal_case.generated_documents.create(name=filename)
         path = 'wildlifecompliance/{}/{}/generated_documents/{}'.format(legal_case._meta.model_name, legal_case.id, filename)
-        document_exists = default_storage.exists(path)
-        if document_exists:
-            print("delete " + path)
-            # delete file
-            default_storage.delete(path)
-        document, created = legal_case.generated_documents.get_or_create(name=filename)
-        stored_file = default_storage.save(path, invoice_buffer)
-        document._file = stored_file
-        # save file object
+        #path = default_storage.save('wildlifecompliance/{}/{}/documents/{}'.format(sanction_outcome._meta.model_name, sanction_outcome.id, filename), invoice_buffer)
+        document._file = path
         document.save()
+        # END: Save
 
-    return document
-
+        return document
 
 class OffsetTable(Table, object):
 
