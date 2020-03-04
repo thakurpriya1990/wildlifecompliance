@@ -74,6 +74,7 @@ class ParagraphCheckbox(Paragraph, object):
             borderWidth=1,
             borderColor=black,
             fillColor=white,
+            fieldFlags='readOnly',
             # textColor=blue,
             forceBorder=True,
         )
@@ -115,6 +116,7 @@ class FlowableRect(Flowable):
             borderStyle='solid',
             borderWidth=1,
             borderColor=black,
+            fieldFlags='readOnly',
             fillColor=white,
             forceBorder=True,
         )
@@ -130,6 +132,7 @@ class FlowableRect(Flowable):
             borderStyle='solid',
             borderWidth=1,
             borderColor=black,
+            fieldFlags='readOnly',
             fillColor=white,
             forceBorder=True,
         )

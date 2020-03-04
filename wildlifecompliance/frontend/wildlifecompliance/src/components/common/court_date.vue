@@ -113,7 +113,7 @@ export default {
             });
             el_court_date.on("dp.change", function(e) {
                 if (el_court_date.data("DateTimePicker").date()) {
-                    vm.court_time = e.date.format('DD/MM/YYYY');
+                    vm.court_date = e.date.format('DD/MM/YYYY');
                     vm.emitEvent();
                 } else if (el_court_date.data("date") === "") {
                     vm.court_date = null;
