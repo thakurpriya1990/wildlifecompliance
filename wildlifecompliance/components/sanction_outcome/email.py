@@ -8,6 +8,8 @@ from wildlifecompliance.components.sanction_outcome.pdf import create_infringeme
 from wildlifecompliance.components.sanction_outcome.pdf_infringement_notice_blue import create_infringement_notice_blue
 from wildlifecompliance.components.sanction_outcome.pdf_infringement_notice_white import \
     create_infringement_notice_white
+from wildlifecompliance.components.sanction_outcome.pdf_infringement_notice_yellow import \
+    create_infringement_notice_yellow
 
 logger = logging.getLogger(__name__)
 

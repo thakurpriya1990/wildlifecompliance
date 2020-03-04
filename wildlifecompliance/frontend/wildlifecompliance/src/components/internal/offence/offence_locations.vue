@@ -486,37 +486,46 @@ module.exports = {
             }
         },
         construct_content: function (offence, coords){
-            let classification_str = '---';
-            if (offence.classification){
-                classification_str = offence.classification.name;
+            console.log('offence clicked');
+            console.log(offence);
+            let offenders_str = ''
+            for (let i=0; i<offence.offenders.length; i++) {
+                let offender = offence.offenders[i].person;
+                if (offender){
+                    offenders_str += `<div>${offender.full_name}</div>`
+                }
             }
 
-            let report_type_str = '---';
-            if (offence.report_type){
-                report_type_str = offence.report_type.report_type;
+            let status_str = '';
+            if (offence.status){
+                status_str = offence.status.name
             }
 
-            let content = '<div class="popup-title-main">' + offence.number + '</div>';
-            content    += '<div class="popup-title">Classification</div>'
-                        + '<div class="popup-coords">'
-                        + classification_str
+            let content = '<div class="popup-title-main">' + offence.lodgement_number + '</div>';
+            content    += '<div class="popup-title">Offender(s)</div>'
+                        + '<div class="popup-address">'
+                        + offenders_str
                         + '</div>'
 
-            content    += '<div class="popup-title">Report Type</div>'
+            content    += '<div class="popup-title">Status</div>'
                         + '<div class="popup-address">'
-                        + report_type_str
+                        + status_str
                         + '</div>'
 
             if (offence.location.properties.street){
+                let str_street = offence.location.properties.street?offence.location.properties.street:''
+                let str_town_suburb = offence.location.properties.town_suburt?offence.location.properties.town_suburt:''
+                let str_state = offence.location.properties.state?offence.location.properties.state:''
+                let str_postcode = offence.location.properties.postcode?offence.location.properties.postcode:''
                 content += '<div class="popup-title">Address</div>'
                 + '<div class="popup-address">'
-                + offence.location.properties.street + '<br />'
-                + offence.location.properties.town_suburb + '<br />'
-                + offence.location.properties.state + '<br />'
-                + offence.location.properties.postcode
+                + str_street + '<br />'
+                + str_town_suburb + '<br />'
+                + str_state + '<br />'
+                + str_postcode
                 + '</div>'
 
-            }else{
+            } else {
                 content += '<div class="popup-title">Details</div>'
                 + '<div class="popup-address">'
                 + offence.location.properties.details.substring(0, 10)
@@ -524,7 +533,7 @@ module.exports = {
             }
 
             content += '<div class="popup-link">'
-                + '<a href="/internal/offence/' + offence.id + '">View</a>'
+                + offence.user_action
                 + '</div>';
 
             return content;
@@ -590,7 +599,7 @@ module.exports = {
 }
 .popup-title {
     padding: 5px 5px 5px 10px;
-    background: gray;
+    background: darkgray;
     font-size: 1.3em;
     font-weight: bold;
     color: white;
