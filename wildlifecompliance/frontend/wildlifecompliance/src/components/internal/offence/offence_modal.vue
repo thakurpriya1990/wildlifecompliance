@@ -752,27 +752,32 @@ export default {
         }
     },
     processError: async function(err) {
+        console.log(typeof(err))
         let errorText = '';
-        if (err.body.non_field_errors) {
-            // When non field errors raised
-            for (let i=0; i<err.body.non_field_errors.length; i++){
-                errorText += err.body.non_field_errors[i] + '<br />';
-            }
-        } else if(Array.isArray(err.body)) {
-            // When general errors raised
-            for (let i=0; i<err.body.length; i++){
-                errorText += err.body[i] + '<br />';
-            }
-        } else {
-            // When field errors raised
-            for (let field_name in err.body){
-                if (err.body.hasOwnProperty(field_name)){
-                    errorText += field_name + ': ';
-                    for (let j=0; j<err.body[field_name].length; j++){
-                        errorText += err.body[field_name][j] + '<br />';
+        if (err.body){
+            if (err.body.non_field_errors) {
+                // When non field errors raised
+                for (let i=0; i<err.body.non_field_errors.length; i++){
+                    errorText += err.body.non_field_errors[i] + '<br />';
+                }
+            } else if(Array.isArray(err.body)) {
+                // When general errors raised
+                for (let i=0; i<err.body.length; i++){
+                    errorText += err.body[i] + '<br />';
+                }
+            } else {
+                // When field errors raised
+                for (let field_name in err.body){
+                    if (err.body.hasOwnProperty(field_name)){
+                        errorText += field_name + ': ';
+                        for (let j=0; j<err.body[field_name].length; j++){
+                            errorText += err.body[field_name][j] + '<br />';
+                        }
                     }
                 }
             }
+        } else {
+            errorText += err.message;
         }
         this.errorResponse = errorText;
         //await swal("Error", errorText, "error");

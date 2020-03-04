@@ -171,9 +171,10 @@ export const offenceStore = {
                 console.log(err);
             }
         },
-        async saveOffence({dispatch, state, commit}) {
+        async saveOffence({dispatch, state, commit}, params) {
             //try{
-                console.log('try in offence.js');
+                console.log('params');
+                console.log(params);
                 // Construct url endpoint
                 let fetchUrl = helpers.add_endpoint_join(api_endpoints.offence, state.offence.id + '/');
 
@@ -181,20 +182,36 @@ export const offenceStore = {
                 let payload = new Object();
                 Object.assign(payload, state.offence);
 
-                // Format date
-                if (payload.occurrence_date_from) {
-                    payload.occurrence_date_from = moment(payload.occurrence_date_from, 'DD/MM/YYYY').format('YYYY-MM-DD');
+                if (params.fr_date && params.fr_time){
+                    let occurrence_datetime_from = moment(params.fr_date + ' ' + params.fr_time, 'DD/MM/YYYY LT');
+                    payload.occurrence_datetime_from = occurrence_datetime_from.toDate().toISOString();
+                } else {
+                    throw new Error('Occurrence date-from and time-from cannot be empty');
                 }
-                if (payload.occurrence_date_to) {
-                    payload.occurrence_date_to = moment(payload.occurrence_date_to, 'DD/MM/YYYY').format('YYYY-MM-DD');
+
+                if (payload.occurrence_from_to) {
+                    if (params.to_date && params.to_time){
+                        let occurrence_datetime_to = moment(params.to_date + ' ' + params.to_time, 'DD/MM/YYYY LT');
+                        payload.occurrence_datetime_to = occurrence_datetime_to.toDate().toISOString();
+                    } else {
+                        throw new Error('Occurrence date-to and time-to cannot be empty');
+                    }
                 }
-                // Format time
-                if (payload.occurrence_time_from) {
-                    payload.occurrence_time_from = moment(payload.occurrence_time_from, 'LT').format('HH:mm');
-                }
-                if (payload.occurrence_time_to) {
-                    payload.occurrence_time_to = moment(payload.occurrence_time_to, 'LT').format('HH:mm');
-                }
+
+               // // Format date
+               // if (payload.occurrence_date_from) {
+               //     payload.occurrence_date_from = moment(payload.occurrence_date_from, 'DD/MM/YYYY').format('YYYY-MM-DD');
+               // }
+               // if (payload.occurrence_date_to) {
+               //     payload.occurrence_date_to = moment(payload.occurrence_date_to, 'DD/MM/YYYY').format('YYYY-MM-DD');
+               // }
+               // // Format time
+               // if (payload.occurrence_time_from) {
+               //     payload.occurrence_time_from = moment(payload.occurrence_time_from, 'LT').format('HH:mm');
+               // }
+               // if (payload.occurrence_time_to) {
+               //     payload.occurrence_time_to = moment(payload.occurrence_time_to, 'LT').format('HH:mm');
+               // }
 
                 console.log('payload offence');
                 console.log(payload);
@@ -223,33 +240,26 @@ export const offenceStore = {
           //  }
         },
         async createOffence({dispatch, state}){
+            console.log('createOffence');
             let fetchUrl = '/api/offence/';
 
             let payload = new Object();
             Object.assign(payload, state.offence);
 
-            if (payload.occurrence_date_from) {
-                payload.occurrence_date_from = moment(payload.occurrence_date_from, 'DD/MM/YYYY').format('YYYY-MM-DD');
+            if (payload.occurrence_date_from && payload.occurrence_time_from){
+                let occurrence_datetime_from = moment(payload.occurrence_date_from + ' ' + payload.occurrence_time_from, 'DD/MM/YYYY LT');
+                payload.occurrence_datetime_from = occurrence_datetime_from.toDate().toISOString();
             } else {
-                payload.occurrence_date_from = null
+                throw new Error('Occurrence date-from and time-from cannot be empty');
             }
 
-            if (payload.occurrence_date_to) {
-                payload.occurrence_date_to = moment(payload.occurrence_date_to, 'DD/MM/YYYY').format('YYYY-MM-DD');
-            } else {
-                payload.occurrence_date_to = null
-            }
-
-            if (payload.occurrence_time_from) {
-                payload.occurrence_time_from = moment(payload.occurrence_time_from, 'LT').format('HH:mm')
-            } else {
-                payload.occurrence_time_from = null;
-            }
-
-            if (payload.occurrence_time_to) {
-                payload.occurrence_time_to = moment(payload.occurrence_time_to, 'LT').format('HH:mm')
-            } else {
-                payload.occurrence_time_to = null;
+            if (payload.occurrence_from_to) {
+                if (payload.occurrence_date_to && payload.occurrence_time_to){
+                    let occurrence_datetime_to = moment(payload.occurrence_date_to + ' ' + payload.occurrence_time_to, 'DD/MM/YYYY LT');
+                    payload.occurrence_datetime_to = occurrence_datetime_to.toDate().toISOString();
+                } else {
+                    throw new Error('Occurrence date-to and time-to cannot be empty');
+                }
             }
 
             console.log('payload');
