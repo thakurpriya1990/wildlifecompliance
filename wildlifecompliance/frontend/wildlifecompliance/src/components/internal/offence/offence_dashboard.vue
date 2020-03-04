@@ -120,7 +120,7 @@ export default {
                         orderable: true
                     },
                     {
-                        data: 'occurrence_date_from',
+                        data: 'occurrence_datetime_from',
                         searchable: true,
                         orderable: true,
                         mRender: function (data, type, full) {
