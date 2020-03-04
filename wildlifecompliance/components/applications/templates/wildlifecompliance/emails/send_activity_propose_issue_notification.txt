@@ -1,7 +1,7 @@
 {%  extends 'wildlifecompliance/emails/base_email.txt' %}
 
 {% block content %}
-    Wildlife Licensing application activity purposes have been proposed for issue, with below details.
+    Wildlife Licensing application activity purposes have been proposed for issue. Please approve below details.
 
     Application: {{ application.id }}
 
