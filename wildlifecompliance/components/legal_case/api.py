@@ -520,9 +520,9 @@ class LegalCaseViewSet(viewsets.ModelViewSet):
             boe_other_statements_ticked = request.data.get('boe_other_statements_ticked')
             if boe_other_statements_ticked:
                 update_boe_other_statements_ticked(instance, boe_other_statements_ticked)
-            boe_document_artifacts_ticked = request.data.get('boe_document_artifacts_ticked')
-            if boe_document_artifacts_ticked:
-                update_boe_document_artifacts_ticked(instance, boe_document_artifacts_ticked)
+            boe_document_artifacts = request.data.get('boe_document_artifacts')
+            if boe_document_artifacts:
+                update_boe_document_artifacts_ticked(instance, boe_document_artifacts)
             # physical artifacts
             boe_physical_artifacts_used = request.data.get('boe_physical_artifacts_used')
             if boe_physical_artifacts_used:
