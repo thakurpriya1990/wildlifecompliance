@@ -681,14 +681,17 @@ export default {
             setRelatedItems: 'setRelatedItems',
         }),
         constructOffenceDedicatedPage: async function(){
+            console.log('constructOffenceDedicatedPage');
             await this.loadOffenceVuex({offence_id: this.$route.params.offence_id});
             if (this.offence.occurrence_datetime_from){
                 this.date_from = moment(this.offence.occurrence_datetime_from).format("DD/MM/YYYY");
                 this.time_from = moment(this.offence.occurrence_datetime_from).format("LT");
+                console.log('date_from and time_from has been set');
             }
             if (this.offence.occurrence_datetime_to){
                 this.date_to = moment(this.offence.occurrence_datetime_to).format("DD/MM/YYYY");
                 this.time_to = moment(this.offence.occurrence_datetime_to).format("LT");
+                console.log('date_to and time_to has been set');
             }
             this.constructAllegedOffencesTable();
             this.constructOffendersTable();
@@ -1384,7 +1387,8 @@ export default {
             // "From" Date field
             el_fr_date.datetimepicker({ 
                 format: "DD/MM/YYYY", 
-                maxDate: moment().millisecond(0).second(0).minute(0).hour(0), showClear: true,
+                maxDate: moment().millisecond(0).second(0).minute(0).hour(0),
+                showClear: true,
                 date: vm.offence.occurrence_datetime_from,
             });
             el_fr_date.on("dp.change", function(e) {
@@ -1410,15 +1414,20 @@ export default {
             });
 
             // "To" Date field
+            console.log('to date');
+            console.log(vm.offence.occurrence_datetime_from);
+
             el_to_date.datetimepicker({ 
-                format: "DD/MM/YYYY", 
-                maxDate: moment().millisecond(0).second(0).minute(0).hour(0), showClear: true,
+                format: "DD/MM/YYYY",
+                maxDate: moment().millisecond(0).second(0).minute(0).hour(0),
+                minDate: vm.offence.occurrence_datetime_from,
+                showClear: true,
                 date: vm.offence.occurrence_datetime_to,
             });
             el_to_date.on("dp.change", function(e) {
                 if (el_to_date.data("DateTimePicker").date()) {
                     vm.date_to = e.date.format('DD/MM/YYYY');
-                    el_fr_date.data("DateTimePicker").maxDate(e.date);
+                    //el_fr_date.data("DateTimePicker").maxDate(e.date);
                 } else if (el_to_date.data("date") === "") {
                     vm.date_to = null;
                 }
@@ -1453,22 +1462,18 @@ export default {
         console.log('created');
         if (this.$route.params.offence_id) {
             await this.constructOffenceDedicatedPage();
-          //  await this.loadOffenceVuex({offence_id: this.$route.params.offence_id});
-          //  this.constructAllegedOffencesTable();
-          //  this.constructOffendersTable();
-          //  this.objectHash = hash(this.offence);
         }
         this.$nextTick(function() {
             this.initAwesompleteAllegedOffence();
         });
     },
-    mounted: function() {
+    mounted: async function() {
         console.log('mounted');
         let vm = this;
 
-        vm.$nextTick(() => {
+    //    vm.$nextTick(() => {
             vm.addEventListeners();
-        });
+     //   });
     }
 }
 </script>
