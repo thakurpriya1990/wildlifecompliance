@@ -495,22 +495,25 @@ module.exports = {
                     offenders_str += `<div>${offender.full_name}</div>`
                 }
             }
-
-            let status_str = '';
-            if (offence.status){
-                status_str = offence.status.name
-            }
+            let status_str = offence.status?offence.status.name:''
+            let identifier_str = offence.identifier?offence.identifier:''
 
             let content = '<div class="popup-title-main">' + offence.lodgement_number + '</div>';
-            content    += '<div class="popup-title">Offender(s)</div>'
-                        + '<div class="popup-address">'
-                        + offenders_str
-                        + '</div>'
 
-            content    += '<div class="popup-title">Status</div>'
-                        + '<div class="popup-address">'
-                        + status_str
-                        + '</div>'
+            content += '<div class="popup-title">Identifier</div>'
+                    + '<div class="popup-address">'
+                    + identifier_str
+                    + '</div>'
+
+            content += '<div class="popup-title">Offender(s)</div>'
+                    + '<div class="popup-address">'
+                    + offenders_str
+                    + '</div>'
+
+            content += '<div class="popup-title">Status</div>'
+                    + '<div class="popup-address">'
+                    + status_str
+                    + '</div>'
 
             if (offence.location.properties.street){
                 let str_street = offence.location.properties.street?offence.location.properties.street:''

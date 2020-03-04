@@ -495,28 +495,26 @@ module.exports = {
             }
         },
         construct_content: function (call_email, coords){
-            console.log('call_email');
-            console.log(call_email);
-            let classification_str = '';
-            if (call_email.classification){
-                classification_str = call_email.classification.name;
-            }
-
-            let status_str = '---';
-            if (call_email.status){
-                status_str = call_email.status.name;
-            }
+            let classification_str = call_email.classification?call_email.classification.name:''
+            let status_str = call_email.status?call_email.status.name:''
+            let identifier_str = call_email.identifier?call_email.identifier:''
 
             let content = '<div class="popup-title-main">' + call_email.number + '</div>';
-            content    += '<div class="popup-title">Classification</div>'
-                        + '<div class="popup-address">'
-                        + classification_str
-                        + '</div>'
 
-            content    += '<div class="popup-title">Status</div>'
-                        + '<div class="popup-address">'
-                        + status_str
-                        + '</div>'
+            content += '<div class="popup-title">Identifier</div>'
+                    + '<div class="popup-address">'
+                    + call_email.identifier
+                    + '</div>'
+
+            content += '<div class="popup-title">Classification</div>'
+                    + '<div class="popup-address">'
+                    + classification_str
+                    + '</div>'
+
+            content += '<div class="popup-title">Status</div>'
+                    + '<div class="popup-address">'
+                    + status_str
+                    + '</div>'
 
             if (call_email.location.properties.street){
                 let str_street = call_email.location.properties.street?call_email.location.properties.street:''
