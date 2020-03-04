@@ -495,38 +495,43 @@ module.exports = {
             }
         },
         construct_content: function (call_email, coords){
-            let classification_str = '---';
+            console.log('call_email');
+            console.log(call_email);
+            let classification_str = '';
             if (call_email.classification){
                 classification_str = call_email.classification.name;
             }
 
-            let report_type_str = '---';
-            if (call_email.report_type){
-                report_type_str = call_email.report_type.report_type;
+            let status_str = '---';
+            if (call_email.status){
+                status_str = call_email.status.name;
             }
 
             let content = '<div class="popup-title-main">' + call_email.number + '</div>';
             content    += '<div class="popup-title">Classification</div>'
-                        + '<div class="popup-coords">'
+                        + '<div class="popup-address">'
                         + classification_str
                         + '</div>'
 
-            content    += '<div class="popup-title">Report Type</div>'
+            content    += '<div class="popup-title">Status</div>'
                         + '<div class="popup-address">'
-                        + report_type_str
+                        + status_str
                         + '</div>'
 
-            
             if (call_email.location.properties.street){
+                let str_street = call_email.location.properties.street?call_email.location.properties.street:''
+                let str_town_suburb = call_email.location.properties.town_suburt?call_email.location.properties.town_suburt:''
+                let str_state = call_email.location.properties.state?call_email.location.properties.state:''
+                let str_postcode = call_email.location.properties.postcode?call_email.location.properties.postcode:''
                 content += '<div class="popup-title">Address</div>'
                 + '<div class="popup-address">'
-                + call_email.location.properties.street + '<br />'
-                + call_email.location.properties.town_suburb + '<br />'
-                + call_email.location.properties.state + '<br />'
-                + call_email.location.properties.postcode
+                + str_street + '<br />'
+                + str_town_suburb + '<br />'
+                + str_state + '<br />'
+                + str_postcode
                 + '</div>'
 
-            }else{
+            } else {
                 content += '<div class="popup-title">Details</div>'
                 + '<div class="popup-address">'
                 + call_email.location.properties.details.substring(0, 10)
@@ -600,7 +605,7 @@ module.exports = {
 }
 .popup-title {
     padding: 5px 5px 5px 10px;
-    background: gray;
+    background: darkgray;
     font-size: 1.3em;
     font-weight: bold;
     color: white;
