@@ -214,6 +214,8 @@ def create_caution_notice_pdf_bytes(filename, sanction_outcome):
         document.save()
         # END: Save
 
+        invoice_buffer.close()
+
         return document
 
 

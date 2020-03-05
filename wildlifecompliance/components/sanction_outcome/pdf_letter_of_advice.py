@@ -342,4 +342,6 @@ def create_letter_of_advice_pdf_bytes(filename, sanction_outcome):
         document.save()
         # END: Save
 
+        invoice_buffer.close()
+
         return document

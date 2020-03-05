@@ -279,20 +279,31 @@ def get_infringement_notice_table(sanction_outcome):
                  ])
 
     # When
-    data.append([Paragraph('When', styles['Bold']), Paragraph('Date: ' + date_str + gap(5) + 'Time: ' + gap(10) + 'am/pm', styles['Normal']), ''])
+    offence_datetime = sanction_outcome.offence.offence_occurrence_datetime
+    data.append([
+        Paragraph('When', styles['Bold']),
+        Paragraph('Date: ' + get_font_str(offence_datetime.strftime('%d/%m/%Y')) + gap(5) + 'Time: ' + get_font_str(offence_datetime.strftime('%I:%M %p')), styles['Normal']),
+        ''
+    ])
 
     # Where
-    data.append([Paragraph('Where', styles['Bold']), [Paragraph('Location of offence', styles['Normal']), Spacer(1, 25)], ''])
+    offence_location = sanction_outcome.offence.location
+    offence_location_str = str(offence_location) if offence_location else ''
+    data.append([
+        Paragraph('Where', styles['Bold']),
+        [
+            Paragraph('Location of offence', styles['Normal']),
+            Paragraph(get_font_str(offence_location_str), styles['Normal']),
+            Spacer(1, 25)
+        ],
+        '',
+    ])
 
     # Alleged offence
     data.append([Paragraph('Alleged offence', styles['Bold']),
                  [
                      Paragraph('Description of offence', styles['Normal']),
-                     SolidLine(370, 0),
-                     SolidLine(370, 0),
-                     SolidLine(370, 0),
-                     SolidLine(370, 0),
-                     SolidLine(370, 0),
+                     Paragraph(get_font_str(sanction_outcome.description), styles['Normal']),
                  ],
                  ''])  # row index: 8
     data.append([
@@ -309,9 +320,20 @@ def get_infringement_notice_table(sanction_outcome):
     data.append(['', Paragraph('Modified penalty: $', styles['Normal']), ''])
 
     # Officer issuing notice
-    data.append([Paragraph('Officer issuing notice', styles['Bold']), Paragraph('Name', styles['Normal']), ''])  # row index: 12
-    data.append(['', Paragraph('Signature', styles['Normal']), ''])
-    data.append(['', Paragraph('Officer no.', styles['Normal']), ''])
+    data.append([
+        Paragraph('Officer issuing notice', styles['Bold']),
+        Paragraph('Name: {}'.format(get_font_str(sanction_outcome.responsible_officer.get_full_name())), styles['Normal']), ''
+    ])  # row index: 12
+    data.append([
+        '',
+        Paragraph('Signature', styles['Normal']),
+        '',
+    ])
+    data.append([
+        '',
+        Paragraph('Officer no.', styles['Normal']),
+        '',
+    ])
 
     # Date
     data.append([Paragraph('Date', styles['Bold']), Paragraph('Date of notice:' + date_str, styles['Normal']), ''])

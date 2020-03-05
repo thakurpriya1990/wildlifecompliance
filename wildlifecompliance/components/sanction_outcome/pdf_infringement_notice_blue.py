@@ -135,6 +135,8 @@ def create_infringement_notice_blue(filename, sanction_outcome):
         document.save()
         # END: Save
 
+        invoice_buffer.close()
+
         return document
 
 
