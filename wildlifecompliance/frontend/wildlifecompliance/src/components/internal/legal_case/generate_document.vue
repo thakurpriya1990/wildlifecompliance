@@ -204,12 +204,24 @@ export default {
           
           let payload = new FormData();
           payload.append('document_type', this.document_type);
-          payload.append('include_statement_of_facts', this.includeStatementOfFacts);
-          payload.append('include_case_information_form', this.includeCaseInformationForm);
-          payload.append('include_offences_offenders_roi', this.includeOffencesOffendersRoi);
-          payload.append('include_witness_officer_other_statements', this.includeWitnessOfficerOtherStatements);
-          payload.append('include_physical_artifacts', this.includePhysicalArtifacts);
-          payload.append('include_document_artifacts', this.includeDocumentArtifacts);
+          if (this.includeStatementOfFacts) {
+              payload.append('include_statement_of_facts', this.includeStatementOfFacts);
+          }
+          if (this.includeCaseInformationForm) {
+              payload.append('include_case_information_form', this.includeCaseInformationForm);
+          }
+          if (this.includeOffencesOffendersRoi) {
+              payload.append('include_offences_offenders_roi', this.includeOffencesOffendersRoi);
+          }
+          if (this.includeWitnessOfficerOtherStatements) {
+              payload.append('include_witness_officer_other_statements', this.includeWitnessOfficerOtherStatements);
+          }
+          if (this.includePhysicalArtifacts) {
+              payload.append('include_physical_artifacts', this.includePhysicalArtifacts);
+          }
+          if (this.includeDocumentArtifacts) {
+              payload.append('include_document_artifacts', this.includeDocumentArtifacts);
+          }
           try {
               let res = await Vue.http.post(post_url, payload);
               // let res = await Vue.http.post(post_url);

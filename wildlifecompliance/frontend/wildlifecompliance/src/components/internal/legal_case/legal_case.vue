@@ -354,10 +354,12 @@
         <LegalCaseWorkflow 
         ref="legal_case_workflow"
         :workflow_type="workflow_type"
+        v-bind:key="legalCaseWorkflowBindId"
         />
         <GenerateDocument 
         ref="generate_document"
         :document_type="documentTypeToGenerate"
+        v-bind:key="generateDocumentBindId"
         />
     </div>
 </template>
@@ -412,6 +414,8 @@ export default {
             runningSheetUrl: [],
             runningSheetEntriesUpdated: [],
             runningSheetHistoryEntryBindId: '',
+            legalCaseWorkflowBindId: '',
+            generateDocumentBindId: '',
             runningSheetHistoryEntryInstance: '',
             //runningSheetArtifactList: [],
             //runningSheetPersonList: [],
@@ -423,7 +427,7 @@ export default {
             bTab: 'bTab'+this._uid,
             pTab: 'pTab'+this._uid,
             current_schema: [],
-            workflowBindId: '',
+            //workflowBindId: '',
             workflow_type: '',
             comms_url: helpers.add_endpoint_json(
               api_endpoints.legal_case,
@@ -945,6 +949,15 @@ export default {
             this.runningSheetHistoryEntryBindId = this.runningSheetHistoryEntryInstance + '_' + this.uuid;
         }
     },
+    setlegalCaseWorkflowBindId: function() {
+        this.uuid += 1;
+        this.legalCaseWorkflowBindId = 'legal_case_workflow_' + this.uuid;
+    },
+    setGenerateDocumentBindId: function() {
+        this.uuid += 1;
+        this.generateDocumentBindId = 'generate_document_' + this.uuid;
+    },
+
     runningSheetTransformWrapper: async function() {
         let runningSheet = []
         let i = 0;
@@ -1179,6 +1192,7 @@ export default {
           this.$refs.person_or_artifact_modal.isModalOpen = true;
       });
     },
+    /*
     updateWorkflowBindId: function() {
         let timeNow = Date.now()
         if (this.workflow_type) {
@@ -1187,6 +1201,7 @@ export default {
             this.workflowBindId = timeNow.toString();
         }
     },
+    */
     addWorkflow: function(workflow_type) {
         console.log(workflow_type)
         /*
@@ -1217,7 +1232,8 @@ export default {
         */
         // open workflow modal
         this.workflow_type = workflow_type;
-        this.updateWorkflowBindId();
+        this.setLegalCaseWorkflowBindId();
+        //this.updateWorkflowBindId();
         this.$nextTick(async () => {
             await this.saveLegalCase({create: false, internal: true })
             this.$refs.legal_case_workflow.isModalOpen = true;
@@ -1225,6 +1241,7 @@ export default {
     },
     printDocument: function(documentType) {
         this.documentTypeToGenerate = documentType
+        this.setGenerateDocumentBindId();
         this.$nextTick(async () => {
             await this.saveLegalCase({create: false, internal: true })
             this.$refs.generate_document.isModalOpen = true;

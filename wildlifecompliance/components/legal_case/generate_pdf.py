@@ -143,7 +143,7 @@ def _create_pdf(invoice_buffer, legal_case, request_data):
     statement_of_facts_data.append([
         Paragraph('Statement of Facts', styles['BoldLeft']),
     ])
-    string_field = report.statement__of_facts if report.statement_of_facts else ''
+    string_field = report.statement_of_facts if report.statement_of_facts else ''
     statement_of_facts_data.append([
             Paragraph(string_field, styles['Normal'])
             ])
@@ -485,40 +485,28 @@ def _create_pdf(invoice_buffer, legal_case, request_data):
     gap_between_tables = 1.5*mm
     elements = []
     #elements.append(tbl_case_information_header)
-    elements.append(Spacer(0, gap_between_tables))
-    elements.append(tbl_statement_of_facts)
-    elements.append(Spacer(0, gap_between_tables))
-    elements.append(tbl_case_information)
-    elements.append(Spacer(0, gap_between_tables))
-    elements.append(tbl_record_of_interviews)
-    #elements.append(offence_list_flowable)
-    #elements.append(records_of_interview_data)
-    elements.append(Spacer(0, gap_between_tables))
-    elements.append(tbl_other_statements)
-    elements.append(tbl_physical_artifacts)
-    elements.append(Spacer(0, gap_between_tables))
-    elements.append(tbl_document_artifacts)
-    elements.append(Spacer(0, gap_between_tables))
-    #elements.append(tbl_head)
-    #elements.append(tbl_statement)
-    #elements.append(Spacer(0, gap_between_tables))
-    #elements.append(tbl_notice)
-    #elements.append(Spacer(0, gap_between_tables))
-    #elements.append(tbl_accused)
-    #elements.append(Spacer(0, gap_between_tables))
-    #elements.append(tbl_prosecutor)
-    #elements.append(Spacer(0, gap_between_tables))
-    #elements.append(tbl_for_court)
-    #elements.append(PageBreak())
-    #elements.append(tbl_for_court_number)
-    #elements.append(Spacer(0, gap_between_tables))
-    #elements.append(tbl_above)
-    #elements.append(Spacer(0, gap_between_tables))
-    #elements.append(tbl_below)
-
+    if include_statement_of_facts:
+        print("include_statement_of_facts")
+        print(include_statement_of_facts)
+        elements.append(Spacer(0, gap_between_tables))
+        elements.append(tbl_statement_of_facts)
+    if include_case_information_form:
+        elements.append(Spacer(0, gap_between_tables))
+        elements.append(tbl_case_information)
+    if include_offences_offenders_roi:
+        elements.append(Spacer(0, gap_between_tables))
+        elements.append(tbl_record_of_interviews)
+    if include_witness_officer_other_statements:
+        elements.append(Spacer(0, gap_between_tables))
+        elements.append(tbl_other_statements)
+    if include_physical_artifacts:
+        elements.append(tbl_physical_artifacts)
+        elements.append(Spacer(0, gap_between_tables))
+    if include_document_artifacts:
+        elements.append(tbl_document_artifacts)
+        elements.append(Spacer(0, gap_between_tables))
     doc.build(elements)
     return invoice_buffer
-
 
 def gap(num):
     ret = ''
@@ -548,42 +536,21 @@ def create_document_pdf_bytes(legal_case, request_data):
                 print("delete " + path)
                 # delete file
                 default_storage.delete(path)
-                # overwrite file
-                default_storage.save(path, invoice_buffer)
-            else:
-                # create document for first time
+                # delete Document obj
                 document, created = legal_case.generated_documents.get_or_create(name=filename)
-                stored_file = default_storage.save(path, invoice_buffer)
-                document._file = stored_file
-                # save file object
-                document.save()
+                document.delete()
+            # create new Document obj
+            document, created = legal_case.generated_documents.get_or_create(name=filename)
+            # save file
+            stored_file = default_storage.save(path, invoice_buffer)
+            document._file = stored_file
+            # save file object
+            document.save()
 
-            #return document
-    #except io.
+            return document
     except Exception as e:
         print(e)
-            #print(traceback.print_exc())
-            #raise serializers.ValidationError(str(e))
-
-def create_document_pdf_bytes_alt(legal_case, request_data):
-    with BytesIO() as invoice_buffer:
-        _create_pdf(invoice_buffer, legal_case, request_data)
-        #_create_invoice(invoice_buffer, legal_case)
-
-        document_type = request_data.get('document_type')
-        filename = document_type + '_' + legal_case.number + '.pdf'
-        # Get the value of the BytesIO buffer
-        value = invoice_buffer.getvalue()
-
-        # START: Save the pdf file to the database
-        document = legal_case.generated_documents.create(name=filename)
-        path = 'wildlifecompliance/{}/{}/generated_documents/{}'.format(legal_case._meta.model_name, legal_case.id, filename)
-        #path = default_storage.save('wildlifecompliance/{}/{}/documents/{}'.format(sanction_outcome._meta.model_name, sanction_outcome.id, filename), invoice_buffer)
-        document._file = path
-        document.save()
-        # END: Save
-
-        return document
+        raise e
 
 class OffsetTable(Table, object):
 
