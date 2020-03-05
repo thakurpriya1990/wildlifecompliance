@@ -25,13 +25,12 @@ from django.conf import settings
 from ledger.accounts.models import Document
 from ledger.checkout.utils import calculate_excl_gst
 
-from wildlifecompliance.components.main.pdf_utils import OffsetTable
 
 PAGE_MARGIN = 5 * mm
 PAGE_WIDTH, PAGE_HEIGHT = A4
 
 
-def _create_pdf(invoice_buffer, sanction_outcome):
+def _create_pdf(invoice_buffer, legal_case):
     every_page_frame = Frame(PAGE_MARGIN, PAGE_MARGIN, PAGE_WIDTH - 2 * PAGE_MARGIN, PAGE_HEIGHT - 2 * PAGE_MARGIN, id='EveryPagesFrame', )  #showBoundary=Color(0, 1, 0))
     every_page_template = PageTemplate(id='EveryPages', frames=[every_page_frame,], )
     doc = BaseDocTemplate(invoice_buffer, pageTemplates=[every_page_template, ], pagesize=A4,)  # showBoundary=Color(1, 0, 0))
@@ -405,18 +404,54 @@ def _create_pdf(invoice_buffer, sanction_outcome):
     return invoice_buffer
 
 
-def create_prosecution_notice_pdf_bytes(filename, sanction_outcome):
+def gap(num):
+    ret = ''
+    for i in range(num):
+        ret = ret + '&nbsp;'
+    return ret
+
+
+def create_document_pdf_bytes(filename, legal_case):
     with BytesIO() as invoice_buffer:
-        _create_pdf(invoice_buffer, sanction_outcome)
+        _create_pdf(invoice_buffer, legal_case)
 
         # Get the value of the BytesIO buffer
         value = invoice_buffer.getvalue()
 
         # START: Save the pdf file to the database
-        document = sanction_outcome.documents.create(name=filename)
-        path = default_storage.save('wildlifecompliance/{}/{}/documents/{}'.format(sanction_outcome._meta.model_name, sanction_outcome.id, filename), invoice_buffer)
-        document._file = path
+        ## delete existing document
+        document = None
+        path = 'wildlifecompliance/{}/{}/generated_documents/{}'.format(legal_case._meta.model_name, legal_case.id, filename)
+        document_exists = default_storage.exists(path)
+        if document_exists:
+            print("delete " + path)
+            # delete file
+            default_storage.delete(path)
+        document, created = legal_case.generated_documents.get_or_create(name=filename)
+        stored_file = default_storage.save(path, invoice_buffer)
+        document._file = stored_file
+        # save file object
         document.save()
-        # END: Save
 
         return document
+
+
+class OffsetTable(Table, object):
+
+    def __init__(self, data, colWidths=None, rowHeights=None, style=None,
+                 repeatRows=0, repeatCols=0, splitByRow=1, emptyTableAction=None, ident=None,
+                 hAlign=None, vAlign=None, normalizedData=0, cellStyles=None, rowSplitRange=None,
+                 spaceBefore=None, spaceAfter=None, longTableOptimize=None, minRowHeights=None, x_offset=0, y_offset=0):
+        self.x_offset = x_offset
+        self.y_offset = y_offset
+        super(OffsetTable, self).__init__(data, colWidths, rowHeights, style,
+                                          repeatRows, repeatCols, splitByRow, emptyTableAction, ident,
+                                          hAlign, vAlign, normalizedData, cellStyles, rowSplitRange,
+                                          spaceBefore, spaceAfter, longTableOptimize, minRowHeights)
+
+    def drawOn(self, canvas, x, y, _sW=0):
+        x = x + self.x_offset
+        y = y + self.y_offset
+        super(OffsetTable, self).drawOn(canvas, x, y, _sW)
+
+

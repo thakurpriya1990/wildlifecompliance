@@ -1,7 +1,9 @@
 import datetime
 from collections import OrderedDict
 
+import pytz
 from django.db.models import Q
+from ledger.settings_base import TIME_ZONE
 from rest_framework import serializers
 
 from wildlifecompliance.components.main.serializers import CommunicationLogEntrySerializer
@@ -85,18 +87,11 @@ class OffenceDatatableSerializer(serializers.ModelSerializer):
             'identifier',
             'status',
             'lodgement_number',
-            # 'region',
-            # 'district',
-            # 'offence',
             'offenders',
             'alleged_offences',
-            # 'issued_on_paper',
-            # 'paper_id',
             'occurrence_from_to',
-            'occurrence_date_from',
-            'occurrence_time_from',
-            'occurrence_date_to',
-            'occurrence_time_to',
+            'occurrence_datetime_from',
+            'occurrence_datetime_to',
             'details',
             'user_action',
         )
@@ -187,10 +182,8 @@ class OffenceSerializer(serializers.ModelSerializer):
             'district',
             'inspection_id',
             'occurrence_from_to',
-            'occurrence_date_from',
-            'occurrence_time_from',
-            'occurrence_date_to',
-            'occurrence_time_to',
+            'occurrence_datetime_from',
+            'occurrence_datetime_to',
             'details',
             'location',
             'alleged_offences',
@@ -385,10 +378,8 @@ class SaveOffenceSerializer(serializers.ModelSerializer):
             'legal_case_id',
             'inspection_id',
             'occurrence_from_to',
-            'occurrence_date_from',
-            'occurrence_time_from',
-            'occurrence_date_to',
-            'occurrence_time_to',
+            'occurrence_datetime_from',
+            'occurrence_datetime_to',
             'details',
             'region_id',
             'district_id',
@@ -405,27 +396,31 @@ class SaveOffenceSerializer(serializers.ModelSerializer):
         if not data['identifier']:
             field_errors['Identifier'] = ['Offence must have an identifier',]
 
-        if not data['occurrence_date_from']:
-            field_errors['Occurrence date from'] = ['Cannot be blank',]
-        if not data['occurrence_time_from']:
-            field_errors['Occurrence time from'] = ['Cannot be blank',]
+        # if not data['occurrence_date_from']:
+        #     field_errors['Occurrence date from'] = ['Cannot be blank',]
+        # if not data['occurrence_time_from']:
+        #     field_errors['Occurrence time from'] = ['Cannot be blank',]
+        if not data['occurrence_datetime_from']:
+            field_errors['Occurrence date/time from'] = ['Cannot be blank',]
+
         if data['occurrence_from_to']:
-            if not data['occurrence_date_to']:
-                field_errors['Occurrence date to'] = ['Cannot be blank',]
-            if not data['occurrence_time_to']:
-                field_errors['Occurrence time to'] = ['Cannot be blank',]
+            # if not data['occurrence_date_to']:
+            #     field_errors['Occurrence date to'] = ['Cannot be blank',]
+            # if not data['occurrence_time_to']:
+            #     field_errors['Occurrence time to'] = ['Cannot be blank',]
+            if not data['occurrence_datetime_to']:
+                field_errors['Occurrence date/time to'] = ['Cannot be blank', ]
         else:
-            data['occurrence_date_to'] = None
-            data['occurrence_time_to'] = None
+            # data['occurrence_date_to'] = None
+            # data['occurrence_time_to'] = None
+            data['occurrence_datetime_to'] = None
 
         # Raise errors
         if field_errors:
             raise serializers.ValidationError(field_errors)
 
         if data['occurrence_from_to']:
-            datetime_to = datetime.datetime.combine(data['occurrence_date_to'], data['occurrence_time_to'])
-            datetime_from = datetime.datetime.combine(data['occurrence_date_from'], data['occurrence_time_from'])
-            if datetime_to < datetime_from:
+            if data['occurrence_datetime_from'] > data['occurrence_datetime_to']:
                 non_field_errors.append('Offence occurrence "from" datetime must be before "to" datetime')
 
         # Raise errors

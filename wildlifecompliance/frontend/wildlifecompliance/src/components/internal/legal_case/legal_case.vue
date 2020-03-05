@@ -94,6 +94,14 @@
                         </div>
                         <div  class="row action-button">
                           <div v-if="canUserAction && briefOfEvidenceStatus" class="col-sm-12">
+                                <a @click="printDocument('brief_of_evidence')" class="btn btn-primary btn-block">
+                                <!--a @click="createProsecutionBrief" class="btn btn-primary btn-block"-->
+                                  Print Brief of Evidence
+                                </a>
+                          </div>
+                        </div>
+                        <div  class="row action-button">
+                          <div v-if="canUserAction && briefOfEvidenceStatus" class="col-sm-12">
                                 <a @click="addWorkflow('send_to_manager')" class="btn btn-primary btn-block">
                                 <!--a @click="createProsecutionBrief" class="btn btn-primary btn-block"-->
                                   Send To Manager
@@ -129,6 +137,14 @@
                                 <a @click="addWorkflow('send_to_prosecution_council')" class="btn btn-primary btn-block">
                                 <!--a @click="createProsecutionBrief" class="btn btn-primary btn-block"-->
                                   Send To Prosecution Council
+                                </a>
+                          </div>
+                        </div>
+                        <div  class="row action-button">
+                          <div v-if="canUserAction && withProsecutionCoordinatorProsecutionBriefStatus" class="col-sm-12">
+                                <a @click="printDocument('prosecution_brief')" class="btn btn-primary btn-block">
+                                <!--a @click="createProsecutionBrief" class="btn btn-primary btn-block"-->
+                                  Print Prosecution Brief
                                 </a>
                           </div>
                         </div>
@@ -339,6 +355,10 @@
         ref="legal_case_workflow"
         :workflow_type="workflow_type"
         />
+        <GenerateDocument 
+        ref="generate_document"
+        :document_type="documentTypeToGenerate"
+        />
     </div>
 </template>
 <script>
@@ -372,6 +392,7 @@ import '@riophae/vue-treeselect/dist/vue-treeselect.css'
 import BriefOfEvidence from './brief_of_evidence';
 import ProsecutionBrief from './prosecution_brief';
 import CourtProceedings from './court_proceedings';
+import GenerateDocument from './generate_document';
 
 
 export default {
@@ -381,6 +402,7 @@ export default {
             //boeRoiTicked: [],
             //boeRoiOptions: [],
             //boeOtherStatementsOptions: [],
+            documentTypeToGenerate: '',
             entityEdit: {},
             uuid: 0,
             showSpinner: false,
@@ -541,6 +563,7 @@ export default {
     BriefOfEvidence,
     CourtProceedings,
     ProsecutionBrief,
+    GenerateDocument,
   },
   computed: {
     ...mapGetters('legalCaseStore', {
@@ -1200,6 +1223,14 @@ export default {
             this.$refs.legal_case_workflow.isModalOpen = true;
         });
     },
+    printDocument: function(documentType) {
+        this.documentTypeToGenerate = documentType
+        this.$nextTick(async () => {
+            await this.saveLegalCase({create: false, internal: true })
+            this.$refs.generate_document.isModalOpen = true;
+        });
+    },
+
     /*
     createBriefOfEvidence: async function() {
         await this.save({ 

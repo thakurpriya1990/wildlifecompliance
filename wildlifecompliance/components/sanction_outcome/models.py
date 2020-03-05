@@ -161,6 +161,7 @@ class SanctionOutcome(models.Model):
     date_of_issue = models.DateField(null=True, blank=True)
     time_of_issue = models.TimeField(null=True, blank=True)
 
+
     # Following attributes should be determined at the moment of issue
     penalty_amount_1st = models.DecimalField(max_digits=8, decimal_places=2, default='0.00')
     penalty_amount_2nd = models.DecimalField(max_digits=8, decimal_places=2, default='0.00')
@@ -297,8 +298,11 @@ class SanctionOutcome(models.Model):
             return self.driver, 'driver'
         elif self.registration_holder:
             return self.registration_holder, 'registration_holder'
-        else:
+        elif self.offender:
             return self.offender.person, 'offender'
+        else:
+            print('SanctionOutcome: ' + self.lodgement_number + ' has no offenders.')
+            return None, ''
 
     @property
     def prefix_lodgement_nubmer(self):
