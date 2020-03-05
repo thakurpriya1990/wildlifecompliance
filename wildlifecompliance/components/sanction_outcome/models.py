@@ -161,7 +161,6 @@ class SanctionOutcome(models.Model):
     date_of_issue = models.DateField(null=True, blank=True)
     time_of_issue = models.TimeField(null=True, blank=True)
 
-
     # Following attributes should be determined at the moment of issue
     penalty_amount_1st = models.DecimalField(max_digits=8, decimal_places=2, default='0.00')
     penalty_amount_2nd = models.DecimalField(max_digits=8, decimal_places=2, default='0.00')

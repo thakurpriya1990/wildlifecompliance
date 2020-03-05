@@ -186,6 +186,17 @@ class DbcaLogo(Image, object):
         super(DbcaLogo, self).__init__(filename, width, height, kind, mask, lazy, hAlign)
 
 
+def get_font_str(test, fontName="Helvetica", strong=True):
+    strong_open = ''
+    strong_close = ''
+    if strong:
+        strong_open = '<strong>'
+        strong_close = '</strong>'
+    ret = '<font face="' + fontName + '">' + strong_open + test + strong_close + '</font>'
+
+    return ret
+
+
 def get_infringement_notice_table(sanction_outcome):
     col_width = [40*mm, 60*mm, 80*mm,]
 
@@ -253,14 +264,22 @@ def get_infringement_notice_table(sanction_outcome):
                  Paragraph(u'Infringement<br />notice no. <font face="Helvetica"><strong>' + sanction_outcome.lodgement_number + u'</strong></font>', styles['Normal'])])
 
     # Alleged offender
-    data.append([Paragraph('Alleged offender', styles['Bold']), Paragraph('Name: Family name', styles['Normal']), ''])
-    data.append(['', Paragraph(gap(12) + 'Given names', styles['Normal']), ''])
-    data.append(['', Paragraph(gap(12) + 'Date of Birth', styles['Normal']), ''])
-    data.append(['', [Paragraph('<strong>or</strong><br />Body corporate name', styles['Normal']), Spacer(1, 22)], ''])
-    data.append(['', [Paragraph('Address', styles['Normal']), Spacer(1, 22), Paragraph('Postcode', styles['Normal'])], ''])
+    offender = sanction_outcome.get_offender()
+    data.append([Paragraph('Alleged offender', styles['Bold']), Paragraph('Name: Family name: ' + get_font_str(offender[0].last_name), styles['Normal']), ''])
+    data.append(['', Paragraph(gap(12) + 'Given names: ' + get_font_str(offender[0].first_name), styles['Normal']), ''])
+    data.append(['', Paragraph(gap(12) + 'Date of Birth: ' + get_font_str(offender[0].dob.strftime('%d/%m/%Y')), styles['Normal']), ''])
+    data.append(['', [Paragraph('<strong>or</strong><br />Body corporate name: ', styles['Normal']), Spacer(1, 22)], ''])
+    data.append(['',
+                 [
+                    Paragraph('Address: ', styles['Normal']),
+                    Paragraph(get_font_str(str(offender[0].residential_address)), styles['Normal']),
+                    Paragraph('Postcode: ' + get_font_str(offender[0].residential_address.postcode), styles['Normal']),
+                 ],
+                '',
+                 ])
 
     # When
-    data.append([Paragraph('When', styles['Bold']), Paragraph('Date' + date_str + gap(5) + 'Time' + gap(10) + 'am/pm', styles['Normal']), ''])
+    data.append([Paragraph('When', styles['Bold']), Paragraph('Date: ' + date_str + gap(5) + 'Time: ' + gap(10) + 'am/pm', styles['Normal']), ''])
 
     # Where
     data.append([Paragraph('Where', styles['Bold']), [Paragraph('Location of offence', styles['Normal']), Spacer(1, 25)], ''])

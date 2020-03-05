@@ -418,35 +418,35 @@
 
 
         <div v-if="workflow_type">
-            <SanctionOutcomeWorkflow 
-            ref="add_workflow" 
-            :workflow_type="workflow_type" 
+            <SanctionOutcomeWorkflow
+            ref="add_workflow"
+            :workflow_type="workflow_type"
             :key="workflowBindId" />
         </div>
 
         <div v-if="extendPaymentDueDateInitialized">
-            <ExtendPaymentDueDate 
-             ref="extend_payment_due_date" 
-             :due_date_1st="last_due_date_1st" 
-             :due_date_2nd="last_due_date_2nd" 
-             :due_date_max="sanction_outcome.due_date_extended_max" 
+            <ExtendPaymentDueDate
+             ref="extend_payment_due_date"
+             :due_date_1st="last_due_date_1st"
+             :due_date_2nd="last_due_date_2nd"
+             :due_date_max="sanction_outcome.due_date_extended_max"
              :key="extendDueDateBindId" />
         </div>
 
         <div v-if="recordFerCaseNumberInitialized">
-            <RecordFerCaseNumber 
-             ref="record_fer_case_number" 
+            <RecordFerCaseNumber
+             ref="record_fer_case_number"
              :key="recordFerCaseNumberBindId" />
         </div>
-        
+
         <div v-if="sendParkingInfringementInitialized">
-            <SendParkingInfringement 
-            ref="send_parking_infringement" 
+            <SendParkingInfringement
+            ref="send_parking_infringement"
             :key="sendParkingInfringementBindId" />
         </div>
 
         <div v-if="acceptRemediationActionInitialized">
-            <AcceptRemediationAction 
+            <AcceptRemediationAction
              ref="accept_remediation_action"
              :remediation_action_id="remediation_action_id"
              @remediation_action_accepted="onRemediationActionUpdated"
@@ -454,7 +454,7 @@
         </div>
 
         <div v-if="requestAmendmentRemediationAction">
-            <RequestAmendmentRemediationAction 
+            <RequestAmendmentRemediationAction
              ref="request_amendment_remediation_action"
              @remediation_action_updated="onRemediationActionUpdated"
              :remediation_action_id="remediation_action_id"
@@ -553,9 +553,9 @@ export default {
                 this.$route.params.sanction_outcome_id + "/action_log"
             ),
             dtHeadersRemediationActions: [
-                "id", 
-                "Due Date", 
-                "Action Desc", 
+                "id",
+                "Due Date",
+                "Action Desc",
                 "Status",
                 "Action Taken",
                 "Action",
@@ -597,12 +597,12 @@ export default {
 
                             body += '<tr>' +
                                 td + ra.action_taken + td_close +
-                                td + ra.documents + td_close + 
+                                td + ra.documents + td_close +
                             '</tr>'
 
-                            let header = '<thead><tr>' + 
-                                th + 'Action Taken' + th_close + 
-                                th + 'Attachment' + th_close + 
+                            let header = '<thead><tr>' +
+                                th + 'Action Taken' + th_close +
+                                th + 'Attachment' + th_close +
                                 '</tr></thead>'
                             html = '<table class="table">' + header + body + '</table>'
 
@@ -817,7 +817,7 @@ export default {
             let canUserEdit = false;
             if (this.sanction_outcome.can_user_action){
                 if (this.sanction_outcome.type.id === 'infringement_notice'){
-                    if (this.sanction_outcome.status.id === this.STATUS_WITH_DOT || 
+                    if (this.sanction_outcome.status.id === this.STATUS_WITH_DOT ||
                         this.sanction_outcome.status.id === this.STATUS_AWAITING_ISSUANCE ||
                         this.sanction_outcome.status.id === this.STATUS_AWAITING_PAYMENT){
                         canUserEdit = true;
@@ -992,6 +992,7 @@ export default {
             return visibility;
         },
         visibilityEndorseButton: function() {
+            return true;
             let visibility = false;
             if (this.sanction_outcome.can_user_action){
                 if (this.sanction_outcome.status.id === this.STATUS_AWAITING_ENDORSEMENT || this.sanction_outcome.status.id === this.STATUS_AWAITING_REVIEW){
