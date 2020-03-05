@@ -351,16 +351,20 @@
             v-bind:key="runningSheetHistoryEntryBindId"
             />
         </div>
-        <LegalCaseWorkflow 
-        ref="legal_case_workflow"
-        :workflow_type="workflow_type"
-        v-bind:key="legalCaseWorkflowBindId"
-        />
-        <GenerateDocument 
-        ref="generate_document"
-        :document_type="documentTypeToGenerate"
-        v-bind:key="generateDocumentBindId"
-        />
+        <div v-if="legalCaseWorkflowBindId">
+            <LegalCaseWorkflow 
+            ref="legal_case_workflow"
+            :workflow_type="workflow_type"
+            v-bind:key="legalCaseWorkflowBindId"
+            />
+        </div>
+        <div v-if="generateDocumentBindId">
+            <GenerateDocument 
+            ref="generate_document"
+            :document_type="documentTypeToGenerate"
+            v-bind:key="generateDocumentBindId"
+            />
+        </div>
     </div>
 </template>
 <script>
@@ -739,26 +743,6 @@ export default {
         // return false if no related item is an Offence
         return false
     },
-      /*
-    offenceList: function() {
-        let oList = [];
-        for (let item of this.legal_case.related_items) {
-            if (item.model_name.toLowerCase() === 'offence') {
-                oList.push(item);
-            }
-        }
-        return oList;
-    },
-    */
-    /*
-    offenceVisibility: function() {
-        let offence_visibility = false;
-        if (this.legal_case.status && this.legal_case.can_user_action) {
-            offence_visibility = this.legal_case.status.id === 'open' ? true : false;
-        }
-        return offence_visibility;
-    },
-    */
     sanctionOutcomeVisibility: function() {
         let sanction_outcome_visibility = false;
         if (this.legal_case.status && this.offenceExists && this.legal_case.can_user_action) {
@@ -783,16 +767,6 @@ export default {
         }
         return related_items_visibility;
     },
-      /*
-    runningSheetVisibility: function() {
-        let running_sheet_visibility = false;
-        if (this.legal_case && this.legal_case.id && ['open'].includes(this.legal_case.status)) {
-            running_sheet_visibility = true;
-        }
-        return running_sheet_visibility;
-    },
-    */
-
     personOrArtifactBindId: function() {
         let person_or_artifact_id = ''
         person_or_artifact_id = this.tabSelected + parseInt(this.uuid);
@@ -803,17 +777,6 @@ export default {
         offence_bind_id = 'offence' + parseInt(this.uuid);
         return offence_bind_id;
     },
-      /*
-    briefOfEvidenceVisibility: function() {
-        let visible = false;
-        if (this.legal_case && this.legal_case.id &&
-            (this.legal_case.brief_of_evidence || this.legal_case.status.id === 'brief_of_evidence')
-        ) {
-            visible = true;
-        }
-        return visible;
-    },
-    */
     briefOfEvidenceVisibility: function() {
         let visible = false;
         if (this.legal_case && 
@@ -886,26 +849,6 @@ export default {
         }
         return keyCombination;
     },
-    /*
-    boeRoiTicked: function() {
-        let ticked = []
-        if (this.legal_case && this.legal_case.boe_roi_ticked) {
-            for (let id of this.legal_case.boe_roi_ticked) {
-                ticked.push(id)
-            }
-        }
-        return ticked;
-    },
-    boeOtherStatementsTicked: function() {
-        let ticked = []
-        if (this.legal_case && this.legal_case.boe_other_statements_ticked) {
-            for (let id of this.legal_case.boe_other_statements_ticked) {
-                ticked.push(id)
-            }
-        }
-        return ticked;
-    },
-    */
   },
   filters: {
     formatDate: function(data) {
@@ -926,23 +869,10 @@ export default {
       addToRunningSheetPersonList: 'addToRunningSheetPersonList',
       setBriefOfEvidence: 'setBriefOfEvidence',
       setProsecutionBrief: 'setProsecutionBrief',
-      //setBoeRoiTicked: 'setBoeRoiTicked',
-      //setBoeOtherStatementsTicked: 'setBoeOtherStatementsTicked',
     }),
     ...mapActions({
         loadCurrentUser: 'loadCurrentUser',
     }),
-    /*
-    handleVictimImpactCheckbox: function(e) {
-        console.log(e)
-        //let checkboxValue = false;
-        let eventValue = e.target.value ? e.target.value : null;
-        if (eventValue === 'on' && e.target.checked) {
-            //checkboxValue = true;
-            this.victimImpactCheckbox = true;
-        }
-    },
-    */
     setRunningSheetHistoryEntryBindId: function() {
         if (this.runningSheetHistoryEntryInstance) {
             this.uuid += 1;
@@ -1001,14 +931,6 @@ export default {
             })
         }
     },
-    /*
-    cancelPersonModalUrl: function(recordNumberElement) {
-        let replacementVal = ''
-        //let recordDescriptionHtml = recordNumberElement[0].innerHTML.replace('@@', replacementVal).replace(/&nbsp\;/g, ' ');
-        let recordDescriptionHtml = recordNumberElement[0].innerHTML.replace(this.tabSelectedKeyCombination, replacementVal).replace(/&nbsp\;/g, ' ');
-        return recordDescriptionHtml;
-    },
-    */
     insertPersonModalUrl: function({"entity": entity, "recordNumberElement": recordNumberElement}) {
         console.log(entity);
         console.log(recordNumberElement);
@@ -1025,13 +947,6 @@ export default {
         let recordDescriptionHtml = recordNumberElement[0].innerHTML.replace(this.tabSelectedKeyCombination, replacementVal);
         return recordDescriptionHtml;
     },
-    /*
-    cancelArtifactModalUrl: function(recordNumberElement) {
-        let replacementVal = ''
-        let recordDescriptionHtml = recordNumberElement[0].innerHTML.replace(this.tabSelectedKeyCombination, replacementVal).replace(/&nbsp\;/g, ' ');
-        return recordDescriptionHtml;
-    },
-    */
     insertArtifactModalUrl: function({"entity": entity, "recordNumberElement": recordNumberElement}) {
         console.log(entity)
         let replacementVal = '';
@@ -1192,16 +1107,6 @@ export default {
           this.$refs.person_or_artifact_modal.isModalOpen = true;
       });
     },
-    /*
-    updateWorkflowBindId: function() {
-        let timeNow = Date.now()
-        if (this.workflow_type) {
-            this.workflowBindId = this.workflow_type + '_' + timeNow.toString();
-        } else {
-            this.workflowBindId = timeNow.toString();
-        }
-    },
-    */
     addWorkflow: function(workflow_type) {
         console.log(workflow_type)
         /*
@@ -1248,20 +1153,6 @@ export default {
         });
     },
 
-    /*
-    createBriefOfEvidence: async function() {
-        await this.save({ 
-            "createBriefOfEvidence": true,
-            "fullHttpResponse": true
-        })
-    },
-    createProsecutionBrief: async function() {
-        await this.save({ 
-            "createProsecutionBrief": true,
-            "fullHttpResponse": true
-        })
-    },
-    */
     saveExit: async function() {
         await this.save({ "returnToDash": true })
     },
@@ -1374,17 +1265,6 @@ export default {
             }
         }
     },
-    /*
-    runningSheetKeydown: async function(e, offset) {
-        console.log(e)
-        console.log(offset)
-        if (e.key === 'o' && e.altKey) {
-            this.openInspection()
-        } else if (e.key === 'p' && e.altKey) {
-            this.openSearchPersonOrganisation(e.target.id, offset)
-        }
-    },
-    */
     runningSheetKeydown: async function(e) {
         console.log(e)
         if (e.key === '!' && e.shiftKey && this.searchArtifactKeyPressed) {

@@ -469,7 +469,6 @@ def _create_pdf(invoice_buffer, legal_case, request_data):
             ParagraphCheckbox(artifact.document_artifact.identifier, x_offset=5, checked=artifact.ticked, style=styles['Normal'])
             ])
         for attachment in artifact.document_artifact.documents.all():
-            print(attachment.name)
             if attachment.name:
                 document_artifacts_data.append([
                     ParagraphOffeset(
@@ -486,8 +485,6 @@ def _create_pdf(invoice_buffer, legal_case, request_data):
     elements = []
     #elements.append(tbl_case_information_header)
     if include_statement_of_facts:
-        print("include_statement_of_facts")
-        print(include_statement_of_facts)
         elements.append(Spacer(0, gap_between_tables))
         elements.append(tbl_statement_of_facts)
     if include_case_information_form:
