@@ -64,32 +64,49 @@ class ApplicationSuccessView(TemplateView):
     template_name = 'wildlifecompliance/application_success.html'
 
     def get(self, request, *args, **kwargs):
-        print('application success view')
-
         submit_success = True
         application = get_session_application(request.session)
         try:
             application.submit(request)
-            print('submit request')
+
         except Exception as e:
             submit_success = False
             print(e)
             traceback.print_exc
 
         try:
-            print(get_session_application(request.session))
-
             invoice_ref = request.GET.get('invoice')
             try:
                 bind_application_to_invoice(request, application, invoice_ref)
+
                 invoice_url = request.build_absolute_uri(
-                    reverse('payments:invoice-pdf', kwargs={'reference': invoice_ref}))
+                    reverse(
+                        'payments:invoice-pdf',
+                        kwargs={'reference': invoice_ref}))
+
                 if application.application_fee_paid:
+
                     application.submit(request)
                     send_application_invoice_email_notification(
                         application, invoice_ref, request)
+
+                    # record invoice payment for licence activities.
+                    for activity in application.activities:
+
+                        invoice = ActivityInvoice.objects.get_or_create(
+                            activity=activity,
+                            invoice_reference=invoice_ref
+                        )
+
+                        ActivityInvoiceLine.objects.get_or_create(
+                            invoice=invoice[0],
+                            licence_activity=activity.licence_activity,
+                            amount=activity.licence_fee
+                        )
+
                 else:
-                    # TODO: check if this ever occurs from the above code and provide error screen for user
+                    # TODO: check if this ever occurs from the above code and
+                    # provide error screen for user
                     # console.log('Invoice remains unpaid')
                     delete_session_application(request.session)
                     return redirect(reverse('external'))
@@ -137,11 +154,12 @@ class LicenceFeeSuccessView(TemplateView):
                     invoice_reference=invoice_ref
                 )
 
-                ActivityInvoiceLine.objects.get_or_create(
-                    invoice=invoice[0],
-                    licence_activity=activity.licence_activity,
-                    amount=activity.licence_fee
-                )
+                if activity.licence_fee > 0:
+                    ActivityInvoiceLine.objects.get_or_create(
+                        invoice=invoice[0],
+                        licence_activity=activity.licence_activity,
+                        amount=activity.licence_fee
+                    )
 
                 if activity.application_fee > 0:
                     ActivityInvoiceLine.objects.get_or_create(

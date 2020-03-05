@@ -6,6 +6,8 @@ from decimal import Decimal
 
 # from wildlifecompliance import settings
 
+from ledger.checkout.utils import calculate_excl_gst
+
 from wildlifecompliance.components.applications.models import (
     Application,
     ApplicationFormDataRecord,
@@ -51,6 +53,13 @@ class ApplicationService(object):
         Licence fees cannot be adjusted with form attributes.
         """
         return get_dynamic_schema_attributes(application, data_source)['fees']
+
+    @staticmethod
+    def get_product_lines(application):
+        """
+        Gets the application fee product lines to be charged through checkout.
+        """
+        return ApplicationFeePolicy.get_fee_product_lines_for(application)
 
     @staticmethod
     def process_form(
@@ -471,6 +480,46 @@ class ApplicationFeePolicy(object):
             application.application_type, NewApplicationFeePolicy(application))
 
         return policy
+
+    @staticmethod
+    def get_fee_product_lines_for(application):
+        """
+        Gets the checkout product lines for this application which inlcudes
+        fee for both the application and licence activities. 
+        """
+        product_lines = []
+
+        # application.
+        activities_with_fees = [
+            a for a in application.activities if a.application_fee > 0]
+
+        for activity in activities_with_fees:
+            product_lines.append({
+                'ledger_description': '{} (Application Fee)'.format(
+                    activity.licence_activity.name),
+                'quantity': 1,
+                'price_incl_tax': str(activity.application_fee),
+                'price_excl_tax': str(calculate_excl_gst(
+                    activity.application_fee)),
+                'oracle_code': ''
+            })
+
+        # licence activities.
+        activities_with_fees = [
+            a for a in application.activities if a.licence_fee > 0]
+
+        for activity in activities_with_fees:
+            product_lines.append({
+                'ledger_description': '{} (Licence Fee)'.format(
+                    activity.licence_activity.name),
+                'quantity': 1,
+                'price_incl_tax': str(activity.licence_fee),
+                'price_excl_tax': str(calculate_excl_gst(
+                        activity.licence_fee)),
+                'oracle_code': ''
+            })
+
+        return product_lines
 
     @abc.abstractmethod
     def get_dynamic_attributes(self):
