@@ -363,7 +363,7 @@ export default {
     });
     if (this.application.customer_status.id=='amendment_required') { // requested amendments.
        // fees can be adjusted from selected components for requested amendments.
-      this.adjusted_application_fee = this.application.application_fee - this.application.total_paid_amount
+      this.adjusted_application_fee = this.application.application_fee - this.application.adjusted_paid_amount
     } else {
       // no adjustments for new applications.
       this.adjusted_application_fee = this.application.application_fee
