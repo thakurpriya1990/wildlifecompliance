@@ -62,7 +62,7 @@ from wildlifecompliance.components.legal_case.models import (
     BriefOfEvidence,
     ProsecutionBrief,
     CourtProceedings, CourtDate)
-from wildlifecompliance.components.legal_case.pdf_brief_of_evidence import create_document_pdf_bytes
+from wildlifecompliance.components.legal_case.generate_pdf import create_document_pdf_bytes
 #from wildlifecompliance.components.artifact.models import (
 #        DocumentArtifact,
 #        PhysicalArtifact,
@@ -520,9 +520,9 @@ class LegalCaseViewSet(viewsets.ModelViewSet):
             boe_other_statements_ticked = request.data.get('boe_other_statements_ticked')
             if boe_other_statements_ticked:
                 update_boe_other_statements_ticked(instance, boe_other_statements_ticked)
-            boe_document_artifacts_ticked = request.data.get('boe_document_artifacts_ticked')
-            if boe_document_artifacts_ticked:
-                update_boe_document_artifacts_ticked(instance, boe_document_artifacts_ticked)
+            boe_document_artifacts = request.data.get('boe_document_artifacts')
+            if boe_document_artifacts:
+                update_boe_document_artifacts_ticked(instance, boe_document_artifacts)
             # physical artifacts
             boe_physical_artifacts_used = request.data.get('boe_physical_artifacts_used')
             if boe_physical_artifacts_used:
@@ -710,11 +710,9 @@ class LegalCaseViewSet(viewsets.ModelViewSet):
         try:
             print(request.data)
             instance = self.get_object()
-            document_type = request.data.get("document_type")
-            #brief_of_evidence_instance = instance.brief_of_evidence
-            filename = document_type + '_' + instance.number + '.pdf'
-            returned_document = create_document_pdf_bytes(filename, instance)
-                #returned_data = process_generic_document(request, brief_of_evidence_instance, document_type="generated_documents")
+            #document_type = request.data.get("document_type")
+            #returned_document = create_document_pdf_bytes(filename, instance)
+            returned_document = create_document_pdf_bytes(instance, request.data)
             if returned_document:
                 return Response(status=status.HTTP_201_CREATED)
             else:

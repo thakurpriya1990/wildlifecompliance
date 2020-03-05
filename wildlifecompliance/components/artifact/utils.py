@@ -87,14 +87,12 @@ def generate_boe_document_artifacts(legal_case):
                     document_artifact=artifact
                     )
 
-def update_boe_document_artifacts_ticked(legal_case, boe_document_artifacts_ticked):
-    # get all associated BriefOfEvidenceDocumentArtifacts records
-    queryset = BriefOfEvidenceDocumentArtifacts.objects.filter(legal_case__id=legal_case.id)
-    for record in queryset:
-        if record.id in boe_document_artifacts_ticked:
-            record.ticked = True
-        else:
-            record.ticked = False
+def update_boe_document_artifacts_ticked(legal_case, boe_document_artifacts):
+    for artifact in boe_document_artifacts:
+        document_artifact_id = artifact.get("document_artifact_id")
+        ticked = artifact.get("ticked")
+        record = BriefOfEvidenceDocumentArtifacts.objects.get(legal_case=legal_case, document_artifact_id=document_artifact_id)
+        record.ticked = ticked
         record.save()
 
 def generate_boe_physical_artifacts(legal_case):
