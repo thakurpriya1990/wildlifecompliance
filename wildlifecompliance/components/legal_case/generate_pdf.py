@@ -525,13 +525,15 @@ def create_document_pdf_bytes(legal_case, request_data):
             bytes_value = invoice_buffer.getvalue()
             #invoice_buffer.close()
 
+        with open(filename, 'wb') as new_file:
+            new_file.write(bytes_value)
         response = HttpResponse(content_type='application/pdf')
         response['Content-Disposition'] = 'attachment; filename="{}"'.format(filename)
+        #response.write(new_file)
         response.write(bytes_value)
+        return response
         #response = FileResponse(bytes_value, as_attachment=True, filename=filename)
         #document = None
-        #with open(filename, 'wb') as new_file:
-         #   new_file.write(bytes_value)
 
 
         #document = FileIO(filename, 'w')
@@ -560,7 +562,7 @@ def create_document_pdf_bytes(legal_case, request_data):
             ## save file object
             #document.save()
 
-        return response
+        #return response
     except Exception as e:
         print(e)
         raise e
