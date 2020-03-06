@@ -526,8 +526,9 @@ class SanctionOutcome(models.Model):
             self.allocated_group = new_group
 
         elif self.type in (SanctionOutcome.TYPE_CAUTION_NOTICE, SanctionOutcome.TYPE_LETTER_OF_ADVICE):
-            print('In SanctionOutcome.endorse(): Should not reach here...')
-            self.close(request)
+            # print('In SanctionOutcome.endorse(): Should not reach here...')
+            # self.close(request)
+            self.confirm_date_time_issue(raise_exception=True)
 
         elif self.type == SanctionOutcome.TYPE_REMEDIATION_NOTICE:
             self.status = SanctionOutcome.STATUS_AWAITING_REMEDIATION_ACTIONS

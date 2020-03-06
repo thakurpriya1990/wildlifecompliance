@@ -1190,6 +1190,7 @@ class SanctionOutcomeViewSet(viewsets.ModelViewSet):
 
                 elif workflow_type == SanctionOutcome.WORKFLOW_ENDORSE:
                     if instance.type in (SanctionOutcome.TYPE_LETTER_OF_ADVICE, SanctionOutcome.TYPE_CAUTION_NOTICE):
+                        instance.endorse(request)
                         if not instance.issued_on_paper:
                             to_address = [instance.get_offender()[0].email, ]
                             cc = None

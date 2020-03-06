@@ -186,15 +186,18 @@ class DbcaLogo(Image, object):
         super(DbcaLogo, self).__init__(filename, width, height, kind, mask, lazy, hAlign)
 
 
-def get_font_str(test, fontName="Helvetica", strong=True):
-    strong_open = ''
-    strong_close = ''
-    if strong:
-        strong_open = '<strong>'
-        strong_close = '</strong>'
-    ret = '<font face="' + fontName + '">' + strong_open + test + strong_close + '</font>'
-
-    return ret
+def get_font_str(test, fontName="Helvetica", strong=True, size=11):
+    try:
+        if test:
+            test = test if type(test) == str else str(test)
+            strong_open = '<strong>' if strong else ''
+            strong_close = '</strong>' if strong else ''
+            ret = '<font face="' + fontName + '" size="' + str(size) + '">' + strong_open + test + strong_close + '</font>'
+            return ret
+        else:
+            return ''
+    except Exception as e:
+        return ''
 
 
 def get_infringement_notice_table(sanction_outcome):
@@ -336,7 +339,9 @@ def get_infringement_notice_table(sanction_outcome):
     ])
 
     # Date
-    data.append([Paragraph('Date', styles['Bold']), Paragraph('Date of notice:' + date_str, styles['Normal']), ''])
+    issue_date = get_font_str(sanction_outcome.date_of_issue.strftime('%d/%m/%Y'))
+    issue_time = get_font_str(sanction_outcome.time_of_issue.strftime('%I:%M %p'))
+    data.append([Paragraph('Date', styles['Bold']), Paragraph('Date of notice: ' + issue_date + ' ' + issue_time, styles['Normal']), ''])
 
     # Create 1st table
     t1 = Table(data, style=invoice_table_style, colWidths=col_width)
