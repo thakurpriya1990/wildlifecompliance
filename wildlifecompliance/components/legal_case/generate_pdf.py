@@ -2,8 +2,8 @@
 import os
 
 from decimal import Decimal as D
-from io import BytesIO
-
+from io import BytesIO, FileIO
+from django.http import HttpResponse, FileResponse
 from django.core.files.storage import default_storage
 from django.core.files.base import ContentFile
 from oscar.templatetags.currency_filters import currency
@@ -514,6 +514,7 @@ def gap(num):
 
 def create_document_pdf_bytes(legal_case, request_data):
     try:
+        bytes_value = None
         with BytesIO() as invoice_buffer:
             #invoice_buffer = BytesIO()
             _create_pdf(invoice_buffer, legal_case, request_data)
@@ -521,30 +522,45 @@ def create_document_pdf_bytes(legal_case, request_data):
             filename = document_type + '_' + legal_case.number + '.pdf'
 
             # Get the value of the BytesIO buffer
-            value = invoice_buffer.getvalue()
+            bytes_value = invoice_buffer.getvalue()
             #invoice_buffer.close()
 
-            # START: Save the pdf file to the database
-            ## delete existing document
-            document = None
-            path = 'wildlifecompliance/{}/{}/generated_documents/{}'.format(legal_case._meta.model_name, legal_case.id, filename)
-            document_exists = default_storage.exists(path)
-            if document_exists:
-                print("delete " + path)
-                # delete file
-                default_storage.delete(path)
-                # delete Document obj
-                document, created = legal_case.generated_documents.get_or_create(name=filename)
-                document.delete()
-            # create new Document obj
-            document, created = legal_case.generated_documents.get_or_create(name=filename)
-            # save file
-            stored_file = default_storage.save(path, invoice_buffer)
-            document._file = stored_file
-            # save file object
-            document.save()
+        response = HttpResponse(content_type='application/pdf')
+        response['Content-Disposition'] = 'attachment; filename="{}"'.format(filename)
+        response.write(bytes_value)
+        #response = FileResponse(bytes_value, as_attachment=True, filename=filename)
+        #document = None
+        #with open(filename, 'wb') as new_file:
+         #   new_file.write(bytes_value)
 
-            return document
+
+        #document = FileIO(filename, 'w')
+        #document.write(bytes_value)
+        #document.close()
+            #document = f
+            #document = BufferedIOBase.write(invoice_buffer)
+
+
+            ## START: Save the pdf file to the database
+            #document = None
+            #path = 'wildlifecompliance/{}/{}/generated_documents/{}'.format(legal_case._meta.model_name, legal_case.id, filename)
+            #document_exists = default_storage.exists(path)
+            #if document_exists:
+            #    print("delete " + path)
+            #    # delete file
+            #    default_storage.delete(path)
+            #    # delete Document obj
+            #    document, created = legal_case.generated_documents.get_or_create(name=filename)
+            #    document.delete()
+            ## create new Document obj
+            #document, created = legal_case.generated_documents.get_or_create(name=filename)
+            ## save file
+            #stored_file = default_storage.save(path, invoice_buffer)
+            #document._file = stored_file
+            ## save file object
+            #document.save()
+
+        return response
     except Exception as e:
         print(e)
         raise e

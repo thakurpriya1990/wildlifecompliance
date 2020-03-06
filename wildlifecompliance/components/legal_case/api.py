@@ -762,15 +762,20 @@ class LegalCaseViewSet(viewsets.ModelViewSet):
                     section_list += ", "
                 section_list += "List of Photographic, Video and Sound Exhibits"
             #returned_document = create_document_pdf_bytes(filename, instance)
-            returned_document = create_document_pdf_bytes(instance, request.data)
-            if returned_document:
+            #returned_document = create_document_pdf_bytes(instance, request.data)
+            returned_response = create_document_pdf_bytes(instance, request.data)
+            #if returned_document:
+            if returned_response:
                 instance.log_user_action(
                         LegalCaseUserAction.ACTION_GENERATE_DOCUMENT.format(
                         document_label,
                         instance.number,
                         section_list
                         ), request)
-                return Response(status=status.HTTP_201_CREATED)
+                return returned_response
+                        #Response(
+                        #returned_document,
+                        #status=status.HTTP_201_CREATED)
             else:
                 return Response()
 
