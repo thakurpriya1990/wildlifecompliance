@@ -64,6 +64,11 @@ export const legalCaseStore = {
                 state.legal_case.id + "/process_court_outcome_document/"
                 )
             Vue.set(state.legal_case, 'processCourtOutcomeDocumentUrl', courtOutcomeDocumentUrl);
+            let generatedDocumentsUrl = helpers.add_endpoint_join(
+                api_endpoints.legal_case,
+                state.legal_case.id + "/process_generated_documents/"
+                )
+            Vue.set(state.legal_case, 'generatedDocumentsUrl', generatedDocumentsUrl);
         },
         updateRelatedItems(state, related_items) {
             Vue.set(state.legal_case, 'related_items', related_items);

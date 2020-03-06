@@ -462,7 +462,7 @@ def _create_pdf(invoice_buffer, legal_case, request_data):
 
     document_artifacts_data = []
     document_artifacts_data.append([
-        Paragraph('Additional Documents', styles['BoldLeft']),
+        Paragraph('List of Photographic, Video and Sound Exhibits', styles['BoldLeft']),
     ])
     for artifact in report_document_artifacts:
         document_artifacts_data.append([

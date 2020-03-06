@@ -706,14 +706,70 @@ class LegalCaseViewSet(viewsets.ModelViewSet):
 
     @detail_route(methods=['POST'])
     @renderer_classes((JSONRenderer,))
+    def process_generated_documents(self, request, *args, **kwargs):
+        try:
+            instance = self.get_object()
+            returned_data = process_generic_document(request, instance, document_type="generated_documents")
+            if returned_data:
+                return Response(returned_data)
+            else:
+                return Response()
+
+        except serializers.ValidationError:
+            print(traceback.print_exc())
+            raise
+        except ValidationError as e:
+            if hasattr(e, 'error_dict'):
+                raise serializers.ValidationError(repr(e.error_dict))
+            else:
+                raise serializers.ValidationError(repr(e[0].encode('utf-8')))
+        except Exception as e:
+            print(traceback.print_exc())
+            raise serializers.ValidationError(str(e))
+
+    @detail_route(methods=['POST'])
+    @renderer_classes((JSONRenderer,))
     def generate_document(self, request, *args, **kwargs):
         try:
             print(request.data)
             instance = self.get_object()
-            #document_type = request.data.get("document_type")
+            document_label = ''
+            if request.data.get("document_type") == 'brief_of_evidence':
+                document_label = "Brief of Evidence"
+            elif request.data.get("document_type") == 'prosecution_brief':
+                document_label = "Prosecution Brief"
+            section_list = ''
+            if request.data.get('include_statement_of_facts'):
+                section_list += "Statement of Facts"
+            if request.data.get('include_case_information_form'):
+                if section_list:
+                    section_list += ", "
+                section_list += "Case Information Form"
+            if request.data.get('include_offences_offenders_roi'):
+                if section_list:
+                    section_list += ", "
+                section_list += "Offences, Offenders and Records of Interview"
+            if request.data.get('include_witness_officer_other_statements'):
+                if section_list:
+                    section_list += ", "
+                section_list += "Witness Statements, Officer Statements, Expert Statements"
+            if request.data.get('include_physical_artifacts'):
+                if section_list:
+                    section_list += ", "
+                section_list += "List of Exhibits, Sensitive Unused and Non-sensitive Unused Materials"
+            if request.data.get('include_document_artifacts'):
+                if section_list:
+                    section_list += ", "
+                section_list += "List of Photographic, Video and Sound Exhibits"
             #returned_document = create_document_pdf_bytes(filename, instance)
             returned_document = create_document_pdf_bytes(instance, request.data)
             if returned_document:
+                instance.log_user_action(
+                        LegalCaseUserAction.ACTION_GENERATE_DOCUMENT.format(
+                        document_label,
+                        instance.number,
+                        section_list
+                        ), request)
                 return Response(status=status.HTTP_201_CREATED)
             else:
                 return Response()

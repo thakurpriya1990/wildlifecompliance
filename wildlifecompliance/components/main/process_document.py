@@ -84,11 +84,14 @@ def process_generic_document(request, instance, document_type=None, *args, **kwa
             return {'filedata': returned_file_data}
 
         elif document_type == 'generated_documents':
+            print("return generated documents")
             returned_file_data = [dict(
                         file=d._file.url,
                         id=d.id,
                         name=d.name,
                         ) for d in instance.generated_documents.all() if d._file]
+            print("RETURNED_FILE_DATA")
+            print(returned_file_data)
             return {'filedata': returned_file_data}
 
         else:
@@ -97,8 +100,6 @@ def process_generic_document(request, instance, document_type=None, *args, **kwa
                         id=d.id,
                         name=d.name,
                         ) for d in instance.documents.all() if d._file]
-            print("RETURNED_FILE_DATA")
-            print(returned_file_data)
             return {'filedata': returned_file_data}
 
     except Exception as e:

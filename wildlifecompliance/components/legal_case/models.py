@@ -555,6 +555,7 @@ class LegalCaseUserAction(UserAction):
     ACTION_SAVE_LEGAL_CASE = "Save Case {}"
     ACTION_STATUS_BRIEF_OF_EVIDENCE = "Generate 'Brief of Evidence' for Case {}"
     ACTION_GENERATE_PROSECUTION_BRIEF = "Generate 'Prosecution Brief' for Case {}"
+    ACTION_GENERATE_DOCUMENT = "Generate {} for Case {} with sections: {}"
     ACTION_STATUS_WITH_PROSECUTION_COORDINATOR = "Send Case {} to Prosecution Coordinator"
     ACTION_STATUS_WITH_PROSECUTION_COORDINATOR_PROSECUTION_BRIEF = "Change status of Case {} to Prosecution Coordinator (Prosecution Brief)"
     ACTION_STATUS_WITH_PROSECUTION_COUNCIL = "Send Case {} to Prosecution Council"
