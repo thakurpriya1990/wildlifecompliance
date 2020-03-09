@@ -175,11 +175,13 @@ class LicenceSpecies(models.Model):
     data = JSONField(default=list)
 
     class Meta:
+        ordering = ['specie_id']
         app_label = 'wildlifecompliance'
         verbose_name = 'Licence species'
+        verbose_name_plural = 'Licence species'
 
     def __str__(self):
-        return '{0} - {1}'.format(self.specie_id, self.data)
+        return '{0} SPECIE_ID: {1}'.format(self.verify_date, self.specie_id)
 
 
 class DefaultActivity(models.Model):

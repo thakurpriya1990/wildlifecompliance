@@ -27,3 +27,16 @@ class LicencePurposeAdmin(admin.ModelAdmin):
 @admin.register(models.LicencePurposeDetail)
 class LicencePurposeDetailAdmin(admin.ModelAdmin):
     list_display = ['detail', 'purpose', 'index']
+
+
+@admin.register(models.LicenceSpecies)
+class LicenceSpeciesAdmin(admin.ModelAdmin):
+    list_display = [
+        'specie_id',
+        'verify_date']
+    readonly_fields = [
+        'specie_id',
+        'verify_date',
+        'verify_id',
+        'verify_token',
+        'data']
