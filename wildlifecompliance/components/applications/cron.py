@@ -1,6 +1,6 @@
 from django_cron import CronJobBase, Schedule
 
-from wildlifecompliance.components.applications.service import (
+from wildlifecompliance.components.applications.services import (
     ApplicationService
 )
 
