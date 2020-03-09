@@ -1408,6 +1408,17 @@ class ApplicationViewSet(viewsets.ModelViewSet):
         serializer = AssessmentSerializer(queryset, many=True)
         return Response(serializer.data)
 
+    @list_route(methods=['POST', ])
+    def set_application_species(self, request, *args, **kwargs):
+        species_ids = request.data.get('field_data')
+        if species_ids is not None: 
+            species_list = ApplicationService.get_licence_species(species_ids)
+            return Response({'species': species_list })
+
+        return Response({
+            'species': None
+        })
+
     @detail_route(permission_classes=[], methods=['GET'])
     def application_checkout_status(self, request, *args, **kwargs):
         # TODO: may need to re-build this function for Wildlife Licensing (code taken from Parkstay) if required
