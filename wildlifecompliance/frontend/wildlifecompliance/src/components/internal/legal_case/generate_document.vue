@@ -69,6 +69,15 @@ export default {
             includeWitnessOfficerOtherStatements: false,
             includePhysicalArtifacts: false,
             includeDocumentArtifacts: false,
+            ajaxSettings: {
+                url: "/generate_legal_case_document/",
+                type: "POST",
+                headers: {
+                    "Content-Type": "application/json; charset=UTF-8"
+                },
+                data: {},
+            },
+            payload: {},
       }
     },
     components: {
@@ -85,6 +94,9 @@ export default {
       ...mapGetters('legalCaseStore', {
         legal_case: "legal_case",
       }),
+      csrf_token: function() {
+        return helpers.getCookie("csrftoken");
+      },
       //allocatedGroupId: async function() {
       //    let allocated_group_id = null;
       //    if (this.workflow_type) {
@@ -180,12 +192,15 @@ export default {
       },
       */
       ok: async function () {
+          await this.sendData();
+          /*
           const response = await this.sendData();
           console.log(response);
           if (response.ok) {
               this.close();
               //this.$router.push({ name: 'internal-legal-case-dash' });
           }
+          */
       },
       cancel: async function() {
           if (this.$refs.comms_log_file) {
@@ -199,36 +214,67 @@ export default {
           this.isModalOpen = false;
       },
       sendData: async function() {
-          //let post_url = '/api/legal_case/' + this.legal_case.id + '/generate_brief_of_evidence_document/'
-          let post_url = '/api/legal_case/' + this.legal_case.id + '/generate_document/'
-          
-          let payload = new FormData();
-          payload.append('document_type', this.document_type);
-          if (this.includeStatementOfFacts) {
-              payload.append('include_statement_of_facts', this.includeStatementOfFacts);
-          }
-          if (this.includeCaseInformationForm) {
-              payload.append('include_case_information_form', this.includeCaseInformationForm);
-          }
-          if (this.includeOffencesOffendersRoi) {
-              payload.append('include_offences_offenders_roi', this.includeOffencesOffendersRoi);
-          }
-          if (this.includeWitnessOfficerOtherStatements) {
-              payload.append('include_witness_officer_other_statements', this.includeWitnessOfficerOtherStatements);
-          }
-          if (this.includePhysicalArtifacts) {
-              payload.append('include_physical_artifacts', this.includePhysicalArtifacts);
-          }
-          if (this.includeDocumentArtifacts) {
-              payload.append('include_document_artifacts', this.includeDocumentArtifacts);
-          }
           try {
-              let res = await Vue.http.post(post_url, payload);
-              // let res = await Vue.http.post(post_url);
-              console.log(res);
-              if (res.ok) {
-                  return res
+              //console.log("sendData")
+              /*
+              let payload = new FormData();
+              payload.append('document_type', this.document_type);
+              payload.append('legal_case_id', this.legal_case.id);
+              if (this.includeStatementOfFacts) {
+                  payload.append('include_statement_of_facts', this.includeStatementOfFacts);
               }
+              if (this.includeCaseInformationForm) {
+                  payload.append('include_case_information_form', this.includeCaseInformationForm);
+              }
+              if (this.includeOffencesOffendersRoi) {
+                  payload.append('include_offences_offenders_roi', this.includeOffencesOffendersRoi);
+              }
+              if (this.includeWitnessOfficerOtherStatements) {
+                  payload.append('include_witness_officer_other_statements', this.includeWitnessOfficerOtherStatements);
+              }
+              if (this.includePhysicalArtifacts) {
+                  payload.append('include_physical_artifacts', this.includePhysicalArtifacts);
+              }
+              if (this.includeDocumentArtifacts) {
+                  payload.append('include_document_artifacts', this.includeDocumentArtifacts);
+              }
+              */
+              this.payload.document_type = this.document_type;
+              this.payload.legal_case_id = this.legal_case.id;
+              if (this.includeStatementOfFacts) {
+                  this.payload.include_statement_of_facts = this.includeStatementOfFacts;
+              }
+              if (this.includeCaseInformationForm) {
+                  this.payload.include_case_information_form = this.includeCaseInformationForm;
+              }
+              if (this.includeOffencesOffendersRoi) {
+                  this.payload.include_offences_offenders_roi = this.includeOffencesOffendersRoi;
+              }
+              if (this.includeWitnessOfficerOtherStatements) {
+                  this.payload.include_witness_officer_other_statements = this.includeWitnessOfficerOtherStatements;
+              }
+              if (this.includePhysicalArtifacts) {
+                  this.payload.include_physical_artifacts = this.includePhysicalArtifacts;
+              }
+              if (this.includeDocumentArtifacts) {
+                  this.payload.include_document_artifacts = this.includeDocumentArtifacts;
+              }
+              let post_url = '/generate_legal_case_document/'
+              console.log(this.payload)
+              const res = await fetch(
+                  post_url, 
+                  {
+                      method: 'POST', 
+                      body: this.payload,
+                      headers: {
+                          'Content-Type': 'application/json',
+                          'X-CSRFToken': this.csrf_token,
+                      },
+                  });
+              let buffer = await res.arrayBuffer();
+              var file = new Blob([buffer], { type: 'application/pdf' });
+              var fileURL = URL.createObjectURL(file);
+              window.open(fileURL);
           } catch(err) {
               this.errorResponse = err.statusText;
           }

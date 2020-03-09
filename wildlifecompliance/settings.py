@@ -6,7 +6,6 @@ os.environ.setdefault("BASE_DIR", BASE_DIR)
 from django.core.exceptions import ImproperlyConfigured
 from ledger.settings_base import *
 
-
 ROOT_URLCONF = 'wildlifecompliance.urls'
 SITE_ID = 1
 
@@ -42,6 +41,7 @@ REST_FRAMEWORK = {
     'DEFAULT_RENDERER_CLASSES': (
         'rest_framework.renderers.JSONRenderer',
         'rest_framework_datatables.renderers.DatatablesRenderer',
+        'wildlifecompliance.components.legal_case.renderers.PDFRenderer',
     ),
     'DEFAULT_FILTER_BACKENDS': (
         'rest_framework_datatables.filters.DatatablesFilterBackend',

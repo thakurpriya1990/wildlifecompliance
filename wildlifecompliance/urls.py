@@ -20,6 +20,7 @@ from wildlifecompliance.components.main.views import (
         CreateWeakLinkView,
         RemoveWeakLinkView,
         )
+from wildlifecompliance.components.legal_case import views as legal_case_views
 from wildlifecompliance.components.applications import views as application_views
 from wildlifecompliance.components.users import api as users_api
 from wildlifecompliance.components.organisations import api as org_api
@@ -232,6 +233,7 @@ urlpatterns = [
 
     # url(r'^export/xls/$', application_views.export_applications, name='export_applications'),
     url(r'^export/pdf/$', application_views.pdflatex, name='pdf_latex'),
+    url(r'^generate_legal_case_document/$', legal_case_views.generate_legal_case_document, name='generate_legal_case_document'),
     url(r'^mgt-commands/$',
         views.ManagementCommandsView.as_view(),
         name='mgt-commands'),

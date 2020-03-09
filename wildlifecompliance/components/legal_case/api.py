@@ -28,6 +28,8 @@ from rest_framework.decorators import (
 )
 from rest_framework.response import Response
 from rest_framework.renderers import JSONRenderer
+from wildlifecompliance.components.legal_case.renderers import PDFRenderer
+#from django.utils.encoding import smart_unicode
 from rest_framework.permissions import IsAuthenticated, AllowAny, IsAdminUser, BasePermission
 from rest_framework.pagination import PageNumberPagination
 from collections import OrderedDict
@@ -133,7 +135,6 @@ from wildlifecompliance.components.artifact.utils import (
 #from wildlifecompliance.components.artifact.serializers import SaveBriefOfEvidenceRecordOfInterviewSerializer
 #from reversion.models import Version
 #import unicodedata
-
 
 class LegalCaseFilterBackend(DatatablesFilterBackend):
 
@@ -728,7 +729,8 @@ class LegalCaseViewSet(viewsets.ModelViewSet):
             raise serializers.ValidationError(str(e))
 
     @detail_route(methods=['POST'])
-    @renderer_classes((JSONRenderer,))
+    #@renderer_classes((JSONRenderer,))
+    #@renderer_classes([PDFRenderer])
     def generate_document(self, request, *args, **kwargs):
         try:
             print(request.data)
@@ -763,19 +765,21 @@ class LegalCaseViewSet(viewsets.ModelViewSet):
                 section_list += "List of Photographic, Video and Sound Exhibits"
             #returned_document = create_document_pdf_bytes(filename, instance)
             #returned_document = create_document_pdf_bytes(instance, request.data)
-            returned_response = create_document_pdf_bytes(instance, request.data)
+            http_response = create_document_pdf_bytes(instance, request.data)
+            #print("http_response")
+            #print(http_response)
             #if returned_document:
-            if returned_response:
+            if http_response:
                 instance.log_user_action(
                         LegalCaseUserAction.ACTION_GENERATE_DOCUMENT.format(
                         document_label,
                         instance.number,
                         section_list
                         ), request)
-                return returned_response
-                        #Response(
-                        #returned_document,
-                        #status=status.HTTP_201_CREATED)
+                return http_response
+                #return Response(
+                #        returned_response,
+                #        status=status.HTTP_201_CREATED)
             else:
                 return Response()
 
