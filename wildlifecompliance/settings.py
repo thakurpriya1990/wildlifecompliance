@@ -175,4 +175,4 @@ RENEWAL_PERIOD_DAYS = env('RENEWAL_PERIOD_DAYS', 30)
 
 # Details for Threathened Species and Communities server.
 TSC_URL = env('TSC_URL', 'https://tsc.dbca.wa.gov.au')
-TSC_AUTH = env('TSC_AUTH')
+TSC_AUTH = env('TSC_AUTH', 'NO_AUTH')
