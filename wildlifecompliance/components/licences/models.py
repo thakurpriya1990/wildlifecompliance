@@ -62,8 +62,27 @@ class LicencePurpose(models.Model):
 
     @staticmethod
     def get_first_record(activity_name):
-        # Use filter -> first() in case of records with duplicate names (e.g. "Bioprospecting licence")
+        # Use filter -> first() in case of records with duplicate names
+        # (e.g. "Bioprospecting licence")
         return LicencePurpose.objects.filter(name=activity_name).first()
+
+    @property
+    def species_list(self):
+        """
+        List of species identifiers associated with this licence purpose.
+        """
+        species_list = []
+
+        try:
+            for section in self.schema:
+                for component in section['children']:
+                    if component['type'] == 'species_list':
+                        species_list += component['value']
+
+        except KeyError:
+            pass
+
+        return species_list
 
 
 class LicencePurposeDetail(OrderedModel):
@@ -142,6 +161,25 @@ class LicenceCategory(LicenceType):
             return result
         else:
             return '{} (V{})'.format(result, self.version)
+
+
+class LicenceSpecies(models.Model):
+    """
+    Model representation of a verified specie information that can be applied
+    to a licence.
+    """
+    specie_id = models.IntegerField(unique=True)
+    verify_date = models.DateTimeField(auto_now=True)
+    verify_id = models.CharField(max_length=256, null=True, blank=True)
+    verify_token = models.CharField(max_length=256, null=True, blank=True)
+    data = JSONField(default=list)
+
+    class Meta:
+        app_label = 'wildlifecompliance'
+        verbose_name = 'Licence species'
+
+    def __str__(self):
+        return '{0} - {1}'.format(self.specie_id, self.data)
 
 
 class DefaultActivity(models.Model):
