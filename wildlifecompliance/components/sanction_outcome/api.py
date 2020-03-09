@@ -840,6 +840,11 @@ class SanctionOutcomeViewSet(viewsets.ModelViewSet):
                     if not instance.is_parking_offence:  #
                         raise serializers.ValidationError(['An offender must be selected.'])
 
+                # Validate if an offender or a registration number is set at least
+                if instance.is_parking_offence:
+                    if not instance.registration_number and not instance.offender:
+                        raise serializers.ValidationError(['Either offender or registration number is required.'])
+
                 for id in request_data['alleged_offence_ids_excluded']:
                     try:
                         alleged_offence = AllegedOffence.objects.get(id=id)
