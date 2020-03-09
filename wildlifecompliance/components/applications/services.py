@@ -4,7 +4,7 @@ import requests
 
 from decimal import Decimal
 
-# from wildlifecompliance import settings
+from wildlifecompliance import settings
 
 from ledger.checkout.utils import calculate_excl_gst
 
@@ -785,7 +785,7 @@ class TSCSpecieCallStrategy(object):
     A Strategy Interface declaring a common operation for the TSCSpecie Call.
     """
 
-    # _AUTHORISE = {"Authorization": settings.TSC_AUTH}
+    _AUTHORISE = {"Authorization": settings.TSC_AUTH}
     _CODE = None
 
     __metaclass__ = abc.ABCMeta
