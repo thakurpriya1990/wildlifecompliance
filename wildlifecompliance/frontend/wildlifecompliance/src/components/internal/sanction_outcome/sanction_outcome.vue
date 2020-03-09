@@ -992,7 +992,7 @@ export default {
             return visibility;
         },
         visibilityEndorseButton: function() {
-            return true;
+            //return true;
             let visibility = false;
             if (this.sanction_outcome.can_user_action){
                 if (this.sanction_outcome.status.id === this.STATUS_AWAITING_ENDORSEMENT || this.sanction_outcome.status.id === this.STATUS_AWAITING_REVIEW){

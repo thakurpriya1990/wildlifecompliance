@@ -714,8 +714,8 @@ class SanctionOutcome(models.Model):
         line_items = [
             {'ledger_description': 'Infringement Notice: {}, Issued: {} {}'.format(
                 self.lodgement_number,
-                self.date_of_issue.strftime("%d-%m-%Y"),
-                self.time_of_issue.strftime("%I:%M")),
+                self.date_of_issue.strftime("%d/%m/%Y"),
+                self.time_of_issue.strftime("%I:%M %p")),
                 'oracle_code': 'ABC123 GST',
                 'price_incl_tax': penalty_amount,
                 'price_excl_tax': penalty_amount,
