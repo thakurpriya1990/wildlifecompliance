@@ -3,6 +3,34 @@
         <modal transition="modal fade" @ok="ok()" @cancel="cancel()" :title="modalTitle" large force>
           <div class="container-fluid">
             <div class="row">
+                <label class="col-sm-10">
+                <input type="checkbox" v-model="selectAll" @change="setSelectAll" />
+                Select All
+                </label>
+                <label class="col-sm-10">
+                <input type="checkbox" v-model="includeStatementOfFacts" />
+                Statement of Facts
+                </label>
+                <label class="col-sm-10">
+                <input type="checkbox" v-model="includeCaseInformationForm" />
+                Case Information Form
+                </label>
+                <label class="col-sm-10">
+                <input type="checkbox" v-model="includeOffencesOffendersRoi" />
+                Offences, Offenders and Records of Interview
+                </label>
+                <label class="col-sm-10">
+                <input type="checkbox" v-model="includeWitnessOfficerOtherStatements" />
+                Witness Statements, Officer Statements, Expert Statements
+                </label>
+                <label class="col-sm-10">
+                <input type="checkbox" v-model="includePhysicalArtifacts" />
+                List of Exhibits, Sensitive Unused and Non-Sensitive Unused Materials
+                </label>
+                <label class="col-sm-10">
+                <input type="checkbox" v-model="includeDocumentArtifacts" />
+                List of Photographic Exhibits
+                </label>
             </div>
 
           </div>
@@ -25,26 +53,27 @@ import Vue from "vue";
 import modal from '@vue-utils/bootstrap-modal.vue';
 import { mapState, mapGetters, mapActions, mapMutations } from "vuex";
 import { api_endpoints, helpers, cache_helper } from "@/utils/hooks";
-import filefield from '@/components/common/compliance_file.vue';
+//import filefield from '@/components/common/compliance_file.vue';
 
 export default {
     name: "GenerateDocument",
     data: function() {
-      return {
-            officers: [],
+        return {
             isModalOpen: false,
-            processingDetails: false,
             form: null,
-            workflowDetails: '',
             errorResponse: "",
-            documentActionUrl: '',
-            //allocatedGroup: [],
-            allocated_group_id: null,
+            selectAll: false,
+            includeStatementOfFacts: false,
+            includeCaseInformationForm: false,
+            includeOffencesOffendersRoi: false,
+            includeWitnessOfficerOtherStatements: false,
+            includePhysicalArtifacts: false,
+            includeDocumentArtifacts: false,
       }
     },
     components: {
       modal,
-      filefield,
+      //filefield,
     },
     props:{
           document_type: {
@@ -95,17 +124,37 @@ export default {
       },
       */
     },
+    /*
     filters: {
       formatDate: function(data) {
           return data ? moment(data).format("DD/MM/YYYY HH:mm:ss") : "";
       }
     },
+    */
     methods: {
       ...mapActions('legalCaseStore', {
           saveLegalCase: 'saveLegalCase',
           loadLegalCase: 'loadLegalCase',
           setLegalCase: 'setLegalCase',
       }),
+      setSelectAll: function() {
+          if (this.selectAll) {
+              this.includeStatementOfFacts = true;
+              this.includeCaseInformationForm = true;
+              this.includeOffencesOffendersRoi = true;
+              this.includeWitnessOfficerOtherStatements = true;
+              this.includePhysicalArtifacts = true;
+              this.includeDocumentArtifacts = true;
+          } else {
+              this.includeStatementOfFacts = false;
+              this.includeCaseInformationForm = false;
+              this.includeOffencesOffendersRoi = false;
+              this.includeWitnessOfficerOtherStatements = false;
+              this.includePhysicalArtifacts = false;
+              this.includeDocumentArtifacts = false;
+          }
+      },
+
         /*
       ...mapActions({
           loadAllocatedGroup: 'loadAllocatedGroup',
@@ -155,6 +204,24 @@ export default {
           
           let payload = new FormData();
           payload.append('document_type', this.document_type);
+          if (this.includeStatementOfFacts) {
+              payload.append('include_statement_of_facts', this.includeStatementOfFacts);
+          }
+          if (this.includeCaseInformationForm) {
+              payload.append('include_case_information_form', this.includeCaseInformationForm);
+          }
+          if (this.includeOffencesOffendersRoi) {
+              payload.append('include_offences_offenders_roi', this.includeOffencesOffendersRoi);
+          }
+          if (this.includeWitnessOfficerOtherStatements) {
+              payload.append('include_witness_officer_other_statements', this.includeWitnessOfficerOtherStatements);
+          }
+          if (this.includePhysicalArtifacts) {
+              payload.append('include_physical_artifacts', this.includePhysicalArtifacts);
+          }
+          if (this.includeDocumentArtifacts) {
+              payload.append('include_document_artifacts', this.includeDocumentArtifacts);
+          }
           try {
               let res = await Vue.http.post(post_url, payload);
               // let res = await Vue.http.post(post_url);
