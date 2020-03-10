@@ -68,14 +68,6 @@ export default {
             includeWitnessOfficerOtherStatements: false,
             includePhysicalArtifacts: false,
             includeDocumentArtifacts: false,
-            ajaxSettings: {
-                url: "/generate_legal_case_document/",
-                type: "POST",
-                headers: {
-                    "Content-Type": "application/json; charset=UTF-8"
-                },
-                data: {},
-            },
             payload: {},
       }
     },
@@ -129,7 +121,10 @@ export default {
           }
       },
       ok: async function () {
-          await this.sendData();
+          let res = await this.sendData();
+          if (res) {
+              this.close();
+          }
       },
       cancel: async function() {
           if (this.$refs.comms_log_file) {
@@ -165,7 +160,6 @@ export default {
                   this.payload.include_document_artifacts = this.includeDocumentArtifacts;
               }
               let post_url = '/api/legal_case/' + this.legal_case.id + '/generate_document/'
-              console.log(this.payload)
               const res = await fetch(
                   post_url, 
                   {
@@ -179,7 +173,6 @@ export default {
               let buffer = await res.arrayBuffer();
               let file = new Blob([buffer], { type: 'application/pdf' });
               let fileURL = window.URL.createObjectURL(file);
-              console.log(fileURL);
               const elementId = 'generated-document-' + this.legal_case.id;
               let generatedDocument = document.createElement('a');
               generatedDocument.style.display = 'none';
@@ -188,6 +181,7 @@ export default {
               document.body.appendChild(generatedDocument);
               generatedDocument.click();
               window.URL.revokeObjectURL(fileURL);
+              return true
           } catch(err) {
               this.errorResponse = err.statusText;
           }

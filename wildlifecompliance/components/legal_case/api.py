@@ -28,8 +28,6 @@ from rest_framework.decorators import (
 )
 from rest_framework.response import Response
 from rest_framework.renderers import JSONRenderer
-from wildlifecompliance.components.legal_case.renderers import PDFRenderer
-#from django.utils.encoding import smart_unicode
 from rest_framework.permissions import IsAuthenticated, AllowAny, IsAdminUser, BasePermission
 from rest_framework.pagination import PageNumberPagination
 from collections import OrderedDict
@@ -763,12 +761,7 @@ class LegalCaseViewSet(viewsets.ModelViewSet):
                 if section_list:
                     section_list += ", "
                 section_list += "List of Photographic, Video and Sound Exhibits"
-            #returned_document = create_document_pdf_bytes(filename, instance)
-            #returned_document = create_document_pdf_bytes(instance, request.data)
             http_response = create_document_pdf_bytes(instance, request.data)
-            #print("http_response")
-            #print(http_response)
-            #if returned_document:
             if http_response:
                 instance.log_user_action(
                         LegalCaseUserAction.ACTION_GENERATE_DOCUMENT.format(
@@ -777,9 +770,6 @@ class LegalCaseViewSet(viewsets.ModelViewSet):
                         section_list
                         ), request)
                 return http_response
-                #return Response(
-                #        returned_response,
-                #        status=status.HTTP_201_CREATED)
             else:
                 return Response()
 

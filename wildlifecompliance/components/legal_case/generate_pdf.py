@@ -523,21 +523,11 @@ def create_document_pdf_bytes(legal_case, request_data):
         with BytesIO() as invoice_buffer:
             invoice_buffer = BytesIO()
             returned_invoice_buffer = _create_pdf(invoice_buffer, legal_case, request_data)
-            # Get the value of the BytesIO buffer
-            #bytes_value = invoice_buffer.getvalue()
-            #bytes_value = invoice_buffer.read()
-            #print("type(bytes_value)")
-            #print(type(bytes_value))
-            #invoice_buffer.close()
-
+        # return cursor to beginning of file
         invoice_buffer.seek(0)
 
-        #with open(path, 'wb+') as new_file:
-        #   new_file.write(bytes_value)
-        #response = HttpResponse(FileWrapper(invoice_buffer), content_type='application/pdf')
         response = HttpResponse(invoice_buffer, content_type='application/pdf')
         response['Content-Disposition'] = 'attachment; filename="{}"'.format(filename)
-        #response.write(invoice_buffer)
         return response
 
     except Exception as e:
