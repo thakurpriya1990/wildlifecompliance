@@ -32,10 +32,6 @@ class LegalCasePriority(models.Model):
     replaced_by = models.ForeignKey(
         'self', on_delete=models.PROTECT, blank=True, null=True)
     date_created = models.DateTimeField(auto_now_add=True, null=True)
-    #approval_document = models.ForeignKey(
-    #    'InspectionTypeApprovalDocument',
-    #    related_name='inspection_type',
-    #    null=True)
 
     class Meta:
         app_label = 'wildlifecompliance'
@@ -66,13 +62,10 @@ class LegalCase(RevisionedMixin):
     STATUS_WITH_PROSECUTION_COORDINATOR = 'with_prosecution_coordinator'
     STATUS_WITH_PROSECUTION_COUNCIL = 'with_prosecution_council'
     STATUS_WITH_PROSECUTION_MANAGER = 'with_prosecution_manager'
-    #STATUS_REQUEST_AMENDMENT = 'request_amendment'
     STATUS_AWAIT_ENDORSEMENT = 'await_endorsement'
     STATUS_BRIEF_OF_EVIDENCE = 'brief_of_evidence'
-    #STATUS_PROSECUTION_BRIEF = 'prosecution_brief'
     STATUS_WITH_PROSECUTION_COORDINATOR_PROSECUTION_BRIEF = 'with_prosecution_coordinator_prosecution_brief'
     STATUS_WITH_PROSECUTION_COORDINATOR_COURT = 'with_prosecution_coordinator_court'
-    #STATUS_SANCTION_OUTCOME = 'sanction_outcome'
     STATUS_DISCARDED = 'discarded'
     STATUS_CLOSED = 'closed'
     STATUS_PENDING_CLOSURE = 'pending_closure'
@@ -84,12 +77,9 @@ class LegalCase(RevisionedMixin):
             (STATUS_WITH_PROSECUTION_COORDINATOR_COURT, 'With Prosecution Coordinator (Court)'),
             (STATUS_WITH_PROSECUTION_COUNCIL, 'With Prosecution Council'),
             (STATUS_WITH_PROSECUTION_MANAGER, 'With Prosecution Manager'),
-            #(STATUS_REQUEST_AMENDMENT, 'Request Amendment'),
             (STATUS_AWAIT_ENDORSEMENT, 'Awaiting Endorsement'),
-            #(STATUS_SANCTION_OUTCOME, 'Awaiting Sanction Outcomes'),
             (STATUS_DISCARDED, 'Discarded'),
             (STATUS_BRIEF_OF_EVIDENCE, 'Brief of Evidence'),
-            #(STATUS_PROSECUTION_BRIEF, 'Prosecution Brief'),
             (STATUS_CLOSED, 'Closed'),
             (STATUS_PENDING_CLOSURE, 'Pending Closure')
             )
@@ -171,13 +161,6 @@ class LegalCase(RevisionedMixin):
         #return '{0}, {1}'.format(self.title, self.details)
         return self.title
 
-    #def send_to_manager(self, request):
-    #    self.status = self.STATUS_AWAIT_ENDORSEMENT
-    #    self.log_user_action(
-    #        InspectionUserAction.ACTION_SEND_TO_MANAGER.format(self.number), 
-    #        request)
-    #    self.save()
-
     def close(self, request):
         close_record, parents = can_close_legal_case(self, request)
         if close_record:
@@ -198,7 +181,6 @@ class LegalCase(RevisionedMixin):
                     parent.close(request)
 
     def set_status_brief_of_evidence(self, request):
-        print("set status brief of evidence")
         self.assigned_to = None
         self.status = self.STATUS_BRIEF_OF_EVIDENCE
         self.log_user_action(
@@ -207,7 +189,6 @@ class LegalCase(RevisionedMixin):
         self.save()
 
     def set_status_generate_prosecution_brief(self, request):
-        print("set status generate prosecution brief")
         self.assigned_to = None
         self.status = self.STATUS_WITH_PROSECUTION_COORDINATOR_PROSECUTION_BRIEF
         self.log_user_action(
@@ -216,7 +197,6 @@ class LegalCase(RevisionedMixin):
         self.save()
 
     def send_to_prosecution_coordinator(self, request):
-        print("send to prosecution coordinator")
         self.assigned_to = None
         self.status = self.STATUS_WITH_PROSECUTION_COORDINATOR
         self.log_user_action(
@@ -227,7 +207,6 @@ class LegalCase(RevisionedMixin):
         self.save()
 
     def back_to_prosecution_coordinator(self, request):
-        print("back to prosecution coordinator")
         self.assigned_to = None
         self.status = self.STATUS_WITH_PROSECUTION_COORDINATOR_PROSECUTION_BRIEF
         self.log_user_action(
@@ -238,7 +217,6 @@ class LegalCase(RevisionedMixin):
         self.save()
 
     def send_to_prosecution_council(self, request):
-        print("send to prosecution council")
         self.assigned_to = None
         self.status = self.STATUS_WITH_PROSECUTION_COUNCIL
         self.log_user_action(
@@ -249,7 +227,6 @@ class LegalCase(RevisionedMixin):
         self.save()
 
     def approve_for_court(self, request):
-        print("approve for court")
         self.assigned_to = None
         self.status = self.STATUS_WITH_PROSECUTION_COORDINATOR_COURT
         self.log_user_action(
@@ -260,7 +237,6 @@ class LegalCase(RevisionedMixin):
         self.save()
 
     def send_to_prosecution_manager(self, request):
-        print("send to prosecution coordinator")
         self.assigned_to = None
         self.status = self.STATUS_WITH_PROSECUTION_MANAGER
         self.log_user_action(
@@ -271,7 +247,6 @@ class LegalCase(RevisionedMixin):
         self.save()
 
     def send_to_manager(self, request):
-        print("send to manager")
         self.assigned_to = None
         self.status = self.STATUS_WITH_MANAGER
         self.log_user_action(
@@ -284,7 +259,6 @@ class LegalCase(RevisionedMixin):
         self.save()
 
     def back_to_case(self, request):
-        print("back to case")
         self.assigned_to = None
         self.status = self.STATUS_OPEN
         self.log_user_action(
@@ -293,7 +267,6 @@ class LegalCase(RevisionedMixin):
         self.save()
 
     def back_to_officer(self, request):
-        print("back to officer")
         self.assigned_to = None
         self.status = self.STATUS_BRIEF_OF_EVIDENCE
         self.log_user_action(
@@ -418,16 +391,6 @@ class CourtProceedingsJournalEntry(RevisionedMixin):
         app_label = 'wildlifecompliance'
         unique_together = ('court_proceedings', 'row_num')
 
-    #def __str__(self):
-    #    return "Number:{}, User:{}, Description:{}".format(
-    #            self.number(),
-    #            self.user,
-    #            self.description)
-
-   # def legal_case_persons(self):
-   #     persons = self.legal_case.legal_case_person.all()
-   #     return persons
-
     def number(self):
         #return self.court_proceedings.number + '-' + str(self.row_num)
         number = ''
@@ -493,18 +456,6 @@ class LegalCaseRunningSheetEntry(RevisionedMixin):
         app_label = 'wildlifecompliance'
         unique_together = ('legal_case', 'row_num')
 
-    #def save(self, *args, **kwargs):
-    #    super(LegalCaseRunningSheetEntry, self).save(*args,**kwargs)
-    #    if self.row_num is None:
-    #        # TODO: replace with max fn
-    #        #new_number_id = self.legal_case.number + str(self.pk)
-    #        #max_row_num = LegalCaseRunningSheetEntry.objects.all().aggregate(Max('row_num'))
-    #        max_row_num_dict = LegalCaseRunningSheetEntry.objects.filter(legal_case=self.legal_case).aggregate(Max('row_num'))
-    #        max_row_num = int(max_row_num_dict['row_num__max'])
-    #        
-    #        self.row_num = max_row_num + 1
-    #        self.save()
-
     def __str__(self):
         return "Number:{}, User:{}, Description:{}".format(
                 self.number(),
@@ -561,23 +512,13 @@ class LegalCaseUserAction(UserAction):
     ACTION_STATUS_WITH_PROSECUTION_COUNCIL = "Send Case {} to Prosecution Council"
     ACTION_STATUS_WITH_PROSECUTION_MANAGER = "Send Case {} to Prosecution Manager"
     ACTION_APPROVE_FOR_COURT = "Approve Case {} for Court"
-    #ACTION_OFFENCE = "Create Offence {}"
-    #ACTION_SANCTION_OUTCOME = "Create Sanction Outcome {}"
     ACTION_SEND_TO_MANAGER = "Send Case {} to Manager"
     ACTION_BACK_TO_CASE = "Return Case {} to Open status"
     ACTION_BACK_TO_OFFICER = "Return Case {} to Officer"
     ACTION_CLOSE = "Close Legal Case {}"
     ACTION_PENDING_CLOSURE = "Mark Inspection {} as pending closure"
-    #ACTION_REQUEST_AMENDMENT = "Request amendment for {}"
-    #ACTION_ENDORSEMENT = "Inspection {} has been endorsed by {}"
     ACTION_ADD_WEAK_LINK = "Create manual link between {}: {} and {}: {}"
     ACTION_REMOVE_WEAK_LINK = "Remove manual link between {}: {} and {}: {}"
-    #ACTION_MAKE_TEAM_LEAD = "Make {} team lead"
-    #ACTION_ADD_TEAM_MEMBER = "Add {} to team"
-    #ACTION_REMOVE_TEAM_MEMBER = "Remove {} from team"
-    #ACTION_UPLOAD_INSPECTION_REPORT = "Upload Inspection Report '{}'"
-    #ACTION_CHANGE_INDIVIDUAL_INSPECTED = "Change individual inspected from {} to {}"
-    #ACTION_CHANGE_ORGANISATION_INSPECTED = "Change organisation inspected from {} to {}"
 
     class Meta:
         app_label = 'wildlifecompliance'
@@ -605,11 +546,6 @@ class LegalCaseDocument(Document):
     def delete(self):
         if self.can_delete:
             return super(LegalCaseDocument, self).delete()
-        #logger.info(
-         #   'Cannot delete existing document object after application has been submitted (including document submitted before\
-          #  application pushback to status Draft): {}'.format(
-           #     self.name)
-        #)
 
     class Meta:
         app_label = 'wildlifecompliance'
@@ -684,3 +620,4 @@ reversion.register(LegalCaseRunningSheetEntry, follow=['user'])
 reversion.register(CourtProceedingsJournalEntry, follow=['user'])
 reversion.register(LegalCase)
 reversion.register(EmailUser)
+

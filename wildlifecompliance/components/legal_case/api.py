@@ -63,11 +63,6 @@ from wildlifecompliance.components.legal_case.models import (
     ProsecutionBrief,
     CourtProceedings, CourtDate)
 from wildlifecompliance.components.legal_case.generate_pdf import create_document_pdf_bytes
-#from wildlifecompliance.components.artifact.models import (
-#        DocumentArtifact,
-#        PhysicalArtifact,
-#        LegalCaseRunningSheetArtifacts
-#        )
 
 from wildlifecompliance.components.call_email.models import (
         CallEmailUserAction,
@@ -87,7 +82,6 @@ from wildlifecompliance.components.legal_case.serializers import (
     LegalCaseRunningSheetSerializer,
     LegalCaseRunningSheetEntrySerializer,
     DeleteReinstateLegalCaseRunningSheetEntrySerializer,
-    # RunningSheetEntryVersionSerializer,
     VersionSerializer,
     RunningSheetEntryHistorySerializer,
     CreateLegalCasePersonSerializer,
@@ -107,7 +101,6 @@ from wildlifecompliance.components.organisations.models import (
     Organisation,    
 )
 from django.contrib.auth.models import Permission, ContentType
-#from utils import SchemaParser
 
 from rest_framework_datatables.pagination import DatatablesPageNumberPagination
 from rest_framework_datatables.filters import DatatablesFilterBackend
@@ -130,14 +123,10 @@ from wildlifecompliance.components.artifact.utils import (
         update_pb_document_artifacts_ticked,
         copy_brief_of_evidence_to_prosecution_brief,
         )
-#from wildlifecompliance.components.artifact.serializers import SaveBriefOfEvidenceRecordOfInterviewSerializer
-#from reversion.models import Version
-#import unicodedata
 
 class LegalCaseFilterBackend(DatatablesFilterBackend):
 
     def filter_queryset(self, request, queryset, view):
-        #import ipdb; ipdb.set_trace()
         # Get built-in DRF datatables queryset first to join with search text, then apply additional filters
         # super_queryset = super(CallEmailFilterBackend, self).filter_queryset(request, queryset, view).distinct()
 
@@ -194,21 +183,9 @@ class LegalCaseFilterBackend(DatatablesFilterBackend):
         ordering = self.get_ordering(getter, fields)
         if len(ordering):
             for num, item in enumerate(ordering):
-                #if item == 'planned_for':
-                #    # ordering.pop(num)
-                #    # ordering.insert(num, 'planned_for_date')
-                #    ordering[num] = 'planned_for_date'
-                #elif item == '-planned_for':
-                #    # ordering.pop(num)
-                #    # ordering.insert(num, '-planned_for_date')
-                #    ordering[num] = '-planned_for_date'
                 if item == 'status__name':
-                    # ordering.pop(num)
-                    # ordering.insert(num, 'status')
                     ordering[num] = 'status'
                 elif item == '-status__name':
-                    # ordering.pop(num)
-                    # ordering.insert(num, '-status')
                     ordering[num] = '-status'
 
             queryset = queryset.order_by(*ordering)
@@ -233,7 +210,6 @@ class LegalCasePaginatedViewSet(viewsets.ModelViewSet):
     page_size = 10
     
     def get_queryset(self):
-        # import ipdb; ipdb.set_trace()
         user = self.request.user
         if is_internal(self.request):
             return LegalCase.objects.all()
@@ -241,7 +217,6 @@ class LegalCasePaginatedViewSet(viewsets.ModelViewSet):
 
     @list_route(methods=['GET', ])
     def get_paginated_datatable(self, request, *args, **kwargs):
-        print(request.GET)
         queryset = self.get_queryset()
 
         queryset = self.filter_queryset(queryset)
@@ -257,7 +232,6 @@ class LegalCaseViewSet(viewsets.ModelViewSet):
     serializer_class = BaseLegalCaseSerializer
 
     def get_queryset(self):
-        # import ipdb; ipdb.set_trace()
         user = self.request.user
         if is_internal(self.request):
             return LegalCase.objects.all()
@@ -278,14 +252,11 @@ class LegalCaseViewSet(viewsets.ModelViewSet):
             serializer = LegalCaseProsecutionBriefSerializer
         else:
             serializer = BaseLegalCaseSerializer
-        print(serializer)
         serialized_instance = serializer(instance, context={'request': request})
         return serialized_instance
 
     def retrieve(self, request, *args, **kwargs):
-        #qs = self.get_queryset()
         instance = self.get_object()
-        #serializer = BaseLegalCaseSerializer
         serialized_instance = self.variable_serializer(request, instance)
         return Response(serialized_instance.data)
 
@@ -402,7 +373,6 @@ class LegalCaseViewSet(viewsets.ModelViewSet):
     def update(self, request, workflow=False, *args, **kwargs):
         try:
             with transaction.atomic():
-                print(request.data)
                 instance = self.get_object()
                 # Running Sheet
                 running_sheet_entries = request.data.get('running_sheet_transform')
@@ -479,10 +449,6 @@ class LegalCaseViewSet(viewsets.ModelViewSet):
                     full_http_response = request.data.get('full_http_response')
                     if full_http_response:
                         return_serializer = self.variable_serializer(request, instance)
-                        #if instance.status == 'brief_of_evidence':
-                        #    return_serializer = LegalCaseBriefOfEvidenceSerializer(instance, context={'request': request})
-                        #else:
-                         #   return_serializer = BaseLegalCaseSerializer(instance, context={'request': request})
                         return Response(
                                 return_serializer.data,
                                 status=status.HTTP_201_CREATED,
@@ -608,9 +574,6 @@ class LegalCaseViewSet(viewsets.ModelViewSet):
     @renderer_classes((JSONRenderer,))
     def running_sheet_history(self, request, *args, **kwargs):
         try:
-            print("running sheet history")
-            print("request.data")
-            print(request.data)
             instance = self.get_object()
             entry_number = request.data.get("running_sheet_entry_number")
             row_num = entry_number.split('-')[1]
@@ -704,34 +667,10 @@ class LegalCaseViewSet(viewsets.ModelViewSet):
             raise serializers.ValidationError(str(e))
 
     @detail_route(methods=['POST'])
-    @renderer_classes((JSONRenderer,))
-    def process_generated_documents(self, request, *args, **kwargs):
-        try:
-            instance = self.get_object()
-            returned_data = process_generic_document(request, instance, document_type="generated_documents")
-            if returned_data:
-                return Response(returned_data)
-            else:
-                return Response()
-
-        except serializers.ValidationError:
-            print(traceback.print_exc())
-            raise
-        except ValidationError as e:
-            if hasattr(e, 'error_dict'):
-                raise serializers.ValidationError(repr(e.error_dict))
-            else:
-                raise serializers.ValidationError(repr(e[0].encode('utf-8')))
-        except Exception as e:
-            print(traceback.print_exc())
-            raise serializers.ValidationError(str(e))
-
-    @detail_route(methods=['POST'])
     #@renderer_classes((JSONRenderer,))
     #@renderer_classes([PDFRenderer])
     def generate_document(self, request, *args, **kwargs):
         try:
-            print(request.data)
             instance = self.get_object()
             document_label = ''
             if request.data.get("document_type") == 'brief_of_evidence':
@@ -885,8 +824,6 @@ class LegalCaseViewSet(viewsets.ModelViewSet):
             raise serializers.ValidationError(str(e))
 
     def create(self, request, *args, **kwargs):
-        print("create")
-        print(request.data)
         try:
             with transaction.atomic():
                 serializer = SaveLegalCaseSerializer(
@@ -926,15 +863,11 @@ class LegalCaseViewSet(viewsets.ModelViewSet):
             instance.call_email.log_user_action(
                     CallEmailUserAction.ACTION_ALLOCATE_FOR_LEGAL_CASE.format(
                     instance.call_email.number), request)
-            #instance.call_email.status = 'open_inspection'
-            #instance.call_email.save()
             instance.call_email.close(request)
 
     @detail_route(methods=['POST'])
     @renderer_classes((JSONRenderer,))
     def workflow_action(self, request, instance=None, create_legal_case=None, *args, **kwargs):
-        print("workflow action")
-        print(request.data)
         try:
             with transaction.atomic():
                 # email recipient
@@ -984,14 +917,6 @@ class LegalCaseViewSet(viewsets.ModelViewSet):
                     instance.approve_for_court(request)
                 elif workflow_type == 'back_to_prosecution_council':
                     instance.send_to_prosecution_council(request)
-                #elif workflow_type == 'request_amendment':
-                #    instance.request_amendment(request)
-                #elif workflow_type == 'endorse':
-                #    instance.endorse(request)
-                #elif workflow_type == 'close':
-                #    instance.close(request)
-
-                #if not workflow_type or workflow_type in ('', ''):
                 if create_legal_case:
                     instance.region_id = None if not request.data.get('region_id') else request.data.get('region_id')
                     instance.district_id = None if not request.data.get('district_id') else request.data.get('district_id')
@@ -1000,34 +925,16 @@ class LegalCaseViewSet(viewsets.ModelViewSet):
                     instance.allocated_group_id = None if not request.data.get('allocated_group_id') else request.data.get('allocated_group_id')
                     instance.call_email_id = None if not request.data.get('call_email_id') else request.data.get('call_email_id')
                     instance.details = None if not request.data.get('details') else request.data.get('details')
-                ##elif workflow_type not in ('send_to_manager', 'request_amendment'):
-                # #   instance.assigned_to_id = None if not request.data.get('assigned_to_id') else request.data.get('assigned_to_id')
-                #else:
-                #    instance.assigned_to_id = None
-                #    instance.allocated_group_id = None if not request.data.get('allocated_group_id') else request.data.get('allocated_group_id')
-                #    #recipient_id = instance.inspection_team_lead_id
 
                 instance.save()
-                #
-                ## Needed for create inspection
-                #if create_inspection:
-                #    instance = self.modify_inspection_team(request, instance, workflow=True, user_id=instance.assigned_to_id)
 
                 ## send email
                 email_data = prepare_mail(request, instance, workflow_entry, send_mail)
-                #if workflow_type in ('send_to_manager', 'request_amendment') and instance.inspection_team_lead_id:
-                #    email_data = prepare_mail(request, instance, workflow_entry, send_mail, instance.inspection_team_lead_id)
-                #else:
-                #    email_data = prepare_mail(request, instance, workflow_entry, send_mail)
-
                 serializer = LegalCaseCommsLogEntrySerializer(instance=workflow_entry, data=email_data, partial=True)
                 serializer.is_valid(raise_exception=True)
                 if serializer.is_valid():
                     serializer.save()
                     return_serializer = self.variable_serializer(request, instance)
-                    #eturn_serializer = BaseLegalCaseSerializer(instance=instance, 
-                     #      context={'request': request}
-                      #     ) 
                     headers = self.get_success_headers(return_serializer.data)
                     return Response(
                             return_serializer.data, 
@@ -1161,7 +1068,6 @@ class LegalCaseViewSet(viewsets.ModelViewSet):
     def delete_reinstate_running_sheet_entry(self, request, *args, **kwargs):
         try:
             instance = self.get_object()
-            print(request.data)
             running_sheet_id = request.data.get("running_sheet_id")
             deleted = request.data.get("deleted")
             if running_sheet_id:
@@ -1201,13 +1107,9 @@ class LegalCaseViewSet(viewsets.ModelViewSet):
                             "legal_case_id": instance.id,
                             "user_id": request.user.id
                             }
-            print("request_data")
-            print(request_data)
             serializer = CreateLegalCaseRunningSheetEntrySerializer(data=request_data)
             serializer.is_valid(raise_exception=True)
             if serializer.is_valid():
-                print("serializer.validated_data")
-                print(serializer.validated_data)
                 running_sheet_entry = serializer.save()
                 #return running_sheet_entry
                 return_serializer = LegalCaseRunningSheetEntrySerializer(running_sheet_entry)
@@ -1238,24 +1140,4 @@ class LegalCasePriorityViewSet(viewsets.ModelViewSet):
        if is_internal(self.request):
            return LegalCasePriority.objects.all()
        return LegalCasePriority.objects.none()
-
-   #@detail_route(methods=['GET',])
-   #@renderer_classes((JSONRenderer,))
-   #def get_schema(self, request, *args, **kwargs):
-   #    instance = self.get_object()
-   #    try:
-   #        serializer = InspectionTypeSchemaSerializer(instance)
-   #        return Response(
-   #            serializer.data,
-   #            status=status.HTTP_201_CREATED,
-   #            )
-   #    except serializers.ValidationError:
-   #        print(traceback.print_exc())
-   #        raise
-   #    except ValidationError as e:
-   #        print(traceback.print_exc())
-   #        raise serializers.ValidationError(repr(e.error_dict))
-   #    except Exception as e:
-   #        print(traceback.print_exc())
-   #        raise serializers.ValidationError(str(e))
 
