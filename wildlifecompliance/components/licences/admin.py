@@ -37,7 +37,6 @@ class LicenceSpeciesAdmin(admin.ModelAdmin):
         'specie_id',
         'verify_date']
     readonly_fields = [
-        'specie_id',
         'verify_date',
         'verify_id',
         'verify_token',
