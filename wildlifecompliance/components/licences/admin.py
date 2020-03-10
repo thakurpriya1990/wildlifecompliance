@@ -1,6 +1,8 @@
 from django.contrib import admin
-from ledger.accounts.models import EmailUser
 from wildlifecompliance.components.licences import models
+from wildlifecompliance.components.applications.services import (
+    ApplicationService
+)
 # Register your models here.
 
 
@@ -40,3 +42,8 @@ class LicenceSpeciesAdmin(admin.ModelAdmin):
         'verify_id',
         'verify_token',
         'data']
+    actions = ['verify_species']
+
+    def verify_species(self, request, queryset):
+        ApplicationService.verify_licence_species()
+        self.message_user(request, 'All species have been verified.')

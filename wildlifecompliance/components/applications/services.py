@@ -32,6 +32,10 @@ class ApplicationService(object):
 
     @staticmethod
     def get_specie(species_list):
+        """
+        NOTE: REDUNDANT METHOD.
+        FIXME: REMOVE  
+        """
         requested_species = []
         tsc_service = TSCSpecieService(TSCSpecieCall())
 
@@ -72,10 +76,14 @@ class ApplicationService(object):
         purposes = LicencePurpose.objects.all()
         species_list = []
         for purpose in purposes:
-            species_list += purpose.species_list
+            species_list += purpose.get_group_species_list
+            species_list += purpose.get_section_species_list
 
         tsc_service = TSCSpecieService(TSCSpecieCall())
         tsc_service.set_strategy(TSCSpecieXReferenceCall())
+
+        species_set = set(species_list)     # create a list of unique values.
+        species_list = (list(species_set))
 
         for specie in species_list:
             tsc_service.search_taxon(specie)

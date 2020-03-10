@@ -67,9 +67,30 @@ class LicencePurpose(models.Model):
         return LicencePurpose.objects.filter(name=activity_name).first()
 
     @property
-    def species_list(self):
+    def get_group_species_list(self):
         """
-        List of species identifiers associated with this licence purpose.
+        List of species identifiers associated with this licence purpose at
+        a group level.
+        """
+        species_list = []
+
+        try:
+            for section in self.schema:
+                for group in section['children']:
+                    for component in group['children']:
+                        if component['type'] == 'species_list':
+                            species_list += component['value']
+
+        except KeyError:
+            pass
+
+        return species_list
+
+    @property
+    def get_section_species_list(self):
+        """
+        List of species identifiers associated with this licence purpose at
+        a section level.
         """
         species_list = []
 
