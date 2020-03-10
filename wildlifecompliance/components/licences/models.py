@@ -67,9 +67,30 @@ class LicencePurpose(models.Model):
         return LicencePurpose.objects.filter(name=activity_name).first()
 
     @property
-    def species_list(self):
+    def get_group_species_list(self):
         """
-        List of species identifiers associated with this licence purpose.
+        List of species identifiers associated with this licence purpose at
+        a group level.
+        """
+        species_list = []
+
+        try:
+            for section in self.schema:
+                for group in section['children']:
+                    for component in group['children']:
+                        if component['type'] == 'species_list':
+                            species_list += component['value']
+
+        except KeyError:
+            pass
+
+        return species_list
+
+    @property
+    def get_section_species_list(self):
+        """
+        List of species identifiers associated with this licence purpose at
+        a section level.
         """
         species_list = []
 
@@ -175,11 +196,13 @@ class LicenceSpecies(models.Model):
     data = JSONField(default=list)
 
     class Meta:
+        ordering = ['specie_id']
         app_label = 'wildlifecompliance'
         verbose_name = 'Licence species'
+        verbose_name_plural = 'Licence species'
 
     def __str__(self):
-        return '{0} - {1}'.format(self.specie_id, self.data)
+        return '{0} SPECIE_ID: {1}'.format(self.verify_date, self.specie_id)
 
 
 class DefaultActivity(models.Model):
