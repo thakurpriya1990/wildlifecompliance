@@ -259,13 +259,23 @@ export default {
               if (this.includeDocumentArtifacts) {
                   this.payload.include_document_artifacts = this.includeDocumentArtifacts;
               }
-              let post_url = '/generate_legal_case_document/'
+              //let post_url = '/generate_legal_case_document/'
+              let post_url = '/api/legal_case/' + this.legal_case.id + '/generate_document/'
               console.log(this.payload)
+              /*
+                      headers: {
+                          'Content-Type': 'application/json',
+                          'X-CSRFToken': this.csrf_token,
+                      },
+                      body: JSON.stringify({
+                          key: "value",
+                      }),
+                      */
               const res = await fetch(
                   post_url, 
                   {
                       method: 'POST', 
-                      body: this.payload,
+                      body: JSON.stringify(this.payload),
                       headers: {
                           'Content-Type': 'application/json',
                           'X-CSRFToken': this.csrf_token,

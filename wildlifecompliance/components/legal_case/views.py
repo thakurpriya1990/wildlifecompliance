@@ -14,7 +14,10 @@ from wildlifecompliance.components.legal_case.models import LegalCase, LegalCase
 
     #def post(request):
 def generate_legal_case_document(request):
+    print("request.POST")
     print(request.POST)
+    print("request")
+    print(request)
     try:
         document_label = ''
         if request.POST.get("document_type") == 'brief_of_evidence':
