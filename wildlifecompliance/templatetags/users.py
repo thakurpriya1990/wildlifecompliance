@@ -44,3 +44,8 @@ def prefer_compliance_management(context):
     request = context['request']
     return wildlifecompliance_helpers.prefer_compliance_management(request)
 
+@register.simple_tag(takes_context=True)
+def is_compliance_management_readonly_user(context):
+    request = context['request']
+    return wildlifecompliance_helpers.is_compliance_management_readonly_user(request)
+
