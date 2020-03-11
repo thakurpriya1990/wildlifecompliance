@@ -204,6 +204,7 @@
                         <!--li v-if="withProsecutionCoordinatorCourtStatus" class="nav-item"><a data-toggle="tab" :href="'#'+cpTab" >Court Proceedings</a></li-->
                         <li v-if="courtProceedingsVisibility" class="nav-item"><a data-toggle="tab" :href="'#'+cpTab" >Court Proceedings</a></li>
                         <li class="nav-item"><a data-toggle="tab" :href="'#'+rTab">Related Items</a></li>
+                        <!--li class="nav-item"><a data-toggle="tab" :href="'#'+gTab">Generated Documents</a></li-->
                     </ul>
                     <div class="tab-content">
                         <div :id="runTab" class="tab-pane fade in active">
@@ -289,6 +290,21 @@
                                 </div></div>
                             </FormSection>
                         </div>
+                        <!--div :id="gTab" class="tab-pane fade in">
+                            <FormSection :formCollapse="false" label="Generated Documents">
+                                <div class="col-sm-12 form-group"><div class="row">
+                                    <div v-if="legal_case.generatedDocumentsUrl">
+                                        <filefield
+                                        ref="generated_documents"
+                                        name="generated-documents"
+                                        :isRepeatable="true" 
+                                        :readonly="true"
+                                        :documentActionUrl="legal_case.generatedDocumentsUrl"
+                                        />
+                                    </div>
+                                </div></div>
+                            </FormSection>
+                        </div-->
                     </div>
                 </div>
             </div>
@@ -426,6 +442,7 @@ export default {
             objectHash: null,
             runTab: 'runTab'+this._uid,
             rTab: 'rTab'+this._uid,
+            //gTab: 'gTab'+this._uid,
             cTab: 'cTab'+this._uid,
             cpTab: 'cpTab'+this._uid,
             bTab: 'bTab'+this._uid,
@@ -879,7 +896,7 @@ export default {
             this.runningSheetHistoryEntryBindId = this.runningSheetHistoryEntryInstance + '_' + this.uuid;
         }
     },
-    setlegalCaseWorkflowBindId: function() {
+    setLegalCaseWorkflowBindId: function() {
         this.uuid += 1;
         this.legalCaseWorkflowBindId = 'legal_case_workflow_' + this.uuid;
     },

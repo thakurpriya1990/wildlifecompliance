@@ -2,8 +2,9 @@
 import os
 
 from decimal import Decimal as D
-from io import BytesIO
-
+from io import BytesIO, FileIO
+from django.http import HttpResponse, FileResponse
+from wsgiref.util import FileWrapper
 from django.core.files.storage import default_storage
 from django.core.files.base import ContentFile
 from oscar.templatetags.currency_filters import currency
@@ -462,7 +463,7 @@ def _create_pdf(invoice_buffer, legal_case, request_data):
 
     document_artifacts_data = []
     document_artifacts_data.append([
-        Paragraph('Additional Documents', styles['BoldLeft']),
+        Paragraph('List of Photographic, Video and Sound Exhibits', styles['BoldLeft']),
     ])
     for artifact in report_document_artifacts:
         document_artifacts_data.append([
@@ -513,38 +514,22 @@ def gap(num):
 
 
 def create_document_pdf_bytes(legal_case, request_data):
+    import uuid;
     try:
+        bytes_value = None
+        document_type = request_data.get('document_type')
+        filename = document_type + '_' + legal_case.number + str(uuid.uuid4().hex) + '.pdf'
+        path = 'wildlifecompliance/{}/{}/generated_documents/{}'.format(legal_case._meta.model_name, legal_case.id, filename)
         with BytesIO() as invoice_buffer:
-            #invoice_buffer = BytesIO()
-            _create_pdf(invoice_buffer, legal_case, request_data)
-            document_type = request_data.get('document_type')
-            filename = document_type + '_' + legal_case.number + '.pdf'
+            invoice_buffer = BytesIO()
+            returned_invoice_buffer = _create_pdf(invoice_buffer, legal_case, request_data)
+        # return cursor to beginning of file
+        invoice_buffer.seek(0)
 
-            # Get the value of the BytesIO buffer
-            value = invoice_buffer.getvalue()
-            #invoice_buffer.close()
+        response = HttpResponse(invoice_buffer, content_type='application/pdf')
+        response['Content-Disposition'] = 'attachment; filename="{}"'.format(filename)
+        return response
 
-            # START: Save the pdf file to the database
-            ## delete existing document
-            document = None
-            path = 'wildlifecompliance/{}/{}/generated_documents/{}'.format(legal_case._meta.model_name, legal_case.id, filename)
-            document_exists = default_storage.exists(path)
-            if document_exists:
-                print("delete " + path)
-                # delete file
-                default_storage.delete(path)
-                # delete Document obj
-                document, created = legal_case.generated_documents.get_or_create(name=filename)
-                document.delete()
-            # create new Document obj
-            document, created = legal_case.generated_documents.get_or_create(name=filename)
-            # save file
-            stored_file = default_storage.save(path, invoice_buffer)
-            document._file = stored_file
-            # save file object
-            document.save()
-
-            return document
     except Exception as e:
         print(e)
         raise e
