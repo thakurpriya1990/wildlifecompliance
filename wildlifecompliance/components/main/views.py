@@ -21,6 +21,12 @@ from wildlifecompliance.components.main.related_item import (
         search_weak_links
        )
 from django.contrib.auth.models import ContentType
+from django.conf import settings
+
+
+class GeocodingAddressSearchTokenView(views.APIView):
+    def get(self, request, format=None):
+        return Response(settings.GEOCODING_ADDRESS_SEARCH_TOKEN);
 
 
 class DepartmentUserView(views.APIView):

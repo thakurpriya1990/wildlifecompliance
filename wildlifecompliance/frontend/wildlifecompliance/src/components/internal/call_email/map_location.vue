@@ -77,6 +77,8 @@ import 'awesomplete/awesomplete.css';
 import 'leaflet/dist/leaflet.css';
 import 'leaflet-measure/dist/leaflet-measure.css';
 import 'leaflet.locatecontrol/dist/L.Control.Locate.min.css'
+import { api_endpoints } from "@/utils/hooks";
+import Vue from "vue";
 
 export default {
     name: "map-leaflet",
@@ -108,6 +110,7 @@ export default {
             idSearchInput: vm.guid + 'SearchInput',
             idBasemapSat: vm.guid + 'BasemapSat',
             idBasemapOsm: vm.guid + 'BasemapOsm',
+            mapboxAccessToken: '',
         };
     },
     computed: {
@@ -161,6 +164,10 @@ export default {
             console.debug('End loading map');
         });
     },
+    created: async function() {
+        await this.setMapboxAccessToken();
+    },
+        
     methods: {
         ...mapActions('callemailStore', {
             // saveLocation: 'saveLocation',
@@ -169,6 +176,10 @@ export default {
             setLocationAddressEmpty: 'setLocationAddressEmpty',
             setLocationDetailsFieldEmpty: 'setLocationDetailsFieldEmpty',
         }),
+        setMapboxAccessToken:  async function () {
+            const res =  await Vue.http.get(api_endpoints.geocoding_address_search_token);
+            this.mapboxAccessToken = res.body;
+        },
         setMarkerCentre: function(){
             let vm = this;
             let lat = vm.call_email.location.geometry.coordinates[1];
@@ -225,15 +236,16 @@ export default {
         //     await this.$nextTick();
         //     // this.saveLocation();
         // },
-        reverseGeocoding: function(coordinates_4326){
+        reverseGeocoding: async function(coordinates_4326){
             var self = this;
-
             $.ajax({
-                url: 'https://mapbox.dpaw.wa.gov.au/geocoding/v5/mapbox.places/'+coordinates_4326[0] + ',' + coordinates_4326[1] +'.json?'+ $.param({
-                    limit: 1,
-                    types: 'address'
-                }),
+                url: api_endpoints.geocoding_address_search + coordinates_4326[0] + ',' + coordinates_4326[1] + '.json?' + $.param({
+                        limit: 1,
+                        types: 'address',
+                        access_token: self.mapboxAccessToken,
+                    }),
                 dataType: 'json',
+
                 success: function(data, status, xhr) {
                     console.log('reverse results: ');
                     console.log(data);
@@ -259,19 +271,20 @@ export default {
                 }
             });
         },
-        search: function(place){
+        search: async function(place){
             var self = this;
 
             var latlng = this.map.getCenter();
             $.ajax({
-                url: 'https://mapbox.dpaw.wa.gov.au/geocoding/v5/mapbox.places/'+encodeURIComponent(place)+'.json?'+ $.param({
-                    country: 'au',
-                    limit: 10,
-                    proximity: ''+latlng.lng+','+latlng.lat,
-                    //proximity: ''+centre[0]+','+centre[1],
-                    bbox: '112.920934,-35.191991,129.0019283,-11.9662455',
-                    types: 'region,postcode,district,place,locality,neighborhood,address,poi'
-                }),
+                url: api_endpoints.geocoding_address_search + encodeURIComponent(place) + '.json?' + $.param({
+                        country: 'au',
+                        limit: 10,
+                        proximity: ''+latlng.lng+','+latlng.lat,
+                        //proximity: ''+centre[0]+','+centre[1],
+                        bbox: '112.920934,-35.191991,129.0019283,-11.9662455',
+                        types: 'region,postcode,district,place,locality,neighborhood,address,poi',
+                        access_token: self.mapboxAccessToken,
+                    }),
                 dataType: 'json',
                 success: function(data, status, xhr) {
                     self.suggest_list = [];  // Clear the list first
