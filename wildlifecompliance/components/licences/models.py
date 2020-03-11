@@ -69,17 +69,17 @@ class LicencePurpose(models.Model):
     @property
     def get_group_species_list(self):
         """
-        List of species identifiers associated with this licence purpose at
-        a group level.
+        List of species identifiers for questions associated with this licence
+        purpose at a group level.
         """
         species_list = []
 
         try:
             for section in self.schema:
                 for group in section['children']:
-                    for component in group['children']:
-                        if component['type'] == 'species_list':
-                            species_list += component['value']
+                    for question in group['children']:
+                        if question['type'] == 'species-list':
+                            species_list += question['value']
 
         except KeyError:
             pass
@@ -89,16 +89,16 @@ class LicencePurpose(models.Model):
     @property
     def get_section_species_list(self):
         """
-        List of species identifiers associated with this licence purpose at
-        a section level.
+        List of species identifiers for questions associated with this licence
+        purpose at a section level.
         """
         species_list = []
 
         try:
             for section in self.schema:
-                for component in section['children']:
-                    if component['type'] == 'species_list':
-                        species_list += component['value']
+                for question in section['children']:
+                    if question['type'] == 'species-list':
+                        species_list += question['value']
 
         except KeyError:
             pass
