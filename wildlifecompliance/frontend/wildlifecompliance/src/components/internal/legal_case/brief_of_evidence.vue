@@ -173,7 +173,7 @@
                                     </label>
                                 </div></div>
                             </FormSection>
-                            <FormSection :formCollapse="false" label="List of Photographic, Video and Sound Exhibits" treeHeight="yes">
+                            <FormSection :formCollapse="false" label="List of Photographic, Video and Sound Exhibits">
                                 <div class="col-sm-12 form-group"><div class="row">
                                     <div class="row" v-for="artifact in documentArtifacts">
                                         <!--input class="col-sm-1" type="checkbox" :value="artifact.id" v-model="physicalArtifactsUsedTicked"-->

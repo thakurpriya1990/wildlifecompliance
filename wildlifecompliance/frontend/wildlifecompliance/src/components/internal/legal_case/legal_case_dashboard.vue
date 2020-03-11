@@ -117,15 +117,12 @@
                     processing: true,
                     ajax: {
                         'url': '/api/legal_case_paginated/get_paginated_datatable/?format=datatables',
-                        //'url': '/api/legal_case/datatable_list',
-                        //'dataSrc': '',
-                        //'dataSrc': 'data',
-                        //'data': function(d) {
-                        //    d.status_description = vm.filterStatus;
-                        //    d.inspection_description = vm.filterInspectionType;
-                        //    d.date_from = vm.filterPlannedFrom != '' && vm.filterPlannedFrom != null ? moment(vm.filterPlannedFrom, 'DD/MM/YYYY').format('YYYY-MM-DD'): '';
-                        //    d.date_to = vm.filterPlannedTo != '' && vm.filterPlannedTo != null ? moment(vm.filterPlannedTo, 'DD/MM/YYYY').format('YYYY-MM-DD'): '';
-                        //}
+                        'dataSrc': 'data',
+                        'data': function(d) {
+                            d.status_description = vm.filterStatus;
+                            d.date_from = vm.filterPlannedFrom != '' && vm.filterPlannedFrom != null ? moment(vm.filterPlannedFrom, 'DD/MM/YYYY').format('YYYY-MM-DD'): '';
+                            d.date_to = vm.filterPlannedTo != '' && vm.filterPlannedTo != null ? moment(vm.filterPlannedTo, 'DD/MM/YYYY').format('YYYY-MM-DD'): '';
+                        }
                     },
                     //dom: 'lBfrtip',
                     //buttons: [

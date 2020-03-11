@@ -1487,6 +1487,7 @@ class Application(RevisionedMixin):
             amended = on_request_amend()
         return amended
 
+    @property
     def activity_invoice_amount(self, activity):
         """
         Gets the total amount paid for an activity across multiple invoices.
@@ -1505,6 +1506,8 @@ class Application(RevisionedMixin):
     def requires_refund(self):
         """
         Check on the previously paid invoice amount against application fee.
+        Refund is required when application fee is more than what has been
+        paid. Application fee amount can be adjusted more or less than base.
         """
         ACCEPT = Application.CUSTOMER_STATUS_ACCEPTED
         AWAIT = Application.CUSTOMER_STATUS_AWAITING_PAYMENT
@@ -1513,6 +1516,14 @@ class Application(RevisionedMixin):
             return False
 
         paid = self.total_paid_amount + self.previous_paid_amount
+
+        # licence fee is paid up front with application fee.
+        # exclude licence fee amount from paid aswell.
+        activity_paid = 0
+        for activity in self.activities:
+            activity_paid += activity.licence_fee
+        paid = paid - activity_paid
+
         over_paid = paid - int(self.application_fee)
 
         return True if over_paid > 0 else False

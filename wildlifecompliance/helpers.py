@@ -52,7 +52,6 @@ def is_wildlifecompliance_admin(request):
     return request.user.is_authenticated() and is_model_backend(request) and in_dbca_domain(
         request) and (request.user.has_perm('wildlifecompliance.system_administrator') or request.user.is_superuser)
 
-
 def in_dbca_domain(request):
     user = request.user
     domain = user.email.split('@')[1]
@@ -96,7 +95,7 @@ def is_officer(request):
 def prefer_compliance_management(request):
     if request.user.is_authenticated():
         preference_qs, created = ComplianceManagementUserPreferences.objects.get_or_create(email_user=request.user)
-        if preference_qs and preference_qs.prefer_compliance_management:
+        if preference_qs and preference_qs.prefer_compliance_management and is_compliance_management_readonly_user(request):
             return True
     else:
         return False
@@ -112,6 +111,10 @@ def is_compliance_internal_user(request):
                                        'manager'])]
     return request.user.is_authenticated() and (belongs_to_list(
         request.user, compliance_groups) or request.user.is_superuser)
+
+def is_compliance_management_readonly_user(request):
+    compliance_group = CompliancePermissionGroup.objects.get(permissions__codename='compliance_management_readonly')
+    return request.user.is_authenticated() and (belongs_to(request.user, compliance_group) or request.user.is_superuser)
 
 def is_able_to_view_sanction_outcome_pdf(user):
     compliance_groups = [group.name for group in CompliancePermissionGroup.objects.filter(
