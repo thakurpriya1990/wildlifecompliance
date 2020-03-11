@@ -172,6 +172,7 @@ ALLOW_EMAIL_ADMINS = env('ALLOW_EMAIL_ADMINS', False)  # Allows internal pages t
 SYSTEM_APP_LABEL = env('SYSTEM_APP_LABEL', 'wildlifecompliance')  # global app_label for group permissions filtering
 RENEWAL_PERIOD_DAYS = env('RENEWAL_PERIOD_DAYS', 30)
 GEOCODING_ADDRESS_SEARCH_TOKEN = env('GEOCODING_ADDRESS_SEARCH_TOKEN')
+DOT_EMAIL_ADDRESS = env('DOT_EMAIL_ADDRESS')
 
 # Details for Threathened Species and Communities server.
 TSC_URL = env('TSC_URL', 'https://tsc.dbca.wa.gov.au')
