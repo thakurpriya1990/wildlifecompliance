@@ -252,6 +252,18 @@
             :isRequired="component.isRequired"
             :help_text_url="help_text_url"/>
 
+        <SpeciesBlock v-if="component.type === 'species_list'"
+            :name="component.name"
+            :field_data="value"
+            :id="element_id()"
+            :label="component.label"
+            :options="component.value"
+            :help_text="help_text"
+            :readonly="is_readonly"
+            :isRequired="component.isRequired"
+            :handleChange="handleComponentChange(component, true)"
+            :help_text_url="help_text_url"/>
+
     </span>
 </template>
 
@@ -281,6 +293,7 @@ import CommentBlock from '@/components/forms/comment_block.vue';
 import TableBlock from '@/components/forms/table.vue'
 import ExpanderTable from '@/components/forms/expander_table.vue'
 import GridBlock from '@/components/forms/grid.vue'
+import SpeciesBlock from '@/components/forms/select_species.vue'
 
 const RendererBlock = {
   name: 'renderer-block',
@@ -302,6 +315,7 @@ const RendererBlock = {
       TableBlock,
       ExpanderTable,
       GridBlock,
+      SpeciesBlock,
   },
   data: function() {
     return {

@@ -40,7 +40,7 @@ from django.conf import settings
 
 from ledger.accounts.models import Document
 from ledger.checkout.utils import calculate_excl_gst
-from wildlifecompliance.components.main.pdf_utils import FlowableRect, ParagraphCheckbox, ParagraphOffeset
+from wildlifecompliance.components.main.pdf_utils import ParagraphCheckbox, ParagraphOffeset
 
 PAGE_MARGIN = 5 * mm
 PAGE_WIDTH, PAGE_HEIGHT = A4

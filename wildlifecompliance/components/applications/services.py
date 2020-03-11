@@ -4,9 +4,14 @@ import requests
 
 from decimal import Decimal
 
-# from wildlifecompliance import settings
+from wildlifecompliance import settings
 
 from ledger.checkout.utils import calculate_excl_gst
+
+from wildlifecompliance.components.licences.models import (
+    LicencePurpose,
+    LicenceSpecies,
+)
 
 from wildlifecompliance.components.applications.models import (
     Application,
@@ -26,23 +31,38 @@ class ApplicationService(object):
         pass
 
     @staticmethod
-    def get_specie(species_list):
+    def get_licence_species(species_list):
+        """
+        Gets species details.
+        """
         requested_species = []
-        tsc_service = TSCSpecieService(TSCSpecieCall())
-
-        strategy = {
-             0: tsc_service.set_strategy(TSCSpecieCall()),
-             1: tsc_service.set_strategy(TSCSpecieRecursiveCall()),
-             2: tsc_service.set_strategy(TSCSpecieXReferenceCall()),
-        }
-        strategy.get(0)
-
         for specie in species_list:
             details = []
-            details = tsc_service.search_taxon(specie)
-            requested_species.append(details)
+            details = LicenceSpecies.objects.values('data').get(
+                specie_id=specie)
+            requested_species.append(details['data'])
 
         return requested_species
+
+    @staticmethod
+    def verify_licence_species():
+        """
+        Verifies species name identifier is current with the TSC database.
+        """
+        purposes = LicencePurpose.objects.all()
+        species_list = []
+        for purpose in purposes:
+            species_list += purpose.get_group_species_list
+            species_list += purpose.get_section_species_list
+
+        tsc_service = TSCSpecieService(TSCSpecieCall())
+        tsc_service.set_strategy(TSCSpecieXReferenceCall())
+
+        species_set = set(species_list)     # create a list of unique values.
+        species_list = (list(species_set))
+
+        for specie in species_list:
+            tsc_service.search_taxon(specie)
 
     @staticmethod
     def calculate_fees(application, data_source):
@@ -485,7 +505,7 @@ class ApplicationFeePolicy(object):
     def get_fee_product_lines_for(application):
         """
         Gets the checkout product lines for this application which inlcudes
-        fee for both the application and licence activities. 
+        fee for both the application and licence activities.
         """
         product_lines = []
 
@@ -713,11 +733,28 @@ class TSCSpecieService():
 
     def search_taxon(self, specie_id):
         """
-        Search taxonomy for species.
+        Search taxonomy for specie details and save search data.
         """
         try:
+            token = None
+            identifier = None
+            search_data = self._strategy.request_species(specie_id)
 
-            return self._strategy.request_species(specie_id)
+            if search_data:
+                if isinstance(self._strategy, TSCSpecieXReferenceCall):
+                    token = search_data[0]['xref_id']
+                    identifier = self._strategy._CODE
+
+                # Save searched details.
+                specie, verified = LicenceSpecies.objects.get_or_create(
+                    specie_id=int(specie_id)
+                )
+                specie.verify_id = identifier
+                specie.verify_token = token
+                specie.data = search_data
+                specie.save()  # save specie to update verification date.
+
+            return search_data
 
         except BaseException:
             print "{} error: {}".format(self._strategy, sys.exc_info()[0])
@@ -732,7 +769,8 @@ class TSCSpecieCallStrategy(object):
     A Strategy Interface declaring a common operation for the TSCSpecie Call.
     """
 
-    # _AUTHORISE = {"Authorization": settings.TSC_AUTH}
+    _AUTHORISE = {"Authorization": settings.TSC_AUTH}
+    _CODE = None
 
     __metaclass__ = abc.ABCMeta
 
@@ -748,6 +786,7 @@ class TSCSpecieCall(TSCSpecieCallStrategy):
     """
     A TSCSpecie Call.
     """
+    _CODE = 'TAXON'
     _URL = "https://tsc.dbca.wa.gov.au/api/1/taxon/?format=json"
 
     def __init__(self):
@@ -783,6 +822,7 @@ class TSCSpecieRecursiveCall(TSCSpecieCallStrategy):
     A Recursive strategy for the TSCSpecie Call.
     To be implemented. Recursive action on TSC server-side.
     """
+    _CODE = 'TAXON1'
 
     def __init__(self):
         super(TSCSpecieCallStrategy, self).__init__()
@@ -802,9 +842,6 @@ class TSCSpecieXReferenceCall(TSCSpecieCallStrategy):
     """
     A Recursive strategy for the TSCSpecie Call.
 
-    NOTE: Tail recursion exist with this strategy which will need to be 
-    removed.
-
     Reason 0: Misapplied name
     Reason 1: Taxonomic synonym
     Reason 2: Nomenclatural synonym
@@ -815,12 +852,13 @@ class TSCSpecieXReferenceCall(TSCSpecieCallStrategy):
     Reason 7: Name in error
     Reason 8: Informal Synonym
     """
-    _URL = "https://tsc.dbca.wa.gov.au/api/1/crossreference/?format=json&"
+    _CODE = "XREF"
+    _XREF = "https://tsc.dbca.wa.gov.au/api/1/crossreference/?format=json"
+    _TAXN = "https://tsc.dbca.wa.gov.au/api/1/taxon-fast/?format=json"
 
     def __init__(self):
         super(TSCSpecieCallStrategy, self).__init__()
-        # self._depth = sys.getrecursionlimit()
-        self._depth = 3
+        self._depth = sys.getrecursionlimit()
 
     def set_depth(self, depth):
         """
@@ -837,33 +875,92 @@ class TSCSpecieXReferenceCall(TSCSpecieCallStrategy):
     def get_level_species(self, level_no, level_species):
         requested_species = []
 
-        def send_request(level_species):
+        def send_request_successor(level_species):
+            # sends a request to TSC for each specie in level using specie_id
+            # to retrieve successors.
             level_list = []
             for specie in level_species:
 
-                url = '{0}&predecessor__name_id={1}'.format(
-                    self._URL, specie['name_id'])
+                # check if verified and recursively decend from that token.
+                try:
+                    xref_id = LicenceSpecies.objects.values(
+                        'verify_token').get(specie_id=specie['name_id'])
 
+                    return send_request_token(xref_id['verify_token'])
+
+                except LicenceSpecies.DoesNotExist:
+                    pass
+                except KeyError:
+                    pass
+
+                url = '{0}&predecessor__name_id={1}'.format(
+                    self._XREF, specie['name_id'])
                 xref = requests.get(url, headers=self._AUTHORISE).json()
-                if (xref['count'] > 0):
+
+                if (xref['count'] and xref['count'] > 0):
+                    xref['results'][0]['successor'][
+                        'authorised_on'] = xref['results'][0]['authorised_on']
+                    xref['results'][0]['successor'][
+                        'xref_id'] = xref['results'][0]['xref_id']
                     level_list.append(xref['results'][0]['successor'])
 
             return level_list
 
-        level_no = level_no + 1
-        for level in range(level_no, self._depth):  # stopping rule.
-            successor = send_request(level_species)
-            requested_species += successor
+        def send_request_node(level_species):
+            # Sends a request to TSC for each specie in level using specie id
+            # to retrieve specie details.
+            level_list = []
+            for specie in level_species:
 
+                url = '{0}&name_id={1}'.format(
+                    self._TAXN, specie['name_id'])
+                taxon = requests.get(url, headers=self._AUTHORISE).json()
+
+                if (taxon['count'] and taxon['count'] > 0):
+                    taxon['features'][0]['authorised_on'] = None
+                    taxon['features'][0]['xref_id'] = 0
+                    level_list.append(taxon['features'][0])
+
+            return level_list
+
+        def send_request_token(xref_id):
+            # Send a request to TSC using xref identifier to retrieve
+            # successors.
+            level_list = []
+            for specie in level_species:
+
+                url = '{0}&xref_id={1}'.format(
+                    self._XREF, xref_id)
+                xref = requests.get(url, headers=self._AUTHORISE).json()
+
+                if (xref['count'] and xref['count'] > 0):
+                    xref['results'][0]['successor'][
+                        'authorised_on'] = xref['results'][0]['authorised_on']
+                    xref['results'][0]['successor'][
+                        'xref_id'] = xref['results'][0]['xref_id']
+                    level_list.append(xref['results'][0]['successor'])
+
+            return level_list
+
+        # recursive descent.
+        level_no = level_no + 1
+        if level_no < self._depth:  # stopping rule.
+            successor = send_request_successor(level_species)
+            requested_species = successor
             if successor:
-                next_level_species = self.get_level_species(level, successor)
+                next_level_species = self.get_level_species(
+                    level_no, successor)
+
                 for specie in next_level_species:
                     requested_species.append(specie)
-            else:
-                requested_species = successor
-                break
+        else:
+            raise Exception('{0} - Recursion limit exceeded.'.format(self))
+
+        if not requested_species and level_no < 2:
+            # When no successor from root retrieve root node.
+            requested_species = send_request_node(level_species)
 
         return requested_species
 
     def __str__(self):
-        return 'Cross Reference call with max depth {}'.format(self._depth)
+        return 'XRef call with max depth {}'.format(self._depth)

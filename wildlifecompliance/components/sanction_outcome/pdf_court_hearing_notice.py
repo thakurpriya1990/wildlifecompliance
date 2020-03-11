@@ -473,4 +473,6 @@ def create_court_hearing_notice_pdf_bytes(filename, sanction_outcome):
         document._file = path
         document.save()
 
+        invoice_buffer.close()
+
         return document

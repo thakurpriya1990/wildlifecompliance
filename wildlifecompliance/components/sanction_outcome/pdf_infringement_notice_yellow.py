@@ -3,7 +3,7 @@ from io import BytesIO
 from django.core.files.storage import default_storage
 from reportlab.lib import enums
 from reportlab.lib.pagesizes import A4
-from reportlab.platypus import BaseDocTemplate, PageTemplate, Frame, PageBreak
+from reportlab.platypus import BaseDocTemplate, PageTemplate, Frame, PageBreak, Paragraph
 from reportlab.lib.styles import getSampleStyleSheet, ParagraphStyle, StyleSheet1
 from wildlifecompliance.components.sanction_outcome.pdf_infringement_notice_blue import BOLD_FONTNAME, LARGE_FONTSIZE, VERY_LARGE_FONTSIZE, MEDIUM_FONTSIZE, PAGE_MARGIN, PAGE_WIDTH, \
     PARAGRAPH_BOTTOM_MARGIN, PAGE_HEIGHT
@@ -58,6 +58,8 @@ def create_infringement_notice_yellow(filename, sanction_outcome):
         document._file = path
         document.save()
         # END: Save
+
+        invoice_buffer.close()
 
         return document
 
