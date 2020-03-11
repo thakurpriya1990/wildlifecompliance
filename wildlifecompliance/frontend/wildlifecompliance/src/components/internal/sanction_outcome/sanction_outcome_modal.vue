@@ -178,7 +178,7 @@
                                 </div>
                                 <div class="col-sm-3">
                                     <div class="input-group date" ref="dueDatePicker">
-                                        <input type="text" class="form-control" placeholder="DD/MM/YYYY" v-model="current_remediation_action.due_date" />
+                                        <input type="text" class="form-control" placeholder="DD/MM/YYYY" :value="current_remediation_action.due_date" />
                                         <span class="input-group-addon">
                                             <span class="glyphicon glyphicon-calendar"></span>
                                         </span>
@@ -689,7 +689,7 @@ export default {
             vm.$refs.tbl_remediation_actions.vmDataTable.row
               .add({
                 id: helpers.guid(),
-                due_date: vm.current_remediation_action.due_date,
+                due_date: moment(vm.current_remediation_action.due_date, "DD/MM/YYYY").format("DD/MM/YYYY"),
                 action_text: vm.current_remediation_action.action
               })
               .draw();
@@ -872,7 +872,9 @@ export default {
             }
   
             // Retrieve remediation actions and set them to the payload
-            let remediation_actions = vm.$refs.tbl_remediation_actions.vmDataTable.rows().data().toArray();
+            let remediation_actions_rows = vm.$refs.tbl_remediation_actions.vmDataTable.rows() //.data().toArray();
+            let remediation_actions_data = remediation_actions_rows.data()
+            let remediation_actions = remediation_actions_data.toArray()
             payload.remediation_actions = remediation_actions;
             for (let i = 0; i < payload.remediation_actions.length; i++) {
                 payload.remediation_actions[i].due_date = moment(payload.remediation_actions[i].due_date, "DD/MM/YYYY").format("YYYY-MM-DD");

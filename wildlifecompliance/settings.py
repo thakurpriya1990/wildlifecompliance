@@ -143,7 +143,7 @@ SYSTEM_NAME = env('SYSTEM_NAME', 'Wildlife Licensing System')
 SYSTEM_EMAIL = env('SYSTEM_EMAIL', 'wildlifelicensing@dbca.wa.gov.au')
 
 WC_PAYMENT_SYSTEM_ID = env('WC_PAYMENT_SYSTEM_ID', 'S566')
-WC_PAYMENT_SYSTEM_PREFIX = env('PAYMENT_SYSTEM_PREFIX', WC_PAYMENT_SYSTEM_ID.replace('S','0')) 
+WC_PAYMENT_SYSTEM_PREFIX = env('PAYMENT_SYSTEM_PREFIX', WC_PAYMENT_SYSTEM_ID.replace('S', '0'))
 PS_PAYMENT_SYSTEM_ID = WC_PAYMENT_SYSTEM_ID
 
 COLS_ADMIN_GROUP = env('COLS_ADMIN_GROUP', 'COLS Admin')
@@ -168,4 +168,5 @@ EXCEL_OUTPUT_PATH = env('EXCEL_OUTPUT_PATH')
 ALLOW_EMAIL_ADMINS = env('ALLOW_EMAIL_ADMINS', False)  # Allows internal pages to be accessed via email authentication
 SYSTEM_APP_LABEL = env('SYSTEM_APP_LABEL', 'wildlifecompliance')  # global app_label for group permissions filtering
 RENEWAL_PERIOD_DAYS = env('RENEWAL_PERIOD_DAYS', 30)
+DOT_EMAIL_ADDRESS = 'shibaken+dot@gmail.com'
 

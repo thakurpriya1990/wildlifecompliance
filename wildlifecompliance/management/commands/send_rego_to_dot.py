@@ -21,6 +21,7 @@ from wildlifecompliance.components.sanction_outcome_due.serializers import SaveS
 from wildlifecompliance.components.wc_payments.models import InfringementPenalty, InfringementPenaltyInvoice
 from wildlifecompliance.helpers import DEBUG
 from wildlifecompliance.management.commands.cron_tasks import get_infringement_notice_coordinators
+from wildlifecompliance.settings import DOT_EMAIL_ADDRESS
 
 logger = logging.getLogger(__name__)
 
@@ -51,14 +52,24 @@ class Command(BaseCommand):
                 count = acos.count()
                 logger.info('{} parking infringement notice(s) found to process.'.format(str(count)))
 
+                for aco in acos:
+                    print aco.sanction_outcome.id
+
                 if count:
                     file_for_dot = DotRequestFile()
                     file_for_dot.save()  # Create the object to save manytomany fields
 
                     index = 1
                     for aco in acos:
-                        file_for_dot.contents += aco.sanction_outcome.registration_number + ',' + str(index).zfill(2) + ',' + aco.sanction_outcome.offence_occurrence_date.strftime("%d%m%Y") + '\r\n'
-                        file_for_dot.sanction_outcomes.add(aco.sanction_outcome)
+                        try:
+                            file_for_dot.contents += aco.sanction_outcome.registration_number + ',' + str(index).zfill(2) + ',' + aco.sanction_outcome.offence_occurrence_date.strftime("%d%m%Y") + '\r\n'
+                            file_for_dot.sanction_outcomes.add(aco.sanction_outcome)
+                        except Exception as e:
+                            logger.error('Error command {}'.format(__name__))
+
+                    if not file_for_dot.sanction_outcomes.count():
+                        return
+
                     file_for_dot.filename = 'DPaw-' + datetime.date.today().strftime("%d%b%Y") + '-Request.txt'
                     file_for_dot.save()
 
@@ -67,7 +78,7 @@ class Command(BaseCommand):
                     cc_list = [member.email for member in members] if members else [settings.NOTIFICATION_EMAIL]
 
                     # Email
-                    to_address = ['shibaken+dot@dbca.gov.wa.au', ]
+                    to_address = [DOT_EMAIL_ADDRESS, ]
                     cc = cc_list
                     bcc = None
                     attachments = [(file_for_dot.filename, file_for_dot.contents, 'text/plain'), ]
