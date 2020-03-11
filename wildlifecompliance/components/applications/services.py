@@ -31,30 +31,6 @@ class ApplicationService(object):
         pass
 
     @staticmethod
-    def get_specie(species_list):
-        """
-        NOTE: REDUNDANT METHOD.
-        FIXME: REMOVE  
-        """
-        requested_species = []
-        tsc_service = TSCSpecieService(TSCSpecieCall())
-
-        strategy = {
-             0: tsc_service.set_strategy(TSCSpecieCall()),
-             1: tsc_service.set_strategy(TSCSpecieRecursiveCall()),
-             2: tsc_service.set_strategy(TSCSpecieXReferenceCall()),
-        }
-        strategy.get(2)
-
-        for specie in species_list:
-            details = []
-            details = tsc_service.search_taxon(specie)
-            for detail in details:
-                requested_species.append(detail)
-
-        return requested_species
-
-    @staticmethod
     def get_licence_species(species_list):
         """
         Gets species details.
@@ -771,10 +747,10 @@ class TSCSpecieService():
 
                 # Save searched details.
                 specie, verified = LicenceSpecies.objects.get_or_create(
-                    specie_id=int(specie_id),
-                    verify_id=identifier,
-                    verify_token=token
+                    specie_id=int(specie_id)
                 )
+                specie.verify_id = identifier
+                specie.verify_token = token
                 specie.data = search_data
                 specie.save()  # save specie to update verification date.
 
@@ -914,12 +890,14 @@ class TSCSpecieXReferenceCall(TSCSpecieCallStrategy):
 
                 except LicenceSpecies.DoesNotExist:
                     pass
+                except KeyError:
+                    pass
 
                 url = '{0}&predecessor__name_id={1}'.format(
                     self._XREF, specie['name_id'])
                 xref = requests.get(url, headers=self._AUTHORISE).json()
 
-                if (xref['count'] > 0):
+                if (xref['count'] and xref['count'] > 0):
                     xref['results'][0]['successor'][
                         'authorised_on'] = xref['results'][0]['authorised_on']
                     xref['results'][0]['successor'][
@@ -938,7 +916,7 @@ class TSCSpecieXReferenceCall(TSCSpecieCallStrategy):
                     self._TAXN, specie['name_id'])
                 taxon = requests.get(url, headers=self._AUTHORISE).json()
 
-                if (taxon['count'] > 0):
+                if (taxon['count'] and taxon['count'] > 0):
                     taxon['features'][0]['authorised_on'] = None
                     taxon['features'][0]['xref_id'] = 0
                     level_list.append(taxon['features'][0])
@@ -954,7 +932,8 @@ class TSCSpecieXReferenceCall(TSCSpecieCallStrategy):
                 url = '{0}&xref_id={1}'.format(
                     self._XREF, xref_id)
                 xref = requests.get(url, headers=self._AUTHORISE).json()
-                if (xref['count'] > 0):
+
+                if (xref['count'] and xref['count'] > 0):
                     xref['results'][0]['successor'][
                         'authorised_on'] = xref['results'][0]['authorised_on']
                     xref['results'][0]['successor'][
