@@ -172,17 +172,19 @@ def send_due_date_extended_mail(to_address, sanction_outcome, workflow_entry, re
         'sanction_outcome': sanction_outcome,
         'workflow_entry_details': request.data.get('details'),
     }
-    pdf_file_name = 'infringement_notice_{}_{}.pdf'.format(sanction_outcome.lodgement_number, datetime.datetime.now().strftime("%Y%m%d%H%M%S"))
-    document = create_infringement_notice_pdf_bytes(pdf_file_name, sanction_outcome)
+    # pdf_file_name = 'infringement_notice_{}_{}.pdf'.format(sanction_outcome.lodgement_number, datetime.datetime.now().strftime("%Y%m%d%H%M%S"))
+    # document = create_infringement_notice_pdf_bytes(pdf_file_name, sanction_outcome)
 
     # Attach files (files from the modal, and the PDF file generated above)
-    attachments = prepare_attachments(workflow_entry.documents)
-    attachments.append((pdf_file_name, document._file.read(), 'application/pdf'))
+    # attachments = prepare_attachments(workflow_entry.documents)
+    # attachments.append((pdf_file_name, document._file.read(), 'application/pdf'))
 
     # Attach the pdf file created above to the communication log entry
-    doc = workflow_entry.documents.create(name=document.name)
-    doc._file = document._file
-    doc.save()
+    # doc = workflow_entry.documents.create(name=document.name)
+    # doc._file = document._file
+    # doc.save()
+
+    attachments = create_infringement_notice_ybw(sanction_outcome, workflow_entry)
 
     msg = email.send(to_address,
                      context=context,
@@ -205,16 +207,18 @@ def send_remind_1st_period_overdue_mail(to_address, sanction_outcome, workflow_e
         'sanction_outcome': sanction_outcome,
         'workflow_entry_details': 'This is message body.',
     }
-    pdf_file_name = 'infringement_notice_{}_{}.pdf'.format(sanction_outcome.lodgement_number, datetime.datetime.now().strftime("%Y%m%d%H%M%S"))
-    document = create_infringement_notice_pdf_bytes(pdf_file_name, sanction_outcome)
+    # pdf_file_name = 'infringement_notice_{}_{}.pdf'.format(sanction_outcome.lodgement_number, datetime.datetime.now().strftime("%Y%m%d%H%M%S"))
+    # document = create_infringement_notice_pdf_bytes(pdf_file_name, sanction_outcome)
+    #
+    # attachments = []
+    # attachments.append((pdf_file_name, document._file.read(), 'application/pdf'))
+    #
+    # # Attach the pdf file created above to the communication log entry
+    # doc = workflow_entry.documents.create(name=document.name)
+    # doc._file = document._file
+    # doc.save()
 
-    attachments = []
-    attachments.append((pdf_file_name, document._file.read(), 'application/pdf'))
-
-    # Attach the pdf file created above to the communication log entry
-    doc = workflow_entry.documents.create(name=document.name)
-    doc._file = document._file
-    doc.save()
+    attachments = create_infringement_notice_ybw(sanction_outcome, workflow_entry)
 
     msg = email.send(to_address,
                      context=context,
@@ -548,32 +552,7 @@ def send_infringement_notice(to_address, sanction_outcome, workflow_entry, reque
         'workflow_entry_details': request.data.get('details'),
     }
 
-    pdf_file_name_y = 'infringement_notice_y_{}_{}.pdf'.format(sanction_outcome.lodgement_number, datetime.datetime.now().strftime("%Y%m%d%H%M%S"))
-    pdf_file_name_b = 'infringement_notice_b_{}_{}.pdf'.format(sanction_outcome.lodgement_number, datetime.datetime.now().strftime("%Y%m%d%H%M%S"))
-    pdf_file_name_w = 'infringement_notice_w_{}_{}.pdf'.format(sanction_outcome.lodgement_number, datetime.datetime.now().strftime("%Y%m%d%H%M%S"))
-    # document = create_prosecution_notice_pdf_bytes(pdf_file_name, sanction_outcome)
-    # document = create_court_hearing_notice_pdf_bytes(pdf_file_name, sanction_outcome)
-    document_y = create_infringement_notice_yellow(pdf_file_name_y, sanction_outcome)
-    document_b = create_infringement_notice_blue(pdf_file_name_b, sanction_outcome)
-    document_w = create_infringement_notice_white(pdf_file_name_w, sanction_outcome)
-
-    # Attach files (files from the modal, and the PDF file generated above)
-    attachments = prepare_attachments(workflow_entry.documents)
-    mime = mimetypes.guess_type(document_y._file.path)[0]
-    attachments.append((pdf_file_name_y, document_y._file.read(), mime))
-    attachments.append((pdf_file_name_b, document_b._file.read(), 'application/pdf'))
-    attachments.append((pdf_file_name_w, document_w._file.read(), 'application/pdf'))
-
-    # Attach the pdf file created above to the communication log entry
-    doc = workflow_entry.documents.create(name=document_y.name)
-    doc._file = document_y._file
-    doc.save()
-    doc = workflow_entry.documents.create(name=document_b.name)
-    doc._file = document_b._file
-    doc.save()
-    doc = workflow_entry.documents.create(name=document_w.name)
-    doc._file = document_w._file
-    doc.save()
+    attachments = create_infringement_notice_ybw(sanction_outcome, workflow_entry)
 
     msg = email.send(to_address,
                      context=context,
@@ -584,6 +563,37 @@ def send_infringement_notice(to_address, sanction_outcome, workflow_entry, reque
     sender = request.user if request else settings.DEFAULT_FROM_EMAIL
     email_data = _extract_email_headers(msg, sender=sender)
     return email_data
+
+
+def create_infringement_notice_ybw(sanction_outcome, workflow_entry):
+    pdf_file_name_y = 'infringement_notice_y_{}_{}.pdf'.format(sanction_outcome.lodgement_number,
+                                                               datetime.datetime.now().strftime("%Y%m%d%H%M%S"))
+    pdf_file_name_b = 'infringement_notice_b_{}_{}.pdf'.format(sanction_outcome.lodgement_number,
+                                                               datetime.datetime.now().strftime("%Y%m%d%H%M%S"))
+    pdf_file_name_w = 'infringement_notice_w_{}_{}.pdf'.format(sanction_outcome.lodgement_number,
+                                                               datetime.datetime.now().strftime("%Y%m%d%H%M%S"))
+    # document = create_prosecution_notice_pdf_bytes(pdf_file_name, sanction_outcome)
+    # document = create_court_hearing_notice_pdf_bytes(pdf_file_name, sanction_outcome)
+    document_y = create_infringement_notice_yellow(pdf_file_name_y, sanction_outcome)
+    document_b = create_infringement_notice_blue(pdf_file_name_b, sanction_outcome)
+    document_w = create_infringement_notice_white(pdf_file_name_w, sanction_outcome)
+    # Attach files (files from the modal, and the PDF file generated above)
+    attachments = prepare_attachments(workflow_entry.documents)
+    mime = mimetypes.guess_type(document_y._file.path)[0]
+    attachments.append((pdf_file_name_y, document_y._file.read(), mime))
+    attachments.append((pdf_file_name_b, document_b._file.read(), 'application/pdf'))
+    attachments.append((pdf_file_name_w, document_w._file.read(), 'application/pdf'))
+    # Attach the pdf file created above to the communication log entry
+    doc = workflow_entry.documents.create(name=document_y.name)
+    doc._file = document_y._file
+    doc.save()
+    doc = workflow_entry.documents.create(name=document_b.name)
+    doc._file = document_b._file
+    doc.save()
+    doc = workflow_entry.documents.create(name=document_w.name)
+    doc._file = document_w._file
+    doc.save()
+    return attachments
 
 
 def send_return_to_officer_email(to_address, sanction_outcome, workflow_entry, request, cc=None, bcc=None):

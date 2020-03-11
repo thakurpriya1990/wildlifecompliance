@@ -12,7 +12,7 @@ from wildlifecompliance.components.sanction_outcome.pdf_infringement_notice_blue
     VERY_LARGE_FONTSIZE, MEDIUM_FONTSIZE, PAGE_MARGIN, PAGE_WIDTH, \
     PARAGRAPH_BOTTOM_MARGIN, PAGE_HEIGHT, DPAW_HEADER_LOGO
 from wildlifecompliance.components.main.pdf_utils import get_infringement_notice_table, BrokenLine, SolidLine, gap, \
-    YesNoCheckbox, ParagraphCheckbox
+    YesNoCheckbox, ParagraphCheckbox, get_font_str
 
 styles = getSampleStyleSheet()
 styles.add(ParagraphStyle(name='InfoTitleLargeCenter', fontName=BOLD_FONTNAME, fontSize=LARGE_FONTSIZE,
@@ -70,9 +70,11 @@ def _create_pdf(invoice_buffer, sanction_outcome):
         ('SPAN', (2, 6), (4, 6)),
     ])
     data = []
+    rego = sanction_outcome.registration_number if sanction_outcome.registration_number else ''
     data.append([
         Paragraph('<strong>Registration number<br />vehicle/vessel:</strong>', styles['Normal']),
-        '', '', '', '',
+        Paragraph(get_font_str(rego), styles['Normal']),
+        '', '', '',
     ])
     data.append([
         Paragraph('<strong>Make:</strong>', styles['Normal']),

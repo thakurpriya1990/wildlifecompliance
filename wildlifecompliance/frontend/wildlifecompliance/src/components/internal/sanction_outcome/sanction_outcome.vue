@@ -1041,6 +1041,10 @@ export default {
             this.constructRemediationActionsTable();
         },
         formatDate: function(d){
+            console.log('formatDate');
+            if (d === 'overdue'){
+                return 'Overdue';
+            }
             return moment(d).format("DD/MM/YYYY");
         },
         sendParkingInfringement: async function(){

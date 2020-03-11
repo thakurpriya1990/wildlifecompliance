@@ -45,6 +45,8 @@ class SanctionOutcomeDueDate(models.Model):
             return self.due_date_1st
         elif self.due_date_term_currently_applied == '2nd':
             return self.due_date_2nd
+        elif self.due_date_term_currently_applied == 'overdue':
+            return 'overdue'
         else:
             # Should not reach here
             raise ValidationError(['Something wrong with SanctionOutcomeDueDate object',])

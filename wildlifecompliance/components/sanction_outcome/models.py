@@ -692,6 +692,8 @@ class SanctionOutcome(models.Model):
                         return self.penalty_amount_1st
                 elif self.last_due_date.due_date_term_currently_applied == '2nd':
                     return self.penalty_amount_2nd
+                elif self.last_due_date.due_date_term_currently_applied == '2nd':
+                    raise ValidationError('Overdue')
                 else:
                     # Should not reach here
                     # Details of the sanction outcome is uploaded to the Fines Enforcement system after the 2nd due

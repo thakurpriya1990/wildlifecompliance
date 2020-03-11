@@ -267,16 +267,18 @@ def get_infringement_notice_table(sanction_outcome):
                  Paragraph(u'Infringement<br />notice no. <font face="Helvetica"><strong>' + sanction_outcome.lodgement_number + u'</strong></font>', styles['Normal'])])
 
     # Alleged offender
-    offender = sanction_outcome.get_offender()
-    data.append([Paragraph('Alleged offender', styles['Bold']), Paragraph('Name: Family name: ' + get_font_str(offender[0].last_name), styles['Normal']), ''])
-    data.append(['', Paragraph(gap(12) + 'Given names: ' + get_font_str(offender[0].first_name), styles['Normal']), ''])
-    data.append(['', Paragraph(gap(12) + 'Date of Birth: ' + get_font_str(offender[0].dob.strftime('%d/%m/%Y')), styles['Normal']), ''])
+    offender = sanction_outcome.get_offender()[0]
+    offender_dob = offender.dob.strftime('%d/%m/%Y') if offender.dob else ''
+    offender_postcode = offender.residential_address.postcode if offender.residential_address else ''
+    data.append([Paragraph('Alleged offender', styles['Bold']), Paragraph('Name: Family name: ' + get_font_str(offender.last_name), styles['Normal']), ''])
+    data.append(['', Paragraph(gap(12) + 'Given names: ' + get_font_str(offender.first_name), styles['Normal']), ''])
+    data.append(['', Paragraph(gap(12) + 'Date of Birth: ' + get_font_str(offender_dob), styles['Normal']), ''])
     data.append(['', [Paragraph('<strong>or</strong><br />Body corporate name: ', styles['Normal']), Spacer(1, 22)], ''])
     data.append(['',
                  [
                     Paragraph('Address: ', styles['Normal']),
-                    Paragraph(get_font_str(str(offender[0].residential_address)), styles['Normal']),
-                    Paragraph('Postcode: ' + get_font_str(offender[0].residential_address.postcode), styles['Normal']),
+                    Paragraph(get_font_str(str(offender.residential_address)), styles['Normal']),
+                    Paragraph('Postcode: ' + get_font_str(offender_postcode), styles['Normal']),
                  ],
                 '',
                  ])
