@@ -514,11 +514,12 @@ def gap(num):
 
 
 def create_document_pdf_bytes(legal_case, request_data):
-    import uuid;
+    print("pdf_bytes request_data")
+    print(request_data)
     try:
         bytes_value = None
         document_type = request_data.get('document_type')
-        filename = document_type + '_' + legal_case.number + str(uuid.uuid4().hex) + '.pdf'
+        filename = document_type + '_' + legal_case.number + '.pdf'
         path = 'wildlifecompliance/{}/{}/generated_documents/{}'.format(legal_case._meta.model_name, legal_case.id, filename)
         with BytesIO() as invoice_buffer:
             invoice_buffer = BytesIO()

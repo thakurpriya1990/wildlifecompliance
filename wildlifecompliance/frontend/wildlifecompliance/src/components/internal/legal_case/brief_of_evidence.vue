@@ -152,6 +152,7 @@
                                             <label class="col-sm-4">{{ artifact.label }}</label>
                                         </div>
                                     </label>
+                                    <b v-else class="col-sm-10">No objects on the list of exhibits</b>
                                     <label v-if="physicalArtifactsSensitiveUnusedVisibility" class="col-sm-10">Select the objects to be included on the sensitive unused list of materials
                                         <div class="row" v-for="artifact in physicalArtifactsSensitiveUnused">
                                             <!--input class="col-sm-1" :id="'tickbox_' + artifact.id" type="checkbox" :value="artifact.id" v-model="physicalArtifactsSensitiveUnusedTicked"-->
@@ -164,6 +165,7 @@
                                                 />
                                         </div>
                                     </label>
+                                    <b v-else class="col-sm-10">No objects on the sensitive unused list of materials</b>
                                     <label v-if="physicalArtifactsNonSensitiveUnusedVisibility" class="col-sm-10">Select the objects to be included on the non-sensitive unused list of materials
                                         <div class="row" v-for="artifact in physicalArtifactsNonSensitiveUnused">
                                             <!--input class="col-sm-1" type="checkbox" :value="artifact.id" v-model="physicalArtifactsNonSensitiveUnusedTicked"-->
@@ -171,6 +173,7 @@
                                             <label class="col-sm-4">{{ artifact.label }}</label>
                                         </div>
                                     </label>
+                                    <b v-else class="col-sm-10">No objects on the non-sensitive unused list of materials</b>
                                 </div></div>
                             </FormSection>
                             <FormSection :formCollapse="false" label="List of Photographic, Video and Sound Exhibits">
