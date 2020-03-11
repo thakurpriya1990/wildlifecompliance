@@ -458,6 +458,7 @@ class BaseApplicationSerializer(serializers.ModelSerializer):
     payment_url = serializers.SerializerMethodField(read_only=True)
     total_paid_amount = serializers.SerializerMethodField(read_only=True)
     all_payments_url = serializers.SerializerMethodField(read_only=True)
+    adjusted_paid_amount = serializers.SerializerMethodField(read_only=True)
 
     class Meta:
         model = Application
@@ -508,6 +509,7 @@ class BaseApplicationSerializer(serializers.ModelSerializer):
             'payment_url',
             'requires_refund',
             'all_payments_url',
+            'adjusted_paid_amount',
         )
         read_only_fields = ('documents',)
 
@@ -650,18 +652,32 @@ class BaseApplicationSerializer(serializers.ModelSerializer):
 
     def get_total_paid_amount(self, obj):
         """
-        Total paid amount also includes paid amounts from previous applications
-        if exists for amendments.
+        Total amount paid on this application.
         """
-        paid = None
-        paid = obj.total_paid_amount + obj.previous_paid_amount
+        return obj.total_paid_amount
+
+    def get_adjusted_paid_amount(self, obj):
+        """
+        Total paid amount adjusted for presentation purposes. 
+        """
+        adjusted = None
+        # Include previously paid amounts for amendments.
+        adjusted = obj.total_paid_amount + obj.previous_paid_amount
 
         if obj.processing_status == Application.PROCESSING_STATUS_UNDER_REVIEW:
-            # when Under Review fee for amendment is paid and included in 
-            # previous paid amount as well as total paid amount.
-            paid = paid - obj.previous_paid_amount
+            # when Under Review, fee for amendment is paid and included in
+            # previous paid amount as well as total paid amount. Need to 
+            # exclude this previous amount.
+            adjusted = adjusted - obj.previous_paid_amount
 
-        return paid
+            # licence fee is paid with the application fee. Licence fee needs
+            # to be excluded from total paid for application.
+            activities_paid = 0
+            for activity in obj.activities:
+                activities_paid += activity.total_paid_amount
+            adjusted = adjusted - activities_paid
+
+        return adjusted
 
 
 class DTInternalApplicationSerializer(BaseApplicationSerializer):

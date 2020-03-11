@@ -117,11 +117,11 @@ COMPLIANCE_PERMISSION_GROUPS = [
         'per_district': False,
         'permissions': ['prosecution_council']
     },
-    # {
-    #     'name': 'Branch Manager',
-    #     'per_district': False,
-    #     'permissions': ['branch_manager']
-    # },
+    {
+        'name': 'Compliance Management Read-Only',
+        'per_district': False,
+        'permissions': ['compliance_management_readonly']
+    },
 ]
 
 COMPLIANCE_GROUP_PERMISSIONS = {
@@ -165,9 +165,9 @@ COMPLIANCE_GROUP_PERMISSIONS = {
         'app_label': 'wildlifecompliance',
         'model': 'compliancepermissiongroup',
     },
-    # 'branch_manager': {
-    #     'name': 'Branch Manager',
-    #     'app_label': 'wildlifecompliance',
-    #     'model': 'compliancepermissiongroup',
-    # },
+    'compliance_management_readonly': {
+        'name': 'Compliance Management Read-Only',
+        'app_label': 'wildlifecompliance',
+        'model': 'compliancepermissiongroup',
+    },
 }

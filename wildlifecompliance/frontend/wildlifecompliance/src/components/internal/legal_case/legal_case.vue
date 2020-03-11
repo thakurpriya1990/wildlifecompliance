@@ -93,7 +93,7 @@
                           </div>
                         </div>
                         <div  class="row action-button">
-                          <div v-if="canUserAction && briefOfEvidenceStatus" class="col-sm-12">
+                          <div v-if="canUserAction && briefOfEvidenceVisibility" class="col-sm-12">
                                 <a @click="printDocument('brief_of_evidence')" class="btn btn-primary btn-block">
                                 <!--a @click="createProsecutionBrief" class="btn btn-primary btn-block"-->
                                   Print Brief of Evidence
@@ -141,7 +141,7 @@
                           </div>
                         </div>
                         <div  class="row action-button">
-                          <div v-if="canUserAction && withProsecutionCoordinatorProsecutionBriefStatus" class="col-sm-12">
+                          <div v-if="canUserAction && prosecutionBriefVisibility" class="col-sm-12">
                                 <a @click="printDocument('prosecution_brief')" class="btn btn-primary btn-block">
                                 <!--a @click="createProsecutionBrief" class="btn btn-primary btn-block"-->
                                   Print Prosecution Brief
@@ -204,6 +204,7 @@
                         <!--li v-if="withProsecutionCoordinatorCourtStatus" class="nav-item"><a data-toggle="tab" :href="'#'+cpTab" >Court Proceedings</a></li-->
                         <li v-if="courtProceedingsVisibility" class="nav-item"><a data-toggle="tab" :href="'#'+cpTab" >Court Proceedings</a></li>
                         <li class="nav-item"><a data-toggle="tab" :href="'#'+rTab">Related Items</a></li>
+                        <!--li class="nav-item"><a data-toggle="tab" :href="'#'+gTab">Generated Documents</a></li-->
                     </ul>
                     <div class="tab-content">
                         <div :id="runTab" class="tab-pane fade in active">
@@ -289,6 +290,21 @@
                                 </div></div>
                             </FormSection>
                         </div>
+                        <!--div :id="gTab" class="tab-pane fade in">
+                            <FormSection :formCollapse="false" label="Generated Documents">
+                                <div class="col-sm-12 form-group"><div class="row">
+                                    <div v-if="legal_case.generatedDocumentsUrl">
+                                        <filefield
+                                        ref="generated_documents"
+                                        name="generated-documents"
+                                        :isRepeatable="true" 
+                                        :readonly="true"
+                                        :documentActionUrl="legal_case.generatedDocumentsUrl"
+                                        />
+                                    </div>
+                                </div></div>
+                            </FormSection>
+                        </div-->
                     </div>
                 </div>
             </div>
@@ -351,14 +367,20 @@
             v-bind:key="runningSheetHistoryEntryBindId"
             />
         </div>
-        <LegalCaseWorkflow 
-        ref="legal_case_workflow"
-        :workflow_type="workflow_type"
-        />
-        <GenerateDocument 
-        ref="generate_document"
-        :document_type="documentTypeToGenerate"
-        />
+        <div v-if="legalCaseWorkflowBindId">
+            <LegalCaseWorkflow 
+            ref="legal_case_workflow"
+            :workflow_type="workflow_type"
+            v-bind:key="legalCaseWorkflowBindId"
+            />
+        </div>
+        <div v-if="generateDocumentBindId">
+            <GenerateDocument 
+            ref="generate_document"
+            :document_type="documentTypeToGenerate"
+            v-bind:key="generateDocumentBindId"
+            />
+        </div>
     </div>
 </template>
 <script>
@@ -412,18 +434,21 @@ export default {
             runningSheetUrl: [],
             runningSheetEntriesUpdated: [],
             runningSheetHistoryEntryBindId: '',
+            legalCaseWorkflowBindId: '',
+            generateDocumentBindId: '',
             runningSheetHistoryEntryInstance: '',
             //runningSheetArtifactList: [],
             //runningSheetPersonList: [],
             objectHash: null,
             runTab: 'runTab'+this._uid,
             rTab: 'rTab'+this._uid,
+            //gTab: 'gTab'+this._uid,
             cTab: 'cTab'+this._uid,
             cpTab: 'cpTab'+this._uid,
             bTab: 'bTab'+this._uid,
             pTab: 'pTab'+this._uid,
             current_schema: [],
-            workflowBindId: '',
+            //workflowBindId: '',
             workflow_type: '',
             comms_url: helpers.add_endpoint_json(
               api_endpoints.legal_case,
@@ -735,26 +760,6 @@ export default {
         // return false if no related item is an Offence
         return false
     },
-      /*
-    offenceList: function() {
-        let oList = [];
-        for (let item of this.legal_case.related_items) {
-            if (item.model_name.toLowerCase() === 'offence') {
-                oList.push(item);
-            }
-        }
-        return oList;
-    },
-    */
-    /*
-    offenceVisibility: function() {
-        let offence_visibility = false;
-        if (this.legal_case.status && this.legal_case.can_user_action) {
-            offence_visibility = this.legal_case.status.id === 'open' ? true : false;
-        }
-        return offence_visibility;
-    },
-    */
     sanctionOutcomeVisibility: function() {
         let sanction_outcome_visibility = false;
         if (this.legal_case.status && this.offenceExists && this.legal_case.can_user_action) {
@@ -779,16 +784,6 @@ export default {
         }
         return related_items_visibility;
     },
-      /*
-    runningSheetVisibility: function() {
-        let running_sheet_visibility = false;
-        if (this.legal_case && this.legal_case.id && ['open'].includes(this.legal_case.status)) {
-            running_sheet_visibility = true;
-        }
-        return running_sheet_visibility;
-    },
-    */
-
     personOrArtifactBindId: function() {
         let person_or_artifact_id = ''
         person_or_artifact_id = this.tabSelected + parseInt(this.uuid);
@@ -799,17 +794,6 @@ export default {
         offence_bind_id = 'offence' + parseInt(this.uuid);
         return offence_bind_id;
     },
-      /*
-    briefOfEvidenceVisibility: function() {
-        let visible = false;
-        if (this.legal_case && this.legal_case.id &&
-            (this.legal_case.brief_of_evidence || this.legal_case.status.id === 'brief_of_evidence')
-        ) {
-            visible = true;
-        }
-        return visible;
-    },
-    */
     briefOfEvidenceVisibility: function() {
         let visible = false;
         if (this.legal_case && 
@@ -882,26 +866,6 @@ export default {
         }
         return keyCombination;
     },
-    /*
-    boeRoiTicked: function() {
-        let ticked = []
-        if (this.legal_case && this.legal_case.boe_roi_ticked) {
-            for (let id of this.legal_case.boe_roi_ticked) {
-                ticked.push(id)
-            }
-        }
-        return ticked;
-    },
-    boeOtherStatementsTicked: function() {
-        let ticked = []
-        if (this.legal_case && this.legal_case.boe_other_statements_ticked) {
-            for (let id of this.legal_case.boe_other_statements_ticked) {
-                ticked.push(id)
-            }
-        }
-        return ticked;
-    },
-    */
   },
   filters: {
     formatDate: function(data) {
@@ -922,29 +886,25 @@ export default {
       addToRunningSheetPersonList: 'addToRunningSheetPersonList',
       setBriefOfEvidence: 'setBriefOfEvidence',
       setProsecutionBrief: 'setProsecutionBrief',
-      //setBoeRoiTicked: 'setBoeRoiTicked',
-      //setBoeOtherStatementsTicked: 'setBoeOtherStatementsTicked',
     }),
     ...mapActions({
         loadCurrentUser: 'loadCurrentUser',
     }),
-    /*
-    handleVictimImpactCheckbox: function(e) {
-        console.log(e)
-        //let checkboxValue = false;
-        let eventValue = e.target.value ? e.target.value : null;
-        if (eventValue === 'on' && e.target.checked) {
-            //checkboxValue = true;
-            this.victimImpactCheckbox = true;
-        }
-    },
-    */
     setRunningSheetHistoryEntryBindId: function() {
         if (this.runningSheetHistoryEntryInstance) {
             this.uuid += 1;
             this.runningSheetHistoryEntryBindId = this.runningSheetHistoryEntryInstance + '_' + this.uuid;
         }
     },
+    setLegalCaseWorkflowBindId: function() {
+        this.uuid += 1;
+        this.legalCaseWorkflowBindId = 'legal_case_workflow_' + this.uuid;
+    },
+    setGenerateDocumentBindId: function() {
+        this.uuid += 1;
+        this.generateDocumentBindId = 'generate_document_' + this.uuid;
+    },
+
     runningSheetTransformWrapper: async function() {
         let runningSheet = []
         let i = 0;
@@ -988,14 +948,6 @@ export default {
             })
         }
     },
-    /*
-    cancelPersonModalUrl: function(recordNumberElement) {
-        let replacementVal = ''
-        //let recordDescriptionHtml = recordNumberElement[0].innerHTML.replace('@@', replacementVal).replace(/&nbsp\;/g, ' ');
-        let recordDescriptionHtml = recordNumberElement[0].innerHTML.replace(this.tabSelectedKeyCombination, replacementVal).replace(/&nbsp\;/g, ' ');
-        return recordDescriptionHtml;
-    },
-    */
     insertPersonModalUrl: function({"entity": entity, "recordNumberElement": recordNumberElement}) {
         console.log(entity);
         console.log(recordNumberElement);
@@ -1012,13 +964,6 @@ export default {
         let recordDescriptionHtml = recordNumberElement[0].innerHTML.replace(this.tabSelectedKeyCombination, replacementVal);
         return recordDescriptionHtml;
     },
-    /*
-    cancelArtifactModalUrl: function(recordNumberElement) {
-        let replacementVal = ''
-        let recordDescriptionHtml = recordNumberElement[0].innerHTML.replace(this.tabSelectedKeyCombination, replacementVal).replace(/&nbsp\;/g, ' ');
-        return recordDescriptionHtml;
-    },
-    */
     insertArtifactModalUrl: function({"entity": entity, "recordNumberElement": recordNumberElement}) {
         console.log(entity)
         let replacementVal = '';
@@ -1179,14 +1124,6 @@ export default {
           this.$refs.person_or_artifact_modal.isModalOpen = true;
       });
     },
-    updateWorkflowBindId: function() {
-        let timeNow = Date.now()
-        if (this.workflow_type) {
-            this.workflowBindId = this.workflow_type + '_' + timeNow.toString();
-        } else {
-            this.workflowBindId = timeNow.toString();
-        }
-    },
     addWorkflow: function(workflow_type) {
         console.log(workflow_type)
         /*
@@ -1217,7 +1154,8 @@ export default {
         */
         // open workflow modal
         this.workflow_type = workflow_type;
-        this.updateWorkflowBindId();
+        this.setLegalCaseWorkflowBindId();
+        //this.updateWorkflowBindId();
         this.$nextTick(async () => {
             await this.saveLegalCase({create: false, internal: true })
             this.$refs.legal_case_workflow.isModalOpen = true;
@@ -1225,26 +1163,13 @@ export default {
     },
     printDocument: function(documentType) {
         this.documentTypeToGenerate = documentType
+        this.setGenerateDocumentBindId();
         this.$nextTick(async () => {
             await this.saveLegalCase({create: false, internal: true })
             this.$refs.generate_document.isModalOpen = true;
         });
     },
 
-    /*
-    createBriefOfEvidence: async function() {
-        await this.save({ 
-            "createBriefOfEvidence": true,
-            "fullHttpResponse": true
-        })
-    },
-    createProsecutionBrief: async function() {
-        await this.save({ 
-            "createProsecutionBrief": true,
-            "fullHttpResponse": true
-        })
-    },
-    */
     saveExit: async function() {
         await this.save({ "returnToDash": true })
     },
@@ -1357,17 +1282,6 @@ export default {
             }
         }
     },
-    /*
-    runningSheetKeydown: async function(e, offset) {
-        console.log(e)
-        console.log(offset)
-        if (e.key === 'o' && e.altKey) {
-            this.openInspection()
-        } else if (e.key === 'p' && e.altKey) {
-            this.openSearchPersonOrganisation(e.target.id, offset)
-        }
-    },
-    */
     runningSheetKeydown: async function(e) {
         console.log(e)
         if (e.key === '!' && e.shiftKey && this.searchArtifactKeyPressed) {

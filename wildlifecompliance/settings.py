@@ -6,7 +6,6 @@ os.environ.setdefault("BASE_DIR", BASE_DIR)
 from django.core.exceptions import ImproperlyConfigured
 from ledger.settings_base import *
 
-
 ROOT_URLCONF = 'wildlifecompliance.urls'
 SITE_ID = 1
 

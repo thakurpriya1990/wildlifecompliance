@@ -637,17 +637,7 @@ class ApplicationViewSet(viewsets.ModelViewSet):
                 instance.lodgement_number)
 
             set_session_application(request.session, instance)
-            activities = instance.activities
-            for activity in activities:
-                product_lines.append({
-                    'ledger_description': '{} (Application Fee)'.format(
-                        activity.licence_activity.name),
-                    'quantity': 1,
-                    'price_incl_tax': str(activity.application_fee),
-                    'price_excl_tax': str(calculate_excl_gst(
-                        activity.application_fee)),
-                    'oracle_code': ''
-                })
+            product_lines = ApplicationService.get_product_lines(instance)
             checkout_result = checkout(request, instance, lines=product_lines,
                                        invoice_text=application_submission)
             return checkout_result
@@ -679,26 +669,8 @@ class ApplicationViewSet(viewsets.ModelViewSet):
                 instance.lodgement_number)
 
             activities = instance.selected_activities.all()
-            activities_with_payments = [
-                a for a in activities if a.processing_status == PAY_STATUS
-            ]
-            # only fees which are greater than zero.
-            activities_with_fees = [
-                a for a in activities_with_payments if a.licence_fee > 0]
-
             # store first activity on session for id.
             set_session_activity(request.session, activities[0])
-
-            for activity in activities_with_fees:
-                product_lines.append({
-                    'ledger_description': '{} (Licence Fee)'.format(
-                        activity.licence_activity.name),
-                    'quantity': 1,
-                    'price_incl_tax': str(activity.licence_fee),
-                    'price_excl_tax': str(calculate_excl_gst(
-                            activity.licence_fee)),
-                    'oracle_code': ''
-                })
 
             # Adjustments occuring only to the application fee.
             activities = instance.selected_activities.all()
@@ -768,7 +740,6 @@ class ApplicationViewSet(viewsets.ModelViewSet):
         except Exception as e:
             print(traceback.print_exc())
             raise serializers.ValidationError(str(e))
-
 
     @detail_route(methods=['POST', ])
     def accept_id_check(self, request, *args, **kwargs):

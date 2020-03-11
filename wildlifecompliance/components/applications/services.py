@@ -1,7 +1,12 @@
 import sys
 import abc
+import requests
 
 from decimal import Decimal
+
+# from wildlifecompliance import settings
+
+from ledger.checkout.utils import calculate_excl_gst
 
 from wildlifecompliance.components.applications.models import (
     Application,
@@ -23,9 +28,14 @@ class ApplicationService(object):
     @staticmethod
     def get_specie(species_list):
         requested_species = []
+        tsc_service = TSCSpecieService(TSCSpecieCall())
 
-        tsc_service = TSCSpecieService(TSCSpecieCall)
-        # tsc_service.set_strategy(TSCSpecieRecursiveCall)
+        strategy = {
+             0: tsc_service.set_strategy(TSCSpecieCall()),
+             1: tsc_service.set_strategy(TSCSpecieRecursiveCall()),
+             2: tsc_service.set_strategy(TSCSpecieXReferenceCall()),
+        }
+        strategy.get(0)
 
         for specie in species_list:
             details = []
@@ -43,6 +53,13 @@ class ApplicationService(object):
         Licence fees cannot be adjusted with form attributes.
         """
         return get_dynamic_schema_attributes(application, data_source)['fees']
+
+    @staticmethod
+    def get_product_lines(application):
+        """
+        Gets the application fee product lines to be charged through checkout.
+        """
+        return ApplicationFeePolicy.get_fee_product_lines_for(application)
 
     @staticmethod
     def process_form(
@@ -464,6 +481,46 @@ class ApplicationFeePolicy(object):
 
         return policy
 
+    @staticmethod
+    def get_fee_product_lines_for(application):
+        """
+        Gets the checkout product lines for this application which inlcudes
+        fee for both the application and licence activities. 
+        """
+        product_lines = []
+
+        # application.
+        activities_with_fees = [
+            a for a in application.activities if a.application_fee > 0]
+
+        for activity in activities_with_fees:
+            product_lines.append({
+                'ledger_description': '{} (Application Fee)'.format(
+                    activity.licence_activity.name),
+                'quantity': 1,
+                'price_incl_tax': str(activity.application_fee),
+                'price_excl_tax': str(calculate_excl_gst(
+                    activity.application_fee)),
+                'oracle_code': ''
+            })
+
+        # licence activities.
+        activities_with_fees = [
+            a for a in application.activities if a.licence_fee > 0]
+
+        for activity in activities_with_fees:
+            product_lines.append({
+                'ledger_description': '{} (Licence Fee)'.format(
+                    activity.licence_activity.name),
+                'quantity': 1,
+                'price_incl_tax': str(activity.licence_fee),
+                'price_excl_tax': str(calculate_excl_gst(
+                        activity.licence_fee)),
+                'oracle_code': ''
+            })
+
+        return product_lines
+
     @abc.abstractmethod
     def get_dynamic_attributes(self):
         """
@@ -660,7 +717,7 @@ class TSCSpecieService():
         """
         try:
 
-            return self._strategy.request_species([specie_id])
+            return self._strategy.request_species(specie_id)
 
         except BaseException:
             print "{} error: {}".format(self._strategy, sys.exc_info()[0])
@@ -674,6 +731,8 @@ class TSCSpecieCallStrategy(object):
     """
     A Strategy Interface declaring a common operation for the TSCSpecie Call.
     """
+
+    # _AUTHORISE = {"Authorization": settings.TSC_AUTH}
 
     __metaclass__ = abc.ABCMeta
 
@@ -689,8 +748,10 @@ class TSCSpecieCall(TSCSpecieCallStrategy):
     """
     A TSCSpecie Call.
     """
+    _URL = "https://tsc.dbca.wa.gov.au/api/1/taxon/?format=json"
 
     def __init__(self):
+        super(TSCSpecieCallStrategy, self).__init__()
         self._depth = sys.getrecursionlimit()
 
     def set_depth(self, depth):
@@ -699,21 +760,67 @@ class TSCSpecieCall(TSCSpecieCallStrategy):
         """
         self._depth = depth if depth > 0 else sys.getrecursionlimit()
 
-    def request_species(self, species):
+    def request_species(self, specie_id):
 
-        def send_request(species):
-            pass
+        def send_request(specie_id):
+            url = '{0}&name_id={1}'.format(self._URL, specie_id)
+            specie_json = requests.get(url, headers=self._AUTHORISE).json()
+            return specie_json
 
-        return self.send_request(species)
+        details = send_request(specie_id)
+        specie = {
+            'name_id': details['features'][0]['name_id'],
+            'name':  details['features'][0]['name'],
+            'canonical_name': details['features'][0]['canonical_name'],
+            'vernacular_name': details['features'][0]['vernacular_name'],
+            }
+
+        return specie
 
 
 class TSCSpecieRecursiveCall(TSCSpecieCallStrategy):
     """
     A Recursive strategy for the TSCSpecie Call.
+    To be implemented. Recursive action on TSC server-side.
     """
 
     def __init__(self):
+        super(TSCSpecieCallStrategy, self).__init__()
         self._depth = sys.getrecursionlimit()
+
+    def set_depth(self, depth):
+        pass
+
+    def request_species(self, species):
+        pass
+
+    def __str__(self):
+        return 'Recursive call with max depth {}'.format(self.depth)
+
+
+class TSCSpecieXReferenceCall(TSCSpecieCallStrategy):
+    """
+    A Recursive strategy for the TSCSpecie Call.
+
+    NOTE: Tail recursion exist with this strategy which will need to be 
+    removed.
+
+    Reason 0: Misapplied name
+    Reason 1: Taxonomic synonym
+    Reason 2: Nomenclatural synonym
+    Reason 3: Excluded name
+    Reason 4: Concept change
+    Reason 5: Formal description
+    Reason 6: Orthographic variant
+    Reason 7: Name in error
+    Reason 8: Informal Synonym
+    """
+    _URL = "https://tsc.dbca.wa.gov.au/api/1/crossreference/?format=json&"
+
+    def __init__(self):
+        super(TSCSpecieCallStrategy, self).__init__()
+        # self._depth = sys.getrecursionlimit()
+        self._depth = 3
 
     def set_depth(self, depth):
         """
@@ -723,112 +830,40 @@ class TSCSpecieRecursiveCall(TSCSpecieCallStrategy):
 
     def request_species(self, species):
         LEVEL = 0
-        return self.get_level_species(LEVEL, species)
+        level_list = [{'name_id': species}]
+
+        return self.get_level_species(LEVEL, level_list)
 
     def get_level_species(self, level_no, level_species):
         requested_species = []
 
-        def send_request_for_children(species):
-            pass
+        def send_request(level_species):
+            level_list = []
+            for specie in level_species:
 
-        def send_request_for_parent(species):
-            pass
+                url = '{0}&predecessor__name_id={1}'.format(
+                    self._URL, specie['name_id'])
+
+                xref = requests.get(url, headers=self._AUTHORISE).json()
+                if (xref['count'] > 0):
+                    level_list.append(xref['results'][0]['successor'])
+
+            return level_list
 
         level_no = level_no + 1
         for level in range(level_no, self._depth):  # stopping rule.
-            species = self.send_request_for_children(level_species)
-            requested_species += species
+            successor = send_request(level_species)
+            requested_species += successor
 
-            if species:
-                next_level_species = self.get_level_species(level, species)
+            if successor:
+                next_level_species = self.get_level_species(level, successor)
                 for specie in next_level_species:
                     requested_species.append(specie)
             else:
-                # retrieve name details for specie
-                species = self.send_request_for_parent(level_species)
-                requested_species = [species]
+                requested_species = successor
                 break
 
         return requested_species
 
     def __str__(self):
-        return 'Recursive call with max depth {}'.format(self.depth)
-
-
-class TSCSpecie(object):
-
-    __metaclass__ = abc.ABCMeta
-
-    def get_parent(self):
-        return self._parent
-
-    def set_parent(self, parent):
-        self._parent = parent
-
-    def name(self):
-        return self._name
-
-    def add(self, root):
-        pass
-
-    def remove(self, root):
-        pass
-
-    def is_child(self):
-        return False
-
-    def get_children(self):
-        return []
-
-    @abc.abstractmethod
-    def operation(self):
-        pass
-
-
-class ChildSpecie(TSCSpecie):
-    """
-    The child class represents the end objects of a TSCSpecie composition. A
-    child cannot have any children.
-    """
-
-    def is_child(self):
-        return True
-
-    def operation(self):
-        return "child"
-
-
-class ParentSpecie(TSCSpecie):
-    """
-    The parent class represents the complex objects of a TSCSpecie composition
-    that have children. These objects will delegate the work to the children.
-    """
-
-    def __init__(self):
-        self._children = []
-
-    def add(self, specie):
-        self._children.append(specie)
-        specie.set_parent(self)
-
-    def remove(self, specie):
-        self._children.remove(specie)
-        specie.set_parent(None)
-
-    def is_child(self):
-        return False
-
-    def get_children(self):
-        return []
-
-    def operation(self):
-        """
-        The parent will traverse recursively through all its children. A
-        composite will pass the operation to its children until the whole tree
-        has been traversed.
-        """
-        results = []
-        for child in self._children:
-            results.append(child.operation())
-
-        return "Branch( {} ".format(results)
+        return 'Cross Reference call with max depth {}'.format(self._depth)
