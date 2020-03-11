@@ -94,6 +94,9 @@ CACHES = {
         'LOCATION': os.path.join(BASE_DIR, 'wildlifecompliance', 'cache'),
     }
 }
+CRON_CLASSES = [
+    'wildlifecompliance.components.applications.cron.VerifyLicenceSpeciesJob',
+]
 
 # Additional logging for wildlifecompliance
 LOGGING['handlers']['application_checkout'] = {
@@ -170,3 +173,6 @@ SYSTEM_APP_LABEL = env('SYSTEM_APP_LABEL', 'wildlifecompliance')  # global app_l
 RENEWAL_PERIOD_DAYS = env('RENEWAL_PERIOD_DAYS', 30)
 DOT_EMAIL_ADDRESS = 'shibaken+dot@gmail.com'
 
+# Details for Threathened Species and Communities server.
+TSC_URL = env('TSC_URL', 'https://tsc.dbca.wa.gov.au')
+TSC_AUTH = env('TSC_AUTH', 'NO_AUTH')

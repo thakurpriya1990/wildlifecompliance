@@ -3443,6 +3443,7 @@ class ApplicationFormDataRecord(models.Model):
     COMPONENT_TYPE_DECLARATION = 'declaration'
     COMPONENT_TYPE_FILE = 'file'
     COMPONENT_TYPE_DATE = 'date'
+    COMPONENT_TYPE_SPECIES_LIST = 'species_list'    
     COMPONENT_TYPE_CHOICES = (
         (COMPONENT_TYPE_TEXT, 'Text'),
         (COMPONENT_TYPE_TAB, 'Tab'),
@@ -3461,6 +3462,7 @@ class ApplicationFormDataRecord(models.Model):
         (COMPONENT_TYPE_DECLARATION, 'Declaration'),
         (COMPONENT_TYPE_FILE, 'File'),
         (COMPONENT_TYPE_DATE, 'Date'),
+        (COMPONENT_TYPE_SPECIES_LIST, 'Species List'),
     )
 
     application = models.ForeignKey(Application, related_name='form_data_records')

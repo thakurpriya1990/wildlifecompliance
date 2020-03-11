@@ -203,5 +203,29 @@ export const applicationStore = {
                 console.log(err);
             });
         },
+        setApplicationSpecies({ dispatch, state, getters, rootGetters }, { species }) {
+            Vue.http.post('/api/application/set_application_species/', {
+                    'application_id': getters.application_id,
+                    'field_data': species,
+            }).then(res => {
+                var options = []
+                var species = res.body.species
+                for (var s=0; s<species.length; s++) {
+                    var successors = species[s]
+                    for (var i=0; i<successors.length; i++) {
+                        options[s] = {
+                            'label': successors[i].vernacular_names,
+                            'value': successors[i].name_id,
+                        }
+                    }
+                }
+                dispatch('setFormValue', {
+                    key: 'options',
+                    value: options,
+                });                
+            }, err => {
+                console.log(err);
+            });
+        },
     }
 }
