@@ -25,7 +25,7 @@ from django.conf import settings
 from ledger.accounts.models import Document
 from ledger.checkout.utils import calculate_excl_gst
 
-from wildlifecompliance.components.main.pdf_utils import gap, SolidLine
+from wildlifecompliance.components.main.pdf_utils import gap, SolidLine, get_font_str
 
 PAGE_WIDTH, PAGE_HEIGHT = A4
 DEFAULT_FONTNAME = 'Helvetica'
@@ -100,14 +100,19 @@ def _create_pdf(invoice_buffer, sanction_outcome):
     date_str = gap(10) + '/' + gap(10) + '/ 20'
     col_width = [180*mm, ]
 
+    offender = sanction_outcome.get_offender()
+
     data = []
+    p_number = get_font_str(str(offender[0].phone_number) + '(p)') if offender[0].phone_number else ''
+    m_number = get_font_str(offender[0].mobile_number + '(m)') if offender[0].mobile_number else ''
+    phone_number = ' | '.join(list(filter(None, [p_number, m_number])))
     data.append([[
         Paragraph('Pursuant to the <i>Biodiversity Conservation Act 2016</i>, the CEO considers that you are a person bound by a relevant instrument.<br />'
                            '<strong>Contact details of person to whom this Notice is issued:</strong>', styles['Normal']),
-        Paragraph('Full name:' + gap(80) + 'Date of Birth:', styles['Normal']),
-        Paragraph('Postal/Residential address:', styles['Normal']),
-        Paragraph('Telephone number:', styles['Normal']),
-        Paragraph('Email address:', styles['Normal']),
+        Paragraph('Full name: ' + get_font_str(offender[0].get_full_name()) + gap(5) + 'Date of Birth: ' + get_font_str(offender[0].dob.strftime('%d/%m/%Y')), styles['Normal']),
+        Paragraph('Postal/Residential address: ' + get_font_str(offender[0].residential_address), styles['Normal']),
+        Paragraph('Telephone number: ' + phone_number, styles['Normal']),
+        Paragraph('Email address: ' + get_font_str(offender[0].email), styles['Normal']),
     ], ])
     data.append([[
         Paragraph('The CEO is of the opinion that you have contravened the relevant instrument listed below:', styles['Normal']),
@@ -116,7 +121,6 @@ def _create_pdf(invoice_buffer, sanction_outcome):
             [Paragraph('Biodiversity Conservation Covenant', styles['Normal']), ''],
             [Paragraph('Environment Pest Notice', styles['Normal']), ''],
             [Paragraph('Habitat Conservation Notice', styles['Normal']), ''],
-
         ], style=invoice_table_style, rowHeights=[6*mm, 12*mm, 12*mm, 12*mm])
     ], ])
     data.append([[
@@ -167,5 +171,7 @@ def create_remediation_notice_pdf_bytes(filename, sanction_outcome):
         document._file = path
         document.save()
         # END: Save
+
+        invoice_buffer.close()
 
         return document

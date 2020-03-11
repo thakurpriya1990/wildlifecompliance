@@ -74,6 +74,26 @@ class UpdateAssignedToIdSerializer(serializers.ModelSerializer):
         )
 
 
+def get_user_action(self, obj):
+    user_id = self.context.get('request', {}).user.id
+    view_url = '<a href=/internal/offence/' + str(obj.id) + '>View</a>'
+    process_url = '<a href=/internal/offence/' + str(obj.id) + '>Process</a>'
+    returned_url = ''
+
+    if obj.status not in Offence.EDITABLE_STATUSES:
+        returned_url = view_url
+    elif user_id == obj.assigned_to_id:
+        returned_url = process_url
+    elif obj.allocated_group and not obj.assigned_to_id:
+        if user_id in [member.id for member in obj.allocated_group.members]:
+            returned_url = process_url
+
+    if not returned_url:
+        returned_url = view_url
+
+    return returned_url
+
+
 class OffenceDatatableSerializer(serializers.ModelSerializer):
     status = CustomChoiceField(read_only=True)
     user_action = serializers.SerializerMethodField()
@@ -98,23 +118,7 @@ class OffenceDatatableSerializer(serializers.ModelSerializer):
         read_only_fields = ()
 
     def get_user_action(self, obj):
-        user_id = self.context.get('request', {}).user.id
-        view_url = '<a href=/internal/offence/' + str(obj.id) + '>View</a>'
-        process_url = '<a href=/internal/offence/' + str(obj.id) + '>Process</a>'
-        returned_url = ''
-
-        if obj.status not in Offence.EDITABLE_STATUSES:
-            returned_url = view_url
-        elif user_id == obj.assigned_to_id:
-            returned_url = process_url
-        elif (obj.allocated_group and not obj.assigned_to_id):
-            if user_id in [member.id for member in obj.allocated_group.members]:
-                returned_url = process_url
-
-        if not returned_url:
-            returned_url = view_url
-
-        return returned_url
+        return get_user_action(self, obj)
 
     def get_offenders(self, obj):
         offenders = Offender.active_offenders.filter(offence__exact=obj)
@@ -159,6 +163,7 @@ class OffenceSerializer(serializers.ModelSerializer):
     user_is_assignee = serializers.SerializerMethodField()
     related_items = serializers.SerializerMethodField()
     in_editable_status = serializers.SerializerMethodField()
+    user_action = serializers.SerializerMethodField()
 
     class Meta:
         model = Offence
@@ -189,10 +194,14 @@ class OffenceSerializer(serializers.ModelSerializer):
             'alleged_offences',
             'offenders',
             'in_editable_status',
+            'user_action',
         )
         read_only_fields = (
 
         )
+
+    def get_user_action(self, obj):
+        return get_user_action(self, obj)
 
     def get_in_editable_status(self, obj):
         return obj.status in (Offence.STATUS_DRAFT, Offence.STATUS_OPEN)
@@ -223,7 +232,7 @@ class OffenceSerializer(serializers.ModelSerializer):
 
     def get_offenders(self, obj):
         offenders = Offender.objects.filter(offence__exact=obj)
-        offenders_list =  [ OffenderSerializer(offender).data for offender in offenders ]
+        offenders_list = [ OffenderSerializer(offender).data for offender in offenders ]
         return offenders_list
 
     def get_allocated_group(self, obj):

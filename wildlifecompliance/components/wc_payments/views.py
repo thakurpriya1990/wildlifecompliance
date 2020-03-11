@@ -17,7 +17,7 @@ from wildlifecompliance.components.wc_payments.models import InfringementPenalty
 from wildlifecompliance.components.wc_payments.utils import set_session_infringement_invoice, \
     get_session_infringement_invoice, delete_session_infringement_invoice, checkout, create_other_invoice
 from wildlifecompliance.components.sanction_outcome.models import SanctionOutcome, SanctionOutcomeUserAction
-from wildlifecompliance.settings import PS_PAYMENT_SYSTEM_ID
+from wildlifecompliance.settings import PS_PAYMENT_SYSTEM_ID, WC_PAYMENT_SYSTEM_ID
 
 logger = logging.getLogger('payment_checkout')
 
@@ -132,7 +132,7 @@ class InfringementPenaltySuccessView(TemplateView):
                     #return redirect('external', args=(proposal.id,))
                     return redirect('external')
 
-                if invoice.system not in [PS_PAYMENT_SYSTEM_ID]:
+                if invoice.system not in [WC_PAYMENT_SYSTEM_ID.replace('S', '0'), PS_PAYMENT_SYSTEM_ID,]:
                     logger.error('{} tried paying an infringement penalty with an invoice from another system with reference number {}'.format(
                         'User {} with id {}'.format(request.user.get_full_name(), request.user.id) if request.user else 'An anonymous user',
                         invoice.reference

@@ -13,6 +13,7 @@ from wildlifecompliance.components.sanction_outcome.models import SanctionOutcom
     UnpaidInfringementFile
 from wildlifecompliance.components.sanction_outcome.serializers import SanctionOutcomeCommsLogEntrySerializer
 from wildlifecompliance.components.sanction_outcome_due.models import SanctionOutcomeDueDate
+from wildlifecompliance.components.sanction_outcome_due.serializers import SaveSanctionOutcomeDueDateSerializer
 from wildlifecompliance.components.wc_payments.models import InfringementPenalty, InfringementPenaltyInvoice
 from wildlifecompliance.helpers import DEBUG
 from wildlifecompliance.management.classes.unpaid_infringement_file import UnpaidInfringementFileHeader, \
@@ -36,7 +37,7 @@ class Command(BaseCommand):
                     Q(type=SanctionOutcome.TYPE_INFRINGEMENT_NOTICE) &
                     Q(status=SanctionOutcome.STATUS_AWAITING_PAYMENT) &
                     Q(payment_status=SanctionOutcome.PAYMENT_STATUS_UNPAID))\
-                    .filter(due_dates__in=SanctionOutcomeDueDate.objects.filter(Q(due_date_2nd__lt=today) & Q(due_date_term_currently_applied='2st')))
+                    .filter(due_dates__in=SanctionOutcomeDueDate.objects.filter(Q(due_date_2nd__lt=today) & Q(due_date_term_currently_applied='2nd')))
 
                 if DEBUG:
                     # For debugging purpose, infringement notice which has the string '__overdue2nd__' in the description field is also selected.
@@ -71,8 +72,11 @@ class Command(BaseCommand):
                     content_body = ''
                     penalty_amount_total = 0
                     for so in sanction_outcomes:
-                        content_body += so.get_content_for_uin()
-                        penalty_amount_total += so.penalty_amount_2nd
+                        try:
+                            content_body += so.get_content_for_uin()
+                            penalty_amount_total += so.penalty_amount_2nd
+                        except Exception as e:
+                            logger.error('Error command {} for the sanction outcome: {}'.format(__name__, str(so.id)))
 
                     # Construct trailer
                     uin_trailer = UnpaidInfringementFileTrailer()
@@ -115,6 +119,18 @@ class Command(BaseCommand):
                         so.log_user_action(SanctionOutcomeUserAction.ACTION_SEND_DETAILS_TO_INFRINGEMENT_NOTICE_COORDINATOR.format(so.lodgement_number))
                         so.status = SanctionOutcome.STATUS_OVERDUE
                         so.save()
+
+                        # Create new due_date record
+                        data = {}
+                        data['due_date_1st'] = None
+                        data['due_date_2nd'] = None
+                        data['reason_for_extension'] = 'Overdue 2nd due date'
+                        data['extended_by_id'] = None
+                        data['sanction_outcome_id'] = so.id
+                        data['due_date_term_currently_applied'] = 'overdue'
+                        serializer = SaveSanctionOutcomeDueDateSerializer(data=data)
+                        serializer.is_valid(raise_exception=True)
+                        serializer.save()
 
                 logger.info('Command {} completed'.format(__name__))
 

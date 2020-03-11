@@ -22,10 +22,10 @@ from reportlab.lib import colors
 from django.core.files import File
 from django.conf import settings
 
-from ledger.accounts.models import Document
+from ledger.accounts.models import Document, unicode_compatible
 from ledger.checkout.utils import calculate_excl_gst
 
-from wildlifecompliance.components.main.pdf_utils import gap, SolidLine
+from wildlifecompliance.components.main.pdf_utils import gap, SolidLine, get_font_str
 
 PAGE_WIDTH, PAGE_HEIGHT = A4
 DEFAULT_FONTNAME = 'Helvetica'
@@ -58,12 +58,13 @@ def _create_pdf(invoice_buffer, sanction_outcome):
     FONT_SIZE_S = 8
 
     styles = StyleSheet1()
-    styles.add(ParagraphStyle(name='Normal',
-                              fontName='Helvetica',
-                              fontSize=FONT_SIZE_M,
-                              spaceBefore=7,  # space before paragraph
-                              spaceAfter=7,   # space after paragraph
-                              leading=12))       # space between lines
+    style_normal = ParagraphStyle(name='Normal',
+                                  fontName='Helvetica',
+                                  fontSize=FONT_SIZE_M,
+                                  spaceBefore=7,  # space before paragraph
+                                  spaceAfter=7,   # space after paragraph
+                                  leading=12)       # space between lines
+    styles.add(style_normal)
     styles.add(ParagraphStyle(name='BodyText',
                               parent=styles['Normal'],
                               spaceBefore=6))
@@ -107,74 +108,79 @@ def _create_pdf(invoice_buffer, sanction_outcome):
 
     data = []
     data.append([
-        Paragraph('<strong>Western Australia</strong>', styles['Normal']),
-        Paragraph('<i>Biodiversity Conservation Act 2016</i><br /><strong>Obtaining Records and Directions</strong>', styles['Normal']),
-        Paragraph('<strong>No.</strong>', styles['Normal']),
+        Paragraph('<strong>Western Australia</strong>', style_normal),
+        Paragraph('<i>Biodiversity Conservation Act 2016</i><br /><strong>Obtaining Records and Directions</strong>', style_normal),
+        Paragraph('<strong>No.</strong><br />' + get_font_str(str(sanction_outcome.lodgement_number)), style_normal),
     ])
+    offender = sanction_outcome.get_offender()
     data.append([
-        Paragraph('<strong>To</strong>', styles['Normal']),
+        Paragraph('<strong>To</strong>', style_normal),
         [
-            Paragraph('Given names:', styles['Normal']),
-            Paragraph('Surname:', styles['Normal']),
+            Paragraph('Given names: ' + get_font_str(offender[0].first_name), style_normal),
+            Paragraph('Surname: ' + get_font_str(offender[0].last_name), style_normal),
             Spacer(0, 3*mm),
         ],
         '',
     ])
+    fields = [offender[0].residential_address.line1, offender[0].residential_address.line2, offender[0].residential_address.line3]
+    fields = [unicode_compatible(f).encode('utf-8').decode('unicode-escape').strip() for f in fields if f]
+    no_and_street = ', '.join(fields)
     data.append([
-        Paragraph('<strong>Address</strong>', styles['Normal']),
+        Paragraph('<strong>Address</strong>', style_normal),
         [
-            Paragraph('No and Street:', styles['Normal']),
-            Paragraph('Town/Suburb:', styles['Normal']),
-            Spacer(0, 3*mm)
+            Paragraph('No and Street: <br />' + get_font_str(str(no_and_street)), style_normal),
+            Paragraph('Town/Suburb: <br />' + get_font_str(offender[0].residential_address.locality), style_normal),
         ],
-        Paragraph('Post Code', styles['Normal']),
+        Paragraph('Post Code: <br />' + get_font_str(offender[0].residential_address.postcode), style_normal),
     ])
     data.append(([
         '',
-        Paragraph('Date of Birth' + date_str, styles['Normal']),
+        Paragraph('Date of Birth: ' + get_font_str(offender[0].dob.strftime('%d/%m/%Y')), style_normal),
         [
-            Paragraph('Gender:', styles['Normal']),
-            Paragraph('M' + gap(3) + 'F' + gap(3) + 'U', styles['Normal']),
+            Paragraph('Gender:', style_normal),
+            Paragraph('M' + gap(3) + 'F' + gap(3) + 'U', style_normal),
         ],
     ]))
     data.append([
-        Paragraph('<strong>Direction<br /><br />* Delete as appropriate.<br /><br /># Enter details of direction given.</strong>', styles['Normal']),
-        [Paragraph('Under the <strong><i>Biodiversity Conservation Act 2016 s204(2) (a), (b), (d)*</i></strong>, I direct you to - #<br />', styles['Normal']),
+        Paragraph('<strong>Direction<br /><br />* Delete as appropriate.<br /><br /># Enter details of direction given.</strong>', style_normal),
+        [Paragraph('Under the <strong><i>Biodiversity Conservation Act 2016 s204(2) (a), (b), (d)*</i></strong>, I direct you to - #<br />', style_normal),
          Spacer(0, 20*mm),
-         Paragraph('Under the <strong><i>Biodiversity Conservation Act 2016 s205(2)</i></strong>, I direct you to - #', styles['Normal']),
+         Paragraph('Under the <strong><i>Biodiversity Conservation Act 2016 s205(2)</i></strong>, I direct you to - #', style_normal),
          Spacer(0, 20*mm),
          ],
         '',
     ])
     data.append([
-        Paragraph('<strong>Warning</strong>', styles['Normal']),
-        Paragraph('<strong>If you do not obey this direction you may be liable to a fine of $10,000.00.</strong>', styles['Normal']),
+        Paragraph('<strong>Warning</strong>', style_normal),
+        Paragraph('<strong>If you do not obey this direction you may be liable to a fine of $10,000.00.</strong>', style_normal),
         '',
     ])
+    region_district = ' / '.join(list(filter(None, [get_font_str(sanction_outcome.district), get_font_str(sanction_outcome.region)])))
     data.append([
-        Paragraph('<strong>Issuing officer’s signature and details</strong>', styles['Normal']),
+        Paragraph('<strong>Issuing officer’s signature and details</strong>', style_normal),
         [
-            Paragraph('I issue this direction on this date and at this time Date:' + date_str + '<br />' + gap(77) + 'Time:' + gap(10) + 'am / pm', styles['Normal']),
-            Paragraph('Name and AO Number:', styles['Normal']),
-            Paragraph('Signature', styles['Normal']),
-            Paragraph('District/Region:', styles['Normal']),
-            Spacer(0, 3 * mm),
+            Paragraph('I issue this direction on this date and at this time<br />'
+                      'Date: ' + get_font_str(sanction_outcome.date_of_issue.strftime('%d/%m/%Y')) + '<br />'
+                      'Time: ' + get_font_str(sanction_outcome.time_of_issue.strftime('%I:%M %p')), style_normal),
+            Paragraph('Name and AO Number: ' + get_font_str(sanction_outcome.responsible_officer.get_full_name()), style_normal),
+            Paragraph('Signature', style_normal),
+            Paragraph('District/Region: ' + region_district, style_normal),
+        ],
+        '',
+    ])
+    # Paragraph('District/Region: ' + get_font_str(sanction_outcome.district) + ' / ' + get_font_str(sanction_outcome.region), style_normal),
+    data.append([
+        Paragraph('<strong>Witnessing officer</strong>', style_normal),
+        [
+            Paragraph('Name and AO Number:', style_normal),
+            Paragraph('Signature: ', style_normal),
+            Paragraph('District/Region:', style_normal),
         ],
         '',
     ])
     data.append([
-        Paragraph('<strong>Witnessing officer</strong>', styles['Normal']),
-        [
-            Paragraph('Name and AO Number:', styles['Normal']),
-            Paragraph('Signature', styles['Normal']),
-            Paragraph('District/Region:', styles['Normal']),
-            Spacer(0, 3 * mm),
-        ],
-        '',
-    ])
-    data.append([
-        Paragraph('<strong>Recipient\'s signature [Optional]</strong>', styles['Normal']),
-        Paragraph('I acknowledge receiving this direction. I understand what it says', styles['Normal']),
+        Paragraph('<strong>Recipient\'s signature [Optional]</strong>', style_normal),
+        Paragraph('I acknowledge receiving this direction. I understand what it says', style_normal),
         ''
     ])
     t1 = Table(data, style=invoice_table_style, colWidths=col_width, )
@@ -209,24 +215,24 @@ def _create_pdf(invoice_buffer, sanction_outcome):
         ('ALIGN', (0, 0), (-1, -1), 'LEFT'),
     ])
     data.append([
-        Paragraph('s204(2)(a)', styles['Normal']),
+        Paragraph('s204(2)(a)', style_normal),
         Table([[
             Paragraph('a)', styles['Right']),
-            Paragraph('direct a person who has the custody or control of a record to give the wildlife officer the record or a copy of it;', styles['Normal']),
+            Paragraph('direct a person who has the custody or control of a record to give the wildlife officer the record or a copy of it;', style_normal),
         ]], style=tbl_style_internal, colWidths=col_width_internal),
     ])
     data.append([
-        Paragraph('s204(2)(b)', styles['Normal']),
+        Paragraph('s204(2)(b)', style_normal),
         Table([[
             Paragraph('b)', styles['Right']),
-            Paragraph('direct a person who has the custody or control of a record, computer or thing to make or print out a copy of the record or to operate the computer or thing;', styles['Normal']),
+            Paragraph('direct a person who has the custody or control of a record, computer or thing to make or print out a copy of the record or to operate the computer or thing;', style_normal),
         ]], style=tbl_style_internal, colWidths=col_width_internal),
     ])
     data.append([
-        Paragraph('s204(2)(d)', styles['Normal']),
+        Paragraph('s204(2)(d)', style_normal),
         Table([[
             Paragraph('d)', styles['Right']),
-            Paragraph('direct a person who is or appears to be in control of a record that the wildlife officer reasonably suspects is a relevant record to give the wildlife officer a translation, code, password or other information necessary to gain access to or interpret and understand the record.', styles['Normal']),
+            Paragraph('direct a person who is or appears to be in control of a record that the wildlife officer reasonably suspects is a relevant record to give the wildlife officer a translation, code, password or other information necessary to gain access to or interpret and understand the record.', style_normal),
         ]], style=tbl_style_internal, colWidths=col_width_internal),
     ])
     data.append([
@@ -238,79 +244,79 @@ def _create_pdf(invoice_buffer, sanction_outcome):
         '',
     ])
     data.append([
-        Paragraph('s205(2)(a)(i)<br />s205(2)(a)(ii)', styles['Normal']),
-        [ Paragraph('For inspection purposes direct an occupier of a place or vehicle, or a person who is or appears to be in possession or control of a thing, to give to the wildlife officer, orally or in writing -', styles['Normal']),
+        Paragraph('s205(2)(a)(i)<br />s205(2)(a)(ii)', style_normal),
+        [ Paragraph('For inspection purposes direct an occupier of a place or vehicle, or a person who is or appears to be in possession or control of a thing, to give to the wildlife officer, orally or in writing -', style_normal),
             Table([
                 [
                     Paragraph('(i)', styles['Right']),
                     Paragraph(
                         'any information in the person’s possession or control as to the name and address of the owner of the place, vehicle or thing; and',
-                        styles['Normal']),
+                        style_normal),
                 ],
                 [
                     Paragraph('(ii)', styles['Right']),
                     Paragraph(
                         'any other information in the person’s possession or control that is relevant to an inspection',
-                        styles['Normal']),
+                        style_normal),
                 ],
             ], style=tbl_style_internal, colWidths=col_width_internal),
         ],
     ])
     data.append([
-        Paragraph('s205(2)(b)', styles['Normal']),
-        Paragraph('For inspection purposes direct a person who is or appears to be in possession or control of an organism or potential carrier to give the wildlife officer any information in the person’s possession or control as to the name and address of any person from whom the organism or potential carrier or to whom a similar organism or potential carrier has been supplied;', styles['Normal']),
+        Paragraph('s205(2)(b)', style_normal),
+        Paragraph('For inspection purposes direct a person who is or appears to be in possession or control of an organism or potential carrier to give the wildlife officer any information in the person’s possession or control as to the name and address of any person from whom the organism or potential carrier or to whom a similar organism or potential carrier has been supplied;', style_normal),
     ])
     data.append([
-        Paragraph('s205(2)(c)', styles['Normal']),
-        Paragraph('For inspection purposes direct an occupier of a place or vehicle to answer questions;', styles['Normal']),
+        Paragraph('s205(2)(c)', style_normal),
+        Paragraph('For inspection purposes direct an occupier of a place or vehicle to answer questions;', style_normal),
     ])
     data.append([
-        Paragraph('s205(2)(d)', styles['Normal']),
-        Paragraph('For inspection purposes direct an occupier of a place or vehicle to produce a specified thing or a thing of a specified kind;', styles['Normal']),
+        Paragraph('s205(2)(d)', style_normal),
+        Paragraph('For inspection purposes direct an occupier of a place or vehicle to produce a specified thing or a thing of a specified kind;', style_normal),
     ])
     data.append([
-        Paragraph('s205(2)(e)', styles['Normal']),
-        Paragraph('For inspection purposes direct an occupier of a place or vehicle to open or unlock any thing in or on the place or vehicle to which the wildlife officer requires access;', styles['Normal']),
+        Paragraph('s205(2)(e)', style_normal),
+        Paragraph('For inspection purposes direct an occupier of a place or vehicle to open or unlock any thing in or on the place or vehicle to which the wildlife officer requires access;', style_normal),
     ])
     data.append([
-        Paragraph('s205(2)(f)', styles['Normal']),
-        Paragraph('Direct an occupier of a place or vehicle to give the wildlife officer a plan, or access to a plan, of the place or vehicle;', styles['Normal']),
+        Paragraph('s205(2)(f)', style_normal),
+        Paragraph('Direct an occupier of a place or vehicle to give the wildlife officer a plan, or access to a plan, of the place or vehicle;', style_normal),
     ])
     data.append([
-        Paragraph('s205(2)(g)', styles['Normal']),
-        Paragraph('Direct an occupier of a place or vehicle, or a person who is or appears to be in possession or control of a thing, to give the wildlife officer any assistance that the wildlife officer reasonably needs to carry out the wildlife officer’s functions in relation to the place, vehicle or thing;', styles['Normal']),
+        Paragraph('s205(2)(g)', style_normal),
+        Paragraph('Direct an occupier of a place or vehicle, or a person who is or appears to be in possession or control of a thing, to give the wildlife officer any assistance that the wildlife officer reasonably needs to carry out the wildlife officer’s functions in relation to the place, vehicle or thing;', style_normal),
     ])
     data.append([
-        Paragraph('s205(2)(h)', styles['Normal']),
-        Paragraph('Direct an occupier of a vehicle to move the vehicle to a specified place for inspection or treatment;', styles['Normal']),
+        Paragraph('s205(2)(h)', style_normal),
+        Paragraph('Direct an occupier of a vehicle to move the vehicle to a specified place for inspection or treatment;', style_normal),
     ])
     data.append([
-        Paragraph('s205(2)(i)', styles['Normal']),
-        Paragraph('direct a person who is or could be carrying an organism or potential carrier to go to a specified place for inspection or treatment;', styles['Normal']),
+        Paragraph('s205(2)(i)', style_normal),
+        Paragraph('direct a person who is or could be carrying an organism or potential carrier to go to a specified place for inspection or treatment;', style_normal),
     ])
     data.append([
-        Paragraph('s205(2)(j)', styles['Normal']),
-        Paragraph('Direct a person who is or appears to be in control of a consignment of goods or a potential carrier to move the consignment or potential carrier to a specified place for inspection or treatment;', styles['Normal']),
+        Paragraph('s205(2)(j)', style_normal),
+        Paragraph('Direct a person who is or appears to be in control of a consignment of goods or a potential carrier to move the consignment or potential carrier to a specified place for inspection or treatment;', style_normal),
     ])
     data.append([
-        Paragraph('s205(2)(k)', styles['Normal']),
-        Paragraph('Direct a person who is or appears to be in control of an organism to do anything necessary to identify the organism;', styles['Normal']),
+        Paragraph('s205(2)(k)', style_normal),
+        Paragraph('Direct a person who is or appears to be in control of an organism to do anything necessary to identify the organism;', style_normal),
     ])
     data.append([
-        Paragraph('s205(2)(l)', styles['Normal']),
-        Paragraph('Direct a person who is or appears to be in control of an animal to restrain, muster, round up, yard, draft or otherwise move or handle the animal or to remove the animal to a specified place for inspection or treatment;', styles['Normal']),
+        Paragraph('s205(2)(l)', style_normal),
+        Paragraph('Direct a person who is or appears to be in control of an animal to restrain, muster, round up, yard, draft or otherwise move or handle the animal or to remove the animal to a specified place for inspection or treatment;', style_normal),
     ])
     data.append([
-        Paragraph('s205(2)(m)', styles['Normal']),
-        Paragraph('Direct a person who is or appears to be in control of any goods, vehicle, package or container to label it;', styles['Normal']),
+        Paragraph('s205(2)(m)', style_normal),
+        Paragraph('Direct a person who is or appears to be in control of any goods, vehicle, package or container to label it;', style_normal),
     ])
     data.append([
-        Paragraph('s205(2)(n)', styles['Normal']),
-        Paragraph('Direct a person who is or appears to be in control of an organism, potential carrier or other thing prohibited, controlled, regulated or managed under this Act to keep that organism, potential carrier or other thing in the possession of that person until further directed by the wildlife officer;', styles['Normal']),
+        Paragraph('s205(2)(n)', style_normal),
+        Paragraph('Direct a person who is or appears to be in control of an organism, potential carrier or other thing prohibited, controlled, regulated or managed under this Act to keep that organism, potential carrier or other thing in the possession of that person until further directed by the wildlife officer;', style_normal),
     ])
     data.append([
-        Paragraph('s205(2)(o)', styles['Normal']),
-        Paragraph('Direct a person who is or appears to be in control of an organism, potential carrier or other thing prohibited, controlled, regulated or managed under this Act to leave that organism, potential carrier or other thing at a specified place until further directed by the wildlife officer.', styles['Normal']),
+        Paragraph('s205(2)(o)', style_normal),
+        Paragraph('Direct a person who is or appears to be in control of an organism, potential carrier or other thing prohibited, controlled, regulated or managed under this Act to leave that organism, potential carrier or other thing at a specified place until further directed by the wildlife officer.', style_normal),
     ])
     t2 = Table(data, style=invoice_table_style, colWidths=col_width, )
 
@@ -341,5 +347,7 @@ def create_letter_of_advice_pdf_bytes(filename, sanction_outcome):
         document._file = path
         document.save()
         # END: Save
+
+        invoice_buffer.close()
 
         return document

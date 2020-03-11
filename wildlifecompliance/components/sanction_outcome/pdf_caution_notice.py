@@ -18,7 +18,7 @@ from reportlab.lib import colors
 
 from django.conf import settings
 
-from wildlifecompliance.components.main.pdf_utils import gap, SolidLine
+from wildlifecompliance.components.main.pdf_utils import gap, SolidLine, get_font_str
 
 PAGE_WIDTH, PAGE_HEIGHT = A4
 DEFAULT_FONTNAME = 'Helvetica'
@@ -131,29 +131,54 @@ def _create_pdf(invoice_buffer, sanction_outcome):
     data = []
     data.append([Paragraph('<i>Biodiversity Conservation Act 2016</i><br /><strong><font size="' + str(FONT_SIZE_L) + '">Caution Notice</font></strong>', styles['Normal']),
                  '',
-                 Paragraph(u'Caution<br />notice no. <font face="Helvetica"><strong>' + sanction_outcome.lodgement_number + u'</strong></font>', styles['Normal'])])
+                 Paragraph(u'Caution<br />notice no. ' + get_font_str(sanction_outcome.lodgement_number), styles['Normal'])])
 
     # Alleged offender
-    data.append([Paragraph('Alleged offender', styles['Bold']), Paragraph('Name: Family name', styles['Normal']), ''])
-    data.append(['', Paragraph(gap(12) + 'Given names', styles['Normal']), ''])
-    data.append(['', Paragraph(gap(12) + 'Date of Birth', styles['Normal']), ''])
+    offender = sanction_outcome.get_offender()
+    # data.append([Paragraph('Alleged offender', styles['Bold']), Paragraph('Name: Family name', styles['Normal']), ''])
+    # data.append(['', Paragraph(gap(12) + 'Given names', styles['Normal']), ''])
+    # data.append(['', Paragraph(gap(12) + 'Date of Birth', styles['Normal']), ''])
+    data.append([Paragraph('Alleged offender', styles['Bold']), Paragraph('Name: Family name: ' + get_font_str(offender[0].last_name), styles['Normal']), ''])
+    data.append(['', Paragraph(gap(12) + 'Given names: ' + get_font_str(offender[0].first_name), styles['Normal']), ''])
+    data.append(['', Paragraph(gap(12) + 'Date of Birth: ' + get_font_str(offender[0].dob.strftime('%d/%m/%Y')), styles['Normal']), ''])
     data.append(['', [Paragraph('<strong>or</strong><br />Body corporate name', styles['Normal']), Spacer(1, 25)], ''])
-    data.append(['', [Paragraph('Address', styles['Normal']), Spacer(1, 25), Paragraph('Postcode', styles['Normal'])], ''])
+    # data.append(['', [Paragraph('Address', styles['Normal']), Spacer(1, 25), Paragraph('Postcode', styles['Normal'])], ''])
+    data.append(['',
+                 [
+                     Paragraph('Address: ', styles['Normal']),
+                     Paragraph(get_font_str(str(offender[0].residential_address)), styles['Normal']),
+                     Paragraph('Postcode: ' + get_font_str(offender[0].residential_address.postcode), styles['Normal']),
+                 ],
+                 '',
+                 ])
 
     # When
-    data.append([Paragraph('When', styles['Bold']), Paragraph('Date' + date_str + gap(5) + 'Time' + gap(10) + 'am/pm', styles['Normal']), ''])
+    # data.append([Paragraph('When', styles['Bold']), Paragraph('Date' + date_str + gap(5) + 'Time' + gap(10) + 'am/pm', styles['Normal']), ''])
+    offence_datetime = sanction_outcome.offence.offence_occurrence_datetime
+    data.append([
+        Paragraph('When', styles['Bold']),
+        Paragraph('Date: ' + get_font_str(offence_datetime.strftime('%d/%m/%Y')) + gap(5) + 'Time: ' + get_font_str(offence_datetime.strftime('%I:%M %p')), styles['Normal']),
+        ''
+    ])
 
     # Where
-    data.append([Paragraph('Where', styles['Bold']), [Paragraph('Location of offence', styles['Normal']), Spacer(1, 25)], ''])
+    # data.append([Paragraph('Where', styles['Bold']), [Paragraph('Location of offence', styles['Normal']), Spacer(1, 25)], ''])
+    offence_location = sanction_outcome.offence.location
+    offence_location_str = str(offence_location) if offence_location else ''
+    data.append([
+        Paragraph('Where', styles['Bold']),
+        [
+            Paragraph('Location of offence', styles['Normal']),
+            Paragraph(get_font_str(offence_location_str), styles['Normal']),
+            Spacer(1, 25)
+        ],
+        '',
+    ])
 
     # Alleged offence
     data.append([Paragraph('Alleged offence', styles['Bold']),
                  [
                      Paragraph('Description of offence', styles['Normal']),
-                     SolidLine(370, 0),
-                     SolidLine(370, 0),
-                     SolidLine(370, 0),
-                     SolidLine(370, 0),
                  ],
                  ''])  # row index: 8
     # data.append(['', rect, ''])
@@ -161,12 +186,18 @@ def _create_pdf(invoice_buffer, sanction_outcome):
     data.append(['', Paragraph('<i>Biodiversity Conservation Act 2016 s.</i>' + gap(10) + 'or<br /><i>Biodiversity Conservation Regulations 2018 r.</i>', styles['Normal']), ''])
 
     # Officer issuing notice
-    data.append([Paragraph('Officer issuing notice', styles['Bold']), Paragraph('Name', styles['Normal']), ''])  # row index: 12
+    # data.append([Paragraph('Officer issuing notice', styles['Bold']), Paragraph('Name', styles['Normal']), ''])  # row index: 12
+    data.append([
+        Paragraph('Officer issuing notice', styles['Bold']),
+        Paragraph('Name: {}'.format(get_font_str(sanction_outcome.responsible_officer.get_full_name())), styles['Normal']), ''
+    ])  # row index: 12
     data.append(['', Paragraph('Signature', styles['Normal']), ''])
     data.append(['', Paragraph('Officer no.', styles['Normal']), ''])
 
     # Date
-    data.append([Paragraph('Date', styles['Bold']), Paragraph('Date of notice:' + date_str, styles['Normal']), ''])
+    issue_date = get_font_str(sanction_outcome.date_of_issue.strftime('%d/%m/%Y'))
+    issue_time = get_font_str(sanction_outcome.time_of_issue.strftime('%I:%M %p'))
+    data.append([Paragraph('Date', styles['Bold']), Paragraph('Date of notice: ' + issue_date + ' ' + issue_time, styles['Normal']), ''])
 
     # Notice to alleged offender
     body = []
@@ -213,6 +244,8 @@ def create_caution_notice_pdf_bytes(filename, sanction_outcome):
         document._file = path
         document.save()
         # END: Save
+
+        invoice_buffer.close()
 
         return document
 

@@ -358,8 +358,10 @@ export default {
                 'identifier': '__all__',
                 'location': '__all__',
                 'lodgement_number': '__all__',
-                'occurrence_datetime_from': '__all__',
-                'occurrence_datetime_to': '__all__',
+                'occurrence_date_from': '__all__',
+                'occurrence_date_to': '__all__',
+                'occurrence_time_from': '__all__',
+                'occurrence_time_to': '__all__',
                 'occurrence_from_to': '__all__',
                 'offenders': [
                     'id',
@@ -1383,8 +1385,8 @@ export default {
             let el_to_time = $(vm.$refs.occurrenceTimeToPicker);
 
             // "From" Date field
-            el_fr_date.datetimepicker({
-                format: "DD/MM/YYYY",
+            el_fr_date.datetimepicker({ 
+                format: "DD/MM/YYYY", 
                 maxDate: moment().millisecond(0).second(0).minute(0).hour(0),
                 showClear: true,
                 date: vm.offence.occurrence_datetime_from,
@@ -1398,7 +1400,7 @@ export default {
                 }
             });
             // "From" Time field
-            el_fr_time.datetimepicker({
+            el_fr_time.datetimepicker({ 
                 format: "LT",
                 showClear: true,
                 date: vm.offence.occurrence_datetime_from,
@@ -1415,7 +1417,7 @@ export default {
             console.log('to date');
             console.log(vm.offence.occurrence_datetime_from);
 
-            el_to_date.datetimepicker({
+            el_to_date.datetimepicker({ 
                 format: "DD/MM/YYYY",
                 maxDate: moment().millisecond(0).second(0).minute(0).hour(0),
                 minDate: vm.offence.occurrence_datetime_from,
@@ -1431,8 +1433,8 @@ export default {
                 }
             });
             // "To" Time field
-            el_to_time.datetimepicker({
-                format: "LT",
+            el_to_time.datetimepicker({ 
+                format: "LT", 
                 showClear: true,
                 date: vm.offence.occurrence_datetime_to,
             });
@@ -1469,9 +1471,9 @@ export default {
         console.log('mounted');
         let vm = this;
 
-    //    vm.$nextTick(() => {
+        vm.$nextTick(() => {
             vm.addEventListeners();
-     //   });
+        });
     }
 }
 </script>
