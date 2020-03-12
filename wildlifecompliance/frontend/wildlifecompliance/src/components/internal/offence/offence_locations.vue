@@ -137,7 +137,7 @@ L.TileLayer.WMTS = L.TileLayer.extend({
 
     getDefaultMatrix : function () {
         /**
-         * the matrix3857 represents the projection 
+         * the matrix3857 represents the projection
          * for in the IGN WMTS for the google coordinates.
          */
         var matrixIds3857 = new Array(22);
@@ -180,7 +180,7 @@ module.exports = {
 
             /*
              * Filers:
-             * value of the "value" attribute of the option is stored. 
+             * value of the "value" attribute of the option is stored.
              * The value of this is used queryset.filter() in the backend.
              */
             filterStatus: 'all',
@@ -311,7 +311,8 @@ module.exports = {
 
             var latlng = this.map.getCenter();
             $.ajax({
-                url: 'https://mapbox.dpaw.wa.gov.au/geocoding/v5/mapbox.places/'+encodeURIComponent(place)+'.json?'+ $.param({
+                //url: 'https://mapbox.dpaw.wa.gov.au/geocoding/v5/mapbox.places/'+encodeURIComponent(place)+'.json?'+ $.param({
+                url: 'https://api.mapbox.com/geocoding/v5/mapbox.places/'+encodeURIComponent(place)+'.json?'+ $.param({
                     country: 'au',
                     limit: 10,
                     proximity: ''+latlng.lng+','+latlng.lat,
@@ -325,7 +326,7 @@ module.exports = {
                     if (data.features && data.features.length > 0){
                         for (var i = 0; i < data.features.length; i++){
                             self.suggest_list.push({ label: data.features[i].place_name,
-                                                     value: data.features[i].place_name, 
+                                                     value: data.features[i].place_name,
                                                      feature: data.features[i]
                                                      });
                         }
