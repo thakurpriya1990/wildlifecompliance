@@ -325,6 +325,7 @@ export default {
         vm.awe = null;
 
         return {
+            mapboxAccessToken: null,
             uuid: 0,
             workflow_type :'',
             workflowBindId :'',
@@ -680,6 +681,10 @@ export default {
             setCanUserAction: 'setCanUserAction',
             setRelatedItems: 'setRelatedItems',
         }),
+        setMapboxAccessToken:  async function () {
+            const res =  await Vue.http.get(api_endpoints.geocoding_address_search_token);
+            this.mapboxAccessToken = res.body;
+        },
         constructOffenceDedicatedPage: async function(){
             console.log('constructOffenceDedicatedPage');
             await this.loadOffenceVuex({offence_id: this.$route.params.offence_id});
@@ -886,12 +891,13 @@ export default {
 
           $.ajax({
             url:
-              "https://mapbox.dpaw.wa.gov.au/geocoding/v5/mapbox.places/" +
+                api_endpoints.geocoding_address_search +
               coordinates_4326.lng +
               "," +
               coordinates_4326.lat +
               ".json?" +
               $.param({
+                access_token: self.mapboxAccessToken,
                 limit: 1,
                 types: "address"
               }),
@@ -1385,8 +1391,8 @@ export default {
             let el_to_time = $(vm.$refs.occurrenceTimeToPicker);
 
             // "From" Date field
-            el_fr_date.datetimepicker({ 
-                format: "DD/MM/YYYY", 
+            el_fr_date.datetimepicker({
+                format: "DD/MM/YYYY",
                 maxDate: moment().millisecond(0).second(0).minute(0).hour(0),
                 showClear: true,
                 date: vm.offence.occurrence_datetime_from,
@@ -1400,7 +1406,7 @@ export default {
                 }
             });
             // "From" Time field
-            el_fr_time.datetimepicker({ 
+            el_fr_time.datetimepicker({
                 format: "LT",
                 showClear: true,
                 date: vm.offence.occurrence_datetime_from,
@@ -1417,7 +1423,7 @@ export default {
             console.log('to date');
             console.log(vm.offence.occurrence_datetime_from);
 
-            el_to_date.datetimepicker({ 
+            el_to_date.datetimepicker({
                 format: "DD/MM/YYYY",
                 maxDate: moment().millisecond(0).second(0).minute(0).hour(0),
                 minDate: vm.offence.occurrence_datetime_from,
@@ -1433,8 +1439,8 @@ export default {
                 }
             });
             // "To" Time field
-            el_to_time.datetimepicker({ 
-                format: "LT", 
+            el_to_time.datetimepicker({
+                format: "LT",
                 showClear: true,
                 date: vm.offence.occurrence_datetime_to,
             });
@@ -1460,6 +1466,7 @@ export default {
     },
     created: async function() {
         console.log('created');
+        await this.setMapboxAccessToken();
         if (this.$route.params.offence_id) {
             await this.constructOffenceDedicatedPage();
         }

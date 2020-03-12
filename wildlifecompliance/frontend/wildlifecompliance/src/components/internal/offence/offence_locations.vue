@@ -62,7 +62,7 @@ import 'leaflet.locatecontrol';
 import Awesomplete from 'awesomplete';
 import { api_endpoints, helpers, cache_helper } from '@/utils/hooks'
 import { mapState, mapGetters, mapActions, mapMutations } from "vuex";
-
+import Vue from "vue";
 import 'leaflet/dist/leaflet.css';
 import 'leaflet.markercluster/dist/MarkerCluster.css';
 import 'leaflet.markercluster/dist/MarkerCluster.Default.css';
@@ -172,6 +172,7 @@ module.exports = {
         vm.ajax_for_location = null;
 
         return {
+            mapboxAccessToken: null,
             map: null,
             tileLayer: null, // Base layer (Open street map)
             tileLayerSat: null, // Base layer (satelllite)
@@ -194,11 +195,7 @@ module.exports = {
         }
     },
     created: async function() {
-        console.log('moment()');
-        console.log(moment().toString());
-        console.log('moment()...');
-        console.log(moment().millisecond(0).second(0).minute(0).hour(0).toString());
-
+        await this.setMapboxAccessToken();
 
         let returned_status_choices = await cache_helper.getSetCacheList('Offence_StatusChoices', '/api/offence/status_choices');
         Object.assign(this.status_choices, returned_status_choices);
@@ -207,6 +204,7 @@ module.exports = {
         let returned_choices = await cache_helper.getSetCacheList('SanctionOutcome_TypeChoices', '/api/sanction_outcome/types');
         Object.assign(this.sanction_outcome_type_choices, returned_choices);
         this.sanction_outcome_type_choices.splice(0, 0, {id: 'all', display: 'All'});
+
     },
     mounted(){
         let vm = this;
@@ -252,6 +250,10 @@ module.exports = {
     computed: {
     },
     methods: {
+        setMapboxAccessToken:  async function () {
+            const res =  await Vue.http.get(api_endpoints.geocoding_address_search_token);
+            this.mapboxAccessToken = res.body;
+        },
         addEventListeners: function () {
             let vm = this;
             let el_fr = $(vm.$refs.lodgementDateFromPicker);
@@ -311,12 +313,11 @@ module.exports = {
 
             var latlng = this.map.getCenter();
             $.ajax({
-                //url: 'https://mapbox.dpaw.wa.gov.au/geocoding/v5/mapbox.places/'+encodeURIComponent(place)+'.json?'+ $.param({
-                url: 'https://api.mapbox.com/geocoding/v5/mapbox.places/'+encodeURIComponent(place)+'.json?'+ $.param({
+                url: api_endpoints.geocoding_address_search + encodeURIComponent(place)+'.json?'+ $.param({
+                    access_token: self.mapboxAccessToken,
                     country: 'au',
                     limit: 10,
                     proximity: ''+latlng.lng+','+latlng.lat,
-                    //proximity: ''+centre[0]+','+centre[1],
                     bbox: '112.920934,-35.191991,129.0019283,-11.9662455',
                     types: 'region,postcode,district,place,locality,neighborhood,address,poi'
                 }),
