@@ -225,7 +225,7 @@ export default {
                                     }
                                     num_total++;
                                 }
-                                data = data + `<br />(Open: ${num_open}, Overdue: ${num_overdue}, Submitted: ${num_submitted}, Accepted: ${num_accepted})`
+                                data = data + `<br />(Open: ${num_open}, Submitted: ${num_submitted}, Accepted: ${num_accepted}, Overdue: ${num_overdue})`
                                 return data;
                             }
                             return data;
