@@ -1,4 +1,17 @@
 module.exports = {
+    preferredDashboard: (async () => {
+        let preference = null;
+        const res = await fetch(
+            '/api/system_preference/',
+        );
+        const body = await res.json();
+        if (body && body.system === 'compliance_management') {
+            preference = 'compliance_management';
+        } else {
+            preference = 'wildlife_licensing';
+        return preference;
+        }
+    })(),
   apiError: function ( resp ) {
     var error_str = '';
     if ( resp.status === 400 ) {
