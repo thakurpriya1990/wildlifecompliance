@@ -20,6 +20,7 @@ from wildlifecompliance.components.main.views import (
         CreateWeakLinkView,
         RemoveWeakLinkView,
         GeocodingAddressSearchTokenView,
+        SystemPreferenceView,
         )
 from wildlifecompliance.components.applications import views as application_views
 from wildlifecompliance.components.users import api as users_api
@@ -162,6 +163,9 @@ api_patterns = [url(r'^api/my_user_details/$',
                 url(r'^api/geocoding_address_search_token',
                     GeocodingAddressSearchTokenView.as_view(),
                     name='geocoding_address_search_token'),
+                url(r'^api/system_preference',
+                    SystemPreferenceView.as_view(),
+                    name='system_preference'),
                 url(r'^api/',
                     include(router.urls))]
 

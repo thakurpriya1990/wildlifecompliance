@@ -65,6 +65,7 @@ module.exports = {
     disposal_methods: '/api/disposal_methods',
     geocoding_address_search_token: '/api/geocoding_address_search_token/',
     geocoding_address_search: `https://api.mapbox.com/geocoding/v5/mapbox.places/`,
+    system_preference: '/api/system_preference/',
     /*
     geocoding_address_search: async function() {
         //const token = await Vue.http.get('/api/geocoding_address_search_token');
