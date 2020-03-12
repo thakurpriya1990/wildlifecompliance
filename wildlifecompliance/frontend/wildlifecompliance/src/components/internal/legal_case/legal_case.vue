@@ -799,8 +799,7 @@ export default {
         if (this.legal_case && 
             this.legal_case.id && 
             this.legal_case.brief_of_evidence && 
-            //this.legal_case.status.id === 'brief_of_evidence'
-            this.legal_case.status.id !== this.openStatus
+            !this.openStatus
         ) 
         {
             visible = true;
