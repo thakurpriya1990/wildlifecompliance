@@ -77,13 +77,16 @@ class LicencePurpose(models.Model):
         try:
             for section in self.schema:
                 for group in section['children']:
-                    for question in group['children']:
-                        if question['type'] == 'species-list':
-                            species_list += question['value']
+                    for label in group['children']:
+                        if label['type'] == 'species':
+                            label['component_attribute'] = \
+                                self.get_species_options(label['species'])
+                            species_list += label['species']
 
         except KeyError:
             pass
-
+        except Exception:
+            pass
         return species_list
 
     @property
@@ -96,14 +99,33 @@ class LicencePurpose(models.Model):
 
         try:
             for section in self.schema:
-                for question in section['children']:
-                    if question['type'] == 'species-list':
-                        species_list += question['value']
+                for label in section['children']:
+                    if label['type'] == 'species':
+                        label['component_attribute'] = \
+                            self.get_species_options(label['species'])
+                        species_list += label['species']
 
         except KeyError:
             pass
-
+        except Exception:
+            pass
         return species_list
+
+    def get_species_options(self, species_list):
+        """
+        Builds a list of drop-down options for Licence Species.
+        """
+        requested_species = []
+        for specie in species_list:
+            details = LicenceSpecies.objects.values('data').get(
+                specie_id=specie)
+            option = {
+                'value': details['data'][0]['name_id'],
+                'label': details['data'][0]['vernacular_names']}
+
+            requested_species.append(option)
+
+        return requested_species
 
 
 class LicencePurposeDetail(OrderedModel):

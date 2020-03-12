@@ -44,5 +44,6 @@ class LicenceSpeciesAdmin(admin.ModelAdmin):
     actions = ['verify_species']
 
     def verify_species(self, request, queryset):
-        ApplicationService.verify_licence_species()
-        self.message_user(request, 'All species have been verified.')
+        for selected in queryset:
+            ApplicationService.verify_licence_specie_id(selected.specie_id)
+        self.message_user(request, 'Selected species have been verified.')
