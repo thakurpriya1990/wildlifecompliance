@@ -65,6 +65,15 @@ class ApplicationService(object):
             tsc_service.search_taxon(specie)
 
     @staticmethod
+    def verify_licence_specie_id(specie_id):
+        """
+        Verifies species name identifier is current with the TSC database.
+        """
+        tsc_service = TSCSpecieService(TSCSpecieCall())
+        tsc_service.set_strategy(TSCSpecieXReferenceCall())
+        tsc_service.search_taxon(specie_id)
+
+    @staticmethod
     def calculate_fees(application, data_source):
         """
         Calculates fees for Application and Licence. Application fee is
