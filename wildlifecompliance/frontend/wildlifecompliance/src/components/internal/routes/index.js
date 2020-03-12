@@ -22,17 +22,7 @@ import SanctionOutcomeDashTable from '../sanction_outcome/sanction_outcome_dashb
 import SanctionOutcome from '../sanction_outcome/sanction_outcome.vue'
 import OffenceDashTable from '../offence/offence_dashboard.vue'
 import Offence from '../offence/offence.vue'
-import { api_endpoints, helpers } from "@/utils/hooks";
-const preferredDashboard = helpers.preferredDashboard;
-const selectedDashboard = (function() {
-    let dashboard = null;
-    if (preferredDashboard === 'compliance_management') {
-        dashboard = CallEmailDashTable;
-    } else {
-        dashboard = InternalDashboard;
-    }
-    return dashboard;
-})();
+import DashboardSwitcher from '../dashboard_switcher.vue'
 
 export default
 {
@@ -54,9 +44,10 @@ export default
         */
         {
             path: '/',
-            component: selectedDashboard,
+            component: DashboardSwitcher,
             name: 'internal-dash'
         },
+
         {
             path: 'licences',
             component: LicenceDashTable,

@@ -1,5 +1,5 @@
 module.exports = {
-    preferredDashboard: (async () => {
+    getPreferredDashboard: async function() {
         let preference = null;
         const res = await fetch(
             '/api/system_preference/',
@@ -9,9 +9,9 @@ module.exports = {
             preference = 'compliance_management';
         } else {
             preference = 'wildlife_licensing';
-        return preference;
         }
-    })(),
+        return preference;
+    },
   apiError: function ( resp ) {
     var error_str = '';
     if ( resp.status === 400 ) {
