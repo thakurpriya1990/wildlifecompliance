@@ -64,8 +64,8 @@ styles.add(ParagraphStyle(name='LongString', alignment=enums.TA_LEFT,wordWrap='C
 
 
 def _create_pdf(invoice_buffer, sanction_outcome):
-    every_page_frame = Frame(PAGE_MARGIN, PAGE_MARGIN, PAGE_WIDTH - 2 * PAGE_MARGIN, PAGE_HEIGHT - 2 * PAGE_MARGIN, id='EveryPagesFrame', showBoundary=Color(0, 1, 0))
-    every_page_frame2 = Frame(PAGE_MARGIN, PAGE_MARGIN, PAGE_WIDTH - 2 * PAGE_MARGIN, PAGE_HEIGHT - 2 * PAGE_MARGIN, id='EveryPagesFrame2', showBoundary=Color(0, 0, 1))
+    every_page_frame = Frame(PAGE_MARGIN, PAGE_MARGIN, PAGE_WIDTH - 2 * PAGE_MARGIN, PAGE_HEIGHT - 2 * PAGE_MARGIN, id='EveryPagesFrame',)  # showBoundary=Color(0, 1, 0))
+    every_page_frame2 = Frame(PAGE_MARGIN, PAGE_MARGIN, PAGE_WIDTH - 2 * PAGE_MARGIN, PAGE_HEIGHT - 2 * PAGE_MARGIN, id='EveryPagesFrame2',)  # showBoundary=Color(0, 0, 1))
     # every_page_template = PageTemplate(id='EveryPages', frames=[every_page_frame,], onPage=_create_header)
     every_page_template = PageTemplate(id='EveryPages', frames=[every_page_frame,], )
     every_page_template2 = PageTemplate(id='EveryPages2', frames=[every_page_frame2,], )
@@ -78,12 +78,12 @@ def _create_pdf(invoice_buffer, sanction_outcome):
     body = []
     body.append(Paragraph('It is alleged that you have committed the above offence.</p>', styles['Normal']))
     body.append(Paragraph('If you do not want to be prosecuted in court for the offence, pay the modified penalty within 28 days after the date of this notice.', styles['Normal']))
-    body.append(Paragraph('How to pay', styles['Bold']))
+    body.append(Paragraph('How to pay', styles['Normal']))
     body.append(Paragraph('<strong>By post:</strong>Send a cheque or money order (payable to ‘Approved Officer — Biodiversity Conservation Act 2016’) to:', styles['Normal']))
     body.append(Paragraph('Approved Officer — Biodiversity Conservation Act 2016<br />Department of Biodiversity, Conservation and Attractions<br />Locked Bag 104<br />Bentley Delivery Centre WA 6983', styles['Normal']))
     body.append(Spacer(1, 10))
     body.append(Paragraph('<strong>In person:</strong> Pay the cashier at any office of the Department of Biodiversity, Conservation and Attractions, or pay over the telephone by credit card by calling the general telephone number of any office of the Department of Biodiversity, Conservation and Attractions.', styles['Normal']))
-    data_tbl2.append([Paragraph('Notice to alleged offender', styles['Bold']), body, ''])
+    data_tbl2.append([Paragraph('<strong>Notice to alleged offender</strong>', styles['Normal']), body, ''])
 
     # Notice to alleged offender  (2)
     body = []
@@ -121,7 +121,7 @@ def _create_pdf(invoice_buffer, sanction_outcome):
     return invoice_buffer
 
 
-def create_in_pdf_bytes(filename, sanction_outcome):
+def create_infringement_notice_blue(filename, sanction_outcome):
     with BytesIO() as invoice_buffer:
         _create_pdf(invoice_buffer, sanction_outcome)
 
@@ -134,6 +134,8 @@ def create_in_pdf_bytes(filename, sanction_outcome):
         document._file = path
         document.save()
         # END: Save
+
+        invoice_buffer.close()
 
         return document
 

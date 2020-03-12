@@ -86,8 +86,8 @@ class ParagraphCheckbox(Paragraph, object):
         super(ParagraphCheckbox, self).drawOn(canvas, x, y, _sW)
 
 
-class FlowableRect(Flowable):
-    def __init__(self, width, height, checkboxSize=11, checkedYes=False, checkedNo=False, x_offset=0, y_offset=0):
+class YesNoCheckbox(Flowable):
+    def __init__(self, width, height, checkboxSize=11, checkedYes=False, checkedNo=False, x_offset=0, y_offset=0, fontName='Times-Roman'):
         Flowable.__init__(self)
         self.width = width
         self.height = height
@@ -96,13 +96,14 @@ class FlowableRect(Flowable):
         self.checkedNo = checkedNo
         self.x_offset = x_offset
         self.y_offset = y_offset
+        self.fontName = fontName
 
     def draw(self):
         form = self.canv.acroForm
-        self.canv.setFont('Times-Roman', 12)
+        self.canv.setFont(self.fontName, 12)
         self.canv.drawString(0, 5, 'Yes')
         # self.canv.rect(23, 4, self.width, self.height, fill=0)
-        self.canv.drawString(50, 5, 'No')
+        self.canv.drawString(47, 5, 'No')
         # self.canv.rect(67, 4, self.width, self.height, fill=0)
         ret = self.canv.absolutePosition(23, 4)
         form.checkbox(
@@ -120,7 +121,7 @@ class FlowableRect(Flowable):
             fillColor=white,
             forceBorder=True,
         )
-        ret = self.canv.absolutePosition(67, 4)
+        ret = self.canv.absolutePosition(64, 4)
         form.checkbox(
             name='no',
             tooltip='',
@@ -141,20 +142,39 @@ class FlowableRect(Flowable):
         return 0, 18
 
 
-class SolidLine(Flowable):
+class BrokenLine(Flowable):
 
     def __init__(self, width, height=0):
         Flowable.__init__(self)
         self.width = width
         self.height = height
 
+    def __repr__(self):
+        return 'Line {}'.format(self.width)
+
+    def draw(self):
+        self.canv.setDash(3, 3)
+        self.canv.line(0, self.height, self.width, self.height)
+
+
+class SolidLine(Flowable):
+
+    def __init__(self, width, height=0, dashed=False, wrap_height=25):
+        Flowable.__init__(self)
+        self.width = width
+        self.height = height
+        self.dashed = dashed
+        self.wrap_height = wrap_height
+
     def wrap(self, *args):
-        return 0, 25
+        return 0, self.wrap_height
 
     def __repr__(self):
         return 'Line {}'.format(self.width)
 
     def draw(self):
+        if self.dashed:
+            self.canv.setDash(3, 3)
         self.canv.line(5, self.height + 5, self.width, self.height + 5)
 
 
@@ -164,6 +184,20 @@ class DbcaLogo(Image, object):
         self.x_offset = x_offset
         self.y_offset = y_offset
         super(DbcaLogo, self).__init__(filename, width, height, kind, mask, lazy, hAlign)
+
+
+def get_font_str(test, fontName="Helvetica", strong=True, size=11):
+    try:
+        if test:
+            test = test if type(test) == str else str(test)
+            strong_open = '<strong>' if strong else ''
+            strong_close = '</strong>' if strong else ''
+            ret = '<font face="' + fontName + '" size="' + str(size) + '">' + strong_open + test + strong_close + '</font>'
+            return ret
+        else:
+            return ''
+    except Exception as e:
+        return ''
 
 
 def get_infringement_notice_table(sanction_outcome):
@@ -233,34 +267,55 @@ def get_infringement_notice_table(sanction_outcome):
                  Paragraph(u'Infringement<br />notice no. <font face="Helvetica"><strong>' + sanction_outcome.lodgement_number + u'</strong></font>', styles['Normal'])])
 
     # Alleged offender
-    data.append([Paragraph('Alleged offender', styles['Bold']), Paragraph('Name: Family name', styles['Normal']), ''])
-    data.append(['', Paragraph(gap(12) + 'Given names', styles['Normal']), ''])
-    data.append(['', Paragraph(gap(12) + 'Date of Birth', styles['Normal']), ''])
-    data.append(['', [Paragraph('<strong>or</strong><br />Body corporate name', styles['Normal']), Spacer(1, 25)], ''])
-    data.append(['', [Paragraph('Address', styles['Normal']), Spacer(1, 25), Paragraph('Postcode', styles['Normal'])], ''])
+    offender = sanction_outcome.get_offender()[0]
+    offender_dob = offender.dob.strftime('%d/%m/%Y') if offender.dob else ''
+    offender_postcode = offender.residential_address.postcode if offender.residential_address else ''
+    data.append([Paragraph('Alleged offender', styles['Bold']), Paragraph('Name: Family name: ' + get_font_str(offender.last_name), styles['Normal']), ''])
+    data.append(['', Paragraph(gap(12) + 'Given names: ' + get_font_str(offender.first_name), styles['Normal']), ''])
+    data.append(['', Paragraph(gap(12) + 'Date of Birth: ' + get_font_str(offender_dob), styles['Normal']), ''])
+    data.append(['', [Paragraph('<strong>or</strong><br />Body corporate name: ', styles['Normal']), Spacer(1, 22)], ''])
+    data.append(['',
+                 [
+                    Paragraph('Address: ', styles['Normal']),
+                    Paragraph(get_font_str(str(offender.residential_address)), styles['Normal']),
+                    Paragraph('Postcode: ' + get_font_str(offender_postcode), styles['Normal']),
+                 ],
+                '',
+                 ])
 
     # When
-    data.append([Paragraph('When', styles['Bold']), Paragraph('Date' + date_str + gap(5) + 'Time' + gap(10) + 'am/pm', styles['Normal']), ''])
+    offence_datetime = sanction_outcome.offence.offence_occurrence_datetime
+    data.append([
+        Paragraph('When', styles['Bold']),
+        Paragraph('Date: ' + get_font_str(offence_datetime.strftime('%d/%m/%Y')) + gap(5) + 'Time: ' + get_font_str(offence_datetime.strftime('%I:%M %p')), styles['Normal']),
+        ''
+    ])
 
     # Where
-    data.append([Paragraph('Where', styles['Bold']), [Paragraph('Location of offence', styles['Normal']), Spacer(1, 25)], ''])
+    offence_location = sanction_outcome.offence.location
+    offence_location_str = str(offence_location) if offence_location else ''
+    data.append([
+        Paragraph('Where', styles['Bold']),
+        [
+            Paragraph('Location of offence', styles['Normal']),
+            Paragraph(get_font_str(offence_location_str), styles['Normal']),
+            Spacer(1, 25)
+        ],
+        '',
+    ])
 
     # Alleged offence
     data.append([Paragraph('Alleged offence', styles['Bold']),
                  [
                      Paragraph('Description of offence', styles['Normal']),
-                     SolidLine(370, 0),
-                     SolidLine(370, 0),
-                     SolidLine(370, 0),
-                     SolidLine(370, 0),
-                     SolidLine(370, 0),
+                     Paragraph(get_font_str(sanction_outcome.description), styles['Normal']),
                  ],
                  ''])  # row index: 8
     data.append([
         '',
         [
             Paragraph('Is this a 2nd subsequent offence?', styles['Normal']),
-            FlowableRect(11, 11),
+            YesNoCheckbox(11, 11),
         ],
         '',
     ])
@@ -270,12 +325,25 @@ def get_infringement_notice_table(sanction_outcome):
     data.append(['', Paragraph('Modified penalty: $', styles['Normal']), ''])
 
     # Officer issuing notice
-    data.append([Paragraph('Officer issuing notice', styles['Bold']), Paragraph('Name', styles['Normal']), ''])  # row index: 12
-    data.append(['', Paragraph('Signature', styles['Normal']), ''])
-    data.append(['', Paragraph('Officer no.', styles['Normal']), ''])
+    data.append([
+        Paragraph('Officer issuing notice', styles['Bold']),
+        Paragraph('Name: {}'.format(get_font_str(sanction_outcome.responsible_officer.get_full_name())), styles['Normal']), ''
+    ])  # row index: 12
+    data.append([
+        '',
+        Paragraph('Signature', styles['Normal']),
+        '',
+    ])
+    data.append([
+        '',
+        Paragraph('Officer no.', styles['Normal']),
+        '',
+    ])
 
     # Date
-    data.append([Paragraph('Date', styles['Bold']), Paragraph('Date of notice:' + date_str, styles['Normal']), ''])
+    issue_date = get_font_str(sanction_outcome.date_of_issue.strftime('%d/%m/%Y'))
+    issue_time = get_font_str(sanction_outcome.time_of_issue.strftime('%I:%M %p'))
+    data.append([Paragraph('Date', styles['Bold']), Paragraph('Date of notice: ' + issue_date + ' ' + issue_time, styles['Normal']), ''])
 
     # Create 1st table
     t1 = Table(data, style=invoice_table_style, colWidths=col_width)

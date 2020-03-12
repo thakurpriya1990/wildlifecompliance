@@ -161,7 +161,6 @@ class SanctionOutcome(models.Model):
     date_of_issue = models.DateField(null=True, blank=True)
     time_of_issue = models.TimeField(null=True, blank=True)
 
-
     # Following attributes should be determined at the moment of issue
     penalty_amount_1st = models.DecimalField(max_digits=8, decimal_places=2, default='0.00')
     penalty_amount_2nd = models.DecimalField(max_digits=8, decimal_places=2, default='0.00')
@@ -527,8 +526,9 @@ class SanctionOutcome(models.Model):
             self.allocated_group = new_group
 
         elif self.type in (SanctionOutcome.TYPE_CAUTION_NOTICE, SanctionOutcome.TYPE_LETTER_OF_ADVICE):
-            print('In SanctionOutcome.endorse(): Should not reach here...')
-            self.close(request)
+            # print('In SanctionOutcome.endorse(): Should not reach here...')
+            # self.close(request)
+            self.confirm_date_time_issue(raise_exception=True)
 
         elif self.type == SanctionOutcome.TYPE_REMEDIATION_NOTICE:
             self.status = SanctionOutcome.STATUS_AWAITING_REMEDIATION_ACTIONS
@@ -692,6 +692,8 @@ class SanctionOutcome(models.Model):
                         return self.penalty_amount_1st
                 elif self.last_due_date.due_date_term_currently_applied == '2nd':
                     return self.penalty_amount_2nd
+                elif self.last_due_date.due_date_term_currently_applied == '2nd':
+                    raise ValidationError('Overdue')
                 else:
                     # Should not reach here
                     # Details of the sanction outcome is uploaded to the Fines Enforcement system after the 2nd due
@@ -714,8 +716,8 @@ class SanctionOutcome(models.Model):
         line_items = [
             {'ledger_description': 'Infringement Notice: {}, Issued: {} {}'.format(
                 self.lodgement_number,
-                self.date_of_issue.strftime("%d-%m-%Y"),
-                self.time_of_issue.strftime("%I:%M")),
+                self.date_of_issue.strftime("%d/%m/%Y"),
+                self.time_of_issue.strftime("%I:%M %p")),
                 'oracle_code': 'ABC123 GST',
                 'price_incl_tax': penalty_amount,
                 'price_excl_tax': penalty_amount,
