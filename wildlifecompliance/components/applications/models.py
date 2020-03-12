@@ -870,6 +870,10 @@ class Application(RevisionedMixin):
                     licence_purpose_id=licence_purpose_id):
                 data_row.id = None
                 data_row.application_id = target_application.id
+                # species list is saved and needs to be rebuilt.
+                if data_row.component_type == 'species':
+                    data_row.component_attribute = None
+
                 data_row.save()
 
     def submit(self, request):
@@ -3443,7 +3447,7 @@ class ApplicationFormDataRecord(models.Model):
     COMPONENT_TYPE_DECLARATION = 'declaration'
     COMPONENT_TYPE_FILE = 'file'
     COMPONENT_TYPE_DATE = 'date'
-    COMPONENT_TYPE_SPECIES_LIST = 'species_list'    
+    COMPONENT_TYPE_SELECT_SPECIES = 'species'    
     COMPONENT_TYPE_CHOICES = (
         (COMPONENT_TYPE_TEXT, 'Text'),
         (COMPONENT_TYPE_TAB, 'Tab'),
@@ -3462,10 +3466,11 @@ class ApplicationFormDataRecord(models.Model):
         (COMPONENT_TYPE_DECLARATION, 'Declaration'),
         (COMPONENT_TYPE_FILE, 'File'),
         (COMPONENT_TYPE_DATE, 'Date'),
-        (COMPONENT_TYPE_SPECIES_LIST, 'Species List'),
+        (COMPONENT_TYPE_SELECT_SPECIES, 'Select Species'),
     )
 
-    application = models.ForeignKey(Application, related_name='form_data_records')
+    application = models.ForeignKey(
+        Application, related_name='form_data_records')
     field_name = models.CharField(max_length=512, null=True, blank=True)
     schema_name = models.CharField(max_length=256, null=True, blank=True)
     instance_name = models.CharField(max_length=256, null=True, blank=True)
@@ -3473,12 +3478,15 @@ class ApplicationFormDataRecord(models.Model):
         max_length=64,
         choices=COMPONENT_TYPE_CHOICES,
         default=COMPONENT_TYPE_TEXT)
+    component_attribute = JSONField(blank=True, null=True)
     value = JSONField(blank=True, null=True)
     officer_comment = models.TextField(blank=True)
     assessor_comment = models.TextField(blank=True)
     deficiency = models.TextField(blank=True)
-    licence_activity = models.ForeignKey(LicenceActivity, related_name='form_data_records')
-    licence_purpose = models.ForeignKey(LicencePurpose, related_name='form_data_records')
+    licence_activity = models.ForeignKey(
+        LicenceActivity, related_name='form_data_records')
+    licence_purpose = models.ForeignKey(
+        LicencePurpose, related_name='form_data_records')
 
     def __str__(self):
         return "Application {id} record {field}".format(

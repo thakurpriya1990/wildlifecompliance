@@ -161,6 +161,7 @@ def do_process_form(
         deficiency = field_data.get('deficiency_value', '')
         activity_id = field_data.get('licence_activity_id', '')
         purpose_id = field_data.get('licence_purpose_id', '')
+        component_attribute = field_data.get('component_attribute', '')
 
         if ApplicationFormDataRecord.INSTANCE_ID_SEPARATOR in field_name:
             [parsed_schema_name, parsed_instance_name] = field_name.split(
@@ -191,7 +192,8 @@ def do_process_form(
                 instance_name=instance_name,
                 component_type=component_type,
                 licence_activity_id=activity_id,
-                licence_purpose_id=purpose_id
+                licence_purpose_id=purpose_id,
+                component_attribute=component_attribute,
             )
         if action == ApplicationFormDataRecord.ACTION_TYPE_ASSIGN_VALUE:
             if not is_draft and not value \

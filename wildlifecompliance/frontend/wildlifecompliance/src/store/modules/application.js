@@ -167,6 +167,7 @@ export const applicationStore = {
                                 "instance_name": form_data_record.instance_name,
                                 "licence_activity_id": form_data_record.licence_activity_id,
                                 "licence_purpose_id": form_data_record.licence_purpose_id,
+                                "component_attribute": form_data_record.component_attribute,
                             }
                         });
                     }
@@ -199,30 +200,6 @@ export const applicationStore = {
                     application_fee: res.body.fees.application,
                     licence_fee: res.body.fees.licence
                 });
-            }, err => {
-                console.log(err);
-            });
-        },
-        setApplicationSpecies({ dispatch, state, getters, rootGetters }, { species }) {
-            Vue.http.post('/api/application/set_application_species/', {
-                    'application_id': getters.application_id,
-                    'field_data': species,
-            }).then(res => {
-                var options = []
-                var species = res.body.species
-                for (var s=0; s<species.length; s++) {
-                    var successors = species[s]
-                    for (var i=0; i<successors.length; i++) {
-                        options[s] = {
-                            'label': successors[i].vernacular_names,
-                            'value': successors[i].name_id,
-                        }
-                    }
-                }
-                dispatch('setFormValue', {
-                    key: 'options',
-                    value: options,
-                });                
             }, err => {
                 console.log(err);
             });
