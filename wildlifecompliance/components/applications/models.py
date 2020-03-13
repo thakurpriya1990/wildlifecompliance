@@ -870,8 +870,10 @@ class Application(RevisionedMixin):
                     licence_purpose_id=licence_purpose_id):
                 data_row.id = None
                 data_row.application_id = target_application.id
+
                 # species list is saved and needs to be rebuilt.
-                if data_row.component_type == 'species':
+                TYPE = ApplicationFormDataRecord.COMPONENT_TYPE_SELECT_SPECIES
+                if data_row.component_type == TYPE:
                     data_row.component_attribute = None
 
                 data_row.save()
