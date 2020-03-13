@@ -1,6 +1,7 @@
 import sys
 import abc
 import requests
+import logging
 
 from decimal import Decimal
 
@@ -20,6 +21,10 @@ from wildlifecompliance.components.applications.models import (
     ApplicationCondition,
     LicenceActivity,
 )
+
+logger = logging.getLogger(__name__)
+logging.disable(logging.NOTSET)
+logger.setLevel(logging.DEBUG)
 
 
 class ApplicationService(object):
@@ -61,8 +66,14 @@ class ApplicationService(object):
         species_set = set(species_list)     # create a list of unique values.
         species_list = (list(species_set))
 
+        logger.info('ApplicationService: Verifying species.')
+
         for specie in species_list:
             tsc_service.search_taxon(specie)
+
+        logger.info(
+            'ApplicationService: Completed. Verified {0} species.').format(
+            species_list.count)
 
     @staticmethod
     def verify_licence_specie_id(specie_id):
@@ -71,7 +82,9 @@ class ApplicationService(object):
         """
         tsc_service = TSCSpecieService(TSCSpecieCall())
         tsc_service.set_strategy(TSCSpecieXReferenceCall())
+        logger.info('ApplicationService: Verifying species.')
         tsc_service.search_taxon(specie_id)
+        logger.info('ApplicationService: Completed. Verified 1 specie.')
 
     @staticmethod
     def calculate_fees(application, data_source):
@@ -109,8 +122,9 @@ class ApplicationService(object):
     @staticmethod
     def render_defined_conditions(application, form_data):
         """
-        Updates application conditions based on admin schema definition.
-        a form.
+        Checks for Standard Conditions defined on the application schema. 
+        Field answers can trigger the creation of standard conditions for an
+        application.
         """
         do_render_defined_conditions(application, form_data)
 
