@@ -456,7 +456,9 @@ class CallEmailViewSet(viewsets.ModelViewSet):
                     request_data.get('location', {}).get('properties', {}).get('postcode', {}) or
                     request_data.get('location', {}).get('properties', {}).get('details', {})
                 ):
-                    returned_location = self.save_location(request)
+                    #returned_location = self.save_location(request)
+                    location_request_data = request.data.get('location')
+                    returned_location = save_location(location_request_data)
                     if returned_location:
                         request_data.update({'location_id': returned_location.get('id')})
                 
