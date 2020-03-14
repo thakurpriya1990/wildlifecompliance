@@ -110,7 +110,7 @@ export default {
             idSearchInput: vm.guid + 'SearchInput',
             idBasemapSat: vm.guid + 'BasemapSat',
             idBasemapOsm: vm.guid + 'BasemapOsm',
-            mapboxAccessToken: '',
+            //mapboxAccessToken: '',
         };
     },
     computed: {
@@ -164,10 +164,6 @@ export default {
             console.debug('End loading map');
         });
     },
-    created: async function() {
-        await this.setMapboxAccessToken();
-    },
-        
     methods: {
         ...mapActions('callemailStore', {
             // saveLocation: 'saveLocation',
@@ -273,7 +269,6 @@ export default {
         },
         search: async function(place){
             var self = this;
-
             var latlng = this.map.getCenter();
             $.ajax({
                 url: api_endpoints.geocoding_address_search + encodeURIComponent(place) + '.json?' + $.param({
