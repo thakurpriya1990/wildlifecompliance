@@ -72,18 +72,23 @@ class LicencePurpose(models.Model):
         List of species identifiers for questions associated with this licence
         purpose at a group level.
         """
+        # SPECIES = ApplicationFormDataRecord.COMPONENT_TYPE_SELECT_SPECIES
+        SPECIES = 'species'
         species_list = []
 
         try:
             for section in self.schema:
                 for group in section['children']:
-                    for question in group['children']:
-                        if question['type'] == 'species-list':
-                            species_list += question['value']
+                    for field in group['children']:
+                        if field['type'] == SPECIES:
+                            field['component_attribute'] = \
+                                self.get_species_options(field[SPECIES])
+                            species_list += field[SPECIES]
 
         except KeyError:
             pass
-
+        except Exception:
+            pass
         return species_list
 
     @property
@@ -92,18 +97,39 @@ class LicencePurpose(models.Model):
         List of species identifiers for questions associated with this licence
         purpose at a section level.
         """
+        # SPECIES = ApplicationFormDataRecord.COMPONENT_TYPE_SELECT_SPECIES
+        SPECIES = 'species'
         species_list = []
 
         try:
             for section in self.schema:
-                for question in section['children']:
-                    if question['type'] == 'species-list':
-                        species_list += question['value']
+                for field in section['children']:
+                    if field['type'] == SPECIES:
+                        field['component_attribute'] = \
+                            self.get_species_options(field[SPECIES])
+                        species_list += field[SPECIES]
 
         except KeyError:
             pass
-
+        except Exception:
+            pass
         return species_list
+
+    def get_species_options(self, species_list):
+        """
+        Builds a list of drop-down options for Licence Species.
+        """
+        options = []
+        for specie in species_list:
+            details = LicenceSpecies.objects.values('data').get(
+                specie_id=specie)
+            option = {
+                'value': details['data'][0][LicenceSpecies.SPECIE_NAME_ID],
+                'label': details['data'][0][LicenceSpecies.SPECIE_NAME]}
+
+            options.append(option)
+
+        return options
 
 
 class LicencePurposeDetail(OrderedModel):
@@ -189,6 +215,9 @@ class LicenceSpecies(models.Model):
     Model representation of a verified specie information that can be applied
     to a licence.
     """
+    SPECIE_NAME = 'vernacular_names'    # common name applied from data.
+    SPECIE_NAME_ID = 'name_id'          # identifer applied from data.
+
     specie_id = models.IntegerField(unique=True)
     verify_date = models.DateTimeField(auto_now=True)
     verify_id = models.CharField(max_length=256, null=True, blank=True)
