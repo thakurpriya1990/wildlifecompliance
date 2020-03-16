@@ -3666,3 +3666,22 @@ class ApplicationUserAction(UserAction):
 def delete_documents(sender, instance, *args, **kwargs):
     for document in instance.documents.all():
         document.delete()
+
+
+'''
+NOTE: REGISTER MODELS FOR REVERSION HERE.
+'''
+import reversion
+reversion.register(Application)
+reversion.register(ApplicationSelectedActivity)
+reversion.register(ApplicationSelectedActivityPurpose)
+reversion.register(ApplicationCondition)
+reversion.register(ApplicationInvoice)
+reversion.register(ApplicationInvoiceLine)
+reversion.register(ApplicationDocument)
+reversion.register(ApplicationStandardCondition)
+reversion.register(ApplicationFormDataRecord)
+reversion.register(AmendmentRequest)
+reversion.register(ActivityPermissionGroup)
+reversion.register(ActivityInvoice)
+reversion.register(ActivityInvoiceLine)
