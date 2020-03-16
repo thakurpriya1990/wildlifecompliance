@@ -199,8 +199,7 @@
             
                           <FormSection :formCollapse="false" label="Location" Index="1">
                               <div v-if="call_email.location">
-                                <!--MapLocation v-bind:key="call_email.location.id"/-->
-                                <MapLocation v-bind:key="mapLocationBindId"/>
+                                <MapLocation v-bind:key="call_email.location.id"/>
                               </div>
                           </FormSection>
             
@@ -535,20 +534,10 @@ export default {
     ...mapGetters('callemailStore', {
       call_email: "call_email",
     }),
-    ...mapGetters('utilsStore', {
-        mapboxAccessToken: 'mapboxAccessToken',
-    }),
     ...mapGetters({
       renderer_form_data: 'renderer_form_data',
       //current_user: 'current_user',
     }),
-    mapLocationBindId: function() {
-        let bindId = '';
-        if (this.call_email && this.call_email.location) {
-            bindId = this.call_email.location.id + '_' + this.mapboxAccessToken;
-        }
-        return bindId;
-    },
     personSearchVisibility: function() {
         let visible = false;
         if (this.statusId ==='open') {
@@ -670,9 +659,6 @@ export default {
     }),
     ...mapActions({
       saveFormData: 'saveFormData',
-    }),
-    ...mapActions('utilsStore', {
-        loadMapboxAccessToken: 'loadMapboxAccessToken',
     }),
     updateUuid: function() {
         this.uuid += 1;
@@ -917,7 +903,6 @@ export default {
     if (this.$route.params.call_email_id) {
       await this.loadCallEmail({ call_email_id: this.$route.params.call_email_id });
     }
-    await this.loadMapboxAccessToken();
     // await this.loadComplianceAllocatedGroup(this.call_email.allocated_group_id);
     // load drop-down select lists
     // classification_types
