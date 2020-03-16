@@ -51,33 +51,16 @@ Vue.filter('toCurrency', function(value) {
                 return formatter.format(value);
             });
 
-async function insertMapboxAccessToken() {
-    let mapboxAccessToken = '';
-    let token = null;
-    const ret = await fetch('/api/geocoding_address_search_token');
-    const body = await ret.json()
-    mapboxAccessToken = body.access_token;
-    Vue.mixin({
-        data: function() {
-            return {
-                mapboxAccessToken: mapboxAccessToken,
-            }
-        }
-    })
-    /* eslint-disable no-new */
-    Vue.prototype.current_tab = '';
-    window.vue = new Vue( {
-        el: '#app',
-        store,
-        router,
-        template: '<App/>',
-        components: {
-            App
-        },
-    })
+/* eslint-disable no-new */
+Vue.prototype.current_tab = '';
+window.vue = new Vue( {
+    el: '#app',
+    store,
+    router,
+    template: '<App/>',
+    components: {
+        App
+    },
+})
 
-    Vue.config.devtools = true
-};
-// must be done for Mapbox API access token
-insertMapboxAccessToken();
-
+Vue.config.devtools = true
