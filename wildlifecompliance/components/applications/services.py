@@ -207,6 +207,13 @@ def do_process_form(
             licence_purpose_id=purpose_id,
         ).first()
 
+        # Species list may not exist in last save because the component has
+        # been copied from an amendment. Save new list for species component.
+        SPECIES = ApplicationFormDataRecord.COMPONENT_TYPE_SELECT_SPECIES
+        if form_data_record.component_type == SPECIES \
+                and not form_data_record.component_attribute:
+            form_data_record.component_attribute = component_attribute
+
         if not form_data_record:
             form_data_record = ApplicationFormDataRecord.objects.create(
                 application_id=application.id,
