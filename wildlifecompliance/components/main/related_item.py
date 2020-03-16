@@ -287,7 +287,7 @@ def format_url(model_name, obj_id):
                 'callemail': '<a href=/internal/call_email/' + obj_id_str + ' target="_blank">Edit</a>',
                 'inspection': '<a href=/internal/inspection/' + obj_id_str + ' target="_blank">Edit</a>',
                 'offence': '<a href=/internal/offence/' + obj_id_str + ' target="_blank">Edit</a>',
-                'sanctionoutcome': '<a href=/internal/sanction_outcome/' + obj_id_str + ' target="_blank">View</a>',
+                'sanctionoutcome': '<a href=/internal/sanction_outcome/' + obj_id_str + ' target="_blank">Edit</a>',
                 'legalcase': '<a href=/internal/legal_case/' + obj_id_str + ' target="_blank">Edit</a>',
                 'emailuser': '<a href=/internal/users/' + obj_id_str + ' target="_blank">Edit</a>',
                 'organisation': '<a href=/internal/organisations/' + obj_id_str + ' target="_blank">Edit</a>',
