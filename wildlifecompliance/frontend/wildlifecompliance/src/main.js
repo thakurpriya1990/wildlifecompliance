@@ -51,6 +51,22 @@ Vue.filter('toCurrency', function(value) {
                 return formatter.format(value);
             });
 
+
+Vue.mixin({
+    data: function() {
+        return {
+            get MapboxAccessToken() {
+                //return $.ajax('/api/geocoding_address_search_token');
+                return fetch('/api/geocoding_address_search_token')
+                    .then(res => res.json())
+                    .then(data => {
+                        return data.access_token
+                    });
+            }
+        }
+    }
+})
+
 /* eslint-disable no-new */
 Vue.prototype.current_tab = '';
 window.vue = new Vue( {
@@ -64,3 +80,4 @@ window.vue = new Vue( {
 })
 
 Vue.config.devtools = true
+

@@ -106,7 +106,7 @@ class ReturnToOfficerEmail(TemplateEmailBase):
 
 
 class SendToManagerEmail(TemplateEmailBase):
-    subject = 'Infringement Notice Fowarded'
+    subject = 'Sanction Outcome Fowarded'
     html_template = 'wildlifecompliance/emails/send_to_manager.html'
     txt_template = 'wildlifecompliance/emails/send_to_manager.txt'
 
