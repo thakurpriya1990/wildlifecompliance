@@ -830,3 +830,18 @@ class LicenceUserAction(UserAction):
 # def delete_documents(sender, instance, *args, **kwargs):
 #     for document in instance.documents.all():
 #         document.delete()
+
+
+'''
+NOTE: REGISTER MODELS FOR REVERSION HERE.
+'''
+import reversion
+reversion.register(WildlifeLicence, follow=[
+    'licence_document'])
+reversion.register(DefaultActivity)
+reversion.register(DefaultPurpose)
+reversion.register(LicenceActivity)
+reversion.register(LicenceCategory)
+reversion.register(LicenceDocument)
+reversion.register(LicencePurpose)
+reversion.register(LicencePurposeDetail)
