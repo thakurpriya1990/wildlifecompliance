@@ -30,9 +30,7 @@ from wildlifecompliance.helpers import is_compliance_management_readonly_user
 
 class GeocodingAddressSearchTokenView(views.APIView):
     def get(self, request, format=None):
-        ret_value = settings.GEOCODING_ADDRESS_SEARCH_TOKEN
-        print(type(ret_value))
-        return Response({"access_token": ret_value})
+        return Response(settings.GEOCODING_ADDRESS_SEARCH_TOKEN);
 
 
 class SystemPreferenceView(views.APIView):
