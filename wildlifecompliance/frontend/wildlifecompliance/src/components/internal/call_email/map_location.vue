@@ -119,6 +119,9 @@ export default {
             call_latitude: 'call_latitude',
             call_longitude: 'call_longitude',
         }),
+        ...mapGetters('utilsStore', {
+            mapboxAccessToken: 'mapboxAccessToken',
+        }),
         isReadonly: function() {
             if (this.call_email.status && this.call_email.status.id === 'draft') {
                 return false;

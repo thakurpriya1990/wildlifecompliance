@@ -40,6 +40,9 @@ import {
 import {
 	physicalArtifactStore
 } from './modules/physical_artifact';
+import {
+	utilsStore
+} from './modules/utils';
 
 Vue.use(Vuex);
 
@@ -61,5 +64,6 @@ export default new Vuex.Store({
 		legalCaseStore: legalCaseStore,
 		documentArtifactStore: documentArtifactStore,
 		physicalArtifactStore: physicalArtifactStore,
+        utilsStore: utilsStore,
 	}
 });
