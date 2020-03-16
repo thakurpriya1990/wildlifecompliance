@@ -178,18 +178,20 @@ export default {
     });
   },
     created: async function(){
-        await this.MapboxAccessToken.then((data) => {
-            this.mapboxAccessToken = data
-        });
+        await this.setMapboxAccessToken();
     },
-    methods: {
-        ...mapActions("offenceStore", {
-        // saveLocation: 'saveLocation',
-        setLocationPoint: "setLocationPoint",
-        setLocationAddress: "setLocationAddress",
-        setLocationAddressEmpty: "setLocationAddressEmpty",
-        setLocationDetailsFieldEmpty: "setLocationDetailsFieldEmpty"
-        }),
+  methods: {
+    ...mapActions("offenceStore", {
+      // saveLocation: 'saveLocation',
+      setLocationPoint: "setLocationPoint",
+      setLocationAddress: "setLocationAddress",
+      setLocationAddressEmpty: "setLocationAddressEmpty",
+      setLocationDetailsFieldEmpty: "setLocationDetailsFieldEmpty"
+    }),
+        setMapboxAccessToken:  async function () {
+            const res =  await Vue.http.get(api_endpoints.geocoding_address_search_token);
+            this.mapboxAccessToken = res.body;
+        },
     setMarkerCentre: function() {
       let vm = this;
       let lat = vm.offence.location.geometry.coordinates[1];
