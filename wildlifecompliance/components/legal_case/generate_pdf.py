@@ -459,13 +459,15 @@ def _create_pdf(invoice_buffer, legal_case, request_data):
 
         tbl_physical_artifacts = Table(physical_artifacts_data)
 
+        #import ipdb; ipdb.set_trace();
         document_artifacts_data = []
         document_artifacts_data.append([
             Paragraph('List of Photographic, Video and Sound Exhibits', styles['BoldLeft']),
         ])
         for artifact in report_document_artifacts:
+            identifier = artifact.document_artifact.identifier if artifact.document_artifact.identifier else artifact.document_artifact.number
             document_artifacts_data.append([
-                ParagraphCheckbox(artifact.document_artifact.identifier, x_offset=5, checked=artifact.ticked, style=styles['Normal'])
+                ParagraphCheckbox(identifier, x_offset=5, checked=artifact.ticked, style=styles['Normal'])
                 ])
             for attachment in artifact.document_artifact.documents.all():
                 if attachment.name:
