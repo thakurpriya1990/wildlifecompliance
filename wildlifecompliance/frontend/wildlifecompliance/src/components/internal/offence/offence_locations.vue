@@ -195,7 +195,9 @@ module.exports = {
         }
     },
     created: async function() {
-        await this.MapboxAccessToken.then((data) => {
+        await this.MapboxAccessToken.then(data => {
+            console.log('*** then3')
+            console.log(data)
             this.mapboxAccessToken = data
         });
 

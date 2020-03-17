@@ -57,8 +57,14 @@ Vue.mixin({
         return {
             get MapboxAccessToken() {
                 return fetch('/api/geocoding_address_search_token')
-                    .then(res => res.json())
                     .then(data => {
+                        console.log('*** then1')
+                        console.log(data)
+                        return data.json()
+                    })
+                    .then(data => {
+                        console.log('*** then2')
+                        console.log(data)
                         return data.access_token
                     });
             }
