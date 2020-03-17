@@ -38,10 +38,10 @@ def send_mail(select_group, legal_case, workflow_entry, request=None):
         'workflow_entry_details': request.data.get('details'),
     }
     email_group = [item.email for item in select_group]
+    attachments = prepare_attachments(workflow_entry.documents)
     msg = email.send(email_group, 
         context=context,
-        attachments= 
-        prepare_attachments(workflow_entry.documents)
+        attachments=attachments,
         )
     sender = request.user if request else settings.DEFAULT_FROM_EMAIL
     email_data = _extract_email_headers(msg, sender=sender)
