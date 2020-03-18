@@ -195,7 +195,9 @@ module.exports = {
         }
     },
     created: async function() {
-        await this.setMapboxAccessToken();
+        await this.MapboxAccessToken.then(data => {
+            this.mapboxAccessToken = data
+        });
 
         let returned_status_choices = await cache_helper.getSetCacheList('Offence_StatusChoices', '/api/offence/status_choices');
         Object.assign(this.status_choices, returned_status_choices);
@@ -250,10 +252,6 @@ module.exports = {
     computed: {
     },
     methods: {
-        setMapboxAccessToken:  async function () {
-            const res =  await Vue.http.get(api_endpoints.geocoding_address_search_token);
-            this.mapboxAccessToken = res.body;
-        },
         addEventListeners: function () {
             let vm = this;
             let el_fr = $(vm.$refs.lodgementDateFromPicker);
