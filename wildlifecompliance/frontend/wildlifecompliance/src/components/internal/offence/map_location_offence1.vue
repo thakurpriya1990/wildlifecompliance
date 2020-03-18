@@ -178,7 +178,7 @@ export default {
     });
   },
     created: async function(){
-        await this.MapboxAccessToken.then((data) => {
+        await this.MapboxAccessToken.then(data => {
             this.mapboxAccessToken = data
         });
     },

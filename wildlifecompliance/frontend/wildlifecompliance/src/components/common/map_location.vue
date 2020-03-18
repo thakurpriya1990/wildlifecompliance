@@ -134,7 +134,9 @@ export default {
         }
     },
     created: async function() {
-        await this.setMapboxAccessToken();
+        await this.MapboxAccessToken.then(data => {
+            this.mapboxAccessToken = data
+        });
     },
   mounted: function() {
     let vm = this;
@@ -150,10 +152,6 @@ export default {
     //});
   },
   methods: {
-        setMapboxAccessToken:  async function () {
-            const res =  await Vue.http.get(api_endpoints.geocoding_address_search_token);
-            this.mapboxAccessToken = res.body;
-        },
     setMarkerCentre: function() {
         let z = this.mainMap.getZoom();
         if (!isNaN(this.marker_lat) && !isNaN(this.marker_lng)){

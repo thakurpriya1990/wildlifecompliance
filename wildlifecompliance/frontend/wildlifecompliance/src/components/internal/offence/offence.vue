@@ -681,10 +681,6 @@ export default {
             setCanUserAction: 'setCanUserAction',
             setRelatedItems: 'setRelatedItems',
         }),
-        setMapboxAccessToken:  async function () {
-            const res =  await Vue.http.get(api_endpoints.geocoding_address_search_token);
-            this.mapboxAccessToken = res.body;
-        },
         constructOffenceDedicatedPage: async function(){
             console.log('constructOffenceDedicatedPage');
             await this.loadOffenceVuex({offence_id: this.$route.params.offence_id});
@@ -1465,8 +1461,9 @@ export default {
         },
     },
     created: async function() {
-        console.log('created');
-        await this.setMapboxAccessToken();
+        await this.MapboxAccessToken.then(data => {
+            this.mapboxAccessToken = data
+        });
         if (this.$route.params.offence_id) {
             await this.constructOffenceDedicatedPage();
         }
