@@ -413,6 +413,7 @@ class ApplicationFormDataRecordSerializer(serializers.ModelSerializer):
             'value',
             'licence_activity_id',
             'licence_purpose_id',
+            'component_attribute',
         )
         read_only_fields = (
             'field_name',
@@ -425,6 +426,7 @@ class ApplicationFormDataRecordSerializer(serializers.ModelSerializer):
             'value',
             'licence_activity_id',
             'licence_purpose_id',
+            'component_attribute',
         )
 
 

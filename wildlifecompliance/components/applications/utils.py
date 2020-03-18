@@ -412,6 +412,9 @@ def get_activity_schema(activity_ids):
             for item in purpose_schema:
                 item['purpose_id'] = purpose.id
             schema_purpose += purpose_schema
+            # set special species lookup option
+            purpose.get_group_species_list
+            purpose.get_section_species_list
 
         schema_group.append({"type": "tab",
                              "id": activity.id,

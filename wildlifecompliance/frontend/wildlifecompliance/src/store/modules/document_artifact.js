@@ -21,10 +21,22 @@ export const documentArtifactStore = {
             Vue.set(state, 'document_artifact', {
                 ...document_artifact
             });
+            // format artifact_date for vue
+            if (state.document_artifact.artifact_date) {
+                state.document_artifact.artifact_date = moment(state.document_artifact.artifact_date, 'YYYY-MM-DD').format('DD/MM/YYYY');
+            }
+            // format artifact time from 24 to 12 hour
+            if (state.document_artifact.artifact_time) {
+                state.document_artifact.artifact_time = moment(state.document_artifact.artifact_time, 'HH:mm').format('hh:mm A');
+            } else if (state.document_artifact.artifact_time === '') {
+                state.document_artifact.artifact_time = null;
+            }
+            /*
             console.log('updateDocumentArtifact');
             if (state.document_artifact.artifact_date) {
                 state.document_artifact.artifact_date = moment(state.document_artifact.artifact_date, 'YYYY-MM-DD').format('DD/MM/YYYY');
             }
+            */
             // default doc implemented in Artifact model/viewset
             let defaultDocumentUrl = helpers.add_endpoint_join(
                 api_endpoints.artifact,
@@ -102,11 +114,26 @@ export const documentArtifactStore = {
                 let payload = new Object();
                 Object.assign(payload, state.document_artifact);
                 console.log(payload);
+                /*
                 if (payload.artifact_date) {
                     payload.artifact_date = moment(payload.artifact_date, 'DD/MM/YYYY').format('YYYY-MM-DD');
                 } else if (payload.artifact_date === '') {
                     payload.artifact_date = null;
                 }
+                */
+                // format artifact date for backend save
+                if (payload.artifact_date) {
+                    payload.artifact_date = moment(payload.artifact_date, 'DD/MM/YYYY').format('YYYY-MM-DD');
+                } else if (payload.artifact_date === '') {
+                    payload.artifact_date = null;
+                }
+                // format artifact time to 24 hours
+                if (payload.artifact_time) {
+                    payload.artifact_time = moment(payload.artifact_time, 'hh:mm A').format('HH:mm');
+                } else if (payload.artifact_time === '') {
+                    payload.artifact_time = null;
+                }
+
                 if (legal_case_id) {
                     payload.legal_case_id = legal_case_id;
                 }
