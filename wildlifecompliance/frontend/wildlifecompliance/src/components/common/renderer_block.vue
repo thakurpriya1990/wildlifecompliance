@@ -252,12 +252,14 @@
             :isRequired="component.isRequired"
             :help_text_url="help_text_url"/>
 
-        <SpeciesBlock v-if="component.type === 'species_list'"
+        <Species v-if="component.type === 'species'"
             :name="component.name"
+            :label="component.label"
             :field_data="value"
             :id="element_id()"
-            :label="component.label"
-            :options="component.value"
+            :options="component.component_attribute"
+            :isMultiple="false"
+            :isRepeatable="strToBool(component.isRepeatable)"
             :help_text="help_text"
             :readonly="is_readonly"
             :isRequired="component.isRequired"
@@ -293,7 +295,7 @@ import CommentBlock from '@/components/forms/comment_block.vue';
 import TableBlock from '@/components/forms/table.vue'
 import ExpanderTable from '@/components/forms/expander_table.vue'
 import GridBlock from '@/components/forms/grid.vue'
-import SpeciesBlock from '@/components/forms/select_species.vue'
+import Species from '@/components/forms/select_species.vue'
 
 const RendererBlock = {
   name: 'renderer-block',
@@ -315,7 +317,7 @@ const RendererBlock = {
       TableBlock,
       ExpanderTable,
       GridBlock,
-      SpeciesBlock,
+      Species,
   },
   data: function() {
     return {
@@ -373,6 +375,7 @@ const RendererBlock = {
                     "licence_purpose_id": this.component.licence_purpose_id,
                     "schema_name": this.component.name,
                     "component_type": this.component.type,
+                    "component_attribute": '',
                     "instance_name": this.instance !== null ? this.instance: ''
                 }
             });

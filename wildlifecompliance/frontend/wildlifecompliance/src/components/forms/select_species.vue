@@ -14,11 +14,11 @@
             <template v-if="readonly">
                 <select v-if="!isMultiple" disabled ref="selectB" :id="selectid" :name="name" class="form-control" :data-conditions="cons" style="width:100%">
                     <option value="">Select...</option>
-                    <option v-for="(op, idx1) in renderer_form_data.options"  :value="op.value" @change="handleChange" :selected="op.value == value" v-bind:key="`value_${op.value}_${idx1}`">{{ op.label }}</option>
+                    <option v-for="(op, idx1) in species"  :value="op.value" @change="handleChange" :selected="op.value == value" v-bind:key="`value_${op.value}_${idx1}`">{{ op.label }}</option>
                 </select>
                 <select v-else disabled ref="selectB" :id="selectid" class="form-control" multiple style="width:100%">
                     <option value="">Select...</option>
-                    <option v-for="(op, idx1) in renderer_form_data.options"  :value="op.value" :selected="multipleSelection(op.value)" v-bind:key="`value_${op.value}_${idx1}`">{{ op.label }}</option>
+                    <option v-for="(op, idx1) in species"  :value="op.value" :selected="multipleSelection(op.value)" v-bind:key="`value_${op.value}_${idx1}`">{{ op.label }}</option>
                 </select>
                 <template v-if="isMultiple">
                     <input v-for="(v, idx2) in value" input type="hidden" :name="name" :value="v" :required="isRequired" v-bind:key="`value_${v}_${idx2}`"/>
@@ -30,11 +30,11 @@
             <template v-else>
                 <select v-if="!isMultiple" ref="selectB" :id="selectid" :name="name" class="form-control" :data-conditions="cons" style="width:100%" :required="isRequired">
                     <option value="">Select...</option>
-                    <option v-for="(op, idx1) in renderer_form_data.options"  :value="op.value" @change="handleChange" :selected="op.value == value" v-bind:key="`value_${op.value}_${idx1}`">{{ op.label }}</option>
+                    <option v-for="(op, idx1) in species"  :value="op.value" @change="handleChange" :selected="op.value == value" v-bind:key="`value_${op.value}_${idx1}`">{{ op.label }}</option>
                 </select>
                 <select v-else ref="selectB" :id="selectid" :name="name" class="form-control" multiple style="width:100%" :required="isRequired">
                     <option value="">Select...</option>
-                    <option v-for="(op, idx1) in renderer_form_data.options" :value="op.value" :selected="multipleSelection(op.value)" v-bind:key="`value_${op.value}_${idx1}`">{{ op.label }}</option>
+                    <option v-for="(op, idx1) in species" :value="op.value" :selected="multipleSelection(op.value)" v-bind:key="`value_${op.value}_${idx1}`">{{ op.label }}</option>
                 </select>
             </template>
         </div>
@@ -109,14 +109,20 @@ export default {
             return JSON.stringify(this.field_data);
         },
         value: function() {
-            return this.field_data;
+            return this.field_data.value;
+        },
+        species: function() {
+            var species = this.options
+            if (this.field_data.component_attribute) {
+                species = this.field_data.component_attribute
+            } else {
+                this.field_data.component_attribute = species
+            }
+            return species
         }
     },
     components: { HelpText, HelpTextUrl, },
     methods:{
-        ...mapActions([
-            'setApplicationSpecies',
-        ]),
         multipleSelection: function(val){
             if (Array.isArray(this.options)){
                 if (this.value.find(v => v == val)){
@@ -159,9 +165,6 @@ export default {
     },
     mounted:function () {
         this.init();
-        var species = this.options
-        this.renderer_form_data.options = null
-        this.setApplicationSpecies({species});
     }
 }
 </script>

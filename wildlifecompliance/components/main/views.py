@@ -33,6 +33,7 @@ class GeocodingAddressSearchTokenView(views.APIView):
         return Response({"access_token": settings.GEOCODING_ADDRESS_SEARCH_TOKEN})
 
 
+
 class SystemPreferenceView(views.APIView):
     def get(self, request, format=None):
         res = { "system": "wildlife_licensing" }
