@@ -10,7 +10,7 @@ from reportlab.lib import enums
 from reportlab.lib.colors import Color
 from reportlab.lib.enums import TA_RIGHT, TA_CENTER
 from reportlab.lib.pagesizes import A4
-from reportlab.platypus import BaseDocTemplate, PageTemplate, Frame, Paragraph, Spacer, Table, TableStyle, ListFlowable, \
+from reportlab.platypus import BaseDocTemplate, PageTemplate, Frame, Paragraph, Spacer, Table, TableStyle,  \
     KeepTogether, PageBreak, Flowable, NextPageTemplate, FrameBreak, Image
 from reportlab.lib.styles import getSampleStyleSheet, ParagraphStyle, StyleSheet1
 from reportlab.lib.utils import ImageReader
@@ -130,9 +130,13 @@ def _create_pdf(invoice_buffer, sanction_outcome):
                   'c) Carry out work that is necessary to remedy anything done in contravention of the instrument; and<br />'
                   'd) Do anything incidental to action referred to in (a), (b), or (c) above', styles['Normal'])
     ], ])
-    data.append([
-        Paragraph('List the remedial actions necessary to afford compliance with the relevant instrument:', styles['Normal'])
-    ])
+
+    # Actions
+    actions = []
+    actions.append(Paragraph('List the remedial actions necessary to afford compliance with the relevant instrument:', styles['Normal']))
+    for ra in sanction_outcome.remediation_actions.all():
+        actions.append(Paragraph(get_font_str(ra.action), styles['Normal']))
+    data.append([actions,])
     data.append([[
         Paragraph('<strong>IMPORTANT</strong>: You must comply with the remediation action(s) listed above within the period specified in this notice.', styles['Normal']),
         Paragraph('If you do not comply within the specified period, the CEO may take any necessary remedial action and may recover the reasonable costs incurred in taking remedial action from you, as a person(s) bound by the relevant instrument, in a court of competent jurisdiction as a debt to the State.', styles['Normal']),

@@ -165,9 +165,10 @@ export default {
         });
     },
     created: async function() {
-        await this.setMapboxAccessToken();
+        await this.MapboxAccessToken.then(data => {
+            this.mapboxAccessToken = data
+        });
     },
-        
     methods: {
         ...mapActions('callemailStore', {
             // saveLocation: 'saveLocation',
@@ -176,10 +177,6 @@ export default {
             setLocationAddressEmpty: 'setLocationAddressEmpty',
             setLocationDetailsFieldEmpty: 'setLocationDetailsFieldEmpty',
         }),
-        setMapboxAccessToken:  async function () {
-            const res =  await Vue.http.get(api_endpoints.geocoding_address_search_token);
-            this.mapboxAccessToken = res.body;
-        },
         setMarkerCentre: function(){
             let vm = this;
             let lat = vm.call_email.location.geometry.coordinates[1];
