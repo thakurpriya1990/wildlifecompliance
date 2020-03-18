@@ -198,13 +198,7 @@ export default {
                     {
                         data: 'user_action',
                         mRender: function (data, type, full) {
-                            console.log('data');
-                            console.log(data);
                             return data;
-                           // if (full.status.id === 'awaiting_payment'){
-                           //     return `<a href='#${full.id}' data-pay-infringement-penalty='${full.id}'>Pay</a><br/>`;
-                           // }
-                           // return '';
                         }
                     },
                     // Remediation Actions
@@ -251,18 +245,23 @@ export default {
     },
     watch:{
         filterType: function () {
+            console.log('filterType');
             this.$refs.sanction_outcome_table.vmDataTable.draw();
         },
         filterStatus: function () {
+            console.log('filterStatus');
             this.$refs.sanction_outcome_table.vmDataTable.draw();
         },
         filterPaymentStatus: function () {
+            console.log('filterPaymentStatus');
             this.$refs.sanction_outcome_table.vmDataTable.draw();
         },
-        filterDateFromPicker: function () {
+        filterDateFrom: function () {
+            console.log('filterDateFrom')
             this.$refs.sanction_outcome_table.vmDataTable.draw();
         },
-        filterDateToPicker: function () {
+        filterDateTo: function () {
+            console.log('filterDateTo')
             this.$refs.sanction_outcome_table.vmDataTable.draw();
         },
     },
@@ -308,10 +307,10 @@ export default {
             el_fr.datetimepicker({ format: 'DD/MM/YYYY', maxDate: moment().millisecond(0).second(0).minute(0).hour(0), showClear: true });
             el_fr.on('dp.change', function (e) {
                 if (el_fr.data('DateTimePicker').date()) {
-                    vm.filterDateFromPicker = e.date.format('DD/MM/YYYY');
+                    vm.filterDateFrom = e.date.format('DD/MM/YYYY');
                     el_to.data('DateTimePicker').minDate(e.date);
                 } else if (el_fr.data('date') === "") {
-                    vm.filterDateFromPicker = "";
+                    vm.filterDateFrom = "";
                 }
             });
         },
@@ -322,10 +321,10 @@ export default {
             el_to.datetimepicker({ format: 'DD/MM/YYYY', maxDate: moment().millisecond(0).second(0).minute(0).hour(0), showClear: true });
             el_to.on('dp.change', function (e) {
                 if (el_to.data('DateTimePicker').date()) {
-                    vm.filterDateToPicker = e.date.format('DD/MM/YYYY');
+                    vm.filterDateTo = e.date.format('DD/MM/YYYY');
                     el_fr.data('DateTimePicker').maxDate(e.date);
                 } else if (el_to.data('date') === "") {
-                    vm.filterDateToPicker = "";
+                    vm.filterDateTo = "";
                 }
             });
         },
