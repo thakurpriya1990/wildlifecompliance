@@ -115,6 +115,53 @@ class LicencePurpose(models.Model):
             pass
         return species_list
 
+    @property
+    def get_species_list(self):
+        SPECIES = 'species'
+        children_keys = [
+            'children',
+            'header',
+            'expander',
+            'conditions',
+        ]
+        species_list = []
+
+        def species_check(collection):
+            _species_list = []
+            try:
+                for field in collection:
+                    if field['type'] == SPECIES:
+                        field['component_attribute'] = \
+                            self.get_species_options(field[SPECIES])
+                        _species_list += field[SPECIES]
+                    for children_key in children_keys:
+                        if children_key in field:
+                            _species_list += species_check(
+                                field[children_key])
+
+            except KeyError:
+                pass
+            except Exception:
+                pass
+
+            return _species_list
+
+        try:
+            for section in self.schema:
+                if section['type'] == SPECIES:
+                    section['component_attribute'] = \
+                        self.get_species_options(section[SPECIES])
+                    species_list += section[SPECIES]
+                for children_key in children_keys:
+                    if children_key in section:
+                        species_list += species_check(section[children_key])
+
+        except KeyError:
+            pass
+        except Exception:
+            pass
+        return species_list
+
     def get_species_options(self, species_list):
         """
         Builds a list of drop-down options for Licence Species.
