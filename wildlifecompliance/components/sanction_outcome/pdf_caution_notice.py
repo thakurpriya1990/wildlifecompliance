@@ -7,6 +7,7 @@ from django.core.files.storage import default_storage
 # from ledger.payments.pdf import BrokenLine
 # from ledger.payments.pdf import BrokenLine
 from ledger.payments.pdf import BrokenLine
+from wildlifecompliance.settings import STATIC_ROOT
 from reportlab.lib.enums import TA_RIGHT, TA_CENTER
 from reportlab.lib.pagesizes import A4
 from reportlab.platypus import BaseDocTemplate, PageTemplate, Frame, Paragraph, Spacer, Table, TableStyle, PageBreak, \
@@ -24,9 +25,9 @@ PAGE_WIDTH, PAGE_HEIGHT = A4
 DEFAULT_FONTNAME = 'Helvetica'
 BOLD_FONTNAME = 'Helvetica-Bold'
 
-DPAW_HEADER_LOGO = os.path.join(settings.BASE_DIR, 'staticfiles', 'payments', 'img','dbca_logo.jpg')
-DPAW_HEADER_LOGO_SM = os.path.join(settings.BASE_DIR, 'staticfiles', 'payments', 'img','dbca_logo_small.png')
-BPAY_LOGO = os.path.join(settings.BASE_DIR, 'staticfiles', 'payments', 'img', 'BPAY_2012_PORT_BLUE.png')
+DPAW_HEADER_LOGO = os.path.join(STATIC_ROOT, 'payments', 'img','dbca_logo.jpg')
+DPAW_HEADER_LOGO_SM = os.path.join(STATIC_ROOT, 'payments', 'img','dbca_logo_small.png')
+BPAY_LOGO = os.path.join(STATIC_ROOT, 'payments', 'img', 'BPAY_2012_PORT_BLUE.png')
 HEADER_MARGIN = 10
 HEADER_SMALL_BUFFER = 3
 PAGE_TOP_MARGIN = 200
@@ -143,11 +144,12 @@ def _create_pdf(invoice_buffer, sanction_outcome):
     data.append(['', Paragraph(gap(12) + 'Date of Birth: ' + get_font_str(offender[0].dob.strftime('%d/%m/%Y')), styles['Normal']), ''])
     data.append(['', [Paragraph('<strong>or</strong><br />Body corporate name', styles['Normal']), Spacer(1, 25)], ''])
     # data.append(['', [Paragraph('Address', styles['Normal']), Spacer(1, 25), Paragraph('Postcode', styles['Normal'])], ''])
+    postcode = offender[0].residential_address.postcode if offender[0].residential_address else ''
     data.append(['',
                  [
                      Paragraph('Address: ', styles['Normal']),
                      Paragraph(get_font_str(str(offender[0].residential_address)), styles['Normal']),
-                     Paragraph('Postcode: ' + get_font_str(offender[0].residential_address.postcode), styles['Normal']),
+                     Paragraph('Postcode: ' + get_font_str(postcode), styles['Normal']),
                  ],
                  '',
                  ])

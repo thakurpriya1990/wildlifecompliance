@@ -95,7 +95,7 @@ CACHES = {
     }
 }
 CRON_CLASSES = [
-    'wildlifecompliance.components.applications.cron.VerifyLicenceSpeciesJob',
+    'wildlifecompliance.cron.OracleIntegrationCronJob',
 ]
 
 # Additional logging for wildlifecompliance
@@ -171,7 +171,7 @@ EXCEL_OUTPUT_PATH = env('EXCEL_OUTPUT_PATH')
 ALLOW_EMAIL_ADMINS = env('ALLOW_EMAIL_ADMINS', False)  # Allows internal pages to be accessed via email authentication
 SYSTEM_APP_LABEL = env('SYSTEM_APP_LABEL', 'wildlifecompliance')  # global app_label for group permissions filtering
 RENEWAL_PERIOD_DAYS = env('RENEWAL_PERIOD_DAYS', 30)
-GEOCODING_ADDRESS_SEARCH_TOKEN = env('GEOCODING_ADDRESS_SEARCH_TOKEN')
+GEOCODING_ADDRESS_SEARCH_TOKEN = env('GEOCODING_ADDRESS_SEARCH_TOKEN', 'ACCESS_TOKEN_NOT_FOUND')
 DOT_EMAIL_ADDRESS = env('DOT_EMAIL_ADDRESS')
 
 # Details for Threathened Species and Communities server.

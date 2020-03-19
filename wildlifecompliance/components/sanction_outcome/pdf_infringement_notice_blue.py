@@ -14,14 +14,12 @@ from reportlab.lib import colors
 
 from django.conf import settings
 
-#DPAW_HEADER_LOGO = os.path.join(settings.BASE_DIR, 'ledger', 'payments','static', 'payments', 'img','dbca_logo.jpg')
-#DPAW_HEADER_LOGO_SM = os.path.join(settings.BASE_DIR, 'ledger', 'payments','static', 'payments', 'img','dbca_logo_small.png')
-#BPAY_LOGO = os.path.join(settings.BASE_DIR, 'ledger', 'payments','static', 'payments', 'img', 'BPAY_2012_PORT_BLUE.png')
 from wildlifecompliance.components.main.pdf_utils import gap, get_infringement_notice_table
+from wildlifecompliance.settings import STATIC_ROOT
 
-DPAW_HEADER_LOGO = os.path.join(settings.BASE_DIR, 'staticfiles', 'payments', 'img','dbca_logo.jpg')
-DPAW_HEADER_LOGO_SM = os.path.join(settings.BASE_DIR, 'staticfiles', 'payments', 'img','dbca_logo_small.png')
-BPAY_LOGO = os.path.join(settings.BASE_DIR, 'staticfiles', 'payments', 'img', 'BPAY_2012_PORT_BLUE.png')
+DPAW_HEADER_LOGO = os.path.join(STATIC_ROOT, 'payments', 'img','dbca_logo.jpg')
+DPAW_HEADER_LOGO_SM = os.path.join(STATIC_ROOT, 'payments', 'img','dbca_logo_small.png')
+BPAY_LOGO = os.path.join(STATIC_ROOT, 'payments', 'img', 'BPAY_2012_PORT_BLUE.png')
 
 HEADER_MARGIN = 10
 HEADER_SMALL_BUFFER = 3

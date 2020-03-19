@@ -22,25 +22,38 @@ from django.db import transaction
 
 
 def save_location(location_request_data, *args, **kwargs):
-    if location_request_data.get('id'):
-        location_instance = Location.objects.get(id=location_request_data.get('id'))
-        location_serializer = LocationSerializer(
-            instance=location_instance,
-            data=location_request_data,
-            partial=True
-        )
-        location_serializer.is_valid(raise_exception=True)
-        if location_serializer.is_valid():
-            location_serializer.save()
-    else:
-        location_serializer = LocationSerializer(
-            data=location_request_data,
-            partial=True
-        )
-        location_serializer.is_valid(raise_exception=True)
-        if location_serializer.is_valid():
-            location_instance = location_serializer.save()
-    return location_serializer.data
+    try:
+        if location_request_data.get('id'):
+            location_instance = Location.objects.get(id=location_request_data.get('id'))
+            location_serializer = LocationSerializer(
+                instance=location_instance,
+                data=location_request_data,
+                partial=True
+            )
+            location_serializer.is_valid(raise_exception=True)
+            if location_serializer.is_valid():
+                location_serializer.save()
+        else:
+            location_serializer = LocationSerializer(
+                data=location_request_data,
+                partial=True
+            )
+            location_serializer.is_valid(raise_exception=True)
+            if location_serializer.is_valid():
+                location_instance = location_serializer.save()
+        return location_serializer.data
+    except serializers.ValidationError:
+        print(traceback.print_exc())
+        raise
+    except ValidationError as e:
+        if hasattr(e, 'error_dict'):
+            raise serializers.ValidationError(repr(e.error_dict))
+        else:
+            raise serializers.ValidationError(repr(e[0].encode('utf-8')))
+    except Exception as e:
+        print(traceback.print_exc())
+        raise serializers.ValidationError(str(e))
+
 
 
 class TemporaryDocumentCollectionViewSet(viewsets.ModelViewSet):

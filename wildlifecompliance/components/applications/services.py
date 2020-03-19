@@ -72,8 +72,8 @@ class ApplicationService(object):
             tsc_service.search_taxon(specie)
 
         logger.info(
-            'ApplicationService: Completed. Verified {0} species.').format(
-            species_list.count)
+            'ApplicationService: Completed. Verified {0} species.'.format(
+                len(species_list)))
 
     @staticmethod
     def verify_licence_specie_id(specie_id):

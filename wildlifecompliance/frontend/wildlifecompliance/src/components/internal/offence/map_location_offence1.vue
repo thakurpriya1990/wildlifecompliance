@@ -67,11 +67,13 @@
 
 <script>
 import Leaf from "leaflet";
+import Vue from "vue";
 import "leaflet-measure"; /* This should be imported after leaflet */
 import "leaflet.locatecontrol";
 import Awesomplete from "awesomplete";
 import { mapState, mapGetters, mapActions, mapMutations } from "vuex";
 import { guid } from "@/utils/helpers";
+import { api_endpoints, helpers, cache_helper } from '@/utils/hooks'
 import "bootstrap/dist/css/bootstrap.css";
 import "awesomplete/awesomplete.css";
 import "leaflet/dist/leaflet.css";
@@ -111,6 +113,7 @@ export default {
     vm.guid = guid();
 
     return {
+        mapboxAccessToken: null,
       defaultCenter: defaultCentre,
       projection: null,
       mapOffence: null,
@@ -174,6 +177,11 @@ export default {
       vm.showHideAddressDetailsFields(false, false);
     });
   },
+    created: async function(){
+        await this.MapboxAccessToken.then(data => {
+            this.mapboxAccessToken = data
+        });
+    },
   methods: {
     ...mapActions("offenceStore", {
       // saveLocation: 'saveLocation',
@@ -249,14 +257,15 @@ export default {
 
       $.ajax({
         url:
-          "https://mapbox.dpaw.wa.gov.au/geocoding/v5/mapbox.places/" +
+            api_endpoints.geocoding_address_search + 
           coordinates_4326[0] +
           "," +
           coordinates_4326[1] +
           ".json?" +
           $.param({
             limit: 1,
-            types: "address"
+            types: "address",
+                    access_token: self.mapboxAccessToken,
           }),
         dataType: "json",
         success: function(data, status, xhr) {
@@ -285,11 +294,12 @@ export default {
       var latlng = this.mapOffence.getCenter();
       $.ajax({
         url:
-          "https://mapbox.dpaw.wa.gov.au/geocoding/v5/mapbox.places/" +
+          api_endpoints.geocoding_address_search +
           encodeURIComponent(place) +
           ".json?" +
           $.param({
             country: "au",
+                    access_token: self.mapboxAccessToken,
             limit: 10,
             proximity: "" + latlng.lng + "," + latlng.lat,
             //proximity: ''+centre[0]+','+centre[1],
