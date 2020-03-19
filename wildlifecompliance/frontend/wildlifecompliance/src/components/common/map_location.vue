@@ -35,6 +35,7 @@
 </template>
 
 <script>
+import Vue from "vue";
 import Leaf from "leaflet";
 import "leaflet-measure"; /* This should be imported after leaflet */
 import "leaflet.locatecontrol";
@@ -46,6 +47,7 @@ import "awesomplete/awesomplete.css";
 import "leaflet/dist/leaflet.css";
 import "leaflet-measure/dist/leaflet-measure.css";
 import "leaflet.locatecontrol/dist/L.Control.Locate.min.css";
+import { api_endpoints, helpers, cache_helper } from '@/utils/hooks'
 
 export default {
   name: "map-leaflet",
@@ -84,6 +86,7 @@ export default {
     return {
        // marker_lng: vm.marker_longitude,
        // marker_lat: vm.marker_latitude,
+            mapboxAccessToken: null,
         marker_lng: null,
         marker_lat: null,
         defaultCenter: defaultCentre,
@@ -129,6 +132,11 @@ export default {
                 this.refreshMarkerLocation();
             }
         }
+    },
+    created: async function() {
+        await this.MapboxAccessToken.then(data => {
+            this.mapboxAccessToken = data
+        });
     },
   mounted: function() {
     let vm = this;
@@ -190,14 +198,14 @@ export default {
       var latlng = this.mainMap.getCenter();
       $.ajax({
         url:
-          "https://mapbox.dpaw.wa.gov.au/geocoding/v5/mapbox.places/" +
+          api_endpoints.geocoding_address_search + 
           encodeURIComponent(place) +
           ".json?" +
           $.param({
             country: "au",
             limit: 10,
             proximity: "" + latlng.lng + "," + latlng.lat,
-            //proximity: ''+centre[0]+','+centre[1],
+                    access_token: self.mapboxAccessToken,
             bbox: "112.920934,-35.191991,129.0019283,-11.9662455",
             types:
               "region,postcode,district,place,locality,neighborhood,address,poi"
