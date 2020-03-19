@@ -126,13 +126,14 @@ def _create_pdf(invoice_buffer, sanction_outcome):
     fields = [offender[0].residential_address.line1, offender[0].residential_address.line2, offender[0].residential_address.line3]
     fields = [unicode_compatible(f).encode('utf-8').decode('unicode-escape').strip() for f in fields if f]
     no_and_street = ', '.join(fields)
+    postcode = offender[0].residential_address.postcode if offender[0].residential_address else ''
     data.append([
         Paragraph('<strong>Address</strong>', style_normal),
         [
             Paragraph('No and Street: <br />' + get_font_str(str(no_and_street)), style_normal),
             Paragraph('Town/Suburb: <br />' + get_font_str(offender[0].residential_address.locality), style_normal),
         ],
-        Paragraph('Post Code: <br />' + get_font_str(offender[0].residential_address.postcode), style_normal),
+        Paragraph('Post Code: <br />' + get_font_str(postcode), style_normal),
     ])
     data.append(([
         '',

@@ -144,11 +144,12 @@ def _create_pdf(invoice_buffer, sanction_outcome):
     data.append(['', Paragraph(gap(12) + 'Date of Birth: ' + get_font_str(offender[0].dob.strftime('%d/%m/%Y')), styles['Normal']), ''])
     data.append(['', [Paragraph('<strong>or</strong><br />Body corporate name', styles['Normal']), Spacer(1, 25)], ''])
     # data.append(['', [Paragraph('Address', styles['Normal']), Spacer(1, 25), Paragraph('Postcode', styles['Normal'])], ''])
+    postcode = offender[0].residential_address.postcode if offender[0].residential_address else ''
     data.append(['',
                  [
                      Paragraph('Address: ', styles['Normal']),
                      Paragraph(get_font_str(str(offender[0].residential_address)), styles['Normal']),
-                     Paragraph('Postcode: ' + get_font_str(offender[0].residential_address.postcode), styles['Normal']),
+                     Paragraph('Postcode: ' + get_font_str(postcode), styles['Normal']),
                  ],
                  '',
                  ])
