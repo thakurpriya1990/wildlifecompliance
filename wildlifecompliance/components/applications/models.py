@@ -29,6 +29,8 @@ from wildlifecompliance.components.main.utils import (
     flush_checkout_session
 )
 
+from wildlifecompliance.components.inspection.models import Inspection
+
 from wildlifecompliance.components.organisations.models import Organisation
 from wildlifecompliance.components.organisations.emails import (
     send_org_id_update_request_notification
@@ -3365,6 +3367,43 @@ class ApplicationSelectedActivityPurpose(models.Model):
     class Meta:
         app_label = 'wildlifecompliance'
         verbose_name = 'Application selected activity purpose'
+
+
+class ApplicationSelectedActivityInspection(models.Model):
+    """
+    A model represention of an Inspection for a selected activity purpose.
+    """
+    selected_activity = models.ForeignKey(
+        ApplicationSelectedActivity, related_name='inspections')
+    inspection_number = models.CharField(
+        max_length=50, null=True, blank=True, default='')
+    request_datetime = models.DateTimeField(auto_now=True)
+
+    class Meta:
+        app_label = 'wildlifecompliance'
+
+    def __str__(self):
+        return 'ASA {0} : Inspection #{1}'.format(
+            self.selected_activity.licence_activity_id, self.inspection_number)
+
+    # Properties
+    # ==================
+    @property
+    def active(self):
+        try:
+            inspection = Inspection.objects.get(
+                number=self.inspection_number,
+            )
+            if inspection.status in [
+                    Inspection.STATUS_OPEN,
+                ]:
+                return true
+
+        except Inspection.DoesNotExist:
+            pass
+
+        return False
+
 
 class IssuanceDocument(Document):
     _file = models.FileField(max_length=255)

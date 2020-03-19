@@ -129,6 +129,15 @@ class ApplicationService(object):
         do_render_defined_conditions(application, form_data)
 
     @staticmethod
+    def render_defined_inspections(application, form_data):
+        """
+        Checks for Inspections defined on the application schema. 
+        Field answers can trigger the creation of an Inspection for an
+        application.
+        """
+        do_render_defined_conditions(application, form_data)
+
+    @staticmethod
     def update_dynamic_attributes(application):
         """
         Updates application attributes based on admin schema definition.
@@ -142,6 +151,68 @@ class ApplicationService(object):
 """
 NOTE: This section for objects relate to Application Form rendering.
 """
+
+
+class ApplicationAttributeRenderer(object):
+
+    def __init__(self, application, data_source):
+        self._application = application
+        self._data_source = data_source
+
+    def parse_component(
+            self,
+            component,
+            schema_name,
+            adjusted_by_fields,
+            activity):
+
+        if set(['PromptInspection']).issubset(component):
+            # TODO: set ispection flag for activity and application.
+            pass
+
+    def render(self):
+
+        for selected_activity in self._application.activities:
+            schema_fields = self._application.get_schema_fields_for_purposes(
+                selected_activity.purposes.values_list('id', flat=True)
+            )
+
+            # Adjustments based on selected options (radios and checkboxes)
+            adjusted_by_fields = {}
+            for form_data_record in self._data_source:
+                try:
+                    # Retrieve dictionary of fields from a model instance
+                    data_record = form_data_record.__dict__
+                except AttributeError:
+                    # If a raw form data (POST) is supplied, form_data_record
+                    # is a key
+                    data_record = self._data_source[form_data_record]
+
+                schema_name = data_record['schema_name']
+                if schema_name not in schema_fields:
+                    continue
+                schema_data = schema_fields[schema_name]
+
+                if 'options' in schema_data:
+                    for option in schema_data['options']:
+                        # Only modifications if the current option is selected
+                        if option['value'] != data_record['value']:
+                            continue
+                        self.parse_component(
+                            component=option,
+                            schema_name=schema_name,
+                            adjusted_by_fields=adjusted_by_fields,
+                            activity=selected_activity
+                        )
+
+                # If this is a checkbox - skip unchecked ones
+                elif data_record['value'] == 'on':
+                    self.parse_component(
+                        component=schema_data,
+                        schema_name=schema_name,
+                        adjusted_by_fields=adjusted_by_fields,
+                        activity=selected_activity
+                    )
 
 
 def do_process_form(
