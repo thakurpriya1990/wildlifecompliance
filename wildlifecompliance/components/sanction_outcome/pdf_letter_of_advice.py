@@ -5,6 +5,7 @@ from decimal import Decimal as D
 from io import BytesIO
 
 from django.core.files.storage import default_storage
+from wildlifecompliance.settings import STATIC_ROOT
 from oscar.templatetags.currency_filters import currency
 from reportlab.lib import enums
 from reportlab.lib.colors import Color
@@ -31,9 +32,9 @@ PAGE_WIDTH, PAGE_HEIGHT = A4
 DEFAULT_FONTNAME = 'Helvetica'
 BOLD_FONTNAME = 'Helvetica-Bold'
 
-DPAW_HEADER_LOGO = os.path.join(settings.BASE_DIR, 'staticfiles', 'payments', 'img','dbca_logo.jpg')
-DPAW_HEADER_LOGO_SM = os.path.join(settings.BASE_DIR, 'staticfiles', 'payments', 'img','dbca_logo_small.png')
-BPAY_LOGO = os.path.join(settings.BASE_DIR, 'staticfiles', 'payments', 'img', 'BPAY_2012_PORT_BLUE.png')
+DPAW_HEADER_LOGO = os.path.join(STATIC_ROOT, 'payments', 'img','dbca_logo.jpg')
+DPAW_HEADER_LOGO_SM = os.path.join(STATIC_ROOT, 'payments', 'img','dbca_logo_small.png')
+BPAY_LOGO = os.path.join(STATIC_ROOT, 'payments', 'img', 'BPAY_2012_PORT_BLUE.png')
 HEADER_MARGIN = 10
 HEADER_SMALL_BUFFER = 3
 PAGE_TOP_MARGIN = 200
