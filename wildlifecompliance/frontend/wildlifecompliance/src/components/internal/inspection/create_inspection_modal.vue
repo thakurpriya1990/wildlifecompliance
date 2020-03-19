@@ -286,6 +286,13 @@ export default {
                   if (this.$parent.$refs.related_items_table) {
                       this.$parent.constructRelatedItemsTable();
                   }
+                  if (this.inspection && this.inspection.id) {
+                      this.$emit(
+                          'inspection-created', 
+                          {
+                              'inspection': this.inspection.id
+                          });
+                  }
                   this.close();
                   //this.$router.push({ name: 'internal-inspection-dash' });
               }
