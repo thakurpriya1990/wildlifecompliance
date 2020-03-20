@@ -268,6 +268,7 @@ export default {
               const response = await this.sendData();
               console.log(response);
               if (response.ok) {
+                  const returnedInspection = response.body;
                   // For Inspection Dashboard
                   if (this.$parent.$refs.inspection_table) {
                       this.$parent.$refs.inspection_table.vmDataTable.ajax.reload()
@@ -286,11 +287,11 @@ export default {
                   if (this.$parent.$refs.related_items_table) {
                       this.$parent.constructRelatedItemsTable();
                   }
-                  if (this.inspection && this.inspection.id) {
+                  if (returnedInspection && returnedInspection.id) {
                       this.$emit(
                           'inspection-created', 
                           {
-                              'inspection': this.inspection.id
+                              'inspection': returnedInspection.id,
                           });
                   }
                   this.close();
