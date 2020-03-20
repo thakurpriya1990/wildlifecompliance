@@ -135,9 +135,10 @@ def _create_pdf(invoice_buffer, sanction_outcome):
         ],
         Paragraph('Post Code: <br />' + get_font_str(postcode), style_normal),
     ])
+    offender_dob = offender[0].dob.strftime('%d/%m/%Y') if offender[0].dob else ''
     data.append(([
         '',
-        Paragraph('Date of Birth: ' + get_font_str(offender[0].dob.strftime('%d/%m/%Y')), style_normal),
+        Paragraph('Date of Birth: ' + get_font_str(offender_dob), style_normal),
         [
             Paragraph('Gender:', style_normal),
             Paragraph('M' + gap(3) + 'F' + gap(3) + 'U', style_normal),
