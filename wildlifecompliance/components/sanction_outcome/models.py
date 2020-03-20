@@ -203,7 +203,7 @@ class SanctionOutcome(models.Model):
 
         return can_close_record
 
-    def close(self, request):
+    def close(self, request=None):
         print('SanctionOutcome.close() called')
         if self.can_close_record():
             self.status = self.STATUS_CLOSED
@@ -808,15 +808,14 @@ class RemediationAction(RevisionedMixin):
         return 'ID: {}, action:{}'.format(self.id, self.action,)
 
 
-def perform_can_close_record(sender, instance, request, **kwargs):
+def perform_can_close_record(sender, instance, **kwargs):
     # Trigger the close() function of each parent entity of this sanction outcome
     if isinstance(instance, SanctionOutcome):
         if instance.status in SanctionOutcome.FINAL_STATUSES:
             close_record, parents = can_close_record(instance)
             for parent in parents:
                 if parent.status in ('pending_closure', ):  # tuple must include all the status regarded as pending closure
-                    # every close method needs a "request" argument for closure actions
-                    parent.close(request)
+                    parent.close()
     elif isinstance(instance, RemediationAction):
         if instance.status in RemediationAction.FINAL_STATUSES:
             parent = instance.sanction_outcome
