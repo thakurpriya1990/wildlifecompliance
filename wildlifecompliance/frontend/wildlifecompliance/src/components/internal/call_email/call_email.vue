@@ -988,22 +988,6 @@ export default {
       $('#timeOfCallPicker').on('dp.change', function(e) {
           vm.setTimeOfCall(e.date.format('LT'));
       }); 
-      /*
-      $("referrerList").select2({
-          "theme": "bootstrap",
-          allowClear: true,
-          placeholder:"Select Referrer"
-                  }).
-      on("select2:select",function (e) {
-                          var selected = $(e.currentTarget);
-                          vm.referrersSelected = selected.val();
-                      }).
-      on("select2:unselect",function (e) {
-                          var selected = $(e.currentTarget);
-                          vm.referrersSelected = selected.val();
-                      });
-                      */
-      
       vm.$nextTick(() => {
           vm.addEventListeners();
           //this.calculateHash();
