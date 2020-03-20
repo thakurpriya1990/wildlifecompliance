@@ -491,6 +491,8 @@ class InspectionViewSet(viewsets.ModelViewSet):
     @renderer_classes((JSONRenderer,))
     #def inspection_save(self, request, workflow=False, *args, **kwargs):
     def update(self, request, workflow=False, *args, **kwargs):
+        print("callemail request")
+        print(request)
         try:
             with transaction.atomic():
                 # 1. Save Location

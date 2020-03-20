@@ -329,7 +329,7 @@
                               <div v-if="call_email.referrer && call_email.referrer.length > 0" class="col-sm-12 form-group"><div class="row">
                                 <label class="col-sm-4">Referred To</label>
                                 <!--select multiple :readonly="true" class="form-control" v-model="call_email.selected_referrers" -->
-                                <select style="width:100%" class="form-control input-sm" multiple ref="referrerList" >
+                                <select style="width:100%" class="form-control input-sm" multiple="multiple" ref="referrerList" >
                                   <option  v-for="option in referrers" :value="option.id" v-bind:key="option.id">
                                     {{ option.name }} 
                                   </option>
@@ -811,6 +811,11 @@ export default {
     },
     addEventListeners: function() {
       let vm = this;
+      // Initialise select2 for referrer
+      $(document).ready(function() {
+          $(vm.$refs.referrerList).select2();
+      });
+
       let el_fr_date = $(vm.$refs.occurrenceDateFromPicker);
       let el_fr_time = $(vm.$refs.occurrenceTimeFromPicker);
       let el_to_date = $(vm.$refs.occurrenceDateToPicker);
@@ -989,8 +994,8 @@ export default {
       $('#timeOfCallPicker').on('dp.change', function(e) {
           vm.setTimeOfCall(e.date.format('LT'));
       }); 
-      // Initialise select2 for referrer
-      $(vm.$refs.referrerList).select2({
+      /*
+      $("referrerList").select2({
           "theme": "bootstrap",
           allowClear: true,
           placeholder:"Select Referrer"
@@ -1003,6 +1008,7 @@ export default {
                           var selected = $(e.currentTarget);
                           vm.referrersSelected = selected.val();
                       });
+                      */
       
       vm.$nextTick(() => {
           vm.addEventListeners();

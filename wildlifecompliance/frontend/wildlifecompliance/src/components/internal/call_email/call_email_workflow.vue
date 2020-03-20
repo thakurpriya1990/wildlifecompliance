@@ -414,6 +414,13 @@ export default {
               'name': ''
           })
       },
+      addEventListeners: function() {
+        let vm = this;
+        // Initialise select2 for referrer
+        $(document).ready(function() {
+            $(vm.$refs.referrerList).select2();
+        });
+      },
     },
     created: async function() {
         
@@ -455,7 +462,10 @@ export default {
     },
     mounted: function() {
         this.form = document.forms.forwardForm;
-        
+        this.$nextTick(() => {
+            this.addEventListeners();
+        });
+        /*
         // Initialise select2 for region
         let vm = this;
         $(vm.$refs.referrerList).select2({
@@ -471,6 +481,7 @@ export default {
                             var selected = $(e.currentTarget);
                             vm.referrersSelected = selected.val();
                         });
+                        */
       
     }
 };
