@@ -136,12 +136,10 @@ def _create_pdf(invoice_buffer, sanction_outcome):
 
     # Alleged offender
     offender = sanction_outcome.get_offender()
-    # data.append([Paragraph('Alleged offender', styles['Bold']), Paragraph('Name: Family name', styles['Normal']), ''])
-    # data.append(['', Paragraph(gap(12) + 'Given names', styles['Normal']), ''])
-    # data.append(['', Paragraph(gap(12) + 'Date of Birth', styles['Normal']), ''])
+    offender_dob = offender[0].dob.strftime('%d/%m/%Y') if offender[0].dob else ''
     data.append([Paragraph('Alleged offender', styles['Bold']), Paragraph('Name: Family name: ' + get_font_str(offender[0].last_name), styles['Normal']), ''])
     data.append(['', Paragraph(gap(12) + 'Given names: ' + get_font_str(offender[0].first_name), styles['Normal']), ''])
-    data.append(['', Paragraph(gap(12) + 'Date of Birth: ' + get_font_str(offender[0].dob.strftime('%d/%m/%Y')), styles['Normal']), ''])
+    data.append(['', Paragraph(gap(12) + 'Date of Birth: ' + get_font_str(offender_dob), styles['Normal']), ''])
     data.append(['', [Paragraph('<strong>or</strong><br />Body corporate name', styles['Normal']), Spacer(1, 25)], ''])
     # data.append(['', [Paragraph('Address', styles['Normal']), Spacer(1, 25), Paragraph('Postcode', styles['Normal'])], ''])
     postcode = offender[0].residential_address.postcode if offender[0].residential_address else ''
