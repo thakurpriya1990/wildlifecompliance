@@ -135,7 +135,8 @@ class ApplicationService(object):
         Field answers can trigger the creation of an Inspection for an
         application.
         """
-        do_render_defined_conditions(application, form_data)
+        attribute_check = ApplicationAttributeRenderer(application, form_data)
+        attribute_check.render()
 
     @staticmethod
     def update_dynamic_attributes(application):
@@ -167,12 +168,20 @@ class ApplicationAttributeRenderer(object):
             activity):
 
         if set(['PromptInspection']).issubset(component):
-            # TODO: set ispection flag for activity and application.
-            pass
+            licence_activity = LicenceActivity.objects.get(
+                        id=activity.licence_activity_id)
+            licence_activity.is_inspection_required = True
+            licence_activity.save()
 
     def render(self):
 
         for selected_activity in self._application.activities:
+
+            licence_activity = LicenceActivity.objects.get(
+                        id=selected_activity.licence_activity_id)
+            licence_activity.is_inspection_required = False
+            licence_activity.save()
+
             schema_fields = self._application.get_schema_fields_for_purposes(
                 selected_activity.purposes.values_list('id', flat=True)
             )

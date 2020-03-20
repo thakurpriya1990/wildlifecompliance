@@ -134,7 +134,6 @@
                                     </div>
                                     <div v-if="canProposeIssueOrDecline && isSendingToAssessor || isOfficerConditions" class="row">
                                         <div class="col-sm-12">
-                                            <button class="btn btn-primary top-buffer-s col-xs-12" @click.prevent="toggleRequestInspection()">Request Inspection</button><br/>
                                             <button class="btn btn-primary top-buffer-s col-xs-12" @click.prevent="proposedLicence()">Propose Issue</button>
                                             <button class="btn btn-primary top-buffer-s col-xs-12" @click.prevent="proposedDecline()">Propose Decline</button>
                                         </div>
@@ -581,7 +580,6 @@
     <ProposedDecline ref="proposed_decline" @refreshFromResponse="refreshFromResponse"></ProposedDecline>
     <AmendmentRequest ref="amendment_request" @refreshFromResponse="refreshFromResponse"></AmendmentRequest>
     <ProposedLicence ref="proposed_licence" @refreshFromResponse="refreshFromResponse"></ProposedLicence>
-    <InspectionRequest ref="inspection"  @refreshFromResponse="refreshFromResponse" v-if="isRequestingInspection"></InspectionRequest>
 
     </div>
 </div>
@@ -598,7 +596,6 @@ import ProposedLicence from './proposed_issuance.vue';
 import IssueLicence from './application_issuance.vue';
 import CommsLogs from '@common-components/comms_logs.vue';
 import ResponsiveDatatablesHelper from "@/utils/responsive_datatable_helper.js";
-import InspectionRequest from '../inspection/create_inspection_modal'
 import {
     api_endpoints,
     helpers
@@ -674,10 +671,6 @@ export default {
             logs_url: helpers.add_endpoint_json(api_endpoints.applications,vm.$route.params.application_id+'/action_log'),
             panelClickersInitialised: false,
             adjusted_application_fee: 0,
-            isRequestingInspection: false,
-            inspection:{
-                isModalOpen: false
-            },
         }
     },
     components: {
@@ -689,7 +682,6 @@ export default {
         ProposedLicence,
         IssueLicence,
         CommsLogs,
-        InspectionRequest,
     },
     filters: {
         formatDate: function(data){
@@ -1043,17 +1035,6 @@ export default {
             this.isSendingToAssessor = !this.isSendingToAssessor;
             this.showingApplication = false;
         },
-        toggleRequestInspection:function(){
-            console.log('request inspection')
-            this.save_wo();
-            $('#tabs-main li').removeClass('active');
-            this.showingApplication = false;
-            this.isRequestingInspection = !this.isRequestingInspection;
-            this.$nextTick(() => {
-                this.$refs.inspection.isModalOpen = true;
-                console.log(this)
-            });
-        },
         save: function(props = { showNotification: true }) {
             const { showNotification } = props;
             this.saveFormData({ url: this.form_data_comments_url }).then(response => {
@@ -1097,9 +1078,6 @@ export default {
             if(this.isofficerfinalisation){
                 this.isofficerfinalisation = !show;
             }
-            if(this.isRequestingInspection){
-                this.isRequestingInspection = !show;
-            }
             this.toggleFinalisedTabs(showFinalised);
             setTimeout(() => {
                 const firstTab = $('#tabs-main li a')[1];
@@ -1114,7 +1092,6 @@ export default {
             this.showingApplication = false;
             this.isSendingToAssessor=false;
             this.isOfficerConditions=false;
-            this.isRequestingInspection=false;
         },
         returnToOfficerConditions: function(){
 
@@ -1162,7 +1139,6 @@ export default {
             this.save_wo();
             this.showingApplication = false;
             this.isSendingToAssessor=false;
-            this.isRequestingInspection=false;
 
             this.isOfficerConditions=true;
         },

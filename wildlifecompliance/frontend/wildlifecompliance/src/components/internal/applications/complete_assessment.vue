@@ -29,39 +29,6 @@
                                             </div>
                                         </div>
                                     </div>
-                                    <div class="form-group" v-if="assessment.is_inspection_required">
-                                        <div class="row">
-                                            <div class="col-xs-3">
-                                                <label class="control-label pull-left">Inspection Date</label>
-                                            </div>
-                                            <div class="col-xs-9">
-                                                <div class="input-group date" ref="inspection_date">
-                                                    <input type="text" class="form-control" name="inspection_date" placeholder="DD/MM/YYYY" v-model="assessment.inspection_date">
-                                                    <span class="input-group-addon">
-                                                        <span class="glyphicon glyphicon-calendar"></span>
-                                                    </span>
-                                                </div>
-                                            </div>
-                                        </div>
-                                        <div class="row">
-                                            <div class="col-sm-3">
-                                                <label class="control-label pull-left">Inspection Report</label>
-                                            </div>
-                                            <div class="col-sm-9" style="margin-bottom:10px; margin-top:10px;">
-                                                <div v-if="assessment.inspection_report && !inspection_report_file_name" style="margin-bottom: 10px;"><a :href="assessment.inspection_report" target="_blank">Download</a></div>
-                                                <div v-if="inspection_report_file_name" style="margin-bottom: 10px;">{{ inspection_report_file_name }}</div>
-                                                <span v-if="canCompleteAssessment" class="btn btn-primary btn-file"> Select Inspection Report to Upload <input type="file" ref="inspection_report" @change="readFileInspectionReport()"/></span>
-                                            </div>
-                                        </div>
-                                        <div class="row">
-                                            <div class="col-sm-3">
-                                                <label class="control-label pull-left">Inspection Comments</label>
-                                            </div>
-                                            <div class="col-sm-9">
-                                                <textarea class="form-control" v-model="assessment.inspection_comment" :readonly="!canCompleteAssessment" style="width: 100%; max-width: 100%;" />
-                                            </div>
-                                        </div>
-                                    </div>
                                     <div class="form-group">
                                         <div class="row">
                                             <div class="col-sm-3">
@@ -200,6 +167,11 @@
                                             <button class="btn btn-primary top-buffer-s col-xs-12" @click.prevent="toggleApplication({show: true})">Back to Application</button><br/>
                                         </div>
                                     </div>
+                                    <div class="row" v-show="showRequestInspectionButton">
+                                        <div class="col-sm-12">
+                                            <button class="btn btn-primary top-buffer-s col-xs-12" @click.prevent="toggleRequestInspection()">Request Inspection</button><br/>
+                                        </div>
+                                    </div>   
                                     <div class="row" v-show="showCompleteAssessmentsButton">
                                         <div class="col-sm-12">
                                             <button class="btn btn-primary top-buffer-s col-xs-12" @click.prevent="openAssessmentModal()">Complete Assessments</button><br/>
@@ -252,6 +224,8 @@
 
                     </template>
 
+                    <InspectionRequest ref="inspection"  @inspection-created="requestedInspection"></InspectionRequest>                    
+
                 </div>
             </div>
         </div>
@@ -268,6 +242,7 @@ import ApplicationAssessments from './application_assessments.vue';
 import datatable from '@vue-utils/datatable.vue';
 import CommsLogs from '@common-components/comms_logs.vue';
 import ResponsiveDatatablesHelper from "@/utils/responsive_datatable_helper.js";
+import InspectionRequest from '../inspection/create_inspection_modal'
 import {
     api_endpoints,
     helpers
@@ -305,12 +280,14 @@ export default {
             assessment: {
                 id: "",
                 comment: "",
-                inspection_date: "",
-                inspection_report: null,
             },
             savingAssessment: false,
             checkedActivities: [],
             final_comment: "",
+            isRequestingInspection: false,
+            inspection:{
+                isModalOpen: false
+            },
         }
     },
     components: {
@@ -319,6 +296,7 @@ export default {
         ApplicationAssessments,
         CommsLogs,
         modal,
+        InspectionRequest,
     },
     filters: {
         formatDate: function(data){
@@ -410,6 +388,11 @@ export default {
                 return !assessment.assigned_assessor 
                     || (assessment.assigned_assessor && assessment.assigned_assessor.id === this.current_user.id);               
             });
+        },
+        showRequestInspectionButton: function() {
+            console.log('showrequestBustton')
+            console.log(this.application)
+            return true
         },
         showAssignToAssessor: function(){
             return !this.showingApplication && this.canAssignAssessorFor(this.selectedActivity.licence_activity)
@@ -510,6 +493,31 @@ export default {
             }, 50);
             !showFinalised && this.load({ url: `/api/application/${this.application.id}/internal_application.json` });
         },
+        toggleRequestInspection:function(){
+            this.isRequestingInspection = !this.isRequestingInspection;
+            this.$nextTick(() => {
+                this.$refs.inspection.isModalOpen = true;
+            });
+        },
+        requestedInspection: function(event){
+            const data = {
+                "licence_activity_id" : this.selected_activity_tab_id,
+                "inspection_id": event.inspection,
+            }
+            this.setOriginalApplication(this.application);
+            this.$http.post(helpers.add_endpoint_json(
+                    api_endpoints.applications, (this.application.id+'/add_assessment_inspection')
+                ), JSON.stringify(data)).then((response) => {
+                    this.setApplication(response.body);
+                }, (error) => {
+                    this.revert();
+                       swal(
+                        'Application Error',
+                        helpers.apiVueResourceError(error),
+                        'error'
+                        )
+                }); 
+        },        
         makeMeAssessor: function(assessment){
             let vm = this;
             const data = {

@@ -2656,14 +2656,8 @@ class Assessment(ApplicationRequest):
         ActivityPermissionGroup, null=False, default=1)
     licence_activity = models.ForeignKey(
         'wildlifecompliance.LicenceActivity', null=True)
-    inspection_comment = models.TextField(blank=True)
     final_comment = models.TextField(blank=True)
     purpose = models.TextField(blank=True)
-    inspection_date = models.DateField(null=True, blank=True)
-    inspection_report = models.FileField(
-        upload_to=update_assessment_inspection_report_filename,
-        blank=True, 
-        null=True)
     actioned_by = models.ForeignKey(EmailUser, null=True)
     assigned_assessor = models.ForeignKey(
         EmailUser,
@@ -2760,6 +2754,29 @@ class Assessment(ApplicationRequest):
             except BaseException:
                 raise
 
+    def add_inspection(self, request):
+        with transaction.atomic():
+            try:
+                inspection = Inspection.objects.get(
+                    id=request.data.get('inspection_id'))
+
+                assessment_inspection, created = \
+                    AssessmentInspection.objects.get_or_create(
+                        assessment=self,
+                        inspection=inspection
+                    )
+                assessment_inspection.save()
+
+                # Create a log entry for the inspection
+                self.application.log_user_action(
+                    ApplicationUserAction.ACTION_ASSESSMENT_INSPECTION_REQUEST.format(
+                        inspection.number, self.licence_activity), request)
+
+            except Inspection.DoesNotExist:
+                raise Exception('Inspection was not created')
+            except BaseException:
+                raise
+
     @property
     def selected_activity(self):
         return ApplicationSelectedActivity.objects.filter(
@@ -2773,6 +2790,42 @@ class Assessment(ApplicationRequest):
 
     def assessors(self):
         return self.assessor_group.members.all()
+
+
+class AssessmentInspection(models.Model):
+    """
+    A model represention of an Inspection for an Assessment.
+    """
+    assessment = models.ForeignKey(
+        Assessment, related_name='inspections')
+    inspection = models.ForeignKey(
+        Inspection, related_name='wildlifecompliance_inspection')
+    request_datetime = models.DateTimeField(auto_now=True)
+
+    class Meta:
+        app_label = 'wildlifecompliance'
+
+    def __str__(self):
+        return 'Assessment {0} : Inspection #{1}'.format(
+            self.assessment_id, self.inspection.name)
+
+    # Properties
+    # ==================
+    @property
+    def active(self):
+        try:
+            inspection = Inspection.objects.get(
+                id=self.inspection_id,
+            )
+            if inspection.status in [
+                    Inspection.STATUS_OPEN,
+                ]:
+                return true
+
+        except Inspection.DoesNotExist:
+            pass
+
+        return False
 
 
 class ApplicationSelectedActivity(models.Model):
@@ -3369,42 +3422,6 @@ class ApplicationSelectedActivityPurpose(models.Model):
         verbose_name = 'Application selected activity purpose'
 
 
-class ApplicationSelectedActivityInspection(models.Model):
-    """
-    A model represention of an Inspection for a selected activity purpose.
-    """
-    selected_activity = models.ForeignKey(
-        ApplicationSelectedActivity, related_name='inspections')
-    inspection_number = models.CharField(
-        max_length=50, null=True, blank=True, default='')
-    request_datetime = models.DateTimeField(auto_now=True)
-
-    class Meta:
-        app_label = 'wildlifecompliance'
-
-    def __str__(self):
-        return 'ASA {0} : Inspection #{1}'.format(
-            self.selected_activity.licence_activity_id, self.inspection_number)
-
-    # Properties
-    # ==================
-    @property
-    def active(self):
-        try:
-            inspection = Inspection.objects.get(
-                number=self.inspection_number,
-            )
-            if inspection.status in [
-                    Inspection.STATUS_OPEN,
-                ]:
-                return true
-
-        except Inspection.DoesNotExist:
-            pass
-
-        return False
-
-
 class IssuanceDocument(Document):
     _file = models.FileField(max_length=255)
     # after initial submit prevent document from being deleted
@@ -3672,7 +3689,9 @@ class ApplicationUserAction(UserAction):
     ACTION_ASSESSMENT_RESENT = "Assessment Resent {}"
     ACTION_ASSESSMENT_COMPLETE = "Assessment Completed for group {} "
     ACTION_ASSESSMENT_ASSIGNED = "Assessment for {} Assigned to {}"
-    ACTION_ASSESSMENT_UNASSIGNED = "Unassigned Assessor from Assessment for {}"    
+    ACTION_ASSESSMENT_UNASSIGNED = "Unassigned Assessor from Assessment for {}"
+    ACTION_ASSESSMENT_INSPECTION_REQUEST = \
+        "Inspection {} for Assessment {} was requested."    
     ACTION_DECLINE = "Decline application {}"
     ACTION_ENTER_CONDITIONS = "Entered condition for activity {}"
     ACTION_CREATE_CONDITION_ = "Create condition {}"
