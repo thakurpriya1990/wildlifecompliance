@@ -107,10 +107,11 @@ def _create_pdf(invoice_buffer, sanction_outcome):
     p_number = get_font_str(str(offender[0].phone_number) + '(p)') if offender[0].phone_number else ''
     m_number = get_font_str(offender[0].mobile_number + '(m)') if offender[0].mobile_number else ''
     phone_number = ' | '.join(list(filter(None, [p_number, m_number])))
+    dob = offender[0].dob.strftime('%d/%m/%Y') if offender[0].dob else ''
     data.append([[
         Paragraph('Pursuant to the <i>Biodiversity Conservation Act 2016</i>, the CEO considers that you are a person bound by a relevant instrument.<br />'
                            '<strong>Contact details of person to whom this Notice is issued:</strong>', styles['Normal']),
-        Paragraph('Full name: ' + get_font_str(offender[0].get_full_name()) + gap(5) + 'Date of Birth: ' + get_font_str(offender[0].dob.strftime('%d/%m/%Y')), styles['Normal']),
+        Paragraph('Full name: ' + get_font_str(offender[0].get_full_name()) + gap(5) + 'Date of Birth: ' + get_font_str(dob), styles['Normal']),
         Paragraph('Postal/Residential address: ' + get_font_str(offender[0].residential_address), styles['Normal']),
         Paragraph('Telephone number: ' + phone_number, styles['Normal']),
         Paragraph('Email address: ' + get_font_str(offender[0].email), styles['Normal']),
