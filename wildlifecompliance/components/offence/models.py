@@ -149,7 +149,7 @@ class Offence(RevisionedMixin):
         #return '{}, {}'.format(self.identifier, self.details)
         return self.identifier
 
-    def close(self, request=None):
+    def close(self, request):
         close_record, parents = can_close_record(self)
         if close_record:
             self.status = self.STATUS_CLOSED
@@ -167,13 +167,14 @@ class Offence(RevisionedMixin):
             return self.occurrence_datetime_from
 
 
-def perform_can_close_record(sender, instance, **kwargs):
+def perform_can_close_record(sender, instance, request, **kwargs):
     # Trigger the close() function of each parent entity of this offence
     if instance.status in (Offence.FINAL_STATUSES):
         close_record, parents = can_close_record(instance)
         for parent in parents:
             if parent.status == 'pending_closure':
-                parent.close()
+                # every close method needs a "request" argument for closure actions
+                parent.close(request)
 
 post_save.connect(perform_can_close_record, sender=Offence)
 
