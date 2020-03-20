@@ -272,8 +272,13 @@ class CallEmail(RevisionedMixin):
         if self.report_type:
             return self.report_type.schema
     
-    def log_user_action(self, action, request):
-        return CallEmailUserAction.log_action(self, action, request.user)
+    #def log_user_action(self, action, request):
+     #   return CallEmailUserAction.log_action(self, action, request.user)
+    def log_user_action(self, action, request=None):
+        if request:
+            return CallEmailUserAction.log_action(self, action, request.user)
+        else:
+            return CallEmailUserAction.log_action(self, action)
 
     @property
     def get_related_items_identifier(self):
@@ -324,7 +329,7 @@ class CallEmail(RevisionedMixin):
         #self.save()
         self.close(request)
 
-    def close(self, request):
+    def close(self, request=None):
         close_record, parents = can_close_record(self, request)
         print("close_record")
         print(close_record)
@@ -527,7 +532,7 @@ class CallEmailLogEntry(CommunicationsLogEntry):
         app_label = 'wildlifecompliance'
 
 
-class CallEmailUserAction(UserAction):
+class CallEmailUserAction(models.Model):
     ACTION_CREATE_CALL_EMAIL = "Create Call/Email {}"
     ACTION_SAVE_CALL_EMAIL_ = "Save Call/Email {}"
     ACTION_FORWARD_TO_REGIONS = "Forward Call/Email {} to regions"
@@ -545,12 +550,16 @@ class CallEmailUserAction(UserAction):
     ACTION_ADD_WEAK_LINK = "Create manual link between {}: {} and {}: {}"
     ACTION_REMOVE_WEAK_LINK = "Remove manual link between {}: {} and {}: {}"
 
+    who = models.ForeignKey(EmailUser, null=True, blank=True)
+    when = models.DateTimeField(null=False, blank=False, auto_now_add=True)
+    what = models.TextField(blank=False)
+
     class Meta:
         app_label = 'wildlifecompliance'
         ordering = ('-when',)
 
     @classmethod
-    def log_action(cls, call_email, action, user):
+    def log_action(cls, call_email, action, user=None):
         return cls.objects.create(
             call_email=call_email,
             who=user,
