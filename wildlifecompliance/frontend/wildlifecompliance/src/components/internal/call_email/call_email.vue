@@ -326,11 +326,10 @@
                           </FormSection>
             
                           <FormSection v-if="(call_email.referrer && call_email.referrer.length > 0) || call_email.advice_details" :formCollapse="true" label="Outcome" Index="3">
-                              <div v-if="call_email.referrer && call_email.referrer.length > 0" class="col-sm-12 form-group"><div class="row">
+                            <div v-if="call_email.referrer && call_email.referrer.length > 0" class="col-sm-12 form-group"><div class="row">
                                 <label class="col-sm-4">Referred To</label>
-                                <!--select multiple :readonly="true" class="form-control" v-model="call_email.selected_referrers" -->
-                                <select style="width:100%" class="form-control input-sm" multiple="multiple" ref="referrerList" >
-                                  <option  v-for="option in referrers" :value="option.id" v-bind:key="option.id">
+                                <select style="width:100%" disabled class="form-control input-sm" multiple="multiple" ref="referrerList" >
+                                  <option  v-for="option in call_email.referrer" :value="option.id" v-bind:key="option.id">
                                     {{ option.name }} 
                                   </option>
                                 </select>
@@ -811,11 +810,6 @@ export default {
     },
     addEventListeners: function() {
       let vm = this;
-      // Initialise select2 for referrer
-      $(document).ready(function() {
-          $(vm.$refs.referrerList).select2();
-      });
-
       let el_fr_date = $(vm.$refs.occurrenceDateFromPicker);
       let el_fr_time = $(vm.$refs.occurrenceTimeFromPicker);
       let el_to_date = $(vm.$refs.occurrenceDateToPicker);
