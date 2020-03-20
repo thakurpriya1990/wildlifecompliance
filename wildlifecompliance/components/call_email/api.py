@@ -706,6 +706,7 @@ class CallEmailViewSet(viewsets.ModelViewSet):
                 instance.inspection_type_id = None if not request.data.get('inspection_type_id') else request.data.get('inspection_type_id')
                 instance.case_priority_id = None if not request.data.get('case_priority_id') else request.data.get('case_priority_id')
                 instance.allocated_group_id = None if not request.data.get('allocated_group_id') else request.data.get('allocated_group_id')
+                instance.advice_details = None if not request.data.get('advice_details') else request.data.get('advice_details')
 
                 instance.save()
 

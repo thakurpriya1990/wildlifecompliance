@@ -216,7 +216,9 @@ export default {
           
           let payload = new FormData();
           payload.append('details', this.workflowDetails);
-          this.$refs.comms_log_file.commsLogId ? payload.append('legal_case_comms_log_id', this.$refs.comms_log_file.commsLogId) : null;
+          if (this.$refs.comms_log) {
+              this.$refs.comms_log_file.commsLogId ? payload.append('legal_case_comms_log_id', this.$refs.comms_log_file.commsLogId) : null;
+          }
           this.workflow_type ? payload.append('workflow_type', this.workflow_type) : null;
           //this.allocated_group_id ? payload.append('allocated_group_id', this.allocated_group_id) : null;
           /*
