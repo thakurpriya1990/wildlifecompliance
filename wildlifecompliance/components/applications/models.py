@@ -920,19 +920,28 @@ class Application(RevisionedMixin):
                         else:
                             self.set_activity_processing_status(
                                 activity["id"], ApplicationSelectedActivity.PROCESSING_STATUS_WITH_OFFICER)
-                        qs = DefaultCondition.objects.filter(
-                            licence_activity=activity["id"])
-                        if (qs):
-                            for q in qs:
-                                standard_condition = ApplicationStandardCondition.objects.get(id=q.standard_condition_id)
-                                ApplicationCondition.objects.create(
-                                    is_default=True,
-                                    standard=True,
-                                    standard_condition=standard_condition,
-                                    application=self,
-                                    licence_activity=LicenceActivity.objects.get(
-                                        id=activity["id"]),
-                                    return_type=standard_condition.return_type)
+                        '''
+                        Process Default Conditions for an Application.
+                        '''
+                        conditions = DefaultCondition.objects.filter(
+                            licence_activity=activity["id"]
+                            )
+
+                        for d in conditions:
+                            sc = ApplicationStandardCondition.objects.get(
+                                id=d.standard_condition_id
+                                )
+
+                            ac, c = ApplicationCondition.objects.get_or_create(
+                                is_default=True,
+                                standard=True,
+                                standard_condition=sc,
+                                application=self
+                            )
+                            ac.licence_activity = d.licence_activity
+                            ac.licence_purpose = d.licence_purpose
+                            ac.return_type = sc.return_type
+                            ac.save()
 
                 self.save()
                 officer_groups = ActivityPermissionGroup.objects.filter(
@@ -3573,11 +3582,19 @@ class ApplicationStandardCondition(RevisionedMixin):
 
 
 class DefaultCondition(OrderedModel):
-    comments = models.TextField(null=True, blank=True)
-    licence_activity = models.ForeignKey(
-        'wildlifecompliance.LicenceActivity', null=True)
     standard_condition = models.ForeignKey(
-        ApplicationStandardCondition, null=True)      
+        ApplicationStandardCondition,
+        related_name='default_condition', 
+        null=True)    
+    licence_activity = models.ForeignKey(
+        'wildlifecompliance.LicenceActivity',
+        related_name='default_activity', 
+        null=True)
+    licence_purpose = models.ForeignKey(
+        'wildlifecompliance.LicencePurpose',
+        related_name='default_purpose',
+        null=True)      
+    comments = models.TextField(null=True, blank=True)
 
     class Meta:
         app_label = 'wildlifecompliance'
