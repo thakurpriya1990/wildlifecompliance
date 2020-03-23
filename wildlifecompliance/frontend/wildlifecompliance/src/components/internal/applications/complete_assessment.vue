@@ -390,9 +390,8 @@ export default {
             });
         },
         showRequestInspectionButton: function() {
-            console.log('showrequestBustton')
-            console.log(this.application)
-            return true
+            let promptInspection = this.selectedActivity.is_inspection_required
+            return promptInspection && this.showCompleteAssessmentsButton
         },
         showAssignToAssessor: function(){
             return !this.showingApplication && this.canAssignAssessorFor(this.selectedActivity.licence_activity)

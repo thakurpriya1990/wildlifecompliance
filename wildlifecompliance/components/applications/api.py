@@ -1238,7 +1238,8 @@ class ApplicationViewSet(viewsets.ModelViewSet):
             # Render any Application Standard Conditions triggered from Form.
             ApplicationService.render_defined_conditions(
                 instance, request.data)
-            ApplicationService.render_defined_inspections(
+            # Set any special form fields on the Application schema.
+            ApplicationService.set_special_form_fields(
                 instance, request.data)
             # Send any relevant notifications.
             instance.alert_for_refund(request)

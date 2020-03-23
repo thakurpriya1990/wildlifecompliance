@@ -853,10 +853,7 @@ export default {
                 this.isSendingToAssessor=false
             }
             return (!this.showingApplication || !this.unfinishedActivities.length) && !this.isSendingToAssessor && !this.canIssueDecline
-        },
-        showRequestInspectionButton: function() {
-            return canProposeIssueOrDecline && isSendingToAssessor || isOfficerConditions;
-        },
+        }
     },
     methods: {
         ...mapActions({

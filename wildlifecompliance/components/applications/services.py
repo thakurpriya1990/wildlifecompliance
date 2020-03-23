@@ -16,6 +16,7 @@ from wildlifecompliance.components.licences.models import (
 
 from wildlifecompliance.components.applications.models import (
     Application,
+    ApplicationSelectedActivity,
     ApplicationFormDataRecord,
     ApplicationStandardCondition,
     ApplicationCondition,
@@ -125,6 +126,8 @@ class ApplicationService(object):
         Checks for Standard Conditions defined on the application schema. 
         Field answers can trigger the creation of standard conditions for an
         application.
+
+        NOTE: Redundant to be removed.
         """
         do_render_defined_conditions(application, form_data)
 
@@ -134,9 +137,25 @@ class ApplicationService(object):
         Checks for Inspections defined on the application schema. 
         Field answers can trigger the creation of an Inspection for an
         application.
+
+        TODO: Redundant to be removed.
         """
         attribute_check = ApplicationAttributeRenderer(application, form_data)
         attribute_check.render()
+
+    @staticmethod
+    def set_special_form_fields(application, form):
+        """
+        Set and Special Form Field Attributes on an Application Form.
+        """
+        # Set a visitor for CheckBox and RadioButton.
+        checkbox = CheckboxAndRadioButtonVisitor(application, form)
+        # Set PromptInspection Fields for Checkbox and RadioButtons.
+        for_inspection_fields = PromptInpsectionFieldElement()
+        for_inspection_fields.accept(checkbox)
+        # Set StandardCondition Fields for Checkbox and RadioButtons.
+        # for_condition_fields = StandardConditionFieldElement()
+        # for_condition_fields.accept(checkbox)
 
     @staticmethod
     def update_dynamic_attributes(application):
@@ -154,6 +173,286 @@ NOTE: This section for objects relate to Application Form rendering.
 """
 
 
+class ApplicationFormCompositor(object):
+    """
+    Declares an interface common to all supported Application Form algorithms.
+    A context can use this interface to call a specific algorithm to act on
+    a Special Field Element on a Application Form.
+    """
+    __metaclass__ = abc.ABCMeta
+
+    @abc.abstractmethod
+    def do_algorithm(self, special_field_element):
+        """
+        Performs an algorithm applicable to a Special Field Element.
+        """
+        pass
+
+
+class CheckboxAndRadioButtonCompositor(ApplicationFormCompositor):
+
+    def __init__(self, application, data_source):
+        self._application = application
+        self._data_source = data_source
+        self._children = set()
+
+    def do_algorithm(self, special_field_element):
+        self._field = special_field_element
+        self.render()
+
+    def render(self):
+
+        for selected_activity in self._application.activities:
+
+            selected_activity = self._field.reset(selected_activity)
+            selected_activity.save()
+
+            schema_fields = self._application.get_schema_fields_for_purposes(
+                selected_activity.purposes.values_list('id', flat=True)
+            )
+
+            # Adjustments based on selected options (radios and checkboxes)
+            adjusted_by_fields = {}
+            for form_data_record in self._data_source:
+                try:
+                    # Retrieve dictionary of fields from a model instance
+                    data_record = form_data_record.__dict__
+                except AttributeError:
+                    # If a raw form data (POST) is supplied, form_data_record
+                    # is a key
+                    data_record = self._data_source[form_data_record]
+
+                schema_name = data_record['schema_name']
+                if schema_name not in schema_fields:
+                    continue
+                schema_data = schema_fields[schema_name]
+
+                if 'options' in schema_data:
+                    for option in schema_data['options']:
+                        # Only modifications if the current option is selected
+                        if option['value'] != data_record['value']:
+                            continue
+                        self._field.parse_component(
+                            component=option,
+                            schema_name=schema_name,
+                            adjusted_by_fields=adjusted_by_fields,
+                            activity=selected_activity
+                        )
+
+                # If this is a checkbox - skip unchecked ones
+                elif data_record['value'] == 'on':
+                    self._field.parse_component(
+                        component=schema_data,
+                        schema_name=schema_name,
+                        adjusted_by_fields=adjusted_by_fields,
+                        activity=selected_activity
+                    )
+
+
+class ApplicationFormVisitor(object):
+
+    __metaclass__ = abc.ABCMeta
+
+    @abc.abstractmethod
+    def visit_prompt_inspection_field(self, prompt_inspection_field):
+        pass
+
+
+class CheckboxAndRadioButtonVisitor(ApplicationFormVisitor):
+    """
+    An implementation of an operation declared by ApplicationFormVisitor to do
+    an algorithm specific to Checkbox and Radio Buttons for a Form.
+
+    NOTE: Local state is stored and will accumulate during the traversal of the
+    Form.
+    """
+    def __init__(self, application, data_source):
+        self._application = application
+        self._data_source = data_source
+        # Apply a traversal strategy.
+        self._compositor = CheckboxAndRadioButtonCompositor(
+            application,
+            data_source
+        )
+
+    def visit_prompt_inspection_field(self, prompt_inspection_field):
+        self._prompt_inspection_field = prompt_inspection_field
+        self._compositor.do_algorithm(self._prompt_inspection_field)
+
+    def visit_standard_condition_field(self, standard_condition_field):
+        self._standard_condition_field = standard_condition_field
+        self._compositor.do_algorithm(self._standard_condition_field)
+
+    def visit_increase_application_fee_field(self, increase_fee_field):
+        self._increase_application_fee_field = increase_fee_field
+        self._compositor.do_algorithm(self._increase_application_fee_field)
+
+
+class SpecialFieldElement(object):
+    """
+    Special Field that defines an Accept operation that takes a
+    ApplicationFormVisitor as an argument.
+    """
+    __metaclass__ = abc.ABCMeta
+
+    @abc.abstractmethod
+    def accept(self, visitor):
+        pass
+
+
+class PromptInpsectionFieldElement(SpecialFieldElement):
+    """
+    An implementation of an SpecialFieldElement operation that takes a
+    ApplicationFormVisitor as an argument.
+    """
+    _NAME = 'PromptInspection'
+
+    def accept(self, application_form_visitor):
+        self._application = application_form_visitor._application
+        application_form_visitor.visit_prompt_inspection_field(self)
+
+    def reset(self, licence_activity):
+
+        if isinstance(licence_activity, ApplicationSelectedActivity):
+            licence_activity.is_inspection_required = False
+
+        return licence_activity
+
+    def parse_component(
+            self,
+            component,
+            schema_name,
+            adjusted_by_fields,
+            activity):
+
+        if set([self._NAME]).issubset(component):
+            activity.is_inspection_required = True
+            activity.save()
+
+    def __str__(self):
+        return 'Field Element: {0}'.format(self._NAME)
+
+
+class StandardConditionFieldElement(SpecialFieldElement):
+    """
+    An implementation of an SpecialFieldElement operation that takes a
+    ApplicationFormVisitor as an argument.
+    """
+    _NAME = 'StandardCondition'
+
+    def accept(self, application_form_visitor):
+        self._application = application_form_visitor._application
+        application_form_visitor.visit_standard_condition_field(self)
+
+    def reset(self, licence_activity):
+
+        if isinstance(licence_activity, ApplicationSelectedActivity):
+            ApplicationCondition.objects.filter(
+                application_id=self._application.id,
+                licence_activity_id=licence_activity.licence_activity_id,
+                is_rendered=True
+            ).delete()
+
+        return licence_activity
+
+    def parse_component(
+            self,
+            component,
+            schema_name,
+            adjusted_by_fields,
+            activity):
+
+        if set([self._NAME]).issubset(component):
+            condition = ApplicationStandardCondition.objects.filter(
+                code=component[self._NAME],
+                obsolete=False).first()
+            if condition:
+                ApplicationCondition.objects.create(
+                    standard_condition=condition,
+                    is_rendered=True,
+                    standard=True,
+                    application=self._application,
+                    licence_activity=LicenceActivity.objects.get(
+                        id=activity.licence_activity_id),
+                    return_type=condition.return_type)
+
+    def __str__(self):
+        return 'Field Element: {0}'.format(self._NAME)
+
+
+class IncreaseApplicationFeeFieldElement(SpecialFieldElement):
+    """
+    An implementation of an SpecialFieldElement operation that takes a
+    ApplicationFormVisitor as an argument.
+    """
+    _NAME = 'IncreaseApplicationFee'
+
+    def accept(self, application_form_visitor):
+        self._application = application_form_visitor._application
+        self._data_source = application_form_visitor._data_source
+        application_form_visitor.visit_prompt_inspection_field(self)
+
+        fee_policy = ApplicationFeePolicy.get_fee_policy_for(self._application)
+        if not self._data_source:  # No form data set fee from application fee.
+            fee_policy.set_application_fee()
+        self._dynamic_attributes = fee_policy.get_dynamic_attributes()
+
+    def reset(self, licence_activity):
+
+        if isinstance(licence_activity, ApplicationSelectedActivity):
+            self._dynamic_attributes[
+                'activity_attributes'][licence_activity] = {
+                    'fees': licence_activity.base_fees
+                }
+
+        return licence_activity
+
+    def parse_component(
+            self,
+            component,
+            schema_name,
+            adjusted_by_fields,
+            activity):
+
+        if set([self._NAME]).issubset(component):
+            def increase_fee(fees, field, amount):
+                fees[field] += amount
+                fees[field] = fees[field] if fees[field] >= 0 else 0
+                return True
+
+            fee_modifier_keys = {
+                'IncreaseLicenceFee': 'licence',
+                self._NAME: 'application',
+            }
+            increase_limit_key = 'IncreaseTimesLimit'
+            try:
+                increase_count = adjusted_by_fields[schema_name]
+            except KeyError:
+                increase_count = adjusted_by_fields[schema_name] = 0
+
+            if increase_limit_key in component:
+                max_increases = int(component[increase_limit_key])
+                if increase_count >= max_increases:
+                    return
+
+            adjustments_performed = sum(key in component and increase_fee(
+                self._dynamic_attributes['fees'],
+                field,
+                component[key]
+            ) and increase_fee(
+                self._dynamic_attributes[
+                    'activity_attributes'][activity]['fees'],
+                field,
+                component[key]
+            ) for key, field in fee_modifier_keys.items())
+
+            if adjustments_performed:
+                adjusted_by_fields[schema_name] += 1
+
+    def __str__(self):
+        return 'Field Element: {0}'.format(self._NAME)
+
+
 class ApplicationAttributeRenderer(object):
 
     def __init__(self, application, data_source):
@@ -168,19 +467,15 @@ class ApplicationAttributeRenderer(object):
             activity):
 
         if set(['PromptInspection']).issubset(component):
-            licence_activity = LicenceActivity.objects.get(
-                        id=activity.licence_activity_id)
-            licence_activity.is_inspection_required = True
-            licence_activity.save()
+            activity.is_inspection_required = True
+            activity.save()
 
     def render(self):
 
         for selected_activity in self._application.activities:
 
-            licence_activity = LicenceActivity.objects.get(
-                        id=selected_activity.licence_activity_id)
-            licence_activity.is_inspection_required = False
-            licence_activity.save()
+            selected_activity.is_inspection_required = False
+            selected_activity.save()
 
             schema_fields = self._application.get_schema_fields_for_purposes(
                 selected_activity.purposes.values_list('id', flat=True)
@@ -339,6 +634,9 @@ def do_process_form(
 
 
 def do_render_defined_conditions(application, data_source):
+    """
+    TODO: Redundant to be removed.
+    """
 
     def parse_component(
             component,
