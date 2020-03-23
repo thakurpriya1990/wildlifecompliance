@@ -13,7 +13,7 @@
                 <label class="">Call/Email Classification</label>
                 <select class="form-control" v-model="filterClassification">
                     <option v-for="option in classification_types" :value="option.id" v-bind:key="option.id">
-                        {{ option.name }} 
+                        {{ option.name }}
                     </option>
                 </select>
             </div>
@@ -149,10 +149,10 @@ L.TileLayer.WMTS = L.TileLayer.extend({
         }
         return this;
     },
-    
+
     getDefaultMatrix : function () {
         /**
-         * the matrix3857 represents the projection 
+         * the matrix3857 represents the projection
          * for in the IGN WMTS for the google coordinates.
          */
         var matrixIds3857 = new Array(22);
@@ -195,7 +195,7 @@ module.exports = {
 
             /*
              * Filers:
-             * value of the "value" attribute of the option is stored. 
+             * value of the "value" attribute of the option is stored.
              * The value of this is used queryset.filter() in the backend.
              */
             filterStatus: 'all',
@@ -206,6 +206,7 @@ module.exports = {
             classification_types: [],
             status_choices: [],
             cursor_location: null,
+            mapboxAccessToken: null,
         }
     },
     created: async function() {
@@ -216,6 +217,10 @@ module.exports = {
         let returned_status_choices = await cache_helper.getSetCacheList('CallEmail_StatusChoices', '/api/call_email/status_choices');
         Object.assign(this.status_choices, returned_status_choices);
         this.status_choices.splice(0, 0, {id: 'all', display: 'All'});
+
+        await this.MapboxAccessToken.then(data => {
+            this.mapboxAccessToken = data
+        });
     },
     mounted(){
         let vm = this;
@@ -324,7 +329,8 @@ module.exports = {
 
             var latlng = this.map.getCenter();
             $.ajax({
-                url: 'https://mapbox.dpaw.wa.gov.au/geocoding/v5/mapbox.places/'+encodeURIComponent(place)+'.json?'+ $.param({
+                url: api_endpoints.geocoding_address_search + encodeURIComponent(place)+'.json?'+ $.param({
+                    access_token: self.mapboxAccessToken,
                     country: 'au',
                     limit: 10,
                     proximity: ''+latlng.lng+','+latlng.lat,
@@ -338,7 +344,7 @@ module.exports = {
                     if (data.features && data.features.length > 0){
                         for (var i = 0; i < data.features.length; i++){
                             self.suggest_list.push({ label: data.features[i].place_name,
-                                                     value: data.features[i].place_name, 
+                                                     value: data.features[i].place_name,
                                                      feature: data.features[i]
                                                      });
                         }
