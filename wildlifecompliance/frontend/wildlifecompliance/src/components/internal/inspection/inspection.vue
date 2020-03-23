@@ -4,15 +4,15 @@
         <div class="col-md-3">
           <h3>Inspection: {{ inspection.number }}</h3>
         </div>
-        
+
       </div>
           <div class="col-md-3">
             <CommsLogs :comms_url="comms_url" :logs_url="logs_url" :comms_add_url="comms_add_url" :disable_add_entry="false"/>
-            
+
             <div class="row">
                 <div class="panel panel-default">
                     <div class="panel-heading">
-                        Workflow 
+                        Workflow
                     </div>
                     <div class="panel-body panel-collapse">
                         <div class="row">
@@ -32,14 +32,14 @@
                             <div v-if="statusId === 'open'" class="col-sm-12">
                               <select :disabled="!inspection.user_in_group" class="form-control" v-model="inspection.assigned_to_id" @change="updateAssignedToId()">
                                 <option  v-for="option in inspection.inspection_team" :value="option.id" v-bind:key="option.id">
-                                  {{ option.full_name }} 
+                                  {{ option.full_name }}
                                 </option>
                               </select>
                             </div>
                             <div v-else class="col-sm-12">
                               <select :disabled="!inspection.user_in_group" class="form-control" v-model="inspection.assigned_to_id" @change="updateAssignedToId()">
                                 <option  v-for="option in inspection.allocated_group" :value="option.id" v-bind:key="option.id">
-                                  {{ option.full_name }} 
+                                  {{ option.full_name }}
                                 </option>
                               </select>
                             </div>
@@ -56,10 +56,10 @@
             <div class="row">
                 <div class="panel panel-default">
                     <div class="panel-heading">
-                        Action 
+                        Action
                     </div>
                     <div class="panel-body panel-collapse">
-                        
+
                         <!--div v-if="statusId ==='open' && this.call_email.can_user_action" class="row action-button">
                           <div class="col-sm-12">
                                 <a ref="save" @click="save()" class="btn btn-primary btn-block">
@@ -75,7 +75,7 @@
                                 </a>
                           </div>
                         </div>
-                        
+
                         <div class="row action-button">
                           <div v-if="endorseVisibility" class="col-sm-12">
                                 <a ref="close" @click="addWorkflow('endorse')" class="btn btn-primary btn-block">
@@ -83,7 +83,7 @@
                                 </a>
                           </div>
                         </div>
-                        
+
                         <div class="row action-button">
                           <div v-if="requestAmendmentVisibility" class="col-sm-12">
                                 <a ref="close" @click="addWorkflow('request_amendment')" class="btn btn-primary btn-block">
@@ -91,7 +91,7 @@
                                 </a>
                           </div>
                         </div>
-                        
+
                         <div class="row action-button">
                           <div v-if="offenceVisibility" class="col-sm-12">
                                 <a @click="open_offence()" class="btn btn-primary btn-block">
@@ -107,7 +107,7 @@
                                 </a>
                           </div>
                         </div>
-                        
+
                         <!--div  class="row action-button">
                           <div v-if="!readonlyForm" class="col-sm-12">
                                 <a ref="close" @click="addWorkflow('close')" class="btn btn-primary btn-block">
@@ -121,10 +121,10 @@
             </div>
 
 
-            
+
           </div>
 
-          <div class="col-md-9" id="main-column">  
+          <div class="col-md-9" id="main-column">
             <div class="row">
 
                 <div class="container-fluid">
@@ -139,7 +139,7 @@
                         <div :id="iTab" class="tab-pane fade in active">
 
                           <FormSection :formCollapse="false" label="Inspection Details" Index="0">
-                            
+
                             <div class="form-group">
                               <div class="row">
                                 <div class="col-sm-3">
@@ -185,7 +185,7 @@
                                         </span>
                                     </div>
                                 </div>
-                                
+
                                 <label class="col-sm-3">Planned for (Time)</label>
                                 <div class="col-sm-3">
                                     <div class="input-group date" id="plannedForTimePicker">
@@ -203,15 +203,15 @@
                                     <input :disabled="readonlyForm" class="col-sm-1" id="organisation" type="radio" v-model="inspection.party_inspected" v-bind:value="`organisation`">
                                     <label class="col-sm-1" for="organisation">Organisation</label>
                             </div></div-->
-                            
+
                             <div class="form-group"><div class="row">
-                                    <SearchPersonOrganisation 
+                                    <SearchPersonOrganisation
                                     :parentEntity="inspectedEntity"
-                                    :excludeStaff="true" 
-                                    :isEditable="!readonlyForm" 
-                                    classNames="form-control" 
-                                    :initialSearchType="inspection.party_inspected" 
-                                    @entity-selected="entitySelected" 
+                                    :excludeStaff="true"
+                                    :isEditable="!readonlyForm"
+                                    classNames="form-control"
+                                    :initialSearchType="inspection.party_inspected"
+                                    @entity-selected="entitySelected"
                                     showCreateUpdate
                                     ref="search_person_organisation"
                                     v-bind:key="updateSearchPersonOrganisationBindId"/>
@@ -233,7 +233,7 @@
                             <div class="form-group"><div class="row">
                               <label class="col-sm-4" for="inspection_inform">Inform party being inspected</label>
                               <input :disabled="readonlyForm" type="checkbox" id="inspection_inform" v-model="inspection.inform_party_being_inspected">
-                              
+
                             </div></div>
                           </FormSection>
                           <FormSection :formCollapse="false" label="Inspection Team" Index="1">
@@ -263,9 +263,9 @@
                                 </div>
                             </div></div>
                           </FormSection>
-            
-                          
-                        </div>  
+
+
+                        </div>
 
                         <div :id="lTab" class="tab-pane fade in">
                             <FormSection :formCollapse="false" label="Location">
@@ -323,12 +323,12 @@
                                             <label class="control-label pull-left"  for="Name">Inspection Report</label>
                                         </div>
                                         <div class="col-sm-9" v-if="inspection.inspectionReportDocumentUrl">
-                                            <filefield 
-                                            ref="inspection_report_file" 
-                                            name="inspection-report-file" 
-                                            :isRepeatable="false" 
-                                            :documentActionUrl="inspection.inspectionReportDocumentUrl" 
-                                            @update-parent="loadInspectionReport" 
+                                            <filefield
+                                            ref="inspection_report_file"
+                                            name="inspection-report-file"
+                                            :isRepeatable="false"
+                                            :documentActionUrl="inspection.inspectionReportDocumentUrl"
+                                            @update-parent="loadInspectionReport"
                                             :readonly="readonlyForm"/>
                                         </div>
                                     </div>
@@ -345,10 +345,10 @@
                             </FormSection>
                         </div>
                     </div>
-                </div>       
+                </div>
 
 
-            </div>          
+            </div>
           </div>
 
         <div v-if="inspection.can_user_action" class="navbar navbar-fixed-bottom" style="background-color: #f5f5f5 ">
@@ -365,12 +365,12 @@
           <InspectionWorkflow ref="add_workflow" :workflow_type="workflow_type" v-bind:key="workflowBindId" />
         </div-->
         <div v-if="offenceInitialised">
-            <Offence 
-            ref="offence" 
-            :parent_update_function="loadInspection" 
-            :region_id="inspection.region_id" 
-            :district_id="inspection.district_id" 
-            :allocated_group_id="inspection.allocated_group_id" 
+            <Offence
+            ref="offence"
+            :parent_update_function="loadInspection"
+            :region_id="inspection.region_id"
+            :district_id="inspection.district_id"
+            :allocated_group_id="inspection.allocated_group_id"
             v-bind:key="offenceBindId" />
         </div>
         <div v-if="sanctionOutcomeInitialised">
@@ -444,7 +444,7 @@ export default {
                       if (!row.Action.readonlyForm) {
                           if (row.Action.action === 'Member') {
                               links = '<a href="#" class="make_team_lead" data-member-id="' + row.Action.id + '">Make Team Lead</a><br>'
-                          } 
+                          }
                           if (row.Action.can_remove) {
                               links += '<a href="#" class="remove_button" data-member-id="' + row.Action.id + '">Remove</a>'
                           }
@@ -457,7 +457,7 @@ export default {
           ]
       },
       workflow_type: '',
-      
+
       sectionLabel: "Details",
       sectionIndex: 1,
       pBody: "pBody" + this._uid,
@@ -657,7 +657,7 @@ export default {
     ...mapActions('inspectionStore', {
       loadInspection: 'loadInspection',
       saveInspection: 'saveInspection',
-      setInspection: 'setInspection', 
+      setInspection: 'setInspection',
       setPlannedForTime: 'setPlannedForTime',
       // modifyInspectionTeam: 'modifyInspectionTeam',
       setPartyInspected: 'setPartyInspected',
@@ -683,8 +683,9 @@ export default {
           var self = this;
 
           $.ajax({
-            url: "https://mapbox.dpaw.wa.gov.au/geocoding/v5/mapbox.places/" + coordinates_4326.lng + "," + coordinates_4326.lat + ".json?" +
+            url: api_endpoints.geocoding_address_search + coordinates_4326.lng + "," + coordinates_4326.lat + ".json?" +
               $.param({
+                    access_token: self.mapboxAccessToken,
                 limit: 1,
                 types: "address"
               }),
@@ -806,11 +807,11 @@ export default {
     },
     modifyInspectionTeam: async function({user_id, action}) {
         let inspectionTeamUrl = helpers.add_endpoint_join(
-            api_endpoints.inspection, 
+            api_endpoints.inspection,
             this.inspection.id + '/modify_inspection_team/'
             );
         let payload = {
-            'user_id': user_id, 
+            'user_id': user_id,
             'action': action
         }
 
@@ -848,13 +849,13 @@ export default {
                     this.inspection.inspection_type_id + '/get_schema',
                     );
       let returned_schema = await cache_helper.getSetCache(
-        'InspectionTypeSchema', 
+        'InspectionTypeSchema',
         this.inspection.id.toString(),
         url);
       if (returned_schema) {
         this.current_schema = returned_schema.schema;
       }
-        
+
       });
     },
 
@@ -878,7 +879,7 @@ export default {
     },
     addTeamMember: async function() {
         await this.modifyInspectionTeam({
-            user_id: this.teamMemberSelected, 
+            user_id: this.teamMemberSelected,
             action: 'add'
         });
     },
@@ -892,7 +893,7 @@ export default {
     makeTeamLead: async function(e) {
         let memberId = e.target.getAttribute("data-member-id");
         await this.modifyInspectionTeam({
-            user_id: memberId, 
+            user_id: memberId,
             action: 'make_team_lead'
         });
     },
@@ -1026,7 +1027,7 @@ export default {
     },
     updateAssignedToId: async function (user) {
         let url = helpers.add_endpoint_join(
-            api_endpoints.inspection, 
+            api_endpoints.inspection,
             this.inspection.id + '/update_assigned_to_id/'
             );
         let payload = null;
@@ -1041,7 +1042,7 @@ export default {
             url,
             payload
         );
-        await this.setInspection(res.body); 
+        await this.setInspection(res.body);
         this.$nextTick(() => {
             this.constructInspectionTeamTable();
         });
@@ -1107,7 +1108,7 @@ export default {
                           let selected = $(e.currentTarget);
                           vm.teamMemberSelected = selected.val();
                       });
-      
+
       this.$nextTick(async () => {
           this.addEventListeners();
           this.constructInspectionTeamTable();
