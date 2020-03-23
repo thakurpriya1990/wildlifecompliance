@@ -206,6 +206,7 @@ module.exports = {
             classification_types: [],
             status_choices: [],
             cursor_location: null,
+            mapboxAccessToken: null,
         }
     },
     created: async function() {
@@ -216,6 +217,10 @@ module.exports = {
         let returned_status_choices = await cache_helper.getSetCacheList('CallEmail_StatusChoices', '/api/call_email/status_choices');
         Object.assign(this.status_choices, returned_status_choices);
         this.status_choices.splice(0, 0, {id: 'all', display: 'All'});
+
+        await this.MapboxAccessToken.then(data => {
+            this.mapboxAccessToken = data
+        });
     },
     mounted(){
         let vm = this;
@@ -324,7 +329,9 @@ module.exports = {
 
             var latlng = this.map.getCenter();
             $.ajax({
-                url: 'https://mapbox.dpaw.wa.gov.au/geocoding/v5/mapbox.places/'+encodeURIComponent(place)+'.json?'+ $.param({
+                //url: 'https://mapbox.dpaw.wa.gov.au/geocoding/v5/mapbox.places/'+encodeURIComponent(place)+'.json?'+ $.param({
+                url: api_endpoints.geocoding_address_search + encodeURIComponent(place)+'.json?'+ $.param({
+                    access_token: self.mapboxAccessToken,
                     country: 'au',
                     limit: 10,
                     proximity: ''+latlng.lng+','+latlng.lat,
