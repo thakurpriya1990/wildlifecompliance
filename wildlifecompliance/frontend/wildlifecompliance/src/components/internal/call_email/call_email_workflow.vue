@@ -161,6 +161,8 @@ export default {
                     required,
                 },
             }
+        } else if (this.workflow_type === 'close') {
+            return {}
         } else {
             return {
                 region_id: {
@@ -357,6 +359,7 @@ export default {
           
           this.call_email.id ? payload.append('call_email_id', this.call_email.id) : null;
           this.workflowDetails ? payload.append('details', this.workflowDetails) : null;
+          this.advice_details ? payload.append('advice_details', this.advice_details) : null;
           this.$refs.comms_log_file.commsLogId ? payload.append('call_email_comms_log_id', this.$refs.comms_log_file.commsLogId) : null;
           this.workflow_type ? payload.append('workflow_type', this.workflow_type) : null;
           this.modalTitle ? payload.append('email_subject', this.modalTitle) : null;
@@ -414,6 +417,26 @@ export default {
               'name': ''
           })
       },
+      addEventListeners: function() {
+        let vm = this;
+        // Initialise select2 for referrer
+        $(document).ready(function() {
+            //$(vm.$refs.referrerList).select2();
+            $(vm.$refs.referrerList).select2({
+                "theme": "bootstrap",
+                allowClear: true,
+                placeholder:"Select Referrer"
+                        }).
+            on("select2:select",function (e) {
+                                const selected = $(e.currentTarget);
+                                vm.referrersSelected = selected.val();
+                           }).
+            on("select2:unselect",function (e) {
+                                const selected = $(e.currentTarget);
+                                vm.referrersSelected = selected.val();
+                            });
+        });
+      },
     },
     created: async function() {
         
@@ -455,23 +478,9 @@ export default {
     },
     mounted: function() {
         this.form = document.forms.forwardForm;
-        
-        // Initialise select2 for region
-        let vm = this;
-        $(vm.$refs.referrerList).select2({
-            "theme": "bootstrap",
-            allowClear: true,
-            placeholder:"Select Referrer"
-                    }).
-        on("select2:select",function (e) {
-                            var selected = $(e.currentTarget);
-                            vm.referrersSelected = selected.val();
-                        }).
-        on("select2:unselect",function (e) {
-                            var selected = $(e.currentTarget);
-                            vm.referrersSelected = selected.val();
-                        });
-      
+        this.$nextTick(() => {
+            this.addEventListeners();
+        });
     }
 };
 </script>
