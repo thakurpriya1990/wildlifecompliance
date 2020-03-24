@@ -461,7 +461,7 @@ class CallEmailViewSet(viewsets.ModelViewSet):
                     returned_location = save_location(location_request_data)
                     if returned_location:
                         request_data.update({'location_id': returned_location.get('id')})
-                
+
                 if request_data.get('report_type'):
                     request_data.update({'report_type_id': request_data.get('report_type', {}).get('id')})
 
@@ -616,6 +616,7 @@ class CallEmailViewSet(viewsets.ModelViewSet):
     #@detail_route(methods=['POST', ])
     #def call_email_save(self, request, *args, **kwargs):
     def update(self, request, *args, **kwargs):
+        print(request.data)
         instance = self.get_object()
         try:
             with transaction.atomic():
@@ -636,8 +637,11 @@ class CallEmailViewSet(viewsets.ModelViewSet):
                 if request_data.get('renderer_data'):
                     self.form_data(request)
 
-                if request_data.get('report_type'):
-                    request_data.update({'report_type_id': request_data.get('report_type', {}).get('id')})
+                if request_data.get('report_type_id'):
+                    if request_data.get('report_type_id') == 'blank':
+                        request_data.update({'report_type_id': None})
+                    else:
+                        request_data.update({'report_type_id': request_data.get('report_type', {}).get('id')})
 
                 serializer = SaveCallEmailSerializer(instance, data=request_data)
                 serializer.is_valid(raise_exception=True)
@@ -791,6 +795,14 @@ class ClassificationViewSet(viewsets.ModelViewSet):
         if is_internal(self.request):
             return Classification.objects.all()
         return Classification.objects.none()
+
+    @list_route(methods=['GET', ])    
+    def classification_choices(self, request, *args, **kwargs):
+        res_obj = [] 
+        for choice in Classification.NAME_CHOICES:
+            res_obj.append({'id': choice[0], 'display': choice[1]});
+        res_json = json.dumps(res_obj)
+        return HttpResponse(res_json, content_type='application/json')
 
 
 class ReferrerViewSet(viewsets.ModelViewSet):
