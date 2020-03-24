@@ -125,11 +125,11 @@ export default {
     methods:{
         multipleSelection: function(val){
             if (Array.isArray(this.options)){
-                if (this.value.find(v => v == val)){
+                if (this.species.find(v => v == val)){
                     return true;
                 }
             }else{
-                if (this.value == val){return true;}
+                if (this.species == val){return true;}
             }
             return false;
         },
