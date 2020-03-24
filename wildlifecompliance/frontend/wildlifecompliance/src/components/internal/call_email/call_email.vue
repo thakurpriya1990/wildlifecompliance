@@ -203,7 +203,7 @@
                               </div>
                           </FormSection>
             
-                          <FormSection :formCollapse="true" label="Details" Index="2">
+                          <FormSection :formCollapse="false" label="Details" Index="2">
                             <div class="col-sm-12 form-group"><div class="row">
                                 <label class="col-sm-3">Date of call</label>
                                 <div class="col-sm-3">
