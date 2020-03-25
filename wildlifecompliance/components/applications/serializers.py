@@ -12,6 +12,7 @@ from wildlifecompliance.components.applications.models import (
     AmendmentRequest,
     ApplicationSelectedActivity,
     ApplicationFormDataRecord,
+    AssessmentInspection,
 )
 from wildlifecompliance.components.organisations.models import (
     Organisation
@@ -304,7 +305,6 @@ class ActivityPermissionGroupSerializer(serializers.ModelSerializer):
 class AssessmentSerializer(serializers.ModelSerializer):
     assessor_group = ActivityPermissionGroupSerializer(read_only=True)
     status = CustomChoiceField(read_only=True)
-    inspection_report = serializers.FileField()
     assessors = EmailUserAppViewSerializer(many=True)
     assigned_assessor = EmailUserSerializer()  
 
@@ -317,10 +317,7 @@ class AssessmentSerializer(serializers.ModelSerializer):
             'date_last_reminded',
             'status',
             'licence_activity',
-            'inspection_comment',
             'final_comment',
-            'inspection_date',
-            'inspection_report',
             'is_inspection_required',
             'assessors',
             'assigned_assessor',
@@ -328,15 +325,11 @@ class AssessmentSerializer(serializers.ModelSerializer):
 
 
 class SimpleSaveAssessmentSerializer(serializers.ModelSerializer):
-    inspection_report = serializers.FileField()
 
     class Meta:
         model = Assessment
         fields = (
-            'inspection_comment',
             'final_comment',
-            'inspection_date',
-            'inspection_report',
             'is_inspection_required',
             )
 

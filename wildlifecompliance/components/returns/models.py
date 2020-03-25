@@ -1256,3 +1256,12 @@ class ReturnInvoice(models.Model):
         except Invoice.DoesNotExist:
             pass
         return False
+
+
+'''
+NOTE: REGISTER MODELS FOR REVERSION HERE.
+'''
+import reversion
+reversion.register(Return)
+reversion.register(ReturnTable)
+reversion.register(ReturnRow)
