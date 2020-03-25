@@ -137,7 +137,7 @@ L.TileLayer.WMTS = L.TileLayer.extend({
 
     getDefaultMatrix : function () {
         /**
-         * the matrix3857 represents the projection 
+         * the matrix3857 represents the projection
          * for in the IGN WMTS for the google coordinates.
          */
         var matrixIds3857 = new Array(22);
@@ -172,6 +172,7 @@ module.exports = {
         vm.ajax_for_location = null;
 
         return {
+            mapboxAccessToken: null,
             map: null,
             tileLayer: null, // Base layer (Open street map)
             tileLayerSat: null, // Base layer (satelllite)
@@ -180,7 +181,7 @@ module.exports = {
 
             /*
              * Filers:
-             * value of the "value" attribute of the option is stored. 
+             * value of the "value" attribute of the option is stored.
              * The value of this is used queryset.filter() in the backend.
              */
             filterInspectionType: 'all',
@@ -202,6 +203,10 @@ module.exports = {
         console.log(returned_inspection_types);
         Object.assign(this.type_choices, returned_inspection_types);
         this.type_choices.splice(0, 0, {id: 'all', inspection_type: 'All'});
+
+        await this.MapboxAccessToken.then(data => {
+            this.mapboxAccessToken = data
+        });
     },
     mounted(){
         let vm = this;
@@ -310,7 +315,8 @@ module.exports = {
 
             var latlng = this.map.getCenter();
             $.ajax({
-                url: 'https://mapbox.dpaw.wa.gov.au/geocoding/v5/mapbox.places/'+encodeURIComponent(place)+'.json?'+ $.param({
+                url: api_endpoints.geocoding_address_search + encodeURIComponent(place)+'.json?'+ $.param({
+                    access_token: self.mapboxAccessToken,
                     country: 'au',
                     limit: 10,
                     proximity: ''+latlng.lng+','+latlng.lat,
@@ -324,7 +330,7 @@ module.exports = {
                     if (data.features && data.features.length > 0){
                         for (var i = 0; i < data.features.length; i++){
                             self.suggest_list.push({ label: data.features[i].place_name,
-                                                     value: data.features[i].place_name, 
+                                                     value: data.features[i].place_name,
                                                      feature: data.features[i]
                                                      });
                         }
