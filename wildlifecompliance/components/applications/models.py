@@ -3571,7 +3571,10 @@ class ApplicationStandardCondition(RevisionedMixin):
     text = models.TextField()
     code = models.CharField(max_length=10, unique=True)
     obsolete = models.BooleanField(default=False)
-    return_type = models.ForeignKey('wildlifecompliance.ReturnType', null=True, blank=True)
+    return_type = models.ForeignKey(
+        'wildlifecompliance.ReturnType', null=True, blank=True)
+    additional_information = models.TextField(
+        max_length=1024, null=True, blank=True)
 
     def __str__(self):
         return self.code
