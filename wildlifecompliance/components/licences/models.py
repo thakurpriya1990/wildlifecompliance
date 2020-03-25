@@ -179,23 +179,23 @@ class LicencePurpose(models.Model):
         return options
 
 
-class LicencePurposeDetail(OrderedModel):
-    detail = models.CharField(max_length=100)
-    purpose = models.ForeignKey(
-        LicencePurpose,
-        on_delete=models.CASCADE,
-        related_name='additional_information'
-    )
-    index = models.PositiveSmallIntegerField(default=0)
+# class LicencePurposeDetail(OrderedModel):
+#     detail = models.CharField(max_length=100)
+#     purpose = models.ForeignKey(
+#         LicencePurpose,
+#         on_delete=models.CASCADE,
+#         related_name='additional_information'
+#     )
+#     index = models.PositiveSmallIntegerField(default=0)
 
-    class Meta:
-        ordering = ['purpose', 'index']
-        app_label = 'wildlifecompliance'
-        verbose_name = 'Licence purpose additional information'
-        verbose_name_plural = 'Licence purpose additional information'
+#     class Meta:
+#         ordering = ['purpose', 'index']
+#         app_label = 'wildlifecompliance'
+#         verbose_name = 'Licence purpose additional information'
+#         verbose_name_plural = 'Licence purpose additional information'
 
-    def __str__(self):
-        return 'Detail for purpose {}'.format(self.purpose.id)
+#     def __str__(self):
+#         return 'Detail for purpose {}'.format(self.purpose.id)
 
 
 class LicenceActivity(models.Model):
@@ -825,10 +825,11 @@ class WildlifeLicence(models.Model):
     @property
     def has_additional_information(self):
         has_info = False
-        for a in self.current_activities:
-            for p in a.issued_purposes:
-                if p.additional_information:
-                    return True
+        conditions = self.current_application.conditions.all()
+        for condition in conditions:
+            if condition.standard_condition.additional_information:
+                has_info = True
+
         return has_info
 
     def generate_doc(self):
@@ -891,4 +892,3 @@ reversion.register(LicenceActivity)
 reversion.register(LicenceCategory)
 reversion.register(LicenceDocument)
 reversion.register(LicencePurpose)
-reversion.register(LicencePurposeDetail)

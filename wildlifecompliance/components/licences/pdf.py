@@ -306,12 +306,12 @@ def _create_licence(licence_buffer, licence, application):
             address = application.submitter.residential_address
 
         address_paragraphs = [
-            Paragraph(address.line1, styles['Left']), 
-            Paragraph(address.line2, styles['Left']), 
-            Paragraph(address.line3, styles['Left']), 
+            Paragraph(address.line1, styles['Left']),
+            Paragraph(address.line2, styles['Left']),
+            Paragraph(address.line3, styles['Left']),
             Paragraph('%s %s %s' % (
-                address.locality, address.state, 
-                address.postcode), styles['Left']), 
+                address.locality, address.state,
+                address.postcode), styles['Left']),
             Paragraph(address.country.name, styles['Left'])
             ]
 
@@ -419,16 +419,19 @@ def _create_licence(licence_buffer, licence, application):
                 'Additional Information', styles['BoldLeft']))
             elements.append(Spacer(1, SECTION_BUFFER_HEIGHT))
 
-            purposes = [[p for p in a.issued_purposes] for a in licence.current_activities]
-
+            conditions = licence.current_application.conditions.all()
             infos = []
-            for p in purposes[0]:
-                info = p.additional_information
-                infos = [i for i in info.order_by('index').all()]
+            c_num = 1
+            for c_id, condition in enumerate(conditions.order_by('order')):
+                info = condition.standard_condition.additional_information
+                c_num = c_num + c_id
+                if info:
+                    infos.append('{0} (related to condition no.{1})'.format(
+                        info.encode('utf8'), c_num))
 
             infoList = ListFlowable(
-                [Paragraph("{name}".format(
-                    name=i.detail,
+                [Paragraph("{info}".format(
+                    info=i,
                 ), styles['Left'],) for i in infos],
                 bulletFontName=BOLD_FONTNAME, bulletFontSize=MEDIUM_FONTSIZE)
             elements.append(infoList)
