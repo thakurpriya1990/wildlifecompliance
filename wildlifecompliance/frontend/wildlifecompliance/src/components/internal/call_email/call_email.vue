@@ -291,8 +291,8 @@
                             <div class="col-sm-12 form-group"><div class="row">
                               <label class="col-sm-4">Classification</label>
                               <select :disabled="readonlyForm" class="form-control" v-model="call_email.classification_id">
-                                    <option v-for="option in classification_types" :value="option.id" v-bind:key="option.id">
-                                      {{ option.name }} 
+                                    <option v-for="option in classification_types" :value="option.display" v-bind:key="option.id">
+                                      {{ option.display }} 
                                     </option>
                                 </select>
                             </div></div>
@@ -311,7 +311,7 @@
                                         <label class="col-sm-2 advice-url-label">None </label>
                                     </div>
                                     <div class="row">
-                                        <a class="advice-url" :href="this.reportAdviceUrl" target="_blank" >Click for advice</a>
+                                        <a v-if="reportAdviceUrl" class="advice-url" :href="reportAdviceUrl" target="_blank" >Advice</a>
                                     </div>
                                 </div>
                             </div>
@@ -465,6 +465,7 @@ export default {
       //allocated_group: [],
       current_schema: [],
       regionDistricts: [],
+      reportAdviceUrl: '',
       sectionLabel: "Details",
       sectionIndex: 1,
       pBody: "pBody" + this._uid,
@@ -603,13 +604,6 @@ export default {
         // return false if no related item is an Offence
         return false
     },
-    reportAdviceUrl: function() {
-        if (this.call_email.report_type) {
-            return this.call_email.report_type.advice_url;
-        } else {
-            return null;
-        }
-    },
     relatedItemsBindId: function() {
         let timeNow = Date.now()
         if (this.call_email && this.call_email.id) {
@@ -666,6 +660,12 @@ export default {
         console.log(para);
         await this.setCaller(para);
     },
+    loadReportAdviceUrl: function(url) {
+        if (!this.reportAdviceUrl && this.call_email && this.call_email.report_type) {
+            this.reportAdviceUrl = url;
+        }
+    },
+
     formChanged: function(){
         let changed = false;
         let copiedCallEmail = {};
@@ -774,20 +774,31 @@ export default {
       await this.saveCallEmail({ route: false, crud: 'duplicate'});
     },
     loadSchema: function() {
-      this.$nextTick(async function() {
-      let url = helpers.add_endpoint_json(
-                    api_endpoints.report_types,
-                    this.call_email.report_type_id + '/get_schema',
-                    );
-      let returned_schema = await cache_helper.getSetCache(
-        'CallEmail_ReportTypeSchema', 
-        this.call_email.id.toString(), 
-        url);
-      if (returned_schema) {
-        this.current_schema = returned_schema.schema;
+      if (this.call_email.report_type_id) {
+          this.$nextTick(async function() {
+              let url = helpers.add_endpoint_json(
+                            api_endpoints.report_types,
+                            this.call_email.report_type_id + '/get_schema',
+                            );
+              let returnedData = await Vue.http.get(url);
+              let returnedSchema = returnedData.body.schema;
+              let returnedAdviceUrl = returnedData.body.adviceurl;
+              /*
+              let returned_schema = await cache_helper.getSetCache(
+                'CallEmail_ReportTypeSchema', 
+                this.call_email.id.toString(), 
+                url);
+              */
+              if (returnedSchema) {
+                this.current_schema = returnedSchema;
+              }
+              if (returnedAdviceUrl) {
+                  this.reportAdviceUrl = returnedAdviceUrl;
+              }
+          });
+      } else {
+          this.current_schema = [];
       }
-        
-      });
     },
     updateAssignedToId: async function (user) {
         let url = helpers.add_endpoint_join(
@@ -905,8 +916,9 @@ export default {
     // await this.loadComplianceAllocatedGroup(this.call_email.allocated_group_id);
     // load drop-down select lists
     // classification_types
-    let returned_classification_types = await cache_helper.getSetCacheList('CallEmail_ClassificationTypes', '/api/classification.json');
-    Object.assign(this.classification_types, returned_classification_types);
+    //let returned_classification_types = await cache_helper.getSetCacheList('CallEmail_ClassificationTypes', '/api/classification/classification_choices/');
+    let returned_classification_types = await Vue.http.get('/api/classification/classification_choices/');
+    Object.assign(this.classification_types, returned_classification_types.body);
     // blank entry allows user to clear selection
     this.classification_types.splice(0, 0, 
       {
@@ -941,8 +953,11 @@ export default {
     //Object.assign(this.referrersSelected, this.call_email.selected_referrers)
 
     // load current CallEmail renderer schema
-    if (this.call_email.report_type_id) {
+    if (this.call_email && this.call_email.report_type_id) {
       await this.loadSchema();
+    }
+    if (this.call_email && this.call_email.report_type && this.call_email.report_type.advice_url) {
+        this.loadReportAdviceUrl(this.call_email.report_type.advice_url);
     }
 
     // regionDistricts

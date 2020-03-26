@@ -86,12 +86,13 @@ class ReportType(models.Model):
     replaced_by = models.ForeignKey(
         'self', on_delete=models.PROTECT, blank=True, null=True)
     date_created = models.DateTimeField(auto_now_add=True, null=True)
-    advice_url = models.CharField(max_length=255, blank=True, null=True, help_text="Should start with http://")
+    #advice_url = models.CharField(max_length=255, blank=True, null=True, help_text="Should start with http://")
+    advice_url = models.URLField(max_length=255, blank=True, null=True)
 
     class Meta:
         app_label = 'wildlifecompliance'
-        verbose_name = 'CM_ReportType'
-        verbose_name_plural = 'CM_ReportTypes'
+        verbose_name = 'CM_CallEmailReportType'
+        verbose_name_plural = 'CM_CallEmailReportTypes'
         unique_together = ('report_type', 'version')
 
     def __str__(self):
