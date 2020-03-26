@@ -346,8 +346,6 @@ class CallEmailViewSet(viewsets.ModelViewSet):
     @detail_route(methods=['POST'])
     @renderer_classes((JSONRenderer,))
     def process_comms_log_document(self, request, *args, **kwargs):
-        print("process_comms_log_document")
-        print(request.data)
         try:
             instance = self.get_object()
             returned_data = process_generic_document(request, instance, document_type='comms_log')
@@ -405,8 +403,6 @@ class CallEmailViewSet(viewsets.ModelViewSet):
     @detail_route(methods=['POST', ])
     @renderer_classes((JSONRenderer,))
     def add_comms_log(self, request, workflow=False, *args, **kwargs):
-        print("add_comms_log")
-        print(request.data)
         try:
             with transaction.atomic():
                 instance = self.get_object()
@@ -616,7 +612,6 @@ class CallEmailViewSet(viewsets.ModelViewSet):
     #@detail_route(methods=['POST', ])
     #def call_email_save(self, request, *args, **kwargs):
     def update(self, request, *args, **kwargs):
-        print(request.data)
         instance = self.get_object()
         try:
             with transaction.atomic():
