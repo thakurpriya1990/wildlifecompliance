@@ -241,7 +241,7 @@ pending_closure_related_item_models = [
         ]
 
 approved_email_user_related_items = [
-        'volunteer',
+        #'volunteer',
         'individual_inspected',
         'email_user',
         'person_providing_statement',
@@ -284,15 +284,15 @@ def format_url(model_name, obj_id):
         #        'physicalartifact': '<a href=/internal/object/' + obj_id_str + ' target="_blank">View</a>',
         #        }
         switcher = {
-                'callemail': '<a href=/internal/call_email/' + obj_id_str + ' target="_blank">Edit</a>',
-                'inspection': '<a href=/internal/inspection/' + obj_id_str + ' target="_blank">Edit</a>',
-                'offence': '<a href=/internal/offence/' + obj_id_str + ' target="_blank">Edit</a>',
-                'sanctionoutcome': '<a href=/internal/sanction_outcome/' + obj_id_str + ' target="_blank">Edit</a>',
-                'legalcase': '<a href=/internal/legal_case/' + obj_id_str + ' target="_blank">Edit</a>',
-                'emailuser': '<a href=/internal/users/' + obj_id_str + ' target="_blank">Edit</a>',
-                'organisation': '<a href=/internal/organisations/' + obj_id_str + ' target="_blank">Edit</a>',
-                'documentartifact': '<a href=/internal/object/' + obj_id_str + ' target="_blank">Edit</a>',
-                'physicalartifact': '<a href=/internal/object/' + obj_id_str + ' target="_blank">Edit</a>',
+                'callemail': '<a href=/internal/call_email/' + obj_id_str + ' target="_blank">Open</a>',
+                'inspection': '<a href=/internal/inspection/' + obj_id_str + ' target="_blank">Open</a>',
+                'offence': '<a href=/internal/offence/' + obj_id_str + ' target="_blank">Open</a>',
+                'sanctionoutcome': '<a href=/internal/sanction_outcome/' + obj_id_str + ' target="_blank">Open</a>',
+                'legalcase': '<a href=/internal/legal_case/' + obj_id_str + ' target="_blank">Open</a>',
+                'emailuser': '<a href=/internal/users/' + obj_id_str + ' target="_blank">Open</a>',
+                'organisation': '<a href=/internal/organisations/' + obj_id_str + ' target="_blank">Open</a>',
+                'documentartifact': '<a href=/internal/object/' + obj_id_str + ' target="_blank">Open</a>',
+                'physicalartifact': '<a href=/internal/object/' + obj_id_str + ' target="_blank">Open</a>',
                 }
 
         return switcher.get(lower_model_name, '')
