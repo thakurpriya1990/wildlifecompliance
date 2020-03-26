@@ -843,20 +843,22 @@ export default {
     },
 
     loadSchema: function() {
-      this.$nextTick(async function() {
-      let url = helpers.add_endpoint_json(
-                    api_endpoints.inspection_types,
-                    this.inspection.inspection_type_id + '/get_schema',
-                    );
-      let returned_schema = await cache_helper.getSetCache(
-        'InspectionTypeSchema',
-        this.inspection.id.toString(),
-        url);
-      if (returned_schema) {
-        this.current_schema = returned_schema.schema;
-      }
+        if (this.inspection.inspection_type_id) {
+          this.$nextTick(async function() {
+          let url = helpers.add_endpoint_json(
+                        api_endpoints.inspection_types,
+                        this.inspection.inspection_type_id + '/get_schema',
+                        );
+          let returned_schema = await cache_helper.getSetCache(
+            'InspectionTypeSchema',
+            this.inspection.id.toString(),
+            url);
+          if (returned_schema) {
+            this.current_schema = returned_schema.schema;
+          }
 
-      });
+          });
+        }
     },
 
     open_sanction_outcome(){
@@ -1063,7 +1065,7 @@ export default {
       // blank entry allows user to clear selection
       this.inspectionTypes.splice(0, 0,
           {
-            id: "",
+            id: null,
             description: "",
           });
       // load current Inspection renderer schema

@@ -304,7 +304,8 @@ class SaveCallEmailSerializer(serializers.ModelSerializer):
 
 class ReportTypeSchemaSerializer(serializers.ModelSerializer):
     report_type_id = serializers.IntegerField(
-        required=False, write_only=True, allow_null=True)        
+        required=False, write_only=True, allow_null=True)
+    adviceurl = serializers.SerializerMethodField()
 
     class Meta:
         model = CallEmail
@@ -312,10 +313,22 @@ class ReportTypeSchemaSerializer(serializers.ModelSerializer):
             'id',
             'schema',
             'report_type_id',
+            'adviceurl',
         )
         read_only_fields = (
-            'id', 
+            'id',
             )
+
+    def get_adviceurl(self, obj):
+        print("obj.report_type")
+        print(obj.report_type)
+        print(type(obj))
+        advice_url = ""
+        #if obj.report_type and obj.report_type.advice_url:
+         #   advice_url = obj.report_type.advice_url
+        if obj.report_type:
+            advice_url = obj.advice_url
+        return advice_url
 
 
 class CallEmailOptimisedSerializer(serializers.ModelSerializer):
