@@ -26,11 +26,6 @@ class LicencePurposeAdmin(admin.ModelAdmin):
     pass
 
 
-@admin.register(models.LicencePurposeDetail)
-class LicencePurposeDetailAdmin(admin.ModelAdmin):
-    list_display = ['detail', 'purpose', 'index']
-
-
 @admin.register(models.LicenceSpecies)
 class LicenceSpeciesAdmin(admin.ModelAdmin):
     list_display = [

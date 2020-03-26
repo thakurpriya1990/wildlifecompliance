@@ -258,13 +258,27 @@
             :field_data="value"
             :id="element_id()"
             :options="component.component_attribute"
-            :isMultiple="false"
+            :isMultiple="strToBool(component.isRepeatable)"
             :isRepeatable="strToBool(component.isRepeatable)"
             :help_text="help_text"
             :readonly="is_readonly"
             :isRequired="component.isRequired"
             :handleChange="handleComponentChange(component, true)"
             :help_text_url="help_text_url"/>
+
+        <SpeciesGroup v-if="component.type === 'species-group'"         
+            :label="component.label"
+            :name="component_name"
+            :id="element_id()"
+            :help_text="help_text"
+            :help_text_url="help_text_url"
+            :isRemovable="true">
+                <renderer-block v-for="(subcomponent, index) in component.children"
+                    :component="subcomponent"
+                    :instance="instance"
+                    v-bind:key="`species-group_${index}`"
+                    />
+        </SpeciesGroup>
 
     </span>
 </template>
@@ -296,6 +310,7 @@ import TableBlock from '@/components/forms/table.vue'
 import ExpanderTable from '@/components/forms/expander_table.vue'
 import GridBlock from '@/components/forms/grid.vue'
 import Species from '@/components/forms/select_species.vue'
+import SpeciesGroup from '@/components/forms/group_species.vue'
 
 const RendererBlock = {
   name: 'renderer-block',
@@ -318,6 +333,7 @@ const RendererBlock = {
       ExpanderTable,
       GridBlock,
       Species,
+      SpeciesGroup,
   },
   data: function() {
     return {
