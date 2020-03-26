@@ -51,21 +51,21 @@
                     </div>
                     <div class="panel-body panel-collapse">
                         <div class="row action-button">
-                            <div v-if="canUserAction" class="col-sm-12">
+                            <div v-if="canUserAction && openStatus" class="col-sm-12">
                                   <a @click="openInspection()" class="btn btn-primary btn-block" >
                                     Inspection
                                   </a>
                             </div>
                         </div>
                         <div class="row action-button">
-                          <div v-if="canUserAction && offenceVisibility" class="col-sm-12">
+                          <div v-if="canUserAction && openStatus" class="col-sm-12">
                                 <a @click="openOffence()" class="btn btn-primary btn-block">
                                   Offence
                                 </a>
                           </div>
                         </div>
                         <div class="row action-button">
-                          <div v-if="canUserAction" class="col-sm-12">
+                          <div v-if="canUserAction && openStatus" class="col-sm-12">
                                 <input 
                                 :disabled="!sanctionOutcomeVisibility" 
                                 type="button" 
@@ -77,9 +77,106 @@
                         </div>
                         
                         <div  class="row action-button">
-                          <div v-if="canUserAction" class="col-sm-12">
-                                <a @click="open_sanction_outcome()" class="btn btn-primary btn-block">
+                          <div v-if="canUserAction && openStatus" class="col-sm-12">
+                                <a @click="addWorkflow('brief_of_evidence')" class="btn btn-primary btn-block">
+                                <!--a @click="createBriefOfEvidence" class="btn btn-primary btn-block"-->
                                   Brief of Evidence
+                                </a>
+                          </div>
+                        </div>
+                        <div  class="row action-button">
+                          <div v-if="canUserAction && briefOfEvidenceStatus" class="col-sm-12">
+                                <a @click="addWorkflow('back_to_case')" class="btn btn-primary btn-block">
+                                <!--a @click="createProsecutionBrief" class="btn btn-primary btn-block"-->
+                                  Back To Case
+                                </a>
+                          </div>
+                        </div>
+                        <div  class="row action-button">
+                          <div v-if="canUserAction && briefOfEvidenceVisibility" class="col-sm-12">
+                                <a @click="printDocument('brief_of_evidence')" class="btn btn-primary btn-block">
+                                <!--a @click="createProsecutionBrief" class="btn btn-primary btn-block"-->
+                                  Print Brief of Evidence
+                                </a>
+                          </div>
+                        </div>
+                        <div  class="row action-button">
+                          <div v-if="canUserAction && briefOfEvidenceStatus" class="col-sm-12">
+                                <a @click="addWorkflow('send_to_manager')" class="btn btn-primary btn-block">
+                                <!--a @click="createProsecutionBrief" class="btn btn-primary btn-block"-->
+                                  Send To Manager
+                                </a>
+                          </div>
+                        </div>
+                        <div  class="row action-button">
+                          <div v-if="backToOfficerVisibility" class="col-sm-12">
+                                <a @click="addWorkflow('back_to_officer')" class="btn btn-primary btn-block">
+                                <!--a @click="createProsecutionBrief" class="btn btn-primary btn-block"-->
+                                  Back To Officer
+                                </a>
+                          </div>
+                        </div>
+                        <div class="row action-button">
+                          <div v-if="canUserAction && withManagerStatus" class="col-sm-12">
+                                <a @click="addWorkflow('approve_brief_of_evidence')" class="btn btn-primary btn-block">
+                                <!--a @click="createProsecutionBrief" class="btn btn-primary btn-block"-->
+                                  Approve
+                                </a>
+                          </div>
+                        </div>
+                        <div class="row action-button">
+                          <div v-if="canUserAction && withProsecutionCoordinatorStatus" class="col-sm-12">
+                                <a @click="addWorkflow('prosecution_brief')" class="btn btn-primary btn-block">
+                                <!--a @click="createProsecutionBrief" class="btn btn-primary btn-block"-->
+                                  Prosecution Brief
+                                </a>
+                          </div>
+                        </div>
+                        <div class="row action-button">
+                          <div v-if="canUserAction && withProsecutionCoordinatorProsecutionBriefStatus" class="col-sm-12">
+                                <a @click="addWorkflow('send_to_prosecution_council')" class="btn btn-primary btn-block">
+                                <!--a @click="createProsecutionBrief" class="btn btn-primary btn-block"-->
+                                  Send To Prosecution Council
+                                </a>
+                          </div>
+                        </div>
+                        <div  class="row action-button">
+                          <div v-if="canUserAction && prosecutionBriefVisibility" class="col-sm-12">
+                                <a @click="printDocument('prosecution_brief')" class="btn btn-primary btn-block">
+                                <!--a @click="createProsecutionBrief" class="btn btn-primary btn-block"-->
+                                  Print Prosecution Brief
+                                </a>
+                          </div>
+                        </div>
+                        <div class="row action-button">
+                          <div v-if="canUserAction && withProsecutionCouncilStatus" class="col-sm-12">
+                                <a @click="addWorkflow('back_to_prosecution_coordinator')" class="btn btn-primary btn-block">
+                                <!--a @click="createProsecutionBrief" class="btn btn-primary btn-block"-->
+                                  Back to Prosecution Coordinator
+                                </a>
+                          </div>
+                        </div>
+                        <div class="row action-button">
+                          <div v-if="canUserAction && withProsecutionCouncilStatus" class="col-sm-12">
+                                <a @click="addWorkflow('endorse_prosecution_brief')" class="btn btn-primary btn-block">
+                                <!--a @click="createProsecutionBrief" class="btn btn-primary btn-block"-->
+                                  Endorse Prosecution Brief
+                                </a>
+                          </div>
+                        </div>
+                        <div class="row action-button">
+                          <div v-if="canUserAction && withProsecutionManagerStatus" class="col-sm-12">
+                                <a @click="addWorkflow('approve_for_court')" class="btn btn-primary btn-block">
+                                <!--a @click="createProsecutionBrief" class="btn btn-primary btn-block"-->
+                                  Approve for Court
+                                </a>
+                          </div>
+                        </div>
+                        <div class="row action-button">
+                          <div v-if="canUserAction && withProsecutionManagerStatus" class="col-sm-12">
+                                <a @click="addWorkflow('back_to_prosecution_council')" class="btn btn-primary btn-block">
+                                <!--a @click="createProsecutionBrief" class="btn btn-primary btn-block"-->
+                                  Back to Prosecution Council
                                 </a>
                           </div>
                         </div>
@@ -99,10 +196,15 @@
             <div class="row">
 
                 <div class="container-fluid">
-                    <ul class="nav nav-pills aho2">
+                    <ul class="nav nav-pills">
                         <li class="nav-item active"><a data-toggle="tab" :href="'#'+runTab">Running Sheet</a></li>
                         <li class="nav-item"><a data-toggle="tab" :href="'#'+cTab" >Case Details</a></li>
+                        <li v-if="briefOfEvidenceVisibility" class="nav-item"><a data-toggle="tab" :href="'#'+bTab" >Brief of Evidence</a></li>
+                        <li v-if="prosecutionBriefVisibility" class="nav-item"><a data-toggle="tab" :href="'#'+pTab" >Prosecution Brief</a></li>
+                        <!--li v-if="withProsecutionCoordinatorCourtStatus" class="nav-item"><a data-toggle="tab" :href="'#'+cpTab" >Court Proceedings</a></li-->
+                        <li v-if="courtProceedingsVisibility" class="nav-item"><a data-toggle="tab" :href="'#'+cpTab" >Court Proceedings</a></li>
                         <li class="nav-item"><a data-toggle="tab" :href="'#'+rTab">Related Items</a></li>
+                        <!--li class="nav-item"><a data-toggle="tab" :href="'#'+gTab">Generated Documents</a></li-->
                     </ul>
                     <div class="tab-content">
                         <div :id="runTab" class="tab-pane fade in active">
@@ -112,9 +214,13 @@
                                     <div class="row action-button">
                                         <!--div v-if="canUserAction" class="col-sm-12"-->
                                         <!--div class="col-sm-1 pull-right" /-->
-                                        <div v-if="canUserAction">
-                                              <!--a @click="createNewRunningSheetEntry()" class="btn btn-primary btn-block" -->
+                                        <div v-if="!readonlyRunningSheet">
                                               <a @click="createNewRunningSheetEntry()" class="btn btn-primary pull-right new-row-button" >
+                                                New Row
+                                              </a>
+                                        </div>
+                                        <div v-else>
+                                              <a class="btn btn-primary pull-right new-row-button" disabled>
                                                 New Row
                                               </a>
                                         </div>
@@ -157,6 +263,19 @@
                                 </div></div>
                             </FormSection>
                         </div>
+                        <div :id="bTab" class="tab-pane fade in">
+                            <BriefOfEvidence 
+                            ref="brief_of_evidence"
+                            :readonly="briefOfEvidenceVisibility"/>
+                        </div>
+                        <div :id="pTab" class="tab-pane fade in">
+                            <ProsecutionBrief 
+                            ref="prosecution_brief"
+                            :readonly="prosecutionBriefVisibility"/>
+                        </div>
+                        <div :id="cpTab" class="tab-pane fade in">
+                            <CourtProceedings v-if="legal_case.court_proceedings" />
+                        </div>
                         <div :id="rTab" class="tab-pane fade in">
                             <FormSection :formCollapse="false" label="Related Items">
                                 <div class="col-sm-12 form-group"><div class="row">
@@ -171,6 +290,21 @@
                                 </div></div>
                             </FormSection>
                         </div>
+                        <!--div :id="gTab" class="tab-pane fade in">
+                            <FormSection :formCollapse="false" label="Generated Documents">
+                                <div class="col-sm-12 form-group"><div class="row">
+                                    <div v-if="legal_case.generatedDocumentsUrl">
+                                        <filefield
+                                        ref="generated_documents"
+                                        name="generated-documents"
+                                        :isRepeatable="true" 
+                                        :readonly="true"
+                                        :documentActionUrl="legal_case.generatedDocumentsUrl"
+                                        />
+                                    </div>
+                                </div></div>
+                            </FormSection>
+                        </div-->
                     </div>
                 </div>
             </div>
@@ -223,6 +357,7 @@
             @modal-action="receivePersonOrArtifactEntity"
             :rowNumberSelected="rowNumberSelected"
             :initialTabSelected="tabSelected"
+            :entityEdit="entityEdit"
             />
         </div>
         <div v-if="runningSheetHistoryEntryBindId">
@@ -232,10 +367,20 @@
             v-bind:key="runningSheetHistoryEntryBindId"
             />
         </div>
-        <LegalCaseWorkflow 
-        ref="legal_case_workflow"
-        :workflow_type="workflow_type"
-        />
+        <div v-if="legalCaseWorkflowBindId">
+            <LegalCaseWorkflow 
+            ref="legal_case_workflow"
+            :workflow_type="workflow_type"
+            v-bind:key="legalCaseWorkflowBindId"
+            />
+        </div>
+        <div v-if="generateDocumentBindId">
+            <GenerateDocument 
+            ref="generate_document"
+            :document_type="documentTypeToGenerate"
+            v-bind:key="generateDocumentBindId"
+            />
+        </div>
     </div>
 </template>
 <script>
@@ -263,12 +408,24 @@ import PersonOrArtifactModal from '@/components/common/person_or_artifact_modal'
 import _ from 'lodash';
 import RunningSheetHistory from './running_sheet_history'
 import LegalCaseWorkflow from './legal_case_workflow'
+//import TreeSelect from "@/components/compliance_forms/treeview.vue";
+import TreeSelect from '@riophae/vue-treeselect'
+import '@riophae/vue-treeselect/dist/vue-treeselect.css'
+import BriefOfEvidence from './brief_of_evidence';
+import ProsecutionBrief from './prosecution_brief';
+import CourtProceedings from './court_proceedings';
+import GenerateDocument from './generate_document';
 
 
 export default {
     name: "ViewLegalCase",
     data: function() {
         return {
+            //boeRoiTicked: [],
+            //boeRoiOptions: [],
+            //boeOtherStatementsOptions: [],
+            documentTypeToGenerate: '',
+            entityEdit: {},
             uuid: 0,
             showSpinner: false,
             showExit: false,
@@ -277,15 +434,21 @@ export default {
             runningSheetUrl: [],
             runningSheetEntriesUpdated: [],
             runningSheetHistoryEntryBindId: '',
+            legalCaseWorkflowBindId: '',
+            generateDocumentBindId: '',
             runningSheetHistoryEntryInstance: '',
             //runningSheetArtifactList: [],
             //runningSheetPersonList: [],
             objectHash: null,
             runTab: 'runTab'+this._uid,
             rTab: 'rTab'+this._uid,
+            //gTab: 'gTab'+this._uid,
             cTab: 'cTab'+this._uid,
+            cpTab: 'cpTab'+this._uid,
+            bTab: 'bTab'+this._uid,
+            pTab: 'pTab'+this._uid,
             current_schema: [],
-            workflowBindId: '',
+            //workflowBindId: '',
             workflow_type: '',
             comms_url: helpers.add_endpoint_json(
               api_endpoints.legal_case,
@@ -372,9 +535,10 @@ export default {
                                 retStr = '<strike>' + 
                                     `<div id=${row.number} style="min-height:20px" contenteditable="false">${row.description}</div>`
                                     '</strike>';
+                            } else if (!row.action) {
+                                retStr = `<div id=${row.number} style="min-height:20px" contenteditable="false">${row.description}</div>`
                             }
                             return retStr;
-
                         }
                     },
                     {
@@ -389,8 +553,9 @@ export default {
                             let rowIdDel = row.number.replace('-', 'D')
                             let rowIdHist = row.number.replace('-', 'H')
                             let rowIdReinstate = row.number.replace('-', 'R')
+                            retStr += `<a id=${rowIdHist} class="row_history" href="#">History</a><br/><br/>`
                             if (row.action) {
-                                retStr += `<a id=${rowIdHist} class="row_history" href="#">History</a><br/><br/>`
+                                //retStr += `<a id=${rowIdHist} class="row_history" href="#">History</a><br/><br/>`
                                 if (!row.deleted) {
                                     retStr += `<a id=${rowIdDel} class="row_delete" href="#">Delete</a><br/>`
                                 } else {
@@ -419,6 +584,11 @@ export default {
     PersonOrArtifactModal,
     RunningSheetHistory,
     LegalCaseWorkflow,
+    TreeSelect,
+    BriefOfEvidence,
+    CourtProceedings,
+    ProsecutionBrief,
+    GenerateDocument,
   },
   computed: {
     ...mapGetters('legalCaseStore', {
@@ -443,6 +613,137 @@ export default {
         }
         return readonly
     },
+    readonlyRunningSheet: function() {
+        let readonly = true
+        if (this.legal_case && this.legal_case.id && this.legal_case.can_user_action && this.openStatus) {
+            readonly = false;
+        }
+        return readonly
+    },
+    backToOfficerVisibility: function() {
+        let visibility = false;
+        if (this.canUserAction && (
+            this.withProsecutionCoordinatorStatus || 
+            this.withProsecutionCoordinatorProsecutionBriefStatus ||
+            this.withManagerStatus)
+            //this.withProsecutionCouncilStatus)
+        ) {
+            visibility = true;
+        }
+        return visibility;
+    },
+    withProsecutionCoordinatorCourtStatus: function() {
+        let returnStatus = false
+        if (this.legal_case && this.statusId === 'with_prosecution_coordinator_court') {
+            returnStatus = true
+        }
+        return returnStatus
+    },
+    withProsecutionManagerStatus: function() {
+        let returnStatus = false
+        if (this.legal_case && this.statusId === 'with_prosecution_manager') {
+            returnStatus = true
+        }
+        return returnStatus
+    },
+    withProsecutionCouncilStatus: function() {
+        let returnStatus = false
+        if (this.legal_case && this.statusId === 'with_prosecution_council') {
+            returnStatus = true
+        }
+        return returnStatus
+    },
+    withProsecutionCoordinatorProsecutionBriefStatus: function() {
+        let returnStatus = false
+        if (this.legal_case && this.statusId === 'with_prosecution_coordinator_prosecution_brief') {
+            returnStatus = true
+        }
+        return returnStatus
+    },
+    withProsecutionCoordinatorStatus: function() {
+        let returnStatus = false
+        if (this.legal_case && this.statusId === 'with_prosecution_coordinator') {
+            returnStatus = true
+        }
+        return returnStatus
+    },
+    withManagerStatus: function() {
+        let returnStatus = false
+        if (this.legal_case && this.statusId === 'with_manager') {
+            returnStatus = true
+        }
+        return returnStatus
+    },
+    briefOfEvidenceStatus: function() {
+        let returnStatus = false
+        if (this.legal_case && this.statusId === 'brief_of_evidence') {
+            returnStatus = true
+        }
+        return returnStatus
+    },
+    prosecutionBriefStatus: function() {
+        let returnStatus = false
+        if (this.legal_case && this.statusId === 'prosecution_brief') {
+            returnStatus = true
+        }
+        return returnStatus
+    },
+    openStatus: function() {
+        let returnStatus = false
+        if (this.legal_case && this.statusId === 'open') {
+            returnStatus = true
+        }
+        return returnStatus
+    },
+    runningSheetTabListClass: function() {
+        let tabClass = 'nav-item';
+        if (this.openStatus) {
+            tabClass += ' active';
+        }
+        return tabClass;
+    },
+    briefOfEvidenceTabListClass: function() {
+        let tabClass = 'nav-item';
+        if (this.briefOfEvidenceStatus) {
+            tabClass += ' active';
+        }
+        return tabClass;
+    },
+    prosecutionBriefTabListClass: function() {
+        let tabClass = 'nav-item';
+        if (this.prosecutionBriefStatus) {
+            tabClass += ' active';
+        }
+        return tabClass;
+    },
+    runningSheetTabClass: function() {
+        let tabClass = 'tab-pane fade in';
+        if (this.openStatus) {
+            tabClass += ' active';
+        }
+        return tabClass;
+    },
+    briefOfEvidenceTabClass: function() {
+        let tabClass = 'tab-pane fade in';
+        if (this.briefOfEvidenceStatus) {
+            tabClass += ' active';
+        }
+        return tabClass;
+    },
+    prosecutionBriefTabClass: function() {
+        let tabClass = 'tab-pane fade in';
+        if (this.prosecutionBriefStatus) {
+            tabClass += ' active';
+        }
+        return tabClass;
+    },
+    readonlyBriefOfEvidence: function() {
+        let readonly = true
+        if (this.legal_case && this.legal_case.id) {
+            readonly = !this.legal_case.can_user_action;
+        }
+        return readonly
+    },
     canUserAction: function() {
         let return_val = false
         if (this.legal_case && this.legal_case.id) {
@@ -458,13 +759,6 @@ export default {
         }
         // return false if no related item is an Offence
         return false
-    },
-    offenceVisibility: function() {
-        let offence_visibility = false;
-        if (this.legal_case.status && this.legal_case.can_user_action) {
-            offence_visibility = this.legal_case.status.id === 'open' ? true : false;
-        }
-        return offence_visibility;
     },
     sanctionOutcomeVisibility: function() {
         let sanction_outcome_visibility = false;
@@ -500,6 +794,56 @@ export default {
         offence_bind_id = 'offence' + parseInt(this.uuid);
         return offence_bind_id;
     },
+    briefOfEvidenceVisibility: function() {
+        let visible = false;
+        if (this.legal_case && 
+            this.legal_case.id && 
+            this.legal_case.brief_of_evidence && 
+            !this.openStatus
+        ) 
+        {
+            visible = true;
+        }
+        return visible;
+    },
+    prosecutionBriefVisibility: function() {
+        let visible = false;
+        if (this.legal_case &&
+            this.legal_case.id &&
+            this.legal_case.brief_of_evidence && 
+            this.legal_case.prosecution_brief &&
+            // following status values are excluded
+            !([
+                'open', 
+                'brief_of_evidence',
+                'with_manager',
+                'with_prosecution_coordinator',
+            ].includes(this.statusId))
+        )
+        {
+            visible = true;
+        }
+        return visible;
+    },
+    courtProceedingsVisibility: function() {
+        let visible = false;
+        if (this.legal_case &&
+            this.legal_case.id &&
+            this.legal_case.brief_of_evidence && 
+            this.legal_case.prosecution_brief &&
+            this.legal_case.court_proceedings &&
+            // following status values are included
+            [
+                'with_prosecution_coordinator_court',
+                'with_prosecution_council',
+                'with_prosecution_manager',
+            ].includes(this.statusId)
+        )
+        {
+            visible = true;
+        }
+        return visible;
+    },
     sanctionOutcomeBindId: function() {
         let sanction_outcome_bind_id = ''
         sanction_outcome_bind_id = 'sanction_outcome' + parseInt(this.uuid);
@@ -520,7 +864,7 @@ export default {
             keyCombination = '^^';
         }
         return keyCombination;
-    }
+    },
   },
   filters: {
     formatDate: function(data) {
@@ -539,6 +883,8 @@ export default {
       setAddRunningSheetEntry: 'setAddRunningSheetEntry',
       setRunningSheetEntry: 'setRunningSheetEntry',
       addToRunningSheetPersonList: 'addToRunningSheetPersonList',
+      setBriefOfEvidence: 'setBriefOfEvidence',
+      setProsecutionBrief: 'setProsecutionBrief',
     }),
     ...mapActions({
         loadCurrentUser: 'loadCurrentUser',
@@ -549,12 +895,21 @@ export default {
             this.runningSheetHistoryEntryBindId = this.runningSheetHistoryEntryInstance + '_' + this.uuid;
         }
     },
+    setLegalCaseWorkflowBindId: function() {
+        this.uuid += 1;
+        this.legalCaseWorkflowBindId = 'legal_case_workflow_' + this.uuid;
+    },
+    setGenerateDocumentBindId: function() {
+        this.uuid += 1;
+        this.generateDocumentBindId = 'generate_document_' + this.uuid;
+    },
+
     runningSheetTransformWrapper: async function() {
         let runningSheet = []
         let i = 0;
         for (let r of this.runningSheetUrl) {
             if (this.runningSheetEntriesUpdated.includes(r.number)) {
-                r.description = this.urlToToken(r.description)
+                r.description = this.htmlToToken(r.description)
                 r.user_id = this.current_user.id;
                 runningSheet.push(r);
             }
@@ -592,40 +947,31 @@ export default {
             })
         }
     },
-    /*
-    cancelPersonModalUrl: function(recordNumberElement) {
-        let replacementVal = ''
-        //let recordDescriptionHtml = recordNumberElement[0].innerHTML.replace('@@', replacementVal).replace(/&nbsp\;/g, ' ');
-        let recordDescriptionHtml = recordNumberElement[0].innerHTML.replace(this.tabSelectedKeyCombination, replacementVal).replace(/&nbsp\;/g, ' ');
-        return recordDescriptionHtml;
-    },
-    */
     insertPersonModalUrl: function({"entity": entity, "recordNumberElement": recordNumberElement}) {
         console.log(entity);
         console.log(recordNumberElement);
         let replacementVal = ''
+        let urlId = entity.data_type + "-" + entity.id;
         if (entity.full_name) {
-            replacementVal = `<a contenteditable="false" target="_blank" href="/internal/users/${entity.id}">${entity.full_name}</a>`;
+            //replacementVal = `<a contenteditable="false" id="${urlId}" class="entity_edit" target="_blank" href="/internal/users/${entity.id}">${entity.full_name}</a>`;
+            replacementVal = `<span contenteditable="false" id="${urlId}" class="entity_edit">${entity.full_name}</span>`;
             // add to runningSheetPersonList
             this.addToRunningSheetPersonList(entity)
             //this.legal_case.runningSheetPersonList.push(entity)
         }
-        let recordDescriptionHtml = recordNumberElement[0].innerHTML.replace(this.tabSelectedKeyCombination, replacementVal).replace(/&nbsp\;/g, ' ');
+        //let recordDescriptionHtml = recordNumberElement[0].innerHTML.replace(this.tabSelectedKeyCombination, replacementVal).replace(/&nbsp\;/g, ' ');
+        let recordDescriptionHtml = recordNumberElement[0].innerHTML.replace(this.tabSelectedKeyCombination, replacementVal);
         return recordDescriptionHtml;
     },
-    /*
-    cancelArtifactModalUrl: function(recordNumberElement) {
-        let replacementVal = ''
-        let recordDescriptionHtml = recordNumberElement[0].innerHTML.replace(this.tabSelectedKeyCombination, replacementVal).replace(/&nbsp\;/g, ' ');
-        return recordDescriptionHtml;
-    },
-    */
     insertArtifactModalUrl: function({"entity": entity, "recordNumberElement": recordNumberElement}) {
+        console.log(entity)
         let replacementVal = '';
         let urlDescription = entity.identifier ? entity.identifier : entity.display;
+        let urlId = entity.data_type + "-" + entity.id;
 
         if (urlDescription) {
-            replacementVal = `<a contenteditable="false" target="_blank" href="/internal/object/${entity.id}">${urlDescription}</a>`;
+            //replacementVal = `<a contenteditable="false" id="${urlId}" class="entity_edit" target="_blank" href="/internal/object/${entity.id}">${urlDescription}</a>`;
+            replacementVal = `<span contenteditable="false" id="${urlId}" class="entity_edit">${urlDescription}</span>`;
             // add to runningSheetArtifactList
             /*
             if (this.legal_case && !this.legal_case.runningSheetArtifactList) {
@@ -634,14 +980,16 @@ export default {
             this.legal_case.runningSheetArtifactList.push(entity)
             */
         }
-        let recordDescriptionHtml = recordNumberElement[0].innerHTML.replace(this.tabSelectedKeyCombination, replacementVal).replace(/&nbsp\;/g, ' ');
+        //let recordDescriptionHtml = recordNumberElement[0].innerHTML.replace(this.tabSelectedKeyCombination, replacementVal).replace(/&nbsp\;/g, ' ');
+        let recordDescriptionHtml = recordNumberElement[0].innerHTML.replace(this.tabSelectedKeyCombination, replacementVal);
         console.log(recordDescriptionHtml);
         return recordDescriptionHtml;
     },
     cancelModalUrl: function(recordNumberElement) {
         console.log(recordNumberElement)
         let replacementVal = ''
-        let recordDescriptionHtml = recordNumberElement[0].innerHTML.replace(this.tabSelectedKeyCombination, replacementVal).replace(/&nbsp\;/g, ' ');
+        //let recordDescriptionHtml = recordNumberElement[0].innerHTML.replace(this.tabSelectedKeyCombination, replacementVal).replace(/&nbsp\;/g, ' ');
+        let recordDescriptionHtml = recordNumberElement[0].innerHTML.replace(this.tabSelectedKeyCombination, replacementVal);
         return recordDescriptionHtml;
     },
     insertModalUrl: function({"entity": entity, "recordNumberElement": recordNumberElement}) {
@@ -658,7 +1006,8 @@ export default {
             replacementVal = `<a contenteditable="false" target="_blank" href=${fullUrl}>${entity.url}</a>`
             //replacementVal = `<a target="_blank" href=${fullUrl}>${entity.url}</a>`
         }
-        let recordDescriptionHtml = recordNumberElement[0].innerHTML.replace(this.tabSelectedKeyCombination, replacementVal).replace(/&nbsp\;/g, ' ');
+        //let recordDescriptionHtml = recordNumberElement[0].innerHTML.replace(this.tabSelectedKeyCombination, replacementVal).replace(/&nbsp\;/g, ' ');
+        let recordDescriptionHtml = recordNumberElement[0].innerHTML.replace(this.tabSelectedKeyCombination, replacementVal);
         //console.log(recordDescriptionHtml)
         return recordDescriptionHtml;
     },
@@ -667,7 +1016,8 @@ export default {
         if (!pk) {
             this.$refs.running_sheet_table.vmDataTable.clear().draw();
         }
-        let actionColumn = !this.readonlyForm;
+        //let actionColumn = !this.readonlyForm;
+        let actionColumn = !this.readonlyRunningSheet;
         if (this.runningSheetUrl){
             for(let i = 0;i < this.runningSheetUrl.length; i++){
                 if (!pk || this.runningSheetUrl[i].id === pk) {
@@ -687,6 +1037,9 @@ export default {
         console.log("constructRunningSheetTable - end")
     },
     constructRunningSheetTableEntry: function( rowNumber ){
+        console.log('rowNumber')
+        console.log(rowNumber)
+
         let actionColumn = !this.readonlyForm;
         if (this.$refs.running_sheet_table && this.$refs.running_sheet_table.vmDataTable) {
             console.log("constructRunningSheetTableEntry");
@@ -732,7 +1085,7 @@ export default {
         if (updatedRunningSheet.ok) {
             await this.setAddRunningSheetEntry(updatedRunningSheet.body);
             let returnPayload = _.cloneDeep(updatedRunningSheet.body);
-            returnPayload.description = this.tokenToUrl(returnPayload.description);
+            returnPayload.description = this.tokenToHtml(returnPayload.description);
             this.runningSheetUrl.push(returnPayload);
             this.constructRunningSheetTable(returnPayload.id);
         }
@@ -770,37 +1123,86 @@ export default {
           this.$refs.person_or_artifact_modal.isModalOpen = true;
       });
     },
-    updateWorkflowBindId: function() {
-        let timeNow = Date.now()
-        if (this.workflow_type) {
-            this.workflowBindId = this.workflow_type + '_' + timeNow.toString();
+    addWorkflow: function(workflow_type) {
+        console.log(workflow_type)
+        /*
+        if (['brief_of_evidence', 'prosecution_brief'].includes(workflow_type)) {
+            // Save legal_case first
+            await this.save({ 
+                "create": false, 
+                "internal": true 
+            })
+            // workflow_action api method
+            //let post_url = '/api/legal_case/' + this.legal_case.id + '/workflow_action/'
+            let postUrl = helpers.add_endpoint_join(
+                api_endpoints.legal_case, 
+                this.legal_case.id + '/workflow_action/'
+            );
+            let payload = new FormData();
+            workflow_type ? payload.append('workflow_type', workflow_type) : null;
+            let res = await Vue.http.post(postUrl, payload);
+
         } else {
-            this.workflowBindId = timeNow.toString();
+            // open workflow modal
+            this.workflow_type = workflow_type;
+            this.updateWorkflowBindId();
+            this.$nextTick(() => {
+                this.$refs.legal_case_workflow.isModalOpen = true;
+            });
         }
+        */
+        // open workflow modal
+        this.workflow_type = workflow_type;
+        this.setLegalCaseWorkflowBindId();
+        //this.updateWorkflowBindId();
+        this.$nextTick(async () => {
+            await this.saveLegalCase({create: false, internal: true })
+            this.$refs.legal_case_workflow.isModalOpen = true;
+        });
     },
-    addWorkflow(workflow_type) {
-      this.workflow_type = workflow_type;
-      this.updateWorkflowBindId();
-      this.$nextTick(() => {
-        this.$refs.legal_case_workflow.isModalOpen = true;
-      });
+    printDocument: function(documentType) {
+        this.documentTypeToGenerate = documentType
+        this.setGenerateDocumentBindId();
+        this.$nextTick(async () => {
+            await this.saveLegalCase({create: false, internal: true })
+            this.$refs.generate_document.isModalOpen = true;
+        });
     },
+
     saveExit: async function() {
         await this.save({ "returnToDash": true })
     },
-    save: async function({ returnToDash=false, createNewRow=false } = {}) {
+    save: async function({ 
+        returnToDash=false, 
+        createBriefOfEvidence=false,
+        createProsecutionBrief=false,
+        fullHttpResponse=false,
+    } = {}) {
       this.showSpinner = true;
       if (returnToDash) {
           this.showExit = true;
-      }      
+      }
+      // prepare running sheet for save
       await this.runningSheetTransformWrapper();
-      //if (this.legal_case.id) {
+      // add brief_of_evidence to legal_case
+      if (this.$refs.brief_of_evidence) {
+          await this.setBriefOfEvidence(this.$refs.brief_of_evidence.briefOfEvidence);
+      }
+      // add prosecution_brief to legal_case
+      if (this.$refs.prosecution_brief) {
+          await this.setProsecutionBrief(this.$refs.prosecution_brief.prosecutionBrief);
+      }
+        /*
       if (createNewRow) {
           //await this.saveLegalCase({ create: false, internal: true, createNewRow: true });
           await this.saveLegalCase({ internal: true, createNewRow: true });
-      } else {
-          await this.saveLegalCase({ internal: false });
-      }
+          */
+      await this.saveLegalCase({ 
+          internal: false, 
+          createBriefOfEvidence: createBriefOfEvidence,
+          createProsecutionBrief: createProsecutionBrief,
+          fullHttpResponse: fullHttpResponse,
+      });
       if (returnToDash) {
         // remove redundant eventListeners
         window.removeEventListener('beforeunload', this.leaving);
@@ -879,20 +1281,11 @@ export default {
             }
         }
     },
-    /*
-    runningSheetKeydown: async function(e, offset) {
-        console.log(e)
-        console.log(offset)
-        if (e.key === 'o' && e.altKey) {
-            this.openInspection()
-        } else if (e.key === 'p' && e.altKey) {
-            this.openSearchPersonOrganisation(e.target.id, offset)
-        }
-    },
-    */
     runningSheetKeydown: async function(e) {
         console.log(e)
         if (e.key === '!' && e.shiftKey && this.searchArtifactKeyPressed) {
+            // ensure entityEdit is empty
+            this.entityEdit = {};
             this.rowNumberSelected = e.target.id;
             this.tabSelected = 'artifact';
             this.openPersonOrArtifact();
@@ -905,6 +1298,7 @@ export default {
         } else if (e.key === '@' && e.shiftKey && this.searchPersonKeyPressed) {
             //let rowElement = $('#' + e.target.id);
             //this.openSearchPersonOrganisation(e.target.id)
+            this.entityEdit = {};
             this.rowNumberSelected = e.target.id;
             this.tabSelected = 'person';
             this.openPersonOrArtifact();
@@ -933,50 +1327,122 @@ export default {
             this.insertUrlKeyPressed = false;
         }
     },
-    urlToToken: function(description) {
+    htmlToToken: function(description) {
         let parsedText = description;
-        const personUrlRegex = /<a contenteditable\=\"false\" target\=\"\_blank\" href\=\"\/internal\/users\/\d+\"\>\w+(\s\w+)*\<\/a\>/g
-        const personIdRegex = /\/internal\/users\/\d+/g
-        const personNameRegex = /\/internal\/users\/\d+\"\>\w+(\s\w+)*/g
-        let matchArray = [...description.matchAll(personUrlRegex)];
-        if (matchArray && matchArray.length > 0) {
-            for (let match of matchArray) {
-                let idArray = [...match[0].matchAll(personIdRegex)];
-                let idStr = idArray[0][0]
-                let id = idStr.substring(16)
-                let personArray = [...match[0].matchAll(personNameRegex)];
+        // person transform
+        //const personUrlRegex = /<a contenteditable\=\"false\" target\=\"\_blank\" href\=\"\/internal\/users\/\d+\"\>\w+(\s\w+)*\<\/a\>/g
+        const personUrlRegex = /<span contenteditable\=\"false\" id=\"individual-\d+\"\ class=\"entity_edit\">\w+(\s\w+)*\<\/span\>/g
+        //const personIdRegex = /\/internal\/users\/\d+/g
+        const personIdRegex = /id=\"individual\-\d+/g
+        //const personNameRegex = /\/internal\/users\/\d+\"\>\w+(\s\w+)*/g
+        const personNameRegex = /class=\"entity_edit\"\>\w+(\s\w+)*/g
+        let personUrlArray = [...description.matchAll(personUrlRegex)];
+        if (personUrlArray && personUrlArray.length > 0) {
+            for (let personUrl of personUrlArray) {
+                let personIdArray = [...personUrl[0].matchAll(personIdRegex)];
+                let personIdStr = personIdArray[0][0]
+                let personId = personIdStr.substring(15)
+                let personArray = [...personUrl[0].matchAll(personNameRegex)];
                 let personFound = personArray[0][0]
-                let person = personFound.replace(/\/internal\/users\/\d+\"\>/g, String(''));
-                let replacementVal = `{{ "person_id": "${id}", "full_name": "${person}" }}`
-                parsedText = parsedText.replace(match[0], replacementVal).replace(/\&nbsp\;/g, ' ');
+                //let person = personFound.replace(/id=\"individual\-\d+\"\>/g, String(''));
+                let person = personFound.replace(/class=\"entity_edit\"\>/g, String(''));
+                let replacementVal = `{{ "person_id": "${personId}", "full_name": "${person}" }}`
+                parsedText = parsedText.replace(personUrl[0], replacementVal).replace(/\&nbsp\;/g, ' ');
             }
         }
-        // TODO: add artifact url parsing here
+        // artifact transform
+        const artifactUrlRegex = /\<span contenteditable\=\"false\" id=\"\w+\_artifact\-\d+\" class=\"entity_edit\"\>\w+(\s\w+)*\<\/span\>/g
+        const artifactIdRegex = /id=\"\w+\_\w+\-\d+/g
+        //const artifactIdRegex = /\w+\_\w+\-\d+/g
+        const artifactIdentifierRegex = /class=\"entity_edit\"\>\w+(\s\w+)*/g
+        let artifactUrlArray = [...description.matchAll(artifactUrlRegex)];
+        if (artifactUrlArray && artifactUrlArray.length > 0) {
+            for (let artifactUrl of artifactUrlArray) {
+                let artifactIdArray = [...artifactUrl[0].matchAll(artifactIdRegex)];
+                let artifactIdStr = artifactIdArray[0][0];
+                let artifactTypeIncludingId = artifactIdStr.split("-")[0];
+                let artifactType = artifactTypeIncludingId.substring(4)
+                let artifactId = artifactIdStr.split("-")[1];
+                //let id = idStrTrunc.substring(
+                let identifierArray = [...artifactUrl[0].matchAll(artifactIdentifierRegex)];
+                let identifierFound = identifierArray[0][0];
+                let identifier = identifierFound.replace(/class=\"entity_edit\"\>/g, String(''));
+                let replacementVal = `{{ "${artifactType}_id": "${artifactId}", "identifier": "${identifier}" }}`
+                parsedText = parsedText.replace(artifactUrl[0], replacementVal).replace(/\&nbsp\;/g, ' ');
+            }
+        }
         return parsedText;
     },
-    tokenToUrl: function(description) {
+    tokenToHtml: function(description) {
         let parsedText = description;
+        // Person transform
         const personTokenRegex = /\{\{ \"person\_id\"\: \"\d+\"\, \"full\_name\"\: \"\w+(\s\w+)*\" \}\}/g;
         const personIdRegex = /\{\{ \"person\_id\"\: \"\d+/g;
         // const personNameRegex = /\"full\_name\"\: \"\w+ \w+/g;
         const personNameRegex = /\"full\_name\"\: \"\w+(\s\w+)*/g;
         let personTokenArray = [...description.matchAll(personTokenRegex)];
         for (let personToken of personTokenArray) {
-            let idArray = [...personToken[0].matchAll(personIdRegex)];
-            let idStr = idArray[0][0]
-            let id = idStr.substring(17)
+            let personIdArray = [...personToken[0].matchAll(personIdRegex)];
+            let personIdStr = personIdArray[0][0]
+            let personId = personIdStr.substring(17)
             let nameArray = [...personToken[0].matchAll(personNameRegex)];
             if (nameArray && nameArray.length > 0) {
                 let nameStr = nameArray[0][0]
                 let fullName = nameStr.substring(14)
                 parsedText = parsedText.replace(
                     personToken[0],
-                    `<a contenteditable="false" target="_blank" href="/internal/users/${id}">${fullName}</a>`
+                    //`<a contenteditable="false" target="_blank" href="/internal/users/${id}">${fullName}</a>`
+                    `<span contenteditable="false" id="individual-${personId}" class="entity_edit">${fullName}</span>`
                 );
             }
         }
-        // TODO: add artifact url parsing here
+        // Artifact transform
+        //const artifactTokenRegex = /\{\{ \"artifact\_id\"\: \"\d+\"\, \"identifier\"\: \"\w+(\s\w+)*\" \}\}/g;
+        const artifactTokenRegex = /\{\{ \"\w+\_artifact\_id\"\: \"\d+\"\, \"identifier\"\: \"\w+(\s\w+)*\" \}\}/g;
+        const artifactIdRegex = /\w+\_artifact\_id\"\: \"\d+/g;
+        //const artifactIdRegex = /artifact\_id\"\: \"\d+/g;
+        const artifactIdentifierRegex = /\"identifier\"\: \"\w+(\s\w+)*/g
+        let artifactTokenArray = [...description.matchAll(artifactTokenRegex)];
+        for (let artifactToken of artifactTokenArray) {
+            let artifactIdArray = [...artifactToken[0].matchAll(artifactIdRegex)];
+            let artifactIdStr = artifactIdArray[0][0]
+            let artifactType = artifactIdStr.split("_")[0] + "_artifact";
+            let artifactIdStrTrunc = artifactIdStr.split("_")[2];
+            let artifactId = artifactIdStrTrunc.substring(6)
+            let identifierArray = [...artifactToken[0].matchAll(artifactIdentifierRegex)];
+            if (identifierArray && identifierArray.length > 0) {
+                let identifierStr = identifierArray[0][0]
+                let identifier = identifierStr.substr(15)
+                let elemId = artifactType + "-" + artifactId;
+                parsedText = parsedText.replace(
+                    artifactToken[0],
+                    `<span contenteditable="false" id="${elemId}" class="entity_edit">${identifier}</span>`
+                    );
+            }
+        }
         return parsedText
+    },
+    openModalEntityEdit: function(e) {
+        console.log(e)
+        let entityDataType = e.target.id.split("-")[0]
+        let entityId = e.target.id.split("-")[1]
+        //this.rowNumberSelected = e.target.id.split("-")[2]
+        console.log(entityDataType)
+        console.log(entityId)
+        if (entityId) {
+            entityId = parseInt(entityId, 10);
+        }
+        this.entityEdit = {
+            "data_type": entityDataType,
+            "id": entityId,
+        }
+        if (['physical_artifact', 'document_artifact'].includes(entityDataType)) {
+            this.tabSelected = 'artifact';
+        } else if (entityDataType === 'individual') {
+            this.tabSelected = 'person';
+        }
+
+        this.openPersonOrArtifact();
     },
     addEventListeners: function() {
       let vm = this;
@@ -986,11 +1452,13 @@ export default {
           'keydown',
           (e) => {
               //this.runningSheetKeydown(e, window.getSelection().getRangeAt(0).startOffset);
+              //e.preventDefault();
               this.runningSheetKeydown(e);
           });
       runningSheetTable.on(
           'keyup',
           (e) => {
+              //e.preventDefault();
               this.runningSheetKeyup(e)
           });
       runningSheetTable.on(
@@ -998,6 +1466,12 @@ export default {
           '.row_delete',
           (e) => {
               this.runningSheetRowDelete(e)
+          });
+      runningSheetTable.on(
+          'click',
+          '.entity_edit',
+          (e) => {
+              this.openModalEntityEdit(e)
           });
       
       runningSheetTable.on(
@@ -1044,7 +1518,7 @@ export default {
         let returnedEntry = await Vue.http.post(
             helpers.add_endpoint_join(
                 api_endpoints.legal_case,
-                this.legal_case.id + '/delete_running_sheet_entry/',
+                this.legal_case.id + '/delete_reinstate_running_sheet_entry/',
             ),
             {
                 "running_sheet_id": running_sheet_id,
@@ -1058,7 +1532,7 @@ export default {
             for (let r of this.runningSheetUrl) {
                 if (r.number === rowNumber) {
                     this.runningSheetUrl.splice(i, 1, returnedEntry.body);
-                    this.runningSheetUrl[i].description = this.tokenToUrl(this.runningSheetUrl[i].description);
+                    this.runningSheetUrl[i].description = this.tokenToHtml(this.runningSheetUrl[i].description);
                 }
                 i += 1
             }
@@ -1082,7 +1556,7 @@ export default {
         let returnedEntry = await Vue.http.post(
             helpers.add_endpoint_join(
                 api_endpoints.legal_case,
-                this.legal_case.id + '/reinstate_running_sheet_entry/',
+                this.legal_case.id + '/delete_reinstate_running_sheet_entry/',
             ),
             {
                 "running_sheet_id": running_sheet_id,
@@ -1096,7 +1570,7 @@ export default {
             for (let r of this.runningSheetUrl) {
                 if (r.number === rowNumber) {
                     this.runningSheetUrl.splice(i, 1, returnedEntry.body);
-                    this.runningSheetUrl[i].description = this.tokenToUrl(this.runningSheetUrl[i].description);
+                    this.runningSheetUrl[i].description = this.tokenToHtml(this.runningSheetUrl[i].description);
                 }
                 i += 1
             }
@@ -1179,9 +1653,11 @@ export default {
     },
     constructRunningSheetTableWrapper: function() {
         this.runningSheetUrl = _.cloneDeep(this.legal_case.running_sheet_entries);
+        console.log('this.runningSheetUrl');
+        console.log(this.runningSheetUrl);
         let i = 0;
         for (let r of this.legal_case.running_sheet_entries) {
-            let description = this.tokenToUrl(r.description)
+            let description = this.tokenToHtml(r.description)
             this.runningSheetUrl[i].description = description;
             i += 1;
         }
@@ -1195,10 +1671,24 @@ export default {
           await this.loadLegalCase({ legal_case_id: this.$route.params.legal_case_id });
       }
       await this.loadCurrentUser({ url: `/api/my_compliance_user_details` });
-      console.log(this)
+      //console.log(this)
 
       this.calculateHash();
       this.constructRunningSheetTableWrapper();
+      /*
+      if (this.legal_case && this.legal_case.boe_roi_options) {
+          for (let item of this.legal_case.boe_roi_options) {
+              let cloned_item = _.cloneDeep(item);
+              this.boeRoiOptions.push(cloned_item)
+          }
+      }
+      if (this.legal_case && this.legal_case.boe_other_statements_options) {
+          for (let item of this.legal_case.boe_other_statements_options) {
+              let cloned_item = _.cloneDeep(item);
+              this.boeOtherStatementsOptions.push(cloned_item)
+          }
+      }
+      */
   },
   destroyed: function() {
       window.removeEventListener('beforeunload', this.leaving);
@@ -1208,12 +1698,27 @@ export default {
   mounted: function() {
       this.$nextTick(() => {
           this.addEventListeners();
+          /*
+          if (this.openStatus) {
+              this.constructRunningSheetTableWrapper();
+          }
+          */
+          /*
+          if (this.runningSheetVisibility) {
+              this.constructRunningSheetTableWrapper();
+          }
+          */
+          //let treeSelectElement = $('.vue-treeselect__control').css("display", "none");
+          //$('.vue-treeselect__control').css("display", "none");
       });
   },
 };
 </script>
 
 <style lang="css">
+.entity_edit {
+    color: #337ab7;
+}
 .action-button {
     margin-top: 5px;
 }

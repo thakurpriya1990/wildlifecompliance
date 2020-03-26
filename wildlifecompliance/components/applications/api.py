@@ -40,6 +40,9 @@ from wildlifecompliance.components.applications.models import (
     ApplicationFormDataRecord,
     ActivityInvoice,
 )
+from wildlifecompliance.components.applications.services import (
+    ApplicationService
+)
 from wildlifecompliance.components.applications.serializers import (
     ApplicationSerializer,
     InternalApplicationSerializer,
@@ -62,7 +65,12 @@ from wildlifecompliance.components.applications.serializers import (
     ApplicationProposedIssueSerializer,
     DTAssessmentSerializer,
     ApplicationSelectedActivitySerializer,
+    ValidCompleteAssessmentSerializer,
 )
+
+from wildlifecompliance.components.main.process_document import (
+        process_generic_document,
+        )
 
 from rest_framework_datatables.pagination import DatatablesPageNumberPagination
 from rest_framework_datatables.filters import DatatablesFilterBackend
@@ -514,6 +522,8 @@ class ApplicationViewSet(viewsets.ModelViewSet):
     @detail_route(methods=['POST', ])
     def complete_application_assessments(self, request, *args, **kwargs):
         try:
+            validator = ValidCompleteAssessmentSerializer(data=request.data)
+            validator.is_valid(raise_exception=True)
             instance = self.get_object()
             instance.complete_application_assessments_by_user(request)
             serializer = InternalApplicationSerializer(
@@ -527,6 +537,27 @@ class ApplicationViewSet(viewsets.ModelViewSet):
                 raise serializers.ValidationError(repr(e.error_dict))
             else:
                 raise serializers.ValidationError(repr(e[0].encode('utf-8')))
+        except Exception as e:
+            print(traceback.print_exc())
+            raise serializers.ValidationError(str(e))
+
+    @detail_route(methods=['POST', ])
+    def add_assessment_inspection(self, request, *args, **kwargs):
+        try:
+            instance = self.get_object()
+            for assessment in instance.assessments:
+                if assessment.licence_activity.id == \
+                   request.data.get('licence_activity_id'):
+                    assessment.add_inspection(request)
+            serializer = InternalApplicationSerializer(
+                instance, context={'request': request})
+            return Response(serializer.data)
+        except serializers.ValidationError:
+            print(traceback.print_exc())
+            raise
+        except ValidationError as e:
+            print(traceback.print_exc())
+            raise serializers.ValidationError(repr(e.error_dict))
         except Exception as e:
             print(traceback.print_exc())
             raise serializers.ValidationError(str(e))
@@ -548,7 +579,8 @@ class ApplicationViewSet(viewsets.ModelViewSet):
         if application_id is not None:
             application = Application.objects.get(id=application_id)
             return Response({
-                'fees': application.calculate_fees(request.data.get('field_data', {}))
+                'fees': ApplicationService.calculate_fees(
+                    application, request.data.get('field_data', {}))
             })
         return Response({
             'fees': Application.calculate_base_fees(purpose_ids)
@@ -619,20 +651,14 @@ class ApplicationViewSet(viewsets.ModelViewSet):
         try:
             instance = self.get_object()
             product_lines = []
-            application_submission = u'Application fee for {}'.format(
+            if instance.application_fee < 1:
+                raise Exception('Checkout request for zero amount.')
+
+            application_submission = u'Application No: {}'.format(
                 instance.lodgement_number)
+
             set_session_application(request.session, instance)
-            # check activities consist of amended fees.
-            activities = instance.activities if not instance.has_amended_fees\
-                else instance.amended_activities
-            for activity in activities:
-                product_lines.append({
-                    'ledger_description': '{}'.format(activity.licence_activity.name),
-                    'quantity': 1,
-                    'price_incl_tax': str(activity.application_fee),
-                    'price_excl_tax': str(calculate_excl_gst(activity.application_fee)),
-                    'oracle_code': ''
-                })
+            product_lines = ApplicationService.get_product_lines(instance)
             checkout_result = checkout(request, instance, lines=product_lines,
                                        invoice_text=application_submission)
             return checkout_result
@@ -652,30 +678,67 @@ class ApplicationViewSet(viewsets.ModelViewSet):
     @detail_route(methods=['post'])
     @renderer_classes((JSONRenderer,))
     def licence_fee_checkout(self, request, *args, **kwargs):
+        PAY_STATUS = ApplicationSelectedActivity.PROCESSING_STATUS_AWAITING_LICENCE_FEE_PAYMENT
         try:
             instance = self.get_object()
             activity_id = request.data.get('activity_id')
             if not activity_id:
-                raise Exception(
-                    'No activity selected for payment!')
-
-            activities = ApplicationSelectedActivity.objects.filter(
-                application_id=instance.id,
-                processing_status=ApplicationSelectedActivity.PROCESSING_STATUS_AWAITING_LICENCE_FEE_PAYMENT)
+                raise Exception('No activity selected for payment!')
 
             product_lines = []
-            application_submission = u'Activity licence issued for {} application {}'.format(
-                u'{} {}'.format(request.user.first_name, request.user.last_name), instance.lodgement_number)
+            application_submission = u'Application No: {}'.format(
+                instance.lodgement_number)
 
+            activities = instance.selected_activities.all()
+            # store first activity on session for id.
             set_session_activity(request.session, activities[0])
-            for activity in activities:
-                product_lines.append({
-                    'ledger_description': '{}'.format(activity.licence_activity.name),
-                    'quantity': 1,
-                    'price_incl_tax': str(activity.licence_fee),
-                    'price_excl_tax': str(calculate_excl_gst(activity.licence_fee)),
-                    'oracle_code': ''
-                })
+
+            # Adjustments occuring only to the application fee.
+            activities = instance.selected_activities.all()
+            if instance.has_amended_fees:
+                activities = instance.amended_activities
+                # only fees awaiting payment
+                activities_with_payments = [
+                    a for a in activities if a.processing_status == PAY_STATUS
+                ]
+                # only fees which are greater than zero.
+                activities_with_fees = [
+                   a for a in activities_with_payments if a.application_fee > 0
+                ]
+
+                for activity in activities_with_fees:
+                    product_lines.append({
+                        'ledger_description': '{} (Application Fee)'.format(
+                            activity.licence_activity.name),
+                        'quantity': 1,
+                        'price_incl_tax': str(activity.application_fee),
+                        'price_excl_tax': str(calculate_excl_gst(
+                            activity.application_fee)),
+                        'oracle_code': ''
+                    })
+
+            activities = instance.selected_activities.all()
+            # Include additional fees by licence approvers.
+            if instance.has_additional_fees:
+                # only fees awaiting payment
+                activities_with_payments = [
+                    a for a in activities if a.processing_status == PAY_STATUS
+                ]
+                # only fees which are greater than zero.
+                activities_with_fees = [
+                    a for a in activities_with_payments if a.additional_fee > 0
+                ]
+
+                for activity in activities_with_fees:
+                    product_lines.append({
+                        'ledger_description': '{}'.format(
+                            activity.additional_fee_text),
+                        'quantity': 1,
+                        'price_incl_tax': str(activity.additional_fee),
+                        'price_excl_tax': str(calculate_excl_gst(
+                            activity.additional_fee)),
+                        'oracle_code': ''
+                    })
 
             checkout_result = checkout(
                 request, instance,
@@ -698,7 +761,6 @@ class ApplicationViewSet(viewsets.ModelViewSet):
         except Exception as e:
             print(traceback.print_exc())
             raise serializers.ValidationError(str(e))
-
 
     @detail_route(methods=['POST', ])
     def accept_id_check(self, request, *args, **kwargs):
@@ -1062,7 +1124,7 @@ class ApplicationViewSet(viewsets.ModelViewSet):
         except Exception as e:
             print(traceback.print_exc())
             raise serializers.ValidationError(str(e))
-
+      
     @detail_route(methods=['GET', ])
     def get_proposed_decisions(self, request, *args, **kwargs):
         try:
@@ -1151,7 +1213,7 @@ class ApplicationViewSet(viewsets.ModelViewSet):
     def officer_comments(self, request, *args, **kwargs):
         try:
             instance = self.get_object()
-            ApplicationFormDataRecord.process_form(
+            ApplicationService.process_form(
                 request,
                 instance,
                 request.data,
@@ -1167,14 +1229,20 @@ class ApplicationViewSet(viewsets.ModelViewSet):
     def form_data(self, request, *args, **kwargs):
         try:
             instance = self.get_object()
-            ApplicationFormDataRecord.process_form(
+            ApplicationService.process_form(
                 request,
                 instance,
                 request.data,
                 action=ApplicationFormDataRecord.ACTION_TYPE_ASSIGN_VALUE
             )
             # Render any Application Standard Conditions triggered from Form.
-            ApplicationFormDataRecord.render_defined_conditions(instance, request.data)
+            ApplicationService.render_defined_conditions(
+                instance, request.data)
+            # Set any special form fields on the Application schema.
+            ApplicationService.set_special_form_fields(
+                instance, request.data)
+            # Send any relevant notifications.
+            instance.alert_for_refund(request)
             return Response({'success': True})
         except MissingFieldsException as e:
             return Response({
@@ -1293,7 +1361,9 @@ class ApplicationViewSet(viewsets.ModelViewSet):
                     serializer.instance.previous_application_id = latest_active_licence.current_application.id
                     serializer.instance.save()
 
-                serializer.instance.update_dynamic_attributes()
+                # serializer.instance.update_dynamic_attributes()
+                ApplicationService.update_dynamic_attributes(
+                    serializer.instance)
                 response = Response(serializer.data)
 
             return response
@@ -1361,6 +1431,17 @@ class ApplicationViewSet(viewsets.ModelViewSet):
         serializer = AssessmentSerializer(queryset, many=True)
         return Response(serializer.data)
 
+    @list_route(methods=['POST', ])
+    def set_application_species(self, request, *args, **kwargs):
+        species_ids = request.data.get('field_data')
+        if species_ids is not None: 
+            species_list = ApplicationService.get_licence_species(species_ids)
+            return Response({'species': species_list })
+
+        return Response({
+            'species': None
+        })
+
     @detail_route(permission_classes=[], methods=['GET'])
     def application_checkout_status(self, request, *args, **kwargs):
         # TODO: may need to re-build this function for Wildlife Licensing (code taken from Parkstay) if required
@@ -1414,6 +1495,7 @@ class ApplicationConditionViewSet(viewsets.ModelViewSet):
             serializer.is_valid(raise_exception=True)
             with transaction.atomic():
                 instance = serializer.save()
+                instance.set_source(request.user)
                 instance.submit()
                 instance.application.log_user_action(
                     ApplicationUserAction.ACTION_ENTER_CONDITIONS.format(
@@ -1461,6 +1543,39 @@ class ApplicationConditionViewSet(viewsets.ModelViewSet):
         except ValidationError as e:
             print(traceback.print_exc())
             raise serializers.ValidationError(repr(e.error_dict))
+        except Exception as e:
+            print(traceback.print_exc())
+            raise serializers.ValidationError(str(e))
+
+class ApplicationSelectedActivityViewSet(viewsets.ModelViewSet):
+    queryset = ApplicationSelectedActivity.objects.all()
+    serializer_class = ApplicationSelectedActivitySerializer
+
+    def get_queryset(self):
+        if is_internal(self.request):
+            return ApplicationSelectedActivity.objects.all()
+        elif is_customer(self.request):
+            return ApplicationSelectedActivity.objects.none()
+        return ApplicationSelectedActivity.objects.none()
+
+    @detail_route(methods=['POST', ])
+    def process_issuance_document(self, request, *args, **kwargs):
+        try:
+            instance = self.get_object()
+            returned_data = process_generic_document(request, instance, document_type="issuance_documents")
+            if returned_data:
+                return Response(returned_data)
+            else:
+                return Response()
+
+        except serializers.ValidationError:
+            print(traceback.print_exc())
+            raise
+        except ValidationError as e:
+            if hasattr(e, 'error_dict'):
+                raise serializers.ValidationError(repr(e.error_dict))
+            else:
+                raise serializers.ValidationError(repr(e[0].encode('utf-8')))
         except Exception as e:
             print(traceback.print_exc())
             raise serializers.ValidationError(str(e))

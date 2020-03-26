@@ -1,10 +1,8 @@
 import traceback
 
 from rest_framework.fields import CharField
-#from rest_framework_gis.serializers import GeoFeatureModelSerializer, GeometryField
 
 from ledger.accounts.models import EmailUser, Address
-#from wildlifecompliance.components.call_email.serializers import LocationSerializer, LocationSerializerOptimized
 from wildlifecompliance.components.legal_case.models import (
     LegalCase,
     LegalCaseUserAction,
@@ -12,7 +10,11 @@ from wildlifecompliance.components.legal_case.models import (
     LegalCasePriority,
     LegalCaseRunningSheetEntry,
     LegalCasePerson,
-    )
+    CourtProceedingsJournalEntry,
+    CourtProceedings,
+    BriefOfEvidence,
+    ProsecutionBrief,
+    CourtDate)
 from wildlifecompliance.components.call_email.serializers import EmailUserSerializer
 from wildlifecompliance.components.main.related_item import get_related_items
 from wildlifecompliance.components.main.serializers import CommunicationLogEntrySerializer
@@ -24,20 +26,25 @@ from rest_framework import serializers
 from django.core.exceptions import ValidationError
 from wildlifecompliance.components.main.fields import CustomChoiceField
 
+from wildlifecompliance.components.offence.serializers import OffenceSerializer
 from wildlifecompliance.components.users.serializers import (
     ComplianceUserDetailsOptimisedSerializer,
     CompliancePermissionGroupMembersSerializer,
     UserAddressSerializer,
 )
 from wildlifecompliance.components.artifact.serializers import (
-        #LegalCaseRunningSheetArtifactsSerializer,
-        DocumentArtifactSerializer,
+        DocumentArtifactStatementSerializer,
         PhysicalArtifactSerializer,
+        BriefOfEvidenceRecordOfInterviewSerializer,
+        BriefOfEvidenceOtherStatementsSerializer,
+        BriefOfEvidenceDocumentArtifactsSerializer,
+        BriefOfEvidencePhysicalArtifactsSerializer,
+        ProsecutionBriefRecordOfInterviewSerializer,
+        ProsecutionBriefOtherStatementsSerializer,
+        ProsecutionBriefDocumentArtifactsSerializer,
+        ProsecutionBriefPhysicalArtifactsSerializer,
         )
-#from wildlifecompliance.components.offence.serializers import OrganisationSerializer
-#from django.contrib.auth.models import Permission, ContentType
 from reversion.models import Version
-#from datetime import datetime, timedelta, date
 from django.utils import timezone
 
 
@@ -77,7 +84,7 @@ class CreateLegalCasePersonSerializer(serializers.ModelSerializer):
                 )
 
 
-class RunningSheetEntryVersionSerializer(serializers.ModelSerializer):
+class VersionSerializer(serializers.ModelSerializer):
     #serializable_value = serializers.JSONField()
     entry_fields = serializers.SerializerMethodField()
     date_modified = serializers.SerializerMethodField()
@@ -125,37 +132,31 @@ class RunningSheetEntryVersionSerializer(serializers.ModelSerializer):
         return modified_fields
 
 
-class RunningSheetEntryHistorySerializer(serializers.ModelSerializer):
+class JournalEntryHistorySerializer(serializers.ModelSerializer):
     versions = serializers.SerializerMethodField()
     class Meta:
-        model = LegalCaseRunningSheetEntry
+        model = CourtProceedingsJournalEntry
         fields = (
                 'id',
                 'versions',
                 )
     def get_versions(self, obj):
-        entry_versions = RunningSheetEntryVersionSerializer(
+        entry_versions = VersionSerializer(
                 Version.objects.get_for_object(obj),
                 many=True)
         return entry_versions.data
 
 
-class LegalCaseRunningSheetEntrySerializer(serializers.ModelSerializer):
-    #person = LegalCasePersonSerializer(many=True)
-    #legal_case_persons = LegalCasePersonSerializer(many=True)
-    #action = serializers.SerializerMethodField()
+class CourtProceedingsJournalEntrySerializer(serializers.ModelSerializer):
     user_full_name = serializers.SerializerMethodField()
-    #versions = serializers.SerializerMethodField()
     date_mod = serializers.SerializerMethodField()
     time_mod = serializers.SerializerMethodField()
 
     class Meta:
-        model = LegalCaseRunningSheetEntry
+        model = CourtProceedingsJournalEntry
         fields = (
                 'id',
-                #'person',
-                #'legal_case_persons',
-                'legal_case_id',
+                'court_proceedings_id',
                 'number',
                 'date_modified',
                 'date_mod',
@@ -164,15 +165,10 @@ class LegalCaseRunningSheetEntrySerializer(serializers.ModelSerializer):
                 'user_id',
                 'description',
                 'deleted',
-                #'action',
-                #'versions',
                 )
         read_only_fields = (
                 'id',
                 )
-
-    #def get_action(self, obj):
-     #   return ['Delete', 'History']
 
     def get_date_mod(self, obj):
         date_modified_loc = timezone.localtime(obj.date_modified)
@@ -182,14 +178,159 @@ class LegalCaseRunningSheetEntrySerializer(serializers.ModelSerializer):
         date_modified_loc = timezone.localtime(obj.date_modified)
         return date_modified_loc.strftime('%I:%M:%S %p')
 
-    #def get_time_mod(self, obj):
-     #   return obj.date_modified.strftime('%I:%M:%S')
+    def get_user_full_name(self, obj):
+        user_full_name = ''
+        if obj.user:
+            user_full_name = obj.user.get_full_name()
+        return user_full_name
 
-    #def get_versions(self, obj):
-    #    entry_versions = RunningSheetEntryVersionSerializer(
-    #            Version.objects.get_for_object(obj),
-    #            many=True)
-    #    return entry_versions.data
+
+class SaveCourtDateEntrySerializer(serializers.ModelSerializer):
+    court_proceedings_id = serializers.IntegerField(required=False, write_only=True, allow_null=True)
+
+    class Meta:
+        model = CourtDate
+        fields = (
+            'court_proceedings_id',
+            'court_datetime',
+            'comments',
+        )
+
+
+class SaveCourtProceedingsJournalEntrySerializer(serializers.ModelSerializer):
+    user_id = serializers.IntegerField(
+        required=False, write_only=True, allow_null=True)
+
+    class Meta:
+        model = CourtProceedingsJournalEntry
+        fields = (
+            'id',
+            'number',
+            'court_proceedings_id',
+            'user_id',
+            'description',
+        )
+        read_only_fields = (
+            'id',
+            'number',
+            'court_proceedings_id',
+        )
+
+
+class DeleteReinstateCourtProceedingsJournalEntrySerializer(serializers.ModelSerializer):
+
+    class Meta:
+        model = CourtProceedingsJournalEntry
+        fields = (
+                'id',
+                'number',
+                'court_proceedings_id',
+                'deleted',
+                )
+        read_only_fields = (
+                'id',
+                'number',
+                'court_proceedings_id',
+                )
+
+
+class CreateCourtProceedingsJournalEntrySerializer(serializers.ModelSerializer):
+    court_proceedings_id = serializers.IntegerField(
+        required=False, write_only=True, allow_null=True)
+    user_id = serializers.IntegerField(
+        required=False, write_only=True, allow_null=True)
+
+    class Meta:
+        model = CourtProceedingsJournalEntry
+        fields = (
+                'court_proceedings_id',
+                'user_id',
+                )
+
+    def create(self, validated_data):
+        court_proceedings_id = validated_data.get('court_proceedings_id')
+        user_id = validated_data.get('user_id')
+        new_entry = CourtProceedingsJournalEntry.objects.create_journal_entry(
+                court_proceedings_id=court_proceedings_id,
+                user_id=user_id)
+        return new_entry
+
+
+class CourtProceedingsCourtDateSerializer(serializers.ModelSerializer):
+
+    class Meta:
+        model = CourtDate
+        fields = (
+            'id',
+            'court_datetime',
+            'comments',
+        )
+
+
+class CourtProceedingsJournalSerializer(serializers.ModelSerializer):
+    journal_entries = CourtProceedingsJournalEntrySerializer(many=True, read_only=True)
+    court_dates = CourtProceedingsCourtDateSerializer(many=True, read_only=True)
+
+    class Meta:
+        model = CourtProceedings
+        fields = (
+                'id',
+                'court_outcome_details',
+                'journal_entries',
+                'court_dates',
+                )
+        read_only_fields = (
+                'id',
+        )
+
+    def validate(self, attrs):
+        return attrs
+
+class RunningSheetEntryHistorySerializer(serializers.ModelSerializer):
+    versions = serializers.SerializerMethodField()
+    class Meta:
+        model = LegalCaseRunningSheetEntry
+        fields = (
+                'id',
+                'versions',
+                )
+    def get_versions(self, obj):
+        entry_versions = VersionSerializer(
+                Version.objects.get_for_object(obj),
+                many=True)
+        return entry_versions.data
+
+
+class LegalCaseRunningSheetEntrySerializer(serializers.ModelSerializer):
+    user_full_name = serializers.SerializerMethodField()
+    date_mod = serializers.SerializerMethodField()
+    time_mod = serializers.SerializerMethodField()
+
+    class Meta:
+        model = LegalCaseRunningSheetEntry
+        fields = (
+                'id',
+                'legal_case_id',
+                'number',
+                'date_modified',
+                'date_mod',
+                'time_mod',
+                'user_full_name',
+                'user_id',
+                'description',
+                'deleted',
+                )
+        read_only_fields = (
+                'id',
+                )
+
+    def get_date_mod(self, obj):
+        date_modified_loc = timezone.localtime(obj.date_modified)
+        return date_modified_loc.strftime('%d/%m/%Y')
+
+    def get_time_mod(self, obj):
+        date_modified_loc = timezone.localtime(obj.date_modified)
+        return date_modified_loc.strftime('%I:%M:%S %p')
 
     def get_user_full_name(self, obj):
         user_full_name = ''
@@ -207,11 +348,9 @@ class SaveLegalCaseRunningSheetEntrySerializer(serializers.ModelSerializer):
         fields = (
                 'id',
                 'number',
-                #'legal_case_persons',
                 'legal_case_id',
                 'user_id',
                 'description',
-                #'date_modified',
                 )
         read_only_fields = (
                 'id',
@@ -246,21 +385,16 @@ class CreateLegalCaseRunningSheetEntrySerializer(serializers.ModelSerializer):
     class Meta:
         model = LegalCaseRunningSheetEntry
         fields = (
-                #'id',
-                #'number',
-                #'legal_case_persons',
                 'legal_case_id',
                 'user_id',
                 )
 
     def create(self, validated_data):
-        print(validated_data)
         legal_case_id = validated_data.get('legal_case_id')
         user_id = validated_data.get('user_id')
         new_entry = LegalCaseRunningSheetEntry.objects.create_running_sheet_entry(
                 legal_case_id=legal_case_id, 
                 user_id=user_id)
-        #new_entry.save()
         return new_entry
 
 
@@ -278,55 +412,98 @@ class LegalCaseRunningSheetSerializer(serializers.ModelSerializer):
                 )
 
 
-#class LegalCaseStatementArtifactsSerializer(serializers.ModelSerializer):
-#    statement_artifacts = serializers.SerializerMethodField()
-#
-#    class Meta:
-#        model = LegalCase
-#        fields = (
-#                'id',
-#                'statement_artifacts',
-#                )
-#        read_only_fields = (
-#                'id',
-#                )
-#
-#    #def get_statement_artifacts(self, obj):
-#    #    artifact_list = []
-#    #    for artifact in obj.legal_case_document_artifacts.all():
-#    #        if artifact.document_type \
-#    #        and artifact.document_type.artifact_type in \
-#    #        [
-#    #            'Record of Interview',
-#    #            'Witness Statement',
-#    #            'Expert Statement',
-#    #            'Officer Statement'
-#    #        ]:
-#    #            serialized_artifact = DocumentArtifactSerializer(artifact)
-#    #            artifact_list.append(serialized_artifact)
-#    #    return artifact_list
-#
-#    def get_statement_artifacts(self, obj):
-#        artifact_list = []
-#        for artifact in obj.legal_case_document_artifacts.all():
-#            if artifact.document_type and artifact.document_type in \
-#            [
-#                'record_of_interview',
-#                'witness_statement',
-#                'expert_statement',
-#                'officer_statement'
-#            ]:
-#                serialized_artifact = DocumentArtifactSerializer(artifact)
-#                artifact_list.append(serialized_artifact)
-#        return artifact_list
+class BriefOfEvidenceSerializer(serializers.ModelSerializer):
+
+    class Meta:
+        model = BriefOfEvidence
+        fields = (
+                'id',
+                'legal_case_id',
+                'statement_of_facts',
+                'victim_impact_statement_taken',
+                'statements_pending',
+                'vulnerable_hostile_witnesses',
+                'witness_refusing_statement',
+                'problems_needs_prosecution_witnesses',
+                'accused_bad_character',
+                'further_persons_interviews_pending',
+                'other_interviews',
+                'relevant_persons_pending_charges',
+                'other_persons_receiving_sanction_outcome',
+                'local_public_interest',
+                'applications_orders_requests',
+                'applications_orders_required',
+                'other_legal_matters',
+
+                'victim_impact_statement_taken_details',
+                'statements_pending_details',
+                'vulnerable_hostile_witnesses_details',
+                'witness_refusing_statement_details',
+                'problems_needs_prosecution_witnesses_details',
+                'accused_bad_character_details',
+                'further_persons_interviews_pending_details',
+                'other_interviews_details',
+                'relevant_persons_pending_charges_details',
+                'other_persons_receiving_sanction_outcome_details',
+                'local_public_interest_details',
+                'applications_orders_requests_details',
+                'applications_orders_required_details',
+                'other_legal_matters_details',
+                )
+        read_only_fields = (
+                'id',
+                'legal_case_id',
+                )
 
 
-class LegalCaseSerializer(serializers.ModelSerializer):
+class ProsecutionBriefSerializer(serializers.ModelSerializer):
+
+    class Meta:
+        model = ProsecutionBrief
+        fields = (
+                'id',
+                'legal_case_id',
+                'statement_of_facts',
+                'victim_impact_statement_taken',
+                'statements_pending',
+                'vulnerable_hostile_witnesses',
+                'witness_refusing_statement',
+                'problems_needs_prosecution_witnesses',
+                'accused_bad_character',
+                'further_persons_interviews_pending',
+                'other_interviews',
+                'relevant_persons_pending_charges',
+                'other_persons_receiving_sanction_outcome',
+                'local_public_interest',
+                'applications_orders_requests',
+                'applications_orders_required',
+                'other_legal_matters',
+
+                'victim_impact_statement_taken_details',
+                'statements_pending_details',
+                'vulnerable_hostile_witnesses_details',
+                'witness_refusing_statement_details',
+                'problems_needs_prosecution_witnesses_details',
+                'accused_bad_character_details',
+                'further_persons_interviews_pending_details',
+                'other_interviews_details',
+                'relevant_persons_pending_charges_details',
+                'other_persons_receiving_sanction_outcome_details',
+                'local_public_interest_details',
+                'applications_orders_requests_details',
+                'applications_orders_required_details',
+                'other_legal_matters_details',
+                )
+        read_only_fields = (
+                'id',
+                'legal_case_id',
+                )
+
+
+class BaseLegalCaseSerializer(serializers.ModelSerializer):
     running_sheet_entries = LegalCaseRunningSheetEntrySerializer(many=True)
     legal_case_person = EmailUserSerializer(many=True)
-    #running_sheet_entries = serializers.SerializerMethodField()
     allocated_group = serializers.SerializerMethodField()
-    #all_officers = serializers.SerializerMethodField()
     user_in_group = serializers.SerializerMethodField()
     can_user_action = serializers.SerializerMethodField()
     user_is_assignee = serializers.SerializerMethodField()
@@ -334,10 +511,10 @@ class LegalCaseSerializer(serializers.ModelSerializer):
     related_items = serializers.SerializerMethodField()
     statement_artifacts = serializers.SerializerMethodField()
     legal_case_priority = LegalCasePrioritySerializer()
-    #running_sheet_artifacts = LegalCaseRunningSheetArtifactsSerializer(read_only=True)
-    #inspection_report = serializers.SerializerMethodField()
-    #data = InspectionFormDataRecordSerializer(many=True)
-    #location = LocationSerializer(read_only=True)
+    offence_list = serializers.SerializerMethodField()
+    brief_of_evidence = BriefOfEvidenceSerializer()
+    prosecution_brief = ProsecutionBriefSerializer()
+    court_proceedings = CourtProceedingsJournalSerializer()
 
     class Meta:
         model = LegalCase
@@ -364,23 +541,40 @@ class LegalCaseSerializer(serializers.ModelSerializer):
                 'running_sheet_entries',
                 'statement_artifacts',
                 'legal_case_person',
-                #'running_sheet_artifacts',
+                'offence_list',
+                'brief_of_evidence',
+                'prosecution_brief',
+                'court_proceedings',
+
                 )
         read_only_fields = (
                 'id',
                 )
 
+    def get_offence_list(self, obj):
+        offence_list = [{
+            'id': '',
+            'lodgement_number': '',
+            'identifier': '',
+            }]
+        offence_queryset = obj.offence_legal_case.all()
+        if offence_queryset and offence_queryset.first().id:
+            serializer = OffenceSerializer(offence_queryset, many=True, context=self.context)
+            offence_list.extend(serializer.data)
+        return offence_list
+
     def get_statement_artifacts(self, obj):
         artifact_list = []
-        for artifact in obj.legal_case_document_artifacts.all():
-            if artifact.document_type and artifact.document_type in [
-                'record_of_interview',
-                'witness_statement',
-                'expert_statement',
-                'officer_statement'
-            ]:
-                serialized_artifact = DocumentArtifactSerializer(artifact)
-                artifact_list.append(serialized_artifact.data)
+        for link in obj.documentartifactlegalcases_set.all():
+                if (link.primary and link.document_artifact.document_type and 
+                        link.document_artifact.document_type in [
+                    'record_of_interview',
+                    'witness_statement',
+                    'expert_statement',
+                    'officer_statement'
+                ]):
+                    serialized_artifact = DocumentArtifactStatementSerializer(link.document_artifact)
+                    artifact_list.append(serialized_artifact.data)
         return artifact_list
 
     def get_related_items(self, obj):
@@ -429,10 +623,460 @@ class LegalCaseSerializer(serializers.ModelSerializer):
 
         return allocated_group
 
-    #def get_running_sheet_entries(self, obj):
-    #    #entries = 
-    #    return 
-    #    pass
+
+class LegalCaseBriefOfEvidenceSerializer(BaseLegalCaseSerializer):
+    running_sheet_entries = LegalCaseRunningSheetEntrySerializer(many=True)
+    allocated_group = serializers.SerializerMethodField()
+    user_in_group = serializers.SerializerMethodField()
+    can_user_action = serializers.SerializerMethodField()
+    user_is_assignee = serializers.SerializerMethodField()
+    status = CustomChoiceField(read_only=True)
+    related_items = serializers.SerializerMethodField()
+    statement_artifacts = serializers.SerializerMethodField()
+    legal_case_priority = LegalCasePrioritySerializer()
+    offence_list = serializers.SerializerMethodField()
+    brief_of_evidence = BriefOfEvidenceSerializer()
+    prosecution_brief = ProsecutionBriefSerializer()
+    court_proceedings = CourtProceedingsJournalSerializer()
+
+    boe_roi_ticked = serializers.SerializerMethodField()
+    boe_roi_options = serializers.SerializerMethodField()
+    boe_other_statements_ticked = serializers.SerializerMethodField()
+    boe_other_statements_options = serializers.SerializerMethodField()
+    legal_case_boe_other_statements = BriefOfEvidenceOtherStatementsSerializer(many=True)
+    legal_case_boe_roi = BriefOfEvidenceRecordOfInterviewSerializer(many=True)
+    brief_of_evidence = BriefOfEvidenceSerializer()
+    boe_physical_artifacts_used = serializers.SerializerMethodField()
+    boe_physical_artifacts_sensitive_unused = serializers.SerializerMethodField()
+    boe_physical_artifacts_non_sensitive_unused = serializers.SerializerMethodField()
+    boe_document_artifacts = serializers.SerializerMethodField()
+
+    class Meta:
+        model = LegalCase
+        fields = (
+                'id',
+                'number',
+                'status',
+                'title',
+                'details',
+                'case_created_date',
+                'case_created_time',
+                'assigned_to_id',
+                'allocated_group',
+                'allocated_group_id',
+                'user_in_group',
+                'can_user_action',
+                'user_is_assignee',
+                'related_items',
+                'call_email_id',
+                'region_id',
+                'district_id',
+                'legal_case_priority',
+                'legal_case_priority_id',
+                'running_sheet_entries',
+                'statement_artifacts',
+                'legal_case_person',
+                'offence_list',
+                'brief_of_evidence',
+                'prosecution_brief',
+                'court_proceedings',
+
+                #'id',
+                #'running_sheet_entries',
+                ##'legal_case_person',
+                #'allocated_group',
+                #'allocated_group_id',
+                #'user_in_group',
+                #'can_user_action',
+                #'user_is_assignee',
+                #'status',
+                #'related_items',
+                #'statement_artifacts',
+                #'legal_case_priority',
+                #'offence_list',
+                #'brief_of_evidence',
+                #'prosecution_brief',
+                #'court_proceedings',
+                #'district_id',
+                #'region_id',
+
+                'boe_roi_ticked',
+                'boe_roi_options',
+                'legal_case_boe_roi',
+                'boe_other_statements_ticked',
+                'boe_other_statements_options',
+                'legal_case_boe_other_statements',
+
+                'boe_physical_artifacts_used',
+                'boe_physical_artifacts_sensitive_unused',
+                'boe_physical_artifacts_non_sensitive_unused',
+                'boe_document_artifacts',
+
+                )
+        read_only_fields = (
+                'id',
+                )
+
+    def get_boe_document_artifacts(self, obj):
+        artifact_list = []
+        for artifact in obj.briefofevidencedocumentartifacts_set.all():
+            artifact_serializer = BriefOfEvidenceDocumentArtifactsSerializer(artifact)
+            serialized_artifact = artifact_serializer.data
+            artifact_list.append(serialized_artifact)
+        return artifact_list
+    # used physical artifacts
+    def get_boe_physical_artifacts_used(self, obj):
+        artifact_list = []
+        for record in obj.briefofevidencephysicalartifacts_set.all():
+            legal_case_physical_artifact_link = obj.physicalartifactlegalcases_set.get(
+                    legal_case_id=obj.id,
+                    physical_artifact_id=record.physical_artifact.id)
+            if legal_case_physical_artifact_link.used_within_case:
+                artifact_serializer = BriefOfEvidencePhysicalArtifactsSerializer(record)
+                serialized_artifact = artifact_serializer.data
+                artifact_list.append(serialized_artifact)
+        return artifact_list
+    # sensitive unused physical artifacts
+    def get_boe_physical_artifacts_sensitive_unused(self, obj):
+        artifact_list = []
+        for record in obj.briefofevidencephysicalartifacts_set.all():
+            legal_case_physical_artifact_link = obj.physicalartifactlegalcases_set.get(
+                    legal_case_id=obj.id,
+                    physical_artifact_id=record.physical_artifact.id)
+            if (not legal_case_physical_artifact_link.used_within_case and 
+                    legal_case_physical_artifact_link.sensitive_non_disclosable
+                    ):
+                artifact_serializer = BriefOfEvidencePhysicalArtifactsSerializer(record)
+                serialized_artifact = artifact_serializer.data
+                artifact_list.append(serialized_artifact)
+        return artifact_list
+    # non sensitive unused physical artifacts
+    def get_boe_physical_artifacts_non_sensitive_unused(self, obj):
+        artifact_list = []
+        for record in obj.briefofevidencephysicalartifacts_set.all():
+            legal_case_physical_artifact_link = obj.physicalartifactlegalcases_set.get(
+                    legal_case_id=obj.id,
+                    physical_artifact_id=record.physical_artifact.id)
+            if (not legal_case_physical_artifact_link.used_within_case and not
+                    legal_case_physical_artifact_link.sensitive_non_disclosable
+                    ):
+                artifact_serializer = BriefOfEvidencePhysicalArtifactsSerializer(record)
+                serialized_artifact = artifact_serializer.data
+                artifact_list.append(serialized_artifact)
+        return artifact_list
+
+    def get_boe_other_statements_ticked(self, obj):
+        ticked_list = []
+        for record in obj.legal_case_boe_other_statements.all():
+            if record.ticked:
+                ticked_list.append(record.id)
+        return ticked_list
+
+    def get_boe_other_statements_options(self, obj):
+        person_list = []
+
+        for person_level_record in obj.legal_case_boe_other_statements.filter(statement=None):
+            person_serializer = BriefOfEvidenceOtherStatementsSerializer(
+                    person_level_record)
+            serialized_person = person_serializer.data
+            person_children = []
+            for statement_level_record in person_level_record.children.all():
+                statement_serializer = BriefOfEvidenceOtherStatementsSerializer(
+                        statement_level_record)
+                serialized_statement = statement_serializer.data
+                statement_children = []
+                for doc_level_record in statement_level_record.children.all():
+                    doc_serializer = BriefOfEvidenceOtherStatementsSerializer(
+                            doc_level_record)
+                    serialized_doc = doc_serializer.data
+                    if serialized_doc:
+                        statement_children.append(serialized_doc)
+                serialized_statement['children'] = statement_children
+                if serialized_statement:
+                    person_children.append(serialized_statement)
+            serialized_person['children'] = person_children
+            person_list.append(serialized_person)
+        return person_list
+
+    def get_boe_roi_ticked(self, obj):
+        ticked_list = []
+        for record in obj.legal_case_boe_roi.all():
+            if record.ticked:
+                ticked_list.append(record.id)
+        return ticked_list
+
+    def get_boe_roi_options(self, obj):
+        offence_list = []
+
+        for offence_level_record in obj.legal_case_boe_roi.filter(offender=None):
+            offence_serializer = BriefOfEvidenceRecordOfInterviewSerializer(
+                    offence_level_record)
+            serialized_offence = offence_serializer.data
+            offence_children = []
+            for offender_level_record in offence_level_record.children.all():
+                offender_serializer = BriefOfEvidenceRecordOfInterviewSerializer(
+                            offender_level_record)
+                serialized_offender = offender_serializer.data
+                offender_children = []
+                for roi_level_record in offender_level_record.children.all():
+                    roi_serializer = BriefOfEvidenceRecordOfInterviewSerializer(
+                            roi_level_record)
+                    serialized_roi = roi_serializer.data
+                    roi_children = []
+                    for doc_artifact_level_record in roi_level_record.children.all():
+                        # check for associated docs and add to serialized_roi
+                        doc_serializer = BriefOfEvidenceRecordOfInterviewSerializer(
+                                doc_artifact_level_record)
+                        serialized_doc_artifact = doc_serializer.data
+                        if serialized_doc_artifact:
+                            roi_children.append(serialized_doc_artifact)
+                    serialized_roi['children'] = roi_children
+                    # add roi to offender_children
+                    if serialized_roi:
+                        #serialized_offender['children'] = serialized_roi
+                        offender_children.append(serialized_roi)
+                # add roi list to offender
+                serialized_offender['children'] = offender_children
+                ## add offender to offence_list
+                # add offender to offence
+                if serialized_offender:
+                    offence_children.append(serialized_offender)
+            serialized_offence['children'] = offence_children
+            offence_list.append(serialized_offence)
+        return offence_list
+
+
+#class LegalCaseProsecutionBriefSerializer(BaseLegalCaseSerializer):
+class LegalCaseProsecutionBriefSerializer(LegalCaseBriefOfEvidenceSerializer):
+    running_sheet_entries = LegalCaseRunningSheetEntrySerializer(many=True)
+    allocated_group = serializers.SerializerMethodField()
+    user_in_group = serializers.SerializerMethodField()
+    can_user_action = serializers.SerializerMethodField()
+    user_is_assignee = serializers.SerializerMethodField()
+    status = CustomChoiceField(read_only=True)
+    related_items = serializers.SerializerMethodField()
+    statement_artifacts = serializers.SerializerMethodField()
+    legal_case_priority = LegalCasePrioritySerializer()
+    offence_list = serializers.SerializerMethodField()
+    brief_of_evidence = BriefOfEvidenceSerializer()
+    prosecution_brief = ProsecutionBriefSerializer()
+    court_proceedings = CourtProceedingsJournalSerializer()
+
+    pb_roi_ticked = serializers.SerializerMethodField()
+    pb_roi_options = serializers.SerializerMethodField()
+    pb_other_statements_ticked = serializers.SerializerMethodField()
+    pb_other_statements_options = serializers.SerializerMethodField()
+    legal_case_pb_other_statements = BriefOfEvidenceOtherStatementsSerializer(many=True)
+    legal_case_pb_roi = BriefOfEvidenceRecordOfInterviewSerializer(many=True)
+    brief_of_evidence = BriefOfEvidenceSerializer()
+    pb_physical_artifacts_used = serializers.SerializerMethodField()
+    pb_physical_artifacts_sensitive_unused = serializers.SerializerMethodField()
+    pb_physical_artifacts_non_sensitive_unused = serializers.SerializerMethodField()
+    pb_document_artifacts = serializers.SerializerMethodField()
+
+    class Meta:
+        model = LegalCase
+        fields = (
+                'id',
+                'number',
+                'status',
+                'title',
+                'details',
+                'case_created_date',
+                'case_created_time',
+                'assigned_to_id',
+                'allocated_group',
+                'allocated_group_id',
+                'user_in_group',
+                'can_user_action',
+                'user_is_assignee',
+                'related_items',
+                'call_email_id',
+                'region_id',
+                'district_id',
+                'legal_case_priority',
+                'legal_case_priority_id',
+                'running_sheet_entries',
+                'statement_artifacts',
+                'legal_case_person',
+                'offence_list',
+                'brief_of_evidence',
+                'prosecution_brief',
+                'court_proceedings',
+
+                #'id',
+                #'running_sheet_entries',
+                ##'legal_case_person',
+                #'allocated_group',
+                #'allocated_group_id',
+                #'user_in_group',
+                #'can_user_action',
+                #'user_is_assignee',
+                #'status',
+                #'related_items',
+                #'statement_artifacts',
+                #'legal_case_priority',
+                #'offence_list',
+                #'brief_of_evidence',
+                #'prosecution_brief',
+                #'court_proceedings',
+                #'district_id',
+                #'region_id',
+
+                'pb_roi_ticked',
+                'pb_roi_options',
+                'legal_case_pb_roi',
+                'pb_other_statements_ticked',
+                'pb_other_statements_options',
+                'legal_case_pb_other_statements',
+
+                'pb_physical_artifacts_used',
+                'pb_physical_artifacts_sensitive_unused',
+                'pb_physical_artifacts_non_sensitive_unused',
+                'pb_document_artifacts',
+                'boe_roi_ticked',
+                'boe_roi_options',
+                'legal_case_boe_roi',
+                'boe_other_statements_ticked',
+                'boe_other_statements_options',
+                'legal_case_boe_other_statements',
+
+                'boe_physical_artifacts_used',
+                'boe_physical_artifacts_sensitive_unused',
+                'boe_physical_artifacts_non_sensitive_unused',
+                'boe_document_artifacts',
+
+                )
+        read_only_fields = (
+                'id',
+                )
+
+    def get_pb_document_artifacts(self, obj):
+        artifact_list = []
+        for artifact in obj.prosecutionbriefdocumentartifacts_set.all():
+            artifact_serializer = ProsecutionBriefDocumentArtifactsSerializer(artifact)
+            serialized_artifact = artifact_serializer.data
+            artifact_list.append(serialized_artifact)
+        return artifact_list
+    # used physical artifacts
+    def get_pb_physical_artifacts_used(self, obj):
+        artifact_list = []
+        for record in obj.prosecutionbriefphysicalartifacts_set.all():
+            legal_case_physical_artifact_link = obj.physicalartifactlegalcases_set.get(
+                    legal_case_id=obj.id,
+                    physical_artifact_id=record.physical_artifact.id)
+            if legal_case_physical_artifact_link.used_within_case:
+                artifact_serializer = ProsecutionBriefPhysicalArtifactsSerializer(record)
+                serialized_artifact = artifact_serializer.data
+                artifact_list.append(serialized_artifact)
+        return artifact_list
+    # sensitive unused physical artifacts
+    def get_pb_physical_artifacts_sensitive_unused(self, obj):
+        artifact_list = []
+        for record in obj.prosecutionbriefphysicalartifacts_set.all():
+            legal_case_physical_artifact_link = obj.physicalartifactlegalcases_set.get(
+                    legal_case_id=obj.id,
+                    physical_artifact_id=record.physical_artifact.id)
+            if (not legal_case_physical_artifact_link.used_within_case and 
+                    legal_case_physical_artifact_link.sensitive_non_disclosable
+                    ):
+                artifact_serializer = ProsecutionBriefPhysicalArtifactsSerializer(record)
+                serialized_artifact = artifact_serializer.data
+                artifact_list.append(serialized_artifact)
+        return artifact_list
+    # non sensitive unused physical artifacts
+    def get_pb_physical_artifacts_non_sensitive_unused(self, obj):
+        artifact_list = []
+        for record in obj.prosecutionbriefphysicalartifacts_set.all():
+            legal_case_physical_artifact_link = obj.physicalartifactlegalcases_set.get(
+                    legal_case_id=obj.id,
+                    physical_artifact_id=record.physical_artifact.id)
+            if (not legal_case_physical_artifact_link.used_within_case and not
+                    legal_case_physical_artifact_link.sensitive_non_disclosable
+                    ):
+                artifact_serializer = ProsecutionBriefPhysicalArtifactsSerializer(record)
+                serialized_artifact = artifact_serializer.data
+                artifact_list.append(serialized_artifact)
+        return artifact_list
+
+    def get_pb_other_statements_ticked(self, obj):
+        ticked_list = []
+        for record in obj.legal_case_pb_other_statements.all():
+            if record.ticked:
+                ticked_list.append(record.id)
+        return ticked_list
+
+    def get_pb_other_statements_options(self, obj):
+        person_list = []
+
+        for person_level_record in obj.legal_case_pb_other_statements.filter(statement=None):
+            person_serializer = ProsecutionBriefOtherStatementsSerializer(
+                    person_level_record)
+            serialized_person = person_serializer.data
+            person_children = []
+            for statement_level_record in person_level_record.children.all():
+                statement_serializer = ProsecutionBriefOtherStatementsSerializer(
+                        statement_level_record)
+                serialized_statement = statement_serializer.data
+                statement_children = []
+                for doc_level_record in statement_level_record.children.all():
+                    doc_serializer = ProsecutionBriefOtherStatementsSerializer(
+                            doc_level_record)
+                    serialized_doc = doc_serializer.data
+                    if serialized_doc:
+                        statement_children.append(serialized_doc)
+                serialized_statement['children'] = statement_children
+                if serialized_statement:
+                    person_children.append(serialized_statement)
+            serialized_person['children'] = person_children
+            person_list.append(serialized_person)
+        return person_list
+
+    def get_pb_roi_ticked(self, obj):
+        ticked_list = []
+        for record in obj.legal_case_pb_roi.all():
+            if record.ticked:
+                ticked_list.append(record.id)
+        return ticked_list
+
+    def get_pb_roi_options(self, obj):
+        offence_list = []
+
+        for offence_level_record in obj.legal_case_pb_roi.filter(offender=None):
+            offence_serializer = ProsecutionBriefRecordOfInterviewSerializer(
+                    offence_level_record)
+            serialized_offence = offence_serializer.data
+            offence_children = []
+            for offender_level_record in offence_level_record.children.all():
+                offender_serializer = ProsecutionBriefRecordOfInterviewSerializer(
+                            offender_level_record)
+                serialized_offender = offender_serializer.data
+                offender_children = []
+                for roi_level_record in offender_level_record.children.all():
+                    roi_serializer = ProsecutionBriefRecordOfInterviewSerializer(
+                            roi_level_record)
+                    serialized_roi = roi_serializer.data
+                    roi_children = []
+                    for doc_artifact_level_record in roi_level_record.children.all():
+                        # check for associated docs and add to serialized_roi
+                        doc_serializer = ProsecutionBriefRecordOfInterviewSerializer(
+                                doc_artifact_level_record)
+                        serialized_doc_artifact = doc_serializer.data
+                        if serialized_doc_artifact:
+                            roi_children.append(serialized_doc_artifact)
+                    serialized_roi['children'] = roi_children
+                    # add roi to offender_children
+                    if serialized_roi:
+                        offender_children.append(serialized_roi)
+                # add roi list to offender
+                serialized_offender['children'] = offender_children
+                ## add offender to offence_list
+                # add offender to offence
+                if serialized_offender:
+                    offence_children.append(serialized_offender)
+            serialized_offence['children'] = offence_children
+            offence_list.append(serialized_offence)
+        return offence_list
 
 
 class SaveLegalCaseSerializer(serializers.ModelSerializer):
@@ -446,6 +1090,10 @@ class SaveLegalCaseSerializer(serializers.ModelSerializer):
     legal_case_priority_id = serializers.IntegerField(
         required=False, write_only=True, allow_null=True)
 
+    def create(self, validated_data):
+        instance = super(SaveLegalCaseSerializer, self).create(validated_data)
+        return instance
+
     class Meta:
         model = LegalCase
         fields = (
@@ -458,7 +1106,7 @@ class SaveLegalCaseSerializer(serializers.ModelSerializer):
                 'allocated_group_id',
                 'call_email_id',
                 'legal_case_priority_id',
-                #'running_sheet_entries',
+
                 )
         read_only_fields = (
                 'id',
@@ -492,7 +1140,6 @@ class LegalCaseDatatableSerializer(serializers.ModelSerializer):
     created_date = serializers.SerializerMethodField()
     status = CustomChoiceField(read_only=True)
     assigned_to = ComplianceUserDetailsOptimisedSerializer(read_only=True)
-    #inspection_team_lead = EmailUserSerializer()
     
     class Meta:
         model = LegalCase
@@ -500,7 +1147,6 @@ class LegalCaseDatatableSerializer(serializers.ModelSerializer):
                 'number',
                 'title',
                 'status',
-                #'case_created_date',
                 'created_date',
                 'user_action',
                 'assigned_to',

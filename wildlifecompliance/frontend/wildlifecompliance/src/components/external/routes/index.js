@@ -8,6 +8,7 @@ import ApplicationSubmit from '../application_submit.vue'
 import Organisation from '../organisations/manage.vue'
 import Returns from '../returns/return.vue'
 import RemediationAction from '../remediation_action.vue'
+import RemediationActionSubmitSuccess from '../remediation_action_submit_success.vue'
 export default
 {
     path: '/external',
@@ -33,6 +34,11 @@ export default
             path: 'remediation_action/:remediation_action_id',
             component: RemediationAction,
             name: 'external-remediation-action-detail'
+        },
+        {
+            path: 'remediation_action/:remediation_action_id/submit_success',
+            component: RemediationActionSubmitSuccess,
+            name: 'external-remediation-action-submit-success'
         },
         {
             path: 'organisations/manage/:org_id',

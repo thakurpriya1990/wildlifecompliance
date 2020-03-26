@@ -103,12 +103,12 @@
                                             <button class="btn btn-primary top-buffer-s col-xs-12" @click.prevent="returnToOfficerConditions()">Return to Officer - Conditions</button>                                   
                                         </div>
                                     </div>   
-                                    <div v-if="!applicationIsDraft && canRequestAmendment" class="row">
+                                    <div v-if="!applicationIsDraft && canRequestAmendment && !requiresRefund" class="row">
                                         <div class="col-sm-12">
                                             <button class="btn btn-primary top-buffer-s col-xs-12" @click.prevent="amendmentRequest()">Request Amendment</button><br/>
                                         </div>
                                     </div>                            
-                                    <div v-if="canIssueDecline" class="row">
+                                    <div v-if="canIssueDecline & !requiresRefund" class="row">
                                         <div class="col-sm-12">
                                             <button class="btn btn-primary top-buffer-s col-xs-12" @click.prevent="toggleIssue()">Issue/Decline</button>
                                             <!-- v-if="!userIsAssignedOfficer" was removed to enforce permission at group membership only. -->
@@ -119,7 +119,7 @@
                                         <div class="col-sm-12">
                                             <button class="btn btn-primary top-buffer-s col-xs-12" @click.prevent="togglesendtoAssessor()">Assessments &amp; Conditions</button><br/>
                                         </div>
-                                    </div>   
+                                    </div>
                                 </template>
                                 <template v-else>
                                     <div class="row">
@@ -137,7 +137,7 @@
                                             <button class="btn btn-primary top-buffer-s col-xs-12" @click.prevent="proposedLicence()">Propose Issue</button>
                                             <button class="btn btn-primary top-buffer-s col-xs-12" @click.prevent="proposedDecline()">Propose Decline</button>
                                         </div>
-                                    </div>
+                                    </div> 
                                 </template>
                             </div>
                         </div>
@@ -152,9 +152,7 @@
                     <IssueLicence :application="application" :licence_activity_tab="selected_activity_tab_id"/>
                 </template>
 
-                <ApplicationAssessments
-                    v-if="isSendingToAssessor || isOfficerConditions"
-                    />
+                <ApplicationAssessments v-if="isSendingToAssessor || isOfficerConditions" />
 
                 <template v-if="applicationDetailsVisible">
                     <div>
@@ -516,6 +514,10 @@
                                             <div class="navbar-inner">
                                                 <div class="container">
                                                     <p class="pull-right" style="margin-top:5px;">
+                                                        <span style="margin-right: 5px; font-size: 18px; display: block;" v-if="requiresRefund" >
+                                                            <strong>Estimated application fee: {{adjusted_application_fee | toCurrency}}</strong>
+                                                            <strong>Estimated licence fee: {{application.licence_fee | toCurrency}}</strong>
+                                                        </span>
                                                         <button v-if="!applicationIsDraft && canSaveApplication" class="btn btn-primary" @click.prevent="save()">Save Changes</button>
                                                     </p>
                                                 </div>
@@ -668,6 +670,7 @@ export default {
             comms_add_url: helpers.add_endpoint_json(api_endpoints.applications,vm.$route.params.application_id+'/add_comms_log'),
             logs_url: helpers.add_endpoint_json(api_endpoints.applications,vm.$route.params.application_id+'/action_log'),
             panelClickersInitialised: false,
+            adjusted_application_fee: 0,
         }
     },
     components: {
@@ -678,7 +681,7 @@ export default {
         ApplicationAssessments,
         ProposedLicence,
         IssueLicence,
-        CommsLogs
+        CommsLogs,
     },
     filters: {
         formatDate: function(data){
@@ -767,9 +770,10 @@ export default {
             let auth_activity = this.canAssignOfficerFor(this.selected_activity_tab_id);
 
             let proposal = auth_activity && auth_activity.is_with_officer && this.licence_type_data.activity.find(activity => {
-
                     return activity.id === this.selected_activity_tab_id
-                });
+                        && activity.processing_status.name.match(/with officer/gi) // FIXME: required because of temporary status set below.
+                });                                                                // processing_status.id not related to processing_status.name
+
             // officer can Issue or Decline without conditions so set temporary status.
             return proposal ? proposal.processing_status.id = 'with_officer_conditions' : false;
         },
@@ -825,6 +829,9 @@ export default {
                 break;
             }
         },
+        requiresRefund: function() {
+            return this.adjusted_application_fee<0 ? true : false
+        },
         showNavBarBottom: function() {
             return this.canReturnToConditions || (!this.applicationIsDraft && this.canSaveApplication)
         },
@@ -838,6 +845,7 @@ export default {
             return this.showingApplication 
                 && !this.applicationIsDraft 
                 && (this.hasRole('licensing_officer') || this.hasRole('issuing_officer'))
+                && !this.requiresRefund
         },
         showFinalDecision: function() {
             if (['awaiting_payment'].includes(this.application.processing_status.id)) { // prevent processing for outstanding payments.
@@ -845,7 +853,7 @@ export default {
                 this.isSendingToAssessor=false
             }
             return (!this.showingApplication || !this.unfinishedActivities.length) && !this.isSendingToAssessor && !this.canIssueDecline
-        },
+        }
     },
     methods: {
         ...mapActions({
@@ -928,6 +936,7 @@ export default {
             this.showingApplication = false;
             this.isSendingToAssessor=false;
             this.isOfficerConditions=false;
+
             this.isofficerfinalisation=true;
         },
         acceptIdRequest: function() {
@@ -1127,8 +1136,8 @@ export default {
             this.save_wo();
             this.showingApplication = false;
             this.isSendingToAssessor=false;
-            this.isOfficerConditions=true;
 
+            this.isOfficerConditions=true;
         },
         updateAssignedOfficerSelect:function(){
             let vm = this;
@@ -1382,6 +1391,14 @@ export default {
             vm.form = document.forms.new_application;
             vm.eventListeners();
         });
+        if ((this.application.application_type.id=='amend_activity') // licence activity amendments.
+        || (this.application.customer_status.id=='amendment_required' || this.application.customer_status.id=='under_review')) { // requested amendments.
+            // fees can be adjusted by officer from selected components for requested amendments.
+            this.adjusted_application_fee = this.application.application_fee - this.application.adjusted_paid_amount
+        } else {
+            // no adjustments for new applications.
+            this.adjusted_application_fee = this.application.application_fee
+        }
     },
     beforeRouteEnter: function(to, from, next) {
         next(vm => {

@@ -369,7 +369,7 @@
                                     </div></div>
                                 </FormSection>
 
-                                <FormSection :formCollapse="false" label="Due Date" Index="5">
+                                <FormSection v-if="sanction_outcome.due_dates && sanction_outcome.due_dates.length>0" :formCollapse="false" label="Due Date" Index="5">
                                     <div v-for="item in sanction_outcome.due_dates">
                                         <div class="form-group"><div class="row">
                                             <div class="col-sm-3">
@@ -418,25 +418,48 @@
 
 
         <div v-if="workflow_type">
-            <SanctionOutcomeWorkflow ref="add_workflow" :workflow_type="workflow_type" v-bind:key="workflowBindId" />
+            <SanctionOutcomeWorkflow
+            ref="add_workflow"
+            :workflow_type="workflow_type"
+            :key="workflowBindId" />
         </div>
-        <ExtendPaymentDueDate ref="extend_payment_due_date" 
-                              :due_date_1st="last_due_date_1st" 
-                              :due_date_2nd="last_due_date_2nd" 
-                              :due_date_max="sanction_outcome.due_date_extended_max" 
-                              :key="extendDueDateBindId" />
-        <RecordFerCaseNumber ref="record_fer_case_number" 
-                             :key="recordFerCaseNumberBindId" />
-        <SendParkingInfringement ref="send_parking_infringement" 
-                                 :key="sendParkingInfringementBindId" />
-        <AcceptRemediationAction ref="accept_remediation_action"
-                                 :remediation_action_id="remediation_action_id"
-                                 @remediation_action_accepted="onRemediationActionUpdated"
-                                 :key="acceptRemediationActionBindId" />
-        <RequestAmendmentRemediationAction ref="request_amendment_remediation_action"
-                                           @remediation_action_updated="onRemediationActionUpdated"
-                                           :remediation_action_id="remediation_action_id"
-                                           :key="requestAmendmentRemediationActionBindId" />
+
+        <div v-if="extendPaymentDueDateInitialized">
+            <ExtendPaymentDueDate
+             ref="extend_payment_due_date"
+             :due_date_1st="last_due_date_1st"
+             :due_date_2nd="last_due_date_2nd"
+             :due_date_max="sanction_outcome.due_date_extended_max"
+             :key="extendDueDateBindId" />
+        </div>
+
+        <div v-if="recordFerCaseNumberInitialized">
+            <RecordFerCaseNumber
+             ref="record_fer_case_number"
+             :key="recordFerCaseNumberBindId" />
+        </div>
+
+        <div v-if="sendParkingInfringementInitialized">
+            <SendParkingInfringement
+            ref="send_parking_infringement"
+            :key="sendParkingInfringementBindId" />
+        </div>
+
+        <div v-if="acceptRemediationActionInitialized">
+            <AcceptRemediationAction
+             ref="accept_remediation_action"
+             :remediation_action_id="remediation_action_id"
+             @remediation_action_accepted="onRemediationActionUpdated"
+             :key="acceptRemediationActionBindId" />
+        </div>
+
+        <div v-if="requestAmendmentRemediationAction">
+            <RequestAmendmentRemediationAction
+             ref="request_amendment_remediation_action"
+             @remediation_action_updated="onRemediationActionUpdated"
+             :remediation_action_id="remediation_action_id"
+             :key="requestAmendmentRemediationActionBindId" />
+        </div>
     </div>
 </template>
 
@@ -494,6 +517,11 @@ export default {
             deTab: 'deTab' + this._uid,
             reTab: 'reTab' + this._uid,
             objectHash : null,
+            extendPaymentDueDateInitialized: false,
+            recordFerCaseNumberInitialized: false,
+            sendParkingInfringementInitialized: false,
+            acceptRemediationActionInitialized: false,
+            requestAmendmentRemediationAction: false,
             hashAttributeWhitelist: [
                 'alleged_committed_offences',
                 'allocated_group_id',
@@ -525,9 +553,9 @@ export default {
                 this.$route.params.sanction_outcome_id + "/action_log"
             ),
             dtHeadersRemediationActions: [
-                "id", 
-                "Due Date", 
-                "Action Desc", 
+                "id",
+                "Due Date",
+                "Action Desc",
                 "Status",
                 "Action Taken",
                 "Action",
@@ -569,12 +597,12 @@ export default {
 
                             body += '<tr>' +
                                 td + ra.action_taken + td_close +
-                                td + ra.documents + td_close + 
+                                td + ra.documents + td_close +
                             '</tr>'
 
-                            let header = '<thead><tr>' + 
-                                th + 'Action Taken' + th_close + 
-                                th + 'Attachment' + th_close + 
+                            let header = '<thead><tr>' +
+                                th + 'Action Taken' + th_close +
+                                th + 'Attachment' + th_close +
                                 '</tr></thead>'
                             html = '<table class="table">' + header + body + '</table>'
 
@@ -789,7 +817,7 @@ export default {
             let canUserEdit = false;
             if (this.sanction_outcome.can_user_action){
                 if (this.sanction_outcome.type.id === 'infringement_notice'){
-                    if (this.sanction_outcome.status.id === this.STATUS_WITH_DOT || 
+                    if (this.sanction_outcome.status.id === this.STATUS_WITH_DOT ||
                         this.sanction_outcome.status.id === this.STATUS_AWAITING_ISSUANCE ||
                         this.sanction_outcome.status.id === this.STATUS_AWAITING_PAYMENT){
                         canUserEdit = true;
@@ -964,6 +992,7 @@ export default {
             return visibility;
         },
         visibilityEndorseButton: function() {
+            //return true;
             let visibility = false;
             if (this.sanction_outcome.can_user_action){
                 if (this.sanction_outcome.status.id === this.STATUS_AWAITING_ENDORSEMENT || this.sanction_outcome.status.id === this.STATUS_AWAITING_REVIEW){
@@ -1006,10 +1035,16 @@ export default {
             loadRemediationAction: 'loadRemediationAction',
         }),
         onRemediationActionUpdated: async function(remediation_action_id){_
+            console.log('onRemediationActionUpdated');
+            console.log(remediation_action_id);
             await this.loadRemediationAction({ remediation_action_id: remediation_action_id });
             this.constructRemediationActionsTable();
         },
         formatDate: function(d){
+            console.log('formatDate');
+            if (d === 'overdue'){
+                return 'Overdue';
+            }
             return moment(d).format("DD/MM/YYYY");
         },
         sendParkingInfringement: async function(){
@@ -1022,6 +1057,7 @@ export default {
             }
             console.log('sendParkingInfringement()3');
             this.sendParkingInfringementId += 1
+            this.sendParkingInfringementInitialized = true;
             this.$nextTick(() => {
                 this.$refs.send_parking_infringement.isModalOpen = true;
             });
@@ -1070,6 +1106,7 @@ export default {
         },
         save: async function() {
             try {
+                console.log('save()');
                 let returned_so = await this.saveSanctionOutcome();
 
                 await swal("Saved", "The record has been saved", "success");
@@ -1163,6 +1200,7 @@ export default {
             let remediationActionId = parseInt(e.target.getAttribute("data-id"));
             this.remediation_action_id = remediationActionId;
             this.bindId += 1
+            this.acceptRemediationActionInitialized = true;
             this.$nextTick(() => {
                 this.$refs.accept_remediation_action.isModalOpen = true;
             });
@@ -1171,6 +1209,7 @@ export default {
             let remediationActionId = parseInt(e.target.getAttribute("data-id"));
             this.remediation_action_id = remediationActionId;
             this.bindId += 1
+            this.requestAmendmentRemediationAction = true;
             this.$nextTick(() => {
                 this.$refs.request_amendment_remediation_action.isModalOpen = true;
             });
@@ -1264,12 +1303,14 @@ export default {
         },
         recordFerCaseNumber() {
             this.ferCaseNumberId += 1;
+            this.recordFerCaseNumberInitialized = true;
             this.$nextTick(() => {
                 this.$refs.record_fer_case_number.isModalOpen = true;
             });
         },
         extendDueDate() {
             this.extendDueDateId += 1;
+            this.extendPaymentDueDateInitialized = true;
             this.$nextTick(() => {
                 this.$refs.extend_payment_due_date.isModalOpen = true;
             });

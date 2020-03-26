@@ -16,7 +16,13 @@
 <script>
 export default {
     name:"FormSection",
-    props:["label", "Index", "formCollapse", "hideHeader"],
+    props:[
+        "label", 
+        "Index", 
+        "formCollapse", 
+        "hideHeader",
+        "treeHeight",
+    ],
     data:function () {
         return {
             title:"Section title",
@@ -29,13 +35,17 @@ export default {
             return "section_"+this.Index
         },
         panel_collapse_class: function() {
-            console.log('panel_collapse_class');
             if (this.formCollapse) {
-                this.panel_chevron_class = "glyphicon glyphicon-chevron-down pull-right ";
+                this.panel_chevron_class = "glyphicon glyphicon-chevron-down pull-right";
                 return "panel-body collapse";
             } else {
-                this.panel_chevron_class = "glyphicon glyphicon-chevron-up pull-right ";
-                return "panel-body collapse in";
+                if (this.treeHeight) {
+                    this.panel_chevron_class = "glyphicon glyphicon-chevron-up pull-right";
+                    return "panel-body collapse in flex-container";
+                } else {
+                    this.panel_chevron_class = "glyphicon glyphicon-chevron-up pull-right";
+                    return "panel-body collapse in";
+                }
             }
         },
 
@@ -64,4 +74,14 @@ export default {
         font-size: 25px;
         padding:20px;
     }
+    .flex-container {
+        display: flex;
+        flex-direction: column;
+        min-height: 325px;
+    }
+    /*
+    .tree-height{
+        height: 5000px;
+    }
+    */
 </style>

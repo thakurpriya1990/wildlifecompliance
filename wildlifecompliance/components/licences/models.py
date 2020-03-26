@@ -9,6 +9,7 @@ from django.db.models import Max
 from django.db.models import Q
 from ledger.accounts.models import EmailUser
 from ledger.licence.models import LicenceType
+from wildlifecompliance.ordered_model import OrderedModel
 from wildlifecompliance.components.main.models import (
     CommunicationsLogEntry,
     UserAction,
@@ -61,8 +62,140 @@ class LicencePurpose(models.Model):
 
     @staticmethod
     def get_first_record(activity_name):
-        # Use filter -> first() in case of records with duplicate names (e.g. "Bioprospecting licence")
+        # Use filter -> first() in case of records with duplicate names
+        # (e.g. "Bioprospecting licence")
         return LicencePurpose.objects.filter(name=activity_name).first()
+
+    @property
+    def get_group_species_list(self):
+        """
+        List of species identifiers for questions associated with this licence
+        purpose at a group level.
+        """
+        # SPECIES = ApplicationFormDataRecord.COMPONENT_TYPE_SELECT_SPECIES
+        SPECIES = 'species'
+        species_list = []
+
+        try:
+            for section in self.schema:
+                for group in section['children']:
+                    for field in group['children']:
+                        if field['type'] == SPECIES:
+                            field['component_attribute'] = \
+                                self.get_species_options(field[SPECIES])
+                            species_list += field[SPECIES]
+
+        except KeyError:
+            pass
+        except Exception:
+            pass
+        return species_list
+
+    @property
+    def get_section_species_list(self):
+        """
+        List of species identifiers for questions associated with this licence
+        purpose at a section level.
+        """
+        # SPECIES = ApplicationFormDataRecord.COMPONENT_TYPE_SELECT_SPECIES
+        SPECIES = 'species'
+        species_list = []
+
+        try:
+            for section in self.schema:
+                for field in section['children']:
+                    if field['type'] == SPECIES:
+                        field['component_attribute'] = \
+                            self.get_species_options(field[SPECIES])
+                        species_list += field[SPECIES]
+
+        except KeyError:
+            pass
+        except Exception:
+            pass
+        return species_list
+
+    @property
+    def get_species_list(self):
+        SPECIES = 'species'
+        children_keys = [
+            'children',
+            'header',
+            'expander',
+            'conditions',
+        ]
+        species_list = []
+
+        def species_check(collection):
+            _species_list = []
+            try:
+                for field in collection:
+                    if field['type'] == SPECIES:
+                        field['component_attribute'] = \
+                            self.get_species_options(field[SPECIES])
+                        _species_list += field[SPECIES]
+                    for children_key in children_keys:
+                        if children_key in field:
+                            _species_list += species_check(
+                                field[children_key])
+
+            except KeyError:
+                pass
+            except Exception:
+                pass
+
+            return _species_list
+
+        try:
+            for section in self.schema:
+                if section['type'] == SPECIES:
+                    section['component_attribute'] = \
+                        self.get_species_options(section[SPECIES])
+                    species_list += section[SPECIES]
+                for children_key in children_keys:
+                    if children_key in section:
+                        species_list += species_check(section[children_key])
+
+        except KeyError:
+            pass
+        except Exception:
+            pass
+        return species_list
+
+    def get_species_options(self, species_list):
+        """
+        Builds a list of drop-down options for Licence Species.
+        """
+        options = []
+        for specie in species_list:
+            details = LicenceSpecies.objects.values('data').get(
+                specie_id=specie)
+            option = {
+                'value': details['data'][0][LicenceSpecies.SPECIE_NAME_ID],
+                'label': details['data'][0][LicenceSpecies.SPECIE_NAME]}
+
+            options.append(option)
+
+        return options
+
+
+# class LicencePurposeDetail(OrderedModel):
+#     detail = models.CharField(max_length=100)
+#     purpose = models.ForeignKey(
+#         LicencePurpose,
+#         on_delete=models.CASCADE,
+#         related_name='additional_information'
+#     )
+#     index = models.PositiveSmallIntegerField(default=0)
+
+#     class Meta:
+#         ordering = ['purpose', 'index']
+#         app_label = 'wildlifecompliance'
+#         verbose_name = 'Licence purpose additional information'
+#         verbose_name_plural = 'Licence purpose additional information'
+
+#     def __str__(self):
+#         return 'Detail for purpose {}'.format(self.purpose.id)
 
 
 class LicenceActivity(models.Model):
@@ -124,6 +257,30 @@ class LicenceCategory(LicenceType):
             return '{} (V{})'.format(result, self.version)
 
 
+class LicenceSpecies(models.Model):
+    """
+    Model representation of a verified specie information that can be applied
+    to a licence.
+    """
+    SPECIE_NAME = 'vernacular_names'    # common name applied from data.
+    SPECIE_NAME_ID = 'name_id'          # identifer applied from data.
+
+    specie_id = models.IntegerField(unique=True)
+    verify_date = models.DateTimeField(auto_now=True)
+    verify_id = models.CharField(max_length=256, null=True, blank=True)
+    verify_token = models.CharField(max_length=256, null=True, blank=True)
+    data = JSONField(default=list)
+
+    class Meta:
+        ordering = ['specie_id']
+        app_label = 'wildlifecompliance'
+        verbose_name = 'Licence species'
+        verbose_name_plural = 'Licence species'
+
+    def __str__(self):
+        return '{0} SPECIE_ID: {1}'.format(self.verify_date, self.specie_id)
+
+
 class DefaultActivity(models.Model):
     activity = models.ForeignKey(LicenceActivity)
     licence_category = models.ForeignKey(LicenceCategory)
@@ -159,6 +316,7 @@ class WildlifeLicence(models.Model):
     ACTIVITY_PURPOSE_ACTION_CANCEL = 'cancel'
     ACTIVITY_PURPOSE_ACTION_SUSPEND = 'suspend'
     ACTIVITY_PURPOSE_ACTION_REINSTATE = 'reinstate'
+    ACTIVITY_PURPOSE_ACTION_REISSUE = 'reissue'
 
     licence_document = models.ForeignKey(
         LicenceDocument,
@@ -231,6 +389,9 @@ class WildlifeLicence(models.Model):
                             can_action_activity_ids.append(activity.id)
                     elif action == WildlifeLicence.ACTIVITY_PURPOSE_ACTION_REINSTATE:
                         if activity_can_action['can_reinstate']:
+                            can_action_activity_ids.append(activity.id)
+                    elif action == WildlifeLicence.ACTIVITY_PURPOSE_ACTION_REISSUE:
+                        if activity_can_action['can_reissue']:
                             can_action_activity_ids.append(activity.id)
                 latest_activities = latest_activities.filter(id__in=can_action_activity_ids)
         else:
@@ -464,9 +625,10 @@ class WildlifeLicence(models.Model):
 
     def apply_action_to_purposes(self, request, action):
         """
-        Applies a specified action to a licence's purposes for a single licence_activity_id and selected purposes list
-        If not all purposes for an activity are to be actioned, create new SYSTEM_GENERATED Applications and
-        associated activities to apply the relevant statuses for each
+        Applies a specified action to a licence's purposes for a single licence
+        activity_id and selected purposes list If not all purposes for an
+        activity are to be actioned, create new SYSTEM_GENERATED Applications
+        and associated activities to apply the relevant statuses for each.
         """
         from wildlifecompliance.components.applications.models import (
             Application, ApplicationSelectedActivity
@@ -476,7 +638,8 @@ class WildlifeLicence(models.Model):
             WildlifeLicence.ACTIVITY_PURPOSE_ACTION_SURRENDER,
             WildlifeLicence.ACTIVITY_PURPOSE_ACTION_CANCEL,
             WildlifeLicence.ACTIVITY_PURPOSE_ACTION_SUSPEND,
-            WildlifeLicence.ACTIVITY_PURPOSE_ACTION_REINSTATE
+            WildlifeLicence.ACTIVITY_PURPOSE_ACTION_REINSTATE,
+            WildlifeLicence.ACTIVITY_PURPOSE_ACTION_REISSUE,
         ]:
             raise ValidationError('Selected action is not valid')
 
@@ -490,20 +653,30 @@ class WildlifeLicence(models.Model):
                     values_list('licence_activity_id', flat=True).\
                     distinct().count() != 1:
                 raise ValidationError(
-                    'Selected purposes must all be of the same licence activity')
+                  'Selected purposes must all be of the same licence activity')
 
-            licence_activity_id = LicencePurpose.objects.filter(id__in=purpose_ids_list). \
-                first().licence_activity_id
+            licence_activity_id = LicencePurpose.objects.filter(
+                id__in=purpose_ids_list).first().licence_activity_id
 
-            can_action_purposes = self.get_latest_purposes_for_licence_activity_and_action(
-                licence_activity_id, action)
-            can_action_purposes_ids_list = [purpose.id for purpose in can_action_purposes.order_by('id')]
+            can_action_purposes = \
+                self.get_latest_purposes_for_licence_activity_and_action(
+                    licence_activity_id, action)
+            can_action_purposes_ids_list = [
+                purpose.id for purpose in can_action_purposes.order_by('id')]
+
+            # A Reissue on Activity Purpose occurs on the selected Activity
+            # only and does apply to all activities.
+            if action == WildlifeLicence.ACTIVITY_PURPOSE_ACTION_REISSUE:
+                can_action_purposes_ids_list = purpose_ids_list
+                licence_activity_id = purpose_ids_list[0]
 
             # if all purposes were selected by the user for action,
             # action all previous status ApplicationSelectedActivity records
             if purpose_ids_list == can_action_purposes_ids_list:
-                activities_to_action = self.get_latest_activities_for_licence_activity_and_action(
-                    licence_activity_id, action)
+                activities_to_action = \
+                    self.get_latest_activities_for_licence_activity_and_action(
+                        licence_activity_id, action)
+
                 # action target activities
                 for activity in activities_to_action:
                     if action == WildlifeLicence.ACTIVITY_PURPOSE_ACTION_REACTIVATE_RENEW:
@@ -516,6 +689,8 @@ class WildlifeLicence(models.Model):
                         activity.suspend(request)
                     elif action == WildlifeLicence.ACTIVITY_PURPOSE_ACTION_REINSTATE:
                         activity.reinstate(request)
+                    elif action == WildlifeLicence.ACTIVITY_PURPOSE_ACTION_REISSUE:
+                        activity.reissue(request)
 
             else:
                 # else, if not all purposes were selected by the user for action:
@@ -561,6 +736,8 @@ class WildlifeLicence(models.Model):
                         post_actioned_status = ApplicationSelectedActivity.ACTIVITY_STATUS_SUSPENDED
                     elif action == WildlifeLicence.ACTIVITY_PURPOSE_ACTION_REINSTATE:
                         post_actioned_status = ApplicationSelectedActivity.ACTIVITY_STATUS_CURRENT
+                    elif action == WildlifeLicence.ACTIVITY_PURPOSE_ACTION_REISSUE:
+                        post_actioned_status = ApplicationSelectedActivity.ACTIVITY_STATUS_CURRENT
 
                     # if an application's purpose_ids are all in the purpose_ids_list,
                     # completely action the ApplicationSelectedActivity
@@ -575,6 +752,8 @@ class WildlifeLicence(models.Model):
                             activity.suspend(request)
                         elif action == WildlifeLicence.ACTIVITY_PURPOSE_ACTION_REINSTATE:
                             activity.reinstate(request)
+                        elif action == WildlifeLicence.ACTIVITY_PURPOSE_ACTION_REISSUE:
+                            activity.reissue(request)
 
                     # if application still has previous_status purposes after actioning selected purposes
                     elif set(application_licence_purpose_ids_list) - set(purpose_ids_list):
@@ -643,6 +822,16 @@ class WildlifeLicence(models.Model):
                self.purposes_available_to_add.count() > 0 and\
                self.can_action.get('can_amend')
 
+    @property
+    def has_additional_information(self):
+        has_info = False
+        conditions = self.current_application.conditions.all()
+        for condition in conditions:
+            if condition.standard_condition.additional_information:
+                has_info = True
+
+        return has_info
+
     def generate_doc(self):
         from wildlifecompliance.components.licences.pdf import create_licence_doc
         self.licence_document = create_licence_doc(
@@ -689,3 +878,17 @@ class LicenceUserAction(UserAction):
 # def delete_documents(sender, instance, *args, **kwargs):
 #     for document in instance.documents.all():
 #         document.delete()
+
+
+'''
+NOTE: REGISTER MODELS FOR REVERSION HERE.
+'''
+import reversion
+reversion.register(WildlifeLicence, follow=[
+    'licence_document'])
+reversion.register(DefaultActivity)
+reversion.register(DefaultPurpose)
+reversion.register(LicenceActivity)
+reversion.register(LicenceCategory)
+reversion.register(LicenceDocument)
+reversion.register(LicencePurpose)

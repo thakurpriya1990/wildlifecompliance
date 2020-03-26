@@ -1,11 +1,20 @@
 import datetime
 import logging
+import mimetypes
+
 from django.core.urlresolvers import reverse
 from django.conf import settings
 from wildlifecompliance.components.emails.emails import TemplateEmailBase
 from wildlifecompliance.components.main.email import prepare_attachments, _extract_email_headers
 from wildlifecompliance.components.sanction_outcome.pdf import create_infringement_notice_pdf_bytes
-# from wildlifecompliance.components.sanction_outcome.serializers import SanctionOutcomeCommsLogEntrySerializer
+from wildlifecompliance.components.sanction_outcome.pdf_caution_notice import create_caution_notice_pdf_bytes
+from wildlifecompliance.components.sanction_outcome.pdf_infringement_notice_blue import create_infringement_notice_blue
+from wildlifecompliance.components.sanction_outcome.pdf_infringement_notice_white import \
+    create_infringement_notice_white
+from wildlifecompliance.components.sanction_outcome.pdf_infringement_notice_yellow import \
+    create_infringement_notice_yellow
+from wildlifecompliance.components.sanction_outcome.pdf_letter_of_advice import create_letter_of_advice_pdf_bytes
+from wildlifecompliance.components.sanction_outcome.pdf_remediation_notice import create_remediation_notice_pdf_bytes
 
 logger = logging.getLogger(__name__)
 
@@ -16,6 +25,12 @@ class SanctionOutcomeIssueNotificationEmail(TemplateEmailBase):
     subject = 'Issued Sanction Outcome'
     html_template = 'wildlifecompliance/emails/issue_sanction_outcome_notification.html'
     txt_template = 'wildlifecompliance/emails/issue_sanction_outcome_notification.txt'
+
+
+class InfringementNoticeIssuedOnPaperEmail(TemplateEmailBase):
+    subject = 'Endorsed Issued Infringement Notice'
+    html_template = 'wildlifecompliance/emails/infringement_notice_issued_on_paper.html'
+    txt_template = 'wildlifecompliance/emails/infringement_notice_issued_on_paper.txt'
 
 
 class InfringementNoticeEmail(TemplateEmailBase):
@@ -30,10 +45,34 @@ class SendToIncWithoutOffendersMail(TemplateEmailBase):
     txt_template = 'wildlifecompliance/emails/send_to_inc_without_offenders.txt'
 
 
+class RemediationNoticeIssuedOnPaperEmail(TemplateEmailBase):
+    subject = 'Endorsed Remediation Notice Issued'
+    html_template = 'wildlifecompliance/emails/remediation_notice_issued_on_paper.html'
+    txt_template = 'wildlifecompliance/emails/remediation_notice_issued_on_paper.txt'
+
+
 class RemediationNoticeEmail(TemplateEmailBase):
     subject = 'Remediation Notice Issued'
     html_template = 'wildlifecompliance/emails/remediation_notice.html'
     txt_template = 'wildlifecompliance/emails/remediation_notice.txt'
+
+
+class RemediationActionSubmittedMail(TemplateEmailBase):
+    subject = 'Remediation Action Submitted'
+    html_template = 'wildlifecompliance/emails/remediation_action_submitted.html'
+    txt_template = 'wildlifecompliance/emails/remediation_action_submitted.txt'
+
+
+class RemediationActionAcceptedMail(TemplateEmailBase):
+    subject = 'Remediation Action Accepted'
+    html_template = 'wildlifecompliance/emails/remediation_action_accepted.html'
+    txt_template = 'wildlifecompliance/emails/remediation_action_accepted.txt'
+
+
+class RemediationActionRequestAmendmentMail(TemplateEmailBase):
+    subject = 'Request Amendment for Remediation Action'
+    html_template = 'wildlifecompliance/emails/remediation_action_request_amendment.html'
+    txt_template = 'wildlifecompliance/emails/remediation_action_request_amendment.txt'
 
 
 class NotificationCloseToDueRemediationAction(TemplateEmailBase):
@@ -133,17 +172,19 @@ def send_due_date_extended_mail(to_address, sanction_outcome, workflow_entry, re
         'sanction_outcome': sanction_outcome,
         'workflow_entry_details': request.data.get('details'),
     }
-    pdf_file_name = 'infringement_notice_{}_{}.pdf'.format(sanction_outcome.lodgement_number, datetime.datetime.now().strftime("%Y%m%d%H%M%S"))
-    document = create_infringement_notice_pdf_bytes(pdf_file_name, sanction_outcome)
+    # pdf_file_name = 'infringement_notice_{}_{}.pdf'.format(sanction_outcome.lodgement_number, datetime.datetime.now().strftime("%Y%m%d%H%M%S"))
+    # document = create_infringement_notice_pdf_bytes(pdf_file_name, sanction_outcome)
 
     # Attach files (files from the modal, and the PDF file generated above)
-    attachments = prepare_attachments(workflow_entry.documents)
-    attachments.append((pdf_file_name, document._file.path, 'application/pdf'))
+    # attachments = prepare_attachments(workflow_entry.documents)
+    # attachments.append((pdf_file_name, document._file.read(), 'application/pdf'))
 
     # Attach the pdf file created above to the communication log entry
-    doc = workflow_entry.documents.create(name=document.name)
-    doc._file = document._file
-    doc.save()
+    # doc = workflow_entry.documents.create(name=document.name)
+    # doc._file = document._file
+    # doc.save()
+
+    attachments = create_infringement_notice_ybw(sanction_outcome, workflow_entry)
 
     msg = email.send(to_address,
                      context=context,
@@ -166,16 +207,18 @@ def send_remind_1st_period_overdue_mail(to_address, sanction_outcome, workflow_e
         'sanction_outcome': sanction_outcome,
         'workflow_entry_details': 'This is message body.',
     }
-    pdf_file_name = 'infringement_notice_{}_{}.pdf'.format(sanction_outcome.lodgement_number, datetime.datetime.now().strftime("%Y%m%d%H%M%S"))
-    document = create_infringement_notice_pdf_bytes(pdf_file_name, sanction_outcome)
+    # pdf_file_name = 'infringement_notice_{}_{}.pdf'.format(sanction_outcome.lodgement_number, datetime.datetime.now().strftime("%Y%m%d%H%M%S"))
+    # document = create_infringement_notice_pdf_bytes(pdf_file_name, sanction_outcome)
+    #
+    # attachments = []
+    # attachments.append((pdf_file_name, document._file.read(), 'application/pdf'))
+    #
+    # # Attach the pdf file created above to the communication log entry
+    # doc = workflow_entry.documents.create(name=document.name)
+    # doc._file = document._file
+    # doc.save()
 
-    attachments = []
-    attachments.append((pdf_file_name, document._file.path, 'application/pdf'))
-
-    # Attach the pdf file created above to the communication log entry
-    doc = workflow_entry.documents.create(name=document.name)
-    doc._file = document._file
-    doc.save()
+    attachments = create_infringement_notice_ybw(sanction_outcome, workflow_entry)
 
     msg = email.send(to_address,
                      context=context,
@@ -209,7 +252,7 @@ def send_unpaid_infringements_file(to_address, cc=None, bcc=None, attachments=[]
     return email_data
 
 
-def send_notification_overdue_remediation_action(to_address, sanction_outcome, workflow_entry, cc=None, bcc=None, attachments=[]):
+def send_notification_overdue_remediation_action(to_address, sanction_outcome, cc=None, bcc=None, attachments=[]):
     email = NotificationOverdueRemediationAction()
     # if request.data.get('email_subject'):
     #     email.subject = request.data.get('email_subject')
@@ -263,11 +306,11 @@ def send_remediation_notice(to_address, sanction_outcome, workflow_entry, reques
     }
 
     pdf_file_name = 'remediation_notice_{}_{}.pdf'.format(sanction_outcome.lodgement_number, datetime.datetime.now().strftime("%Y%m%d%H%M%S"))
-    document = create_infringement_notice_pdf_bytes(pdf_file_name, sanction_outcome)
+    document = create_remediation_notice_pdf_bytes(pdf_file_name, sanction_outcome)
 
     # Attach files (files from the modal, and the PDF file generated above)
     attachments = prepare_attachments(workflow_entry.documents)
-    attachments.append((pdf_file_name, document._file.path, 'application/pdf'))
+    attachments.append((pdf_file_name, document._file.read(), 'application/pdf'))
 
     # Attach the pdf file created above to the communication log entry
     doc = workflow_entry.documents.create(name=document.name)
@@ -297,11 +340,11 @@ def send_caution_notice(to_address, sanction_outcome, workflow_entry, request, c
     }
 
     pdf_file_name = 'caution_notice_{}_{}.pdf'.format(sanction_outcome.lodgement_number, datetime.datetime.now().strftime("%Y%m%d%H%M%S"))
-    document = create_infringement_notice_pdf_bytes(pdf_file_name, sanction_outcome)
+    document = create_caution_notice_pdf_bytes(pdf_file_name, sanction_outcome)
 
     # Attach files (files from the modal, and the PDF file generated above)
     attachments = prepare_attachments(workflow_entry.documents)
-    attachments.append((pdf_file_name, document._file.path, 'application/pdf'))
+    attachments.append((pdf_file_name, document._file.read(), 'application/pdf'))
 
     # Attach the pdf file created above to the communication log entry
     doc = workflow_entry.documents.create(name=document.name)
@@ -331,11 +374,11 @@ def send_letter_of_advice(to_address, sanction_outcome, workflow_entry, request,
     }
 
     pdf_file_name = 'letter_of_advice_{}_{}.pdf'.format(sanction_outcome.lodgement_number, datetime.datetime.now().strftime("%Y%m%d%H%M%S"))
-    document = create_infringement_notice_pdf_bytes(pdf_file_name, sanction_outcome)
+    document = create_letter_of_advice_pdf_bytes(pdf_file_name, sanction_outcome)
 
     # Attach files (files from the modal, and the PDF file generated above)
     attachments = prepare_attachments(workflow_entry.documents)
-    attachments.append((pdf_file_name, document._file.path, 'application/pdf'))
+    attachments.append((pdf_file_name, document._file.read(), 'application/pdf'))
 
     # Attach the pdf file created above to the communication log entry
     doc = workflow_entry.documents.create(name=document.name)
@@ -374,6 +417,130 @@ def send_parking_infringement_without_offenders(to_address, sanction_outcome, wo
     return email_data
 
 
+def send_remediation_action_request_amendment_mail(to_address, remediation_action, request, cc=None, bcc=None):
+    email = RemediationActionRequestAmendmentMail()
+    if request.data.get('email_subject'):
+        email.subject = request.data.get('email_subject')
+    url = request.build_absolute_uri(reverse('external'))
+    context = {
+        'url': url,
+        'remediation_action': remediation_action,
+        'amendment_requests': remediation_action.amendment_requests,
+    }
+
+    # Attach files (files from the modal, and the PDF file generated above)
+    # attachments = prepare_attachments(remediation_action.documents)
+
+    msg = email.send(to_address,
+                     context=context,
+                     attachments=[],
+                     cc=cc,
+                     bcc=bcc,
+                     )
+    sender = request.user if request else settings.DEFAULT_FROM_EMAIL
+    email_data = _extract_email_headers(msg, sender=sender)
+    return email_data
+
+
+def send_remediation_action_accepted_notice(to_address, remediation_action, request, cc=None, bcc=None):
+    email = RemediationActionAcceptedMail()
+    if request.data.get('email_subject'):
+        email.subject = request.data.get('email_subject')
+    url = request.build_absolute_uri(reverse('external'))
+    context = {
+        'url': url,
+        'remediation_action': remediation_action,
+        'action_taken': remediation_action.action_taken,
+    }
+
+    # Attach files (files from the modal, and the PDF file generated above)
+    # attachments = prepare_attachments(remediation_action.documents)
+
+    msg = email.send(to_address,
+                     context=context,
+                     attachments=[],
+                     cc=cc,
+                     bcc=bcc,
+                     )
+    sender = request.user if request else settings.DEFAULT_FROM_EMAIL
+    email_data = _extract_email_headers(msg, sender=sender)
+    return email_data
+
+
+def send_remediation_action_submitted_notice(to_address, remediation_action, request, cc=None, bcc=None):
+    email = RemediationActionSubmittedMail()
+    if request.data.get('email_subject'):
+        email.subject = request.data.get('email_subject')
+    url = request.build_absolute_uri(reverse('external'))
+    context = {
+        'url': url,
+        'remediation_action': remediation_action,
+        'action_taken': remediation_action.action_taken,
+    }
+
+    # Attach files (files from the modal, and the PDF file generated above)
+    attachments = prepare_attachments(remediation_action.documents)
+
+    msg = email.send(to_address,
+                     context=context,
+                     attachments=attachments,
+                     cc=cc,
+                     bcc=bcc,
+                     )
+    sender = request.user if request else settings.DEFAULT_FROM_EMAIL
+    email_data = _extract_email_headers(msg, sender=sender)
+    return email_data
+
+def send_infringement_notice_issued_on_paper(to_address, sanction_outcome, workflow_entry, request, cc=None, bcc=None):
+    email = InfringementNoticeIssuedOnPaperEmail()
+    if request.data.get('email_subject'):
+        email.subject = request.data.get('email_subject')
+    url = request.build_absolute_uri(reverse('external'))
+    context = {
+        'url': url,
+        'sanction_outcome': sanction_outcome,
+        'workflow_entry_details': request.data.get('details'),
+    }
+
+    # Attach files (files from the modal, and the PDF file generated above)
+    attachments = prepare_attachments(workflow_entry.documents)
+
+    msg = email.send(to_address,
+                     context=context,
+                     attachments=attachments,
+                     cc=cc,
+                     bcc=bcc,
+                     )
+    sender = request.user if request else settings.DEFAULT_FROM_EMAIL
+    email_data = _extract_email_headers(msg, sender=sender)
+    return email_data
+
+
+def send_remediation_notice_issued_on_paper(to_address, sanction_outcome, workflow_entry, request, cc=None, bcc=None):
+    email = RemediationNoticeIssuedOnPaperEmail()
+    if request.data.get('email_subject'):
+        email.subject = request.data.get('email_subject')
+    url = request.build_absolute_uri(reverse('external'))
+    context = {
+        'url': url,
+        'sanction_outcome': sanction_outcome,
+        'workflow_entry_details': request.data.get('details'),
+    }
+
+    # Attach files (files from the modal, and the PDF file generated above)
+    attachments = prepare_attachments(workflow_entry.documents)
+
+    msg = email.send(to_address,
+                     context=context,
+                     attachments=attachments,
+                     cc=cc,
+                     bcc=bcc,
+                     )
+    sender = request.user if request else settings.DEFAULT_FROM_EMAIL
+    email_data = _extract_email_headers(msg, sender=sender)
+    return email_data
+
+
 def send_infringement_notice(to_address, sanction_outcome, workflow_entry, request, cc=None, bcc=None):
     email = InfringementNoticeEmail()
     if request.data.get('email_subject'):
@@ -385,17 +552,7 @@ def send_infringement_notice(to_address, sanction_outcome, workflow_entry, reque
         'workflow_entry_details': request.data.get('details'),
     }
 
-    pdf_file_name = 'infringement_notice_{}_{}.pdf'.format(sanction_outcome.lodgement_number, datetime.datetime.now().strftime("%Y%m%d%H%M%S"))
-    document = create_infringement_notice_pdf_bytes(pdf_file_name, sanction_outcome)
-
-    # Attach files (files from the modal, and the PDF file generated above)
-    attachments = prepare_attachments(workflow_entry.documents)
-    attachments.append((pdf_file_name, document._file.path, 'application/pdf'))
-
-    # Attach the pdf file created above to the communication log entry
-    doc = workflow_entry.documents.create(name=document.name)
-    doc._file = document._file
-    doc.save()
+    attachments = create_infringement_notice_ybw(sanction_outcome, workflow_entry)
 
     msg = email.send(to_address,
                      context=context,
@@ -406,6 +563,37 @@ def send_infringement_notice(to_address, sanction_outcome, workflow_entry, reque
     sender = request.user if request else settings.DEFAULT_FROM_EMAIL
     email_data = _extract_email_headers(msg, sender=sender)
     return email_data
+
+
+def create_infringement_notice_ybw(sanction_outcome, workflow_entry):
+    pdf_file_name_y = 'infringement_notice_y_{}_{}.pdf'.format(sanction_outcome.lodgement_number,
+                                                               datetime.datetime.now().strftime("%Y%m%d%H%M%S"))
+    pdf_file_name_b = 'infringement_notice_b_{}_{}.pdf'.format(sanction_outcome.lodgement_number,
+                                                               datetime.datetime.now().strftime("%Y%m%d%H%M%S"))
+    pdf_file_name_w = 'infringement_notice_w_{}_{}.pdf'.format(sanction_outcome.lodgement_number,
+                                                               datetime.datetime.now().strftime("%Y%m%d%H%M%S"))
+    # document = create_prosecution_notice_pdf_bytes(pdf_file_name, sanction_outcome)
+    # document = create_court_hearing_notice_pdf_bytes(pdf_file_name, sanction_outcome)
+    document_y = create_infringement_notice_yellow(pdf_file_name_y, sanction_outcome)
+    document_b = create_infringement_notice_blue(pdf_file_name_b, sanction_outcome)
+    document_w = create_infringement_notice_white(pdf_file_name_w, sanction_outcome)
+    # Attach files (files from the modal, and the PDF file generated above)
+    attachments = prepare_attachments(workflow_entry.documents)
+    mime = mimetypes.guess_type(document_y._file.path)[0]
+    attachments.append((pdf_file_name_y, document_y._file.read(), mime))
+    attachments.append((pdf_file_name_b, document_b._file.read(), 'application/pdf'))
+    attachments.append((pdf_file_name_w, document_w._file.read(), 'application/pdf'))
+    # Attach the pdf file created above to the communication log entry
+    doc = workflow_entry.documents.create(name=document_y.name)
+    doc._file = document_y._file
+    doc.save()
+    doc = workflow_entry.documents.create(name=document_b.name)
+    doc._file = document_b._file
+    doc.save()
+    doc = workflow_entry.documents.create(name=document_w.name)
+    doc._file = document_w._file
+    doc.save()
+    return attachments
 
 
 def send_return_to_officer_email(to_address, sanction_outcome, workflow_entry, request, cc=None, bcc=None):

@@ -64,6 +64,13 @@ export const inspectionStore = {
             if (state.inspection.planned_for_date) {
                 state.inspection.planned_for_date = moment(state.inspection.planned_for_date, 'YYYY-MM-DD').format('DD/MM/YYYY');
             }
+            // format artifact time from 24 to 12 hour
+            if (state.inspection.planned_for_time) {
+                state.inspection.planned_for_time = moment(state.inspection.planned_for_time, 'HH:mm').format('hh:mm A');
+            } else if (state.inspection.planned_for_time === '') {
+                state.inspection.planned_for_time = null;
+            }
+
             let inspectionReportDocumentUrl = helpers.add_endpoint_join(
                 api_endpoints.inspection,
                 state.inspection.id + "/process_inspection_report_document/"
@@ -184,6 +191,11 @@ export const inspectionStore = {
                     payload.planned_for_date = moment(payload.planned_for_date, 'DD/MM/YYYY').format('YYYY-MM-DD');
                 } else if (payload.planned_for_date === '') {
                     payload.planned_for_date = null;
+                }
+                if (payload.planned_for_time) {
+                    payload.planned_for_time = moment(payload.planned_for_time, 'hh:mm A').format('HH:mm');
+                } else if (payload.planned_for_time === '') {
+                    payload.planned_for_time = null;
                 }
                 // Renderer data
                 if (state.inspection.schema) {

@@ -13,7 +13,7 @@
                 <label class="">Call/Email Classification</label>
                 <select class="form-control" v-model="filterClassification">
                     <option v-for="option in classification_types" :value="option.id" v-bind:key="option.id">
-                        {{ option.name }} 
+                        {{ option.name }}
                     </option>
                 </select>
             </div>
@@ -149,10 +149,10 @@ L.TileLayer.WMTS = L.TileLayer.extend({
         }
         return this;
     },
-    
+
     getDefaultMatrix : function () {
         /**
-         * the matrix3857 represents the projection 
+         * the matrix3857 represents the projection
          * for in the IGN WMTS for the google coordinates.
          */
         var matrixIds3857 = new Array(22);
@@ -195,7 +195,7 @@ module.exports = {
 
             /*
              * Filers:
-             * value of the "value" attribute of the option is stored. 
+             * value of the "value" attribute of the option is stored.
              * The value of this is used queryset.filter() in the backend.
              */
             filterStatus: 'all',
@@ -206,6 +206,7 @@ module.exports = {
             classification_types: [],
             status_choices: [],
             cursor_location: null,
+            mapboxAccessToken: null,
         }
     },
     created: async function() {
@@ -216,6 +217,10 @@ module.exports = {
         let returned_status_choices = await cache_helper.getSetCacheList('CallEmail_StatusChoices', '/api/call_email/status_choices');
         Object.assign(this.status_choices, returned_status_choices);
         this.status_choices.splice(0, 0, {id: 'all', display: 'All'});
+
+        await this.MapboxAccessToken.then(data => {
+            this.mapboxAccessToken = data
+        });
     },
     mounted(){
         let vm = this;
@@ -324,7 +329,8 @@ module.exports = {
 
             var latlng = this.map.getCenter();
             $.ajax({
-                url: 'https://mapbox.dpaw.wa.gov.au/geocoding/v5/mapbox.places/'+encodeURIComponent(place)+'.json?'+ $.param({
+                url: api_endpoints.geocoding_address_search + encodeURIComponent(place)+'.json?'+ $.param({
+                    access_token: self.mapboxAccessToken,
                     country: 'au',
                     limit: 10,
                     proximity: ''+latlng.lng+','+latlng.lat,
@@ -338,7 +344,7 @@ module.exports = {
                     if (data.features && data.features.length > 0){
                         for (var i = 0; i < data.features.length; i++){
                             self.suggest_list.push({ label: data.features[i].place_name,
-                                                     value: data.features[i].place_name, 
+                                                     value: data.features[i].place_name,
                                                      feature: data.features[i]
                                                      });
                         }
@@ -495,38 +501,41 @@ module.exports = {
             }
         },
         construct_content: function (call_email, coords){
-            let classification_str = '---';
-            if (call_email.classification){
-                classification_str = call_email.classification.name;
-            }
-
-            let report_type_str = '---';
-            if (call_email.report_type){
-                report_type_str = call_email.report_type.report_type;
-            }
+            let classification_str = call_email.classification?call_email.classification.name:''
+            let status_str = call_email.status?call_email.status.name:''
+            let identifier_str = call_email.identifier?call_email.identifier:''
 
             let content = '<div class="popup-title-main">' + call_email.number + '</div>';
-            content    += '<div class="popup-title">Classification</div>'
-                        + '<div class="popup-coords">'
-                        + classification_str
-                        + '</div>'
 
-            content    += '<div class="popup-title">Report Type</div>'
-                        + '<div class="popup-address">'
-                        + report_type_str
-                        + '</div>'
+            content += '<div class="popup-title">Identifier</div>'
+                    + '<div class="popup-address">'
+                    + call_email.identifier
+                    + '</div>'
 
-            
+            content += '<div class="popup-title">Classification</div>'
+                    + '<div class="popup-address">'
+                    + classification_str
+                    + '</div>'
+
+            content += '<div class="popup-title">Status</div>'
+                    + '<div class="popup-address">'
+                    + status_str
+                    + '</div>'
+
             if (call_email.location.properties.street){
+                let str_street = call_email.location.properties.street?call_email.location.properties.street:''
+                let str_town_suburb = call_email.location.properties.town_suburt?call_email.location.properties.town_suburt:''
+                let str_state = call_email.location.properties.state?call_email.location.properties.state:''
+                let str_postcode = call_email.location.properties.postcode?call_email.location.properties.postcode:''
                 content += '<div class="popup-title">Address</div>'
                 + '<div class="popup-address">'
-                + call_email.location.properties.street + '<br />'
-                + call_email.location.properties.town_suburb + '<br />'
-                + call_email.location.properties.state + '<br />'
-                + call_email.location.properties.postcode
+                + str_street + '<br />'
+                + str_town_suburb + '<br />'
+                + str_state + '<br />'
+                + str_postcode
                 + '</div>'
 
-            }else{
+            } else {
                 content += '<div class="popup-title">Details</div>'
                 + '<div class="popup-address">'
                 + call_email.location.properties.details.substring(0, 10)
@@ -600,7 +609,7 @@ module.exports = {
 }
 .popup-title {
     padding: 5px 5px 5px 10px;
-    background: gray;
+    background: darkgray;
     font-size: 1.3em;
     font-weight: bold;
     color: white;

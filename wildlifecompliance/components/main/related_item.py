@@ -244,6 +244,11 @@ approved_email_user_related_items = [
         'volunteer',
         'individual_inspected',
         'email_user',
+        'person_providing_statement',
+        'officer_interviewer',
+        ## Physical Artifact - not currently required
+        #'officer',
+        #'custodian',
         ]
 
 def format_model_name(model_name):
@@ -267,17 +272,29 @@ def format_url(model_name, obj_id):
     if model_name:
         lower_model_name = model_name.lower()
         obj_id_str = str(obj_id)
+        #switcher = {
+        #        'callemail': '<a href=/internal/call_email/' + obj_id_str + ' target="_blank">View</a>',
+        #        'inspection': '<a href=/internal/inspection/' + obj_id_str + ' target="_blank">View</a>',
+        #        'offence': '<a href=/internal/offence/' + obj_id_str + ' target="_blank">View</a>',
+        #        'sanctionoutcome': '<a href=/internal/sanction_outcome/' + obj_id_str + ' target="_blank">View</a>',
+        #        'legalcase': '<a href=/internal/legal_case/' + obj_id_str + ' target="_blank">View</a>',
+        #        'emailuser': '<a href=/internal/users/' + obj_id_str + ' target="_blank">View</a>',
+        #        'organisation': '<a href=/internal/organisations/' + obj_id_str + ' target="_blank">View</a>',
+        #        'documentartifact': '<a href=/internal/object/' + obj_id_str + ' target="_blank">View</a>',
+        #        'physicalartifact': '<a href=/internal/object/' + obj_id_str + ' target="_blank">View</a>',
+        #        }
         switcher = {
-                'callemail': '<a href=/internal/call_email/' + obj_id_str + ' target="_blank">View</a>',
-                'inspection': '<a href=/internal/inspection/' + obj_id_str + ' target="_blank">View</a>',
-                'offence': '<a href=/internal/offence/' + obj_id_str + ' target="_blank">View</a>',
-                'sanctionoutcome': '<a href=/internal/sanction_outcome/' + obj_id_str + ' target="_blank">View</a>',
-                'legalcase': '<a href=/internal/legal_case/' + obj_id_str + ' target="_blank">View</a>',
-                'emailuser': '<a href=/internal/users/' + obj_id_str + ' target="_blank">View</a>',
-                'organisation': '<a href=/internal/organisations/' + obj_id_str + ' target="_blank">View</a>',
-                'documentartifact': '<a href=/internal/object/' + obj_id_str + ' target="_blank">View</a>',
-                'physicalartifact': '<a href=/internal/object/' + obj_id_str + ' target="_blank">View</a>',
+                'callemail': '<a href=/internal/call_email/' + obj_id_str + ' target="_blank">Edit</a>',
+                'inspection': '<a href=/internal/inspection/' + obj_id_str + ' target="_blank">Edit</a>',
+                'offence': '<a href=/internal/offence/' + obj_id_str + ' target="_blank">Edit</a>',
+                'sanctionoutcome': '<a href=/internal/sanction_outcome/' + obj_id_str + ' target="_blank">Edit</a>',
+                'legalcase': '<a href=/internal/legal_case/' + obj_id_str + ' target="_blank">Edit</a>',
+                'emailuser': '<a href=/internal/users/' + obj_id_str + ' target="_blank">Edit</a>',
+                'organisation': '<a href=/internal/organisations/' + obj_id_str + ' target="_blank">Edit</a>',
+                'documentartifact': '<a href=/internal/object/' + obj_id_str + ' target="_blank">Edit</a>',
+                'physicalartifact': '<a href=/internal/object/' + obj_id_str + ' target="_blank">Edit</a>',
                 }
+
         return switcher.get(lower_model_name, '')
 
 def get_related_offenders(entity, **kwargs):
@@ -338,73 +355,104 @@ def get_related_items(entity, pending_closure=False, **kwargs):
                                                 )
                                         )
                                 return_list.append(related_item)
+
                 # legal case artifacts
                 elif entity._meta.model_name == 'legalcase' and f.is_relation and f.many_to_many \
                         and f.name in ('legal_case_document_artifacts', 'legal_case_physical_artifacts'):
-                    field_objects = f.related_model.objects.filter(legal_case=entity)
-                    # TODO: Refactor repeated code
-                    if field_objects:
-                        for field_object in field_objects:
-                            if pending_closure:
-                                children.append(field_object)
-                            else:
-                                related_item = RelatedItem(
-                                        model_name = format_model_name(f.related_model.__name__),
-                                        identifier = field_object.get_related_items_identifier,
-                                        descriptor = field_object.get_related_items_descriptor,
-                                        action_url = format_url(
-                                                model_name=f.related_model.__name__,
-                                                obj_id=field_object.id
-                                                )
-                                        )
-                                return_list.append(related_item)
+                    field_objects = f.related_model.objects.filter(legal_cases=entity)
+                    children, return_list = process_many_to_many(f, children, return_list, field_objects, pending_closure)
 
-                # artifacts linked to legal case - reverse of "legal case artifacts" above
+                # artifacts linked to legal case
+                elif f.name == 'legal_cases' and f.is_relation and f.many_to_many \
+                        and entity._meta.model_name in ('documentartifact', 'physicalartifact'):
+                    if entity._meta.model_name == 'documentartifact':
+                        field_objects = f.related_model.objects.filter(legal_case_document_artifacts=entity)
+                    elif entity._meta.model_name == 'physicalartifact':
+                        field_objects = f.related_model.objects.filter(legal_case_physical_artifacts=entity)
+                    children, return_list = process_many_to_many(f, children, return_list, field_objects, pending_closure)
+
+                ## legal case artifacts - brief of evidence
+                #elif entity._meta.model_name == 'legalcase' and f.is_relation and f.many_to_many \
+                #        and f.name in ('legal_case_document_artifacts_brief_of_evidence', 'legal_case_physical_artifacts_brief_of_evidence'):
+                #    field_objects = f.related_model.objects.filter(brief_of_evidence_legal_cases=entity)
+                #    children, return_list = process_many_to_many(f, children, return_list, field_objects, pending_closure)
+
+                ## artifacts linked to legal case - brief of evidence
+                #elif f.name == 'brief_of_evidence_legal_cases' and f.is_relation and f.many_to_many \
+                #        and entity._meta.model_name in ('documentartifact', 'physicalartifact'):
+                #    if entity._meta.model_name == 'documentartifact':
+                #        field_objects = f.related_model.objects.filter(legal_case_document_artifacts_brief_of_evidence=entity)
+                #    elif entity._meta.model_name == 'physicalartifact':
+                #        field_objects = f.related_model.objects.filter(legal_case_physical_artifacts_brief_of_evidence=entity)
+                #    children, return_list = process_many_to_many(f, children, return_list, field_objects, pending_closure)
+
+                ## legal case artifacts - prosecution brief
+                #elif entity._meta.model_name == 'legalcase' and f.is_relation and f.many_to_many \
+                #        and f.name in ('legal_case_document_artifacts_prosecution_brief', 'legal_case_physical_artifacts_prosecution_brief'):
+                #    field_objects = f.related_model.objects.filter(prosecution_brief_legal_cases=entity)
+                #    children, return_list = process_many_to_many(f, children, return_list, field_objects, pending_closure)
+
+                ## artifacts linked to legal case - prosecution brief
+                #elif f.name == 'prosecution_brief_legal_cases' and f.is_relation and f.many_to_many \
+                #        and entity._meta.model_name in ('documentartifact', 'physicalartifact'):
+                #    if entity._meta.model_name == 'documentartifact':
+                #        field_objects = f.related_model.objects.filter(legal_case_document_artifacts_prosecution_brief=entity)
+                #    elif entity._meta.model_name == 'physicalartifact':
+                #        field_objects = f.related_model.objects.filter(legal_case_physical_artifacts_prosecution_brief=entity)
+                #    children, return_list = process_many_to_many(f, children, return_list, field_objects, pending_closure)
+
+
+                ## legal case associated_persons
+                #elif entity._meta.model_name == 'legalcase' and f.is_relation and f.many_to_many \
+                #    and f.name == 'associated_persons':
+                #    field_objects = entity.associated_persons.all()
+                #    if field_objects:
+                #        for field_object in field_objects:
+                #            compliance_management_email_user = EmailUser.objects.get(id=field_object.id)
+                #            related_item = RelatedItem(
+                #                    model_name = format_model_name(f.related_model.__name__),
+                #                    identifier = compliance_management_email_user.get_related_items_identifier,
+                #                    descriptor = compliance_management_email_user.get_related_items_descriptor,
+                #                    action_url = format_url(
+                #                            model_name=f.related_model.__name__,
+                #                            obj_id=field_object.id
+                #                            )
+                #                    )
+                #            return_list.append(related_item)
+
+                # artifacts linked to legal_case
                 elif f.name == 'legal_case' and f.is_relation and f.many_to_many \
                         and entity._meta.model_name in ('documentartifact', 'physicalartifact'):
                     if entity._meta.model_name == 'documentartifact':
                         field_objects = f.related_model.objects.filter(legal_case_document_artifacts=entity)
                     elif entity._meta.model_name == 'physicalartifact':
                         field_objects = f.related_model.objects.filter(legal_case_physical_artifacts=entity)
-                    # TODO: Refactor repeated code
-                    if field_objects:
-                        for field_object in field_objects:
-                            if pending_closure:
-                                children.append(field_object)
-                            else:
-                                related_item = RelatedItem(
-                                        model_name = format_model_name(f.related_model.__name__),
-                                        identifier = field_object.get_related_items_identifier,
-                                        descriptor = field_object.get_related_items_descriptor,
-                                        action_url = format_url(
-                                                model_name=f.related_model.__name__,
-                                                obj_id=field_object.id
-                                                )
-                                        )
-                                return_list.append(related_item)
-
-                # legal case associated_persons
-                elif entity._meta.model_name == 'legalcase' and f.is_relation and f.many_to_many \
-                    and f.name == 'associated_persons':
-                    field_objects = entity.associated_persons.all()
-                    if field_objects:
-                        for field_object in field_objects:
-                            related_item = RelatedItem(
-                                    model_name = format_model_name(f.related_model.__name__),
-                                    identifier = field_object.get_related_items_identifier,
-                                    descriptor = field_object.get_related_items_descriptor,
-                                    action_url = format_url(
-                                            model_name=f.related_model.__name__,
-                                            obj_id=field_object.id
-                                            )
-                                    )
-                            return_list.append(related_item)
+                    children, return_list = process_many_to_many(f, children, return_list, field_objects, pending_closure)
+                    ## TODO: Refactor repeated code
+                    #if field_objects:
+                    #    for field_object in field_objects:
+                    #        if pending_closure:
+                    #            children.append(field_object)
+                    #        else:
+                    #            related_item = RelatedItem(
+                    #                    model_name = format_model_name(f.related_model.__name__),
+                    #                    identifier = field_object.get_related_items_identifier,
+                    #                    descriptor = field_object.get_related_items_descriptor,
+                    #                    action_url = format_url(
+                    #                            model_name=f.related_model.__name__,
+                    #                            obj_id=field_object.id
+                    #                            )
+                    #                    )
+                    #            return_list.append(related_item)
 
                 # foreign keys from entity to EmailUser
                 elif f.is_relation and f.related_model._meta.model_name == 'emailuser':
                     field_value = f.value_from_object(entity)
+                    print("EmailUser")
+                    print(field_value)
                     if field_value and f.name in approved_email_user_related_items:
-                        field_object = f.related_model.objects.get(id=field_value)
+                        base_field_object = f.related_model.objects.get(id=field_value)
+                        field_object = EmailUser.objects.get(id=base_field_object.id)
                         related_item = RelatedItem(
                                 model_name = format_model_name(f.related_model.__name__),
                                 identifier = field_object.get_related_items_identifier,
@@ -429,6 +477,9 @@ def get_related_items(entity, pending_closure=False, **kwargs):
                             field_object = field_object_list[0]
                     # All other FKs
                     else:
+                        print(f)
+                        print(f.name)
+                        print(f.related_model.__name__)
                         field_value = f.value_from_object(entity)
                         if field_value:
                             field_object = f.related_model.objects.get(id=field_value)
@@ -516,6 +567,24 @@ def get_related_items(entity, pending_closure=False, **kwargs):
         print(traceback.print_exc())
         raise serializers.ValidationError(str(e))
 
+def process_many_to_many(f, children, return_list, field_objects, pending_closure=False):
+    if field_objects:
+        for field_object in field_objects:
+            if pending_closure:
+                children.append(field_object)
+            else:
+                related_item = RelatedItem(
+                        model_name = format_model_name(f.related_model.__name__),
+                        identifier = field_object.get_related_items_identifier,
+                        descriptor = field_object.get_related_items_descriptor,
+                        action_url = format_url(
+                                model_name=f.related_model.__name__,
+                                obj_id=field_object.id
+                                )
+                        )
+                if related_item not in return_list:
+                    return_list.append(related_item)
+    return children, return_list
 
 def can_close_legal_case(entity, request=None):
     print("can close legal case")
@@ -524,17 +593,26 @@ def can_close_legal_case(entity, request=None):
     #artifact_children = []
     if children:
         for child in children:
-            close_child_record = True
             if child._meta.model_name in ('documentartifact', 'physicalartifact'):
+                close_child_record = True
                 sub_children, sub_parents = get_related_items(child, pending_closure=True)
                 for sub_parent in sub_parents:
-                    if sub_parent.status not in ('closed', 'pending_closure') and sub_parent.id != entity.id:
+                    # check status of other legal_cases related to artifact
+                    ## TODO: should logic check Offence, Offender related to artifact?
+                    if (sub_parent._meta.model_name == 'legalcase' and 
+                            sub_parent.status not in ('closed', 'pending_closure') and 
+                            sub_parent.id != entity.id):
                         close_child_record = False
-            if close_child_record:
-                child.close()
-
-            if child.status not in ('closed', 'waiting_for_disposal'):
-                close_record = False
+                if close_child_record:
+                    # attempt to close artifact
+                    child.close()
+                # Read the updated child status to determine whether legal case can be closed
+                if child.status not in ('closed', 'waiting_for_disposal'):
+                    close_record = False
+            else:
+                # All other related child objects
+                if child.status not in ('closed', 'discarded', 'declined', 'withdrawn'):  # This tuple should include only very final status of the entity
+                    close_record = False
     return close_record, parents
 
 #def can_close_artifact(entity, request=None):

@@ -18,56 +18,60 @@ class Command(BaseCommand):
 
     def handle(self, *args, **options):
         try:
-            with transaction.atomic():
-                logger.info('Running command {}'.format(__name__))
-                today = timezone.localtime(timezone.now()).date()
-                # today = today + relativedelta(days=70)
+            logger.info('Running command {}'.format(__name__))
+            today = timezone.localtime(timezone.now()).date()
+            # today = today + relativedelta(days=70)
 
-                # Pick up all the remediation actions which are close to due and no notifications sent yet
-                ras = RemediationAction.objects.filter(Q(due_date__lt=today) & Q(status=RemediationAction.STATUS_OPEN)). \
-                    exclude(notifications__in=RemediationActionNotification.objects.filter(type=RemediationActionNotification.TYPE_OVERDUE))
+            # Pick up all the remediation actions which are close to due and no notifications sent yet
+            ras = RemediationAction.objects.filter(Q(due_date__lt=today) & Q(status=RemediationAction.STATUS_OPEN)). \
+                exclude(notifications__in=RemediationActionNotification.objects.filter(type=RemediationActionNotification.TYPE_OVERDUE))
 
-                for ra in ras:
-                    print(ra)
+            for ra in ras:
+                print(ra)
 
-                # Send email (to: offender, bcc: officers)
-                for ra in ras:
-                    data = {'sanction_outcome': ra.sanction_outcome.id}
-                    serializer = SanctionOutcomeCommsLogEntrySerializer(data=data)
-                    serializer.is_valid(raise_exception=True)
-                    workflow_entry = serializer.save()
+            # Send email (to: offender, bcc: officers)
+            for ra in ras:
+                try:
+                    with transaction.atomic():
+                        # Create new comms log entry
+                        data = {'sanction_outcome': ra.sanction_outcome.id}
+                        serializer = SanctionOutcomeCommsLogEntrySerializer(data=data)
+                        serializer.is_valid(raise_exception=True)
+                        workflow_entry = serializer.save()
 
-                    to_address = [ra.sanction_outcome.get_offender()[0].email,]
-                    cc = None
-                    bcc = [ra.sanction_outcome.responsible_officer.email] if ra.sanction_outcome.responsible_officer else [member.email for member in ra.sanction_outcome.allocated_group.members]
-                    attachments = []
-                    email_data = send_notification_overdue_remediation_action(to_address, ra.sanction_outcome, workflow_entry, cc, bcc, attachments)
+                        to_address = [ra.sanction_outcome.get_offender()[0].email,]
+                        cc = None
+                        bcc = [ra.sanction_outcome.responsible_officer.email] if ra.sanction_outcome.responsible_officer else [member.email for member in ra.sanction_outcome.allocated_group.members]
+                        attachments = []
+                        email_data = send_notification_overdue_remediation_action(to_address, ra.sanction_outcome, cc, bcc, attachments)
 
-                    # Record in the RemediationActionNotification
-                    data = {
-                        'remediation_action_id': ra.id,
-                        'sanction_outcome_comms_log_entry_id': workflow_entry.id,
-                        'type': RemediationActionNotification.TYPE_OVERDUE,
-                    }
-                    serializer = RemediationActionNotificationCreateSerializer(data=data)
-                    serializer.is_valid(raise_exception=True)
-                    ran = serializer.save()
+                        # Record in the RemediationActionNotification
+                        data = {
+                            'remediation_action_id': ra.id,
+                            'sanction_outcome_comms_log_entry_id': workflow_entry.id,
+                            'type': RemediationActionNotification.TYPE_OVERDUE,
+                        }
+                        serializer = RemediationActionNotificationCreateSerializer(data=data)
+                        serializer.is_valid(raise_exception=True)
+                        ran = serializer.save()
 
-                    # Set remediation action status to the 'overdue'
-                    serializer = RemediationActionUpdateStatusSerializer(ra, data={'status': RemediationAction.STATUS_OVERDUE}, )
-                    serializer.is_valid(raise_exception=True)
-                    serializer.save()
-
-                    # Comms log
-                    if email_data:
-                        serializer = SanctionOutcomeCommsLogEntrySerializer(workflow_entry, data=email_data, partial=True)
+                        # Set remediation action status to the 'overdue'
+                        serializer = RemediationActionUpdateStatusSerializer(ra, data={'status': RemediationAction.STATUS_OVERDUE}, )
                         serializer.is_valid(raise_exception=True)
                         serializer.save()
 
-                    # Action log, status has been changed to the 'overdue', record it as an action
-                    ra.sanction_outcome.log_user_action(SanctionOutcomeUserAction.ACTION_REMEDIATION_ACTION_OVERDUE.format(ra.sanction_outcome.lodgement_number))
+                        # Comms log
+                        if email_data:
+                            serializer = SanctionOutcomeCommsLogEntrySerializer(workflow_entry, data=email_data, partial=True)
+                            serializer.is_valid(raise_exception=True)
+                            serializer.save()
 
-                logger.info('Command {} completed'.format(__name__))
+                        # Action log, status has been changed to the 'overdue', record it as an action
+                        ra.sanction_outcome.log_user_action(SanctionOutcomeUserAction.ACTION_REMEDIATION_ACTION_OVERDUE.format(ra.remediation_action_id))
+                except Exception as e:
+                    logger.error('Error command {}'.format(__name__))
+
+            logger.info('Command {} completed'.format(__name__))
 
         except Exception as e:
             logger.error('Error command {}'.format(__name__))

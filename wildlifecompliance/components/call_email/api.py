@@ -456,7 +456,9 @@ class CallEmailViewSet(viewsets.ModelViewSet):
                     request_data.get('location', {}).get('properties', {}).get('postcode', {}) or
                     request_data.get('location', {}).get('properties', {}).get('details', {})
                 ):
-                    returned_location = self.save_location(request)
+                    #returned_location = self.save_location(request)
+                    location_request_data = request.data.get('location')
+                    returned_location = save_location(location_request_data)
                     if returned_location:
                         request_data.update({'location_id': returned_location.get('id')})
                 
@@ -704,6 +706,7 @@ class CallEmailViewSet(viewsets.ModelViewSet):
                 instance.inspection_type_id = None if not request.data.get('inspection_type_id') else request.data.get('inspection_type_id')
                 instance.case_priority_id = None if not request.data.get('case_priority_id') else request.data.get('case_priority_id')
                 instance.allocated_group_id = None if not request.data.get('allocated_group_id') else request.data.get('allocated_group_id')
+                instance.advice_details = None if not request.data.get('advice_details') else request.data.get('advice_details')
 
                 instance.save()
 

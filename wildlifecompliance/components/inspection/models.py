@@ -189,9 +189,14 @@ class Inspection(RevisionedMixin):
         """ returns a queryset of form data records attached to Inspection (shortcut to InspectionFormDataRecord related_name). """
         return self.form_data_records.all()
 
-    def log_user_action(self, action, request):
-        return InspectionUserAction.log_action(self, action, request.user)
-    
+    #def log_user_action(self, action, request):
+     #   return InspectionUserAction.log_action(self, action, request.user)
+    def log_user_action(self, action, request=None):
+        if request:
+            return InspectionUserAction.log_action(self, action, request.user)
+        else:
+            return InspectionUserAction.log_action(self, action)
+
     @property
     def get_related_items_identifier(self):
         return self.number
@@ -229,7 +234,7 @@ class Inspection(RevisionedMixin):
         self.save()
         self.close(request)
 
-    def close(self, request):
+    def close(self, request=None):
         close_record, parents = can_close_record(self, request)
         if close_record:
             self.status = self.STATUS_CLOSED
@@ -282,7 +287,7 @@ class InspectionCommsLogEntry(CommunicationsLogEntry):
         app_label = 'wildlifecompliance'
 
 
-class InspectionUserAction(UserAction):
+class InspectionUserAction(models.Model):
     ACTION_CREATE_INSPECTION = "Create Inspection {}"
     ACTION_SAVE_INSPECTION_ = "Save Inspection {}"
     ACTION_OFFENCE = "Create Offence {}"
@@ -303,12 +308,16 @@ class InspectionUserAction(UserAction):
     ACTION_CHANGE_INDIVIDUAL_INSPECTED = "Change individual inspected from {} to {}"
     ACTION_CHANGE_ORGANISATION_INSPECTED = "Change organisation inspected from {} to {}"
 
+    who = models.ForeignKey(EmailUser, null=True, blank=True)
+    when = models.DateTimeField(null=False, blank=False, auto_now_add=True)
+    what = models.TextField(blank=False)
+
     class Meta:
         app_label = 'wildlifecompliance'
         ordering = ('-when',)
 
     @classmethod
-    def log_action(cls, inspection, action, user):
+    def log_action(cls, inspection, action, user=None):
         return cls.objects.create(
             inspection=inspection,
             who=user,

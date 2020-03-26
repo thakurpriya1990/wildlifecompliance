@@ -1,15 +1,16 @@
+import traceback
 import re
-from datetime import datetime
 from django.core.exceptions import ValidationError
 from django.db import transaction
-from preserialize.serialize import serialize
-from ledger.accounts.models import EmailUser
-from wildlifecompliance.components.applications.models import ApplicationDocument
-from wildlifecompliance.components.applications.serializers import SaveApplicationSerializer
-import json
-from wildlifecompliance.components.licences.models import LicencePurpose, DefaultPurpose, LicenceActivity, DefaultActivity
-from wildlifecompliance.utils.assess_utils import get_activity_sys_answers
-import traceback
+from wildlifecompliance.components.applications.models import (
+    ApplicationDocument
+)
+from wildlifecompliance.components.applications.serializers import (
+    SaveApplicationSerializer
+)
+from wildlifecompliance.components.licences.models import (
+    LicencePurpose
+)
 
 
 class MissingFieldsException(ValidationError):
@@ -412,6 +413,10 @@ def get_activity_schema(activity_ids):
             for item in purpose_schema:
                 item['purpose_id'] = purpose.id
             schema_purpose += purpose_schema
+            # set special species lookup option
+            # purpose.get_group_species_list
+            # purpose.get_section_species_list
+            purpose.get_species_list
 
         schema_group.append({"type": "tab",
                              "id": activity.id,

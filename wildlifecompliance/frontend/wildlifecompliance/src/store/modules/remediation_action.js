@@ -42,7 +42,6 @@ export const remediationActionStore = {
     },
     actions: {
         async loadRemediationAction({ dispatch, }, { remediation_action_id }) {
-            console.log("loadRemediationAction");
             const returnedRemediationAction = await Vue.http.get(
                     helpers.add_endpoint_json(
                         api_endpoints.remediation_action, 
@@ -52,7 +51,6 @@ export const remediationActionStore = {
             await dispatch("setRemediationAction", returnedRemediationAction.body);
         },
         async saveRemediationAction({ dispatch, state }) {
-            console.log('saveRemediationAction');
             // Construct url endpoint
             let putUrl = helpers.add_endpoint_join(api_endpoints.remediation_action, state.remediation_action.id + '/');
 
@@ -63,8 +61,6 @@ export const remediationActionStore = {
             let savedRemediationAction = await Vue.http.put(putUrl, payload);
         },
         async submitRemediationAction({ dispatch, state }) {
-            console.log('submitRemediationAction1');
-
             // Construct url endpoint
             let submitUrl = helpers.add_endpoint_join(api_endpoints.remediation_action, state.remediation_action.id + '/submit/');
 
@@ -72,7 +68,8 @@ export const remediationActionStore = {
             let payload = {};
             Object.assign(payload, state.remediation_action);
 
-            let submittedRemediationAction = await Vue.http.post(submitUrl, payload);
+            let ret = await Vue.http.post(submitUrl, payload);
+            return ret.body;
         },
         setRemediationAction({ commit, }, remediation_action) {
             commit("updateRemediationAction", remediation_action);

@@ -41,7 +41,7 @@
                                             <div class="col-sm-3">
                                                 <label class="control-label pull-left" for="Name">Document</label>
                                             </div>
-                                            <div v-if="parentModal" class="col-sm-9">
+                                            <div v-if="!documentArtifactId" class="col-sm-9">
                                                 <filefield
                                                 ref="default_document"
                                                 name="default-document"
@@ -56,6 +56,7 @@
                                                 :isRepeatable="true" 
                                                 :documentActionUrl="document_artifact.defaultDocumentUrl" 
                                                 :readonly="readonlyForm"
+                                                v-bind:key="documentArtifactId"
                                                 />
                                             </div>
                                         </div>
@@ -75,10 +76,47 @@
                                         <div class="col-sm-3">
                                           <label>Statement</label>
                                         </div>
-                                        <div class="col-sm-6">
+                                        <div v-if="parentModal" class="col-sm-6">
                                           <select class="form-control" v-model="document_artifact.statement_id" ref="setStatement">
                                             <option  v-for="option in legal_case.statement_artifacts" :value="option.id" v-bind:key="option.id">
                                             {{ option.document_type_display }}: {{ option.identifier }}
+                                            </option>
+                                          </select>
+                                        </div>
+                                        <div v-else class="col-sm-6">
+                                          <select class="form-control" v-model="document_artifact.statement_id" ref="setStatement">
+                                            <option  v-for="option in document_artifact.available_statement_artifacts" :value="option.id" v-bind:key="option.id">
+                                            {{ option.document_type_display }}: {{ option.identifier }}
+                                            </option>
+                                          </select>
+                                        </div>
+                                      </div>
+                                    </div>
+                                    <div v-if="offenceVisibility" class="form-group">
+                                      <div class="row">
+                                        <div class="col-sm-3">
+                                          <label>Offence</label>
+                                        </div>
+                                        <div class="col-sm-6">
+                                          <select class="form-control" v-model="document_artifact.offence_id" @change.prevent="setOffenderId(null)">
+                                            <option  v-for="option in legal_case.offence_list" :value="option.id" v-bind:key="option.id">
+                                                <div v-if="option.id">
+                                                    {{ option.lodgement_number }}: {{ option.identifier }}
+                                                </div>
+                                            </option>
+                                          </select>
+                                        </div>
+                                      </div>
+                                      <div class="row">
+                                        <div class="col-sm-3">
+                                          <label>Offender</label>
+                                        </div>
+                                        <div class="col-sm-6">
+                                          <select class="form-control" v-model="document_artifact.offender_id">
+                                            <option  v-for="option in offenderList" :value="option.offender_id" v-bind:key="option.offender_id">
+                                            <div v-if="option.id">
+                                                {{ option.full_name }}: {{ option.email }}
+                                            </div>
                                             </option>
                                           </select>
                                         </div>
@@ -123,7 +161,7 @@
                                                 <label >{{ interviewerLabel }}</label>
                                             </div>
                                             <div class="col-sm-9">
-                                                <select ref="document_artifact_department_users" class="form-control" v-model="document_artifact.interviewer_email">
+                                                <select ref="document_artifact_department_users" class="form-control" v-model="officerInterviewerEmailAddress">
                                                     <option  v-for="option in departmentStaffList" :value="option.email" v-bind:key="option.pk">
                                                     {{ option.name }} 
                                                     </option>
@@ -218,6 +256,8 @@ export default {
             temporary_document_collection_id: null,
             documentArtifactTypes: [],
             departmentStaffList: [],
+            selectedDepartmentStaffMember: {},
+            //offenderList: [],
             selectedCustodian: {},
             entity: {
                 id: null,
@@ -351,6 +391,10 @@ export default {
             required: false,
             default: false,
         },
+        entityEdit: {
+            type: Object,
+            required: false,
+        },
     },
     watch: {
         artifactType: {
@@ -397,6 +441,26 @@ export default {
         canUserAction: function() {
             return true;
         },
+        offenderList: function() {
+            let offenderList = [{ 
+                "id": null,
+                "full_name": null,
+                "email": null,
+            }];
+            //let offenderList = [];
+            if (this.legalCaseExists && this.document_artifact.offence_id) {
+                for (let offence of this.legal_case.offence_list) {
+                    if (this.document_artifact.offence_id === offence.id) {
+                        for (let offender of offence.offenders) {
+                            let offenderObj = Object.assign({}, offender.person)
+                            offenderObj.offender_id = offender.id
+                            offenderList.push(offenderObj)
+                        }
+                    }
+                }
+            }
+            return offenderList;
+        },
         personProvidingStatementEntity: function() {
             let entity = {}
             if (this.document_artifact && this.document_artifact.person_providing_statement) {
@@ -419,12 +483,28 @@ export default {
           }
           return caseExists;
         },
+        linkedLegalCase: function() {
+            let caseExists = false;
+            if (this.document_artifact && this.document_artifact.legal_case_id_list && this.document_artifact.legal_case_id_list.length > 0) {
+                caseExists = true;
+            }
+            return caseExists;
+        },
         documentArtifactId: function() {
           let id = null;
           if (this.document_artifact && this.document_artifact.id) {
               id = this.document_artifact.id;
           }
           return id;
+        },
+        officerInterviewerEmailAddress: function() {
+          let emailAddress = null;
+          if (this.document_artifact && this.document_artifact.officer_interviewer) {
+          //if (this.selectedDepartmentStaffMember) {
+              emailAddress = this.document_artifact.officer_interviewer.email;
+              //emailAddress = this.selectedDepartmentStaffMember.email;
+          }
+          return emailAddress;
         },
         documentArtifactIdExists: function() {
           let recordExists = false;
@@ -460,6 +540,34 @@ export default {
                         display = documentArtifactType.display;
                     }
                 }
+            }
+            return display;
+        },
+        offenceExists: function() {
+            let oExists = false;
+            if (this.document_artifact && this.document_artifact.offence) {
+                oExists = true;
+            }
+            return oExists;
+        },
+        offenceVisibility: function() {
+            let visibility = false;
+            if ((this.legalCaseExists || this.offenceExists) && this.artifactType === 'record_of_interview') {
+                visibility = true;
+            }
+            return visibility;
+        },
+        existingOffenceDisplay: function() {
+            let display = '';
+            if (this.offenceExists) {
+                display = this.document_artifact.offence.lodgement_number + ": " + this.document_artifact.offence.identifier;
+            }
+            return display;
+        },
+        existingOffenderDisplay: function() {
+            let display = '';
+            if (this.offenceExists && this.document_artifact.offender && this.document_artifact.offender.person) {
+                display = this.document_artifact.offender.person.full_name + ": " + this.document_artifact.offender.person.email;
             }
             return display;
         },
@@ -539,14 +647,40 @@ export default {
             setInterviewerEmail: 'setInterviewerEmail',
             setTemporaryDocumentCollectionId: 'setTemporaryDocumentCollectionId',
             //setDocumentArtifactLegalId: 'setDocumentArtifactLegalId',
+            setOffenderId: 'setOffenderId',
+            setOfficerInterviewer: 'setOfficerInterviewer',
         }),
         ...mapActions('legalCaseStore', {
             loadLegalCase: 'loadLegalCase',
         }),
+        /*
+        setOffenderList: function() {
+            this.setOffenderId(null);
+            this.$nextTick(() => {
+                let oList = [{ 
+                    "id": null,
+                    "full_name": null,
+                    "email": null,
+                }];
+                //let offenderList = [];
+                if (this.legalCaseExists && this.document_artifact.offence_id) {
+                    for (let offence of this.legal_case.offence_list) {
+                        if (this.document_artifact.offence_id === offence.id) {
+                            for (let offender of offence.offenders) {
+                                oList.push(offender.person)
+                            }
+                        }
+                    }
+                }
+                Object.assign(this.offenderList, oList);
+            });
+        },
+        */
         setStatementVisibility: function() {
             if (
                 // legal case exists and Document Type is not a statementArtifactType
-                (this.legalCaseExists && this.artifactType && !this.statementArtifactTypes.includes(this.artifactType)) ||
+                //(this.legalCaseExists && this.artifactType && !this.statementArtifactTypes.includes(this.artifactType)) ||
+                ((this.linkedLegalCase || this.legalCaseExists) && this.artifactType && !this.statementArtifactTypes.includes(this.artifactType)) ||
                 // OR document_artifact already has a linked statement
                 (this.document_artifact && this.document_artifact.statement)
                 )
@@ -573,28 +707,40 @@ export default {
                 await this.saveDocumentArtifact({ create: false, internal: false, legal_case_id: this.legalCaseId });
             } else {
                 await this.saveDocumentArtifact({ create: true, internal: false, legal_case_id: this.legalCaseId });
+                this.$nextTick(() => {
+                    this.$emit('entity-selected', {
+                        id: this.document_artifact.id,
+                        data_type: 'document_artifact',
+                        identifier: this.document_artifact.identifier,
+                        artifact_type: this.artifactType,
+                        display: this.artifactType,
+                    });
+                });
+            }
+            console.log(this.document_artifact.error_message)
+            this.$emit('error-message', {
+                /*
+                id: this.document_artifact.id,
+                data_type: 'document_artifact',
+                identifier: this.document_artifact.identifier,
+                artifact_type: this.artifactType,
+                display: this.artifactType,
+                */
+                error_message: this.document_artifact.error_message
+            });
+        },
+        /*
+
+        save: async function() {
+            if (this.document_artifact.id) {
+                await this.saveDocumentArtifact({ create: false, internal: false, legal_case_id: this.legalCaseId });
+            } else {
+                await this.saveDocumentArtifact({ create: true, internal: false, legal_case_id: this.legalCaseId });
             }
         },
         create: async function() {
-            //let documentArtifactEntity = null;
-            /*
-            if (this.saveButtonEnabled) {
-                savedEmailUser = await this.saveData('parentSave')
-            } else {
-                savedEmailUser = {'ok': true};
-            }
-            */
             await this.saveDocumentArtifact({ create: true, internal: true, legal_case_id: this.legalCaseId });
-            //this.entity.id = 
             this.$nextTick(() => {
-                /*
-                let artifactTypeDisplay = '';
-                for (let artifactType of this.documentArtifactTypes) {
-                    if (artifactType.id === this.artifactType) {
-                        artifactTypeDisplay = artifactType.display;
-                    }
-                }
-                */
                 this.$emit('entity-selected', {
                     id: this.document_artifact.id,
                     data_type: 'document_artifact',
@@ -603,10 +749,12 @@ export default {
                     display: this.artifactTypeDisplay,
                 });
             });
-            //return documentArtifactEntity;
         },
+        */
         cancel: async function() {
-            await this.$refs.default_document.cancel();
+            if (this.$refs.default_document) {
+                await this.$refs.default_document.cancel();
+            }
         },
         emitDocumentArtifact: async function(e) {
             console.log(e)
@@ -634,6 +782,16 @@ export default {
             });
             //this.$parent.$parent.ok();
         },
+        setOfficerInterviewerWrapper: async function(selectedData) {
+            for (let officer of this.departmentStaffList) {
+                if (officer.email === selectedData) {
+                    //this.selectedDepartmentStaffMember = Object.assign({}, officer
+                    this.selectedDepartmentStaffMember = officer
+                }
+            }
+            await this.setOfficerInterviewer(this.selectedDepartmentStaffMember);
+        },
+
         addEventListeners: function() {
             let vm = this;
             let el_fr_date = $(vm.$refs.artifactDatePicker);
@@ -672,7 +830,9 @@ export default {
                     console.log(e)
                     let selected = $(e.currentTarget);
                     let selectedData = selected.val();
-                    vm.setInterviewerEmail(selectedData);
+                    console.log(selectedData)
+                    vm.setOfficerInterviewerWrapper(selectedData);
+                    //vm.setInterviewerEmail(selectedData);
                     //vm.setSelectedCustodian(selectedData);
                     //let custodianData = e.params.data
                     //console.log(custodianData)
@@ -745,6 +905,8 @@ export default {
         console.log("created")
         if (this.$route.params.document_artifact_id) {
             await this.loadDocumentArtifact({ document_artifact_id: this.$route.params.document_artifact_id });
+        } else if (this.entityEdit && this.entityEdit.id && this.entityEdit.data_type === 'document_artifact') {
+            await this.loadDocumentArtifact({ document_artifact_id: this.entityEdit.id });
         }
         // if main obj page, call loadLegalCase if document_artifact.legal_case_id exists
         if (this.$route.name === 'view-artifact' && this.document_artifact && this.document_artifact.legal_case_id) {

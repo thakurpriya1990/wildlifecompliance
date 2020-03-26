@@ -21,6 +21,27 @@ from wildlifecompliance.components.main.related_item import (
         search_weak_links
        )
 from django.contrib.auth.models import ContentType
+from django.conf import settings
+from wildlifecompliance.components.users.models import (
+        #CompliancePermissionGroup, 
+        ComplianceManagementUserPreferences,
+        )
+from wildlifecompliance.helpers import is_compliance_management_readonly_user
+
+class GeocodingAddressSearchTokenView(views.APIView):
+    def get(self, request, format=None):
+        return Response({"access_token": settings.GEOCODING_ADDRESS_SEARCH_TOKEN})
+
+
+
+class SystemPreferenceView(views.APIView):
+    def get(self, request, format=None):
+        res = { "system": "wildlife_licensing" }
+        if request.user.is_authenticated():
+            preference_qs, created = ComplianceManagementUserPreferences.objects.get_or_create(email_user=request.user)
+            if preference_qs and preference_qs.prefer_compliance_management and is_compliance_management_readonly_user(request):
+                res = { "system": "compliance_management" }
+        return Response(res)
 
 
 class DepartmentUserView(views.APIView):

@@ -19,16 +19,16 @@ from wildlifecompliance.components.main.views import (
         SearchWeakLinksView,
         CreateWeakLinkView,
         RemoveWeakLinkView,
-        DepartmentUserView,
+        GeocodingAddressSearchTokenView,
+        SystemPreferenceView,
         )
 from wildlifecompliance.components.applications import views as application_views
-from wildlifecompliance.components.offence.api import OffenceViewSet
-from wildlifecompliance.components.sanction_outcome.api import RemediationActionViewSet
 from wildlifecompliance.components.users import api as users_api
 from wildlifecompliance.components.organisations import api as org_api
 from wildlifecompliance.components.applications import api as application_api
 from wildlifecompliance.components.licences import api as licence_api
 from wildlifecompliance.components.returns import api as return_api
+from wildlifecompliance.components.wc_payments.views import DeferredInvoicingView, DeferredInvoicingPreviewView
 from wildlifecompliance.management.permissions_manager import CollectorManager
 from wildlifecompliance.components.call_email import api as call_email_api
 from wildlifecompliance.components.offence import api as offence_api
@@ -48,6 +48,7 @@ logger = logging.getLogger(__name__)
 # API patterns
 router = routers.DefaultRouter()
 router.register(r'application', application_api.ApplicationViewSet)
+router.register(r'application_selected_activity', application_api.ApplicationSelectedActivityViewSet)
 router.register(r'application_paginated',
                 application_api.ApplicationPaginatedViewSet)
 router.register(r'application_conditions',
@@ -159,6 +160,12 @@ api_patterns = [url(r'^api/my_user_details/$',
                 url(r'^api/remove_weak_link',
                     RemoveWeakLinkView.as_view(),
                     name='remove_weak_link'),
+                url(r'^api/geocoding_address_search_token',
+                    GeocodingAddressSearchTokenView.as_view(),
+                    name='geocoding_address_search_token'),
+                url(r'^api/system_preference',
+                    SystemPreferenceView.as_view(),
+                    name='system_preference'),
                 url(r'^api/',
                     include(router.urls))]
 
@@ -240,8 +247,11 @@ urlpatterns = [
     # payment related urls
     url(r'^infringement_penalty/(?P<sanction_outcome_id>\d+)/$', payment_views.InfringementPenaltyView.as_view(), name='infringement_penalty'),
     url(r'^success/fee/$', payment_views.InfringementPenaltySuccessView.as_view(), name='penalty_success'),
-    # url(r'wc/payments/invoice-pdf/(?P<reference>\d+)/$', payment_views.InvoicePDFView.as_view(), name='wc-invoice-pdf'),
-    # url(r'^sanction_outcome/pdf/(?P<sanction_outcome_id>\d+)/$', payment_views.SanctionOutcomePDFView.as_view(), name='sanction_outcome_pdf'),
+
+    # For 'Record Payment'
+    url(r'^payment_deferred/(?P<sanction_outcome_pk>\d+)/$', DeferredInvoicingView.as_view(), name='deferred_invoicing'),
+    url(r'^preview_deferred/(?P<sanction_outcome_pk>\d+)/$', DeferredInvoicingPreviewView.as_view(), name='preview_deferred_invoicing'),
+
 ] + ledger_patterns
 
 if not are_migrations_running():

@@ -64,21 +64,49 @@ class ApplicationSuccessView(TemplateView):
     template_name = 'wildlifecompliance/application_success.html'
 
     def get(self, request, *args, **kwargs):
-        print('application success view')
+        submit_success = True
+        application = get_session_application(request.session)
         try:
-            print(get_session_application(request.session))
-            application = get_session_application(request.session)
+            application.submit(request)
+
+        except Exception as e:
+            submit_success = False
+            print(e)
+            traceback.print_exc
+
+        try:
             invoice_ref = request.GET.get('invoice')
             try:
                 bind_application_to_invoice(request, application, invoice_ref)
+
                 invoice_url = request.build_absolute_uri(
-                    reverse('payments:invoice-pdf', kwargs={'reference': invoice_ref}))
+                    reverse(
+                        'payments:invoice-pdf',
+                        kwargs={'reference': invoice_ref}))
+
                 if application.application_fee_paid:
+
                     application.submit(request)
                     send_application_invoice_email_notification(
                         application, invoice_ref, request)
+
+                    # record invoice payment for licence activities.
+                    for activity in application.activities:
+
+                        invoice = ActivityInvoice.objects.get_or_create(
+                            activity=activity,
+                            invoice_reference=invoice_ref
+                        )
+
+                        ActivityInvoiceLine.objects.get_or_create(
+                            invoice=invoice[0],
+                            licence_activity=activity.licence_activity,
+                            amount=activity.licence_fee
+                        )
+
                 else:
-                    # TODO: check if this ever occurs from the above code and provide error screen for user
+                    # TODO: check if this ever occurs from the above code and
+                    # provide error screen for user
                     # console.log('Invoice remains unpaid')
                     delete_session_application(request.session)
                     return redirect(reverse('external'))
@@ -90,6 +118,10 @@ class ApplicationSuccessView(TemplateView):
         except Exception as e:
             print(e)
             traceback.print_exc
+            delete_session_application(request.session)
+            return redirect(reverse('external'))
+
+        if not submit_success:
             delete_session_application(request.session)
             return redirect(reverse('external'))
 
@@ -122,17 +154,23 @@ class LicenceFeeSuccessView(TemplateView):
                     invoice_reference=invoice_ref
                 )
 
-                line = ActivityInvoiceLine.objects.get_or_create(
-                    invoice=invoice[0],
-                    licence_activity=activity.licence_activity,
-                    amount=activity.licence_fee
-                )
-                # if not activity.licence_fee_paid:
-                #    raise Exception("Licence fee payment failed!")
+                if activity.licence_fee > 0:
+                    ActivityInvoiceLine.objects.get_or_create(
+                        invoice=invoice[0],
+                        licence_activity=activity.licence_activity,
+                        amount=activity.licence_fee
+                    )
+
+                if activity.application_fee > 0:
+                    ActivityInvoiceLine.objects.get_or_create(
+                        invoice=invoice[0],
+                        licence_activity=activity.licence_activity,
+                        amount=activity.application_fee
+                    )
 
                 activity.application.issue_activity(
-                    request, activity,
-                    generate_licence=True if i == activities.count() else False)
+                   request, activity,
+                   generate_licence=True if i == activities.count() else False)
 
                 i = i + 1
 

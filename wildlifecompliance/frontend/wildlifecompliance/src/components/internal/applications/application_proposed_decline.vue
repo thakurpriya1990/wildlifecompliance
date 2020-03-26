@@ -39,9 +39,9 @@
                 </div>
             </div>
             <div slot="footer">
-                <button type="button" v-if="decliningApplication" disabled class="btn btn-default" @click="ok"><i class="fa fa-spinner fa-spin"></i>Proposing Decline</button>
-                <button type="button" v-else class="btn btn-danger" @click="ok">Propose Decline</button>
-                <button type="button" class="btn btn-default" @click="cancel">Cancel</button>
+                <button type="button" v-if="decliningApplication" disabled class="btn btn-primary" @click="ok"><i class="fa fa-spinner fa-spin"></i>Proposing Decline</button>
+                <button type="button" v-else class="btn btn-primary" @click="ok">Propose Decline</button>
+                <button type="button" class="btn btn-primary" @click="cancel">Cancel</button>
             </div>
         </modal>
     </div>
@@ -131,14 +131,17 @@ export default {
                 vm.$http.post(helpers.add_endpoint_json(api_endpoints.applications,this.application_id+'/proposed_decline'),JSON.stringify(propose_decline),{
                         emulateJSON:true,
                     }).then((response)=>{
-                        swal(
-                                'Propose Decline',
-                                'The selected licenced activities have been proposed for Decline.',
-                                'success'
-                        )
-                        vm.decliningApplication = false;
-                        vm.close();
-                        vm.$emit('refreshFromResponse',response);
+                        //swal(
+                        //        'Propose Decline',
+                        //        'The selected licenced activities have been proposed for Decline.',
+                        //        'success'
+                        //)
+                        //vm.decliningApplication = false;
+                        //vm.close();
+                        //vm.$emit('refreshFromResponse',response);
+                        vm.$router.push({
+                            name:"internal-dash",
+                        });     
                     },(error)=>{
                         vm.errors = true;
                         vm.decliningApplication = false;

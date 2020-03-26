@@ -72,10 +72,8 @@ class Offence(RevisionedMixin):
     )
     lodgement_number = models.CharField(max_length=50, blank=True,)
     occurrence_from_to = models.BooleanField(default=False)
-    occurrence_date_from = models.DateField(null=True, blank=True)
-    occurrence_time_from = models.TimeField(null=True, blank=True)
-    occurrence_date_to = models.DateField(null=True, blank=True)
-    occurrence_time_to = models.TimeField(null=True, blank=True)
+    occurrence_datetime_from = models.DateTimeField(null=True, blank=True)
+    occurrence_datetime_to = models.DateTimeField(null=True, blank=True)
     alleged_offences = models.ManyToManyField(
         SectionRegulation,
         blank=True,
@@ -101,7 +99,10 @@ class Offence(RevisionedMixin):
         verbose_name_plural = 'CM_Offences'
 
     def __str__(self):
-        return 'ID: {}, Status: {}, Identifier: {}'.format(self.id, self.status, self.identifier)
+        try:
+            return 'ID: {}, Status: {}, Identifier: {}'.format(self.id, self.status, self.identifier.encode('utf-8'))
+        except Exception as e:
+            return 'ID: {}'.format(self.id)
 
     def save(self, *args, **kwargs):
         super(Offence, self).save(*args, **kwargs)
@@ -161,9 +162,9 @@ class Offence(RevisionedMixin):
     @property
     def offence_occurrence_datetime(self):
         if self.occurrence_from_to:
-            return datetime.datetime.combine(self.occurrence_date_to, self.occurrence_time_to)
+            return self.occurrence_datetime_to
         else:
-            return datetime.datetime.combine(self.occurrence_date_from, self.occurrence_time_from)
+            return self.occurrence_datetime_from
 
 
 def perform_can_close_record(sender, instance, **kwargs):

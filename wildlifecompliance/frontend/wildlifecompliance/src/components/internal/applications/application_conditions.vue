@@ -13,7 +13,7 @@
                             <div class="panel-body panel-collapse collapse in" :id="panelBody">
                                 <form class="form-horizontal" action="index.html" method="post">
                                     <div class="col-sm-12">
-                                        <button v-if="canEditConditions" @click.prevent="addCondition()" style="margin-bottom:10px;" class="btn btn-primary pull-right">Add Condition</button>
+                                        <button v-if="canAddConditions" @click.prevent="addCondition()" style="margin-bottom:10px;" class="btn btn-primary pull-right">Add Condition</button>
                                     </div>
                                     <datatable ref="conditions_datatable" :id="'conditions-datatable-'+_uid" :dtOptions="condition_options" :dtHeaders="condition_headers"/>
                                 </form>
@@ -21,7 +21,7 @@
                         </div>
                     </div>
                     <ConditionDetail ref="condition_detail" :application_id="application.id" :conditions="conditions" :licence_activity_tab="selected_activity_tab_id"
-                    :condition="viewedCondition"/>
+                    :condition="viewedCondition" :purposes="purposes"/>
                 </div>       
 
             
@@ -56,7 +56,8 @@ export default {
             panelBody: "application-conditions-"+vm._uid,
             viewedCondition: {},
             conditions: [],
-            condition_headers:["Condition","Due Date","Recurrence","Action","Order"],
+            purposes: [],
+            condition_headers:["Condition","Purpose","Source","Due Date","Recurrence","Action","Order"],
             condition_options:{
                 autoWidth: false,
                 language: {
@@ -71,6 +72,17 @@ export default {
                 columns: [
                     {
                         data: "condition",
+                        mRender:function (data,type,full) {
+                            return data.substring(0, 80)
+                        },
+                        orderable: false
+                    },
+                    {
+                        data: "purpose_name",
+                        orderable: false
+                    },
+                    {
+                        data: "source_name",
                         orderable: false
                     },
                     {
@@ -105,7 +117,13 @@ export default {
                     {
                         mRender:function (data,type,full) {
                             let links = '';
-                            if(vm.canEditConditions) {
+                            if(full.source_group) {
+                                links = `
+                                    <a href='#' class="editCondition" data-id="${full.id}">Edit</a><br/>
+                                    <a href='#' class="deleteCondition" data-id="${full.id}">Delete</a><br/>
+                                `;
+                            }
+                            if(!full.source_group && vm.canEditConditions) {
                                 links = `
                                     <a href='#' class="editCondition" data-id="${full.id}">Edit</a><br/>
                                     <a href='#' class="deleteCondition" data-id="${full.id}">Delete</a><br/>
@@ -158,7 +176,7 @@ export default {
             'current_user',
             'canAssignOfficerFor',
         ]),
-        canEditConditions: function() {
+        canAddConditions: function() {
             if(!this.selected_activity_tab_id || this.activity == null) {
                 return false;
             }
@@ -174,7 +192,23 @@ export default {
                 break;
             }
             return required_role && this.hasRole(required_role, this.selected_activity_tab_id);
-        },     
+        },
+        canEditConditions: function() {
+            if(!this.selected_activity_tab_id || this.activity == null) {
+                return false;
+            }
+
+            let required_role = false;
+            switch(this.activity.processing_status.id) {
+                case 'with_assessor':
+                    required_role = false;  // only assessors in same group for added condition row can edit.
+                break;
+                case 'with_officer_conditions':
+                    required_role =  this.canAssignOfficerFor(this.selected_activity_tab_id) ? 'licensing_officer' : false;
+                break;
+            }
+            return required_role && this.hasRole(required_role, this.selected_activity_tab_id);
+        },    
         isLicensingOfficer: function() {
             return this.hasRole('licensing_officer', this.selected_activity_tab_id);
         },
@@ -226,6 +260,13 @@ export default {
             },(error) => {
                 console.log(error);
             })
+        },
+        fetchPurposes(){
+            this.purposes = [];
+            var selectedActivity = this.application.activities.find(activity => {
+                return activity.licence_activity === this.selected_activity_tab_id;
+            });
+            this.purposes = selectedActivity.purposes;
         },
         editCondition(_id){
             let vm = this;
@@ -298,6 +339,7 @@ export default {
     },
     mounted: function(){
         this.fetchConditions();
+        this.fetchPurposes();
         this.$nextTick(() => {
             this.eventListeners();
             this.form = document.forms.assessment_form;

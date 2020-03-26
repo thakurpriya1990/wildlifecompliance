@@ -67,6 +67,7 @@
                                         </span>
                                     </div>
                                 </div>
+                                <label v-show="offence.occurrence_from_to" class="col-sm-1">to</label>
                                 <div v-show="offence.occurrence_from_to">
                                     <div class="col-sm-3">
                                         <div class="input-group date" ref="occurrenceDateToPicker">
@@ -89,6 +90,7 @@
                                         </span>
                                     </div>
                                 </div>
+                                <label v-show="offence.occurrence_from_to" class="col-sm-1">to</label>
                                 <div v-show="offence.occurrence_from_to">
                                     <div class="col-sm-3">
                                         <div class="input-group date" ref="occurrenceTimeToPicker">
@@ -223,6 +225,7 @@ import $ from "jquery";
 import "bootstrap/dist/css/bootstrap.css";
 import "awesomplete/awesomplete.css";
 import uuid from 'uuid';
+import "jquery-ui/ui/widgets/draggable.js";
 
 export default {
   name: "Offence",
@@ -489,6 +492,12 @@ export default {
     ...mapActions('legalCaseStore', {
       loadLegalCase: "loadLegalCase",
     }),
+    makeModalsDraggable: function(){
+        this.elem_modal = $('.modal > .modal-dialog');
+        for (let i=0; i<this.elem_modal.length; i++){
+            //$(this.elem_modal[i]).draggable();
+        }
+    },
     constructRegionsAndDistricts: async function() {
         let returned_regions = await cache_helper.getSetCacheList(
             "Regions",
@@ -743,27 +752,32 @@ export default {
         }
     },
     processError: async function(err) {
+        console.log(typeof(err))
         let errorText = '';
-        if (err.body.non_field_errors) {
-            // When non field errors raised
-            for (let i=0; i<err.body.non_field_errors.length; i++){
-                errorText += err.body.non_field_errors[i] + '<br />';
-            }
-        } else if(Array.isArray(err.body)) {
-            // When general errors raised
-            for (let i=0; i<err.body.length; i++){
-                errorText += err.body[i] + '<br />';
-            }
-        } else {
-            // When field errors raised
-            for (let field_name in err.body){
-                if (err.body.hasOwnProperty(field_name)){
-                    errorText += field_name + ':<br />';
-                    for (let j=0; j<err.body[field_name].length; j++){
-                        errorText += err.body[field_name][j] + '<br />';
+        if (err.body){
+            if (err.body.non_field_errors) {
+                // When non field errors raised
+                for (let i=0; i<err.body.non_field_errors.length; i++){
+                    errorText += err.body.non_field_errors[i] + '<br />';
+                }
+            } else if(Array.isArray(err.body)) {
+                // When general errors raised
+                for (let i=0; i<err.body.length; i++){
+                    errorText += err.body[i] + '<br />';
+                }
+            } else {
+                // When field errors raised
+                for (let field_name in err.body){
+                    if (err.body.hasOwnProperty(field_name)){
+                        errorText += field_name + ': ';
+                        for (let j=0; j<err.body[field_name].length; j++){
+                            errorText += err.body[field_name][j] + '<br />';
+                        }
                     }
                 }
             }
+        } else {
+            errorText += err.message;
         }
         this.errorResponse = errorText;
         //await swal("Error", errorText, "error");
@@ -788,6 +802,7 @@ export default {
       this.$refs.mapOffenceComponent.mapTabClicked();
     },
     sendData: async function() {
+        console.log('sendData');
         let vm = this;
 
         // If exists, set call_email_id and other attributes to the offence
@@ -819,15 +834,17 @@ export default {
       let el_to_date = $(vm.$refs.occurrenceDateToPicker);
       let el_to_time = $(vm.$refs.occurrenceTimeToPicker);
 
-      // "From" field
+      // "Date From" field
       el_fr_date.datetimepicker({ format: "DD/MM/YYYY", maxDate: "now", showClear: true });
       el_fr_date.on("dp.change", function(e) {
         if (el_fr_date.data("DateTimePicker").date()) {
           vm.offence.occurrence_date_from = e.date.format("DD/MM/YYYY");
+            el_to_date.data('DateTimePicker').minDate(e.date);
         } else if (el_fr_date.data("date") === "") {
           vm.offence.occurrence_date_from = null;
         }
       });
+      // "Time From" field
       el_fr_time.datetimepicker({ format: "LT", showClear: true });
       el_fr_time.on("dp.change", function(e) {
         if (el_fr_time.data("DateTimePicker").date()) {
@@ -837,15 +854,17 @@ export default {
         }
       });
 
-      // "To" field
+      // "Date To" field
       el_to_date.datetimepicker({ format: "DD/MM/YYYY", maxDate: "now", showClear: true });
       el_to_date.on("dp.change", function(e) {
         if (el_to_date.data("DateTimePicker").date()) {
           vm.offence.occurrence_date_to = e.date.format("DD/MM/YYYY");
+            el_fr_date.data('DateTimePicker').maxDate(e.date);
         } else if (el_to_date.data("date") === "") {
           vm.offence.occurrence_date_to = null;
         }
       });
+      // "Time To" field
       el_to_time.datetimepicker({ format: "LT", showClear: true });
       el_to_time.on("dp.change", function(e) {
         if (el_to_time.data("DateTimePicker").date()) {
@@ -889,6 +908,7 @@ export default {
               vm.suggest_list.push(persons[i]);
             }
           }
+
           vm.awe.list = vm.suggest_list;
           vm.awe.evaluate();
         },
@@ -961,23 +981,38 @@ export default {
           return false;
         })
         .on("awesomplete-select", function(ev) {
-          /* Retrieve element id of the selected item from the list
-           * By parsing it, we can get the order-number of the item in the list
-           */
-          let origin = $(ev.originalEvent.origin);
-            console.log('alleged offence selected');
-          let originTagName = origin[0].tagName;
-          if (originTagName != "DIV") {
-            // Assuming origin is a child element of <li>
-            origin = origin.parent();
-          }
-          let elem_id = origin[0].getAttribute("data-item-id");
-          for (let i = 0; i < self.suggest_list.length; i++) {
-            if (self.suggest_list[i].id == parseInt(elem_id)) {
-              self.setCurrentOffenceSelected(self.suggest_list[i]);
-              break;
+            /* Retrieve element id of the selected item from the list
+             * By parsing it, we can get the order-number of the item in the list
+             * 
+             * Structure of the awesomplete list
+             * <ul>
+             *     <li>
+             *         <div data-item-id="id_number">
+             *             <strong>
+             *                 <mark>
+             * User can click either <li>/<div>/<strong>/<mark>.
+             * Therefore to get the <div> element, which has an item id, you need a bit of calculation.
+             */
+            let origin = $(ev.originalEvent.origin);
+            let originTagName = origin[0].tagName;
+            switch(originTagName){
+                case "STRONG":
+                    origin = origin.parent();
+                    break;
+                case "MARK":
+                    origin = origin.parent().parent();
+                    break;
+                case "LI":
+                    origin = origin.children().first();
+                    break;
             }
-          }
+            let elem_id = origin[0].getAttribute("data-item-id");
+            for (let i = 0; i < self.suggest_list.length; i++) {
+                if (self.suggest_list[i].id == parseInt(elem_id)) {
+                    self.setCurrentOffenceSelected(self.suggest_list[i]);
+                    break;
+                }
+            }
         });
     },
     searchOrganisation: function(id) {
@@ -1086,11 +1121,9 @@ export default {
         this.setAllocatedGroupId(this.allocated_group_id);
     },
     mounted: function() {
-        console.log('mounted');
-
-        let vm = this;
-        vm.$nextTick(() => {
-            vm.addEventListeners();
+        this.$nextTick(() => {
+            this.addEventListeners();
+            this.makeModalsDraggable();
         });
     }
 };

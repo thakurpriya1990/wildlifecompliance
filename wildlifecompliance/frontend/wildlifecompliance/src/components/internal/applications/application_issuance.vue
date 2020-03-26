@@ -30,6 +30,16 @@
                                                 </div>
                                                 <div class="row">
                                                     <div class="col-sm-3">
+                                                        <label class="control-label pull-left">Proposed Purposes</label>
+                                                    </div>
+                                                    <div class="col-sm-9">
+                                                        <div v-for="(purpose, index) in applicationSelectedActivitiesForPurposes" v-bind:key="`purpose_${index}`">
+                                                            <input type="checkbox" :value ="purpose.id" :id="purpose.id" v-model="getActivity(item.id).purposes">{{purpose.short_name}}
+                                                        </div>
+                                                    </div>
+                                                </div>                                                
+                                                <div class="row">
+                                                    <div class="col-sm-3">
                                                         <label class="control-label pull-left">Ready for issuing?</label>
                                                     </div>
                                                     <div class="col-sm-9">
@@ -61,6 +71,22 @@
                                                                 <span class="glyphicon glyphicon-calendar"></span>
                                                             </span>
                                                         </div>
+                                                    </div>
+                                                </div>
+                                                <div class="row">
+                                                    <div class="col-sm-3">
+                                                        <label class="control-label pull-left">Additional Fee Details</label>
+                                                    </div>
+                                                    <div class="col-sm-9">
+                                                        <input type="text" class="form-control" name="cc_email" style="width: 70%;"  v-model="getActivity(item.id).additional_fee_text">
+                                                    </div>
+                                                </div>
+                                                <div class="row">
+                                                    <div class="col-sm-3">
+                                                        <label class="control-label pull-left">Additional Fee</label>
+                                                    </div>
+                                                    <div class="col-sm-9">
+                                                        <input type="text" class="form-control" name="cc_email" style="width: 20%;"  v-model="getActivity(item.id).additional_fee">
                                                     </div>
                                                 </div>
                                             </div>
@@ -103,6 +129,13 @@
                                         <div class="col-sm-3">
                                             <label class="control-label pull-left"  for="details">Files to be attached to email</label>
                                         </div>
+                                        <div class="col-sm-9">
+                                            <filefield 
+                                                ref="issuance_documents" 
+                                                name="issuance-documents" 
+                                                :isRepeatable="true" 
+                                                :documentActionUrl="applicationIssuanceDocumentUrl" />
+                                        </div>                                    
                                     </div>
                                 </div>
                             </div>
@@ -184,9 +217,13 @@ import {
 }
 from '@/utils/hooks'
 import { mapGetters, mapActions } from 'vuex'
+import filefield from '@/components/common/compliance_file.vue'
 
 export default {
     name: 'InternalApplicationIssuance',
+    components:{
+        filefield,
+    },    
     props: {
         application: Object,
         licence_activity_tab:Number
@@ -202,6 +239,7 @@ export default {
                 character_check:false,
                 return_check:false,
                 current_application: vm.application.id,
+                purposes: [],
                 },
             datepickerOptions:{
                 format: 'DD/MM/YYYY',
@@ -218,6 +256,19 @@ export default {
             'licenceActivities',
             'filterActivityList',
         ]),
+        applicationIssuanceDocumentUrl: function() {
+            let url = '';
+            if (this.selectedApplicationActivityId) {
+                url = helpers.add_endpoint_join(
+                    api_endpoints.application_selected_activity,
+                    this.selectedApplicationActivityId + "/process_issuance_document/"
+                )
+            }
+            return url;
+        },
+        applicationSelectedActivitiesForPurposes: function() {
+            return this.selectedApplicationActivity.proposed_purposes
+        },
         canIssueOrDecline: function() {
             return (this.allActivitiesDeclined || (
                 this.licence.id_check && this.licence.character_check && this.licence.return_check)
@@ -235,6 +286,19 @@ export default {
                 ], 'issuing_officer'),
                 exclude_processing_statuses: ['discarded']
             });
+        },
+        selectedApplicationActivity: function() {       
+            let selected_activity = this.application.activities.find(
+                activity => { return activity.licence_activity == this.selected_activity_tab_id }
+            );
+            return selected_activity
+        },
+        selectedApplicationActivityId: function() {     
+            let activity_id = null;
+            if (this.selectedApplicationActivity) {
+                activity_id = this.selectedApplicationActivity.id;
+            }
+            return activity_id
         },
         isIdCheckAccepted: function(){
             return this.application.id_check_status.id == 'accepted';
@@ -262,6 +326,13 @@ export default {
             return this.application.return_check_status.id == 'not_checked'
                 || this.application.return_check_status.id == 'updated' ;
         },
+        isValidAdditionalFee: function(){
+            let invalid = this.licence.activity.filter(function(e) {
+                return (e.additional_fee.substring(0)!=='0.00' && e.additional_fee.substring(0)!=='0' && e.additional_fee.substring(0)!=='')
+                    && (e.additional_fee_text == null || e.additional_fee_text === '')
+            });        
+            return invalid.length < 1 ? true : false
+        },
         finalStatus: function() {
             return (id) => {
                 return this.getActivity(id).final_status;
@@ -276,6 +347,13 @@ export default {
             const required_confirmations = this.visibleLicenceActivities.length
             const confirmations = this.licence.activity.filter(
                 activity => activity.confirmed
+            ).length;
+            return confirmations === required_confirmations;
+        },
+        selectedActivityPurpose: function() {
+            const required_confirmations = this.visibleLicenceActivities.length
+            const confirmations = this.licence.activity.filter(
+                activity => activity.purposes.length>0 && activity.confirmed
             ).length;
             return confirmations === required_confirmations;
         },
@@ -297,10 +375,26 @@ export default {
         ok: function () {
             let vm = this;
 
+            if(!this.isValidAdditionalFee) {
+                return swal(
+                    'Cannot issue/decline',
+                    "One or more activity tabs has additional fee amount without description",
+                    'error'
+                );
+            }
+
             if(!this.canSubmit) {
                 return swal(
                     'Cannot issue/decline',
                     "One or more activity tabs hasn't been marked as ready for finalisation!",
+                    'error'
+                );
+            }
+
+            if(!this.selectedActivityPurpose) {
+                return swal(
+                    'Cannot issue/decline',
+                    "One or more purposes hasn't been selected!",
                     'error'
                 );
             }
@@ -327,12 +421,15 @@ export default {
                     vm.$http.post(helpers.add_endpoint_json(api_endpoints.applications,vm.application.id+'/final_decision'),JSON.stringify(licence),{
                                 emulateJSON:true,
                             }).then((response)=>{
-                                swal(
-                                    'Activities Finalised',
-                                    'The selected activities have been successfully finalised!',
-                                    'success'
-                                );
-                                vm.$parent.refreshFromResponse(response);
+                                //swal(
+                                //    'Activities Finalised',
+                                //    'The selected activities have been successfully finalised!',
+                                //    'success'
+                                //);
+                                //vm.$parent.refreshFromResponse(response);
+                                vm.$router.push({
+                                    name:"internal-dash",
+                                });     
                             },(error)=>{
                                 swal(
                                     'Application Error',
@@ -372,6 +469,9 @@ export default {
                     cc_email: proposal.cc_email,
                     final_status: final_status,
                     confirmed: false,
+                    purposes: proposal.issued_purposes_id,
+                    additional_fee: proposal.additional_fee,
+                    additional_fee_text: proposal.additional_fee_text,
                 });
             }
             if(this.application.id_check_status.id == 'accepted'){
@@ -432,6 +532,10 @@ export default {
             }
         },
 
+        setTemporaryDocumentCollectionId: function(val) {
+            this.temporary_document_collection_id = val;
+        },
+
         userHasRole: function(role, activity_id) {
             return this.application.user_roles.filter(
                 role_record => role_record.role == role && (!activity_id || activity_id == role_record.activity_id)
@@ -486,6 +590,7 @@ export default {
             vm.eventListeners();
             vm.initFirstTab();
         });
+
     },
     updated: function() {
         this.$nextTick(() => {

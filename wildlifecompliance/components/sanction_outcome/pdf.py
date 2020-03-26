@@ -4,6 +4,7 @@ from decimal import Decimal as D
 from io import BytesIO
 
 from django.core.files.storage import default_storage
+from wildlifecompliance.settings import STATIC_ROOT
 from oscar.templatetags.currency_filters import currency
 from reportlab.lib import enums
 from reportlab.lib.pagesizes import A4
@@ -22,12 +23,9 @@ from django.conf import settings
 from ledger.accounts.models import Document
 from ledger.checkout.utils import calculate_excl_gst
 
-#DPAW_HEADER_LOGO = os.path.join(settings.BASE_DIR, 'ledger', 'payments','static', 'payments', 'img','dbca_logo.jpg')
-#DPAW_HEADER_LOGO_SM = os.path.join(settings.BASE_DIR, 'ledger', 'payments','static', 'payments', 'img','dbca_logo_small.png')
-#BPAY_LOGO = os.path.join(settings.BASE_DIR, 'ledger', 'payments','static', 'payments', 'img', 'BPAY_2012_PORT_BLUE.png')
-DPAW_HEADER_LOGO = os.path.join(settings.BASE_DIR, 'staticfiles', 'payments', 'img','dbca_logo.jpg')
-DPAW_HEADER_LOGO_SM = os.path.join(settings.BASE_DIR, 'staticfiles', 'payments', 'img','dbca_logo_small.png')
-BPAY_LOGO = os.path.join(settings.BASE_DIR, 'staticfiles', 'payments', 'img', 'BPAY_2012_PORT_BLUE.png')
+DPAW_HEADER_LOGO = os.path.join(STATIC_ROOT, 'payments', 'img','dbca_logo.jpg')
+DPAW_HEADER_LOGO_SM = os.path.join(STATIC_ROOT, 'payments', 'img','dbca_logo_small.png')
+BPAY_LOGO = os.path.join(STATIC_ROOT, 'payments', 'img', 'BPAY_2012_PORT_BLUE.png')
 
 HEADER_MARGIN = 10
 HEADER_SMALL_BUFFER = 3
@@ -69,19 +67,6 @@ styles.add(ParagraphStyle(name='Left', alignment=enums.TA_LEFT))
 styles.add(ParagraphStyle(name='Right', alignment=enums.TA_RIGHT))
 styles.add(ParagraphStyle(name='LongString', alignment=enums.TA_LEFT,wordWrap='CJK'))
 
-class BrokenLine(Flowable):
-
-    def __init__(self, width,height=0):
-        Flowable.__init__(self)
-        self.width = width
-        self.height = height
-
-    def __repr__(self):
-        return 'Line {}'.format(self.width)
-
-    def draw(self):
-        self.canv.setDash(3,3)
-        self.canv.line(0, self.height,self.width,self.height)
 
 class Remittance(Flowable):
     def __init__(self,current_x,current_y,invoice):
@@ -229,12 +214,13 @@ def _create_header(canvas, doc, draw_page_number=True):
     canvas.drawRightString(current_x + 20, current_y - (SMALL_FONTSIZE + HEADER_SMALL_BUFFER) * 7, 'Outstanding (AUD)')
     # canvas.drawString(current_x + invoice_details_offset, current_y - (SMALL_FONTSIZE + HEADER_SMALL_BUFFER) * 7, currency(invoice.balance))
     canvas.restoreState()
-    
+
+
 def _create_invoice(invoice_buffer, sanction_outcome):
     every_page_frame = Frame(PAGE_MARGIN, PAGE_MARGIN + 250, PAGE_WIDTH - 2 * PAGE_MARGIN,
-                             PAGE_HEIGHT -450 , id='EveryPagesFrame',showBoundary=0)
+                             PAGE_HEIGHT - 450, id='EveryPagesFrame', showBoundary=1)
     remit_frame = Frame(PAGE_MARGIN, PAGE_MARGIN, PAGE_WIDTH - 2 * PAGE_MARGIN,
-                             PAGE_HEIGHT - 600, id='RemitFrame',showBoundary=0)
+                             PAGE_HEIGHT - 600, id='RemitFrame', showBoundary=1)
     every_page_template = PageTemplate(id='EveryPages', frames=[every_page_frame,remit_frame], onPage=_create_header)
     
 
@@ -297,7 +283,7 @@ def _create_invoice(invoice_buffer, sanction_outcome):
     #         ]
     #     )
     #     val += 1
-    t= Table(
+    t = Table(
             data,
             style=invoice_table_style,
             hAlign='LEFT',
@@ -317,11 +303,22 @@ def _create_invoice(invoice_buffer, sanction_outcome):
 
     elements.append(Spacer(1, SECTION_BUFFER_HEIGHT * 6))
     
+    # TEST
+    para1 = Paragraph('Paragraph test1', styles['Left'])
+    para2 = Paragraph('Paragraph test2', styles['Right'])
+    elements.append(para1)
+    # TEST-end
+
     # Remitttance Frame
     elements.append(FrameBreak())
+
     boundary = BrokenLine(PAGE_WIDTH - 2 * (PAGE_MARGIN *1.1))
     elements.append(boundary)
     elements.append(Spacer(1, SECTION_BUFFER_HEIGHT))
+
+    # TEST
+    elements.append(para2,)
+    # TEST-end
     
     remittance = Remittance(HEADER_MARGIN, HEADER_MARGIN - 10, sanction_outcome)
     elements.append(remittance)
@@ -344,5 +341,7 @@ def create_infringement_notice_pdf_bytes(filename, sanction_outcome):
         document._file = path
         document.save()
         # END: Save
+
+        invoice_buffer.close()
 
         return document

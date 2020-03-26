@@ -20,39 +20,6 @@
                             <div class="panel-body panel-collapse collapse in" :id="panelBody">
                                 <form class="form-horizontal" name="assessment_form" method="put">
                                     <div class="col-sm-12">
-                                        <div class="form-group" v-if="assessment.is_inspection_required">
-                                            <div class="row">
-                                                <div class="col-xs-3">
-                                                    <label class="control-label pull-left">Inspection Date</label>
-                                                </div>
-                                                <div class="col-xs-9">
-                                                    <div class="input-group date" ref="inspection_date">
-                                                        <input type="text" class="form-control" name="inspection_date" placeholder="DD/MM/YYYY" v-model="assessment.inspection_date">
-                                                        <span class="input-group-addon">
-                                                            <span class="glyphicon glyphicon-calendar"></span>
-                                                        </span>
-                                                    </div>
-                                                </div>
-                                            </div>
-                                            <div class="row">
-                                                <div class="col-sm-3">
-                                                    <label class="control-label pull-left">Inspection Report</label>
-                                                </div>
-                                                <div class="col-sm-9" style="margin-bottom:10px; margin-top:10px;">
-                                                    <div v-if="assessment.inspection_report && !inspection_report_file_name" style="margin-bottom: 10px;"><a :href="assessment.inspection_report" target="_blank">Download</a></div>
-                                                    <div v-if="inspection_report_file_name" style="margin-bottom: 10px;">{{ inspection_report_file_name }}</div>
-                                                    <span v-if="canCompleteAssessment" class="btn btn-primary btn-file"> Select Inspection Report to Upload <input type="file" ref="inspection_report" @change="readFileInspectionReport()"/></span>
-                                                </div>
-                                            </div>
-                                            <div class="row">
-                                                <div class="col-sm-3">
-                                                    <label class="control-label pull-left">Inspection Comments</label>
-                                                </div>
-                                                <div class="col-sm-9">
-                                                    <textarea class="form-control" v-model="assessment.inspection_comment" :readonly="!canCompleteAssessment" style="width: 100%; max-width: 100%;" />
-                                                </div>
-                                            </div>
-                                        </div>
                                         <div class="form-group">
                                             <div class="row">
                                                 <div class="col-sm-3">
@@ -161,8 +128,6 @@ export default {
             assessment: {
                 id: "",
                 comment: "",
-                inspection_date: "",
-                inspection_report: null,
             },
             datepickerInitialised: false,
             isModalOpen: false,
@@ -221,15 +186,17 @@ export default {
             'allCurrentActivities',
             'allCurrentActivitiesWithAssessor',
         ]),
-        inspection_report_file_name: function() {
-            return this.assessment.inspection_report != null ? this.assessment.inspection_report.name: '';
+        isCompleteAssessmentAction: function() {
+            return this.$router.currentRoute.name==='complete-assessment'
         },
         applicationActivities: function() {
-            if (this.$router.currentRoute.name=='complete-assessment'){
+
+            if (this.isCompleteAssessmentAction){
+
                 // filtered activity list for application when completing assessments.
                 return this.allCurrentActivitiesWithAssessor
             }
-            return this.allCurrentActivities
+            return this.licenceActivities()
         },
         selectedActivity: function(){
             const activities_list = this.licence_type_data.activity;
@@ -397,14 +364,7 @@ export default {
         saveAssessmentData: function(e) {
             return new Promise((resolve, reject) => {
                 let formData = new FormData(this.form);
-                if(this.assessment.is_inspection_required) {
-                    formData.append('inspection_comment', this.assessment.inspection_comment);
-                    formData.append('inspection_date', this.assessment.inspection_date);
-                }
                 formData.append('final_comment', this.assessment.final_comment);
-                if (this.assessment.inspection_report) {
-                    formData.append('inspection_report', this.assessment.inspection_report);
-                }
                 this.$http.put(helpers.add_endpoint_json(api_endpoints.assessment,this.assessment.id+'/update_assessment'),formData,{
                     emulateJSON:true
                 }).then(res=>{
@@ -450,11 +410,12 @@ export default {
             }
             //const tab = $('#tabs-assessor li:first-child a')[0];
             const tab = null
-            var first_tab = this.applicationActivities[0].id
-
+            var first_tab = null
             if (this.$router.currentRoute.name=='complete-assessment'){
                 // an activity is set for completing assessment.
                 first_tab = this.selected_activity_tab_id
+            } else {
+                first_tab = this.applicationActivities[0].id
             }
 
             if(tab) {
@@ -474,7 +435,8 @@ export default {
             return this.assessorGroup.filter(assessor => assessor.id == assessor_id).length;
         },
         isActivityVisible: function(activity_id) {
-            return this.isApplicationActivityVisible({ activity_id: activity_id });
+            //return this.isApplicationActivityVisible({ activity_id: activity_id });
+            return 1
         },
         isAssessorRelevant(assessor, activity_id) {
             if(!activity_id) {
@@ -541,7 +503,10 @@ export default {
                     "assessment_id": this.viewingAssessmentId,
                 })
                 .then((response) => {
-                    this.$parent.refreshFromResponse(response);
+                    // FIXME: $parent causing local flags to loose settings
+                    // and therefore not closing. Should be ok as assessor
+                    // does not update applications.
+                    // this.$parent.refreshFromResponse(response);
                     this.refreshAssessorDatatables();
                     this.close();
                     swal(
@@ -618,9 +583,12 @@ export default {
                                         <a data-assessmentid='${full.id}' class="assessment-action assessment_recall">Recall</a>
                                     `;
                                 }
-                                links +=  `
-                                    <a data-assessmentid='${full.id}' class="assessment-action assessment_view">${pending && vm.canEditAssessment(full)? 'Edit' : 'View'}</a>
-                                `;
+                                if (!vm.isCompleteAssessmentAction) {
+                                    links +=  `
+                                        <a data-assessmentid='${full.id}' class="assessment-action assessment_view">${pending && vm.canEditAssessment(full)? 'Edit' : 'View'}</a>
+                                    `;
+                                }
+
                                 return links;
                             }}
                     ],
@@ -646,24 +614,6 @@ export default {
             }
             this.assessment.inspection_report = _file;
         },
-        //Initialise Date Picker
-        initDatePicker: function() {
-            if(this.datepickerInitialised || this.$refs === undefined || !this.assessment.is_inspection_required) {
-                return;
-            }
-            const inspection_date_element = this.$refs.inspection_date;
-            const inspection_date_object = new Date(this.assessment.inspection_date);
-
-            $(inspection_date_element).datetimepicker(this.datepickerOptions);
-            $(inspection_date_element).data('DateTimePicker').date(inspection_date_object);
-            $(inspection_date_element).off('dp.change').on('dp.change', (e) => {
-                const selected_inspection_date = $(inspection_date_element).data('DateTimePicker').date().format('YYYY-MM-DD');
-                if (selected_inspection_date && selected_inspection_date != this.assessment.inspection_date) {
-                    this.assessment.inspection_date = selected_inspection_date;
-                }
-            });
-            this.datepickerInitialised = true;
-        },
     },
     mounted: function() {
         this.fetchAssessorGroup();
@@ -672,7 +622,6 @@ export default {
     updated: function(){
         this.$nextTick(() => {
             this.eventListeners();
-            this.initDatePicker();
         });
     },
 }

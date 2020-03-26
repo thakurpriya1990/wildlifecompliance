@@ -28,7 +28,7 @@
                                     <input v-if="!isProcessing" type="button" @click.prevent="saveExit" class="btn btn-primary" value="Save and Exit"/>
                                     <input v-if="!isProcessing" type="button" @click.prevent="save" class="btn btn-primary" value="Save and Continue"/>
                                     <input v-if="!isProcessing && !requiresCheckout" type="button" @click.prevent="submit" class="btn btn-primary" value="Submit"/>
-                                    <input v-if="!isProcessing && requiresCheckout" type="button" @click.prevent="submit" class="btn btn-primary" value="Pay and Submit"/>
+                                    <input v-if="!isProcessing && requiresCheckout" type="button" @click.prevent="pay_and_submit" class="btn btn-primary" value="Pay and Submit"/>
                                     <button v-if="isProcessing" disabled class="pull-right btn btn-primary"><i class="fa fa-spin fa-spinner"></i>&nbsp;Processing</button>
                                 </p>
                             </div>
@@ -245,10 +245,6 @@ export default {
         this.isProcessing = true;
         let swal_title = 'Submit Application'
         let swal_html = 'Are you sure you want to submit this application?'
-        if (vm.requiresCheckout) {
-            swal_title = 'Submit Application and Checkout'
-            swal_html = 'Are you sure you want to submit this application and proceed to checkout?<br><br>'
-        }
         swal({
             title: swal_title,
             html: swal_html,
@@ -260,25 +256,11 @@ export default {
                 this.saveFormData({ url: this.application_form_data_url }).then(res=>{
                     vm.$http.post(helpers.add_endpoint_json(api_endpoints.applications,vm.application.id+'/submit'),{}).then(res=>{
                       this.setApplication(res.body);
-                      if (this.adjusted_application_fee > 0) { //refund not required.
-                          vm.$http.post(helpers.add_endpoint_join(api_endpoints.applications,vm.application.id+'/application_fee_checkout/'), {}).then(res=>{
-                              window.location.href = "/ledger/checkout/checkout/payment-details/";
-                          },err=>{
-                              swal(
-                                  'Submit Error',
-                                  helpers.apiVueResourceError(err),
-                                  'error'
-                              ).then((result) => {
-                                  this.isProcessing = false;
-                              })
-                          });
-                      } else {
-                          this.isProcessing = false;
-                          vm.$router.push({
-                              name: 'submit_application',
-                              params: { application: vm.application }
-                          });
-                      }
+                      this.isProcessing = false;
+                      vm.$router.push({
+                          name: 'submit_application',
+                          params: { application: vm.application }
+                      });
                   },err=>{
                       swal(
                           'Submit Error',
@@ -309,6 +291,62 @@ export default {
             })
         });
     },
+    pay_and_submit: function(){
+        console.log('pay_and-submit')
+        let vm = this;
+        this.isProcessing = true;
+        let swal_title = 'Checkout and Submit Application'
+        let swal_html = 'Are you sure you want to pay and submit this application?<br><br>'
+        swal({
+            title: swal_title,
+            html: swal_html,
+            type: "question",
+            showCancelButton: true,
+            confirmButtonText: 'Submit'
+        }).then((result) => {
+            if (result.value) {
+                this.saveFormData({ url: this.application_form_data_url }).then(res=>{
+                      if (this.adjusted_application_fee > 0) { //refund not required.
+                          vm.$http.post(helpers.add_endpoint_join(api_endpoints.applications,vm.application.id+'/application_fee_checkout/'), {}).then(res=>{
+                              window.location.href = "/ledger/checkout/checkout/payment-details/";
+                          },err=>{
+                              swal(
+                                  'Submit Error',
+                                  helpers.apiVueResourceError(err),
+                                  'error'
+                              ).then((result) => {
+                                  this.isProcessing = false;
+                              })
+                          });
+                      } else {
+                          this.isProcessing = false;
+                          vm.$router.push({
+                              name: 'submit_application',
+                              params: { application: vm.application }
+                          });
+                      }
+
+                }, err=>{
+                  console.log(err);
+                  if(err.body.missing) {
+                      this.missing_fields = err.body.missing;
+                      this.highlight_missing_fields();
+                      this.isProcessing = false;
+                    }
+                });
+            } else {
+                this.isProcessing = false;
+            }
+        },(error) => {
+            swal(
+                'Error',
+                'There was an error submitting your application',
+                'error'
+            ).then((result) => {
+                this.isProcessing = false;
+            })
+        });
+    },    
   },
   mounted: function() {
     this.form = document.forms.new_application;
@@ -323,18 +361,14 @@ export default {
     this.$nextTick(() => {
         vm.eventListeners();
     });
-    if (this.application.application_type.id=='amend_activity'){ 
-      // fees can be adjusted from selected components for requested amendments.
-      this.adjusted_application_fee = this.application.application_fee - this.application.total_paid_amount
+    if (this.application.customer_status.id=='amendment_required') { // requested amendments.
+       // fees can be adjusted from selected components for requested amendments.
+      this.adjusted_application_fee = this.application.application_fee - this.application.adjusted_paid_amount
     } else {
-      // fees already adjusted for application amendments and new applications.
+      // no adjustments for new applications.
       this.adjusted_application_fee = this.application.application_fee
     }
-    console.log(this.adjusted_application_fee)
-    console.log(this.application.application_fee)
-    console.log(this.application.total_paid_amount)
-    console.log(this.application.has_amended_fee)
-  },
+  }
 }
 </script>
 

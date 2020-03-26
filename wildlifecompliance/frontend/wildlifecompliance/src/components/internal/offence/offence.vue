@@ -11,7 +11,7 @@
                 <div class="row">
                     <div class="panel panel-default">
                         <div class="panel-heading">
-                            Workflow 
+                            Workflow
                         </div>
                         <div class="panel-body panel-collapse">
                             <div class="row">
@@ -31,7 +31,7 @@
                                 <div class="col-sm-12">
                                     <select :disabled="!offence.user_in_group" class="form-control" v-model="offence.assigned_to_id" @change="updateAssignedToId()">
                                         <option  v-for="option in offence.allocated_group" :value="option.id" v-bind:key="option.id">
-                                        {{ option.full_name }} 
+                                        {{ option.full_name }}
                                         </option>
                                     </select>
                                 </div>
@@ -48,7 +48,7 @@
                 <div class="row">
                     <div class="panel panel-default">
                         <div class="panel-heading">
-                            Action 
+                            Action
                         </div>
                         <div class="panel-body panel-collapse">
                             <div v-if="visibilitySanctionOutcomeButton" class="row action-button">
@@ -70,7 +70,7 @@
                     </div>
                 </div>
             </div>
-            <div class="col-md-9" id="main-column">  
+            <div class="col-md-9" id="main-column">
                 <div class="row">
                     <div class="container-fluid">
                         <ul class="nav nav-pills aho2">
@@ -107,7 +107,7 @@
                                         <label class="col-sm-3">{{ occurrenceDateLabel }}</label>
                                         <div class="col-sm-3">
                                             <div class="input-group date" ref="occurrenceDateFromPicker">
-                                                <input :readonly="readonlyForm" type="text" class="form-control" placeholder="DD/MM/YYYY" v-model="offence.occurrence_date_from" />
+                                                <input :readonly="readonlyForm" type="text" class="form-control" placeholder="DD/MM/YYYY" :value="date_from" />
                                                 <span class="input-group-addon">
                                                     <span class="glyphicon glyphicon-calendar"></span>
                                                 </span>
@@ -116,7 +116,7 @@
                                         <div v-show="offence.occurrence_from_to">
                                             <div class="col-sm-3">
                                                 <div class="input-group date" ref="occurrenceDateToPicker">
-                                                    <input :readonly="readonlyForm" type="text" class="form-control" placeholder="DD/MM/YYYY" v-model="offence.occurrence_date_to" />
+                                                    <input :readonly="readonlyForm" type="text" class="form-control" placeholder="DD/MM/YYYY" :value="date_to" />
                                                     <span class="input-group-addon">
                                                         <span class="glyphicon glyphicon-calendar"></span>
                                                     </span>
@@ -129,7 +129,7 @@
                                         <label class="col-sm-3">{{ occurrenceTimeLabel }}</label>
                                         <div class="col-sm-3">
                                             <div class="input-group date" ref="occurrenceTimeFromPicker">
-                                                <input :readonly="readonlyForm" type="text" class="form-control" placeholder="HH:MM" v-model="offence.occurrence_time_from" />
+                                                <input :readonly="readonlyForm" type="text" class="form-control" placeholder="HH:MM" :value="time_from" />
                                                 <span class="input-group-addon">
                                                     <span class="glyphicon glyphicon-calendar"></span>
                                                 </span>
@@ -138,7 +138,7 @@
                                         <div v-show="offence.occurrence_from_to">
                                             <div class="col-sm-3">
                                                 <div class="input-group date" ref="occurrenceTimeToPicker">
-                                                    <input :readonly="readonlyForm" type="text" class="form-control" placeholder="HH:MM" v-model="offence.occurrence_time_to" />
+                                                    <input :readonly="readonlyForm" type="text" class="form-control" placeholder="HH:MM" :value="time_to" />
                                                     <span class="input-group-addon">
                                                         <span class="glyphicon glyphicon-calendar"></span>
                                                     </span>
@@ -184,10 +184,11 @@
                                         <label class="col-sm-2">Offender</label>
                                         <div v-show="!readonlyForm">
                                             <div>
-                                                <SearchPersonOrganisation 
-                                                :excludeStaff="true" 
-                                                classNames="form-control" 
-                                                @entity-selected="personSelected" 
+                                                <SearchPersonOrganisation
+                                                :excludeStaff="true"
+                                                :personOnly="true"
+                                                classNames="form-control"
+                                                @entity-selected="personSelected"
                                                 showCreateUpdate
                                                 ref="search_offender"
                                                 domIdHelper="offender"
@@ -324,6 +325,7 @@ export default {
         vm.awe = null;
 
         return {
+            mapboxAccessToken: null,
             uuid: 0,
             workflow_type :'',
             workflowBindId :'',
@@ -338,6 +340,10 @@ export default {
             idLocationFieldsDetails: vm.guid + "LocationFieldsDetails",
             sanctionOutcomeInitialised: false,
             objectHash : null,
+            date_from: null,
+            time_from: null,
+            date_to: null,
+            time_to: null,
             hashAttributeWhiteDict: {
                 'alleged_offences': [
                     'id',
@@ -390,9 +396,9 @@ export default {
                 this.$route.params.offence_id + "/action_log"
             ),
             dtHeadersOffender: [
-                "id", 
-                "Individual/Organisation", 
-                "Details", 
+                "id",
+                "Individual/Organisation",
+                "Details",
                 "Action",
                 "Reason for removal",
             ],
@@ -423,7 +429,7 @@ export default {
                             }
                             if(row.offender.removed){
                                 data_type = '<strike>' + data_type + '</strike>';
-                            } 
+                            }
                             return data_type;
                         }
                     },
@@ -453,7 +459,8 @@ export default {
                     },
                     {
                         mRender: function(data, type, row) {
-                            let ret_str = row.offender.number_linked_sanction_outcomes_active + '(' + row.offender.number_linked_sanction_outcomes_total + ')';
+                            //let ret_str = row.offender.number_linked_sanction_outcomes_active + '(' + row.offender.number_linked_sanction_outcomes_total + ')';
+                            let ret_str = '';
                             if (row.offence.in_editable_status && row.offence.can_user_action){
                                 if (row.offender.removed){
                                     ret_str = ret_str + '<a href="#" class="restore_button" data-offender-uuid="' + row.offender.uuid + '">Restore</a>';
@@ -520,7 +527,8 @@ export default {
                     },
                     {
                         mRender: function(data, type, row) {
-                            let ret_str = row.allegedOffence.number_linked_sanction_outcomes_active + '/' + row.allegedOffence.number_linked_sanction_outcomes_total;
+                            //let ret_str = row.allegedOffence.number_linked_sanction_outcomes_active + '/' + row.allegedOffence.number_linked_sanction_outcomes_total;
+                            let ret_str = '';
                             if (row.offence.in_editable_status && row.offence.can_user_action){
                                 if (row.allegedOffence.removed){
                                     ret_str = ret_str + '<a href="#" class="restore_button" data-alleged-offence-uuid="' + row.allegedOffence.uuid + '">Restore</a>';
@@ -636,7 +644,13 @@ export default {
             let visibility = false;
             if (this.canUserAction){
                 if (this.offence.status.id === this.STATUS_OPEN){
-                    visibility = true;
+                    for (let i=0; i<this.offence.alleged_offences.length; i++){
+                        let alleged_offence = this.offence.alleged_offences[i];
+                        if (alleged_offence.number_linked_sanction_outcomes_active == 0){
+                            visibility = true;
+                            break;
+                        }
+                    }
                 }
             }
             return visibility;
@@ -668,7 +682,18 @@ export default {
             setRelatedItems: 'setRelatedItems',
         }),
         constructOffenceDedicatedPage: async function(){
+            console.log('constructOffenceDedicatedPage');
             await this.loadOffenceVuex({offence_id: this.$route.params.offence_id});
+            if (this.offence.occurrence_datetime_from){
+                this.date_from = moment(this.offence.occurrence_datetime_from).format("DD/MM/YYYY");
+                this.time_from = moment(this.offence.occurrence_datetime_from).format("LT");
+                console.log('date_from and time_from has been set');
+            }
+            if (this.offence.occurrence_datetime_to){
+                this.date_to = moment(this.offence.occurrence_datetime_to).format("DD/MM/YYYY");
+                this.time_to = moment(this.offence.occurrence_datetime_to).format("LT");
+                console.log('date_to and time_to has been set');
+            }
             this.constructAllegedOffencesTable();
             this.constructOffendersTable();
             this.updateObjectHash();
@@ -720,7 +745,9 @@ export default {
         },
         save: async function(){
             try {
-                await this.saveOffence();
+                console.log('aho');
+                console.log($(this.$refs.occurrenceDateFromPicker).data('DateTimePicker').date());
+                await this.saveOffence({'fr_date': this.date_from, 'fr_time': this.time_from, 'to_date': this.date_to, 'to_time': this.time_to});
                 await swal("Saved", "The record has been saved", "success");
 
                 this.constructOffendersTable();
@@ -731,9 +758,8 @@ export default {
             }
         },
         leaving: function(e) {
-            let vm = this;
             let dialogText = 'You have some unsaved changes.';
-            if (vm.formChanged()){
+            if (this.formChanged()){
                 e.returnValue = dialogText;
                 return dialogText;
             }
@@ -758,26 +784,30 @@ export default {
         },
         processError: async function(err){
             let errorText = '';
-            if (err.body.non_field_errors) {
-                // When non field errors raised
-                for (let i=0; i<err.body.non_field_errors.length; i++){
-                    errorText += err.body.non_field_errors[i] + '<br />';
-                }
-            } else if(Array.isArray(err.body)) {
-                // When general errors raised
-                for (let i=0; i<err.body.length; i++){
-                    errorText += err.body[i] + '<br />';
-                }
-            } else {
-                // When field errors raised
-                for (let field_name in err.body){
-                    if (err.body.hasOwnProperty(field_name)){
-                        errorText += field_name + ':<br />';
-                        for (let j=0; j<err.body[field_name].length; j++){
-                            errorText += err.body[field_name][j] + '<br />';
+            if (err.body){
+                if (err.body.non_field_errors) {
+                    // When non field errors raised
+                    for (let i=0; i<err.body.non_field_errors.length; i++){
+                        errorText += err.body.non_field_errors[i] + '<br />';
+                    }
+                } else if(Array.isArray(err.body)) {
+                    // When general errors raised
+                    for (let i=0; i<err.body.length; i++){
+                        errorText += err.body[i] + '<br />';
+                    }
+                } else {
+                    // When field errors raised
+                    for (let field_name in err.body){
+                        if (err.body.hasOwnProperty(field_name)){
+                            errorText += field_name + ':<br />';
+                            for (let j=0; j<err.body[field_name].length; j++){
+                                errorText += err.body[field_name][j] + '<br />';
+                            }
                         }
                     }
                 }
+            } else {
+                errorText += err.message;
             }
             await swal("Error", errorText, "error");
         },
@@ -857,12 +887,13 @@ export default {
 
           $.ajax({
             url:
-              "https://mapbox.dpaw.wa.gov.au/geocoding/v5/mapbox.places/" +
+                api_endpoints.geocoding_address_search +
               coordinates_4326.lng +
               "," +
               coordinates_4326.lat +
               ".json?" +
               $.param({
+                access_token: self.mapboxAccessToken,
                 limit: 1,
                 types: "address"
               }),
@@ -1102,10 +1133,10 @@ export default {
 
                 if (!already_exists) {
                     let offender_obj = {
-                        id: '', 
-                        can_user_action: true, 
-                        removed: false, 
-                        reason_for_removal: '', 
+                        id: '',
+                        can_user_action: true,
+                        removed: false,
+                        reason_for_removal: '',
                         person: null,
                         organisation: null,
                         number_linked_sanction_outcomes_total: 0,
@@ -1139,9 +1170,9 @@ export default {
 
                 if (!already_exists) {
                     let alleged_offence_obj = {
-                        id: '', 
-                        removed: false, 
-                        reason_for_removal: '', 
+                        id: '',
+                        removed: false,
+                        reason_for_removal: '',
                         removed_by_id: null,
                         section_regulation: this.current_alleged_offence,
                         number_linked_sanction_outcomes_total: 0,
@@ -1247,10 +1278,17 @@ export default {
                */
               let origin = $(ev.originalEvent.origin);
               let originTagName = origin[0].tagName;
-              if (originTagName != "DIV") {
-                // Assuming origin is a child element of <li>
-                origin = origin.parent();
-              }
+                switch(originTagName){
+                    case "STRONG":
+                        origin = origin.parent();
+                        break;
+                    case "MARK":
+                        origin = origin.parent().parent();
+                        break;
+                    case "LI":
+                        origin = origin.children().first();
+                        break;
+                }
               let elem_id = origin[0].getAttribute("data-item-id");
               for (let i = 0; i < self.suggest_list.length; i++) {
                 if (self.suggest_list[i].id == parseInt(elem_id)) {
@@ -1341,46 +1379,73 @@ export default {
             $("#alleged-offence").val("");
         },
         addEventListeners: function() {
+            console.log('addEventListeners');
             let vm = this;
             let el_fr_date = $(vm.$refs.occurrenceDateFromPicker);
             let el_fr_time = $(vm.$refs.occurrenceTimeFromPicker);
             let el_to_date = $(vm.$refs.occurrenceDateToPicker);
             let el_to_time = $(vm.$refs.occurrenceTimeToPicker);
 
-            // "From" field
-            el_fr_date.datetimepicker({ format: "DD/MM/YYYY", maxDate: moment().millisecond(0).second(0).minute(0).hour(0), showClear: true });
-            el_fr_date.on("dp.change", function(e) {
-              if (el_fr_date.data("DateTimePicker").date()) {
-                vm.offence.occurrence_date_from = e.date.format("DD/MM/YYYY");
-              } else if (el_fr_date.data("date") === "") {
-                vm.offence.occurrence_date_from = null;
-              }
+            // "From" Date field
+            el_fr_date.datetimepicker({
+                format: "DD/MM/YYYY",
+                maxDate: moment().millisecond(0).second(0).minute(0).hour(0),
+                showClear: true,
+                date: vm.offence.occurrence_datetime_from,
             });
-            el_fr_time.datetimepicker({ format: "LT", showClear: true });
+            el_fr_date.on("dp.change", function(e) {
+                if (el_fr_date.data("DateTimePicker").date()) {
+                    vm.date_from = e.date.format('DD/MM/YYYY');
+                    el_to_date.data("DateTimePicker").minDate(e.date);
+                } else if (el_fr_date.data("date") === "") {
+                    vm.date_from = null;
+                }
+            });
+            // "From" Time field
+            el_fr_time.datetimepicker({
+                format: "LT",
+                showClear: true,
+                date: vm.offence.occurrence_datetime_from,
+            });
             el_fr_time.on("dp.change", function(e) {
-              if (el_fr_time.data("DateTimePicker").date()) {
-                vm.offence.occurrence_time_from = e.date.format("LT");
-              } else if (el_fr_time.data("date") === "") {
-                vm.offence.occurrence_time_from = null;
-              }
+                if (el_fr_time.data("DateTimePicker").date()) {
+                    vm.time_from = e.date.format('LT');
+                } else if (el_fr_time.data("date") === "") {
+                    vm.time_from = null;
+                }
             });
 
-            // "To" field
-            el_to_date.datetimepicker({ format: "DD/MM/YYYY", maxDate: moment().millisecond(0).second(0).minute(0).hour(0), showClear: true });
-            el_to_date.on("dp.change", function(e) {
-              if (el_to_date.data("DateTimePicker").date()) {
-                vm.offence.occurrence_date_to = e.date.format("DD/MM/YYYY");
-              } else if (el_to_date.data("date") === "") {
-                vm.offence.occurrence_date_to = null;
-              }
+            // "To" Date field
+            console.log('to date');
+            console.log(vm.offence.occurrence_datetime_from);
+
+            el_to_date.datetimepicker({
+                format: "DD/MM/YYYY",
+                maxDate: moment().millisecond(0).second(0).minute(0).hour(0),
+                minDate: vm.offence.occurrence_datetime_from,
+                showClear: true,
+                date: vm.offence.occurrence_datetime_to,
             });
-            el_to_time.datetimepicker({ format: "LT", showClear: true });
+            el_to_date.on("dp.change", function(e) {
+                if (el_to_date.data("DateTimePicker").date()) {
+                    vm.date_to = e.date.format('DD/MM/YYYY');
+                    //el_fr_date.data("DateTimePicker").maxDate(e.date);
+                } else if (el_to_date.data("date") === "") {
+                    vm.date_to = null;
+                }
+            });
+            // "To" Time field
+            el_to_time.datetimepicker({
+                format: "LT",
+                showClear: true,
+                date: vm.offence.occurrence_datetime_to,
+            });
             el_to_time.on("dp.change", function(e) {
-              if (el_to_time.data("DateTimePicker").date()) {
-                vm.offence.occurrence_time_to = e.date.format("LT");
-              } else if (el_to_time.data("date") === "") {
-                vm.offence.occurrence_time_to = null;
-              }
+                if (el_to_time.data("DateTimePicker").date()) {
+                    vm.time_to = e.date.format('LT');
+                } else if (el_to_time.data("date") === "") {
+                    vm.time_to = null;
+                }
             });
 
             $("#alleged-offence-table").on("click", ".remove_button", vm.removeAllegedOffenceClicked);
@@ -1396,19 +1461,20 @@ export default {
         },
     },
     created: async function() {
+        await this.MapboxAccessToken.then(data => {
+            this.mapboxAccessToken = data
+        });
         if (this.$route.params.offence_id) {
             await this.constructOffenceDedicatedPage();
-          //  await this.loadOffenceVuex({offence_id: this.$route.params.offence_id});
-          //  this.constructAllegedOffencesTable();
-          //  this.constructOffendersTable();
-          //  this.objectHash = hash(this.offence);
         }
         this.$nextTick(function() {
             this.initAwesompleteAllegedOffence();
         });
     },
-    mounted: function() {
+    mounted: async function() {
+        console.log('mounted');
         let vm = this;
+
         vm.$nextTick(() => {
             vm.addEventListeners();
         });

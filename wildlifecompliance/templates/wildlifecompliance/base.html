@@ -10,6 +10,7 @@
 {% is_wildlifecompliance_admin as is_wildlifecompliance_admin_login %}
 {% is_compliance_internal_user as is_compliance_internal_login %}
 {% prefer_compliance_management as prefer_compliance_management %}
+{% is_compliance_management_readonly_user as is_compliance_management_readonly_user %}
 
 <!DOCTYPE html>
 <html lang="en">
@@ -64,13 +65,13 @@
                                 <ul class="nav navbar-nav">
                                     {% block left_menu_items %}
                                         {% if is_internal_login and not prefer_compliance_management %}
-                                            <a class="navbar-brand" href="{% url 'wc_home' %}"><div style="inline"><img src="{% static 'ledger/images/dpaw_small.png' %}">Home</div></a>
+                                            <a class="navbar-brand" href="{% url 'wc_home' %}"><div style="inline"><img src="{% static 'wildlifecompliance/img/dpaw_small.png' %}">Home</div></a>
                                             <li><a href="/internal/licences">Licences</a></li>
                                             <li><a href="/internal/returns">Returns</a></li>
                                             <li><a href="/internal/tag_purchases">Tag Purchases</a></li>
                                             <li><a href="/internal/advices">Advices to CEO</a></li>
                                         {% elif is_compliance_internal_login and prefer_compliance_management %}
-                                            <a class="navbar-brand" href="/internal/call_email"><div style="inline"><img src="{% static 'ledger/images/dpaw_small.png' %}">Home</div></a>
+                                            <a class="navbar-brand" href="/internal/call_email"><div style="inline"><img src="{% static 'wildlifecompliance/img/dpaw_small.png' %}">Home</div></a>
                                             <li><a href="/internal/inspection">Inspections</a></li>
                                             <li><a href="/internal/offence">Offences</a></li>
                                             <li><a href="/internal/object">Objects</a></li>
@@ -78,7 +79,7 @@
                                             <li><a href="/internal/legal_case">Cases</a></li>
                                         {% else %}
                                             <!-- External user -->
-                                            <a class="navbar-brand" href="/external/"><div style="inline"><img src="{% static 'ledger/images/dpaw_small.png' %}">Home</div></a>
+                                            <a class="navbar-brand" href="/external/"><div style="inline"><img src="{% static 'wildlifecompliance/img/dpaw_small.png' %}">Home</div></a>
                                             <li><a href="/external/sanction_outcome">Sanction Outcome</a></li>
                                         {% endif %}
 
@@ -110,7 +111,7 @@
                                                 <span class="caret"></span>
                                             </a>
                                             <ul class="dropdown-menu">
-                                                {% if is_internal_login and not prefer_compliance_management %}
+                                                {% if is_internal_login and is_compliance_management_readonly_user and not prefer_compliance_management %}
                                                     <form name="update-system-preference" method="post" action="/api/users/{{request.user.id}}/update_system_preference/">
                                                         {% csrf_token %}
                                                         <input type="hidden" name="prefer_compliance_management" value="True"/>

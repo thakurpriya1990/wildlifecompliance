@@ -42,6 +42,7 @@ required environment variables at run time. Example content:
     PRODUCTION_EMAIL=False (Send system emails to NON_PROD_EMAIL if False)
     EMAIL_INSTANCE='UAT' (DEV/TEST/UAT/PROD)
     NON_PROD_EMAIL='comma@separated.email,listfor@nonproduction.emails'
+    TSC_AUTH="Token pd12312313dd12321313asdd21321312344123s"
 
 # Wildlife Licensing
 
@@ -229,6 +230,23 @@ There is also a non-mandatory attribute that can go with each field.
 ##### Field-specific Attributes
 With several fields there are extra attributes required which are detailed below.
 
+##### Species lookup input
+The species lookup is a special field which creates a drop-down list of current specie vernacular names from
+WA Census. The attribute type must be `species` which needs to include a list of valid specie name identifiers with the
+attribute `species`.
+
+```
+{
+    "type": "species",
+    "name": "ATO-Species1-0",
+    "label": "Species",    
+    "species": [
+        48038,
+        47990
+    ]
+}
+```
+
 ###### Groups / Sections
 Sections and groups both require a `children` attribute, which is a list of fields are listed within.
 
@@ -327,6 +345,50 @@ attribute of a field - it is a field in its own right, and should have a label a
     "name": "ap_chipping", 
     "label": "Microchipping/tagging"
 }
+```
+
+##### Increase Application Fees
+A field answer can optionally have an influence on the application fee total. This is set by adding both `IncreaseApplicationFee`
+and `IncreaseTimesLimit` attributes to either `checkbox` or `radiobuttons` fields. The fee amount will be added or negated
+depending on positve or negative values. The `IncreaseTimesLimit` is usually 1 indicating the number of occurrences this 
+action will be applied. 
+
+```
+{
+    "type": "radiobuttons",
+    "name": "location0",
+    "label": "Is the application related to specific sites?"
+    "options": [
+        {
+        "IncreaseApplicationFee": 5.00,
+        "IncreaseTimesLimit": 1,
+        "value": "yes",
+        "label": "Yes"
+        },
+        {
+        "IncreaseApplicationFee": 0,
+        "IncreaseTimesLimit": 1,
+        "value": "no",
+        "label": "No"
+        }
+    ],
+}
+
+```
+
+##### Standard Conditions
+A field answer can automatically create a Stardard Condition for an application purpose. This is set by adding 
+a `StandardCondition` attribute to either `checkbox` or `radiobuttons` fields. The value for the attribute will be an
+existing code for the standard condition. The due date for the condition will not be set.
+
+```
+{
+    "StandardCondition": "SC010",
+    "type": "checkbox",
+    "name": "ActivityType-0-Group-0-Group",
+    "label": "the take and relocation of target species"
+}
+
 ```
 
 ##### Conditions

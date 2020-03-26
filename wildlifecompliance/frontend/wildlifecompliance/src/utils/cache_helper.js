@@ -18,7 +18,7 @@ let expiryDiff = 86400000;  // 1 day = 86400000 milliseconds;
 
 module.exports = {
     getSetCache: async (store_name, key, url, expiry) => {
-        
+        console.log("getSetCache")
         let storeInstance = localforage.createInstance({
             name: dbName,
             storeName: store_name,
@@ -75,6 +75,7 @@ module.exports = {
         }
     },
     getSetCacheList: async (store_name, url, expiry) => {
+        console.log("getSetCacheList")
         try {
             let returned_list = [];  
             if (expiry) {
@@ -97,7 +98,7 @@ module.exports = {
                 }
                 // ensure cached value is not stale
                 if (timeDiff > expiryDiff) {
-                    storeInstance.clear();
+                    await storeInstance.clear();
                 } else {
                     for (let store_key of store_keys) {
                         let this_val = await storeInstance.getItem(store_key);

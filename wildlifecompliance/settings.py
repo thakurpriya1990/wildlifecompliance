@@ -6,11 +6,10 @@ os.environ.setdefault("BASE_DIR", BASE_DIR)
 from django.core.exceptions import ImproperlyConfigured
 from ledger.settings_base import *
 
-
 ROOT_URLCONF = 'wildlifecompliance.urls'
 SITE_ID = 1
 
-STATIC_ROOT = os.path.join(BASE_DIR, 'staticfiles')
+STATIC_ROOT = os.path.join(BASE_DIR, 'staticfiles_wc')
 
 INSTALLED_APPS += [
     'django.contrib.humanize',
@@ -32,7 +31,7 @@ INSTALLED_APPS += [
     'taggit',
     'rest_framework',
     'rest_framework_gis',
-    'rest_framework_datatables'
+    'rest_framework_datatables',
 ]
 
 # maximum number of days allowed for a booking
@@ -95,6 +94,9 @@ CACHES = {
         'LOCATION': os.path.join(BASE_DIR, 'wildlifecompliance', 'cache'),
     }
 }
+CRON_CLASSES = [
+    'wildlifecompliance.cron.OracleIntegrationCronJob',
+]
 
 # Additional logging for wildlifecompliance
 LOGGING['handlers']['application_checkout'] = {
@@ -142,7 +144,11 @@ DATA_UPLOAD_MAX_NUMBER_FIELDS = None
 # Department details
 SYSTEM_NAME = env('SYSTEM_NAME', 'Wildlife Licensing System')
 SYSTEM_EMAIL = env('SYSTEM_EMAIL', 'wildlifelicensing@dbca.wa.gov.au')
-WC_PAYMENT_SYSTEM_ID = env('WC_PAYMENT_SYSTEM_ID', 'S999')
+
+WC_PAYMENT_SYSTEM_ID = env('WC_PAYMENT_SYSTEM_ID', 'S566')
+WC_PAYMENT_SYSTEM_PREFIX = env('PAYMENT_SYSTEM_PREFIX', WC_PAYMENT_SYSTEM_ID.replace('S', '0'))
+PS_PAYMENT_SYSTEM_ID = WC_PAYMENT_SYSTEM_ID
+
 COLS_ADMIN_GROUP = env('COLS_ADMIN_GROUP', 'COLS Admin')
 if not VALID_SYSTEMS:
     VALID_SYSTEMS = [WC_PAYMENT_SYSTEM_ID]
@@ -165,4 +171,9 @@ EXCEL_OUTPUT_PATH = env('EXCEL_OUTPUT_PATH')
 ALLOW_EMAIL_ADMINS = env('ALLOW_EMAIL_ADMINS', False)  # Allows internal pages to be accessed via email authentication
 SYSTEM_APP_LABEL = env('SYSTEM_APP_LABEL', 'wildlifecompliance')  # global app_label for group permissions filtering
 RENEWAL_PERIOD_DAYS = env('RENEWAL_PERIOD_DAYS', 30)
+GEOCODING_ADDRESS_SEARCH_TOKEN = env('GEOCODING_ADDRESS_SEARCH_TOKEN', 'ACCESS_TOKEN_NOT_FOUND')
+DOT_EMAIL_ADDRESS = env('DOT_EMAIL_ADDRESS')
 
+# Details for Threathened Species and Communities server.
+TSC_URL = env('TSC_URL', 'https://tsc.dbca.wa.gov.au')
+TSC_AUTH = env('TSC_AUTH', 'NO_AUTH')

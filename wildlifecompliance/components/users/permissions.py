@@ -102,11 +102,26 @@ COMPLIANCE_PERMISSION_GROUPS = [
         'per_district': False,
         'permissions': ['infringement_notice_coordinator']
     },
-    # {
-    #     'name': 'Branch Manager',
-    #     'per_district': False,
-    #     'permissions': ['branch_manager']
-    # },
+    {
+        'name': 'Prosecution Coordinator',
+        'per_district': False,
+        'permissions': ['prosecution_coordinator']
+    },
+    {
+        'name': 'Prosecution Manager',
+        'per_district': False,
+        'permissions': ['prosecution_manager']
+    },
+    {
+        'name': 'Prosecution Council',
+        'per_district': False,
+        'permissions': ['prosecution_council']
+    },
+    {
+        'name': 'Compliance Management Read-Only',
+        'per_district': False,
+        'permissions': ['compliance_management_readonly']
+    },
 ]
 
 COMPLIANCE_GROUP_PERMISSIONS = {
@@ -135,9 +150,24 @@ COMPLIANCE_GROUP_PERMISSIONS = {
         'app_label': 'wildlifecompliance',
         'model': 'compliancepermissiongroup',
     },
-    # 'branch_manager': {
-    #     'name': 'Branch Manager',
-    #     'app_label': 'wildlifecompliance',
-    #     'model': 'compliancepermissiongroup',
-    # },
+    'prosecution_coordinator': {
+        'name': 'Prosecution Coordinator',
+        'app_label': 'wildlifecompliance',
+        'model': 'compliancepermissiongroup',
+    },
+    'prosecution_council': {
+        'name': 'Prosecution Council',
+        'app_label': 'wildlifecompliance',
+        'model': 'compliancepermissiongroup',
+    },
+    'prosecution_manager': {
+        'name': 'Prosecution Manager',
+        'app_label': 'wildlifecompliance',
+        'model': 'compliancepermissiongroup',
+    },
+    'compliance_management_readonly': {
+        'name': 'Compliance Management Read-Only',
+        'app_label': 'wildlifecompliance',
+        'model': 'compliancepermissiongroup',
+    },
 }

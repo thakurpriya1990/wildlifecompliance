@@ -215,6 +215,10 @@ export default {
             required: false,
             default: true,
         },
+        entityEdit: {
+            type: Object,
+            required: false,
+        },
     },
     methods: {
         parentSave: async function() {
@@ -361,11 +365,20 @@ export default {
             })
             .on("awesomplete-select", function(ev) {
                 let origin = $(ev.originalEvent.origin);
+                console.log('In awesomplete-select')
                 console.log(origin)
                 let originTagName = origin[0].tagName;
-                if (originTagName != "DIV") {
-                    // Assuming origin is a child element of <li>
-                    origin = origin.parent();
+                console.log('originTagName: ' + originTagName);
+                switch(originTagName){
+                    case "STRONG":
+                        origin = origin.parent();
+                        break;
+                    case "MARK":
+                        origin = origin.parent().parent();
+                        break;
+                    case "LI":
+                        origin = origin.children().first();
+                        break;
                 }
                 let data_item_id = origin[0].getAttribute("data-item-id");
                 let data_type = origin[0].getAttribute("data-type");
@@ -440,6 +453,9 @@ export default {
             }
             this.initAwesomplete();
         });
+        if (this.entityEdit) {
+            Object.assign(this.entity, this.entityEdit);
+        }
         this.object_hash = hash(this.entity);
         /*
         if (this.departmentalStaff) {

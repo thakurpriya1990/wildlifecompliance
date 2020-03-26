@@ -44,8 +44,9 @@ from wildlifecompliance.components.main.process_document import (
         process_generic_document, 
         save_comms_log_document_obj,
         save_default_document_obj,
-        save_details_document_obj,
-        save_storage_document_obj,
+        save_renderer_document_obj,
+        #save_details_document_obj,
+        #save_storage_document_obj,
         )
 from wildlifecompliance.components.main.email import prepare_mail
 from wildlifecompliance.components.users.serializers import (
@@ -61,6 +62,9 @@ from wildlifecompliance.components.artifact.models import (
         PhysicalArtifactType,
         PhysicalArtifactDisposalMethod,
         ArtifactUserAction,
+        PhysicalArtifactFormDataRecord,
+        DocumentArtifactLegalCases,
+        PhysicalArtifactLegalCases,
         )
 from wildlifecompliance.components.artifact.serializers import (
         ArtifactSerializer,
@@ -76,8 +80,9 @@ from wildlifecompliance.components.artifact.serializers import (
         ArtifactCommsLogEntrySerializer,
         ArtifactPaginatedSerializer,
         )
+from wildlifecompliance.components.users.serializers import ComplianceManagementSaveUserSerializer
 from wildlifecompliance.components.users.models import (
-    CompliancePermissionGroup,    
+    CompliancePermissionGroup,
 )
 from django.contrib.auth.models import Permission, ContentType
 #from utils import SchemaParser
@@ -88,6 +93,7 @@ from rest_framework_datatables.renderers import DatatablesRenderer
 
 from wildlifecompliance.components.legal_case.email import (
     send_mail)
+from wildlifecompliance.components.legal_case.models import LegalCase
 from reversion.models import Version
 #import unicodedata
 
@@ -137,7 +143,7 @@ class DocumentArtifactViewSet(viewsets.ModelViewSet):
             res_obj.append({'id': choice[0], 'display': choice[1]});
         res_json = json.dumps(res_obj)
         return HttpResponse(res_json, content_type='application/json')
-    
+
     @renderer_classes((JSONRenderer,))
     #def inspection_save(self, request, workflow=False, *args, **kwargs):
     def update(self, request, workflow=False, *args, **kwargs):
@@ -191,21 +197,99 @@ class DocumentArtifactViewSet(viewsets.ModelViewSet):
                 if serializer.is_valid():
                     print("serializer.validated_data")
                     print(serializer.validated_data)
-                    instance = serializer.save()
+                    saved_instance = serializer.save()
                     headers = self.get_success_headers(serializer.data)
                     # save legal_case_id
                     legal_case_id = request_data.get('legal_case_id')
                     if legal_case_id:
-                        instance.add_legal_case(legal_case_id)
+                        try:
+                            legal_case_id_int = int(legal_case_id)
+                        except Exception as e:
+                            raise e
+                        legal_case = LegalCase.objects.get(id=legal_case_id_int)
+                        if legal_case:
+                            if not DocumentArtifactLegalCases.objects.filter(
+                                        legal_case_id=legal_case.id,
+                                        document_artifact_id=saved_instance.id):
+                                DocumentArtifactLegalCases.objects.create_with_primary(
+                                        legal_case_id=legal_case.id,
+                                        document_artifact_id=saved_instance.id)
                     # save temp doc if exists
                     if request_data.get('temporary_document_collection_id'):
-                        self.handle_document(request_data, instance)
-                    # TODO add people attending
+                        self.handle_document(request_data, saved_instance)
+                    # create officer_interviewer_email_user if required and attach to DocumentArtifact
+                    if request_data.get('officer_interviewer'):
+                        officer_interviewer = request_data.get('officer_interviewer')
+                        email_user_instance = self.create_officer_interviewer_email_user(officer_interviewer)
+                        if email_user_instance:
+                            saved_instance.officer_interviewer = email_user_instance
+                            saved_instance.save()
+                    #import ipdb; ipdb.set_trace()
+                    #if not (saved_instance.officer_interviewer or saved_instance.person_providing_statement):
+                    if saved_instance.document_type == 'record_of_interview' and not saved_instance.offender:
+                        raise serializers.ValidationError('Record of Interview must have an associated Offender')
+                    if saved_instance.document_type == 'witness_statement' and not saved_instance.person_providing_statement:
+                        raise serializers.ValidationError('Witness Statement must have an associated Witness')
+                    if saved_instance.document_type == 'expert_statement' and not saved_instance.person_providing_statement:
+                        raise serializers.ValidationError('Expert Statement must have an associated Expert')
+                    if saved_instance.document_type == 'officer_statement' and not saved_instance.officer_interviewer:
+                        raise serializers.ValidationError('Officer Statement must have an associated Officer')
+                    #else:
+                     #   saved_instance.save()
 
-                    return (instance, headers)
+                    return (saved_instance, headers)
         except serializers.ValidationError:
             print(traceback.print_exc())
             raise
+        except ValidationError as e:
+            print(traceback.print_exc())
+            raise serializers.ValidationError(repr(e.error_dict))
+        except Exception as e:
+            print(traceback.print_exc())
+            raise serializers.ValidationError(str(e))
+
+    def create_officer_interviewer_email_user(self, officer_interviewer, *args, **kwargs):
+        try:
+            #email_user_id_requested = request.data.get('email_user', {}).get('id', {})
+            #email_address = request.data.get('email_user', {}).get('email', '')
+            email_user_instance = None
+            email_address = officer_interviewer.get('email')
+            #first_name = officer_interviewer.get('given_name') if officer_interviewer.get('given_name') else officer_interviewer.get('first_name')
+            #last_name = officer_interviewer.get('surname') if officer_interviewer.get('surname') else officer_interviewer.get('last_name')
+            first_name = officer_interviewer.get('given_name', '')
+            last_name = officer_interviewer.get('surname', '')
+            ## only write new value if new person selected in front end
+            if not (first_name and last_name):
+                return None
+            else:
+                if not email_address:
+                    #first_name = request.data.get('email_user', {}).get('first_name', '')
+                    #last_name = request.data.get('email_user', {}).get('last_name', '')
+                    email_address = generate_dummy_email(first_name, last_name)
+
+                # generate queryset to test whether user exists in EmailUser
+                qs = EmailUser.objects.filter(email=email_address)
+                if qs and qs.first():
+                    email_user_instance = qs.first()
+                else:
+                    email_user_instance = EmailUser.objects.create_user(email_address, '')
+                    email_user_instance.is_staff = True
+                email_user_instance.save()
+                    #request.data['email_user'].update({'email': email_address})
+
+                email_user_serializer = ComplianceManagementSaveUserSerializer(
+                    email_user_instance,
+                    #data=request.data['email_user'],
+                    data={
+                        "first_name": first_name,
+                        "surname": last_name,
+                        },
+                    partial=True)
+
+                if email_user_serializer.is_valid(raise_exception=True):
+                    email_user_instance = email_user_serializer.save()
+
+                return email_user_instance
         except ValidationError as e:
             print(traceback.print_exc())
             raise serializers.ValidationError(repr(e.error_dict))
@@ -218,7 +302,8 @@ class DocumentArtifactViewSet(viewsets.ModelViewSet):
         try:
             if not instance:
                 instance = self.get_object()
-            temporary_document_collection_id = request_data.get('temporary_document_collection_id')
+            temporary_document_collection_dict = request_data.get('temporary_document_collection_id')
+            temporary_document_collection_id = temporary_document_collection_dict.get('temp_doc_id')
             if temporary_document_collection_id:
                 temp_doc_collection, created = TemporaryDocumentCollection.objects.get_or_create(
                         id=temporary_document_collection_id)
@@ -269,8 +354,8 @@ class PhysicalArtifactViewSet(viewsets.ModelViewSet):
         return PhysicalArtifact.objects.none()
 
     def create(self, request, *args, **kwargs):
-        print("create")
-        print(request.data)
+        #print("create")
+        #print(request.data)
         try:
             with transaction.atomic():
                 request_data = request.data
@@ -300,7 +385,7 @@ class PhysicalArtifactViewSet(viewsets.ModelViewSet):
     @renderer_classes((JSONRenderer,))
     #def inspection_save(self, request, workflow=False, *args, **kwargs):
     def update(self, request, workflow=False, *args, **kwargs):
-        print(request.data)
+        #print(request.data)
         try:
             with transaction.atomic():
                 instance = self.get_object()
@@ -309,6 +394,9 @@ class PhysicalArtifactViewSet(viewsets.ModelViewSet):
                 instance.log_user_action(
                         ArtifactUserAction.ACTION_SAVE_ARTIFACT.format(
                         instance.number), request)
+                # disposal
+                if request.data.get('disposal_date'):
+                    instance.dispose(request)
                 return_serializer = PhysicalArtifactSerializer(instance, context={'request': request})
                 return Response(
                         return_serializer.data,
@@ -325,14 +413,71 @@ class PhysicalArtifactViewSet(viewsets.ModelViewSet):
             print(traceback.print_exc())
             raise serializers.ValidationError(str(e))
 
+    @detail_route(methods=['POST'])
+    @renderer_classes((JSONRenderer,))
+    def process_renderer_document(self, request, *args, **kwargs):
+        print("process_renderer_document")
+        try:
+            instance = self.get_object()
+            returned_data = process_generic_document(
+                request, 
+                instance, 
+                document_type='renderer_documents'
+                )
+            if returned_data:
+                print("returned_data")
+                print(returned_data)
+                filedata = returned_data.get('filedata')
+                # Log action if file uploaded
+                if filedata and request.data.get('action') == 'save':
+                    file_name = filedata[0].get('name')
+                    #if file_name:
+                    #    instance.log_user_action(
+                    #            ArtifactUserAction.ACTION_UPLOAD_INSPECTION_REPORT.format(
+                    #            file_name), request)
+                return Response(returned_data)
+            else:
+                return Response()
+        except serializers.ValidationError:
+            print(traceback.print_exc())
+            raise
+        except ValidationError as e:
+            if hasattr(e, 'error_dict'):
+                raise serializers.ValidationError(repr(e.error_dict))
+            else:
+                raise serializers.ValidationError(repr(e[0].encode('utf-8')))
+        except Exception as e:
+            print(traceback.print_exc())
+            raise serializers.ValidationError(str(e))
+
+    @detail_route(methods=['post'])
+    @renderer_classes((JSONRenderer,))
+    def form_data(self, instance, request_data, *args, **kwargs):
+        print("form data")
+        print(request_data)
+        try:
+            #instance = self.get_object()
+            PhysicalArtifactFormDataRecord.process_form(
+                instance,
+                request_data.get('renderer_data'),
+                action=PhysicalArtifactFormDataRecord.ACTION_TYPE_ASSIGN_VALUE
+            )
+            return redirect(reverse('external'))
+        except ValidationError as e:
+            raise serializers.ValidationError(repr(e.error_dict))
+        except Exception as e:
+            print(traceback.print_exc())
+        raise serializers.ValidationError(str(e))
+
     def common_save(self, request_data, instance=None):
+        print(request_data)
         try:
             with transaction.atomic():
-                physical_artifact_type = request_data.get('physical_artifact_type')
-                physical_artifact_type_id = None
-                if physical_artifact_type:
-                    physical_artifact_type_id = physical_artifact_type.get('id')
-                    request_data['physical_artifact_type_id'] = physical_artifact_type_id
+                #physical_artifact_type = request_data.get('physical_artifact_type')
+                #physical_artifact_type_id = None
+                #if physical_artifact_type:
+                #    physical_artifact_type_id = physical_artifact_type.get('id')
+                #    request_data['physical_artifact_type_id'] = physical_artifact_type_id
 
                 disposal_method = request_data.get('disposal_method')
                 disposal_method_id = None
@@ -355,16 +500,53 @@ class PhysicalArtifactViewSet(viewsets.ModelViewSet):
                 if serializer.is_valid():
                     print("serializer.validated_data")
                     print(serializer.validated_data)
-                    instance = serializer.save()
+                    saved_instance = serializer.save()
                     headers = self.get_success_headers(serializer.data)
                     # save legal_case_id
                     legal_case_id = request_data.get('legal_case_id')
+                    used_within_case = (request_data.get('used_within_case') if 
+                            'used_within_case' in request_data.keys() else None)
+                    sensitive_non_disclosable = (request_data.get('sensitive_non_disclosable') if
+                            'sensitive_non_disclosable' in request_data.keys() else None)
+                    #reason_sensitive_non_disclosable = request_data.get('reason_sensitive_non_disclosable')
                     if legal_case_id:
-                        instance.add_legal_case(legal_case_id)
+                        #instance.add_legal_case(legal_case_id)
+                        try:
+                            legal_case_id_int = int(legal_case_id)
+                        except Exception as e:
+                            raise e
+                        legal_case = LegalCase.objects.get(id=legal_case_id_int)
+                        if legal_case:
+                            link = None
+                            if PhysicalArtifactLegalCases.objects.filter(
+                                        legal_case_id=legal_case.id,
+                                        physical_artifact_id=saved_instance.id):
+                                # get link
+                                print("get link")
+                                link= PhysicalArtifactLegalCases.objects.get(
+                                        legal_case_id=legal_case.id,
+                                        physical_artifact_id=saved_instance.id)
+                            else:
+                                # create link
+                                print("create link")
+                                link = PhysicalArtifactLegalCases.objects.create_with_primary(
+                                        legal_case_id=legal_case.id,
+                                        physical_artifact_id=saved_instance.id)
+                            if used_within_case is not None:
+                                link.used_within_case = used_within_case
+                            if sensitive_non_disclosable is not None:
+                                link.sensitive_non_disclosable = sensitive_non_disclosable
+                            #if reason_sensitive_non_disclosable:
+                             #   link.reason_sensitive_non_disclosable = reason_sensitive_non_disclosable
+                            link.save()
+
                     # save temp doc if exists
-                    if request_data.get('temporary_document_collection_id'):
-                        self.handle_document(request_data, instance)
-                    return (instance, headers)
+                    if request_data.get('temporary_document_collection_list'):
+                        self.handle_document(request_data, saved_instance)
+                    # renderer data
+                    if request_data.get('renderer_data'):
+                        self.form_data(saved_instance, request_data)
+                    return (saved_instance, headers)
         except serializers.ValidationError:
             print(traceback.print_exc())
             raise
@@ -380,14 +562,21 @@ class PhysicalArtifactViewSet(viewsets.ModelViewSet):
         try:
             if not instance:
                 instance = self.get_object()
-            temporary_document_collection_id = request_data.get('temporary_document_collection_id')
-            if temporary_document_collection_id:
-                temp_doc_collection, created = TemporaryDocumentCollection.objects.get_or_create(
-                        id=temporary_document_collection_id)
-                if temp_doc_collection:
-                    for doc in temp_doc_collection.documents.all():
-                        save_default_document_obj(instance, doc)
-                    temp_doc_collection.delete()
+            temporary_document_collection_list = request_data.get('temporary_document_collection_list')
+            if temporary_document_collection_list:
+                for temporary_document_collection_dict in temporary_document_collection_list:
+                    temporary_document_collection_id = temporary_document_collection_dict.get('temp_doc_id')
+                    input_name = temporary_document_collection_dict.get('input_name')
+                    temp_doc_collection, created = TemporaryDocumentCollection.objects.get_or_create(
+                            id=temporary_document_collection_id)
+                    if temp_doc_collection and input_name == 'physical-artifact-documents':
+                        for doc in temp_doc_collection.documents.all():
+                            save_default_document_obj(instance, doc)
+                        temp_doc_collection.delete()
+                    elif temp_doc_collection and input_name:
+                        for doc in temp_doc_collection.documents.all():
+                            save_renderer_document_obj(instance, doc, input_name)
+                        temp_doc_collection.delete()
         except ValidationError as e:
             print(traceback.print_exc())
             raise serializers.ValidationError(repr(e.error_dict))

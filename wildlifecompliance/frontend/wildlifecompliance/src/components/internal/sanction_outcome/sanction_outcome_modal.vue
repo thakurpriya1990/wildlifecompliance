@@ -178,7 +178,7 @@
                                 </div>
                                 <div class="col-sm-3">
                                     <div class="input-group date" ref="dueDatePicker">
-                                        <input type="text" class="form-control" placeholder="DD/MM/YYYY" v-model="current_remediation_action.due_date" />
+                                        <input type="text" class="form-control" placeholder="DD/MM/YYYY" :value="current_remediation_action.due_date" />
                                         <span class="input-group-addon">
                                             <span class="glyphicon glyphicon-calendar"></span>
                                         </span>
@@ -346,25 +346,38 @@ export default {
             },
             {
                 mRender: function(data, type, full){
-                    return full.section_regulation.act;
+                    let ret = full.section_regulation.act;
+                    if (full.removed){
+                        ret = '<strike>' + ret + '</strike>';
+                    }
+                    return ret;
                 }
             },
             {
                 mRender: function(data, type, full){
-                    return full.section_regulation.name;
+                    let ret = full.section_regulation.name;
+                    if (full.removed){
+                        ret = '<strike>' + ret + '</strike>';
+                    }
+                    return ret;
                 }
             },
             {
                 mRender: function(data, type, full){
-                    return full.section_regulation.offence_text;
+                    let ret = full.section_regulation.offence_text;
+                    if (full.removed){
+                        ret = '<strike>' + ret + '</strike>';
+                    }
+                    return ret;
                 }
             },
             {
                 mRender: function(data, type, full) {
                     let ret_line = '';
-                    ret_line += full.number_linked_sanction_outcomes_active + '/' + full.number_linked_sanction_outcomes_total + ' ';
+                    console.log('full');
+                    console.log(full);
 
-                    if (full.number_linked_sanction_outcomes_active > 0){
+                    if (full.number_linked_sanction_outcomes_active > 0 || full.removed){
                         if (vm.sanction_outcome.type == 'infringement_notice'){
                             ret_line += '<input type="radio" name="infringement_radio_button" class="alleged_offence_include" value="' + full.id + '" disabled></input>';
                         } else if (vm.sanction_outcome.type == '' || vm.sanction_outcome.type == null) {
@@ -373,7 +386,6 @@ export default {
                         } else {
                             ret_line += '<input type="checkbox" class="alleged_offence_include" value="' + full.id + '" disabled></input>';
                         }
-
                     } else {
                         if (vm.sanction_outcome.type == 'infringement_notice'){
                             ret_line += '<input type="radio" name="infringement_radio_button" class="alleged_offence_include" value="' + full.id + '"></input>';
@@ -384,7 +396,6 @@ export default {
                             ret_line += '<input type="checkbox" class="alleged_offence_include" value="' + full.id + '" checked="checked"></input>';
                         }
                     }
-
 
                     return ret_line;
                 }
@@ -609,7 +620,7 @@ export default {
                 // When field errors raised
                 for (let field_name in err.body){
                     if (err.body.hasOwnProperty(field_name)){
-                        errorText += field_name + ':<br />';
+                        errorText += field_name + ': ';
                         for (let j=0; j<err.body[field_name].length; j++){
                             errorText += err.body[field_name][j] + '<br />';
                         }
@@ -643,6 +654,7 @@ export default {
             this.isModalOpen = false;
         },
         loadDefaultData: function() {
+            console.log('loadDefaultData');
             if (this.$parent.call_email) {
                 this.sanction_outcome.region_id = this.$parent.call_email.region_id;
                 this.sanction_outcome.district_id = this.$parent.call_email.district_id;
@@ -656,6 +668,8 @@ export default {
             if (this.$parent.offence) {
                 this.sanction_outcome.region_id = this.$parent.offence.region_id;
                 this.sanction_outcome.district_id = this.$parent.offence.district_id;
+                console.log('options_for_offences');
+                console.log(this.options_for_offences);
                 for (let i = 0; i < this.options_for_offences.length; i++) {
                     if (this.options_for_offences[i].id == this.$parent.offence.id) {
                         this.sanction_outcome.current_offence = this.options_for_offences[i];
@@ -675,7 +689,7 @@ export default {
             vm.$refs.tbl_remediation_actions.vmDataTable.row
               .add({
                 id: helpers.guid(),
-                due_date: vm.current_remediation_action.due_date,
+                due_date: moment(vm.current_remediation_action.due_date, "DD/MM/YYYY").format("DD/MM/YYYY"),
                 action_text: vm.current_remediation_action.action
               })
               .draw();
@@ -843,24 +857,27 @@ export default {
             let payload = new Object();
             Object.assign(payload, vm.sanction_outcome);
             if (payload.date_of_issue) {
-                if (moment(payload.date_of_issue, "DD/MM/YYYY").isValid()){
-                    // Format date only when it is not formatted yet.
-                    payload.date_of_issue = moment(payload.date_of_issue, "DD/MM/YYYY").format("YYYY-MM-DD");
-                }
+                payload.date_of_issue = moment(payload.date_of_issue, "DD/MM/YYYY").format("YYYY-MM-DD");
+                payload.time_of_issue = moment(payload.time_of_issue, 'LT').format('HH:mm');
             }
             payload.alleged_offence_ids_included = alleged_offence_ids_included;
             payload.alleged_offence_ids_excluded = alleged_offence_ids_excluded;
             // temporary doc
-            this.temporary_document_collection_id ? payload.temporary_document_collection_id = this.temporary_document_collection_id : null;
+            //this.temporary_document_collection_id ? payload.temporary_document_collection_id = this.temporary_document_collection_id : null;
+            //this.temporary_document_collection_id ? payload.append('temporary_document_collection_id', this.temporary_document_collection_id.temp_doc_id) : null;
+            if (this.temporary_document_collection_id) {
+                payload.temporary_document_collection_id = this.temporary_document_collection_id.temp_doc_id;
+            } else {
+                payload.temporary_document_collection_id = null;
+            }
   
             // Retrieve remediation actions and set them to the payload
-            let remediation_actions = vm.$refs.tbl_remediation_actions.vmDataTable.rows().data().toArray();
+            let remediation_actions_rows = vm.$refs.tbl_remediation_actions.vmDataTable.rows() //.data().toArray();
+            let remediation_actions_data = remediation_actions_rows.data()
+            let remediation_actions = remediation_actions_data.toArray()
             payload.remediation_actions = remediation_actions;
             for (let i = 0; i < payload.remediation_actions.length; i++) {
-                if (moment(payload.remediation_actions[i].due_date, "DD/MM/YYYY").isValid()){
-                    // Format date only when it is not formatted yet.
-                    payload.remediation_actions[i].due_date = moment(payload.remediation_actions[i].due_date, "DD/MM/YYYY").format("YYYY-MM-DD");
-                }
+                payload.remediation_actions[i].due_date = moment(payload.remediation_actions[i].due_date, "DD/MM/YYYY").format("YYYY-MM-DD");
             }
   
             payload.call_email_id = this.$parent.call_email ? this.$parent.call_email.id : null;
@@ -890,6 +907,7 @@ export default {
             this.constructAllegedOffencesTable();
         },
         constructAllegedOffencesTable: function(){
+            console.log('constructAllegedOffencesTable');
             // Construct the datatable of the alleged offences
             this.clearTableAllegedOffence();
 
@@ -897,17 +915,11 @@ export default {
                 for (let j = 0; j < this.sanction_outcome.current_offence.alleged_offences.length; j++) {
                     let alleged_offence = this.sanction_outcome.current_offence.alleged_offences[j];
                     this.$refs.tbl_alleged_offence.vmDataTable.row.add(alleged_offence).draw();
-                   // this.$refs.tbl_alleged_offence.vmDataTable.row.add({
-                   //     id: alleged_offence.id,
-                   //     Act: alleged_offence.section_regulation.act,
-                   //     "Section/Regulation": alleged_offence.section_regulation.name,
-                   //     "Alleged Offence": alleged_offence.section_regulation.offence_text,
-                   //     Include: alleged_offence.id
-                   // }).draw();
                 }
             }
         },
         updateOptionsForOffences: async function() {
+            // This modal is used not onfly from an offence but also from the several entities, such as call_email, inspection, etc.
             let returned = null;
             if (this.$parent.call_email && this.$parent.call_email.id) {
                 returned = await Vue.http.get("/api/offence/filter_by_call_email.json", {
@@ -940,13 +952,11 @@ export default {
         }
     },
     created: async function() {
-        console.log('created1')
         // Load all the types for the sanction outcome
         let options_for_types = await cache_helper.getSetCacheList(
             "SanctionOutcome_Types",
             "/api/sanction_outcome/types.json"
         );
-        console.log('created2');
         this.options_for_types.push({ id: "", display: "" });
         for (let i = 0; i < options_for_types.length; i++) {
             this.options_for_types.push(options_for_types[i]);

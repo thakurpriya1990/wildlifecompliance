@@ -229,9 +229,20 @@
             :isRepeatable="strToBool(component.isRepeatable)"
             :readonly="is_readonly"
             :help_text="help_text"
-            :docsUrl="documents_url"
             :isRequired="component.isRequired"
             :documentActionUrl="documentActionUrl"  
+            :help_text_url="help_text_url"/>
+        <File v-else-if="component.type === 'file' && !parent_id"
+            :name="component_name"
+            :label="component.label"
+            :field_data="value"
+            :id="element_id()"
+            :isRepeatable="strToBool(component.isRepeatable)"
+            :readonly="is_readonly"
+            :help_text="help_text"
+            :isRequired="component.isRequired"
+            documentActionUrl="temporary_document"
+            @update-temp-doc-coll-id="addToTemporaryDocumentCollectionList"
             :help_text_url="help_text_url"/>
 
         <DateField v-if="component.type === 'date'"
@@ -342,21 +353,30 @@ const ComplianceRendererBlock = {
     ...mapGetters('inspectionStore', {
         inspection: 'inspection',
     }),
+    ...mapGetters('physicalArtifactStore', {
+        physical_artifact: 'physical_artifact',
+    }),
     parent_id: function() {
+        let parentIdExists = false;
         if (this.call_email && this.call_email.id) {
-            return true;
+            parentIdExists = true;
         } else if (this.inspection && this.inspection.id) {
-            return true;
-        } else {
-            return false;
+            parentIdExists =  true;
+        } else if (this.physical_artifact && this.physical_artifact.id) {
+            parentIdExists = true;
         }
+        return parentIdExists;
     },
     documentActionUrl: function() {
+        let rendererDocumentUrl = '';
         if (this.call_email && this.call_email.id) {
-            return this.call_email.rendererDocumentUrl;
+            rendererDocumentUrl = this.call_email.rendererDocumentUrl;
         } else if (this.inspection && this.inspection.id) {
-            return this.inspection.rendererDocumentUrl;
+            rendererDocumentUrl = this.inspection.rendererDocumentUrl;
+        } else if (this.physical_artifact && this.physical_artifact.id) {
+            rendererDocumentUrl = this.physical_artifact.rendererDocumentUrl;
         }
+        return rendererDocumentUrl;
     },
     is_readonly: function() {
         return this.readonlyForm;
@@ -375,9 +395,11 @@ const ComplianceRendererBlock = {
     comment_data: function() {
         return this.call_email.comment_data;
     },
+      /*
     documents_url: function() {
         return this.call_email.documents_url;
     },
+    */
     can_user_edit: function() {
         return this.call_email.can_user_edit;
     },
@@ -431,6 +453,10 @@ const ComplianceRendererBlock = {
         'setFormValue',
         //'refreshApplicationFees',
     ]),
+    ...mapActions('physicalArtifactStore', {
+        addToTemporaryDocumentCollectionList: 'addToTemporaryDocumentCollectionList',
+    }),
+
     strToBool: strToBool,
     element_id: function(depth=0) {
         return `id_${this.component_name}${(depth) ? `_${depth}` : ''}${this.instance !== null ? `__instance${this.instance}`: ''}`;

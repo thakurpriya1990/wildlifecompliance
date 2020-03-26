@@ -22,6 +22,7 @@ module.exports = {
     countries: "https://restcountries.eu/rest/v1/?fullText=true/",
     application_type:"/api/application_type/",
     applications:"/api/application/",
+    application_selected_activity:"/api/application_selected_activity/",
     applications_paginated:"/api/application_paginated/",
     licences:"/api/licences/",
     licences_paginated:"/api/licences_paginated/",
@@ -62,5 +63,16 @@ module.exports = {
     document_artifact: '/api/document_artifact/',
     department_users: '/api/department_users',
     disposal_methods: '/api/disposal_methods',
+    geocoding_address_search_token: '/api/geocoding_address_search_token/',
+    geocoding_address_search: `https://api.mapbox.com/geocoding/v5/mapbox.places/`,
+    system_preference: '/api/system_preference/',
+    /*
+    geocoding_address_search: async function() {
+        //const token = await Vue.http.get('/api/geocoding_address_search_token');
+        const token = await $.ajax({url: '/api/geocoding_address_search_token/'});
+        console.log(token)
+        return `https://api.mapbox.com/geocoding/v5/mapbox.places?access_token=${token}`;
+    }
+    */
 }
 

@@ -26,6 +26,12 @@ export const physicalArtifactStore = {
             if (state.physical_artifact.artifact_date) {
                 state.physical_artifact.artifact_date = moment(state.physical_artifact.artifact_date, 'YYYY-MM-DD').format('DD/MM/YYYY');
             }
+            // format artifact time from 24 to 12 hour
+            if (state.physical_artifact.artifact_time) {
+                state.physical_artifact.artifact_time = moment(state.physical_artifact.artifact_time, 'HH:mm').format('hh:mm A');
+            } else if (state.physical_artifact.artifact_time === '') {
+                state.physical_artifact.artifact_time = null;
+            }
             // format disposal_date for vue
             if (state.physical_artifact.disposal_date) {
                 state.physical_artifact.disposal_date = moment(state.physical_artifact.disposal_date, 'YYYY-MM-DD').format('DD/MM/YYYY');
@@ -41,7 +47,13 @@ export const physicalArtifactStore = {
                 api_endpoints.artifact,
                 state.physical_artifact.id + "/process_comms_log_document/"
                 )
-            Vue.set(state.physical_artifact, 'commsLogsDocumentUrl', commsLogsDocumentUrl); 
+            Vue.set(state.physical_artifact, 'commsLogsDocumentUrl', commsLogsDocumentUrl);
+            // renderer
+            let rendererDocumentUrl = helpers.add_endpoint_join(
+                api_endpoints.physical_artifact,
+                state.physical_artifact.id + "/process_renderer_document/"
+                )
+            Vue.set(state.physical_artifact, 'rendererDocumentUrl', rendererDocumentUrl);
             /*
             let createLegalCaseProcessCommsLogsPhysicalUrl = helpers.add_endpoint_join(
                 api_endpoints.legal_case,
@@ -56,8 +68,33 @@ export const physicalArtifactStore = {
         updateOfficerEmail(state, email) {
             Vue.set(state.physical_artifact, 'officer_email', email);
         },
+        updateCustodianEmail(state, email) {
+            Vue.set(state.physical_artifact, 'custodian_email', email);
+        },
+        /*
         updateTemporaryDocumentCollectionId(state, temp_doc_id) {
             Vue.set(state.physical_artifact, 'temporary_document_collection_id', temp_doc_id);
+        },
+        */
+        updateTemporaryDocumentCollectionList(state, {temp_doc_id, input_name}) {
+            if (!state.physical_artifact.temporary_document_collection_list) {
+                Vue.set(state.physical_artifact, 'temporary_document_collection_list', []);
+            }
+            state.physical_artifact.temporary_document_collection_list.push(
+                {   "temp_doc_id": temp_doc_id,
+                    "input_name": input_name,
+                }
+            );
+        },
+        updateStatementId(state, statement_id) {
+            console.log(statement_id)
+            Vue.set(state.physical_artifact, 'statement_id', statement_id);
+        },
+        updateUsedWithinCase(state, used_within_case) {
+            Vue.set(state.physical_artifact, 'used_within_case', used_within_case);
+        },
+        updateSensitiveNonDisclosable(state, sensitive_non_disclosable) {
+            Vue.set(state.physical_artifact, 'sensitive_non_disclosable', sensitive_non_disclosable);
         },
         /*
         updatePhysicalArtifactLegalId(state, legal_case_id) {
@@ -77,6 +114,19 @@ export const physicalArtifactStore = {
                 console.log(returnedPhysicalArtifact)
                 commit("updatePhysicalArtifact", returnedPhysicalArtifact.body);
 
+                for (let form_data_record of returnedPhysicalArtifact.body.data) {
+                    await dispatch("setFormValue", {
+                        key: form_data_record.field_name,
+                        value: {
+                            "value": form_data_record.value,
+                            "comment_value": form_data_record.comment,
+                            "deficiency_value": form_data_record.deficiency,
+                        }
+                    }, {
+                        root: true
+                    });
+                }
+
             } catch (err) {
                 console.log(err);
             }
@@ -94,6 +144,12 @@ export const physicalArtifactStore = {
                 } else if (payload.artifact_date === '') {
                     payload.artifact_date = null;
                 }
+                // format artifact time to 24 hours
+                if (payload.artifact_time) {
+                    payload.artifact_time = moment(payload.artifact_time, 'hh:mm A').format('HH:mm');
+                } else if (payload.artifact_time === '') {
+                    payload.artifact_time = null;
+                }
                 // format disposal date for backend save
                 if (payload.disposal_date) {
                     payload.disposal_date = moment(payload.disposal_date, 'DD/MM/YYYY').format('YYYY-MM-DD');
@@ -103,6 +159,15 @@ export const physicalArtifactStore = {
                 if (legal_case_id) {
                     payload.legal_case_id = legal_case_id;
                 }
+                // Renderer data
+                /*
+                if ((state.physical_artifact.details_schema && state.physical_artifact.details_schema.length) || 
+                    (state.physical_artifact.storage_schema && state.physical_artifact.storage_schema.length)) {
+                    payload.renderer_data = rootGetters.renderer_form_data;
+                }
+                */
+                payload.renderer_data = rootGetters.renderer_form_data;
+                console.log(payload);
 
                 let fetchUrl = null;
                 if (create) {
@@ -151,8 +216,25 @@ export const physicalArtifactStore = {
         setOfficerEmail({ commit }, email ) {
             commit("updateOfficerEmail", email);
         },
+        setCustodianEmail({ commit }, email ) {
+            commit("updateCustodianEmail", email);
+        },
+        /*
         setTemporaryDocumentCollectionId({ commit }, temp_doc_id) {
             commit("updateTemporaryDocumentCollectionId", temp_doc_id);
+        },
+        */
+        addToTemporaryDocumentCollectionList({ commit }, {temp_doc_id, input_name}) {
+            commit("updateTemporaryDocumentCollectionList", {temp_doc_id, input_name});
+        },
+        setStatementId({ commit }, statement_id) {
+            commit("updateStatementId", statement_id);
+        },
+        setUsedWithinCase({ commit }, used_within_case) {
+            commit("updateUsedWithinCase", used_within_case);
+        },
+        setSensitiveNonDisclosable({ commit }, sensitive_non_disclosable) {
+            commit("updateSensitiveNonDisclosable", sensitive_non_disclosable);
         },
     },
 };

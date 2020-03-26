@@ -17,17 +17,17 @@ from wildlifecompliance.components.licences.models import LicenceDocument
 
 BW_DPAW_HEADER_LOGO = os.path.join(
     settings.BASE_DIR,
-    'wildlifelicensing',
+    'wildlifecompliance',
     'static',
-    'wl',
+    'wildlifecompliance',
     'img',
     'bw_dpaw_header_logo.png')
 
 COLOUR_DPAW_HEADER_LOGO = os.path.join(
     settings.BASE_DIR,
-    'wildlifelicensing',
+    'wildlifecompliance',
     'static',
-    'wl',
+    'wildlifecompliance',
     'img',
     'colour_dpaw_header_logo.png')
 
@@ -223,8 +223,8 @@ def _create_licence_header(canvas, doc, draw_page_number=True):
 
     if hasattr(doc, 'licence'):
         canvas.drawString(current_x,
-                          current_y - (LARGE_FONTSIZE + HEADER_SMALL_BUFFER) * 2,
-                          '{}'.format(doc.licence.id))
+                          current_y - (LARGE_FONTSIZE + HEADER_SMALL_BUFFER)*2,
+                          '{}'.format(doc.licence.licence_number))
 
 
 def _create_licence(licence_buffer, licence, application):
@@ -274,13 +274,111 @@ def _create_licence(licence_buffer, licence, application):
     purposeList = ListFlowable(
         [[Paragraph("{name}".format(
             name=purpose.name,
-        ), styles['Left'],) for purpose in selected_activity.purposes] for selected_activity in licence.current_activities],
+        ), styles['Left'],) for purpose in selected_activity.issued_purposes] for selected_activity in licence.current_activities],
         bulletFontName=BOLD_FONTNAME, bulletFontSize=MEDIUM_FONTSIZE)
     elements.append(purposeList)
     elements.append(PageBreak())
 
     for selected_activity in licence.current_activities:
-        elements.append(Paragraph(selected_activity.licence_activity.name, styles['InfoTitleVeryLargeCenter']))
+
+        # delegation holds the dates, licencee and issuer details.
+        delegation = []
+
+        licence_purpose = selected_activity.issued_purposes[0].name
+        elements.append(Paragraph(
+            licence_purpose.upper(),
+            styles['InfoTitleVeryLargeCenter']))
+        elements.append(Paragraph(
+            'Regulation 28, Biodiversity Conservation Regulations 2018',
+            styles['Center']))
+
+        # applicant details
+        delegation.append(Spacer(1, SECTION_BUFFER_HEIGHT))
+        if application.applicant_type \
+                == application.APPLICANT_TYPE_ORGANISATION:
+            address = application.org_applicant.address
+            pass
+        elif application.applicant_type == application.APPLICANT_TYPE_PROXY:
+            address = application.proxy_applicant.residential_address
+            pass
+        else:
+            # applic.applicant_type == application.APPLICANT_TYPE_SUBMITTER
+            address = application.submitter.residential_address
+
+        address_paragraphs = [
+            Paragraph(address.line1, styles['Left']),
+            Paragraph(address.line2, styles['Left']),
+            Paragraph(address.line3, styles['Left']),
+            Paragraph('%s %s %s' % (
+                address.locality, address.state,
+                address.postcode), styles['Left']),
+            Paragraph(address.country.name, styles['Left'])
+            ]
+
+        delegation.append(
+            Table([[[Paragraph('Licence Number', styles['BoldLeft']),
+                    Paragraph('Licence Holder', styles['BoldLeft']),
+                    Paragraph('Address', styles['BoldLeft'])],
+                    [Paragraph(
+                        licence.licence_number,
+                        styles['Left']
+                        )] + [Paragraph(
+                            licence.current_application.applicant,
+                            styles['Left']
+                        )] + address_paragraphs]], colWidths=(
+                            120, PAGE_WIDTH - (
+                                2 * PAGE_MARGIN) - 120
+                            ), style=licence_table_style))
+
+        # dates
+        dates_licensing_officer_table_style = TableStyle([(
+            'VALIGN', (0, 0), (-2, -1), 'TOP'),
+            ('VALIGN', (0, 0), (-1, -1), 'BOTTOM')])
+
+        delegation.append(Spacer(1, SECTION_BUFFER_HEIGHT))
+        date_headings = [
+            Paragraph(
+                'Date of Issue', styles['BoldLeft']), Paragraph(
+                'Date Valid From', styles['BoldLeft']), Paragraph(
+                'Date of Expiry', styles['BoldLeft'])]
+        date_values = [
+            Paragraph(
+                selected_activity.issue_date.strftime(
+                    DATE_FORMAT), styles['Left']), Paragraph(
+                selected_activity.start_date.strftime(
+                    DATE_FORMAT), styles['Left']), Paragraph(
+                    selected_activity.expiry_date.strftime(
+                        DATE_FORMAT), styles['Left'])]
+
+        if not selected_activity.original_issue_date.date() == \
+                selected_activity.issue_date.date():
+            date_headings.insert(
+                0,
+                Paragraph(
+                    'Original Date of Issue',
+                    styles['BoldLeft']))
+            date_values.insert(
+                0,
+                Paragraph(
+                    selected_activity.original_issue_date.strftime(
+                        DATE_FORMAT),
+                    styles['Left']))
+
+        delegation.append(
+            Table(
+                [[date_headings, date_values]],
+                colWidths=(120, PAGE_WIDTH - (2 * PAGE_MARGIN) - 120),
+                style=dates_licensing_officer_table_style))
+
+        delegation.append(Spacer(1, SECTION_BUFFER_HEIGHT))
+        # delegation.append(
+        #     Paragraph(
+        #         'Issued by a Wildlife Licensing Officer of the {} '
+        #         'under delegation from the Minister for Environment pursuant to section 133(1) '
+        #         'of the Conservation and Land Management Act 1984.'.format(
+        #             settings.DEP_NAME), styles['Left']))
+
+        elements.append(KeepTogether(delegation))
 
         # application conditions
         activity_conditions = application.conditions.filter(
@@ -296,86 +394,48 @@ def _create_licence(licence_buffer, licence, application):
             elements.append(conditionList)
 
         elements += _layout_extracted_fields(licence.extracted_fields)
+        elements.append(Spacer(1, SECTION_BUFFER_HEIGHT))
+
+        # signature block
+        elements.append(Spacer(1, SECTION_BUFFER_HEIGHT))
+
+        issue_officer = '{} {}'.format(
+            selected_activity.updated_by.first_name,
+            selected_activity.updated_by.last_name
+            )
+        elements.append(Paragraph('____________________', styles['Left']))
+        elements.append(Paragraph(issue_officer, styles['Left']))
+        elements.append(Paragraph('LICENSING OFFICER', styles['Left']))
+        elements.append(
+            Paragraph('WILDLIFE PROTECTION BRANCH', styles['Left']))
+        elements.append(Spacer(1, SECTION_BUFFER_HEIGHT))
+        elements.append(Paragraph('Delegate of CEO', styles['ItalicLeft']))
+        elements.append(Spacer(1, SECTION_BUFFER_HEIGHT))
 
         # additional information
-        '''if licence.additional_information:
+        if licence.has_additional_information:
             elements.append(Spacer(1, SECTION_BUFFER_HEIGHT))
-            elements.append(Paragraph('Additional Information', styles['BoldLeft']))
-            elements += _layout_paragraphs(licence.additional_information)'''
+            elements.append(Paragraph(
+                'Additional Information', styles['BoldLeft']))
+            elements.append(Spacer(1, SECTION_BUFFER_HEIGHT))
 
-        # delegation holds the dates, licencee and issuer details.
-        delegation = []
+            conditions = licence.current_application.conditions.all()
+            infos = []
+            c_num = 1
+            for c_id, condition in enumerate(conditions.order_by('order')):
+                info = condition.standard_condition.additional_information
+                c_num = c_num + c_id
+                if info:
+                    infos.append('{0} (related to condition no.{1})'.format(
+                        info.encode('utf8'), c_num))
 
-        # dates and licensing officer
-        dates_licensing_officer_table_style = TableStyle(
-            [('VALIGN', (0, 0), (-2, -1), 'TOP'), ('VALIGN', (0, 0), (-1, -1), 'BOTTOM')])
+            infoList = ListFlowable(
+                [Paragraph("{info}".format(
+                    info=i,
+                ), styles['Left'],) for i in infos],
+                bulletFontName=BOLD_FONTNAME, bulletFontSize=MEDIUM_FONTSIZE)
+            elements.append(infoList)
 
-        delegation.append(Spacer(1, SECTION_BUFFER_HEIGHT))
-        date_headings = [
-            Paragraph(
-                'Date of Issue', styles['BoldLeft']), Paragraph(
-                'Valid From', styles['BoldLeft']), Paragraph(
-                    'Date of Expiry', styles['BoldLeft'])]
-        date_values = [
-            Paragraph(
-                selected_activity.issue_date.strftime(DATE_FORMAT), styles['Left']), Paragraph(
-                selected_activity.start_date.strftime(DATE_FORMAT), styles['Left']), Paragraph(
-                    selected_activity.expiry_date.strftime(DATE_FORMAT), styles['Left'])]
-
-        if selected_activity.original_issue_date is not None:
-            date_headings.insert(
-                0,
-                Paragraph(
-                    'Original Date of Issue',
-                    styles['BoldLeft']))
-            date_values.insert(
-                0,
-                Paragraph(
-                    selected_activity.original_issue_date.strftime(DATE_FORMAT),
-                    styles['Left']))
-
-        delegation.append(Table([[date_headings, date_values]],
-                                colWidths=(120, PAGE_WIDTH - (2 * PAGE_MARGIN) - 120),
-                                style=dates_licensing_officer_table_style))
-
-        # applicant details
-        delegation.append(Spacer(1, SECTION_BUFFER_HEIGHT))
-        if application.applicant_type == application.APPLICANT_TYPE_ORGANISATION:
-            address = application.org_applicant.address
-            pass
-        elif application.applicant_type == application.APPLICANT_TYPE_PROXY:
-            address = application.proxy_applicant.residential_address
-            pass
-        else:  # application.applicant_type == application.APPLICANT_TYPE_SUBMITTER
-            address = application.submitter.residential_address
-
-        address_paragraphs = [
-            Paragraph(
-                address.line1, styles['Left']), Paragraph(
-                address.line2, styles['Left']), Paragraph(
-                    address.line3, styles['Left']), Paragraph(
-                        '%s %s %s' %
-                        (address.locality, address.state, address.postcode), styles['Left']), Paragraph(
-                            address.country.name, styles['Left'])]
-        delegation.append(Table([[[Paragraph('Licensee:',
-                                            styles['BoldLeft']),
-                                Paragraph('Address',
-                                            styles['BoldLeft'])],
-                                [Paragraph(licence.current_application.applicant,
-                                            styles['Left'])] + address_paragraphs]],
-                                colWidths=(120,
-                                        PAGE_WIDTH - (2 * PAGE_MARGIN) - 120),
-                                style=licence_table_style))
-
-        delegation.append(Spacer(1, SECTION_BUFFER_HEIGHT))
-        delegation.append(
-            Paragraph(
-                'Issued by a Wildlife Licensing Officer of the {} '
-                'under delegation from the Minister for Environment pursuant to section 133(1) '
-                'of the Conservation and Land Management Act 1984.'.format(
-                    settings.DEP_NAME), styles['Left']))
-
-        elements.append(KeepTogether(delegation))
         elements.append(PageBreak())
 
     doc.build(elements)

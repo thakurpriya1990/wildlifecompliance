@@ -1,5 +1,54 @@
 <template lang="html">
     <div v-if="isApplicationLoaded" class="container" id="internalApplication">
+
+        <modal transition="modal fade"
+            :showOk="true"
+            okClass="btn btn-primary"
+            :closeWhenOk="true"
+            okText="Mark Complete"
+            @ok="completeAssessmentsToMe()"
+            cancelClass="btn btn-primary"
+            title="Assessment Records" large>
+
+            <div class="container-fluid">
+                <div class="row">
+                    <div class="panel panel-default">
+
+                        <div class="panel-body panel-collapse collapse in" >
+                            <form class="form-horizontal" name="assessment_form" method="put">
+                                <div class="col-sm-12">
+                                    <div class="form-group">
+                                        <div class="row">
+                                            <div class="col-sm-12">
+                                                <label class="control-label" for="Name">Select licensed activities with assessment for completion</label>
+                                            </div>
+                                        </div>
+                                        <div class="row">
+                                            <div class="col-sm-12" v-for="(a, index) in activitiesWithAssessment" v-bind:key="`a_${index}`">
+                                                <input type="checkbox" name="licence_activity" :value ="a.licence_activity" :id="a.licence_activity" v-model="checkedActivities" > {{a.activity_name_str}}
+                                            </div>
+                                        </div>
+                                    </div>
+                                    <div class="form-group">
+                                        <div class="row">
+                                            <div class="col-sm-3">
+                                                <label class="control-label pull-left">Final Comments</label>
+                                            </div>
+                                            <div class="col-sm-9">
+                                                <textarea class="form-control" v-model="final_comment" :readonly="!canCompleteAssessment" style="width: 100%; max-width: 100%;" />
+                                            </div>
+                                        </div>
+                                    </div>
+                                </div>
+                                
+                            </form>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </modal>
+
+        <!-- Application menu -->
         <div class="row" style="padding-bottom: 50px;">
         <h3>{{ headerLabel }}: {{ application.lodgement_number }}</h3>
         <div class="col-md-3">
@@ -103,7 +152,7 @@
                                     </div>
                                     <div v-show="showAssessmentConditionButton" class="row">
                                         <div class="col-sm-12">
-                                            <button class="btn btn-primary top-buffer-s col-xs-12" @click.prevent="togglesendtoAssessor()">Assessments &amp; Conditions</button><br/>
+                                            <button class="btn btn-primary top-buffer-s col-xs-12" @click.prevent="toggleAssessments()">Assessments &amp; Conditions</button><br/>
                                         </div>
                                     </div>   
                                 </template>
@@ -118,9 +167,14 @@
                                             <button class="btn btn-primary top-buffer-s col-xs-12" @click.prevent="toggleApplication({show: true})">Back to Application</button><br/>
                                         </div>
                                     </div>
+                                    <div class="row" v-show="showRequestInspectionButton">
+                                        <div class="col-sm-12">
+                                            <button class="btn btn-primary top-buffer-s col-xs-12" @click.prevent="toggleRequestInspection()">Request Inspection</button><br/>
+                                        </div>
+                                    </div>   
                                     <div class="row" v-show="showCompleteAssessmentsButton">
                                         <div class="col-sm-12">
-                                            <button class="btn btn-primary top-buffer-s col-xs-12" @click.prevent="completeAssessmentsToMe()">Complete Assessments</button><br/>
+                                            <button class="btn btn-primary top-buffer-s col-xs-12" @click.prevent="openAssessmentModal()">Complete Assessments</button><br/>
                                         </div>
                                     </div>                                   
                                 </template>
@@ -130,58 +184,65 @@
                 </div>
             </div>
         </div>
+        <!-- assessment dashboards -->
         <div class="col-md-1"></div>
-        <div class="col-md-8">
-            <div class="row">
+            <div class="col-md-8">
+                <div class="row">
 
-                <ApplicationAssessments v-if="!applicationDetailsVisible" />
+                    <ApplicationAssessments v-if="!applicationDetailsVisible" />
 
-                <template v-if="applicationDetailsVisible">
-                    <a ref="applicantTab" class="nav-link" data-toggle="pill" :href="'#'+applicantTab"></a>
-                    <a ref="applicationTab" class="nav-link" data-toggle="pill" :href="'#'+applicationTab"></a>
-                    <div :id="applicationTab" class="tab-pane fade in active">
-                        <div class="col-md-12">
-                            <div class="row">
-                                <form :action="application_form_url" method="post" name="new_application" enctype="multipart/form-data">
+                    <template v-if="applicationDetailsVisible">
+                        <a ref="applicantTab" class="nav-link" data-toggle="pill" :href="'#'+applicantTab"></a>
+                        <a ref="applicationTab" class="nav-link" data-toggle="pill" :href="'#'+applicationTab"></a>
+                        <div :id="applicationTab" class="tab-pane fade in active">
+                            <div class="col-md-12">
+                                <div class="row">
+                                    <form :action="application_form_url" method="post" name="new_application" enctype="multipart/form-data">
 
-                                    <Application form_width="inherit" :withSectionsSelector="false" v-if="isApplicationLoaded">
-                                        <input type="hidden" name="csrfmiddlewaretoken" :value="csrf_token"/>
-                                        <input type='hidden' name="schema" :value="JSON.stringify(application)" />
-                                        <input type='hidden' name="application_id" :value="1" />
-                                        <input type='hidden' id="selected_activity_tab_id" v-model="selected_activity_tab_id" />
-                                        <div v-if="showNavBarBottom" class="row" style="margin-bottom:50px;">
-                                            <div class="navbar navbar-fixed-bottom" style="background-color: #f5f5f5 ">
-                                                <div class="navbar-inner">
-                                                    <div class="container">
-                                                        <p class="pull-right" style="margin-top:5px;">
-                                                            <button v-if="!applicationIsDraft && canSaveApplication" class="btn btn-primary" @click.prevent="save()">Save Changes</button>
-                                                        </p>
+                                        <Application form_width="inherit" :withSectionsSelector="false" v-if="isApplicationLoaded">
+                                            <input type="hidden" name="csrfmiddlewaretoken" :value="csrf_token"/>
+                                            <input type='hidden' name="schema" :value="JSON.stringify(application)" />
+                                            <input type='hidden' name="application_id" :value="1" />
+                                            <input type='hidden' id="selected_activity_tab_id" v-model="selected_activity_tab_id" />
+                                            <div v-if="showNavBarBottom" class="row" style="margin-bottom:50px;">
+                                                <div class="navbar navbar-fixed-bottom" style="background-color: #f5f5f5 ">
+                                                    <div class="navbar-inner">
+                                                        <div class="container">
+                                                            <p class="pull-right" style="margin-top:5px;">
+                                                                <button v-if="!applicationIsDraft && canSaveApplication" class="btn btn-primary" @click.prevent="save()">Save Changes</button>
+                                                            </p>
+                                                        </div>
                                                     </div>
                                                 </div>
                                             </div>
-                                        </div>
-                                    </Application>
+                                        </Application>
 
-                                </form>
+                                    </form>
+                                </div>
                             </div>
                         </div>
-                    </div>
 
-                </template>
+                    </template>
+
+                    <InspectionRequest ref="inspection"  @inspection-created="requestedInspection"></InspectionRequest>                    
+
+                </div>
             </div>
         </div>
-        </div>
+
     </div>
 </div>
 </template>
 <script>
 import Application from '../../form.vue';
 import Vue from 'vue';
+import modal from '@vue-utils/bootstrap-modal.vue'
 import { mapActions, mapGetters } from 'vuex'
 import ApplicationAssessments from './application_assessments.vue';
 import datatable from '@vue-utils/datatable.vue';
 import CommsLogs from '@common-components/comms_logs.vue';
 import ResponsiveDatatablesHelper from "@/utils/responsive_datatable_helper.js";
+import InspectionRequest from '../inspection/create_inspection_modal'
 import {
     api_endpoints,
     helpers
@@ -215,13 +276,27 @@ export default {
             comms_add_url: helpers.add_endpoint_json(api_endpoints.applications,vm.$route.params.application_id+'/add_comms_log'),
             logs_url: helpers.add_endpoint_json(api_endpoints.applications,vm.$route.params.application_id+'/action_log'),
             panelClickersInitialised: false,
+            isModalOpen: false,
+            assessment: {
+                id: "",
+                comment: "",
+            },
+            savingAssessment: false,
+            checkedActivities: [],
+            final_comment: "",
+            isRequestingInspection: false,
+            inspection:{
+                isModalOpen: false
+            },
         }
     },
     components: {
         Application,
         datatable,
         ApplicationAssessments,
-        CommsLogs
+        CommsLogs,
+        modal,
+        InspectionRequest,
     },
     filters: {
         formatDate: function(data){
@@ -250,6 +325,13 @@ export default {
             'canEditAssessmentFor',
             'canAssignAssessorFor',
         ]),
+        activitiesWithAssessment: function() {
+            return this.application.activities.filter(activity => {
+
+                return this.canEditAssessmentFor(activity.licence_activity)
+                    && this.canAssignAssessorFor(activity.licence_activity)
+            })
+        },
         applicationDetailsVisible: function() {
             return this.showingApplication;
         },
@@ -259,23 +341,12 @@ export default {
         selectedActivity: function(){
             // Function that returns an Application Selected Activity.
             if (this.selected_activity_tab_id == null || this.selected_activity_tab_id<1) {
-
                 this.initFirstTab()     // Each Tab is a Licence Activity.
             }
             return this.application.activities.find(activity => {
 
                 return activity.licence_activity === this.selected_activity_tab_id                
             })
-        },
-        canSaveApplication: function() {
-            // Assessors can save the Assessor Comments field.
-            if(this.selected_activity_tab_id &&
-                this.userHasRole('assessor', this.selected_activity_tab_id) &&
-                this.selectedActivity.processing_status.id == 'with_assessor') {
-                    return true;
-            }
-
-            return false;
         },
         applicantType: function(){
             return this.$store.getters.applicant_type;
@@ -318,6 +389,10 @@ export default {
                     || (assessment.assigned_assessor && assessment.assigned_assessor.id === this.current_user.id);               
             });
         },
+        showRequestInspectionButton: function() {
+            let promptInspection = this.selectedActivity.is_inspection_required
+            return promptInspection && this.showCompleteAssessmentsButton
+        },
         showAssignToAssessor: function(){
             return !this.showingApplication && this.canAssignAssessorFor(this.selectedActivity.licence_activity)
         },
@@ -325,7 +400,7 @@ export default {
             return this.showingApplication && this.canAssignAssessorFor(this.selectedActivity.licence_activity)
         },
         isWithAssessor: function() {
-            return this.selectedActivity.processing_status.id === 'with_assessor' ? true : false;
+            return this.selectedActivity.processing_status.id === 'with_assessor';
         },
         activeAssessments: function() {
             return this.application.assessments.filter(assessment => {
@@ -365,12 +440,12 @@ export default {
         },
         initFirstTab: function(force){
             this.isSendingToAssessor = true;
-            var first_tab = this.application.activities.find(activity => this.canAssignAssessorFor(activity.licence_activity))
+            //var first_tab = this.application.activities.find(activity => this.canAssignAssessorFor(activity.licence_activity))
+            var first_tab = this.application.assessments[0] // TODO: may require check if authorised for assessment.
             if(this.selected_activity_tab_id && !force) {
                 return;
             }            
             if (first_tab) {
-
                 this.licenceActivities().filter(activity => {
                     if (activity.id==first_tab.licence_activity) {
 
@@ -380,34 +455,22 @@ export default {
 
             }
         },
-        commaToNewline(s){
-            return s.replace(/[,;]/g, '\n');
+        close: function () {
+            this.isModalOpen = false;
         },
-        togglesendtoAssessor:function(){
-            this.save_wo();
+        canCompleteAssessment: function() {
+            if(!this.userHasRole('assessor', this.selected_activity_tab_id)) {
+                return false;
+            }
+            if(this.assessment.status && this.assessment.status.id != 'awaiting_assessment'){
+                return false;
+            }
+            return this.selected_activity_tab_id && this.selectedActivity.processing_status.id == 'with_assessor' ? true : false;
+        },
+        toggleAssessments:function(){
             $('#tabs-main li').removeClass('active');
             this.isSendingToAssessor = !this.isSendingToAssessor;
             this.showingApplication = false;
-        },
-        save: function(props = { showNotification: true }) {
-            const { showNotification } = props;
-            this.saveFormData({ url: this.form_data_comments_url }).then(response => {
-                showNotification && swal(
-                    'Saved',
-                    'Your application has been saved',
-                    'success'
-                )
-            }, error => {
-                console.log('Failed to save comments: ', error);
-                swal(
-                    'Application Error',
-                    helpers.apiVueResourceError(error),
-                    'error'
-                )
-            });
-        },
-        save_wo: function() {
-            return this.save({ showNotification: false });
         },
         toggleApplication: function({show=false, showFinalised=false}){
             this.showingApplication = show;
@@ -429,6 +492,31 @@ export default {
             }, 50);
             !showFinalised && this.load({ url: `/api/application/${this.application.id}/internal_application.json` });
         },
+        toggleRequestInspection:function(){
+            this.isRequestingInspection = !this.isRequestingInspection;
+            this.$nextTick(() => {
+                this.$refs.inspection.isModalOpen = true;
+            });
+        },
+        requestedInspection: function(event){
+            const data = {
+                "licence_activity_id" : this.selected_activity_tab_id,
+                "inspection_id": event.inspection,
+            }
+            this.setOriginalApplication(this.application);
+            this.$http.post(helpers.add_endpoint_json(
+                    api_endpoints.applications, (this.application.id+'/add_assessment_inspection')
+                ), JSON.stringify(data)).then((response) => {
+                    this.setApplication(response.body);
+                }, (error) => {
+                    this.revert();
+                       swal(
+                        'Application Error',
+                        helpers.apiVueResourceError(error),
+                        'error'
+                        )
+                }); 
+        },        
         makeMeAssessor: function(assessment){
             let vm = this;
             const data = {
@@ -476,26 +564,27 @@ export default {
         completeAssessmentsToMe: function(){
             let vm = this;
             const data = {
-                "activity_id" : this.selectedActivity.licence_activity,
+                "activity_id" : this.checkedActivities,
+                "final_comment" : this.final_comment,
             }
             this.setOriginalApplication(this.application);            
             vm.$http.post(helpers.add_endpoint_json(api_endpoints.applications,(vm.application.id+'/complete_application_assessments')
                 ), JSON.stringify(data)).then((response) => {
                     this.setApplication(response.body);
-                swal(
-                    'Complete Assessments',
-                    'Assessments have been marked for completion.',
-                    'success'
-                    );
-
-                this.$router.push({name:"internal-dash"});               
+                    this.$router.push({name:"internal-dash"});               
             }, (error) => {
+                //console.log(error)
                 this.revert();
-                swal(
-                    'Application Error',
-                    helpers.apiVueResourceError(error),
-                    'error'
-                )
+                let error_msg = '<br/>';
+                for (var key in error.body) {
+                    error_msg += error.body[key] + '<br/>';
+                }
+                swal({
+                    title: 'Assessment Error',
+                    html: 'There was an error completing assessment.<br/>' + error_msg,
+                    type: 'error'
+                });
+
             });
         },
         initialiseAssignedAssessorSelect: function(reinit=false){
@@ -541,7 +630,10 @@ export default {
             }
             this.$refs.applicationTab.click();
             this.initFirstTab(true);
-        }
+        },
+        openAssessmentModal: function() {
+            this.isModalOpen = true;
+        },
     },
     updated: function(){
         let vm = this;

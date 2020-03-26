@@ -3,12 +3,14 @@ import operator
 import traceback
 from datetime import datetime
 
+import pytz
 from django.contrib.auth.models import Permission
 from django.contrib.contenttypes.models import ContentType
 from django.core.exceptions import ValidationError
 from django.db import transaction
 from django.http import HttpResponse
 from django.db.models import Q
+from ledger.settings_base import TIME_ZONE
 from rest_framework import viewsets, filters, serializers, status
 from rest_framework.decorators import detail_route, list_route, renderer_classes
 from rest_framework.renderers import JSONRenderer
@@ -68,25 +70,29 @@ class OffenceFilterBackend(DatatablesFilterBackend):
 
         type = request.GET.get('type',).lower()
         if type and type != 'all':
-            q_objects &= Q(type=type)
+            # q_objects &= Q(type=type)
+            offence_ids = SanctionOutcome.objects.filter(type=type).values_list('offence__id', flat=True).distinct()
+            q_objects &= Q(id__in=offence_ids)
 
         status = request.GET.get('status',).lower()
         if status and status != 'all':
             q_objects &= Q(status=status)
 
-        # payment_status = request.GET.get('payment_status',).lower()
-        # if payment_status and payment_status != 'all':
-        #     q_objects &= Q(payment_status=payment_status)
+        timezone = pytz.timezone(TIME_ZONE)
 
         date_from = request.GET.get('date_from',).lower()
         if date_from:
             date_from = datetime.strptime(date_from, '%d/%m/%Y')
-            q_objects &= Q(date_of_issue__gte=date_from)
+            date_from = timezone.localize(date_from)
+            q_objects &= Q(occurrence_datetime_from__gte=date_from)
+            q_objects &= Q(occurrence_datetime_to__gte=date_from)
 
         date_to = request.GET.get('date_to',).lower()
         if date_to:
             date_to = datetime.strptime(date_to, '%d/%m/%Y')
-            q_objects &= Q(date_of_issue__lte=date_to)
+            date_to = timezone.localize(date_to)
+            q_objects &= Q(occurrence_datetime_from__lte=date_to)
+            q_objects &= Q(occurrence_datetime_to__lte=date_to)
 
         # perform filters
         queryset = queryset.filter(q_objects)
@@ -253,15 +259,19 @@ class OffenceViewSet(viewsets.ModelViewSet):
         filter_sanction_outcome_type = request.query_params.get('sanction_outcome_type', '')
         filter_sanction_outcome_type = '' if filter_sanction_outcome_type.lower() == 'all' else filter_sanction_outcome_type
 
+        timezone = pytz.timezone(TIME_ZONE)
+
         q_list = []
         if filter_status:
             q_list.append(Q(status=filter_status))
         if filter_date_from:
             date_from = datetime.strptime(filter_date_from, '%d/%m/%Y')
-            q_list.append(Q(occurrence_date_from__gte=date_from) | Q(occurrence_date_to__gte=date_from))
+            date_from = timezone.localize(date_from)
+            q_list.append(Q(occurrence_datetime_from__gte=date_from) | Q(occurrence_datetime_to__gte=date_from))
         if filter_date_to:
             date_to = datetime.strptime(filter_date_to, '%d/%m/%Y')
-            q_list.append(Q(occurrence_date_to__lte=date_to) | Q(occurrence_date_from__lte=date_to))
+            date_to = timezone.localize(date_to)
+            q_list.append(Q(occurrence_datetime_to__lte=date_to) | Q(occurrence_datetime_from__lte=date_to))
         if filter_sanction_outcome_type:
             offence_ids = SanctionOutcome.objects.filter(type=filter_sanction_outcome_type).values_list('offence__id', flat=True).distinct()
             q_list.append(Q(id__in=offence_ids))

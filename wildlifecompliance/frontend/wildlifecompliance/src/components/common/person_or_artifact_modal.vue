@@ -29,6 +29,7 @@
                                 v-bind:key="updateSearchPersonOrganisationBindId"
                                 addFullName
                                 :displayTitle="false"
+                                :entityEdit="entityEdit"
                                 />
                             </div>
                         </div></div>
@@ -53,8 +54,10 @@
                             ref="document_artifact"
                             @entity-selected="entitySelected"
                             @existing-entity-selected="existingEntitySelected"
+                            @error-message="setDocumentArtifactErrorMessage"
                             parentModal
                             v-bind:key="updateDocumentArtifactBindId"
+                            :entityEdit="entityEdit"
                             />
                         </div>
                         <div v-if="showPhysicalArtifactComponent" class="row">
@@ -64,6 +67,7 @@
                             @existing-entity-selected="existingEntitySelected"
                             parentModal
                             v-bind:key="updatePhysicalArtifactBindId"
+                            :entityEdit="entityEdit"
                             />
                         </div>
                         <!--Artifact 
@@ -111,6 +115,7 @@ export default {
         aTab: 'aTab' + this._uid,
         uTab: 'uTab' + this._uid,
         componentType: '',
+        documentArtifactErrorMessage: '',
         //image: "/static/wildlifecompliance_vue/img/shibaken.jpg"
         //image: "/static/wildlifecompliance_vue/img/shibaken.c4c9d81.jpg"
         //image: "../../../assets/img/shibaken.jpg"
@@ -127,6 +132,10 @@ export default {
         },
         initialTabSelected: {
             type: String,
+        },
+        entityEdit: {
+            type: Object,
+            required: false,
         },
         //caseRunningSheet: {
         //    type: Boolean,
@@ -267,17 +276,20 @@ export default {
         },
         cancel: async function() {
             this.cancelArtifactComponent();
-            this.$emit('modal-action', {
-                row_number_selected: this.rowNumberSelected,
-                action: 'cancel',
-            });
+            if (!(this.entityEdit && this.entityEdit.id)) {
+                this.$emit('modal-action', {
+                    row_number_selected: this.rowNumberSelected,
+                    action: 'cancel',
+                });
+            }
             //this.isModalOpen = false;
             this.close();
         },
         emitModalAction: function() {
             console.log(this.entity)
             this.$nextTick(() => {
-                if (this.entity.id || this.urlTabSelected && this.urlText) {
+                if ((this.entity.id || this.urlTabSelected && this.urlText) && 
+                    !(this.entityEdit && this.entityEdit.id)) {
                     this.$emit('modal-action', {
                         entity: this.entity,
                         row_number_selected: this.rowNumberSelected,
@@ -290,18 +302,25 @@ export default {
                 this.close();
             });
         },
+        setDocumentArtifactErrorMessage: function(errorMessage) {
+            console.log(errorMessage);
+            this.documentArtifactErrorMessage = errorMessage.error_message;
+        },
         ok: async function() {
+            this.documentArtifactErrorMessage = ''
             if (this.artifactTabSelected) {
                 if (this.showDocumentArtifactComponent) {
-                    await this.$refs.document_artifact.create();
+                    await this.$refs.document_artifact.save();
                 } else if (this.showPhysicalArtifactComponent) {
-                    await this.$refs.physical_artifact.create();
+                    await this.$refs.physical_artifact.save();
                 }
             }
             if (this.urlTabSelected && this.urlText) {
                 this.submitUrl();
             }
-            this.emitModalAction();
+            if (!this.documentArtifactErrorMessage) {
+                this.emitModalAction();
+            }
             // For Artifact Dashboard
             if (this.$parent.$refs.artifact_table) {
                 this.$parent.$refs.artifact_table.vmDataTable.ajax.reload()
@@ -350,6 +369,16 @@ export default {
     },
     */
     created: async function() {
+        console.log(this.entityEdit)
+        // set componentType
+        if (this.entityEdit && this.entityEdit.data_type) {
+            if (this.entityEdit.data_type === 'physical_artifact') {
+                this.componentType = 'physical';
+            } else if (this.entityEdit.data_type === 'document_artifact') {
+                this.componentType = 'document';
+            }
+        }
+        // set tabSelected
         if (this.initialTabSelected === 'person') {
             this.tabSelected = 'pTab';
         } else if (this.initialTabSelected === 'artifact') {

@@ -203,7 +203,7 @@
                               </div>
                           </FormSection>
             
-                          <FormSection :formCollapse="true" label="Details" Index="2">
+                          <FormSection :formCollapse="false" label="Details" Index="2">
                             <div class="col-sm-12 form-group"><div class="row">
                                 <label class="col-sm-3">Date of call</label>
                                 <div class="col-sm-3">
@@ -326,11 +326,10 @@
                           </FormSection>
             
                           <FormSection v-if="(call_email.referrer && call_email.referrer.length > 0) || call_email.advice_details" :formCollapse="true" label="Outcome" Index="3">
-                              <div v-if="call_email.referrer && call_email.referrer.length > 0" class="col-sm-12 form-group"><div class="row">
+                            <div v-if="call_email.referrer && call_email.referrer.length > 0" class="col-sm-12 form-group"><div class="row">
                                 <label class="col-sm-4">Referred To</label>
-                                <!--select multiple :readonly="true" class="form-control" v-model="call_email.selected_referrers" -->
-                                <select style="width:100%" class="form-control input-sm" multiple ref="referrerList" >
-                                  <option  v-for="option in referrers" :value="option.id" v-bind:key="option.id">
+                                <select style="width:100%" disabled class="form-control input-sm" multiple="multiple" ref="referrerList" >
+                                  <option  v-for="option in call_email.referrer" :value="option.id" v-bind:key="option.id">
                                     {{ option.name }} 
                                   </option>
                                 </select>
@@ -989,21 +988,6 @@ export default {
       $('#timeOfCallPicker').on('dp.change', function(e) {
           vm.setTimeOfCall(e.date.format('LT'));
       }); 
-      // Initialise select2 for referrer
-      $(vm.$refs.referrerList).select2({
-          "theme": "bootstrap",
-          allowClear: true,
-          placeholder:"Select Referrer"
-                  }).
-      on("select2:select",function (e) {
-                          var selected = $(e.currentTarget);
-                          vm.referrersSelected = selected.val();
-                      }).
-      on("select2:unselect",function (e) {
-                          var selected = $(e.currentTarget);
-                          vm.referrersSelected = selected.val();
-                      });
-      
       vm.$nextTick(() => {
           vm.addEventListeners();
           //this.calculateHash();

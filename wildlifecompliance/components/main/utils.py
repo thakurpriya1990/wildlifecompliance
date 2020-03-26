@@ -16,13 +16,12 @@ from django.core.cache import cache
 def retrieve_department_users():
     print(settings.CMS_URL)
     try:
-        res = requests.get('{}/api/users?minimal'.format(settings.CMS_URL), auth=(settings.LEDGER_USER,settings.LEDGER_PASS), verify=False)
+        #res = requests.get('{}/api/users?minimal'.format(settings.CMS_URL), auth=(settings.LEDGER_USER,settings.LEDGER_PASS), verify=False)
+        #res = requests.get('{}/api/users?minimal'.format(settings.EXT_USER_API_ROOT_URL), auth=(settings.LEDGER_USER,settings.LEDGER_PASS), verify=False)
+        res = requests.get('{}/api/users/fast?/compact'.format(settings.EXT_USER_API_ROOT_URL), 
+                auth=(settings.LEDGER_USER,settings.LEDGER_PASS), verify=False)
         res.raise_for_status()
         cache.set('department_users',json.loads(res.content).get('objects'),10800)
-        #print("type(res.content)")
-        #print(type(res.content))
-        #return_json = json.loads(res.content).get('objects')
-        #return return_json
     except:
         raise
 
@@ -181,7 +180,7 @@ def bind_application_to_invoice(request, application, invoice_ref):
                     application.submitter.id) if application.submitter else u'An anonymous user'))
         raise BindApplicationException
 
-    if inv.system not in ['0999']:
+    if inv.system not in [settings.WC_PAYMENT_SYSTEM_PREFIX]:
         logger.error(
             u'{} tried making an application with an invoice from another system with reference number {}'.format(
                 u'User {} with id {}'.format(
@@ -376,64 +375,3 @@ def search_reference(reference_number):
         return url_string
     else:
         raise ValidationError('Record with provided reference number does not exist')
-
-#def search_weak_links(request_data):
-#    from wildlifecompliance.components.call_email.models import CallEmail
-#    from wildlifecompliance.components.inspection.models import Inspection
-#    from wildlifecompliance.components.offence.models import Offence
-#    from wildlifecompliance.components.sanction_outcome.models import SanctionOutcome
-#    qs = []
-#
-#    components_selected = request_data.get('selectedEntity')
-#    search_text = request_data.get('searchText')
-#    if 'call_email' in components_selected:
-#        qs = CallEmail.objects.filter(
-#                Q(number__icontains=search_text) |
-#                Q(caller__icontains=search_text) |
-#                Q(caller_phone_number__icontains=search_text) |
-#                Q(location__street__icontains=search_text) |
-#                Q(location__town_suburb__icontains=search_text) 
-#                )
-#    elif 'inspection' in components_selected:
-#        qs = Inspection.objects.filter(
-#                Q(number__icontains=search_text) |
-#                Q(title__icontains=search_text) |
-#                Q(details__icontains=search_text) |
-#                Q(inspection_type__inspection_type__icontains=search_text) |
-#                Q(individual_inspected__first_name__icontains=search_text) |
-#                Q(individual_inspected__last_name__icontains=search_text) |
-#                Q(call_email__number__icontains=search_text)
-#                )
-#    elif 'offence' in components_selected:
-#        qs = Offence.objects.filter(
-#                Q(lodgement_number__icontains=search_text) |
-#                Q(identifier__icontains=search_text) |
-#                Q(details__icontains=search_text) |
-#                Q(alleged_offences__act__icontains=search_text) |
-#                Q(alleged_offences__name__icontains=search_text) |
-#                Q(offender__person__first_name__icontains=search_text) |
-#                Q(offender__person__last_name__icontains=search_text)
-#                )
-#    elif 'sanction_outcome' in components_selected:
-#        qs = SanctionOutcome.objects.filter(
-#                Q(lodgement_number__icontains=search_text) |
-#                Q(identifier__icontains=search_text) |
-#                Q(description__icontains=search_text) |
-#                Q(offence__alleged_offences__act__icontains=search_text) |
-#                Q(offence__alleged_offences__name__icontains=search_text) |
-#                Q(offender__person__first_name__icontains=search_text) |
-#                Q(offender__person__last_name__icontains=search_text)
-#                )
-#    return_qs = []
-#
-#    # First 10 records only
-#    for item in qs[:10]:
-#
-#        return_qs.append({
-#            'id': item.id,
-#            'model_name': item._meta.model_name,
-#            'item_identifier': item.get_related_items_identifier,
-#            'item_description': item.get_related_items_descriptor,
-#            })
-#    return return_qs
-

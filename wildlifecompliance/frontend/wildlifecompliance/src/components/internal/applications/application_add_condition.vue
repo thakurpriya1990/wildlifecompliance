@@ -29,6 +29,20 @@
                                     </div>
                                 </div>
                             </div>
+                            <div class="form-group">
+                                <div class="row">
+                                    <div class="col-sm-3">
+                                        <label class="control-label pull-left"  for="Name">Purpose</label>
+                                    </div>
+                                    <div class="col-sm-9" >
+                                        <div style="width:70% !important">
+                                            <select class="form-control" name="purpoose" v-model="condition.licence_purpose" >
+                                                <option v-for="p in purposes" :value="p.id" >{{p.short_name}}</option>
+                                            </select>
+                                        </div>
+                                    </div>
+                                </div>
+                            </div>
                             <div class="form-group" v-if="!condition.standard">
                                 <div class="row">
                                     <div class="col-sm-3">
@@ -103,14 +117,14 @@
             </div>
             <div slot="footer">
                 <template v-if="condition.id">
-                    <button type="button" v-if="updatingCondition" disabled class="btn btn-default" @click="ok"><i class="fa fa-spinnner fa-spin"></i> Updating</button>
-                    <button type="button" v-else class="btn btn-default" @click="ok">Update</button>
+                    <button type="button" v-if="updatingCondition" disabled class="btn btn-primary" @click="ok"><i class="fa fa-spinnner fa-spin"></i> Updating</button>
+                    <button type="button" v-else class="btn btn-primary" @click="ok">Update</button>
                 </template>
                 <template v-else>
-                    <button type="button" v-if="addingCondition" disabled class="btn btn-default" @click="ok"><i class="fa fa-spinner fa-spin"></i> Adding</button>
-                    <button type="button" v-else class="btn btn-default" @click="ok">Add</button>
+                    <button type="button" v-if="addingCondition" disabled class="btn btn-primary" @click="ok"><i class="fa fa-spinner fa-spin"></i> Adding</button>
+                    <button type="button" v-else class="btn btn-primary" @click="ok">Add</button>
                 </template>
-                <button type="button" class="btn btn-default" @click="cancel">Cancel</button>
+                <button type="button" class="btn btn-primary" @click="cancel">Cancel</button>
             </div>
         </modal>
     </div>
@@ -143,7 +157,11 @@ export default {
             licence_activity_tab:{
                 type:Number,
                 required:true
-            }
+            },
+            purposes: {
+                type: Array,
+                required: true
+            },
     },
     data:function () {
         let vm = this;

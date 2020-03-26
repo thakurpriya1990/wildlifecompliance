@@ -53,7 +53,7 @@
                 <label class="">Region:</label>
                                   <!-- <select class="form-control col-sm-9" v-on:change.prevent="sanction_outcome.region_id=$event.target.value; updateDistricts('updatefromUI')" v-bind:value="sanction_outcome.region_id">
                                     <option  v-for="option in regions" :value="option.id" v-bind:key="option.id">
-                                      {{ option.display_name }} 
+                                      {{ option.display_name }}
                                     </option>
                                   </select> -->
                 <select class="form-control" v-on:change.prevent="filterRegionId=$event.target.value; updateDistricts('updatefromUI')" v-bind:value="filterRegionId">
@@ -66,7 +66,7 @@
                 <label class="">District:</label>
                                   <!-- <select class="form-control" v-model="sanction_outcome.district_id">
                                     <option  v-for="option in availableDistricts" :value="option.id" v-bind:key="option.id">
-                                      {{ option.display_name }} 
+                                      {{ option.display_name }}
                                     </option>
                                   </select> -->
                 <select class="form-control" v-model="filterDistrictId">
@@ -89,7 +89,8 @@
 <script>
 import $ from 'jquery'
 import datatable from '@vue-utils/datatable.vue'
-import FormSection from "@/components/compliance_forms/section.vue";
+//import FormSection from "@/components/compliance_forms/section.vue";
+import FormSection from "@/components/forms/section_toggle.vue";
 import { api_endpoints, helpers, cache_helper } from '@/utils/hooks'
 
 export default {
@@ -142,6 +143,10 @@ export default {
                         data: 'lodgement_number',
                         searchable: true,
                         orderable: true,
+                    },
+                    {
+                        data: 'remediation_actions',
+                        visible: false,
                     },
                     {
                         data: 'type',
@@ -197,6 +202,34 @@ export default {
                         data: 'status.name',
                         searchable: true,
                         orderable: true,
+                        mRender: function(data, type, full){
+                            if (full.type.id == 'remediation_notice'){
+                                console.log(full);
+                                let num_total = 0;
+                                let num_open = 0;
+                                let num_overdue = 0;
+                                let num_submitted = 0;
+                                let num_accepted = 0;
+                                for (let i=0; i<full.remediation_actions.length; i++){
+                                    if (full.remediation_actions[i].status.id == 'open'){
+                                        num_open++;
+                                    }
+                                    if (full.remediation_actions[i].status.id == 'overdue'){
+                                        num_overdue++;
+                                    }
+                                    if (full.remediation_actions[i].status.id == 'submitted'){
+                                        num_submitted++;
+                                    }
+                                    if (full.remediation_actions[i].status.id == 'accepted'){
+                                        num_accepted++;
+                                    }
+                                    num_total++;
+                                }
+                                data = data + `<br />(Open: ${num_open}, Submitted: ${num_submitted}, Accepted: ${num_accepted}, Overdue: ${num_overdue})`
+                                return data;
+                            }
+                            return data;
+                        }
                     },
                     {
                         data: 'payment_status.name',
@@ -219,7 +252,7 @@ export default {
                         mRender: function (data, type, row){
                             if (data){
                                 return data;
-                            } else { 
+                            } else {
                                 return '---';
                             }
                         }
@@ -228,6 +261,7 @@ export default {
             },
             dtHeaders: [
                 'Number',
+                'RemediationActions',
                 'Type',
                 'Identifier',
                 'Issue Date',
@@ -314,8 +348,6 @@ export default {
             this.attachFromDatePicker();
             this.attachToDatePicker();
 
-            console.log('addEventLinsterners');
-
             vm.$refs.sanction_outcome_table.vmDataTable.on('click', 'a[data-pay-infringement-penalty]', function(e) {
                 e.preventDefault();
                 var id = $(e.target).attr('data-pay-infringement-penalty');
@@ -323,8 +355,6 @@ export default {
             });
         },
         payInfringementPenalty: function(sanction_outcome_id){
-            console.log('payInfringementPenalty');
-
             this.$http.post('/infringement_penalty/' + sanction_outcome_id + '/').then(res=>{
                     window.location.href = "/ledger/checkout/checkout/payment-details/";
                 },err=>{
@@ -380,7 +410,6 @@ export default {
             this.sanction_outcome_payment_statuses.splice(0, 0, {id: 'all', display: 'All'});
         },
         constructOptionsRegion: async function() {
-            console.log('constructOptionsRegion()')
             let returned_regions = await cache_helper.getSetCacheList(
                 "Regions",
                 "/api/region_district/get_regions/"
@@ -395,13 +424,11 @@ export default {
             });
         },
         constructOptionsDistrict: async function() {
-            console.log('constructOptionsDistrict()')
             let returned_region_districts = await cache_helper.getSetCacheList(
                 "RegionDistricts",
                 api_endpoints.region_district
             );
             Object.assign(this.sanction_outcome_regionDistricts, returned_region_districts);
-            console.log(this.sanction_outcome_regionDistricts);
             this.updateDistricts();
         },
     },
@@ -414,5 +441,8 @@ export default {
 </script>
 
 <style>
-
+.viewed-by-offender {
+    color: green;
+    font: 1.5em;
+}
 </style>
