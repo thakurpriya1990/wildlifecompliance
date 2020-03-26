@@ -462,8 +462,8 @@ class CallEmailViewSet(viewsets.ModelViewSet):
                     if returned_location:
                         request_data.update({'location_id': returned_location.get('id')})
 
-                if request_data.get('report_type'):
-                    request_data.update({'report_type_id': request_data.get('report_type', {}).get('id')})
+                #if request_data.get('report_type'):
+                 #   request_data.update({'report_type_id': request_data.get('report_type', {}).get('id')})
 
                 # Initial allocated_group_id must be volunteers
                 compliance_content_type = ContentType.objects.get(model="compliancepermissiongroup")
@@ -637,11 +637,11 @@ class CallEmailViewSet(viewsets.ModelViewSet):
                 if request_data.get('renderer_data'):
                     self.form_data(request)
 
-                if request_data.get('report_type_id'):
-                    if request_data.get('report_type_id') == 'blank':
-                        request_data.update({'report_type_id': None})
-                    else:
-                        request_data.update({'report_type_id': request_data.get('report_type', {}).get('id')})
+                #if request_data.get('report_type_id'):
+                 #   request_data.update({'report_type_id': request_data.get('report_type', {}).get('id')})
+
+                if instance.report_type and 'report_type_id' in request.data.keys() and not request.data.get('report_type_id'):
+                        del request.data['report_type_id']
 
                 serializer = SaveCallEmailSerializer(instance, data=request_data)
                 serializer.is_valid(raise_exception=True)

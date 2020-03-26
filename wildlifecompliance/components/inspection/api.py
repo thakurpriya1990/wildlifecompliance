@@ -491,6 +491,8 @@ class InspectionViewSet(viewsets.ModelViewSet):
     @renderer_classes((JSONRenderer,))
     #def inspection_save(self, request, workflow=False, *args, **kwargs):
     def update(self, request, workflow=False, *args, **kwargs):
+        print("def update")
+        print(request.data)
         try:
             with transaction.atomic():
                 # 1. Save Location
@@ -513,6 +515,10 @@ class InspectionViewSet(viewsets.ModelViewSet):
                 party_inspected = instance.party_inspected
                 if request.data.get('renderer_data'):
                     self.form_data(request)
+
+                if instance.inspection_type and not request.data.get('inspection_type_id'):
+                    if 'inspection_type_id' in request.data.keys():
+                        del request.data['inspection_type_id']
 
                 serializer = SaveInspectionSerializer(instance, data=request.data)
                 serializer.is_valid(raise_exception=True)
@@ -692,8 +698,6 @@ class InspectionViewSet(viewsets.ModelViewSet):
             raise serializers.ValidationError(str(e))
 
     def create(self, request, *args, **kwargs):
-        print("create")
-        print(request.data)
         try:
             with transaction.atomic():
                 # 1. Save Location

@@ -311,7 +311,7 @@
                                         <label class="col-sm-2 advice-url-label">None </label>
                                     </div>
                                     <div class="row">
-                                        <a class="advice-url" :href="this.reportAdviceUrl" target="_blank" >Advice</a>
+                                        <a v-if="reportAdviceUrl" class="advice-url" :href="reportAdviceUrl" target="_blank" >Advice</a>
                                     </div>
                                 </div>
                             </div>
@@ -465,6 +465,7 @@ export default {
       //allocated_group: [],
       current_schema: [],
       regionDistricts: [],
+      reportAdviceUrl: '',
       sectionLabel: "Details",
       sectionIndex: 1,
       pBody: "pBody" + this._uid,
@@ -603,13 +604,6 @@ export default {
         // return false if no related item is an Offence
         return false
     },
-    reportAdviceUrl: function() {
-        if (this.call_email.report_type) {
-            return this.call_email.report_type.advice_url;
-        } else {
-            return null;
-        }
-    },
     relatedItemsBindId: function() {
         let timeNow = Date.now()
         if (this.call_email && this.call_email.id) {
@@ -666,6 +660,12 @@ export default {
         console.log(para);
         await this.setCaller(para);
     },
+    loadReportAdviceUrl: function(url) {
+        if (!this.reportAdviceUrl && this.call_email && this.call_email.report_type) {
+            this.reportAdviceUrl = url;
+        }
+    },
+
     formChanged: function(){
         let changed = false;
         let copiedCallEmail = {};
@@ -774,15 +774,15 @@ export default {
       await this.saveCallEmail({ route: false, crud: 'duplicate'});
     },
     loadSchema: function() {
-      if (this.call_email.report_type_id && this.call_email.report_type_id !== 'blank') {
+      if (this.call_email.report_type_id) {
           this.$nextTick(async function() {
               let url = helpers.add_endpoint_json(
                             api_endpoints.report_types,
                             this.call_email.report_type_id + '/get_schema',
                             );
               let returnedData = await Vue.http.get(url);
-              let returnedSchema = returnedData.schema;
-              let returnedAdviceUrl = returnedData.advice_url;
+              let returnedSchema = returnedData.body.schema;
+              let returnedAdviceUrl = returnedData.body.adviceurl;
               /*
               let returned_schema = await cache_helper.getSetCache(
                 'CallEmail_ReportTypeSchema', 
@@ -933,7 +933,7 @@ export default {
     // blank entry allows user to clear selection
     this.report_types.splice(0, 0, 
       {
-        id: "blank", 
+        id: "", 
         name: "",
       });
     // referrers
@@ -953,8 +953,11 @@ export default {
     //Object.assign(this.referrersSelected, this.call_email.selected_referrers)
 
     // load current CallEmail renderer schema
-    if (this.call_email.report_type_id) {
+    if (this.call_email && this.call_email.report_type_id) {
       await this.loadSchema();
+    }
+    if (this.call_email && this.call_email.report_type && this.call_email.report_type.advice_url) {
+        this.loadReportAdviceUrl(this.call_email.report_type.advice_url);
     }
 
     // regionDistricts
