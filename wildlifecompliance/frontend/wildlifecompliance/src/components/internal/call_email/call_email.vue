@@ -131,7 +131,7 @@
                                 </a>
                           </div>
                         </div>
-                        <div v-if="statusId !=='closed' && canUserAction" class="row action-button">
+                        <div v-if="closeButtonVisibility && canUserAction" class="row action-button">
                           <div class="col-sm-12">
                                 <a ref="close" @click="addWorkflow('close')" class="btn btn-primary btn-block">
                                   Close
@@ -540,10 +540,17 @@ export default {
     }),
     personSearchVisibility: function() {
         let visible = false;
-        if (this.statusId ==='open') {
+        if (this.statusId ==='open' && !this.readonlyForm) {
             visible = true;
         }
         return visible;
+    },
+    closeButtonVisibility: function() {
+        let visibility = true;
+        if (['closed', 'pending_closure'].includes(this.statusId)) {
+            visibility = false;
+        }
+        return visibility;
     },
     updateSearchPersonOrganisationBindId: function() {
         let bindId = 'individual';
