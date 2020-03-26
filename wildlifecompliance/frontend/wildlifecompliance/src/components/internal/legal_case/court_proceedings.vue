@@ -4,7 +4,7 @@
             <FormSection :formCollapse="false" label="Court Dates">
                 <div class="col-sm-12 form-group"><div class="row">
 
-                    <div class="input-group date" id="court_date" v-for="court_date_obj in legal_case.court_proceedings.court_dates">
+                    <template class="input-group date" id="court_date" v-for="court_date_obj in legal_case.court_proceedings.court_dates">
                         <CourtDate 
                             :court_datetime="new Date(court_date_obj.court_datetime)"
                             :comments="court_date_obj.comments"
@@ -12,7 +12,7 @@
                             @data_changed="dataChanged"
                             :Key="court_date_obj.id"
                             />
-                    </div>
+                    </template>
                         <CourtDate 
                             @data_changed="dataChanged"
                             />
