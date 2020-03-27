@@ -1,7 +1,8 @@
 <template lang="html">
     <div class="">
         <div class="col-sm-12 form-group"><div class="row">
-                <label v-if="displayTitle" class="col-sm-4">{{ labelTitle }}</label>
+                <label v-if="componentTitle" class="col-sm-4">{{ componentTitle }}</label>
+                <label v-else-if="displayTitle" class="col-sm-4">{{ labelTitle }}</label>
                 <div v-if="!personOnly">
                     <input :disabled="!isEditable" class="col-sm-1" id="individual" type="radio" v-model="searchType" v-bind:value="`individual`">
                     <label class="col-sm-1" for="individual">Person</label>
@@ -11,7 +12,7 @@
         </div></div>
         <div class="form-group"><div class="row">
             <div class="col-sm-12">
-                <div class="col-sm-8">
+                <div class="col-sm-9">
                     <input :id="elemId" :class="classNames" :readonly="!isEditable" ref="search_person_org"/>
                 </div>
                 <div v-if="showCreateNewPerson" class="col-sm-2">
@@ -197,6 +198,10 @@ export default {
             required: false,
         },
         domIdHelper: {
+            type: String,
+            required: false,
+        },
+        componentTitle: {
             type: String,
             required: false,
         },

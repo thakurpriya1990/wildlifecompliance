@@ -95,7 +95,7 @@ CACHES = {
     }
 }
 CRON_CLASSES = [
-    'wildlifecompliance.components.applications.cron.VerifyLicenceSpeciesJob',
+    'wildlifecompliance.cron.OracleIntegrationCronJob',
 ]
 
 # Additional logging for wildlifecompliance

@@ -541,6 +541,27 @@ class ApplicationViewSet(viewsets.ModelViewSet):
             print(traceback.print_exc())
             raise serializers.ValidationError(str(e))
 
+    @detail_route(methods=['POST', ])
+    def add_assessment_inspection(self, request, *args, **kwargs):
+        try:
+            instance = self.get_object()
+            for assessment in instance.assessments:
+                if assessment.licence_activity.id == \
+                   request.data.get('licence_activity_id'):
+                    assessment.add_inspection(request)
+            serializer = InternalApplicationSerializer(
+                instance, context={'request': request})
+            return Response(serializer.data)
+        except serializers.ValidationError:
+            print(traceback.print_exc())
+            raise
+        except ValidationError as e:
+            print(traceback.print_exc())
+            raise serializers.ValidationError(repr(e.error_dict))
+        except Exception as e:
+            print(traceback.print_exc())
+            raise serializers.ValidationError(str(e))
+
     @list_route(methods=['GET', ])
     def active_licence_application(self, request, *args, **kwargs):
         active_application = Application.get_active_licence_applications(request).first()
@@ -1217,7 +1238,9 @@ class ApplicationViewSet(viewsets.ModelViewSet):
             # Render any Application Standard Conditions triggered from Form.
             ApplicationService.render_defined_conditions(
                 instance, request.data)
-
+            # Set any special form fields on the Application schema.
+            ApplicationService.set_special_form_fields(
+                instance, request.data)
             # Send any relevant notifications.
             instance.alert_for_refund(request)
             return Response({'success': True})
