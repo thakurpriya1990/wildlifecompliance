@@ -1,9 +1,5 @@
 from django_cron import CronJobBase, Schedule
 
-from wildlifecompliance.components.applications.services import (
-    ApplicationService
-)
-
 
 class VerifyLicenceSpeciesJob(CronJobBase):
     """
@@ -15,4 +11,4 @@ class VerifyLicenceSpeciesJob(CronJobBase):
     code = 'applications.verify_licence_species'
 
     def do(self):
-        ApplicationService.verify_licence_species()
+        pass

@@ -143,7 +143,7 @@
                             <div class="form-group">
                               <div class="row">
                                 <div class="col-sm-3">
-                                  <label>Inspection Type</label>
+                                  <label>Inspection type</label>
                                 </div>
                                 <div class="col-sm-6">
                                   <select :disabled="readonlyForm" class="form-control" v-model="inspection.inspection_type_id" @change="loadSchema">
@@ -205,16 +205,17 @@
                             </div></div-->
 
                             <div class="form-group"><div class="row">
-                                    <SearchPersonOrganisation
-                                    :parentEntity="inspectedEntity"
-                                    :excludeStaff="true"
-                                    :isEditable="!readonlyForm"
-                                    classNames="form-control"
-                                    :initialSearchType="inspection.party_inspected"
-                                    @entity-selected="entitySelected"
-                                    showCreateUpdate
-                                    ref="search_person_organisation"
-                                    v-bind:key="updateSearchPersonOrganisationBindId"/>
+                                <SearchPersonOrganisation
+                                componentTitle="Party to be inspected"
+                                :parentEntity="inspectedEntity"
+                                :excludeStaff="true"
+                                :isEditable="!readonlyForm"
+                                classNames="form-control"
+                                :initialSearchType="inspection.party_inspected"
+                                @entity-selected="entitySelected"
+                                showCreateUpdate
+                                ref="search_person_organisation"
+                                v-bind:key="updateSearchPersonOrganisationBindId"/>
                                 <!--div class="col-sm-1">
                                     <input type="button" class="btn btn-primary" value="Add" @click.prevent="addOffenderClicked()" />
                                 </div-->
@@ -231,7 +232,7 @@
                                 </div>
                             </div></div-->
                             <div class="form-group"><div class="row">
-                              <label class="col-sm-4" for="inspection_inform">Inform party being inspected</label>
+                              <label class="col-sm-4" for="inspection_inform">Inform party to be inspected</label>
                               <input :disabled="readonlyForm" type="checkbox" id="inspection_inform" v-model="inspection.inform_party_being_inspected">
 
                             </div></div>
@@ -316,10 +317,10 @@
                             </FormSection>
                         </div>
                         <div :id="oTab" class="tab-pane fade in">
-                            <FormSection :formCollapse="false" label="Inspection report">
+                            <FormSection :formCollapse="false" label="Inspection Report">
                                 <div class="form-group">
                                     <div class="row">
-                                        <div class="col-sm-3">
+                                        <div class="col-sm-6">
                                             <label class="control-label pull-left"  for="Name">Inspection Report</label>
                                         </div>
                                         <div class="col-sm-9" v-if="inspection.inspectionReportDocumentUrl">
@@ -843,20 +844,22 @@ export default {
     },
 
     loadSchema: function() {
-      this.$nextTick(async function() {
-      let url = helpers.add_endpoint_json(
-                    api_endpoints.inspection_types,
-                    this.inspection.inspection_type_id + '/get_schema',
-                    );
-      let returned_schema = await cache_helper.getSetCache(
-        'InspectionTypeSchema',
-        this.inspection.id.toString(),
-        url);
-      if (returned_schema) {
-        this.current_schema = returned_schema.schema;
-      }
+        if (this.inspection.inspection_type_id) {
+          this.$nextTick(async function() {
+          let url = helpers.add_endpoint_json(
+                        api_endpoints.inspection_types,
+                        this.inspection.inspection_type_id + '/get_schema',
+                        );
+          let returned_schema = await cache_helper.getSetCache(
+            'InspectionTypeSchema',
+            this.inspection.id.toString(),
+            url);
+          if (returned_schema) {
+            this.current_schema = returned_schema.schema;
+          }
 
-      });
+          });
+        }
     },
 
     open_sanction_outcome(){
@@ -1063,7 +1066,7 @@ export default {
       // blank entry allows user to clear selection
       this.inspectionTypes.splice(0, 0,
           {
-            id: "",
+            id: null,
             description: "",
           });
       // load current Inspection renderer schema

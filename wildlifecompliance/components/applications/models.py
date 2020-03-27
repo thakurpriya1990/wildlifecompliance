@@ -29,6 +29,8 @@ from wildlifecompliance.components.main.utils import (
     flush_checkout_session
 )
 
+from wildlifecompliance.components.inspection.models import Inspection
+
 from wildlifecompliance.components.organisations.models import Organisation
 from wildlifecompliance.components.organisations.emails import (
     send_org_id_update_request_notification
@@ -918,19 +920,28 @@ class Application(RevisionedMixin):
                         else:
                             self.set_activity_processing_status(
                                 activity["id"], ApplicationSelectedActivity.PROCESSING_STATUS_WITH_OFFICER)
-                        qs = DefaultCondition.objects.filter(
-                            licence_activity=activity["id"])
-                        if (qs):
-                            for q in qs:
-                                standard_condition = ApplicationStandardCondition.objects.get(id=q.standard_condition_id)
-                                ApplicationCondition.objects.create(
-                                    is_default=True,
-                                    standard=True,
-                                    standard_condition=standard_condition,
-                                    application=self,
-                                    licence_activity=LicenceActivity.objects.get(
-                                        id=activity["id"]),
-                                    return_type=standard_condition.return_type)
+                        '''
+                        Process Default Conditions for an Application.
+                        '''
+                        conditions = DefaultCondition.objects.filter(
+                            licence_activity=activity["id"]
+                            )
+
+                        for d in conditions:
+                            sc = ApplicationStandardCondition.objects.get(
+                                id=d.standard_condition_id
+                                )
+
+                            ac, c = ApplicationCondition.objects.get_or_create(
+                                is_default=True,
+                                standard=True,
+                                standard_condition=sc,
+                                application=self
+                            )
+                            ac.licence_activity = d.licence_activity
+                            ac.licence_purpose = d.licence_purpose
+                            ac.return_type = sc.return_type
+                            ac.save()
 
                 self.save()
                 officer_groups = ActivityPermissionGroup.objects.filter(
@@ -2654,14 +2665,8 @@ class Assessment(ApplicationRequest):
         ActivityPermissionGroup, null=False, default=1)
     licence_activity = models.ForeignKey(
         'wildlifecompliance.LicenceActivity', null=True)
-    inspection_comment = models.TextField(blank=True)
     final_comment = models.TextField(blank=True)
     purpose = models.TextField(blank=True)
-    inspection_date = models.DateField(null=True, blank=True)
-    inspection_report = models.FileField(
-        upload_to=update_assessment_inspection_report_filename,
-        blank=True, 
-        null=True)
     actioned_by = models.ForeignKey(EmailUser, null=True)
     assigned_assessor = models.ForeignKey(
         EmailUser,
@@ -2758,6 +2763,29 @@ class Assessment(ApplicationRequest):
             except BaseException:
                 raise
 
+    def add_inspection(self, request):
+        with transaction.atomic():
+            try:
+                inspection = Inspection.objects.get(
+                    id=request.data.get('inspection_id'))
+
+                assessment_inspection, created = \
+                    AssessmentInspection.objects.get_or_create(
+                        assessment=self,
+                        inspection=inspection
+                    )
+                assessment_inspection.save()
+
+                # Create a log entry for the inspection
+                self.application.log_user_action(
+                    ApplicationUserAction.ACTION_ASSESSMENT_INSPECTION_REQUEST.format(
+                        inspection.number, self.licence_activity), request)
+
+            except Inspection.DoesNotExist:
+                raise Exception('Inspection was not created')
+            except BaseException:
+                raise
+
     @property
     def selected_activity(self):
         return ApplicationSelectedActivity.objects.filter(
@@ -2771,6 +2799,42 @@ class Assessment(ApplicationRequest):
 
     def assessors(self):
         return self.assessor_group.members.all()
+
+
+class AssessmentInspection(models.Model):
+    """
+    A model represention of an Inspection for an Assessment.
+    """
+    assessment = models.ForeignKey(
+        Assessment, related_name='inspections')
+    inspection = models.ForeignKey(
+        Inspection, related_name='wildlifecompliance_inspection')
+    request_datetime = models.DateTimeField(auto_now=True)
+
+    class Meta:
+        app_label = 'wildlifecompliance'
+
+    def __str__(self):
+        return 'Assessment {0} : Inspection #{1}'.format(
+            self.assessment_id, self.inspection.name)
+
+    # Properties
+    # ==================
+    @property
+    def active(self):
+        try:
+            inspection = Inspection.objects.get(
+                id=self.inspection_id,
+            )
+            if inspection.status in [
+                    Inspection.STATUS_OPEN,
+                ]:
+                return true
+
+        except Inspection.DoesNotExist:
+            pass
+
+        return False
 
 
 class ApplicationSelectedActivity(models.Model):
@@ -3366,6 +3430,7 @@ class ApplicationSelectedActivityPurpose(models.Model):
         app_label = 'wildlifecompliance'
         verbose_name = 'Application selected activity purpose'
 
+
 class IssuanceDocument(Document):
     _file = models.FileField(max_length=255)
     # after initial submit prevent document from being deleted
@@ -3506,7 +3571,10 @@ class ApplicationStandardCondition(RevisionedMixin):
     text = models.TextField()
     code = models.CharField(max_length=10, unique=True)
     obsolete = models.BooleanField(default=False)
-    return_type = models.ForeignKey('wildlifecompliance.ReturnType', null=True, blank=True)
+    return_type = models.ForeignKey(
+        'wildlifecompliance.ReturnType', null=True, blank=True)
+    additional_information = models.TextField(
+        max_length=1024, null=True, blank=True)
 
     def __str__(self):
         return self.code
@@ -3517,11 +3585,19 @@ class ApplicationStandardCondition(RevisionedMixin):
 
 
 class DefaultCondition(OrderedModel):
-    comments = models.TextField(null=True, blank=True)
-    licence_activity = models.ForeignKey(
-        'wildlifecompliance.LicenceActivity', null=True)
     standard_condition = models.ForeignKey(
-        ApplicationStandardCondition, null=True)      
+        ApplicationStandardCondition,
+        related_name='default_condition', 
+        null=True)    
+    licence_activity = models.ForeignKey(
+        'wildlifecompliance.LicenceActivity',
+        related_name='default_activity', 
+        null=True)
+    licence_purpose = models.ForeignKey(
+        'wildlifecompliance.LicencePurpose',
+        related_name='default_purpose',
+        null=True)      
+    comments = models.TextField(null=True, blank=True)
 
     class Meta:
         app_label = 'wildlifecompliance'
@@ -3633,7 +3709,9 @@ class ApplicationUserAction(UserAction):
     ACTION_ASSESSMENT_RESENT = "Assessment Resent {}"
     ACTION_ASSESSMENT_COMPLETE = "Assessment Completed for group {} "
     ACTION_ASSESSMENT_ASSIGNED = "Assessment for {} Assigned to {}"
-    ACTION_ASSESSMENT_UNASSIGNED = "Unassigned Assessor from Assessment for {}"    
+    ACTION_ASSESSMENT_UNASSIGNED = "Unassigned Assessor from Assessment for {}"
+    ACTION_ASSESSMENT_INSPECTION_REQUEST = \
+        "Inspection {} for Assessment {} was requested."    
     ACTION_DECLINE = "Decline application {}"
     ACTION_ENTER_CONDITIONS = "Entered condition for activity {}"
     ACTION_CREATE_CONDITION_ = "Create condition {}"
@@ -3666,3 +3744,22 @@ class ApplicationUserAction(UserAction):
 def delete_documents(sender, instance, *args, **kwargs):
     for document in instance.documents.all():
         document.delete()
+
+
+'''
+NOTE: REGISTER MODELS FOR REVERSION HERE.
+'''
+import reversion
+reversion.register(Application)
+reversion.register(ApplicationSelectedActivity)
+reversion.register(ApplicationSelectedActivityPurpose)
+reversion.register(ApplicationCondition)
+reversion.register(ApplicationInvoice)
+reversion.register(ApplicationInvoiceLine)
+reversion.register(ApplicationDocument)
+reversion.register(ApplicationStandardCondition)
+reversion.register(ApplicationFormDataRecord)
+reversion.register(AmendmentRequest)
+reversion.register(ActivityPermissionGroup)
+reversion.register(ActivityInvoice)
+reversion.register(ActivityInvoiceLine)

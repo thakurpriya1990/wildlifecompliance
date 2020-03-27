@@ -1,4 +1,5 @@
 from django.contrib import admin
+from wildlifecompliance.components.licences.models import LicencePurpose
 from wildlifecompliance.components.applications import models
 from wildlifecompliance.components.applications import forms
 from reversion.admin import VersionAdmin
@@ -31,7 +32,11 @@ class ApplicationCondition(admin.ModelAdmin):
 
 @admin.register(models.DefaultCondition)
 class DefaultCondition(admin.ModelAdmin):
-    list_display = ['licence_activity', 'standard_condition']
+    list_display = [
+        'standard_condition',
+        'licence_activity',
+        'licence_purpose'
+        ]
 
 
 @admin.register(models.ActivityPermissionGroup)
