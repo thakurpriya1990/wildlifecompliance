@@ -677,6 +677,11 @@ class LegalCaseViewSet(viewsets.ModelViewSet):
                 document_label = "Brief of Evidence"
             elif request.data.get("document_type") == 'prosecution_brief':
                 document_label = "Prosecution Brief"
+            elif request.data.get("document_type") == 'prosecution_notice':
+                document_label = "Prosecution Notice"
+            elif request.data.get("document_type") == 'court_hearing_notice':
+                document_label = "Court Hearing Notice"
+
             section_list = ''
             if request.data.get('include_statement_of_facts'):
                 section_list += "Statement of Facts"
@@ -700,7 +705,9 @@ class LegalCaseViewSet(viewsets.ModelViewSet):
                 if section_list:
                     section_list += ", "
                 section_list += "List of Photographic, Video and Sound Exhibits"
+
             http_response = create_document_pdf_bytes(instance, request.data)
+
             if http_response:
                 instance.log_user_action(
                         LegalCaseUserAction.ACTION_GENERATE_DOCUMENT.format(

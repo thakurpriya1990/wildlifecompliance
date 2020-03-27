@@ -40,6 +40,8 @@ from django.conf import settings
 
 from ledger.accounts.models import Document
 from ledger.checkout.utils import calculate_excl_gst
+
+from wildlifecompliance.components.legal_case import pdf_court_hearing_notice, pdf_prosecution_notice
 from wildlifecompliance.components.main.pdf_utils import ParagraphCheckbox, ParagraphOffeset
 
 PAGE_MARGIN = 5 * mm
@@ -521,9 +523,17 @@ def create_document_pdf_bytes(legal_case, request_data):
         document_type = request_data.get('document_type')
         filename = document_type + '_' + legal_case.number + '.pdf'
         path = 'wildlifecompliance/{}/{}/generated_documents/{}'.format(legal_case._meta.model_name, legal_case.id, filename)
+
+        document_type = request_data.get('document_type')
+
         with BytesIO() as invoice_buffer:
             invoice_buffer = BytesIO()
-            returned_invoice_buffer = _create_pdf(invoice_buffer, legal_case, request_data)
+            if document_type == 'prosecution_notice':
+                returned_invoice_buffer = pdf_prosecution_notice._create_pdf(invoice_buffer, legal_case,)
+            elif document_type == 'court_hearing_notice':
+                returned_invoice_buffer = pdf_court_hearing_notice._create_pdf(invoice_buffer, legal_case,)
+            else:
+                returned_invoice_buffer = _create_pdf(invoice_buffer, legal_case, request_data)
         # return cursor to beginning of file
         invoice_buffer.seek(0)
 
