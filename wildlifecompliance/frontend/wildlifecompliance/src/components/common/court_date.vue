@@ -179,8 +179,7 @@ export default {
     align-items: center;
 }
 .flexItemTitleDatetime {
-    width: 8%;
-    text-align: right;
+    width: 5%;
     margin-right: 1em;
 }
 .flexItemTitleComments {
@@ -190,6 +189,7 @@ export default {
 }
 .flexItemDatetime {
     width: 20%;
+    margin: 0 3% 0 0;
 }
 .flexItemComments {
     width: 40%;
