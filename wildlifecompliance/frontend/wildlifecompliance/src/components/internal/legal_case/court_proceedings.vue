@@ -5,7 +5,7 @@
 
                 <div class="row">
                     <label class="col-md-3">Prosecution Notice</label>
-                    <i style="color:red" class="fa fa-file-pdf-o col-md-1"></i>
+                    <i style="color:red" class="fa fa-file-pdf-o col-md-1" id="prosecution-notice-icon"></i>
                     <div class="col-md-6">
                         <filefield ref="prosecution_notice_document"
                                    name="prosecution-notice-document"
@@ -17,7 +17,7 @@
                 </div>
                 <div class="row">
                     <label class="col-md-3">Court Hearing Notice</label>
-                    <i style="color:red" class="fa fa-file-pdf-o col-md-1"></i>
+                    <i style="color:red" class="fa fa-file-pdf-o col-md-1" id="court-hearing-notice-icon"></i>
                     <div class="col-md-6">
                         <filefield ref="prosecution_notice_document"
                                    name="prosecution-notice-document"
@@ -266,9 +266,61 @@ export default {
                 this.courtProceedingsHistoryEntryBindId = this.journalHistoryEntryInstance + '_' + this.uuid;
             }
         },
+        generateDocument: async function(doc_type) {
+            try {
+                let payload = {};
+                payload.document_type = doc_type;
+
+                let post_url = '/api/legal_case/' + this.legal_case.id + '/generate_document/'
+                const res = await fetch(
+                    post_url, 
+                    {
+                        method: 'POST', 
+                        body: JSON.stringify(payload),
+                        headers: {
+                            'Content-Type': 'application/json',
+                            'X-CSRFToken': this.csrf_token,
+                        },
+                    });
+                console.log('generateDocument()');
+                let buffer = await res.arrayBuffer();
+                let file = new Blob([buffer], { type: 'application/pdf' });
+                let fileURL = window.URL.createObjectURL(file);
+                const elementId = 'generated-document-' + this.legal_case.id;
+                let generatedDocument = document.createElement('a');
+                generatedDocument.style.display = 'none';
+                generatedDocument.href = fileURL;
+                generatedDocument.download = payload.document_type + '_' + this.legal_case.number + '.pdf';
+                document.body.appendChild(generatedDocument);
+                generatedDocument.click();
+                window.URL.revokeObjectURL(fileURL);
+                return true
+            } catch(err) {
+                this.errorResponse = err.statusText;
+            }
+        },
         addEventListeners: function() {
             let vm = this;
+
+            let prosecutionNoticeIcon = $('#prosecution-notice-icon');
+            let courtHearingNoticeIcon = $('#court-hearing-notice-icon');
             let courtProceedingsTable = $('#court-proceedings-table');
+
+            prosecutionNoticeIcon.on(
+                'click',
+                (e) => {
+                    console.log(e);
+                    this.generateDocument('prosecution_notice');
+                }
+            );
+            courtHearingNoticeIcon.on(
+                'click',
+                (e) => {
+                    console.log(e);
+                    this.generateDocument('court_hearing_notice');
+                }
+            );
+
             courtProceedingsTable.on(
                 'keyup',
                 (e) => {
