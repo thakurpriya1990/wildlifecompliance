@@ -402,23 +402,23 @@ def get_related_items(entity, pending_closure=False, **kwargs):
                 #    children, return_list = process_many_to_many(f, children, return_list, field_objects, pending_closure)
 
 
-                ## legal case associated_persons
-                #elif entity._meta.model_name == 'legalcase' and f.is_relation and f.many_to_many \
-                #    and f.name == 'associated_persons':
-                #    field_objects = entity.associated_persons.all()
-                #    if field_objects:
-                #        for field_object in field_objects:
-                #            compliance_management_email_user = EmailUser.objects.get(id=field_object.id)
-                #            related_item = RelatedItem(
-                #                    model_name = format_model_name(f.related_model.__name__),
-                #                    identifier = compliance_management_email_user.get_related_items_identifier,
-                #                    descriptor = compliance_management_email_user.get_related_items_descriptor,
-                #                    action_url = format_url(
-                #                            model_name=f.related_model.__name__,
-                #                            obj_id=field_object.id
-                #                            )
-                #                    )
-                #            return_list.append(related_item)
+                # legal case associated_persons
+                elif entity._meta.model_name == 'legalcase' and f.is_relation and f.many_to_many \
+                    and f.name == 'associated_persons':
+                    field_objects = entity.associated_persons.all()
+                    if field_objects:
+                        for field_object in field_objects:
+                            compliance_management_email_user = EmailUser.objects.get(id=field_object.id)
+                            related_item = RelatedItem(
+                                    model_name = format_model_name(f.related_model.__name__),
+                                    identifier = compliance_management_email_user.get_related_items_identifier,
+                                    descriptor = compliance_management_email_user.get_related_items_descriptor,
+                                    action_url = format_url(
+                                            model_name=f.related_model.__name__,
+                                            obj_id=field_object.id
+                                            )
+                                    )
+                            return_list.append(related_item)
 
                 # artifacts linked to legal_case
                 elif f.name == 'legal_case' and f.is_relation and f.many_to_many \

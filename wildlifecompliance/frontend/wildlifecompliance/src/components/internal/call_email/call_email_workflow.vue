@@ -224,7 +224,7 @@ export default {
         } else if (this.workflow_type === 'allocate_for_case') {
               return "Allocate for Case";
         } else if (this.workflow_type === 'close') {
-              return "Close complaint";
+              return "Close Call/Email";
         }
       },
       regionDistrictId: function() {
