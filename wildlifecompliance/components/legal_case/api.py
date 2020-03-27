@@ -953,7 +953,7 @@ class LegalCaseViewSet(viewsets.ModelViewSet):
 
     def process_brief_of_evidence(self, instance, request):
         boe_instance, created = BriefOfEvidence.objects.get_or_create(legal_case=instance)
-        instance.set_status_brief_of_evidence(request)
+        #instance.set_status_brief_of_evidence(request)
         build_all_boe_other_statements_hierarchy(instance)
         build_all_boe_roi_hierarchy(instance)
         generate_boe_document_artifacts(instance)
