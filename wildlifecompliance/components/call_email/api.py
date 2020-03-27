@@ -346,8 +346,6 @@ class CallEmailViewSet(viewsets.ModelViewSet):
     @detail_route(methods=['POST'])
     @renderer_classes((JSONRenderer,))
     def process_comms_log_document(self, request, *args, **kwargs):
-        print("process_comms_log_document")
-        print(request.data)
         try:
             instance = self.get_object()
             returned_data = process_generic_document(request, instance, document_type='comms_log')
@@ -405,8 +403,6 @@ class CallEmailViewSet(viewsets.ModelViewSet):
     @detail_route(methods=['POST', ])
     @renderer_classes((JSONRenderer,))
     def add_comms_log(self, request, workflow=False, *args, **kwargs):
-        print("add_comms_log")
-        print(request.data)
         try:
             with transaction.atomic():
                 instance = self.get_object()
@@ -461,9 +457,9 @@ class CallEmailViewSet(viewsets.ModelViewSet):
                     returned_location = save_location(location_request_data)
                     if returned_location:
                         request_data.update({'location_id': returned_location.get('id')})
-                
-                if request_data.get('report_type'):
-                    request_data.update({'report_type_id': request_data.get('report_type', {}).get('id')})
+
+                #if request_data.get('report_type'):
+                 #   request_data.update({'report_type_id': request_data.get('report_type', {}).get('id')})
 
                 # Initial allocated_group_id must be volunteers
                 compliance_content_type = ContentType.objects.get(model="compliancepermissiongroup")
@@ -636,8 +632,11 @@ class CallEmailViewSet(viewsets.ModelViewSet):
                 if request_data.get('renderer_data'):
                     self.form_data(request)
 
-                if request_data.get('report_type'):
-                    request_data.update({'report_type_id': request_data.get('report_type', {}).get('id')})
+                #if request_data.get('report_type_id'):
+                 #   request_data.update({'report_type_id': request_data.get('report_type', {}).get('id')})
+
+                if instance.report_type and 'report_type_id' in request.data.keys() and not request.data.get('report_type_id'):
+                        del request.data['report_type_id']
 
                 serializer = SaveCallEmailSerializer(instance, data=request_data)
                 serializer.is_valid(raise_exception=True)
@@ -710,7 +709,10 @@ class CallEmailViewSet(viewsets.ModelViewSet):
 
                 instance.save()
 
-                email_data = prepare_mail(request, instance, workflow_entry, send_mail)
+                if workflow_type == 'close':
+                    email_data = prepare_mail(request, instance, workflow_entry, send_mail, email_type="close")
+                else:
+                    email_data = prepare_mail(request, instance, workflow_entry, send_mail)
 
                 serializer = CallEmailLogEntrySerializer(instance=workflow_entry, data=email_data, partial=True)
                 serializer.is_valid(raise_exception=True)
@@ -791,6 +793,14 @@ class ClassificationViewSet(viewsets.ModelViewSet):
         if is_internal(self.request):
             return Classification.objects.all()
         return Classification.objects.none()
+
+    @list_route(methods=['GET', ])    
+    def classification_choices(self, request, *args, **kwargs):
+        res_obj = [] 
+        for choice in Classification.NAME_CHOICES:
+            res_obj.append({'id': choice[0], 'display': choice[1]});
+        res_json = json.dumps(res_obj)
+        return HttpResponse(res_json, content_type='application/json')
 
 
 class ReferrerViewSet(viewsets.ModelViewSet):

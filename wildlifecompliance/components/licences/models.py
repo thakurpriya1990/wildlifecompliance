@@ -115,6 +115,53 @@ class LicencePurpose(models.Model):
             pass
         return species_list
 
+    @property
+    def get_species_list(self):
+        SPECIES = 'species'
+        children_keys = [
+            'children',
+            'header',
+            'expander',
+            'conditions',
+        ]
+        species_list = []
+
+        def species_check(collection):
+            _species_list = []
+            try:
+                for field in collection:
+                    if field['type'] == SPECIES:
+                        field['component_attribute'] = \
+                            self.get_species_options(field[SPECIES])
+                        _species_list += field[SPECIES]
+                    for children_key in children_keys:
+                        if children_key in field:
+                            _species_list += species_check(
+                                field[children_key])
+
+            except KeyError:
+                pass
+            except Exception:
+                pass
+
+            return _species_list
+
+        try:
+            for section in self.schema:
+                if section['type'] == SPECIES:
+                    section['component_attribute'] = \
+                        self.get_species_options(section[SPECIES])
+                    species_list += section[SPECIES]
+                for children_key in children_keys:
+                    if children_key in section:
+                        species_list += species_check(section[children_key])
+
+        except KeyError:
+            pass
+        except Exception:
+            pass
+        return species_list
+
     def get_species_options(self, species_list):
         """
         Builds a list of drop-down options for Licence Species.
@@ -132,23 +179,23 @@ class LicencePurpose(models.Model):
         return options
 
 
-class LicencePurposeDetail(OrderedModel):
-    detail = models.CharField(max_length=100)
-    purpose = models.ForeignKey(
-        LicencePurpose,
-        on_delete=models.CASCADE,
-        related_name='additional_information'
-    )
-    index = models.PositiveSmallIntegerField(default=0)
+# class LicencePurposeDetail(OrderedModel):
+#     detail = models.CharField(max_length=100)
+#     purpose = models.ForeignKey(
+#         LicencePurpose,
+#         on_delete=models.CASCADE,
+#         related_name='additional_information'
+#     )
+#     index = models.PositiveSmallIntegerField(default=0)
 
-    class Meta:
-        ordering = ['purpose', 'index']
-        app_label = 'wildlifecompliance'
-        verbose_name = 'Licence purpose additional information'
-        verbose_name_plural = 'Licence purpose additional information'
+#     class Meta:
+#         ordering = ['purpose', 'index']
+#         app_label = 'wildlifecompliance'
+#         verbose_name = 'Licence purpose additional information'
+#         verbose_name_plural = 'Licence purpose additional information'
 
-    def __str__(self):
-        return 'Detail for purpose {}'.format(self.purpose.id)
+#     def __str__(self):
+#         return 'Detail for purpose {}'.format(self.purpose.id)
 
 
 class LicenceActivity(models.Model):
@@ -778,10 +825,11 @@ class WildlifeLicence(models.Model):
     @property
     def has_additional_information(self):
         has_info = False
-        for a in self.current_activities:
-            for p in a.issued_purposes:
-                if p.additional_information:
-                    return True
+        conditions = self.current_application.conditions.all()
+        for condition in conditions:
+            if condition.standard_condition.additional_information:
+                has_info = True
+
         return has_info
 
     def generate_doc(self):
@@ -830,3 +878,17 @@ class LicenceUserAction(UserAction):
 # def delete_documents(sender, instance, *args, **kwargs):
 #     for document in instance.documents.all():
 #         document.delete()
+
+
+'''
+NOTE: REGISTER MODELS FOR REVERSION HERE.
+'''
+import reversion
+reversion.register(WildlifeLicence, follow=[
+    'licence_document'])
+reversion.register(DefaultActivity)
+reversion.register(DefaultPurpose)
+reversion.register(LicenceActivity)
+reversion.register(LicenceCategory)
+reversion.register(LicenceDocument)
+reversion.register(LicencePurpose)

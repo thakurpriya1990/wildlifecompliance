@@ -18,8 +18,8 @@
                 <div class="form-group">
                     <label for="">Call/Email Classification</label>
                     <select class="form-control" v-model="filterClassification">
-                        <option v-for="option in classification_types" :value="option.name" v-bind:key="option.id">
-                            {{ option.name }} 
+                        <option v-for="option in classification_types" :value="option.display" v-bind:key="option.id">
+                            {{ option.display }} 
                         </option>
                     </select>
                 </div>
@@ -204,13 +204,13 @@
         },
         
         created: async function() {
-            
-            let returned_classification_types = await cache_helper.getSetCacheList('CallEmail_ClassificationTypes', '/api/classification.json');
-            console.log('classification types');
+            //let returned_classification_types = await cache_helper.getSetCacheList('CallEmail_ClassificationTypes', '/api/classification/classification_choices/');
+            let returned_classification_types = await Vue.http.get('/api/classification/classification_choices/');
+            //console.log('classification types');
             console.log(returned_classification_types);
-            Object.assign(this.classification_types, returned_classification_types);
+            Object.assign(this.classification_types, returned_classification_types.body);
             console.log(this.classification_types);
-            this.classification_types.splice(0, 0, {id: 'all', name: 'All'});
+            this.classification_types.splice(0, 0, {id: 'all', display: 'All'});
 
             let returned_status_choices = await cache_helper.getSetCacheList('CallEmail_StatusChoices', '/api/call_email/status_choices');
             console.log('returned_status_choices');
