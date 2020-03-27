@@ -1,8 +1,8 @@
 <template lang="html">
     <div class="form-group"><div class="flexContainer">
 
-        <label class="flex-item">Date</label>
-        <div class="flex-item">
+        <label class="flexItemTitleDatetime">Date</label>
+        <div class="flexItemDatetime">
             <div class="input-group date" ref="courtDatePicker">
                 <input type="text" class="form-control" :value="court_date" />
                 <span class="input-group-addon">
@@ -11,8 +11,8 @@
             </div>
         </div>
 
-        <label class="flex-item">Time</label>
-        <div class="">
+        <label class="flexItemTitleDatetime">Time</label>
+        <div class="flexItemDatetime">
             <div class="input-group date" ref="courtTimePicker">
                 <input type="text" class="form-control" :value="court_time" />
                 <span class="input-group-addon">
@@ -21,8 +21,8 @@
             </div>
         </div>
 
-        <label class="flex-item">Comments</label>
-        <div class="">
+        <label class="flexItemTitleComments">Comments</label>
+        <div class="flexItemComments">
             <input type="text" class="form-control" v-model="court_comments" ref="courtComments" />
         </div>
 
@@ -177,5 +177,21 @@ export default {
 .flexContainer {
     display: flex;
     align-items: center;
+}
+.flexItemTitleDatetime {
+    width: 8%;
+    text-align: right;
+    margin-right: 1em;
+}
+.flexItemTitleComments {
+    width: 14%;
+    text-align: right;
+    margin-right: 1em;
+}
+.flexItemDatetime {
+    width: 20%;
+}
+.flexItemComments {
+    width: 40%;
 }
 </style>

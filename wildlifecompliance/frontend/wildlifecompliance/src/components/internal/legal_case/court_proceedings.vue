@@ -2,8 +2,33 @@
     <div>
         <div class="row">
             <FormSection :formCollapse="false" label="Court Dates">
-                <div class="col-sm-12 form-group"><div class="row">
 
+                <div class="row">
+                    <label class="col-md-3">Prosecution Notice</label>
+                    <i style="color:red" class="fa fa-file-pdf-o col-md-1"></i>
+                    <div class="col-md-6">
+                        <filefield ref="prosecution_notice_document"
+                                   name="prosecution-notice-document"
+                                   :documentActionUrl="legal_case.processCourtOutcomeDocumentUrl"
+                                   @update-parent="courtOutcomeDocumentUploaded"
+                                   :isRepeatable="false"
+                                   :readonly="readonlyForm" />
+                    </div>
+                </div>
+                <div class="row">
+                    <label class="col-md-3">Court Hearing Notice</label>
+                    <i style="color:red" class="fa fa-file-pdf-o col-md-1"></i>
+                    <div class="col-md-6">
+                        <filefield ref="prosecution_notice_document"
+                                   name="prosecution-notice-document"
+                                   :documentActionUrl="legal_case.processCourtOutcomeDocumentUrl"
+                                   @update-parent="courtOutcomeDocumentUploaded"
+                                   :isRepeatable="false"
+                                   :readonly="readonlyForm" />
+                    </div>
+                </div>
+
+                <div class="col-sm-12 form-group"><div class="row">
                     <template class="input-group date" id="court_date" v-for="court_date_obj in legal_case.court_proceedings.court_dates">
                         <CourtDate 
                             :court_datetime="new Date(court_date_obj.court_datetime)"
@@ -528,5 +553,9 @@ export default {
 }
 .inline-datatable {
   overflow-wrap: break-word;
+}
+.pdf-notices {
+    display: flex;
+    align-items: center;
 }
 </style>
