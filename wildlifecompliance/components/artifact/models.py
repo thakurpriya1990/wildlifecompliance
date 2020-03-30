@@ -809,13 +809,13 @@ class ArtifactCommsLogDocument(Document):
 
 
 class ArtifactUserAction(models.Model):
-    ACTION_CREATE_ARTIFACT = "Create artifact {}"
-    ACTION_SAVE_ARTIFACT = "Save artifact {}"
+    ACTION_CREATE_ARTIFACT = "Create object {}"
+    ACTION_SAVE_ARTIFACT = "Save object {}"
     #ACTION_OFFENCE = "Create Offence {}"
     #ACTION_SANCTION_OUTCOME = "Create Sanction Outcome {}"
     #ACTION_SEND_TO_MANAGER = "Send Inspection {} to Manager"
-    ACTION_CLOSE = "Close Artifact {}"
-    ACTION_WAITING_FOR_DISPOSAL = "Mark Artifact {} as waiting for disposal"
+    ACTION_CLOSE = "Close object {}"
+    ACTION_WAITING_FOR_DISPOSAL = "Mark object {} as waiting for disposal"
     #ACTION_PENDING_CLOSURE = "Mark Inspection {} as pending closure"
     #ACTION_REQUEST_AMENDMENT = "Request amendment for {}"
     #ACTION_ENDORSEMENT = "Inspection {} has been endorsed by {}"
