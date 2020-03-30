@@ -3,7 +3,7 @@
         <div class="col-sm-12 child-artifact-component">
             <div class="form-group">
                 <div class="row">
-                    <div v-if="!parentModal">
+                    <div v-if="!legalCaseExists">
                         <ul class="nav nav-pills">
                             <li class="nav-item active"><a data-toggle="tab" :href="'#'+newTab">Object</a></li>
                             <li class="nav-item"><a data-toggle="tab" :href="'#'+rTab">Related Items</a></li>
@@ -440,6 +440,13 @@ export default {
         }),
         canUserAction: function() {
             return true;
+        },
+        legalCaseExists: function() {
+            let exists = false;
+            if (this.legal_case && this.legal_case.id) {
+                exists = true;
+            }
+            return exists;
         },
         offenderList: function() {
             let offenderList = [{ 
