@@ -553,7 +553,7 @@ class LegalCaseDocument(Document):
 
 
 class ProsecutionNoticeDocument(Document):
-    legal_case = models.ForeignKey(LegalCase, related_name='documents')
+    legal_case = models.ForeignKey(LegalCase, related_name='prosecution_notices')
     _file = models.FileField(max_length=255,)
 
     class Meta:
@@ -563,7 +563,7 @@ class ProsecutionNoticeDocument(Document):
 
 
 class CourtHearingNoticeDocument(Document):
-    legal_case = models.ForeignKey(LegalCase, related_name='documents')
+    legal_case = models.ForeignKey(LegalCase, related_name='court_hearing_notices')
     _file = models.FileField(max_length=255,)
 
     class Meta:
