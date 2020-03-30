@@ -121,17 +121,6 @@ class ApplicationService(object):
             action=ApplicationFormDataRecord.ACTION_TYPE_ASSIGN_VALUE)
 
     @staticmethod
-    def render_defined_conditions(application, form_data):
-        """
-        Checks for Standard Conditions defined on the application schema. 
-        Field answers can trigger the creation of standard conditions for an
-        application.
-
-        NOTE: Redundant to be removed.
-        """
-        do_render_defined_conditions(application, form_data)
-
-    @staticmethod
     def render_defined_inspections(application, form_data):
         """
         Checks for Inspections defined on the application schema. 
@@ -154,8 +143,8 @@ class ApplicationService(object):
         for_inspection_fields = PromptInpsectionFieldElement()
         for_inspection_fields.accept(checkbox)
         # Set StandardCondition Fields for Checkbox and RadioButtons.
-        # for_condition_fields = StandardConditionFieldElement()
-        # for_condition_fields.accept(checkbox)
+        for_condition_fields = StandardConditionFieldElement()
+        for_condition_fields.accept(checkbox)
 
     @staticmethod
     def update_dynamic_attributes(application):
@@ -190,7 +179,10 @@ class ApplicationFormCompositor(object):
 
 
 class CheckboxAndRadioButtonCompositor(ApplicationFormCompositor):
-
+    """
+    A Class for objects which encapsulates an algorithm for formatting Checkbox
+    and Radio buttons on an Application Form.
+    """
     def __init__(self, application, data_source):
         self._application = application
         self._data_source = data_source
@@ -226,7 +218,9 @@ class CheckboxAndRadioButtonCompositor(ApplicationFormCompositor):
                 if schema_name not in schema_fields:
                     continue
                 schema_data = schema_fields[schema_name]
-
+                licence_purpose = LicencePurpose.objects.get(
+                    id=schema_data['licence_purpose_id']
+                )
                 if 'options' in schema_data:
                     for option in schema_data['options']:
                         # Only modifications if the current option is selected
@@ -236,7 +230,8 @@ class CheckboxAndRadioButtonCompositor(ApplicationFormCompositor):
                             component=option,
                             schema_name=schema_name,
                             adjusted_by_fields=adjusted_by_fields,
-                            activity=selected_activity
+                            activity=selected_activity,
+                            purpose=licence_purpose
                         )
 
                 # If this is a checkbox - skip unchecked ones
@@ -245,7 +240,8 @@ class CheckboxAndRadioButtonCompositor(ApplicationFormCompositor):
                         component=schema_data,
                         schema_name=schema_name,
                         adjusted_by_fields=adjusted_by_fields,
-                        activity=selected_activity
+                        activity=selected_activity,
+                        purpose=licence_purpose
                     )
 
 
@@ -300,6 +296,43 @@ class SpecialFieldElement(object):
         pass
 
 
+class CopyToLicenceFieldElement(SpecialFieldElement):
+    """
+    An implementation of an SpecialFieldElement operation that takes a
+    ApplicationFormVisitor as an argument.
+    """
+    _NAME = 'CopyToLicence'
+
+    def accept(self, application_form_visitor):
+        self._application = application_form_visitor._application
+        application_form_visitor.visit_standard_condition_field(self)
+
+    def reset(self, licence_activity):
+        """
+        Reset the selected licence activity to have no CopyToLicenceFields.
+        """
+        if isinstance(licence_activity, ApplicationSelectedActivity):
+            pass
+
+        return licence_activity
+
+    def parse_component(
+            self,
+            component,
+            schema_name,
+            adjusted_by_fields,
+            activity,
+            purpose):
+
+        if set([self._NAME]).issubset(component):
+            """
+            Set the selected licence activity to have CopyToLicenceFields.
+            """
+
+    def __str__(self):
+        return 'Field Element: {0}'.format(self._NAME)
+
+
 class PromptInpsectionFieldElement(SpecialFieldElement):
     """
     An implementation of an SpecialFieldElement operation that takes a
@@ -323,7 +356,8 @@ class PromptInpsectionFieldElement(SpecialFieldElement):
             component,
             schema_name,
             adjusted_by_fields,
-            activity):
+            activity,
+            purpose):
 
         if set([self._NAME]).issubset(component):
             activity.is_inspection_required = True
@@ -345,13 +379,16 @@ class StandardConditionFieldElement(SpecialFieldElement):
         application_form_visitor.visit_standard_condition_field(self)
 
     def reset(self, licence_activity):
-
+        """
+        Reset the Selected Activity to have no Standard Condition created.
+        """
         if isinstance(licence_activity, ApplicationSelectedActivity):
-            ApplicationCondition.objects.filter(
-                application_id=self._application.id,
-                licence_activity_id=licence_activity.licence_activity_id,
-                is_rendered=True
-            ).delete()
+            # ApplicationCondition.objects.filter(
+            #     application_id=self._application.id,
+            #     licence_activity_id=licence_activity.licence_activity_id,
+            #     is_rendered=True
+            # ).delete()
+            pass
 
         return licence_activity
 
@@ -360,21 +397,27 @@ class StandardConditionFieldElement(SpecialFieldElement):
             component,
             schema_name,
             adjusted_by_fields,
-            activity):
+            activity,
+            purpose):
 
         if set([self._NAME]).issubset(component):
+            """
+            Set the Selected Activity to contain Standard Conditon.
+            """
             condition = ApplicationStandardCondition.objects.filter(
                 code=component[self._NAME],
                 obsolete=False).first()
             if condition:
-                ApplicationCondition.objects.create(
+                ac, created = ApplicationCondition.objects.get_or_create(
                     standard_condition=condition,
                     is_rendered=True,
                     standard=True,
-                    application=self._application,
-                    licence_activity=LicenceActivity.objects.get(
-                        id=activity.licence_activity_id),
-                    return_type=condition.return_type)
+                    application=self._application)
+                ac.licence_activity = LicenceActivity.objects.get(
+                        id=activity.licence_activity_id)
+                ac.licence_purpose = purpose
+                ac.return_type = condition.return_type
+                ac.save()
 
     def __str__(self):
         return 'Field Element: {0}'.format(self._NAME)
@@ -412,7 +455,8 @@ class IncreaseApplicationFeeFieldElement(SpecialFieldElement):
             component,
             schema_name,
             adjusted_by_fields,
-            activity):
+            activity,
+            purpose):
 
         if set([self._NAME]).issubset(component):
             def increase_fee(fees, field, amount):
@@ -631,80 +675,6 @@ def do_process_form(
                 label=item['label']
             )} for item in missing_fields]
         )
-
-
-def do_render_defined_conditions(application, data_source):
-    """
-    TODO: Redundant to be removed.
-    """
-
-    def parse_component(
-            component,
-            schema_name,
-            adjusted_by_fields,
-            activity):
-
-        if set(['StandardCondition']).issubset(component):
-            condition = ApplicationStandardCondition.objects.filter(
-                code=component['StandardCondition'],
-                obsolete=False).first()
-            if condition:
-                ApplicationCondition.objects.create(
-                    standard_condition=condition,
-                    is_rendered=True,
-                    standard=True,
-                    application=application,
-                    licence_activity=LicenceActivity.objects.get(
-                        id=activity.licence_activity_id),
-                    return_type=condition.return_type)
-
-    for selected_activity in application.activities:
-        schema_fields = application.get_schema_fields_for_purposes(
-            selected_activity.purposes.values_list('id', flat=True)
-        )
-
-        ApplicationCondition.objects.filter(
-            application_id=application.id,
-            licence_activity_id=selected_activity.licence_activity_id,
-            is_rendered=True
-        ).delete()
-
-        # Adjustments based on selected options (radios and checkboxes)
-        adjusted_by_fields = {}
-        for form_data_record in data_source:
-            try:
-                # Retrieve dictionary of fields from a model instance
-                data_record = form_data_record.__dict__
-            except AttributeError:
-                # If a raw form data (POST) is supplied, form_data_record
-                # is a key
-                data_record = data_source[form_data_record]
-
-            schema_name = data_record['schema_name']
-            if schema_name not in schema_fields:
-                continue
-            schema_data = schema_fields[schema_name]
-
-            if 'options' in schema_data:
-                for option in schema_data['options']:
-                    # Only modifications if the current option is selected
-                    if option['value'] != data_record['value']:
-                        continue
-                    parse_component(
-                        component=option,
-                        schema_name=schema_name,
-                        adjusted_by_fields=adjusted_by_fields,
-                        activity=selected_activity
-                    )
-
-            # If this is a checkbox - skip unchecked ones
-            elif data_record['value'] == 'on':
-                parse_component(
-                    component=schema_data,
-                    schema_name=schema_name,
-                    adjusted_by_fields=adjusted_by_fields,
-                    activity=selected_activity
-                )
 
 
 def get_dynamic_schema_attributes(application, data_source):
