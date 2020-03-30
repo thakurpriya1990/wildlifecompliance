@@ -298,7 +298,7 @@ export default {
         getPickedPurpose: function(_id){
             let picked = this.pickedPurposes.find(p => {return p.id===_id})
             if (!picked) {
-                picked = {id: _id, isProposed: false}
+                picked = {id: _id, isProposed: true}
                 this.pickedPurposes.push(picked)
             }
             return picked
