@@ -295,6 +295,16 @@ export default {
                 var id = $(this).attr('data-id');
                 vm.editCondition(id);
             });
+            vm.$refs.conditions_datatable.vmDataTable.on('click', '.dtMoveUp', function(e) {
+                e.preventDefault();
+                var id = $(this).attr('data-id');
+                vm.moveUp(e);
+            });
+            vm.$refs.conditions_datatable.vmDataTable.on('click', '.dtMoveDown', function(e) {
+                e.preventDefault();
+                var id = $(this).attr('data-id');
+                vm.moveDown(e);
+            });
         },
         sendDirection(req,direction){
             let movement = direction == 'down'? 'move_down': 'move_up';
@@ -309,18 +319,20 @@ export default {
             let vm = this;
             e.preventDefault();
             var tr = $(e.target).parents('tr');
-            vm.moveRow(tr, 'up');
-            vm.sendDirection($(e.target).parent().data('id'),'up');
+            if (vm.moveRow(tr, 'up')){
+                vm.sendDirection($(e.target).parent().data('id'),'up');
+            }
         },
         moveDown(e) {
             // Move the row down
             e.preventDefault();
             let vm = this;
             var tr = $(e.target).parents('tr');
-            vm.moveRow(tr, 'down');
-            vm.sendDirection($(e.target).parent().data('id'),'down');
+            if (vm.moveRow(tr, 'down')){
+                vm.sendDirection($(e.target).parent().data('id'),'down');
+            }
         },
-        moveRow(row, direction) {
+        moveRow1(row, direction) {
             // Move up or down (depending...)
             var table = this.$refs.conditions_datatable.vmDataTable;
             var index = table.row(row).index();
@@ -335,6 +347,44 @@ export default {
             table.row(index).data(data2);
             table.row(index + order).data(data1);
             table.page(0).draw(false);
+        },
+        moveRow(row, direction) {
+            // Move up or down (depending...)
+            const table = this.$refs.conditions_datatable.vmDataTable;
+            let index = row[0].sectionRowIndex - 1;
+            let order = -1;
+            if (direction === 'down') {
+              order = 1;
+            }
+            let new_index = index + order
+            if (new_index<0){
+                new_index = 1
+            }
+            if (new_index>table.data().length-1){
+                new_index = table.data().length-2
+            }
+            let selected = table.rows(index).data();
+            let replaced = table.rows(new_index).data();
+            order = selected.order
+            selected.order = replaced.order;
+            replaced.order = order;
+            let old_data = table.data()
+            let new_data = table.data()
+            for (let i=0; i<old_data.length; i++){
+                if (i===new_index){
+                    new_data[i] = selected[0]
+                    continue
+                }
+                if (i===index){
+                    new_data[i] = replaced[0]
+                    continue
+                }
+                new_data[i] = old_data[i]
+            }
+            table.clear()
+            table.rows.add(new_data)
+            table.draw();
+            return true
         },
     },
     mounted: function(){
