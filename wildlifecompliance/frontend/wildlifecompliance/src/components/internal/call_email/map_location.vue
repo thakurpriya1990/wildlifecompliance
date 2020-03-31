@@ -145,7 +145,7 @@ export default {
             }
         }
     },
-    mounted: function(){
+    mounted: async function(){
         this.$nextTick(function() {
             console.debug('Start loading map');
             this.initMap();
@@ -159,13 +159,20 @@ export default {
                 // this.addMarker([this.call_latitude, this.call_longitude]);
                 this.addMarker([this.call_email.location.geometry.coordinates[1], this.call_email.location.geometry.coordinates[0]]);
                 this.refreshMarkerLocation();
+                //this.reverseGeocoding(this.call_email.location.geometry.coordinates);
             }        
-            this.showHideAddressDetailsFields(false, false);
+            if (this.call_email.location.properties.country){
+                this.showHideAddressDetailsFields(true, false);
+            } else {
+                this.showHideAddressDetailsFields(false, true);
+            }
             console.debug('End loading map');
         });
     },
     created: async function() {
         await this.MapboxAccessToken.then(data => {
+            console.log('created');
+            console.log(data);
             this.mapboxAccessToken = data
         });
     },
@@ -234,6 +241,9 @@ export default {
         //     // this.saveLocation();
         // },
         reverseGeocoding: async function(coordinates_4326){
+            console.log('reverseGeocoding');
+            console.log('access token:');
+            console.log(this.mapboxAccessToken);
             var self = this;
             $.ajax({
                 url: api_endpoints.geocoding_address_search + coordinates_4326[0] + ',' + coordinates_4326[1] + '.json?' + $.param({
@@ -256,6 +266,8 @@ export default {
                             }
                         }
                     }
+                    console.log('address found:');
+                    console.log(address_found);
                     if(address_found){
                         console.log("address found");
                         self.showHideAddressDetailsFields(true, false);

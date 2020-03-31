@@ -554,6 +554,26 @@ class LegalCaseDocument(Document):
         app_label = 'wildlifecompliance'
 
 
+class ProsecutionNoticeDocument(Document):
+    legal_case = models.ForeignKey(LegalCase, related_name='prosecution_notices')
+    _file = models.FileField(max_length=255,)
+
+    class Meta:
+        app_label = 'wildlifecompliance'
+        verbose_name = 'CM_ProsecutionNoticeDocument'
+        verbose_name_plural = 'CM_ProsecutionNoticeDocuments'
+
+
+class CourtHearingNoticeDocument(Document):
+    legal_case = models.ForeignKey(LegalCase, related_name='court_hearing_notices')
+    _file = models.FileField(max_length=255,)
+
+    class Meta:
+        app_label = 'wildlifecompliance'
+        verbose_name = 'CM_CourtHearingNoticeDocument'
+        verbose_name_plural = 'CM_CourtHearingNoticeDocuments'
+
+
 class BriefOfEvidenceDocument(Document):
     brief_of_evidence = models.ForeignKey(BriefOfEvidence, related_name='documents')
     _file = models.FileField(max_length=255)
