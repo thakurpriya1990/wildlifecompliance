@@ -3,27 +3,29 @@
         <div class="row">
             <FormSection :formCollapse="false" label="Court Dates">
 
-                <div class="row">
+                <div class="row file-upload-container">
                     <label class="col-md-3">Prosecution Notice</label>
                     <i style="color:red" class="fa fa-file-pdf-o col-md-1" id="prosecution-notice-icon"></i>
-                    <div class="col-md-6">
+                    <label class="col-md-3">Attach signed file </label>
+                    <div class="col-md-5">
                         <filefield ref="prosecution_notice_document"
                                    name="prosecution-notice-document"
-                                   :documentActionUrl="legal_case.processCourtOutcomeDocumentUrl"
+                                   :documentActionUrl="legal_case.prosecutionNoticeDocumentUrl"
                                    @update-parent="courtOutcomeDocumentUploaded"
-                                   :isRepeatable="false"
+                                   :isRepeatable="true"
                                    :readonly="readonlyForm" />
                     </div>
                 </div>
-                <div class="row">
+                <div class="row file-upload-container">
                     <label class="col-md-3">Court Hearing Notice</label>
                     <i style="color:red" class="fa fa-file-pdf-o col-md-1" id="court-hearing-notice-icon"></i>
-                    <div class="col-md-6">
-                        <filefield ref="prosecution_notice_document"
-                                   name="prosecution-notice-document"
-                                   :documentActionUrl="legal_case.processCourtOutcomeDocumentUrl"
+                    <label class="col-md-3">Attach signed file </label>
+                    <div class="col-md-5">
+                        <filefield ref="court_hearing_notice_document"
+                                   name="court-hearing-notice-document"
+                                   :documentActionUrl="legal_case.courtHearingNoticeDocumentUrl"
                                    @update-parent="courtOutcomeDocumentUploaded"
-                                   :isRepeatable="false"
+                                   :isRepeatable="true"
                                    :readonly="readonlyForm" />
                     </div>
                 </div>
@@ -609,5 +611,9 @@ export default {
 .pdf-notices {
     display: flex;
     align-items: center;
+}
+.file-upload-container {
+    margin-top: 1%;
+    margin-bottom: 2%;
 }
 </style>
