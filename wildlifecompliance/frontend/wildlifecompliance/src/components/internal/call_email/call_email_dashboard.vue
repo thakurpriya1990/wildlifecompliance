@@ -48,7 +48,7 @@
                     </div>
                 </div>
             </div>
-            <div v-if="current_user && current_user.is_volunteer" class="col-md-3 pull-right">
+            <div v-if="newCallEmailVisibility" class="col-md-3 pull-right">
                 <button @click.prevent="createCallEmailUrl"
                     class="btn btn-primary pull-right">New Call/Email</button>
             </div>    
@@ -79,6 +79,9 @@
         data() {
             let vm = this;
             return {
+                complianceUser: {
+                    is_volunteer: false,
+                },
                 classification_types: [],
                 // classificationChoices: [],
                 report_types: [],
@@ -195,15 +198,9 @@
                 ],
             }
         },
-
-        beforeRouteEnter: function(to, from, next) {
-            next(async (vm) => {
-                await vm.loadCurrentUser({ url: `/api/my_compliance_user_details` });
-                // await this.datatablePermissionsToggle();
-            });
-        },
-        
         created: async function() {
+            const returnedComplianceUserData = await Vue.http.get('/api/my_compliance_user_details/')
+            Object.assign(this.complianceUser, returnedComplianceUserData.body);
             //let returned_classification_types = await cache_helper.getSetCacheList('CallEmail_ClassificationTypes', '/api/classification/classification_choices/');
             let returned_classification_types = await Vue.http.get('/api/classification/classification_choices/');
             //console.log('classification types');
@@ -242,22 +239,19 @@
         computed: {
             ...mapGetters('callemailStore', {
             }),
-            ...mapGetters({
-                current_user: 'current_user',
-            }),
-            
+            newCallEmailVisibility: function() {
+                let visibility = false;
+                if (this.complianceUser && this.complianceUser.is_volunteer) {
+                    visibility = true;
+
+                }
+                return visibility;
+            },
         },
         methods: {
             ...mapActions('callemailStore', {
                 saveCallEmail: "saveCallEmail",
             }),
-            ...mapActions({
-                loadCurrentUser: "loadCurrentUser",
-                // userhasComplianceRole: "hasComplianceRole",
-            }),
-            // datatablePermissionsToggle: function() {
-            //     return this.current_user.base_compliance_permissions.includes('officer');
-            // },
             createCallEmailUrl: async function () {
                 let newCallId = null
                 let savedCallEmail = await this.saveCallEmail({ route: false, crud: 'create'});
@@ -339,8 +333,6 @@
                 await vm.initialiseSearch();
                 await vm.addEventListeners();
             });
-            
-            
         }
     }
 </script>

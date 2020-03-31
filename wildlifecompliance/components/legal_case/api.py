@@ -677,6 +677,11 @@ class LegalCaseViewSet(viewsets.ModelViewSet):
                 document_label = "Brief of Evidence"
             elif request.data.get("document_type") == 'prosecution_brief':
                 document_label = "Prosecution Brief"
+            elif request.data.get("document_type") == 'prosecution_notice':
+                document_label = "Prosecution Notice"
+            elif request.data.get("document_type") == 'court_hearing_notice':
+                document_label = "Court Hearing Notice"
+
             section_list = ''
             if request.data.get('include_statement_of_facts'):
                 section_list += "Statement of Facts"
@@ -700,7 +705,9 @@ class LegalCaseViewSet(viewsets.ModelViewSet):
                 if section_list:
                     section_list += ", "
                 section_list += "List of Photographic, Video and Sound Exhibits"
+
             http_response = create_document_pdf_bytes(instance, request.data)
+
             if http_response:
                 instance.log_user_action(
                         LegalCaseUserAction.ACTION_GENERATE_DOCUMENT.format(
@@ -953,7 +960,7 @@ class LegalCaseViewSet(viewsets.ModelViewSet):
 
     def process_brief_of_evidence(self, instance, request):
         boe_instance, created = BriefOfEvidence.objects.get_or_create(legal_case=instance)
-        instance.set_status_brief_of_evidence(request)
+        #instance.set_status_brief_of_evidence(request)
         build_all_boe_other_statements_hierarchy(instance)
         build_all_boe_roi_hierarchy(instance)
         generate_boe_document_artifacts(instance)

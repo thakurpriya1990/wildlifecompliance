@@ -100,6 +100,9 @@ def process_generic_document(request, instance, document_type=None, *args, **kwa
                         id=d.id,
                         name=d.name,
                         ) for d in instance.documents.all() if d._file]
+            print("else RETURNED_FILE_DATA")
+            print(returned_file_data)
+            print(type(instance))
             return {'filedata': returned_file_data}
 
     except Exception as e:
@@ -119,6 +122,7 @@ def delete_document(request, instance, comms_instance, document_type, input_name
 
     # inspection report delete
     elif document_type == 'inspection_report' and 'document_id' in request.data:
+        #import ipdb; ipdb.set_trace();
         document_id = request.data.get('document_id')
         document = instance.report.get(id=document_id)
 
@@ -128,7 +132,7 @@ def delete_document(request, instance, comms_instance, document_type, input_name
         document = instance.generated_documents.get(id=document_id)
 
     # court outcome delete
-    if document_type == 'court_outcome' and 'document_id' in request.data:
+    elif document_type == 'court_outcome' and 'document_id' in request.data:
         document_id = request.data.get('document_id')
         document = instance.court_proceedings.court_outcome_documents.get(id=document_id)
 
@@ -171,7 +175,7 @@ def cancel_document(request, instance, comms_instance, document_type, input_name
                 document.delete()
 
         # Court outcome documents cancel
-        if document_type == 'court_outcome':
+        elif document_type == 'court_outcome':
             document_list = instance.court_proceedings.court_outcome_documents.all()
 
             for document in document_list:

@@ -3,7 +3,7 @@
         <div class="col-sm-12 child-artifact-component">
             <div class="form-group">
                 <div class="row">
-                    <div v-if="!parentModal">
+                    <div v-if="!legalCaseExists">
                         <ul class="nav nav-pills">
                         </ul>
                     </div>
@@ -485,6 +485,13 @@ export default {
         ...mapGetters({
             renderer_form_data: 'renderer_form_data'
         }),
+        legalCaseExists: function() {
+            let exists = false;
+            if (this.legal_case && this.legal_case.id) {
+                exists = true;
+            }
+            return exists;
+        },
         selectedStatementArtifact: function() {
             let statementArtifact = {}
             if (this.physical_artifact && this.physical_artifact.statement_id) {

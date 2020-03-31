@@ -3,6 +3,7 @@
 from io import BytesIO
 
 from django.core.files.storage import default_storage
+from django.http import HttpResponse
 from ledger.payments.pdf import BrokenLine
 from reportlab.lib.colors import red, green, blue
 from reportlab.lib.enums import TA_RIGHT, TA_CENTER
@@ -19,7 +20,7 @@ PAGE_MARGIN = 5 * mm
 PAGE_WIDTH, PAGE_HEIGHT = A4
 
 
-def _create_pdf(invoice_buffer, sanction_outcome):
+def _create_pdf(invoice_buffer, legal_case):
     every_page_frame = Frame(PAGE_MARGIN, PAGE_MARGIN, PAGE_WIDTH - 2 * PAGE_MARGIN, PAGE_HEIGHT - 2 * PAGE_MARGIN, id='EveryPagesFrame', )  #showBoundary=Color(0, 1, 0))
     every_page_template = PageTemplate(id='EveryPages', frames=[every_page_frame,], )
     doc = BaseDocTemplate(invoice_buffer, pageTemplates=[every_page_template, ], pagesize=A4,)  # showBoundary=Color(1, 0, 0))
@@ -460,19 +461,22 @@ def _create_pdf(invoice_buffer, sanction_outcome):
     return invoice_buffer
 
 
-def create_court_hearing_notice_pdf_bytes(filename, sanction_outcome):
+def create_court_hearing_notice_pdf_bytes(filename, legal_case):
     with BytesIO() as invoice_buffer:
-        _create_pdf(invoice_buffer, sanction_outcome)
+        _create_pdf(invoice_buffer, legal_case)
 
-        # Get the value of the BytesIO buffer
-        value = invoice_buffer.getvalue()
+        # # Get the value of the BytesIO buffer
+        # value = invoice_buffer.getvalue()
+        #
+        # # START: Save the pdf file to the database
+        # document = legal_case.documents.create(name=filename)
+        # path = default_storage.save('wildlifecompliance/{}/{}/documents/{}'.format(legal_case._meta.model_name, legal_case.id, filename), invoice_buffer)
+        # document._file = path
+        # document.save()
+        # invoice_buffer.close()
+        # return document
+    invoice_buffer.seek(0)
 
-        # START: Save the pdf file to the database
-        document = sanction_outcome.documents.create(name=filename)
-        path = default_storage.save('wildlifecompliance/{}/{}/documents/{}'.format(sanction_outcome._meta.model_name, sanction_outcome.id, filename), invoice_buffer)
-        document._file = path
-        document.save()
-
-        invoice_buffer.close()
-
-        return document
+    response = HttpResponse(invoice_buffer, content_type='application/pdf')
+    response['Content-Disposition'] = 'attachment; filename="{}"'.format(filename)
+    return response
