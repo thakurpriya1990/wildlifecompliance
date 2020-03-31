@@ -112,7 +112,7 @@
                                 </div></div>
                             </FormSection>
                             <FormSection :formCollapse="false" label="Offences, Offenders and Records of Interview" treeHeight="yes">
-                                <div class="col-sm-12 form-group"><div class="row">
+                                <div v-if="boeRoiVisibility" class="col-sm-12 form-group"><div class="row">
                                     <TreeSelect 
                                     ref="record_of_interview_tree" 
                                     :value="boeRoiTicked" 
@@ -126,9 +126,10 @@
                                     :searchable="false"
                                     />
                                 </div></div>
+                                <span v-else class="col-sm-10">No Offences, Offenders or Records of Interview</span>
                             </FormSection>
                             <FormSection :formCollapse="false" label="Witness Statements, Officer Statements, Expert Statements" treeHeight="yes">
-                                <div class="col-sm-12 form-group"><div class="row">
+                                <div v-if="boeOtherStatementsVisibility" class="col-sm-12 form-group"><div class="row">
                                     <TreeSelect 
                                     ref="other_statements_tree" 
                                     :value="boeOtherStatementsTicked" 
@@ -142,6 +143,7 @@
                                     :searchable="false"
                                     />
                                 </div></div>
+                                <span v-else class="col-sm-10">No Witness Statements, Officer Statements or Expert Statements</span>
                             </FormSection>
                             <FormSection id="physical-artifacts-tree" :formCollapse="false" label="List of Exhibits, Sensitive Unused and Non-Sensitive Unused Materials" treeHeight="yes">
                                 <div class="col-sm-12 form-group"><div class="row">
@@ -152,7 +154,7 @@
                                             <label class="col-sm-4">{{ artifact.label }}</label>
                                         </div>
                                     </label>
-                                    <b v-else class="col-sm-10">No objects on the list of exhibits</b>
+                                    <span v-else class="col-sm-10">No objects on the list of exhibits</span>
                                     <label v-if="physicalArtifactsSensitiveUnusedVisibility" class="col-sm-10">Select the objects to be included on the sensitive unused list of materials
                                         <div class="row" v-for="artifact in physicalArtifactsSensitiveUnused">
                                             <!--input class="col-sm-1" :id="'tickbox_' + artifact.id" type="checkbox" :value="artifact.id" v-model="physicalArtifactsSensitiveUnusedTicked"-->
@@ -165,7 +167,7 @@
                                                 />
                                         </div>
                                     </label>
-                                    <b v-else class="col-sm-10">No objects on the sensitive unused list of materials</b>
+                                    <span v-else class="col-sm-10">No objects on the sensitive unused list of materials</span>
                                     <label v-if="physicalArtifactsNonSensitiveUnusedVisibility" class="col-sm-10">Select the objects to be included on the non-sensitive unused list of materials
                                         <div class="row" v-for="artifact in physicalArtifactsNonSensitiveUnused">
                                             <!--input class="col-sm-1" type="checkbox" :value="artifact.id" v-model="physicalArtifactsNonSensitiveUnusedTicked"-->
@@ -173,11 +175,11 @@
                                             <label class="col-sm-4">{{ artifact.label }}</label>
                                         </div>
                                     </label>
-                                    <b v-else class="col-sm-10">No objects on the non-sensitive unused list of materials</b>
+                                    <span v-else class="col-sm-10">No objects on the non-sensitive unused list of materials</span>
                                 </div></div>
                             </FormSection>
                             <FormSection :formCollapse="false" label="List of Photographic, Video and Sound Exhibits">
-                                <div class="col-sm-12 form-group"><div class="row">
+                                <div v-if="documentArtifactsVisibility" class="col-sm-12 form-group"><div class="row">
                                     <div class="row" v-for="artifact in documentArtifacts">
                                         <!--input class="col-sm-1" type="checkbox" :value="artifact.id" v-model="physicalArtifactsUsedTicked"-->
                                         <input class="col-sm-1" type="checkbox" v-model="artifact.ticked">
@@ -200,6 +202,7 @@
                                         </div></div>
                                     </div>
                                 </div></div>
+                                <span v-else class="col-sm-10">No Photographic, Video or Sound Exhibits</span>
                             </FormSection>
                             <FormSection :formCollapse="false" label="Additional Documents">
                                 <div class="col-sm-12 form-group"><div class="row">
@@ -209,6 +212,7 @@
                                     :isRepeatable="true" 
                                     :documentActionUrl="legal_case.briefOfEvidenceDocumentUrl" 
                                     :readonly="readonlyForm"
+                                    v-bind:key="legal_case.briefOfEvidenceDocumentUrl"
                                     />
                                 </div></div>
                             </FormSection>
@@ -320,6 +324,13 @@ export default {
         }
         return visible
     },
+    documentArtifactsVisibility: function() {
+        let visible = false;
+        if (this.documentArtifacts && this.documentArtifacts.length > 0) {
+            visible = true;
+        }
+        return visible;
+    },
       /*
     briefOfEvidence: function() {
         let brief = []
@@ -378,12 +389,26 @@ export default {
         }
         return options;
     },
+    boeOtherStatementsVisibility: function() {
+        let visibility = false;
+        if (this.boeOtherStatementsOptions && this.boeOtherStatementsOptions.length > 0) {
+            visibility = true;
+        }
+        return visibility;
+    },
     boeRoiOptions: function() {
         let options = [];
         if (this.legal_case && this.legal_case.boe_roi_options) {
             options = this.legal_case.boe_roi_options;
         }
         return options;
+    },
+    boeRoiVisibility: function() {
+        let visibility = false;
+        if (this.boeRoiOptions && this.boeRoiOptions.length > 0) {
+            visibility = true;
+        }
+        return visibility;
     },
     /*
     boePhysicalArtifactsTicked: function() {

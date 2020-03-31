@@ -177,6 +177,13 @@ export default {
             }
             return legalId;
         },
+        legalCaseExists: function() {
+            let exists = false;
+            if (this.legal_case && this.legal_case.id) {
+                exists = true;
+            }
+            return exists;
+        },
         showPhysicalArtifactComponent: function() {
             let showComponent = false;
             if (this.componentType === 'physical') {

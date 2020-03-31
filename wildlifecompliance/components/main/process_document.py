@@ -116,6 +116,9 @@ def process_generic_document(request, instance, document_type=None, *args, **kwa
                         id=d.id,
                         name=d.name,
                         ) for d in instance.documents.all() if d._file]
+            print("else RETURNED_FILE_DATA")
+            print(returned_file_data)
+            print(type(instance))
             return {'filedata': returned_file_data}
 
     except Exception as e:
