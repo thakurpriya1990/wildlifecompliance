@@ -1,5 +1,5 @@
 <template lang="html">
-    <div v-if="isApplicationLoaded" class="container" id="internalApplication">
+    <div v-if="isApplicationLoaded" class="container" id="internalApplicationAssessment">
 
         <modal transition="modal fade"
             :showOk="true"
@@ -249,7 +249,7 @@ import {
 }
 from '@/utils/hooks';
 export default {
-    name: 'InternalApplication',
+    name: 'InternalApplicationAssessment',
     data: function() {
         let vm = this;
         return {
@@ -341,7 +341,7 @@ export default {
         selectedActivity: function(){
             // Function that returns an Application Selected Activity.
             if (this.selected_activity_tab_id == null || this.selected_activity_tab_id<1) {
-                this.initFirstTab()     // Each Tab is a Licence Activity.
+                this.initTabsAssessor()     // Each Tab is a Licence Activity.
             }
             return this.application.activities.find(activity => {
 
@@ -425,26 +425,43 @@ export default {
             'toggleFinalisedTabs',
             'saveFormData',
         ]),
-        eventListeners: function(){
+        eventListeners: function(){ // Listens on children components.
             let vm = this;
-            $("[data-target!=''][data-target]").off("click").on("click", function (e) {
-                vm.setActivityTab({
-                    id: parseInt($(this).data('target').replace('#', ''), 10),
-                    name: $(this).text()
+            let application_tabs = $('#tabs-section li a')[0]
+            if (application_tabs==null){ // if doesn't exist then rebuild.
+                $("[data-target!=''][data-target]").off("click").on("click", function (e) {
+                    vm.setActivityTab({
+                        id: parseInt($(this).data('target').replace('#', ''), 10),
+                        name: $(this).text()
+                    });
                 });
-            });
-            this.initFirstTab();
+            }
+            this.initTabsAssessor();
         },
         userHasRole: function(role, activity_id) {
             return this.hasRole(role, activity_id);
         },
-        initFirstTab: function(force){
-            this.isSendingToAssessor = true;
-            //var first_tab = this.application.activities.find(activity => this.canAssignAssessorFor(activity.licence_activity))
-            var first_tab = this.application.assessments[0] // TODO: may require check if authorised for assessment.
+        initTabsAssessor: function(force){ // initiate tabs for children components.
+
             if(this.selected_activity_tab_id && !force) {
-                return;
-            }            
+                // Non-forced entry to child ApplicationAssessments.
+                let application_tabs = $('#tabs-section li a')
+                let tab_id = this.selected_activity_tab_id;
+                let tab_name = this.selected_activity_tab_name;
+                if(application_tabs) {
+                    for (let i=0; i < application_tabs.length; i++){
+
+                        if (application_tabs[i].innerText===this.selected_activity_tab_name){
+                            // set tab to selected tab.
+                            tab = $('#tabs-section li a')[i].click()
+                        }
+                    }
+                }
+                return
+            }
+            // force initiation of tabs on children components.
+            let first = this.application.assessments.length-1
+            var first_tab = this.application.assessments[first] // TODO: may require check if authorised for assessment.
             if (first_tab) {
                 this.licenceActivities().filter(activity => {
                     if (activity.id==first_tab.licence_activity) {
@@ -629,7 +646,6 @@ export default {
                 return;
             }
             this.$refs.applicationTab.click();
-            this.initFirstTab(true);
         },
         openAssessmentModal: function() {
             this.isModalOpen = true;
@@ -651,10 +667,6 @@ export default {
             vm.form = document.forms.new_application;
             vm.eventListeners();
         });
-        const tab = $('#tabs-section li:first-child a')[0]; // set first tab when showing Application.
-        if (tab) {
-            tab.click();    
-        }     
     },
     beforeRouteEnter: function(to, from, next) {
         next(vm => {
