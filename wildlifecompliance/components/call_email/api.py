@@ -797,8 +797,10 @@ class ClassificationViewSet(viewsets.ModelViewSet):
     @list_route(methods=['GET', ])    
     def classification_choices(self, request, *args, **kwargs):
         res_obj = [] 
-        for choice in Classification.NAME_CHOICES:
-            res_obj.append({'id': choice[0], 'display': choice[1]});
+        #for choice in Classification.NAME_CHOICES:
+            # res_obj.append({'id': choice[0], 'display': choice[1]});
+        for choice in Classification.objects.all():
+            res_obj.append({'id': choice.id, 'display': choice.get_name_display()})
         res_json = json.dumps(res_obj)
         return HttpResponse(res_json, content_type='application/json')
 

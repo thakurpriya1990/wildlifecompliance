@@ -314,6 +314,7 @@ class DocumentArtifactSerializer(serializers.ModelSerializer):
         #fields = '__all__'
         fields = (
                 'id',
+                'number',
                 'identifier',
                 'description',
                 #'custodian',
@@ -506,6 +507,7 @@ class PhysicalArtifactSerializer(serializers.ModelSerializer):
         #fields = '__all__'
         fields = (
                 'id',
+                'number',
                 'identifier',
                 'description',
                 'artifact_date',
