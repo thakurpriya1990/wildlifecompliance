@@ -48,6 +48,7 @@ from wildlifecompliance.components.applications.email import (
     send_application_submit_email_notification,
     send_assessment_email_notification,
     send_assessment_reminder_email,
+    send_assessment_completed_email,
     send_amendment_submit_email_notification,
     send_application_issue_notification,
     send_application_decline_notification,
@@ -1254,6 +1255,13 @@ class Application(RevisionedMixin):
                     assessment.assigned_assessor = None
                     assessment.save()
 
+                    # send email notification
+                    select_group = self.licence_officers.all()
+                    send_assessment_completed_email(
+                        select_group,
+                        assessment,
+                        request)
+
                     # Log application action
                     self.log_user_action(
                         ApplicationUserAction.ACTION_ASSESSMENT_COMPLETE
@@ -1309,6 +1317,12 @@ class Application(RevisionedMixin):
                 assessment.status = Assessment.STATUS_COMPLETED
                 assessment.actioned_by = request.user
                 assessment.save()
+
+                # Send email notification
+                select_group = self.licence_officers.all()
+                send_assessment_completed_email(
+                    select_group, assessment, request)
+
                 # Log application action
                 self.log_user_action(
                     ApplicationUserAction.ACTION_ASSESSMENT_COMPLETE.format(assessor_group), request)
@@ -2764,6 +2778,9 @@ class Assessment(ApplicationRequest):
                 raise
 
     def add_inspection(self, request):
+        """
+        Attaches an Inspection to an Assessment.
+        """
         with transaction.atomic():
             try:
                 inspection = Inspection.objects.get(
@@ -3722,7 +3739,7 @@ class ApplicationUserAction(UserAction):
     # Assessors
     ACTION_SAVE_ASSESSMENT_ = "Save assessment {}"
     ACTION_CONCLUDE_ASSESSMENT_ = "Conclude assessment {}"
-    ACTION_PROPOSED_LICENCE = "Application {} has been proposed for licence"
+    ACTION_PROPOSED_LICENCE = "Application {} has been proposed for issuing"
     ACTION_PROPOSED_DECLINE = "Application {} has been proposed for decline"
 
     class Meta:

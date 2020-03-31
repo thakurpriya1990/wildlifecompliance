@@ -408,16 +408,23 @@ export default {
             if(this.selected_activity_tab_id && !force) {
                 return;
             }
-            //const tab = $('#tabs-assessor li:first-child a')[0];
-            const tab = null
-            var first_tab = null
-            if (this.$router.currentRoute.name=='complete-assessment'){
-                // an activity is set for completing assessment.
+            let tab = null
+            let first_tab = null 
+            if (this.isCompleteAssessmentAction){
+                // force first_tab if parent tabs not created. 
                 first_tab = this.selected_activity_tab_id
+                // Set tab for parent component in completing assessments.
+                let tabs = $('#tabs-assessor li')
+                for (let i=0; i < tabs.length; i++){
+
+                    if (tabs[i].innerText===this.selected_activity_tab_name){
+                        // set parent tab to selected tab.
+                        tab = $('#tabs-assessor li a')[i]
+                    }
+                }
             } else {
                 first_tab = this.applicationActivities[0].id
             }
-
             if(tab) {
                 tab.click();
             }
