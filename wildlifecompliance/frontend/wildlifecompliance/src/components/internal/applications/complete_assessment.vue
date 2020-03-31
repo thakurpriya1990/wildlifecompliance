@@ -460,8 +460,9 @@ export default {
                 return
             }
             // force initiation of tabs on children components.
-            let first = this.application.assessments.length-1
-            var first_tab = this.application.assessments[first] // TODO: may require check if authorised for assessment.
+            let first_tab = this.application.assessments.find(assessment => {
+                return assessment.status.id === 'awaiting_assessment'
+            })
             if (first_tab) {
                 this.licenceActivities().filter(activity => {
                     if (activity.id==first_tab.licence_activity) {

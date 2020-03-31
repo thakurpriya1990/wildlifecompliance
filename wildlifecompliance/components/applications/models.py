@@ -1256,10 +1256,10 @@ class Application(RevisionedMixin):
                     assessment.save()
 
                     # send email notification
-                    select_group = self.licence_officers.members.all()
+                    select_group = self.licence_officers.all()
                     send_assessment_completed_email(
                         select_group,
-                        self,
+                        assessment,
                         request)
 
                     # Log application action
@@ -1319,8 +1319,9 @@ class Application(RevisionedMixin):
                 assessment.save()
 
                 # Send email notification
-                select_group = self.licence_officers.members.all()
-                send_assessment_completed_email(select_group, self, request)
+                select_group = self.licence_officers.all()
+                send_assessment_completed_email(
+                    select_group, assessment, request)
 
                 # Log application action
                 self.log_user_action(
