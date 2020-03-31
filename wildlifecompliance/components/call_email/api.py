@@ -709,7 +709,10 @@ class CallEmailViewSet(viewsets.ModelViewSet):
 
                 instance.save()
 
-                email_data = prepare_mail(request, instance, workflow_entry, send_mail)
+                if workflow_type == 'close':
+                    email_data = prepare_mail(request, instance, workflow_entry, send_mail, email_type="close")
+                else:
+                    email_data = prepare_mail(request, instance, workflow_entry, send_mail)
 
                 serializer = CallEmailLogEntrySerializer(instance=workflow_entry, data=email_data, partial=True)
                 serializer.is_valid(raise_exception=True)
