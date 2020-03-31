@@ -10,9 +10,9 @@
                     <div class="col-md-5">
                         <filefield ref="prosecution_notice_document"
                                    name="prosecution-notice-document"
-                                   :documentActionUrl="legal_case.processCourtOutcomeDocumentUrl"
+                                   :documentActionUrl="legal_case.prosecutionNoticeDocumentUrl"
                                    @update-parent="courtOutcomeDocumentUploaded"
-                                   :isRepeatable="false"
+                                   :isRepeatable="true"
                                    :readonly="readonlyForm" />
                     </div>
                 </div>
@@ -21,11 +21,11 @@
                     <i style="color:red" class="fa fa-file-pdf-o col-md-1" id="court-hearing-notice-icon"></i>
                     <label class="col-md-3">Attach signed file </label>
                     <div class="col-md-5">
-                        <filefield ref="prosecution_notice_document"
-                                   name="prosecution-notice-document"
-                                   :documentActionUrl="legal_case.processCourtOutcomeDocumentUrl"
+                        <filefield ref="court_hearing_notice_document"
+                                   name="court-hearing-notice-document"
+                                   :documentActionUrl="legal_case.courtHearingNoticeDocumentUrl"
                                    @update-parent="courtOutcomeDocumentUploaded"
-                                   :isRepeatable="false"
+                                   :isRepeatable="true"
                                    :readonly="readonlyForm" />
                     </div>
                 </div>

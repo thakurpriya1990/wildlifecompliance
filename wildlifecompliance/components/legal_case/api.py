@@ -733,6 +733,46 @@ class LegalCaseViewSet(viewsets.ModelViewSet):
 
     @detail_route(methods=['POST'])
     @renderer_classes((JSONRenderer,))
+    def process_court_hearing_notice_document(self, request, *args, **kwargs):
+
+        # TODO: implement
+
+        return Response()
+
+    @detail_route(methods=['POST'])
+    @renderer_classes((JSONRenderer,))
+    def process_prosecution_notice_document(self, request, *args, **kwargs):
+        try:
+            instance = self.get_object()
+            # process docs
+            returned_data = process_generic_document(request, instance, 'prosecution_notice')
+            # delete Sanction Outcome if user cancels modal
+            action = request.data.get('action')
+            if action == 'cancel' and returned_data:
+                instance.status = 'discarded'
+                instance.save()
+
+            # return response
+            if returned_data:
+                return Response(returned_data)
+            else:
+                return Response()
+
+        except serializers.ValidationError:
+            print(traceback.print_exc())
+            raise
+        except ValidationError as e:
+            if hasattr(e, 'error_dict'):
+                raise serializers.ValidationError(repr(e.error_dict))
+            else:
+                raise serializers.ValidationError(repr(e[0].encode('utf-8')))
+        except Exception as e:
+            print(traceback.print_exc())
+            raise serializers.ValidationError(str(e))
+
+
+    @detail_route(methods=['POST'])
+    @renderer_classes((JSONRenderer,))
     def process_prosecution_brief_document(self, request, *args, **kwargs):
         try:
             instance = self.get_object()
