@@ -827,8 +827,8 @@ class WildlifeLicence(models.Model):
         has_info = False
         conditions = self.current_application.conditions.all()
         for condition in conditions:
-            if condition.standard_condition.additional_information:
-                has_info = True
+            if condition.standard_condition:
+                has_info = condition.standard_condition.additional_information 
 
         return has_info
 
