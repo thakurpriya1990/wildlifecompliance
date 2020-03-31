@@ -35,6 +35,18 @@ export const legalCaseStore = {
                 state.legal_case.id + "/process_default_document/"
                 )
             Vue.set(state.legal_case, 'defaultDocumentUrl', defaultDocumentUrl); 
+            // prosecution notice
+            let prosecutionNoticeDocumentUrl = helpers.add_endpoint_join(
+                api_endpoints.legal_case,
+                state.legal_case.id + "/process_prosecution_notice_document/"
+            )
+            Vue.set(state.legal_case, 'prosecutionNoticeDocumentUrl', prosecutionNoticeDocumentUrl); 
+            // court hearing notice
+            let courtHearingNoticeDocumentUrl = helpers.add_endpoint_join(
+                api_endpoints.legal_case,
+                state.legal_case.id + "/process_court_hearing_notice_document/"
+            )
+            Vue.set(state.legal_case, 'courtHearingNoticeDocumentUrl', courtHearingNoticeDocumentUrl); 
             // Brief of evidence
             let briefOfEvidenceDocumentUrl = helpers.add_endpoint_join(
                 api_endpoints.legal_case,
