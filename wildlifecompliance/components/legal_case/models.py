@@ -20,6 +20,8 @@ from wildlifecompliance.components.main.related_item import can_close_legal_case
 from wildlifecompliance.components.users.models import RegionDistrict, CompliancePermissionGroup
 from django.core.exceptions import ValidationError
 from treebeard.mp_tree import MP_Node
+from datetime import datetime, timedelta, date
+from django.utils import timezone
 
 logger = logging.getLogger(__name__)
 
@@ -93,8 +95,8 @@ class LegalCase(RevisionedMixin):
             )
     details = models.TextField(blank=True, null=True)
     number = models.CharField(max_length=50, blank=True, null=True)
-    case_created_date = models.DateField(null=True)
-    case_created_time = models.TimeField(blank=True, null=True)
+    case_created_date = models.DateField(auto_now_add=True, blank=True, null=True)
+    case_created_time = models.TimeField(auto_now_add=True, blank=True, null=True)
     call_email = models.ForeignKey(
         CallEmail, 
         related_name='legal_case_call_email',

@@ -1173,8 +1173,10 @@ class LegalCaseDatatableSerializer(serializers.ModelSerializer):
             returned_url = view_url
 
         return returned_url
-
+ 
     def get_created_date(self, obj):
+        print("obj.case_created_date")
+        print(obj.case_created_date)
         if obj.case_created_date:
             if obj.case_created_time:
                 return obj.case_created_date.strftime("%d/%m/%Y") + '  ' + obj.case_created_time.strftime('%H:%M')

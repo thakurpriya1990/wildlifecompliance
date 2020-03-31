@@ -100,6 +100,7 @@ export default {
                     url = api_endpoints.temporary_document + this.temporary_document_collection_id + '/process_temp_comms_log_document/'
                 }
             } else {
+                console.log(this.documentActionUrl);
                 url = this.documentActionUrl
             }
             return url;
