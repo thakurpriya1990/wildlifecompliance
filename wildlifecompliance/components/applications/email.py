@@ -93,6 +93,12 @@ class ApplicationAssessmentReminderEmail(TemplateEmailBase):
     txt_template = 'wildlifecompliance/emails/send_application_assessment_remind_notification.txt'
 
 
+class ApplicationAssessmentCompletedEmail(TemplateEmailBase):
+    subject = 'An application assessment has been completed'
+    html_template = 'wildlifecompliance/emails/send_application_assessment_complete_notification.html'
+    txt_template = 'wildlifecompliance/emails/send_application_assessment_complete_notification.txt'
+
+
 class ApplicationIdUpdateRequestEmail(TemplateEmailBase):
     subject = 'An update for your user identification has been requested'
     html_template = 'wildlifecompliance/emails/send_id_update_request_notification.html'
@@ -142,6 +148,37 @@ def send_assessment_email_notification(select_group, assessment, request):
     application = assessment.application
     text = assessment.text
     email = ApplicationAssessmentRequestedEmail()
+    url = request.build_absolute_uri(
+        reverse(
+            'internal-application-detail',
+            kwargs={
+                'application_pk': application.id}))
+
+    if '-internal' not in url:
+        url = "{0}://{1}{2}.{3}{4}".format(request.scheme,
+                                           settings.SITE_PREFIX,
+                                           '-internal',
+                                           settings.SITE_DOMAIN,
+                                           url.split(request.get_host())[1])
+
+    context = {
+        'text': text,
+        'url': url
+    }
+
+    email_group = [item.email for item in select_group]
+    msg = email.send(email_group, context=context)
+    sender = request.user if request else settings.DEFAULT_FROM_EMAIL
+    _log_application_email(msg, application, sender=sender)
+
+
+def send_assessment_completed_email(select_group, assessment, request):
+    """
+    Notification for completed application assessments.
+    """
+    application = assessment.application
+    text = assessment.text
+    email = ApplicationAssessmentCompletedEmail()
     url = request.build_absolute_uri(
         reverse(
             'internal-application-detail',
