@@ -349,11 +349,20 @@ export default {
 
     readonlyForm: function() {
         let readonly = true
+        if (this.legal_case && this.legal_case.id && !this.readonly) {
+            readonly = !this.legal_case.can_user_action;
+        }
+        return readonly
+    },
+      /*
+    readonlyForm: function() {
+        let readonly = true
         if (this.legal_case && this.legal_case.id && !this.readonly && this.legal_case.can_user_action) {
             readonly = false;
         }
         return readonly
     },
+    */
       /*
     readonlyBriefOfEvidence: function() {
         let readonly = true
