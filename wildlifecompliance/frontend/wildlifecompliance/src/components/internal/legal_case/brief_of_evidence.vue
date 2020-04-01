@@ -262,6 +262,12 @@ export default {
     TreeSelect,
     filefield,
   },
+  props:{
+        readonly: {
+            type: Boolean,
+            default: true,
+        },
+  },
   computed: {
     ...mapGetters('legalCaseStore', {
       legal_case: "legal_case",
@@ -343,8 +349,8 @@ export default {
 
     readonlyForm: function() {
         let readonly = true
-        if (this.legal_case && this.legal_case.id) {
-            readonly = !this.legal_case.can_user_action;
+        if (this.legal_case && this.legal_case.id && !this.readonly && this.legal_case.can_user_action) {
+            readonly = false;
         }
         return readonly
     },
