@@ -204,9 +204,8 @@ module.exports = {
         Object.assign(this.type_choices, returned_inspection_types);
         this.type_choices.splice(0, 0, {id: 'all', inspection_type: 'All'});
 
-        await this.MapboxAccessToken.then(data => {
-            this.mapboxAccessToken = data
-        });
+        let temp_token = await this.retrieveMapboxAccessToken();
+        this.mapboxAccessToken = temp_token.access_token;
     },
     mounted(){
         let vm = this;
