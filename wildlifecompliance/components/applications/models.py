@@ -2325,7 +2325,9 @@ class Application(RevisionedMixin):
         # TODO: Delete any previously existing returns with default status
         # which may occur if this activity is being reissued or amended.
         from wildlifecompliance.components.returns.models import Return
-        licence_expiry = selected_activity.expiry_date
+        # licence_expiry = selected_activity.expiry_date
+        # Returns are generated at issuing; expiry_date may not be set yet.
+        licence_expiry = selected_activity.proposed_end_date
         licence_expiry = datetime.datetime.strptime(
             licence_expiry, "%Y-%m-%d"
         ).date() if isinstance(licence_expiry, six.string_types) else licence_expiry
