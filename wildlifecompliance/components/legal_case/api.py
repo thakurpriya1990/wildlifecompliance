@@ -7,7 +7,7 @@ import base64
 import geojson
 from django.db.models import Q, Min, Max
 from django.db import transaction
-from django.http import HttpResponse, HttpRequest
+from django.http import HttpResponse
 from django.core.files.base import ContentFile
 from django.core.files.storage import default_storage
 from django.core.exceptions import ValidationError
@@ -653,10 +653,8 @@ class LegalCaseViewSet(viewsets.ModelViewSet):
     def process_brief_of_evidence_document(self, request, *args, **kwargs):
         try:
             instance = self.get_object()
-            brief_of_evidence_instance = instance.brief_of_evidence
-            if brief_of_evidence_instance:
-                returned_data = process_generic_document(request, brief_of_evidence_instance)
-            if returned_data:
+            if hasattr(instance, 'brief_of_evidence'):
+                returned_data = process_generic_document(request, instance.brief_of_evidence)
                 return Response(returned_data)
             else:
                 return Response()
@@ -783,10 +781,8 @@ class LegalCaseViewSet(viewsets.ModelViewSet):
     def process_prosecution_brief_document(self, request, *args, **kwargs):
         try:
             instance = self.get_object()
-            prosecution_brief_instance = instance.prosecution_brief
-            if prosecution_brief_instance:
-                returned_data = process_generic_document(request, prosecution_brief_instance)
-            if returned_data:
+            if hasattr(instance, 'prosecution_brief'):
+                returned_data = process_generic_document(request, instance.prosecution_brief)
                 return Response(returned_data)
             else:
                 return Response()
@@ -1051,21 +1047,12 @@ class LegalCaseViewSet(viewsets.ModelViewSet):
         pb_instance.save()
 
         # copy additional documents
-        #for doc in boe_instance.documents.all():
-        #    pb_doc, created = ProsecutionBriefDocument.objects.get_or_create(
-        #            prosecution_brief=pb_instance,
-        #            _file = doc._file,
-        #            input_name = doc.input_name,
-        #            can_delete = doc.can_delete,
-        #            version_comment = doc.version_comment,
-        #            )
         for doc in boe_instance.documents.all():
             req = FakeRequest(data={
                     "_file": doc._file,
                     "filename": doc.name,
                     "action": "save",
                     })
-            print(req)
             self.process_prosecution_brief_document(req)
 
         # copy artifact sections
