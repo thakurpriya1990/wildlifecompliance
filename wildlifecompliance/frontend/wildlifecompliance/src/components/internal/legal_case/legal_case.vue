@@ -182,7 +182,7 @@
                         </div>
 
                         <div id="close-button" class="row action-button">
-                          <div v-if="canUserAction" class="col-sm-12">
+                          <div v-if="canUserAction && !closedStatus" class="col-sm-12">
                                 <a @click="addWorkflow('close')" class="btn btn-primary btn-block">
                                   Close
                                 </a>
@@ -609,7 +609,7 @@ export default {
     },
     readonlyForm: function() {
         let readonly = true
-        if (this.legal_case && this.legal_case.id && !this.legal_case.can_user_action && this.statusId !== 'closed') {
+        if (this.legal_case && this.legal_case.id && !this.legal_case.can_user_action && this.closedStatus) {
             readonly = false;
         }
         return readonly
@@ -632,6 +632,13 @@ export default {
             visibility = true;
         }
         return visibility;
+    },
+    closedStatus: function() {
+        let returnStatus = false
+        if (this.legal_case && this.statusId === 'closed') {
+            returnStatus = true
+        }
+        return returnStatus
     },
     withProsecutionCoordinatorCourtStatus: function() {
         let returnStatus = false
@@ -850,6 +857,7 @@ export default {
             // following status values are included
             [
                 'with_prosecution_coordinator_court',
+                'closed',
                 //'with_prosecution_council',
                 //'with_prosecution_manager',
             ].includes(this.statusId)
