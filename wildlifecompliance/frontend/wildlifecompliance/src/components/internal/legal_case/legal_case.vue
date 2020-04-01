@@ -609,8 +609,8 @@ export default {
     },
     readonlyForm: function() {
         let readonly = true
-        if (this.legal_case && this.legal_case.id && !this.legal_case.can_user_action && this.closedStatus) {
-            readonly = false;
+        if (this.legal_case && this.legal_case.id && !this.closedStatus) {
+            readonly = !this.legal_case.can_user_action;
         }
         return readonly
     },
