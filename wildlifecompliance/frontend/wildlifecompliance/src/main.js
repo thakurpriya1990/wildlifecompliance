@@ -51,20 +51,35 @@ Vue.filter('toCurrency', function(value) {
                 return formatter.format(value);
             });
 
+var mapbox_access_token = '';
+
 Vue.mixin({
-    data: function() {
-        return {
-            get MapboxAccessToken() {
-                return fetch('/api/geocoding_address_search_token')
-                    .then(data => {
-                        return data.json()
-                    })
-                    .then(data => {
-                        return data.access_token
-                    })
-            }
+    methods: {
+        retrieveMapboxAccessToken: async function(){
+            let ret_val = await $.ajax('/api/geocoding_address_search_token');
+            return ret_val;
         }
-    }
+    },
+   // data: function() {
+   //     return {
+   //         get MapboxAccessToken() {
+   //             if (mapbox_access_token) {
+   //                 console.log('*** no fetch ***');
+   //                 return mapbox_access_token;
+   //             } else {
+   //                 console.log('*** fetch ***');
+   //                 return fetch('/api/geocoding_address_search_token')
+   //                     .then(data => {
+   //                         return data.json()
+   //                     })
+   //                     .then(data => {
+   //                         mapbox_access_token = data.access_token;
+   //                         return data.access_token
+   //                     })
+   //             }
+   //         }
+   //     }
+   // }
 })
 
 /* eslint-disable no-new */

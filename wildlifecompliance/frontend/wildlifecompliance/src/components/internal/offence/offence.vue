@@ -1465,9 +1465,14 @@ export default {
         },
     },
     created: async function() {
-        await this.MapboxAccessToken.then(data => {
-            this.mapboxAccessToken = data
-        });
+        console.log('*** global method test *** ');
+//        await this.MapboxAccessToken.then(data => {
+//            this.mapboxAccessToken = data
+//        });
+        let temp_token = await this.retrieveMapboxAccessToken();
+        console.log('temp_token: ' + temp_token.access_token);
+        this.mapboxAccessToken = temp_token.access_token;
+
         if (this.$route.params.offence_id) {
             await this.constructOffenceDedicatedPage();
         }
