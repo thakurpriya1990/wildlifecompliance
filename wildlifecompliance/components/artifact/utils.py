@@ -10,7 +10,7 @@ from wildlifecompliance.components.artifact.models import (
         # PhysicalArtifactLegalCases,
         )
 
-def copy_brief_of_evidence_to_prosecution_brief(legal_case):
+def copy_brief_of_evidence_artifacts_to_prosecution_brief(legal_case):
     # Record of Interview
     roi_qs = legal_case.legal_case_boe_roi.all()
     for roi_record in roi_qs:

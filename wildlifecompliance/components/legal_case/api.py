@@ -61,6 +61,7 @@ from wildlifecompliance.components.legal_case.models import (
     CourtProceedingsJournalEntry,
     BriefOfEvidence,
     ProsecutionBrief,
+    ProsecutionBriefDocument,
     CourtProceedings, CourtDate)
 from wildlifecompliance.components.legal_case.generate_pdf import create_document_pdf_bytes
 
@@ -121,8 +122,14 @@ from wildlifecompliance.components.artifact.utils import (
         update_boe_document_artifacts_ticked,
         update_pb_physical_artifacts,
         update_pb_document_artifacts_ticked,
-        copy_brief_of_evidence_to_prosecution_brief,
+        copy_brief_of_evidence_artifacts_to_prosecution_brief,
         )
+
+
+class FakeRequest():
+    def __init__(self, data):
+        self.data = data
+
 
 class LegalCaseFilterBackend(DatatablesFilterBackend):
 
@@ -646,10 +653,8 @@ class LegalCaseViewSet(viewsets.ModelViewSet):
     def process_brief_of_evidence_document(self, request, *args, **kwargs):
         try:
             instance = self.get_object()
-            brief_of_evidence_instance = instance.brief_of_evidence
-            if brief_of_evidence_instance:
-                returned_data = process_generic_document(request, brief_of_evidence_instance)
-            if returned_data:
+            if hasattr(instance, 'brief_of_evidence'):
+                returned_data = process_generic_document(request, instance.brief_of_evidence)
                 return Response(returned_data)
             else:
                 return Response()
@@ -776,10 +781,8 @@ class LegalCaseViewSet(viewsets.ModelViewSet):
     def process_prosecution_brief_document(self, request, *args, **kwargs):
         try:
             instance = self.get_object()
-            prosecution_brief_instance = instance.prosecution_brief
-            if prosecution_brief_instance:
-                returned_data = process_generic_document(request, prosecution_brief_instance)
-            if returned_data:
+            if hasattr(instance, 'prosecution_brief'):
+                returned_data = process_generic_document(request, instance.prosecution_brief)
                 return Response(returned_data)
             else:
                 return Response()
@@ -1008,8 +1011,53 @@ class LegalCaseViewSet(viewsets.ModelViewSet):
         instance.set_status_brief_of_evidence(request)
 
     def process_prosecution_brief(self, instance, request):
+        boe_instance, created = BriefOfEvidence.objects.get_or_create(legal_case=instance)
         pb_instance, created = ProsecutionBrief.objects.get_or_create(legal_case=instance)
-        copy_brief_of_evidence_to_prosecution_brief(instance)
+        # copy model fields
+        pb_instance.statement_of_facts = boe_instance.statement_of_facts
+        pb_instance.victim_impact_statement_taken = boe_instance.victim_impact_statement_taken
+        pb_instance.statements_pending = boe_instance.statements_pending
+        pb_instance.vulnerable_hostile_witnesses = boe_instance.vulnerable_hostile_witnesses
+        pb_instance.witness_refusing_statement = boe_instance.witness_refusing_statement
+        pb_instance.problems_needs_prosecution_witnesses = boe_instance.problems_needs_prosecution_witnesses
+        pb_instance.accused_bad_character = boe_instance.accused_bad_character
+        pb_instance.further_persons_interviews_pending = boe_instance.further_persons_interviews_pending
+        pb_instance.other_interviews = boe_instance.other_interviews
+        pb_instance.relevant_persons_pending_charges = boe_instance.relevant_persons_pending_charges
+        pb_instance.other_persons_receiving_sanction_outcome = boe_instance.other_persons_receiving_sanction_outcome
+        pb_instance.local_public_interest = boe_instance.local_public_interest
+        pb_instance.applications_orders_requests = boe_instance.applications_orders_requests
+        pb_instance.applications_orders_required = boe_instance.applications_orders_required
+        pb_instance.other_legal_matters = boe_instance.other_legal_matters
+
+        pb_instance.victim_impact_statement_taken_details = boe_instance.victim_impact_statement_taken_details
+        pb_instance.statements_pending_details = boe_instance.statements_pending_details
+        pb_instance.vulnerable_hostile_witnesses_details = boe_instance.vulnerable_hostile_witnesses_details
+        pb_instance.witness_refusing_statement_details = boe_instance.witness_refusing_statement_details
+        pb_instance.problems_needs_prosecution_witnesses_details = boe_instance.problems_needs_prosecution_witnesses_details
+        pb_instance.accused_bad_character_details = boe_instance.accused_bad_character_details
+        pb_instance.further_persons_interviews_pending_details = boe_instance.further_persons_interviews_pending_details
+        pb_instance.other_interviews_details = boe_instance.other_interviews_details
+        pb_instance.relevant_persons_pending_charges_details = boe_instance.relevant_persons_pending_charges_details
+        pb_instance.other_persons_receiving_sanction_outcome_details = boe_instance.other_persons_receiving_sanction_outcome_details
+        pb_instance.local_public_interest_details = boe_instance.local_public_interest_details
+        pb_instance.applications_orders_requests_details = boe_instance.applications_orders_requests_details
+        pb_instance.applications_orders_required_details = boe_instance.applications_orders_required_details
+        pb_instance.other_legal_matters_details = boe_instance.other_legal_matters_details
+        pb_instance.save()
+
+        # copy additional documents
+        for doc in boe_instance.documents.all():
+            req = FakeRequest(data={
+                    "_file": doc._file,
+                    "filename": doc.name,
+                    "action": "save",
+                    })
+            self.process_prosecution_brief_document(req)
+
+        # copy artifact sections
+        copy_brief_of_evidence_artifacts_to_prosecution_brief(instance)
+        # change status
         instance.set_status_generate_prosecution_brief(request)
 
     @detail_route(methods=['POST'])
