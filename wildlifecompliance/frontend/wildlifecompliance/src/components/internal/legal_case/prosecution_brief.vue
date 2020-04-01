@@ -261,6 +261,12 @@ export default {
     TreeSelect,
     filefield,
   },
+  props:{
+        readonly: {
+            type: Boolean,
+            default: true,
+        },
+  },
   computed: {
     ...mapGetters('legalCaseStore', {
       legal_case: "legal_case",
@@ -332,7 +338,14 @@ export default {
         return brief;
     },
     */
-
+    readonlyForm: function() {
+        let readonly = true
+        if (this.legal_case && this.legal_case.id && !this.readonly && this.legal_case.can_user_action) {
+            readonly = false;
+        }
+        return readonly
+    },
+    /*
     readonlyForm: function() {
         let readonly = true
         if (this.legal_case && this.legal_case.id) {
@@ -340,6 +353,7 @@ export default {
         }
         return readonly
     },
+    */
     readonlyProsecutionBrief: function() {
         let readonly = true
         if (this.legal_case && this.legal_case.id) {
