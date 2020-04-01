@@ -3,6 +3,8 @@ import os
 
 from decimal import Decimal as D
 from io import BytesIO, FileIO
+
+from django.db.models import Q
 from django.http import HttpResponse, FileResponse
 from wsgiref.util import FileWrapper
 from django.core.files.storage import default_storage
@@ -41,8 +43,10 @@ from django.conf import settings
 from ledger.accounts.models import Document
 from ledger.checkout.utils import calculate_excl_gst
 
+from wildlifecompliance.components.artifact.models import BriefOfEvidenceRecordOfInterview
 from wildlifecompliance.components.legal_case import pdf_court_hearing_notice, pdf_prosecution_notice
 from wildlifecompliance.components.main.pdf_utils import ParagraphCheckbox, ParagraphOffeset
+from wildlifecompliance.components.offence.models import Offender
 
 PAGE_MARGIN = 5 * mm
 PAGE_WIDTH, PAGE_HEIGHT = A4
@@ -563,10 +567,14 @@ def create_document_pdf_bytes(legal_case, request_data):
 
         with BytesIO() as invoice_buffer:
             invoice_buffer = BytesIO()
+
+            # Retrieve offenders who are on the BriefOfEvidenceRecordOfInterview with ticked=True
+            offenders = Offender.objects.filter(offender_boe_roi__in=BriefOfEvidenceRecordOfInterview.objects.filter(Q(legal_case=legal_case) & Q(ticked=True)))
+
             if document_type == 'prosecution_notice':
-                returned_invoice_buffer = pdf_prosecution_notice._create_pdf(invoice_buffer, legal_case,)
+                returned_invoice_buffer = pdf_prosecution_notice._create_pdf(invoice_buffer, legal_case, offenders)
             elif document_type == 'court_hearing_notice':
-                returned_invoice_buffer = pdf_court_hearing_notice._create_pdf(invoice_buffer, legal_case,)
+                returned_invoice_buffer = pdf_court_hearing_notice._create_pdf(invoice_buffer, legal_case, offenders)
             else:
                 returned_invoice_buffer = _create_pdf(invoice_buffer, legal_case, request_data)
         # return cursor to beginning of file
