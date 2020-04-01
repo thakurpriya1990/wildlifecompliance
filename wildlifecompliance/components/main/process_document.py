@@ -83,6 +83,22 @@ def process_generic_document(request, instance, document_type=None, *args, **kwa
                         ) for d in instance.report.all() if d._file]
             return {'filedata': returned_file_data}
 
+        elif document_type == 'prosecution_notice':
+            returned_file_data = [dict(
+                file=d._file.url,
+                id=d.id,
+                name=d.name,
+            ) for d in instance.prosecution_notices.all() if d._file]
+            return {'filedata': returned_file_data}
+
+        elif document_type == 'court_hearing_notice':
+            returned_file_data = [dict(
+                file=d._file.url,
+                id=d.id,
+                name=d.name,
+            ) for d in instance.court_hearing_notices.all() if d._file]
+            return {'filedata': returned_file_data}
+
         elif document_type == 'generated_documents':
             print("return generated documents")
             returned_file_data = [dict(
@@ -108,6 +124,7 @@ def process_generic_document(request, instance, document_type=None, *args, **kwa
     except Exception as e:
         print(traceback.print_exc())
         raise e
+
 
 def delete_document(request, instance, comms_instance, document_type, input_name=None):
     # PhysicalArtifact renderer docs delete
@@ -136,6 +153,16 @@ def delete_document(request, instance, comms_instance, document_type, input_name
         document_id = request.data.get('document_id')
         document = instance.court_proceedings.court_outcome_documents.get(id=document_id)
 
+    # prosecution notice delete
+    elif document_type == 'prosecution_notice' and 'document_id' in request.data:
+        document_id = request.data.get('document_id')
+        document = instance.prosecution_notices.get(id=document_id)
+
+    # court hearing notice delete
+    elif document_type == 'court_hearing_notice' and 'document_id' in request.data:
+        document_id = request.data.get('document_id')
+        document = instance.court_hearing_notices.get(id=document_id)
+
     # comms_log doc store delete
     elif comms_instance and 'document_id' in request.data:
         document_id = request.data.get('document_id')
@@ -152,6 +179,7 @@ def delete_document(request, instance, comms_instance, document_type, input_name
 
     if document:
         document.delete()
+
 
 def cancel_document(request, instance, comms_instance, document_type, input_name=None):
         # PhysicalArtifact renderer documents cancel
@@ -194,6 +222,26 @@ def cancel_document(request, instance, comms_instance, document_type, input_name
                     os.remove(document._file.path)
                 document.delete()
 
+        # prosecution notice cancel
+        elif document_type == 'prosecution_notice':
+            document_list = instance.prosecution_notices.all()
+
+            for document in document_list:
+                if document._file and os.path.isfile(
+                        document._file.path):
+                    os.remove(document._file.path)
+                document.delete()
+
+        # court hearing notice cancel
+        elif document_type == 'court_hearing_notice':
+            document_list = instance.court_hearing_notices.all()
+
+            for document in document_list:
+                if document._file and os.path.isfile(
+                        document._file.path):
+                    os.remove(document._file.path)
+                document.delete()
+
         # generated documents cancel
         elif document_type == 'generated_documents':
             document_list = instance.generated_documents.all()
@@ -224,6 +272,7 @@ def cancel_document(request, instance, comms_instance, document_type, input_name
                         document._file.path):
                     os.remove(document._file.path)
                 document.delete()
+
 
 def save_document(request, instance, comms_instance, document_type, input_name=None):
         # Match model related_name to instance or comms_instance, eg.
@@ -302,6 +351,37 @@ def save_document(request, instance, comms_instance, document_type, input_name=N
 
             document._file = path
             document.save()
+
+        # prosecution notice save
+        elif document_type == 'prosecution_notice' and 'filename' in request.data:
+            filename = request.data.get('filename')
+            _file = request.data.get('_file')
+
+            document = instance.prosecution_notices.get_or_create(
+                name=filename)[0]
+            path = default_storage.save(
+                'wildlifecompliance/{}/{}/prosecution_notices/{}'.format(
+                    instance._meta.model_name, instance.id, filename), ContentFile(
+                    _file.read()))
+
+            document._file = path
+            document.save()
+
+        # prosecution notice save
+        elif document_type == 'court_hearing_notice' and 'filename' in request.data:
+            filename = request.data.get('filename')
+            _file = request.data.get('_file')
+
+            document = instance.court_hearing_notices.get_or_create(
+                name=filename)[0]
+            path = default_storage.save(
+                'wildlifecompliance/{}/{}/court_hearing_notices/{}'.format(
+                    instance._meta.model_name, instance.id, filename), ContentFile(
+                    _file.read()))
+
+            document._file = path
+            document.save()
+
         # comms_log doc store save
         elif comms_instance and 'filename' in request.data:
             filename = request.data.get('filename')
@@ -331,6 +411,7 @@ def save_document(request, instance, comms_instance, document_type, input_name=N
 
             document._file = path
             document.save()
+
 
 # For transferring files from temp doc objs to comms_log objs
 def save_comms_log_document_obj(instance, comms_instance, temp_document):
