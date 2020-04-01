@@ -1,6 +1,6 @@
 <template lang="html">
     <div class="container-fluid">
-        <div class="col-sm-12 child-artifact-component">
+        <div :class="componentClass">
             <div class="form-group">
                 <div class="row">
                     <div v-if="!legalCaseExists">
@@ -26,7 +26,7 @@
                                           <label>Document Type</label>
                                         </div>
                                         <div class="col-sm-6">
-                                          <select class="form-control" v-model="document_artifact.document_type" ref="setArtifactType">
+                                          <select :disabled="readonlyForm" class="form-control" v-model="document_artifact.document_type" ref="setArtifactType">
                                             <option  v-for="option in documentArtifactTypes" :value="option.id" v-bind:key="option.id">
                                               {{ option.display }}
                                             </option>
@@ -77,14 +77,14 @@
                                           <label>Statement</label>
                                         </div>
                                         <div v-if="parentModal" class="col-sm-6">
-                                          <select class="form-control" v-model="document_artifact.statement_id" ref="setStatement">
+                                          <select :disabled="readonlyForm" class="form-control" v-model="document_artifact.statement_id" ref="setStatement">
                                             <option  v-for="option in legal_case.statement_artifacts" :value="option.id" v-bind:key="option.id">
                                             {{ option.document_type_display }}: {{ option.identifier }}
                                             </option>
                                           </select>
                                         </div>
                                         <div v-else class="col-sm-6">
-                                          <select class="form-control" v-model="document_artifact.statement_id" ref="setStatement">
+                                          <select :disabled="readonlyForm" class="form-control" v-model="document_artifact.statement_id" ref="setStatement">
                                             <option  v-for="option in document_artifact.available_statement_artifacts" :value="option.id" v-bind:key="option.id">
                                             {{ option.document_type_display }}: {{ option.identifier }}
                                             </option>
@@ -98,7 +98,7 @@
                                           <label>Offence</label>
                                         </div>
                                         <div class="col-sm-6">
-                                          <select class="form-control" v-model="document_artifact.offence_id" @change.prevent="setOffenderId(null)">
+                                          <select :disabled="readonlyForm" class="form-control" v-model="document_artifact.offence_id" @change.prevent="setOffenderId(null)">
                                             <option  v-for="option in legal_case.offence_list" :value="option.id" v-bind:key="option.id">
                                                 <div v-if="option.id">
                                                     {{ option.lodgement_number }}: {{ option.identifier }}
@@ -112,7 +112,7 @@
                                           <label>Offender</label>
                                         </div>
                                         <div class="col-sm-6">
-                                          <select class="form-control" v-model="document_artifact.offender_id">
+                                          <select :disabled="readonlyForm" class="form-control" v-model="document_artifact.offender_id">
                                             <option  v-for="option in offenderList" :value="option.offender_id" v-bind:key="option.offender_id">
                                             <div v-if="option.id">
                                                 {{ option.full_name }}: {{ option.email }}
@@ -161,7 +161,7 @@
                                                 <label >{{ interviewerLabel }}</label>
                                             </div>
                                             <div class="col-sm-9">
-                                                <select ref="document_artifact_department_users" class="form-control" v-model="officerInterviewerEmailAddress">
+                                                <select :disabled="readonlyForm" ref="document_artifact_department_users" class="form-control" v-model="officerInterviewerEmailAddress">
                                                     <option  v-for="option in departmentStaffList" :value="option.email" v-bind:key="option.pk">
                                                     {{ option.name }} 
                                                     </option>
@@ -209,7 +209,7 @@
                                         <RelatedItems 
                                         :parent_update_related_items="setRelatedItems" 
                                         v-bind:key="relatedItemsBindId" 
-                                        :readonlyForm="!canUserAction"
+                                        :readonlyForm="readonlyForm"
                                         parentComponentName="document_artifact"
                                         />
                                     </div>
@@ -395,6 +395,10 @@ export default {
             type: Object,
             required: false,
         },
+        readonlyForm: {
+            type: Boolean,
+            required: false,
+        },
     },
     watch: {
         artifactType: {
@@ -438,9 +442,27 @@ export default {
         ...mapGetters('legalCaseStore', {
             legal_case: "legal_case",
         }),
+        /*
         canUserAction: function() {
             return true;
         },
+        */
+        componentClass: function() {
+            let componentClass = '';
+            if (this.parentModal) {
+                componentClass = 'col-sm-12 child-artifact-component';
+            }
+            return componentClass;
+        },
+        /*
+        readonlyForm: function() {
+            let retValue = false;
+            if (!this.readonly) {
+                retValue = true;
+            }
+            return retValue;
+        },
+        */
         legalCaseExists: function() {
             let exists = false;
             if (this.legal_case && this.legal_case.id) {
@@ -611,9 +633,6 @@ export default {
                 visibility = true;
             }
             return visibility;
-        },
-        readonlyForm: function() {
-          return false;
         },
         updateSearchPersonOrganisationBindId: function() {
           this.uuid += 1

@@ -15,6 +15,20 @@
                             <div class="form-group">
                                 <div class="row">
                                     <div class="col-sm-3">
+                                        <label class="control-label pull-left"  for="Name">Purpose</label>
+                                    </div>
+                                    <div class="col-sm-9" >
+                                        <div style="width:70% !important">
+                                            <select class="form-control" name="purpoose" v-model="condition.licence_purpose" >
+                                                <option v-for="p in purposes" :value="p.id" >{{p.short_name}}</option>
+                                            </select>
+                                        </div>
+                                    </div>
+                                </div>
+                            </div>
+                            <div class="form-group">
+                                <div class="row">
+                                    <div class="col-sm-3">
                                         <label class="control-label pull-left"  for="Name">Condition</label>
                                     </div>
                                     <div class="col-sm-9" v-if="condition.standard">
@@ -30,34 +44,6 @@
                                 </div>
                             </div>
                             <div class="form-group">
-                                <div class="row">
-                                    <div class="col-sm-3">
-                                        <label class="control-label pull-left"  for="Name">Purpose</label>
-                                    </div>
-                                    <div class="col-sm-9" >
-                                        <div style="width:70% !important">
-                                            <select class="form-control" name="purpoose" v-model="condition.licence_purpose" >
-                                                <option v-for="p in purposes" :value="p.id" >{{p.short_name}}</option>
-                                            </select>
-                                        </div>
-                                    </div>
-                                </div>
-                            </div>
-                            <div class="form-group" v-if="!condition.standard">
-                                <div class="row">
-                                    <div class="col-sm-3">
-                                        <label class="control-label pull-left"  for="Name">Return Type</label>
-                                    </div>
-                                    <div class="col-sm-9">
-                                        <div style="width:70% !important">
-                                            <select class="form-control" ref="return_types_select" name="return_type" v-model="condition.return_type">
-                                                <option v-for="r in return_types" :value="r.id">{{r.name}}</option>
-                                            </select>
-                                        </div>
-                                    </div>
-                                </div>
-                            </div>
-                            <div class="form-group">
                                 <div class="row" v-if="!condition.standard || showDueDate">
                                     <div class="col-sm-3">
                                         <label class="control-label pull-left"  for="Name">Due Date</label>
@@ -68,6 +54,20 @@
                                             <span class="input-group-addon">
                                                 <span class="glyphicon glyphicon-calendar"></span>
                                             </span>
+                                        </div>
+                                    </div>
+                                </div>
+                            </div>
+                            <div class="form-group" v-if="validDate">
+                                <div class="row">
+                                    <div class="col-sm-3">
+                                        <label class="control-label pull-left"  for="Name">Return Type</label>
+                                    </div>
+                                    <div class="col-sm-9">
+                                        <div style="width:70% !important">
+                                            <select class="form-control" ref="return_types_select" name="return_type" v-model="condition.return_type">
+                                                <option v-for="r in return_types" :value="r.id">{{r.name}}</option>
+                                            </select>
                                         </div>
                                     </div>
                                 </div>
