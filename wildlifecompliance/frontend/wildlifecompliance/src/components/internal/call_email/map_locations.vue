@@ -218,9 +218,8 @@ module.exports = {
         Object.assign(this.status_choices, returned_status_choices);
         this.status_choices.splice(0, 0, {id: 'all', display: 'All'});
 
-        await this.MapboxAccessToken.then(data => {
-            this.mapboxAccessToken = data
-        });
+        let temp_token = await this.retrieveMapboxAccessToken();
+        this.mapboxAccessToken = temp_token.access_token;
     },
     mounted(){
         let vm = this;

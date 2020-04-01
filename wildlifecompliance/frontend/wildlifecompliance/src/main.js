@@ -60,26 +60,6 @@ Vue.mixin({
             return ret_val;
         }
     },
-   // data: function() {
-   //     return {
-   //         get MapboxAccessToken() {
-   //             if (mapbox_access_token) {
-   //                 console.log('*** no fetch ***');
-   //                 return mapbox_access_token;
-   //             } else {
-   //                 console.log('*** fetch ***');
-   //                 return fetch('/api/geocoding_address_search_token')
-   //                     .then(data => {
-   //                         return data.json()
-   //                     })
-   //                     .then(data => {
-   //                         mapbox_access_token = data.access_token;
-   //                         return data.access_token
-   //                     })
-   //             }
-   //         }
-   //     }
-   // }
 })
 
 /* eslint-disable no-new */
