@@ -266,15 +266,16 @@
                         <div :id="bTab" class="tab-pane fade in">
                             <BriefOfEvidence 
                             ref="brief_of_evidence"
-                            :readonly="briefOfEvidenceVisibility"/>
+                            :readonly="briefOfEvidenceReadonly"/>
                         </div>
                         <div :id="pTab" class="tab-pane fade in">
                             <ProsecutionBrief 
                             ref="prosecution_brief"
-                            :readonly="prosecutionBriefVisibility"/>
+                            :readonly="prosecutionBriefReadonly"/>
                         </div>
                         <div :id="cpTab" class="tab-pane fade in">
-                            <CourtProceedings v-if="legal_case.court_proceedings" />
+                            <CourtProceedings
+                            v-if="legal_case.court_proceedings" />
                         </div>
                         <div :id="rTab" class="tab-pane fade in">
                             <FormSection :formCollapse="false" label="Related Items">
@@ -283,7 +284,7 @@
                                         <RelatedItems 
                                         v-bind:key="relatedItemsBindId" 
                                         :parent_update_related_items="setRelatedItems" 
-                                        :readonlyForm="!canUserAction"
+                                        :readonlyForm="readonlyForm"
                                         parentComponentName="legal_case"
                                         />
                                     </div>
@@ -608,8 +609,8 @@ export default {
     },
     readonlyForm: function() {
         let readonly = true
-        if (this.legal_case && this.legal_case.id) {
-            readonly = !this.legal_case.can_user_action;
+        if (this.legal_case && this.legal_case.id && !this.legal_case.can_user_action && this.statusId !== 'closed') {
+            readonly = false;
         }
         return readonly
     },
@@ -806,6 +807,20 @@ export default {
         }
         return visible;
     },
+    briefOfEvidenceReadonly: function() {
+        let readonly = true;
+        if (this.briefOfEvidenceStatus) {
+            readonly = false;
+        }
+        return readonly;
+    },
+    prosecutionBriefReadonly: function() {
+        let readonly = true;
+        if (this.withProsecutionCoordinatorProsecutionBriefStatus) {
+            readonly = false;
+        }
+        return readonly;
+    },
     prosecutionBriefVisibility: function() {
         let visible = false;
         if (this.legal_case &&
@@ -835,8 +850,8 @@ export default {
             // following status values are included
             [
                 'with_prosecution_coordinator_court',
-                'with_prosecution_council',
-                'with_prosecution_manager',
+                //'with_prosecution_council',
+                //'with_prosecution_manager',
             ].includes(this.statusId)
         )
         {
