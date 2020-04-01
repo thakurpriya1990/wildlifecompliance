@@ -270,7 +270,15 @@
 
                         <div :id="lTab" class="tab-pane fade in">
                             <FormSection :formCollapse="false" label="Location">
-                                    <MapLocation v-if="inspection.location" v-bind:key="lTab" ref="mapLocationComponent" :readonly="readonlyForm" :marker_longitude="inspection.location.geometry.coordinates[0]" :marker_latitude="inspection.location.geometry.coordinates[1]" @location-updated="locationUpdated"/>
+                                    <MapLocation 
+                                        v-if="inspection.location" 
+                                        :key="lTab" 
+                                        ref="mapLocationComponent" 
+                                        :readonly="readonlyForm" 
+                                        :marker_longitude="inspection.location.geometry.coordinates[0]" 
+                                        :marker_latitude="inspection.location.geometry.coordinates[1]" 
+                                        @location-updated="locationUpdated"
+                                    />
                                     <div :id="idLocationFieldsAddress" v-if="inspection.location">
                                         <div class="col-sm-12 form-group"><div class="row">
                                             <label class="col-sm-4">Street</label>
@@ -409,6 +417,7 @@ export default {
   name: "ViewInspection",
   data: function() {
     return {
+        mapboxAccessToken: null,
       uuid: 0,
       objectHash: null,
       iTab: 'iTab'+this._uid,
@@ -672,8 +681,13 @@ export default {
             }
         },
         locationUpdated: function(latlng){
-            console.log('locationUpdated');
-            console.log(latlng);
+           // console.log('locationUpdated');
+           // console.log(latlng);
+           // // Update coordinate
+           // this.inspection.location.geometry.coordinates[1] = latlng.lat;
+           // this.inspection.location.geometry.coordinates[0] = latlng.lng;
+           // // Update Address/Details
+           // this.reverseGeocoding(latlng);
             // Update coordinate
             this.inspection.location.geometry.coordinates[1] = latlng.lat;
             this.inspection.location.geometry.coordinates[0] = latlng.lng;
@@ -684,9 +698,10 @@ export default {
           var self = this;
 
           $.ajax({
-            url: api_endpoints.geocoding_address_search + coordinates_4326.lng + "," + coordinates_4326.lat + ".json?" +
+            url:
+              api_endpoints.geocoding_address_search + coordinates_4326.lng + "," + coordinates_4326.lat + ".json?" +
               $.param({
-                    access_token: self.mapboxAccessToken,
+                access_token: self.mapboxAccessToken,
                 limit: 1,
                 types: "address"
               }),
@@ -1052,6 +1067,9 @@ export default {
     },
   },
   created: async function() {
+      let temp_token = await this.retrieveMapboxAccessToken();
+      this.mapboxAccessToken = temp_token.access_token;
+
       if (this.$route.params.inspection_id) {
           await this.loadInspection({ inspection_id: this.$route.params.inspection_id });
       }

@@ -218,7 +218,15 @@
                             </div>
                             <div :id="locationTab" class="tab-pane face in">
                                 <FormSection :formCollapse="false" label="Location" Index="3">
-                                    <MapLocation v-if="offence.location" v-bind:key="locationTab" ref="mapLocationComponent" :readonly="readonlyForm" :marker_longitude="offence.location.geometry.coordinates[0]" :marker_latitude="offence.location.geometry.coordinates[1]" @location-updated="locationUpdated"/>
+                                    <MapLocation 
+                                        v-if="offence.location" 
+                                        :key="locationTab" 
+                                        ref="mapLocationComponent" 
+                                        :readonly="readonlyForm" 
+                                        :marker_longitude="offence.location.geometry.coordinates[0]" 
+                                        :marker_latitude="offence.location.geometry.coordinates[1]" 
+                                        @location-updated="locationUpdated"
+                                    />
                                     <div :id="idLocationFieldsAddress" v-if="offence.location">
                                         <div class="col-sm-12 form-group"><div class="row">
                                             <label class="col-sm-4">Street</label>
@@ -887,11 +895,7 @@ export default {
 
           $.ajax({
             url:
-                api_endpoints.geocoding_address_search +
-              coordinates_4326.lng +
-              "," +
-              coordinates_4326.lat +
-              ".json?" +
+              api_endpoints.geocoding_address_search + coordinates_4326.lng + "," + coordinates_4326.lat + ".json?" +
               $.param({
                 access_token: self.mapboxAccessToken,
                 limit: 1,
@@ -1461,9 +1465,9 @@ export default {
         },
     },
     created: async function() {
-        await this.MapboxAccessToken.then(data => {
-            this.mapboxAccessToken = data
-        });
+        let temp_token = await this.retrieveMapboxAccessToken();
+        this.mapboxAccessToken = temp_token.access_token;
+
         if (this.$route.params.offence_id) {
             await this.constructOffenceDedicatedPage();
         }
