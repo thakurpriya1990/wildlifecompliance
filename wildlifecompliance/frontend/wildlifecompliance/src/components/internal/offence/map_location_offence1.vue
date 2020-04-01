@@ -174,7 +174,12 @@ export default {
           vm.addMarker([vm.offence.location.geometry.coordinates[1], vm.offence.location.geometry.coordinates[0]]);
           vm.refreshMarkerLocation();
       }
-      vm.showHideAddressDetailsFields(false, false);
+      //vm.showHideAddressDetailsFields(false, false);
+            if (this.offence.location.properties.country){
+                this.showHideAddressDetailsFields(true, false);
+            } else {
+                this.showHideAddressDetailsFields(false, true);
+            }
     });
   },
     created: async function(){

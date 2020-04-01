@@ -1,6 +1,6 @@
 <template lang="html">
     <div class="container-fluid">
-        <div class="col-sm-12 child-artifact-component">
+        <div :class="componentClass">
             <div class="form-group">
                 <div class="row">
                     <div v-if="!legalCaseExists">
@@ -34,7 +34,7 @@
                                                   <label>Physical Type</label>
                                                 </div>
                                                 <div class="col-sm-6">
-                                                  <select class="form-control" v-model="physical_artifact.physical_artifact_type_id" @change="loadSchema">
+                                                  <select :disabled="readonlyForm" class="form-control" v-model="physical_artifact.physical_artifact_type_id" @change="loadSchema">
                                                     <option  v-for="option in physicalArtifactTypes" :value="option.id" v-bind:key="option.id">
                                                       {{ option.artifact_type_display }}
                                                     </option>
@@ -74,7 +74,7 @@
                                                         <label>Officer</label>
                                                     </div>
                                                     <div class="col-sm-9">
-                                                        <select ref="physical_artifact_department_users" class="form-control" v-model="physical_artifact.officer_email">
+                                                        <select :disabled="readonlyForm" ref="physical_artifact_department_users" class="form-control" v-model="physical_artifact.officer_email">
                                                             <option  v-for="option in departmentStaffList" :value="option.email" v-bind:key="option.pk">
                                                             {{ option.name }}
                                                             </option>
@@ -88,14 +88,14 @@
                                                   <label>Statement</label>
                                                 </div>
                                                 <div v-if="parentModal" class="col-sm-6">
-                                                  <select class="form-control" v-model="physical_artifact.statement_id" ref="setStatement">
+                                                  <select :disabled="readonlyForm" class="form-control" v-model="physical_artifact.statement_id" ref="setStatement">
                                                     <option  v-for="option in legal_case.statement_artifacts" :value="option.id" v-bind:key="option.id">
                                                     {{ option.document_type_display }}: {{ option.identifier }}
                                                     </option>
                                                   </select>
                                                 </div>
                                                 <div v-else class="col-sm-6">
-                                                  <select class="form-control" v-model="physical_artifact.statement_id" ref="setStatement">
+                                                  <select :disabled="readonlyForm" class="form-control" v-model="physical_artifact.statement_id" ref="setStatement">
                                                     <option  v-for="option in physical_artifact.available_statement_artifacts" :value="option.id" v-bind:key="option.id">
                                                     {{ option.document_type_display }}: {{ option.identifier }}
                                                     </option>
@@ -119,7 +119,7 @@
                                                         <label>Custodian</label>
                                                     </div>
                                                     <div class="col-sm-9">
-                                                        <select ref="physical_artifact_department_users_custodian" class="form-control" v-model="physical_artifact.custodian_email">
+                                                        <select :disabled="readonlyForm" ref="physical_artifact_department_users_custodian" class="form-control" v-model="physical_artifact.custodian_email">
                                                             <option  v-for="option in departmentStaffList" :value="option.email" v-bind:key="option.pk">
                                                             {{ option.name }}
                                                             </option>
@@ -170,6 +170,7 @@
                                                         name="default_document"
                                                         :isRepeatable="true"
                                                         documentActionUrl="temporary_document"
+                                                        :readonly="readonlyForm"
                                                         @update-temp-doc-coll-id="addToTemporaryDocumentCollectionList"/>
                                                     </div>
                                                     <div v-else class="col-sm-9">
@@ -230,7 +231,7 @@
                                               <label>Disposal Method</label>
                                             </div>
                                             <div class="col-sm-6">
-                                              <select class="form-control" v-model="physical_artifact.disposal_method">
+                                              <select :disabled="readonlyForm" class="form-control" v-model="physical_artifact.disposal_method">
                                                 <option  v-for="option in disposalMethods" :value="option" v-bind:key="option.id">
                                                   {{ option.disposal_method }}
                                                 </option>
@@ -263,7 +264,7 @@
                                                 <RelatedItems
                                                 :parent_update_related_items="setRelatedItems" 
                                                 v-bind:key="relatedItemsBindId" 
-                                                :readonlyForm="!canUserAction"
+                                                :readonlyForm="readonlyForm"
                                                 parentComponentName="physical_artifact"
                                                 />
                                             </div>
@@ -452,6 +453,11 @@ export default {
             type: Object,
             required: false,
         },
+        readonlyForm: {
+            type: Boolean,
+            required: false,
+            default: false,
+        },
     },
     watch: {
         artifactType: {
@@ -491,6 +497,13 @@ export default {
                 exists = true;
             }
             return exists;
+        },
+        componentClass: function() {
+            let componentClass = '';
+            if (this.parentModal) {
+                componentClass = 'col-sm-12 child-artifact-component';
+            }
+            return componentClass;
         },
         selectedStatementArtifact: function() {
             let statementArtifact = {}
@@ -612,9 +625,15 @@ export default {
             }
             return display;
         },
+        /*
         readonlyForm: function() {
-            return false;
+            let retValue = true;
+            if (!this.readonly) {
+                retValue = false;
+            }
+            return retValue;
         },
+        */
         updateSearchPersonOrganisationBindId: function() {
             this.uuid += 1
             return "PhysicalArtifact_SearchPerson_" + this.uuid.toString();
