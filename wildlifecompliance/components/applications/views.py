@@ -154,13 +154,15 @@ class LicenceFeeSuccessView(TemplateView):
                     invoice_reference=invoice_ref
                 )
 
-                if activity.licence_fee > 0:
-                    ActivityInvoiceLine.objects.get_or_create(
-                        invoice=invoice[0],
-                        licence_activity=activity.licence_activity,
-                        amount=activity.licence_fee
-                    )
+                # Licence Fee is paid upfront.
+                # if activity.licence_fee > 0:
+                #     ActivityInvoiceLine.objects.get_or_create(
+                #         invoice=invoice[0],
+                #         licence_activity=activity.licence_activity,
+                #         amount=activity.licence_fee
+                #     )
 
+                # There may be adjustments to application fee.
                 if activity.application_fee > 0:
                     ActivityInvoiceLine.objects.get_or_create(
                         invoice=invoice[0],

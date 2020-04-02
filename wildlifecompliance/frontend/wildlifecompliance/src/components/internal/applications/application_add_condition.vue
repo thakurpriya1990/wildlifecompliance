@@ -34,7 +34,7 @@
                                     <div class="col-sm-9" v-if="condition.standard">
                                         <div style="width:70% !important">
                                             <select class="form-control" ref="standard_req" name="standard_condition" v-model="condition.standard_condition" v-on:change="setShowDueDate($event.target.value)">
-                                                <option v-for="r in conditions" :value="r.id" >{{r.code}} {{r.text}}</option>
+                                                <option v-for="r in conditions" :value="r.id" >{{r.code}}</option>
                                             </select>
                                         </div>
                                     </div>
