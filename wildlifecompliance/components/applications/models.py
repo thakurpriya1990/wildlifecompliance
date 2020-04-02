@@ -1449,6 +1449,17 @@ class Application(RevisionedMixin):
         return True if additional_fees.__len__ > 0 else False
 
     @property
+    def additional_fees(self):
+        """
+        Total additional costs manually included by officer at proposal.
+        """
+        fees = 0
+        for a in self.activities:
+            fees = fees + a.additional_fee
+
+        return Decimal(fees)
+
+    @property
     def amended_activities(self):
         """
         Sets the application fee for each activity with a new amended amount
@@ -3146,18 +3157,46 @@ class ApplicationSelectedActivity(models.Model):
 
     @property
     def payment_status(self):
-        if self.licence_fee == 0 and self.additional_fee < 1:
-            return ActivityInvoice.PAYMENT_STATUS_NOT_REQUIRED
+        """
+        Activity payment consist of Licence and Additional Fee. Property 
+        shows the status for both of these payments. Licence Fee is paid up
+        front before additional fees.
+        """
+        _status = None
+
+        # Check Licence Fee
+        if self.licence_fee == 0:
+            _status = ActivityInvoice.PAYMENT_STATUS_NOT_REQUIRED
         else:
             if self.invoices.count() == 0:
-                return ActivityInvoice.PAYMENT_STATUS_UNPAID
+                _status = ActivityInvoice.PAYMENT_STATUS_UNPAID
             else:
                 try:
                     latest_invoice = Invoice.objects.get(
                         reference=self.invoices.latest('id').invoice_reference)
+                    _status = latest_invoice.payment_status
                 except Invoice.DoesNotExist:
-                    return ActivityInvoice.PAYMENT_STATUS_UNPAID
-                return latest_invoice.payment_status
+                    _status =  ActivityInvoice.PAYMENT_STATUS_UNPAID
+
+        # Check additional Fee
+        if _status not in [
+            ActivityInvoice.PAYMENT_STATUS_NOT_REQUIRED,
+            ActivityInvoice.PAYMENT_STATUS_PAID
+        ]:
+            return _status  # also includes overpaid.
+        else:
+            if self.additional_fee > 0:
+                try:
+                    latest_invoice = Invoice.objects.get(
+                        reference=self.invoices.latest('id').invoice_reference,
+                        amount=self.application.additional_fees)
+                    _status = latest_invoice.payment_status
+                except Invoice.DoesNotExist:
+                    if not self.processing_status == \
+                        ApplicationSelectedActivity.PROCESSING_STATUS_ACCEPTED:
+                        _status = ActivityInvoice.PAYMENT_STATUS_UNPAID
+
+        return _status
 
     @property
     def licensing_officers(self):
