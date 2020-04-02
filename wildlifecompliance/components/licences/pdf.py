@@ -14,6 +14,7 @@ from django.core.files import File
 from django.conf import settings
 
 from wildlifecompliance.components.licences.models import LicenceDocument
+from wildlifecompliance.components.licences.models import LicenceSpecies
 
 BW_DPAW_HEADER_LOGO = os.path.join(
     settings.BASE_DIR,
@@ -380,12 +381,30 @@ def _create_licence(licence_buffer, licence, application):
 
         elements.append(KeepTogether(delegation))
 
+        # species
+        species_ids = selected_activity.issued_purposes[0].get_species_list
+        if species_ids:
+            elements.append(Spacer(1, SECTION_BUFFER_HEIGHT))
+            elements.append(Paragraph('SPECIES', styles['BoldLeft']))
+            elements.append(Spacer(1, SECTION_BUFFER_HEIGHT))
+            species = LicenceSpecies.objects.values_list('data').filter(
+                specie_id__in=species_ids
+            )
+            speciesList = ListFlowable(
+                [Paragraph(
+                    s[0][0][
+                        'vernacular_names'], styles['Left']) for s in species],
+                bulletFontName=BOLD_FONTNAME,
+                bulletFontSize=MEDIUM_FONTSIZE)
+            elements.append(speciesList)
+            elements.append(Spacer(1, SECTION_BUFFER_HEIGHT))
+  
         # application conditions
         activity_conditions = application.conditions.filter(
             licence_activity_id=selected_activity.licence_activity_id)
         if activity_conditions.exists():
             elements.append(Spacer(1, SECTION_BUFFER_HEIGHT))
-            elements.append(Paragraph('Conditions', styles['BoldLeft']))
+            elements.append(Paragraph('CONDITIONS', styles['BoldLeft']))
             elements.append(Spacer(1, SECTION_BUFFER_HEIGHT))
 
             conditionList = ListFlowable(
@@ -416,7 +435,7 @@ def _create_licence(licence_buffer, licence, application):
         if licence.has_additional_information:
             elements.append(Spacer(1, SECTION_BUFFER_HEIGHT))
             elements.append(Paragraph(
-                'Additional Information', styles['BoldLeft']))
+                'ADDITIONAL INFORMATION', styles['BoldLeft']))
             elements.append(Spacer(1, SECTION_BUFFER_HEIGHT))
 
             conditions = licence.current_application.conditions.all()
