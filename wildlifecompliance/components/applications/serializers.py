@@ -913,6 +913,8 @@ class InternalApplicationSerializer(BaseApplicationSerializer):
     licence_approvers = EmailUserAppViewSerializer(many=True)
     permit = serializers.CharField(source='licence_document._file.url')
     total_paid_amount = serializers.SerializerMethodField()
+    adjusted_paid_amount = serializers.SerializerMethodField()
+
 
     class Meta:
         model = Application
@@ -955,6 +957,7 @@ class InternalApplicationSerializer(BaseApplicationSerializer):
             'assessments',
             'licence_approvers',
             'total_paid_amount',
+            'adjusted_paid_amount',
         )
         read_only_fields = ('documents', 'conditions')
 
