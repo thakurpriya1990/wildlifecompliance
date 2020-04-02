@@ -235,7 +235,12 @@ export default {
                   }
           }
           */
-          //let legalCaseResponse = await this.saveLegalCase({create: false, internal: true })
+          // first save LegalCase
+          //await this.saveLegalCase({create: false, internal: true })
+          if (this.$parent) {
+              await this.$parent.save({internalFlag: true})
+          }
+          // save workflow modal
           try {
               let res = await Vue.http.post(post_url, payload);
               console.log(res);
