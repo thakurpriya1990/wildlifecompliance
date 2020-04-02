@@ -1200,6 +1200,7 @@ export default {
         createBriefOfEvidence=false,
         createProsecutionBrief=false,
         fullHttpResponse=false,
+        internalFlag=false,
     } = {}) {
       this.showSpinner = true;
       if (returnToDash) {
@@ -1221,7 +1222,7 @@ export default {
           await this.saveLegalCase({ internal: true, createNewRow: true });
           */
       await this.saveLegalCase({ 
-          internal: false, 
+          internal: internalFlag,
           createBriefOfEvidence: createBriefOfEvidence,
           createProsecutionBrief: createProsecutionBrief,
           fullHttpResponse: fullHttpResponse,
