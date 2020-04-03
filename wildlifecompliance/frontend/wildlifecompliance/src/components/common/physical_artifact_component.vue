@@ -159,7 +159,7 @@
                                                 </div>
                                               </div>
                                             </div>
-                                            <div class="form-group">
+                                            <div v-if="siezureNoticeVisibility" class="form-group">
                                                 <div class="row">
                                                     <div class="col-sm-3">
                                                         <label class="control-label pull-left" for="Name">Seizure Notice</label>
@@ -196,8 +196,8 @@
                                 <div :id="disposalTab" class="tab-pane fade in li-top-buffer">
                                     disposal
                                 </div-->
-                                <div :id="detailsTab" :class="detailsTabClass">
-                                    <FormSection :formCollapse="false" label="Checklist">
+                                <div :id="detailsTab" :class="detailsTabClass" v-bind:key="artifactType">
+                                    <FormSection :formCollapse="false" label="Details">
                                         <div class="col-sm-12 form-group"><div class="row">
                                             <div v-if="detailsSchemaVisibility" v-for="(item, index) in detailsSchema">
                                               <compliance-renderer-block
@@ -211,7 +211,7 @@
                                     </FormSection>
                                 </div>
                                 <div :id="storageTab" :class="storageTabClass">
-                                    <FormSection :formCollapse="false" label="Checklist">
+                                    <FormSection :formCollapse="false" label="Storage" v-bind:key="artifactType">
                                         <div class="col-sm-12 form-group"><div class="row">
                                             <div v-if="storageSchemaVisibility" v-for="(item, index) in storageSchema">
                                               <compliance-renderer-block
@@ -491,6 +491,14 @@ export default {
         ...mapGetters({
             renderer_form_data: 'renderer_form_data'
         }),
+        siezureNoticeVisibility: function() {
+            let visibility = false;
+            console.log(this.artifactType)
+            if (this.artifactType === 'seized_object') {
+                visibility = true;
+            }
+            return visibility;
+        },
         legalCaseExists: function() {
             let exists = false;
             if (this.legal_case && this.legal_case.id) {
@@ -501,7 +509,7 @@ export default {
         componentClass: function() {
             let componentClass = '';
             if (this.parentModal) {
-                componentClass = 'col-sm-12 child-artifact-component';
+                componentClass = 'col-sm-11 child-artifact-component';
             }
             return componentClass;
         },
@@ -533,7 +541,7 @@ export default {
         },
         detailsSchemaVisibility: function() {
             console.log("detailsSchemaVisibility")
-            if (this.detailsSchema && this.detailsSchema.length > 0) {
+            if (this.artifactType && this.detailsSchema && this.detailsSchema.length > 0) {
                 return true;
             } else {
                 return false
@@ -541,7 +549,7 @@ export default {
         },
         storageSchemaVisibility: function() {
             console.log("storageSchemaVisibility")
-            if (this.storageSchema && this.storageSchema.length > 0) {
+            if (this.artifactType && this.storageSchema && this.storageSchema.length > 0) {
                 return true;
             } else {
                 return false
@@ -869,7 +877,9 @@ export default {
         },
         */
         cancel: async function() {
-            await this.$refs.default_document.cancel();
+            if (this.$refs.default_document) {
+                await this.$refs.default_document.cancel();
+            }
         },
         emitPhysicalArtifact: async function(e) {
             console.log(e)
@@ -1176,6 +1186,7 @@ export default {
 <style lang="css">
 .child-artifact-component {
     margin-top: 20px;
+    margin-left: 20px;
 }
 .li-top-buffer {
     margin-top: 20px;
