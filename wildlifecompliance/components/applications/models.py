@@ -2827,6 +2827,23 @@ class Assessment(ApplicationRequest):
     def is_inspection_required(self):
         return self.selected_activity.is_inspection_required
 
+    @property
+    def has_inspection_opened(self):
+        """
+        Property indicating an inspection is created and opened.
+        """
+        open_status = [
+            Inspection.STATUS_OPEN,
+            Inspection.STATUS_AWAIT_ENDORSEMENT,
+            Inspection.STATUS_PENDING_CLOSURE
+            ]
+        inspections = AssessmentInspection.objects.filter(
+            assessment=self,
+            inspection__status__in=open_status
+        )
+
+        return True if inspections.exists() else False
+
     def assessors(self):
         return self.assessor_group.members.all()
 
@@ -2846,7 +2863,7 @@ class AssessmentInspection(models.Model):
 
     def __str__(self):
         return 'Assessment {0} : Inspection #{1}'.format(
-            self.assessment_id, self.inspection.name)
+            self.assessment_id, self.inspection.number)
 
     # Properties
     # ==================
@@ -2992,6 +3009,18 @@ class ApplicationSelectedActivity(models.Model):
     def is_valid_status(status):
         return filter(lambda x: x[0] == status,
                       ApplicationSelectedActivity.PROCESSING_STATUS_CHOICES)
+
+    @property
+    def has_inspection(self):
+        """
+        Property indicating an Assessment Inspection exist for this
+        Selected Activity.
+        """
+        has_inspection = False
+        for assessment in self.application.assessments:
+            has_inspection = assessment.has_inspection_opened
+
+        return has_inspection
 
     @property
     def purposes(self):
