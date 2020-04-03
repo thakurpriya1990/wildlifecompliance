@@ -107,6 +107,8 @@
                                           </select>
                                         </div>
                                       </div>
+                                    </div>
+                                    <div v-if="offenceVisibility" class="form-group">
                                       <div class="row">
                                         <div class="col-sm-3">
                                           <label>Offender</label>
