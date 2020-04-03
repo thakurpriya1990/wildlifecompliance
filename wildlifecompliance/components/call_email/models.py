@@ -320,7 +320,6 @@ class CallEmail(RevisionedMixin):
                 CallEmailUserAction.ACTION_ALLOCATE_FOR_INSPECTION.format(self.number), 
                 request)
         self.save()
-        #self.close(request)
 
     def allocate_for_case(self, request):
         self.status = self.STATUS_OPEN_CASE
@@ -328,7 +327,6 @@ class CallEmail(RevisionedMixin):
                 CallEmailUserAction.ACTION_ALLOCATE_FOR_CASE.format(self.number),
                 request)
         self.save()
-        #self.close(request)
 
     def close(self, request=None):
         close_record, parents = can_close_record(self, request)
