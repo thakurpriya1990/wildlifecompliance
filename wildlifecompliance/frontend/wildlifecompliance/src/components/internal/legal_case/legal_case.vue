@@ -50,22 +50,22 @@
                         Action 
                     </div>
                     <div class="panel-body panel-collapse">
-                        <div class="row action-button">
-                            <div v-if="canUserAction && openStatus" class="col-sm-12">
+                        <div class="row">
+                            <div v-if="canUserAction && openStatus" class="col-sm-12 action-button">
                                   <a @click="openInspection()" class="btn btn-primary btn-block" >
                                     Inspection
                                   </a>
                             </div>
                         </div>
-                        <div class="row action-button">
-                          <div v-if="canUserAction && openStatus" class="col-sm-12">
+                        <div class="row">
+                          <div v-if="canUserAction && openStatus" class="col-sm-12 action-button">
                                 <a @click="openOffence()" class="btn btn-primary btn-block">
                                   Offence
                                 </a>
                           </div>
                         </div>
-                        <div class="row action-button">
-                          <div v-if="canUserAction && openStatus" class="col-sm-12">
+                        <div class="row">
+                          <div v-if="canUserAction && openStatus" class="col-sm-12 action-button">
                                 <input 
                                 :disabled="!sanctionOutcomeVisibility" 
                                 type="button" 
@@ -76,104 +76,104 @@
                           </div>
                         </div>
                         
-                        <div  class="row action-button">
-                          <div v-if="canUserAction && openStatus" class="col-sm-12">
+                        <div  class="row">
+                          <div v-if="canUserAction && openStatus" class="col-sm-12 action-button">
                                 <a @click="addWorkflow('brief_of_evidence')" class="btn btn-primary btn-block">
                                 <!--a @click="createBriefOfEvidence" class="btn btn-primary btn-block"-->
                                   Brief of Evidence
                                 </a>
                           </div>
                         </div>
-                        <div  class="row action-button">
-                          <div v-if="canUserAction && briefOfEvidenceStatus" class="col-sm-12">
+                        <div  class="row">
+                          <div v-if="canUserAction && briefOfEvidenceStatus" class="col-sm-12 action-button">
                                 <a @click="addWorkflow('back_to_case')" class="btn btn-primary btn-block">
                                 <!--a @click="createProsecutionBrief" class="btn btn-primary btn-block"-->
                                   Back To Case
                                 </a>
                           </div>
                         </div>
-                        <div  class="row action-button">
-                          <div v-if="canUserAction && briefOfEvidenceVisibility" class="col-sm-12">
+                        <div  class="row">
+                          <div v-if="canUserAction && briefOfEvidenceVisibility" class="col-sm-12 action-button">
                                 <a @click="printDocument('brief_of_evidence')" class="btn btn-primary btn-block">
                                 <!--a @click="createProsecutionBrief" class="btn btn-primary btn-block"-->
                                   Print Brief of Evidence
                                 </a>
                           </div>
                         </div>
-                        <div  class="row action-button">
-                          <div v-if="canUserAction && briefOfEvidenceStatus" class="col-sm-12">
+                        <div  class="row">
+                          <div v-if="canUserAction && briefOfEvidenceStatus" class="col-sm-12 action-button">
                                 <a @click="addWorkflow('send_to_manager')" class="btn btn-primary btn-block">
                                 <!--a @click="createProsecutionBrief" class="btn btn-primary btn-block"-->
                                   Send To Manager
                                 </a>
                           </div>
                         </div>
-                        <div  class="row action-button">
-                          <div v-if="backToOfficerVisibility" class="col-sm-12">
+                        <div  class="row">
+                          <div v-if="backToOfficerVisibility" class="col-sm-12 action-button">
                                 <a @click="addWorkflow('back_to_officer')" class="btn btn-primary btn-block">
                                 <!--a @click="createProsecutionBrief" class="btn btn-primary btn-block"-->
                                   Back To Officer
                                 </a>
                           </div>
                         </div>
-                        <div class="row action-button">
-                          <div v-if="canUserAction && withManagerStatus" class="col-sm-12">
+                        <div class="row">
+                          <div v-if="canUserAction && withManagerStatus" class="col-sm-12 action-button">
                                 <a @click="addWorkflow('approve_brief_of_evidence')" class="btn btn-primary btn-block">
                                 <!--a @click="createProsecutionBrief" class="btn btn-primary btn-block"-->
                                   Approve
                                 </a>
                           </div>
                         </div>
-                        <div class="row action-button">
-                          <div v-if="canUserAction && withProsecutionCoordinatorStatus" class="col-sm-12">
+                        <div class="row">
+                          <div v-if="canUserAction && withProsecutionCoordinatorStatus" class="col-sm-12 action-button">
                                 <a @click="addWorkflow('prosecution_brief')" class="btn btn-primary btn-block">
                                 <!--a @click="createProsecutionBrief" class="btn btn-primary btn-block"-->
                                   Prosecution Brief
                                 </a>
                           </div>
                         </div>
-                        <div class="row action-button">
-                          <div v-if="canUserAction && withProsecutionCoordinatorProsecutionBriefStatus" class="col-sm-12">
+                        <div class="row">
+                          <div v-if="canUserAction && withProsecutionCoordinatorProsecutionBriefStatus" class="col-sm-12 action-button">
                                 <a @click="addWorkflow('send_to_prosecution_council')" class="btn btn-primary btn-block">
                                 <!--a @click="createProsecutionBrief" class="btn btn-primary btn-block"-->
                                   Send To Prosecution Council
                                 </a>
                           </div>
                         </div>
-                        <div  class="row action-button">
-                          <div v-if="canUserAction && prosecutionBriefVisibility" class="col-sm-12">
+                        <div  class="row">
+                          <div v-if="canUserAction && prosecutionBriefVisibility" class="col-sm-12 action-button">
                                 <a @click="printDocument('prosecution_brief')" class="btn btn-primary btn-block">
                                 <!--a @click="createProsecutionBrief" class="btn btn-primary btn-block"-->
                                   Print Prosecution Brief
                                 </a>
                           </div>
                         </div>
-                        <div class="row action-button">
-                          <div v-if="canUserAction && withProsecutionCouncilStatus" class="col-sm-12">
+                        <div class="row">
+                          <div v-if="canUserAction && withProsecutionCouncilStatus" class="col-sm-12 action-button">
                                 <a @click="addWorkflow('back_to_prosecution_coordinator')" class="btn btn-primary btn-block">
                                 <!--a @click="createProsecutionBrief" class="btn btn-primary btn-block"-->
                                   Back to Prosecution Coordinator
                                 </a>
                           </div>
                         </div>
-                        <div class="row action-button">
-                          <div v-if="canUserAction && withProsecutionCouncilStatus" class="col-sm-12">
+                        <div class="row">
+                          <div v-if="canUserAction && withProsecutionCouncilStatus" class="col-sm-12 action-button">
                                 <a @click="addWorkflow('endorse_prosecution_brief')" class="btn btn-primary btn-block">
                                 <!--a @click="createProsecutionBrief" class="btn btn-primary btn-block"-->
                                   Endorse Prosecution Brief
                                 </a>
                           </div>
                         </div>
-                        <div class="row action-button">
-                          <div v-if="canUserAction && withProsecutionManagerStatus" class="col-sm-12">
+                        <div class="row">
+                          <div v-if="canUserAction && withProsecutionManagerStatus" class="col-sm-12 action-button">
                                 <a @click="addWorkflow('approve_for_court')" class="btn btn-primary btn-block">
                                 <!--a @click="createProsecutionBrief" class="btn btn-primary btn-block"-->
                                   Approve for Court
                                 </a>
                           </div>
                         </div>
-                        <div class="row action-button">
-                          <div v-if="canUserAction && withProsecutionManagerStatus" class="col-sm-12">
+                        <div class="row">
+                          <div v-if="canUserAction && withProsecutionManagerStatus" class="col-sm-12 action-button">
                                 <a @click="addWorkflow('back_to_prosecution_council')" class="btn btn-primary btn-block">
                                 <!--a @click="createProsecutionBrief" class="btn btn-primary btn-block"-->
                                   Back to Prosecution Council
@@ -181,8 +181,8 @@
                           </div>
                         </div>
 
-                        <div id="close-button" class="row action-button">
-                          <div v-if="canUserAction && !closedStatus" class="col-sm-12">
+                        <div id="close-button" class="row">
+                          <div v-if="canUserAction && !closedStatus" class="col-sm-12 action-button">
                                 <a @click="addWorkflow('close')" class="btn btn-primary btn-block">
                                   Close
                                 </a>
