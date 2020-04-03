@@ -184,7 +184,7 @@ export default {
                         const finalised = ['approved', 'declined', 'awaiting_payment'].includes(full.processing_status.id);
                         links += (full.can_be_processed && full.user_in_officers) ?
                             `<a href='/internal/application/${full.id}'>Process</a><br/>` :
-                            `<a href='/${finalised ? 'internal' : 'external'}/application/${full.id}'>View</a><br/>`;
+                            `<a href='/${!vm.is_external ? 'internal' : 'external'}/application/${full.id}'>View</a><br/>`;
                     }
                     if (!vm.is_external && full.payment_status=='paid'){
                         links +=  `<a href='${full.all_payments_url}' target='_blank' >View Payment</a><br/>`;
