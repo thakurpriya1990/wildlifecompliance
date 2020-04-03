@@ -1,8 +1,8 @@
 from wildlifecompliance.components.call_email.models import Location
 from wildlifecompliance.components.call_email.serializers import LocationSerializer
 from wildlifecompliance.components.main.serializers import (
-        TemporaryDocumentCollectionSerializer,
-        )
+    TemporaryDocumentCollectionSerializer,
+    BookingSettlementReportSerializer)
 from wildlifecompliance.components.main.models import TemporaryDocumentCollection
 from wildlifecompliance.components.main.process_document import save_document, cancel_document, delete_document
 from rest_framework import viewsets, serializers, status, generics, views, filters
@@ -13,12 +13,15 @@ from rest_framework.decorators import (
     parser_classes,
     api_view
 )
+from wsgiref.util import FileWrapper
+from wildlifecompliance.components.wc_payments import reports
 from wildlifecompliance.helpers import is_internal
 from rest_framework.response import Response
 from rest_framework.renderers import JSONRenderer
 from django.core.exceptions import ValidationError
 import traceback
 from django.db import transaction
+from django.http import HttpResponse
 
 
 def save_location(location_request_data, *args, **kwargs):
@@ -128,3 +131,54 @@ class TemporaryDocumentCollectionViewSet(viewsets.ModelViewSet):
             print(traceback.print_exc())
             raise e
 
+
+class BookingSettlementReportView(views.APIView):
+    renderer_classes = (JSONRenderer,)
+
+    def get(self,request,format=None):
+        try:
+            http_status = status.HTTP_200_OK
+            #parse and validate data
+            report = None
+            data = {
+                "date":request.GET.get('date'),
+            }
+            serializer = BookingSettlementReportSerializer(data=data)
+            serializer.is_valid(raise_exception=True)
+            filename = 'Booking Settlement Report-{}'.format(str(serializer.validated_data['date']))
+
+            # Generate Report
+            report = reports.booking_bpoint_settlement_report(serializer.validated_data['date'])
+            if report:
+                response = HttpResponse(FileWrapper(report), content_type='text/csv')
+                response['Content-Disposition'] = 'attachment; filename="{}.csv"'.format(filename)
+                return response
+            else:
+                raise serializers.ValidationError('No report was generated.')
+        except serializers.ValidationError:
+            raise
+        except Exception as e:
+            traceback.print_exc()
+
+
+# class OracleJob(views.APIView):
+#     renderer_classes = [JSONRenderer,]
+#     def get(self, request, format=None):
+#         try:
+#             data = {
+#                 "date":request.GET.get("date"),
+#                 "override": request.GET.get("override")
+#             }
+#             serializer = OracleSerializer(data=data)
+#             serializer.is_valid(raise_exception=True)
+#             oracle_integration(serializer.validated_data['date'].strftime('%Y-%m-%d'),serializer.validated_data['override'])
+#             data = {'successful':True}
+#             return Response(data)
+#         except serializers.ValidationError:
+#             print(traceback.print_exc())
+#             raise
+#         except ValidationError as e:
+#             raise serializers.ValidationError(repr(e.error_dict)) if hasattr(e, 'error_dict') else serializers.ValidationError(e)
+#         except Exception as e:
+#             print(traceback.print_exc())
+#             raise serializers.ValidationError(str(e[0]))

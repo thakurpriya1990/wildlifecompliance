@@ -388,10 +388,11 @@ export default {
             }
         },
         generateValues:function () {
+            console.log('generateValues');
             let vm = this;
             if(vm.form.valid()){
                 var values = {
-                    "system":"S557",
+                    "system":"S566",
                     "start":(vm.region) ? vm.flatDateStartPicker.data("DateTimePicker").date().set({hour:0,minute:0,second:0,millisecond:0}).format('YYYY-MM-DD H:mm:ss'):vm.accountsDateStartPicker.data("DateTimePicker").date().set({hour:0,minute:0,second:0,millisecond:0}).format('YYYY-MM-DD H:mm:ss'),
                     "end":(vm.region) ? vm.flatDateEndPicker.data("DateTimePicker").date().set({hour:23,minute:59,second:59,millisecond:0}).format('YYYY-MM-DD H:mm:ss'):vm.accountsDateEndPicker.data("DateTimePicker").date().set({hour:23,minute:59,second:59,millisecond:0}).format('YYYY-MM-DD H:mm:ss'),
                     "banked_start":vm.flatDateStartPicker.data("DateTimePicker").date().set({hour:0,minute:0,second:0,millisecond:0}).format('YYYY-MM-DD H:mm:ss'),
@@ -408,6 +409,7 @@ export default {
             return false;
         },
         generateByAccount:function () {
+            console.log('generateByAccount');
             let vm = this;
             var values = vm.generateValues();
             if (values) {
@@ -432,6 +434,7 @@ export default {
 
         },
         getReport:function (values) {
+            console.log('getReport');
             let vm = this;
             //var url = "/ledger/payments/api/report?"+$.param(values);
             var url = "/ledger/payments/api/report?"+$.param(values);
