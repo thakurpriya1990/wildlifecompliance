@@ -126,18 +126,6 @@ class ApplicationService(object):
             action=ApplicationFormDataRecord.ACTION_TYPE_ASSIGN_VALUE)
 
     @staticmethod
-    def render_defined_inspections(application, form_data):
-        """
-        Checks for Inspections defined on the application schema. 
-        Field answers can trigger the creation of an Inspection for an
-        application.
-
-        TODO: Redundant to be removed.
-        """
-        attribute_check = ApplicationAttributeRenderer(application, form_data)
-        attribute_check.render()
-
-    @staticmethod
     def set_special_form_fields(application, form):
         """
         Set and Special Form Field Attributes on an Application Form.
@@ -507,72 +495,6 @@ class IncreaseApplicationFeeFieldElement(SpecialFieldElement):
 
     def __str__(self):
         return 'Field Element: {0}'.format(self._NAME)
-
-
-class ApplicationAttributeRenderer(object):
-
-    def __init__(self, application, data_source):
-        self._application = application
-        self._data_source = data_source
-
-    def parse_component(
-            self,
-            component,
-            schema_name,
-            adjusted_by_fields,
-            activity):
-
-        if set(['PromptInspection']).issubset(component):
-            activity.is_inspection_required = True
-            activity.save()
-
-    def render(self):
-
-        for selected_activity in self._application.activities:
-
-            selected_activity.is_inspection_required = False
-            selected_activity.save()
-
-            schema_fields = self._application.get_schema_fields_for_purposes(
-                selected_activity.purposes.values_list('id', flat=True)
-            )
-
-            # Adjustments based on selected options (radios and checkboxes)
-            adjusted_by_fields = {}
-            for form_data_record in self._data_source:
-                try:
-                    # Retrieve dictionary of fields from a model instance
-                    data_record = form_data_record.__dict__
-                except AttributeError:
-                    # If a raw form data (POST) is supplied, form_data_record
-                    # is a key
-                    data_record = self._data_source[form_data_record]
-
-                schema_name = data_record['schema_name']
-                if schema_name not in schema_fields:
-                    continue
-                schema_data = schema_fields[schema_name]
-
-                if 'options' in schema_data:
-                    for option in schema_data['options']:
-                        # Only modifications if the current option is selected
-                        if option['value'] != data_record['value']:
-                            continue
-                        self.parse_component(
-                            component=option,
-                            schema_name=schema_name,
-                            adjusted_by_fields=adjusted_by_fields,
-                            activity=selected_activity
-                        )
-
-                # If this is a checkbox - skip unchecked ones
-                elif data_record['value'] == 'on':
-                    self.parse_component(
-                        component=schema_data,
-                        schema_name=schema_name,
-                        adjusted_by_fields=adjusted_by_fields,
-                        activity=selected_activity
-                    )
 
 
 def do_process_form(
