@@ -390,7 +390,7 @@ export default {
             });
         },
         showRequestInspectionButton: function() {
-            let promptInspection = this.selectedActivity.is_inspection_required
+            let promptInspection = this.selectedActivity.is_inspection_required && !this.selectedActivity.has_inspection
             return promptInspection && this.showCompleteAssessmentsButton
         },
         showAssignToAssessor: function(){
