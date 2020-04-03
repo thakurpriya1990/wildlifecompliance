@@ -742,9 +742,9 @@ class InspectionViewSet(viewsets.ModelViewSet):
             instance.call_email.log_user_action(
                     CallEmailUserAction.ACTION_ALLOCATE_FOR_INSPECTION.format(
                     instance.call_email.number), request)
-            #instance.call_email.status = 'open_inspection'
-            #instance.call_email.save()
-            instance.call_email.close(request)
+            instance.call_email.status = 'open_inspection'
+            instance.call_email.save()
+            # instance.call_email.close(request)
 
     @detail_route(methods=['POST'])
     @renderer_classes((JSONRenderer,))

@@ -913,7 +913,9 @@ class LegalCaseViewSet(viewsets.ModelViewSet):
             instance.call_email.log_user_action(
                     CallEmailUserAction.ACTION_ALLOCATE_FOR_LEGAL_CASE.format(
                     instance.call_email.number), request)
-            instance.call_email.close(request)
+            # instance.call_email.close(request)
+            instance.call_email.status = 'open_case'
+            instance.call_email.save()
 
     @detail_route(methods=['POST'])
     @renderer_classes((JSONRenderer,))
