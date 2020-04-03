@@ -672,7 +672,8 @@ def do_update_dynamic_attributes(application):
 
         for field, value in field_data.items():
             setattr(selected_activity, field, value)
-            selected_activity.save()
+
+        selected_activity.save()
 
 
 """
