@@ -110,6 +110,7 @@ class ApplicationSelectedActivitySerializer(serializers.ModelSerializer):
     additional_fee = serializers.DecimalField(
         max_digits=7, decimal_places=2, required=False, allow_null=True)
     previous_paid_amount = serializers.SerializerMethodField(read_only=True)
+    has_inspection = serializers.SerializerMethodField(read_only=True)
 
     class Meta:
         model = ApplicationSelectedActivity
@@ -172,6 +173,9 @@ class ApplicationSelectedActivitySerializer(serializers.ModelSerializer):
 
     def get_previous_paid_amount(self, obj):
         return obj.previous_paid_amount if obj.previous_paid_amount else None
+
+    def get_has_inspection(self, obj):
+        return obj.has_inspection
 
 
 class ExternalApplicationSelectedActivitySerializer(serializers.ModelSerializer):
@@ -913,6 +917,8 @@ class InternalApplicationSerializer(BaseApplicationSerializer):
     licence_approvers = EmailUserAppViewSerializer(many=True)
     permit = serializers.CharField(source='licence_document._file.url')
     total_paid_amount = serializers.SerializerMethodField()
+    adjusted_paid_amount = serializers.SerializerMethodField()
+
 
     class Meta:
         model = Application
@@ -955,6 +961,7 @@ class InternalApplicationSerializer(BaseApplicationSerializer):
             'assessments',
             'licence_approvers',
             'total_paid_amount',
+            'adjusted_paid_amount',
         )
         read_only_fields = ('documents', 'conditions')
 

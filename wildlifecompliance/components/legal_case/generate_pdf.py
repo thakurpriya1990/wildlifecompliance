@@ -394,30 +394,35 @@ def _create_pdf(invoice_buffer, legal_case, request_data):
 
         tbl_case_information = Table(case_information_data)
         record_of_interviews_data = []
+
         record_of_interviews_data.append([
             Paragraph('Offences, Offenders and Records of Interview', styles['BoldLeft']),
         ])
-        #offence_list = []
-        for offence_level_record in record_of_interviews.filter(offender=None):
-
+        if not record_of_interviews:
             record_of_interviews_data.append([
-            ParagraphCheckbox(offence_level_record.label, x_offset=5, checked=offence_level_record.ticked, style=styles['Normal']),
+                Paragraph('No Offences, Offenders or Records of Interview', styles['Normal']),
             ])
-            for offender_level_record in offence_level_record.children.all():
+        else:
+            for offence_level_record in record_of_interviews.filter(offender=None):
 
                 record_of_interviews_data.append([
-                ParagraphCheckbox(offender_level_record.label, x_offset=15, checked=offender_level_record.ticked, style=styles['Normal']),
+                ParagraphCheckbox(offence_level_record.label, x_offset=5, checked=offence_level_record.ticked, style=styles['Normal']),
                 ])
-                for roi_level_record in offender_level_record.children.all():
+                for offender_level_record in offence_level_record.children.all():
 
                     record_of_interviews_data.append([
-                    ParagraphCheckbox(roi_level_record.label, x_offset=25, checked=roi_level_record.ticked, style=styles['Normal']),
+                    ParagraphCheckbox(offender_level_record.label, x_offset=15, checked=offender_level_record.ticked, style=styles['Normal']),
                     ])
+                    for roi_level_record in offender_level_record.children.all():
 
-                    for doc_artifact_level_record in roi_level_record.children.all():
                         record_of_interviews_data.append([
-                        ParagraphCheckbox(doc_artifact_level_record.label, x_offset=35, checked=doc_artifact_level_record.ticked, style=styles['Normal']),
+                        ParagraphCheckbox(roi_level_record.label, x_offset=25, checked=roi_level_record.ticked, style=styles['Normal']),
                         ])
+
+                        for doc_artifact_level_record in roi_level_record.children.all():
+                            record_of_interviews_data.append([
+                            ParagraphCheckbox(doc_artifact_level_record.label, x_offset=35, checked=doc_artifact_level_record.ticked, style=styles['Normal']),
+                            ])
 
         tbl_record_of_interviews = Table(record_of_interviews_data)
 
@@ -425,21 +430,26 @@ def _create_pdf(invoice_buffer, legal_case, request_data):
         other_statements_data.append([
             Paragraph('Witness Statements, Officer Statements, Expert Statements', styles['BoldLeft']),
         ])
-        for person_level_record in other_statements.filter(statement=None):
-
+        if not other_statements:
             other_statements_data.append([
-            ParagraphCheckbox(person_level_record.label, x_offset=5, checked=person_level_record.ticked, style=styles['Normal']),
+                Paragraph('No Witness Statements, Officer Statements or Expert Statements', styles['Normal']),
             ])
-            for statement_level_record in person_level_record.children.all():
+        else:
+            for person_level_record in other_statements.filter(statement=None):
 
                 other_statements_data.append([
-                ParagraphCheckbox(statement_level_record.label, x_offset=15, checked=statement_level_record.ticked, style=styles['Normal']),
+                ParagraphCheckbox(person_level_record.label, x_offset=5, checked=person_level_record.ticked, style=styles['Normal']),
                 ])
+                for statement_level_record in person_level_record.children.all():
 
-                for doc_artifact_level_record in statement_level_record.children.all():
                     other_statements_data.append([
-                    ParagraphCheckbox(doc_artifact_level_record.label, x_offset=35, checked=doc_artifact_level_record.ticked, style=styles['Normal']),
+                    ParagraphCheckbox(statement_level_record.label, x_offset=15, checked=statement_level_record.ticked, style=styles['Normal']),
                     ])
+
+                    for doc_artifact_level_record in statement_level_record.children.all():
+                        other_statements_data.append([
+                        ParagraphCheckbox(doc_artifact_level_record.label, x_offset=35, checked=doc_artifact_level_record.ticked, style=styles['Normal']),
+                        ])
         tbl_other_statements = Table(other_statements_data)
         physical_artifacts_data = []
         physical_artifacts_data.append([

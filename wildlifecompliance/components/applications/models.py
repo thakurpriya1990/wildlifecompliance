@@ -1449,6 +1449,17 @@ class Application(RevisionedMixin):
         return True if additional_fees.__len__ > 0 else False
 
     @property
+    def additional_fees(self):
+        """
+        Total additional costs manually included by officer at proposal.
+        """
+        fees = 0
+        for a in self.activities:
+            fees = fees + a.additional_fee
+
+        return Decimal(fees)
+
+    @property
     def amended_activities(self):
         """
         Sets the application fee for each activity with a new amended amount
@@ -2325,7 +2336,9 @@ class Application(RevisionedMixin):
         # TODO: Delete any previously existing returns with default status
         # which may occur if this activity is being reissued or amended.
         from wildlifecompliance.components.returns.models import Return
-        licence_expiry = selected_activity.expiry_date
+        # licence_expiry = selected_activity.expiry_date
+        # Returns are generated at issuing; expiry_date may not be set yet.
+        licence_expiry = selected_activity.proposed_end_date
         licence_expiry = datetime.datetime.strptime(
             licence_expiry, "%Y-%m-%d"
         ).date() if isinstance(licence_expiry, six.string_types) else licence_expiry
@@ -2814,6 +2827,23 @@ class Assessment(ApplicationRequest):
     def is_inspection_required(self):
         return self.selected_activity.is_inspection_required
 
+    @property
+    def has_inspection_opened(self):
+        """
+        Property indicating an inspection is created and opened.
+        """
+        open_status = [
+            Inspection.STATUS_OPEN,
+            Inspection.STATUS_AWAIT_ENDORSEMENT,
+            Inspection.STATUS_PENDING_CLOSURE
+            ]
+        inspections = AssessmentInspection.objects.filter(
+            assessment=self,
+            inspection__status__in=open_status
+        )
+
+        return True if inspections.exists() else False
+
     def assessors(self):
         return self.assessor_group.members.all()
 
@@ -2833,7 +2863,7 @@ class AssessmentInspection(models.Model):
 
     def __str__(self):
         return 'Assessment {0} : Inspection #{1}'.format(
-            self.assessment_id, self.inspection.name)
+            self.assessment_id, self.inspection.number)
 
     # Properties
     # ==================
@@ -2979,6 +3009,18 @@ class ApplicationSelectedActivity(models.Model):
     def is_valid_status(status):
         return filter(lambda x: x[0] == status,
                       ApplicationSelectedActivity.PROCESSING_STATUS_CHOICES)
+
+    @property
+    def has_inspection(self):
+        """
+        Property indicating an Assessment Inspection exist for this
+        Selected Activity.
+        """
+        has_inspection = False
+        for assessment in self.application.assessments:
+            has_inspection = assessment.has_inspection_opened
+
+        return has_inspection
 
     @property
     def purposes(self):
@@ -3144,18 +3186,46 @@ class ApplicationSelectedActivity(models.Model):
 
     @property
     def payment_status(self):
-        if self.licence_fee == 0 and self.additional_fee < 1:
-            return ActivityInvoice.PAYMENT_STATUS_NOT_REQUIRED
+        """
+        Activity payment consist of Licence and Additional Fee. Property 
+        shows the status for both of these payments. Licence Fee is paid up
+        front before additional fees.
+        """
+        _status = None
+
+        # Check Licence Fee
+        if self.licence_fee == 0:
+            _status = ActivityInvoice.PAYMENT_STATUS_NOT_REQUIRED
         else:
             if self.invoices.count() == 0:
-                return ActivityInvoice.PAYMENT_STATUS_UNPAID
+                _status = ActivityInvoice.PAYMENT_STATUS_UNPAID
             else:
                 try:
                     latest_invoice = Invoice.objects.get(
                         reference=self.invoices.latest('id').invoice_reference)
+                    _status = latest_invoice.payment_status
                 except Invoice.DoesNotExist:
-                    return ActivityInvoice.PAYMENT_STATUS_UNPAID
-                return latest_invoice.payment_status
+                    _status =  ActivityInvoice.PAYMENT_STATUS_UNPAID
+
+        # Check additional Fee
+        if _status not in [
+            ActivityInvoice.PAYMENT_STATUS_NOT_REQUIRED,
+            ActivityInvoice.PAYMENT_STATUS_PAID
+        ]:
+            return _status  # also includes overpaid.
+        else:
+            if self.additional_fee > 0:
+                try:
+                    latest_invoice = Invoice.objects.get(
+                        reference=self.invoices.latest('id').invoice_reference,
+                        amount=self.application.additional_fees)
+                    _status = latest_invoice.payment_status
+                except Invoice.DoesNotExist:
+                    if not self.processing_status == \
+                        ApplicationSelectedActivity.PROCESSING_STATUS_ACCEPTED:
+                        _status = ActivityInvoice.PAYMENT_STATUS_UNPAID
+
+        return _status
 
     @property
     def licensing_officers(self):
