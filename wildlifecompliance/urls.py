@@ -253,6 +253,7 @@ urlpatterns = [
     url(r'^preview_deferred/(?P<sanction_outcome_pk>\d+)/$', DeferredInvoicingPreviewView.as_view(), name='preview_deferred_invoicing'),
 
     # Reports
+    url(r'^api/oracle_job$',main_api.OracleJob.as_view(), name='get-oracle'),
     #url(r'^api/oracle_job$',main_api.OracleJob.as_view(), name='get-oracle'),
     url(r'^api/reports/booking_settlements$', main_api.BookingSettlementReportView.as_view(),name='booking-settlements-report'),
 
