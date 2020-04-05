@@ -45,7 +45,7 @@ def copy_brief_of_evidence_artifacts_to_prosecution_brief(legal_case):
                 associated_doc_artifact_id=os_record.associated_doc_artifact_id,
                 ticked=os_record.ticked
                 )
-        pb_os_record.save()
+        #pb_os_record.save()
         for child in os_record.children.all():
             pb_child_os_record, created = ProsecutionBriefOtherStatements.objects.get_or_create(
                     legal_case_id=child.legal_case_id,
@@ -64,8 +64,9 @@ def copy_brief_of_evidence_artifacts_to_prosecution_brief(legal_case):
                 legal_case_id=pa_record.legal_case_id,
                 physical_artifact_id=pa_record.physical_artifact_id
                 )
-        pb_pa_record.ticked=pa_record.ticked,
-        pb_pa_record.reason_sensitive_non_disclosable=pa_record.reason_sensitive_non_disclosable
+        pb_pa_record.ticked=pa_record.ticked
+        pb_pa_record.reason_sensitive_non_disclosable = pa_record.reason_sensitive_non_disclosable
+        pb_pa_record.save()
 
     # Document Artifacts
     da_qs = legal_case.briefofevidencedocumentartifacts_set.all()
@@ -74,7 +75,8 @@ def copy_brief_of_evidence_artifacts_to_prosecution_brief(legal_case):
                 legal_case_id=da_record.legal_case_id,
                 document_artifact_id=da_record.document_artifact_id,
                 )
-        pb_da_record.ticked=da_record.ticked,
+        pb_da_record.ticked = da_record.ticked
+        pb_da_record.save()
 
 def generate_boe_document_artifacts(legal_case):
     # get all associated primary DocumentArtifacts

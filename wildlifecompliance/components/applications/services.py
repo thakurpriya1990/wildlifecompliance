@@ -95,7 +95,12 @@ class ApplicationService(object):
         made from form attributes. Previous attributes settings are not saved.
         Licence fees cannot be adjusted with form attributes.
         """
-        return get_dynamic_schema_attributes(application, data_source)['fees']
+        # Get all fee adjustments made with checkboxes and radio buttons.
+        checkbox = CheckboxAndRadioButtonVisitor(application, data_source)
+        for_increase_fee_fields = IncreaseApplicationFeeFieldElement()
+        for_increase_fee_fields.accept(checkbox)
+
+        return for_increase_fee_fields.get_adjusted_fees()
 
     @staticmethod
     def get_product_lines(application):
@@ -119,18 +124,6 @@ class ApplicationService(object):
             application,
             form_data,
             action=ApplicationFormDataRecord.ACTION_TYPE_ASSIGN_VALUE)
-
-    @staticmethod
-    def render_defined_inspections(application, form_data):
-        """
-        Checks for Inspections defined on the application schema. 
-        Field answers can trigger the creation of an Inspection for an
-        application.
-
-        TODO: Redundant to be removed.
-        """
-        attribute_check = ApplicationAttributeRenderer(application, form_data)
-        attribute_check.render()
 
     @staticmethod
     def set_special_form_fields(application, form):
@@ -433,12 +426,13 @@ class IncreaseApplicationFeeFieldElement(SpecialFieldElement):
     def accept(self, application_form_visitor):
         self._application = application_form_visitor._application
         self._data_source = application_form_visitor._data_source
-        application_form_visitor.visit_prompt_inspection_field(self)
 
         fee_policy = ApplicationFeePolicy.get_fee_policy_for(self._application)
         if not self._data_source:  # No form data set fee from application fee.
             fee_policy.set_application_fee()
         self._dynamic_attributes = fee_policy.get_dynamic_attributes()
+
+        application_form_visitor.visit_increase_application_fee_field(self)
 
     def reset(self, licence_activity):
 
@@ -493,74 +487,14 @@ class IncreaseApplicationFeeFieldElement(SpecialFieldElement):
             if adjustments_performed:
                 adjusted_by_fields[schema_name] += 1
 
+    def get_adjusted_fees(self):
+        return self._dynamic_attributes['fees']
+
+    def get_dynamic_attributes(self):
+        return self._dynamic_attributes
+
     def __str__(self):
         return 'Field Element: {0}'.format(self._NAME)
-
-
-class ApplicationAttributeRenderer(object):
-
-    def __init__(self, application, data_source):
-        self._application = application
-        self._data_source = data_source
-
-    def parse_component(
-            self,
-            component,
-            schema_name,
-            adjusted_by_fields,
-            activity):
-
-        if set(['PromptInspection']).issubset(component):
-            activity.is_inspection_required = True
-            activity.save()
-
-    def render(self):
-
-        for selected_activity in self._application.activities:
-
-            selected_activity.is_inspection_required = False
-            selected_activity.save()
-
-            schema_fields = self._application.get_schema_fields_for_purposes(
-                selected_activity.purposes.values_list('id', flat=True)
-            )
-
-            # Adjustments based on selected options (radios and checkboxes)
-            adjusted_by_fields = {}
-            for form_data_record in self._data_source:
-                try:
-                    # Retrieve dictionary of fields from a model instance
-                    data_record = form_data_record.__dict__
-                except AttributeError:
-                    # If a raw form data (POST) is supplied, form_data_record
-                    # is a key
-                    data_record = self._data_source[form_data_record]
-
-                schema_name = data_record['schema_name']
-                if schema_name not in schema_fields:
-                    continue
-                schema_data = schema_fields[schema_name]
-
-                if 'options' in schema_data:
-                    for option in schema_data['options']:
-                        # Only modifications if the current option is selected
-                        if option['value'] != data_record['value']:
-                            continue
-                        self.parse_component(
-                            component=option,
-                            schema_name=schema_name,
-                            adjusted_by_fields=adjusted_by_fields,
-                            activity=selected_activity
-                        )
-
-                # If this is a checkbox - skip unchecked ones
-                elif data_record['value'] == 'on':
-                    self.parse_component(
-                        component=schema_data,
-                        schema_name=schema_name,
-                        adjusted_by_fields=adjusted_by_fields,
-                        activity=selected_activity
-                    )
 
 
 def do_process_form(
@@ -677,117 +611,6 @@ def do_process_form(
         )
 
 
-def get_dynamic_schema_attributes(application, data_source):
-
-    fee_policy = ApplicationFeePolicy.get_fee_policy_for(application)
-    if not data_source:  # No form data set fee from application fee.
-        fee_policy.set_application_fee()
-    dynamic_attributes = fee_policy.get_dynamic_attributes()
-
-    def parse_modifiers(
-            dynamic_attributes,
-            component,
-            schema_name,
-            adjusted_by_fields,
-            activity
-            ):
-
-        def increase_fee(fees, field, amount):
-            fees[field] += amount
-            fees[field] = fees[field] if fees[field] >= 0 else 0
-            return True
-
-        fee_modifier_keys = {
-            'IncreaseLicenceFee': 'licence',
-            'IncreaseApplicationFee': 'application',
-        }
-        increase_limit_key = 'IncreaseTimesLimit'
-        try:
-            increase_count = adjusted_by_fields[schema_name]
-        except KeyError:
-            increase_count = adjusted_by_fields[schema_name] = 0
-
-        # Does this component / selected option enable the inspection
-        # requirement?
-        try:
-            # If at least one component has a positive value - require
-            # inspection for the entire activity.
-            if component['InspectionRequired']:
-                dynamic_attributes['activity_attributes'][activity][
-                    'is_inspection_required'] = True
-        except KeyError:
-            pass
-
-        if increase_limit_key in component:
-            max_increases = int(component[increase_limit_key])
-            if increase_count >= max_increases:
-                return
-
-        adjustments_performed = sum(key in component and increase_fee(
-            dynamic_attributes['fees'],
-            field,
-            component[key]
-        ) and increase_fee(
-            dynamic_attributes['activity_attributes'][activity]['fees'],
-            field,
-            component[key]
-        ) for key, field in fee_modifier_keys.items())
-
-        if adjustments_performed:
-            adjusted_by_fields[schema_name] += 1
-
-    for selected_activity in application.activities:
-        schema_fields = application.get_schema_fields_for_purposes(
-            selected_activity.purposes.values_list('id', flat=True)
-        )
-        dynamic_attributes['activity_attributes'][selected_activity] = {
-            'is_inspection_required': False,
-            'fees': selected_activity.base_fees,
-        }
-
-        # Adjust fees based on selected options (radios and checkboxes)
-        adjusted_by_fields = {}
-        for form_data_record in data_source:
-            try:
-                # Retrieve dictionary of fields from a model instance
-                data_record = form_data_record.__dict__
-            except AttributeError:
-                # If a raw form data (POST) is supplied, form_data_record
-                # is a key
-                data_record = data_source[form_data_record]
-
-            schema_name = data_record['schema_name']
-            if schema_name not in schema_fields:
-                continue
-            schema_data = schema_fields[schema_name]
-
-            if 'options' in schema_data:
-                for option in schema_data['options']:
-                    # Only consider fee modifications if the current option
-                    # is selected.
-                    if option['value'] != data_record['value']:
-                        continue
-                    parse_modifiers(
-                        dynamic_attributes=dynamic_attributes,
-                        component=option,
-                        schema_name=schema_name,
-                        adjusted_by_fields=adjusted_by_fields,
-                        activity=selected_activity
-                    )
-
-            # If this is a checkbox - skip unchecked ones
-            elif data_record['value'] == 'on':
-                parse_modifiers(
-                    dynamic_attributes=dynamic_attributes,
-                    component=schema_data,
-                    schema_name=schema_name,
-                    adjusted_by_fields=adjusted_by_fields,
-                    activity=selected_activity
-                )
-
-    return dynamic_attributes
-
-
 def do_update_dynamic_attributes(application):
     """ Update application and activity attributes based on selected JSON
         schema options.
@@ -799,9 +622,11 @@ def do_update_dynamic_attributes(application):
     ]:
         return
 
-    dynamic_attributes = get_dynamic_schema_attributes(
-        application,
-        application.data)
+    # Get all fee adjustments made with check boxes and radio buttons.
+    checkbox = CheckboxAndRadioButtonVisitor(application, application.data)
+    for_increase_fee_fields = IncreaseApplicationFeeFieldElement()
+    for_increase_fee_fields.accept(checkbox)
+    dynamic_attributes = for_increase_fee_fields.get_dynamic_attributes()
 
     # Update application and licence fees
     fees = dynamic_attributes['fees']
@@ -847,7 +672,8 @@ def do_update_dynamic_attributes(application):
 
         for field, value in field_data.items():
             setattr(selected_activity, field, value)
-            selected_activity.save()
+
+        selected_activity.save()
 
 
 """

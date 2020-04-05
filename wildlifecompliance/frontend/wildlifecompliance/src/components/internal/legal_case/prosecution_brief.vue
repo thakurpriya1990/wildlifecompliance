@@ -117,7 +117,6 @@
                                     :value="pbRoiTicked" 
                                     :options="pbRoiOptions" 
                                     :default-expand-level="Infinity" 
-                                    :disabled="false"
                                     multiple
                                     value-consists-of="LEAF_PRIORITY"
                                     @input="setPbRoiTicked"
@@ -134,7 +133,6 @@
                                     :value="pbOtherStatementsTicked" 
                                     :options="pbOtherStatementsOptions" 
                                     :default-expand-level="Infinity" 
-                                    :disabled="false"
                                     multiple
                                     value-consists-of="LEAF_PRIORITY"
                                     @input="setPbOtherStatementsTicked"
@@ -149,7 +147,7 @@
                                     <label v-if="physicalArtifactsUsedVisibility" class="col-sm-10">Select the objects to be included on the list of exhibits
                                         <div class="row" v-for="artifact in physicalArtifactsUsed">
                                             <!--input class="col-sm-1" type="checkbox" :value="artifact.id" v-model="physicalArtifactsUsedTicked"-->
-                                            <input class="col-sm-1" type="checkbox" v-model="artifact.ticked">
+                                            <input :disabled="readonlyForm" class="col-sm-1" type="checkbox" v-model="artifact.ticked">
                                             <label class="col-sm-4">{{ artifact.label }}</label>
                                         </div>
                                     </label>
@@ -157,12 +155,13 @@
                                     <label v-if="physicalArtifactsSensitiveUnusedVisibility" class="col-sm-10">Select the objects to be included on the sensitive unused list of materials
                                         <div class="row" v-for="artifact in physicalArtifactsSensitiveUnused">
                                             <!--input class="col-sm-1" :id="'tickbox_' + artifact.id" type="checkbox" :value="artifact.id" v-model="physicalArtifactsSensitiveUnusedTicked"-->
-                                            <input class="col-sm-1" :id="'tickbox_' + artifact.id" type="checkbox" v-model="artifact.ticked">
+                                            <input :disabled="readonlyForm" class="col-sm-1" :id="'tickbox_' + artifact.id" type="checkbox" v-model="artifact.ticked">
                                             <label class="col-sm-4">{{ artifact.label }}</label>
                                             <textarea 
                                                 class="form-control col-sm-6" 
                                                 v-model="artifact.reason_sensitive_non_disclosable" 
                                                 :id="'reason_' + artifact.physical_artifact_id"
+                                                :readonly="readonlyForm"
                                                 />
                                         </div>
                                     </label>
@@ -170,7 +169,7 @@
                                     <label v-if="physicalArtifactsNonSensitiveUnusedVisibility" class="col-sm-10">Select the objects to be included on the non-sensitive unused list of materials
                                         <div class="row" v-for="artifact in physicalArtifactsNonSensitiveUnused">
                                             <!--input class="col-sm-1" type="checkbox" :value="artifact.id" v-model="physicalArtifactsNonSensitiveUnusedTicked"-->
-                                            <input class="col-sm-1" type="checkbox" v-model="artifact.ticked">
+                                            <input :disabled="readonlyForm" class="col-sm-1" type="checkbox" v-model="artifact.ticked">
                                             <label class="col-sm-4">{{ artifact.label }}</label>
                                         </div>
                                     </label>
@@ -181,11 +180,11 @@
                                 <div v-if="documentArtifactsVisibility" class="col-sm-12 form-group"><div class="row">
                                     <div class="row" v-for="artifact in documentArtifacts">
                                         <!--input class="col-sm-1" type="checkbox" :value="artifact.id" v-model="physicalArtifactsUsedTicked"-->
-                                        <input class="col-sm-1" type="checkbox" v-model="artifact.ticked">
+                                        <input :disabled="readonlyForm" class="col-sm-1" type="checkbox" v-model="artifact.ticked">
                                         <label class="col-sm-4">
                                             {{ artifact.label }}
                                         </label>
-                                        <div class="col-sm-12 form-group"><div class="row">
+                                        <div class="col-sm-12 form-group document-artifact-file"><div class="row">
                                             <div v-for="document in artifact.attachments">
                                                 <label> {{ document.name }}
                                                     <div v-if="['png', 'jpg'].includes(document.type)">
@@ -340,11 +339,20 @@ export default {
     */
     readonlyForm: function() {
         let readonly = true
+        if (this.legal_case && this.legal_case.id && !this.readonly) {
+            readonly = !this.legal_case.can_user_action;
+        }
+        return readonly
+    },
+      /*
+    readonlyForm: function() {
+        let readonly = true
         if (this.legal_case && this.legal_case.id && !this.readonly && this.legal_case.can_user_action) {
             readonly = false;
         }
         return readonly
     },
+    */
     /*
     readonlyForm: function() {
         let readonly = true
@@ -564,6 +572,9 @@ export default {
 <style lang="css">
 .action-button {
     margin-top: 5px;
+}
+.document-artifact-file {
+    margin-left: 70px;
 }
 .new-row-button {
     margin-bottom: 5px;
