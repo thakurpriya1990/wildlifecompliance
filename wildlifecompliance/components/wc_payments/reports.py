@@ -27,13 +27,17 @@ def booking_bpoint_settlement_report(_date):
         writer = csv.writer(strIO)
         writer.writerow(fieldnames)
 
+        # BookingInvoice ==> InfringementPenaltyInvoice
+        # Booking ==> SanctionOutcome
+
         for b in bpoint:
             booking, invoice = None, None
             try:
                 invoice = Invoice.objects.get(reference=b.crn1)
                 try:
                     # booking = BookingInvoice.objects.get(invoice_reference=invoice.reference).booking
-                    booking = InfringementPenaltyInvoice.objects.get(invoice_reference=invoice.reference).booking
+                    ip_invoice = InfringementPenaltyInvoice.objects.get(invoice_reference=invoice.reference)
+                    sanction_outcome = ip_invoice.infringement_penalty.sanction_outcome
                 # except BookingInvoice.DoesNotExist:
                 except InfringementPenaltyInvoice.DoesNotExist:
                     pass
@@ -44,11 +48,28 @@ def booking_bpoint_settlement_report(_date):
                 #     pass
 
 
-                if booking:
-                    b_name = u'{}'.format(booking.proposal.applicant)
+                # if booking:
+                #     b_name = u'{}'.format(booking.proposal.applicant)
+                #     created = timezone.localtime(b.created, pytz.timezone('Australia/Perth'))
+                #     settlement_date = invoice.settlement_date.strftime('%d/%m/%Y') if invoice.settlement_date else ''
+                #     writer.writerow([created.strftime('%d/%m/%Y %H:%M:%S'), settlement_date, booking.admission_number,
+                #                  b_name.encode('utf-8'), invoice.get_payment_method_display(), invoice.amount,
+                #                  invoice.reference])
+                if sanction_outcome:
+                    # b_name = u'{}'.format(booking.proposal.applicant)
+                    b_name = u'{}'.format(sanction_outcome.get_offender()[0].get_full_name())
                     created = timezone.localtime(b.created, pytz.timezone('Australia/Perth'))
                     settlement_date = invoice.settlement_date.strftime('%d/%m/%Y') if invoice.settlement_date else ''
-                    writer.writerow([created.strftime('%d/%m/%Y %H:%M:%S'),settlement_date,booking.admission_number,b_name.encode('utf-8'),invoice.get_payment_method_display(),invoice.amount,invoice.reference])
+                    writer.writerow([
+                        created.strftime('%d/%m/%Y %H:%M:%S'),
+                        settlement_date,
+                        # booking.admission_number,
+                        sanction_outcome.lodgement_number,
+                        b_name.encode('utf-8'),
+                        invoice.get_payment_method_display(),
+                        invoice.amount,
+                        invoice.reference
+                    ])
                 # elif application_fee:
                 #     b_name = u'{}'.format(application_fee.proposal.applicant)
                 #     created = timezone.localtime(application_fee.created, pytz.timezone('Australia/Perth'))
