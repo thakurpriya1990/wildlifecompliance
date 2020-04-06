@@ -122,7 +122,6 @@
                                     @input="setPbRoiTicked"
                                     alwaysOpen
                                     :searchable="false"
-                                    :disabled="readonlyForm"
                                     />
                                 </div></div>
                                 <span v-else class="col-sm-10">No Offences, Offenders or Records of Interview</span>
@@ -139,7 +138,6 @@
                                     @input="setPbOtherStatementsTicked"
                                     alwaysOpen
                                     :searchable="false"
-                                    :disabled="readonlyForm"
                                     />
                                 </div></div>
                                 <span v-else class="col-sm-10">No Witness Statements, Officer Statements or Expert Statements</span>
