@@ -20,6 +20,8 @@ from django.core.files.base import ContentFile
 from django.utils import timezone
 from django.utils.encoding import python_2_unicode_compatible
 
+from smart_selects.db_fields import ChainedForeignKey
+
 from ledger.accounts.models import EmailUser, RevisionedMixin
 from ledger.payments.invoice.models import Invoice
 from ledger.checkout.utils import calculate_excl_gst
@@ -3672,6 +3674,12 @@ class ApplicationStandardCondition(RevisionedMixin):
 
 
 class DefaultCondition(OrderedModel):
+    '''
+    A Standard Condition that is automatically created for a Licence 
+    Application.
+
+    Applies django-smart-selects for chained foreign key.
+    '''
     standard_condition = models.ForeignKey(
         ApplicationStandardCondition,
         related_name='default_condition', 
@@ -3680,10 +3688,18 @@ class DefaultCondition(OrderedModel):
         'wildlifecompliance.LicenceActivity',
         related_name='default_activity', 
         null=True)
-    licence_purpose = models.ForeignKey(
+    # licence_purpose = models.ForeignKey(
+    #     'wildlifecompliance.LicencePurpose',
+    #     related_name='default_purpose',
+    #     null=True)      
+    licence_purpose = ChainedForeignKey(
         'wildlifecompliance.LicencePurpose',
+        chained_field='licence_activity',
+        chained_model_field='licence_activity',
+        show_all=False,
+        null=True,
         related_name='default_purpose',
-        null=True)      
+    )
     comments = models.TextField(null=True, blank=True)
 
     class Meta:
