@@ -325,7 +325,7 @@
                             </FormSection>
                         </div>
                         <div :id="oTab" class="tab-pane fade in">
-                            <FormSection :formCollapse="false" label="Inspection Report">
+                            <FormSection :formCollapse="false" label="Inspection report">
                                 <div class="form-group">
                                     <div class="row">
                                         <div class="col-sm-6">
