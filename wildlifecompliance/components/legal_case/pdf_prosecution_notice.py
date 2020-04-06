@@ -118,7 +118,7 @@ def _create_pdf(invoice_buffer, legal_case, offenders):
             Paragraph('<strong>Details of alleged offence</strong><br />'
                       '<i><font size="' + str(FONT_SIZE_S) + '">[This description must comply with the CPA Schedule 1 clause 5.]</font></i>', styles['Normal']),
             Paragraph('Accused', styles['Normal']),
-            Paragraph(get_font_str(offender.person.last_name), styles['Normal']),
+            Paragraph(get_font_str(offender.person.get_full_name()), styles['Normal']),
             '',
             '',
         ])
@@ -168,7 +168,7 @@ def _create_pdf(invoice_buffer, legal_case, offenders):
         data.append([
             '',
             Paragraph('Date of Birth', styles['Normal']),
-            '',
+            'DOB?',
             Paragraph('Male / Female', styles['Normal']),
             '',
         ])
