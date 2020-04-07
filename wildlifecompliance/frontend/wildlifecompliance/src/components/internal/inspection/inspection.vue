@@ -329,7 +329,7 @@
                                 <div class="form-group">
                                     <div class="row">
                                         <div class="col-sm-6">
-                                            <label class="control-label pull-left"  for="Name">Inspection Report</label>
+                                            <label class="control-label pull-left"  for="Name">Inspection report</label>
                                         </div>
                                         <div class="col-sm-9" v-if="inspection.inspectionReportDocumentUrl">
                                             <filefield
