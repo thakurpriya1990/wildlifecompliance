@@ -132,6 +132,11 @@
                                                     <!--li><a href="{% url 'infringement_penalty' 1 %}">Management Commands</a></li-->
                                                     <li role="separator" class="divider"></li>
                                                 {% endif %}
+
+                                                {% if is_wildlifecompliance_admin_login or request.user.is_superuser or is_payment_officer %}
+                                                    <li><a href="/internal/reports">Reports</a></li>
+                                                {% endif %}
+
                                                 <li><a href="{% url 'manage-account' %}">Manage Account</a></li>
                                                 <li><a href="{% url 'pdf_latex' %}">Create PDF</a></li>
                                                 <li><a href="{% url 'manage-profiles' %}">Manage Profiles</a></li>
