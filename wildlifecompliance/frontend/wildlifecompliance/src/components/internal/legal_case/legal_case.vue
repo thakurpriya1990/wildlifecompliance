@@ -1732,8 +1732,6 @@ export default {
               this.constructRunningSheetTableWrapper();
           }
           */
-          //let treeSelectElement = $('.vue-treeselect__control').css("display", "none");
-          //$('.vue-treeselect__control').css("display", "none");
       });
   },
 };
