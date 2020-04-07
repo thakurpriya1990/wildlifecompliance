@@ -2199,6 +2199,13 @@ class Application(RevisionedMixin):
                                 start_date = latest_activity.start_date
                                 expiry_date = latest_activity.expiry_date
 
+                        # Additional Fees need to be set before processing fee.
+                        # Fee amount may change by the issuer making decision.
+                        selected_activity.additional_fee = item[
+                            'additional_fee'] if item['additional_fee'] else 0
+                        selected_activity.additional_fee_text = item[
+                            'additional_fee_text']
+
                         # If there is an outstanding licence fee payment - attempt to charge the stored card.
                         payment_successful = selected_activity.process_licence_fee_payment(request, self)
                         if not payment_successful:
@@ -2220,10 +2227,6 @@ class Application(RevisionedMixin):
                         selected_activity.expiry_date = expiry_date
                         selected_activity.cc_email = item['cc_email']
                         selected_activity.reason = item['reason']
-                        selected_activity.additional_fee = item[
-                            'additional_fee'] if item['additional_fee'] else 0
-                        selected_activity.additional_fee_text = item[
-                            'additional_fee_text']
 
                         proposed_purposes = selected_activity.proposed_purposes.all()
                         for proposed_purpose in proposed_purposes:
