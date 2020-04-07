@@ -152,14 +152,23 @@ class ComplianceFormDataRecordSerializer(serializers.ModelSerializer):
 
 
 class ClassificationSerializer(serializers.ModelSerializer):
+    classification_display = serializers.SerializerMethodField()
 
     class Meta:
         model = Classification
         fields = (
             'id',
             'name',
+            'classification_display',
         )
         read_only_fields = ('id', 'name', )
+
+    def get_classification_display(self, obj):
+        display_name = ''
+        for choice in Classification.NAME_CHOICES:
+            if obj.name == choice[0]:
+                display_name = choice[1]
+        return display_name
 
 
 class ReferrerSerializer(serializers.ModelSerializer):
@@ -553,6 +562,7 @@ class CallEmailSerializer(serializers.ModelSerializer):
 
 class CallEmailDatatableSerializer(serializers.ModelSerializer):
     status = CustomChoiceField(read_only=True)
+    #classification = CustomChoiceField(read_only=True)
     classification = ClassificationSerializer(read_only=True)
     #lodgement_date = serializers.CharField(source='lodged_on')
     user_is_assignee = serializers.SerializerMethodField()
