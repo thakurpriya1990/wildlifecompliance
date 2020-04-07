@@ -533,7 +533,7 @@ class LegalCaseUserAction(models.Model):
         ordering = ('-when',)
 
     @classmethod
-    def log_action(cls, legal_case, action, user):
+    def log_action(cls, legal_case, action, user=None):
         return cls.objects.create(
             legal_case=legal_case,
             who=user,
