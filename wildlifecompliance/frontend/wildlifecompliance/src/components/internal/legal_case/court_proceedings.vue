@@ -593,7 +593,6 @@ export default {
     mounted: function() {
         this.$nextTick(() => {
             this.addEventListeners();
-            $('.vue-treeselect__control').css("display", "none");
             this.constructCourtProceedingsTableWrapper();
         });
     },
