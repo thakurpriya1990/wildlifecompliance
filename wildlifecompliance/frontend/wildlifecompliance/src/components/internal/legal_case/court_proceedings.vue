@@ -12,7 +12,7 @@
                                    name="prosecution-notice-document"
                                    :documentActionUrl="legal_case.prosecutionNoticeDocumentUrl"
                                    @update-parent="courtOutcomeDocumentUploaded"
-                                   :isRepeatable="true"
+                                   :isRepeatable="false"
                                    :readonly="readonlyForm" />
                     </div>
                 </div>
@@ -25,7 +25,7 @@
                                    name="court-hearing-notice-document"
                                    :documentActionUrl="legal_case.courtHearingNoticeDocumentUrl"
                                    @update-parent="courtOutcomeDocumentUploaded"
-                                   :isRepeatable="true"
+                                   :isRepeatable="false"
                                    :readonly="readonlyForm" />
                     </div>
                 </div>
@@ -67,19 +67,33 @@
             </FormSection>
 
             <FormSection :formCollapse="false" label="Court Outcome">
+            <!--
                 <div class="col-sm-12 form-group"><div class="row">
-                    <div v-if="hasCourtProceedings">
-                        <filefield ref="court_outcome_document"
-                                   name="court-outcome-document"
-                                   :documentActionUrl="legal_case.processCourtOutcomeDocumentUrl"
-                                   @update-parent="courtOutcomeDocumentUploaded"
-                                   :isRepeatable="true"
-                                   :readonly="readonlyForm" />
-                        <textarea :readonly="readonlyForm" 
-                                  class="form-control location_address_field" 
-                                  v-model="legal_case.court_proceedings.court_outcome_details" />
-                    </div>
+            -->
+                    <template v-if="hasCourtProceedings">
+                        <div class="row form-group">
+                            <label class="col-md-2">Court outcome</label>
+                            <div class="col-md-9">
+                                <filefield ref="court_outcome_document"
+                                           name="court-outcome-document"
+                                           :documentActionUrl="legal_case.processCourtOutcomeDocumentUrl"
+                                           @update-parent="courtOutcomeDocumentUploaded"
+                                           :isRepeatable="true"
+                                           :readonly="readonlyForm" />
+                            </div>
+                        </div>
+                        <div class="row form-group">
+                            <label class="col-md-2">Details</label>
+                            <div class="col-md-9">
+                                <textarea :readonly="readonlyForm" 
+                                          class="form-control location_address_field" 
+                                          v-model="legal_case.court_proceedings.court_outcome_details" />
+                            </div>
+                        </div>
+                    </template>
+            <!--
                 </div></div>
+            -->
             </FormSection>
         </div>
         <div v-if="courtProceedingsHistoryEntryBindId">
