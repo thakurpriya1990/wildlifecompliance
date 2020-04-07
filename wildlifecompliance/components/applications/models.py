@@ -20,6 +20,8 @@ from django.core.files.base import ContentFile
 from django.utils import timezone
 from django.utils.encoding import python_2_unicode_compatible
 
+from smart_selects.db_fields import ChainedForeignKey
+
 from ledger.accounts.models import EmailUser, RevisionedMixin
 from ledger.payments.invoice.models import Invoice
 from ledger.checkout.utils import calculate_excl_gst
@@ -2197,6 +2199,13 @@ class Application(RevisionedMixin):
                                 start_date = latest_activity.start_date
                                 expiry_date = latest_activity.expiry_date
 
+                        # Additional Fees need to be set before processing fee.
+                        # Fee amount may change by the issuer making decision.
+                        selected_activity.additional_fee = item[
+                            'additional_fee'] if item['additional_fee'] else 0
+                        selected_activity.additional_fee_text = item[
+                            'additional_fee_text']
+
                         # If there is an outstanding licence fee payment - attempt to charge the stored card.
                         payment_successful = selected_activity.process_licence_fee_payment(request, self)
                         if not payment_successful:
@@ -2218,10 +2227,6 @@ class Application(RevisionedMixin):
                         selected_activity.expiry_date = expiry_date
                         selected_activity.cc_email = item['cc_email']
                         selected_activity.reason = item['reason']
-                        selected_activity.additional_fee = item[
-                            'additional_fee'] if item['additional_fee'] else 0
-                        selected_activity.additional_fee_text = item[
-                            'additional_fee_text']
 
                         proposed_purposes = selected_activity.proposed_purposes.all()
                         for proposed_purpose in proposed_purposes:
@@ -3674,6 +3679,12 @@ class ApplicationStandardCondition(RevisionedMixin):
 
 
 class DefaultCondition(OrderedModel):
+    '''
+    A Standard Condition that is automatically created for a Licence 
+    Application.
+
+    Applies django-smart-selects for chained foreign key.
+    '''
     standard_condition = models.ForeignKey(
         ApplicationStandardCondition,
         related_name='default_condition', 
@@ -3682,10 +3693,18 @@ class DefaultCondition(OrderedModel):
         'wildlifecompliance.LicenceActivity',
         related_name='default_activity', 
         null=True)
-    licence_purpose = models.ForeignKey(
+    # licence_purpose = models.ForeignKey(
+    #     'wildlifecompliance.LicencePurpose',
+    #     related_name='default_purpose',
+    #     null=True)      
+    licence_purpose = ChainedForeignKey(
         'wildlifecompliance.LicencePurpose',
+        chained_field='licence_activity',
+        chained_model_field='licence_activity',
+        show_all=False,
+        null=True,
         related_name='default_purpose',
-        null=True)      
+    )
     comments = models.TextField(null=True, blank=True)
 
     class Meta:

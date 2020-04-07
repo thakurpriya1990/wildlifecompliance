@@ -470,7 +470,7 @@ export default {
                     final_status: final_status,
                     confirmed: false,
                     purposes: proposal.issued_purposes_id,
-                    additional_fee: proposal.additional_fee>0?proposal.additional_fee:'',
+                    additional_fee: proposal.additional_fee,
                     additional_fee_text: proposal.additional_fee_text,
                 });
             }
