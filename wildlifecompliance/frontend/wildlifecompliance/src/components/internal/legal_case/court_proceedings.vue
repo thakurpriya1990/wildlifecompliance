@@ -12,7 +12,7 @@
                                    name="prosecution-notice-document"
                                    :documentActionUrl="legal_case.prosecutionNoticeDocumentUrl"
                                    @update-parent="courtOutcomeDocumentUploaded"
-                                   :isRepeatable="true"
+                                   :isRepeatable="false"
                                    :readonly="readonlyForm" />
                     </div>
                 </div>
@@ -25,7 +25,7 @@
                                    name="court-hearing-notice-document"
                                    :documentActionUrl="legal_case.courtHearingNoticeDocumentUrl"
                                    @update-parent="courtOutcomeDocumentUploaded"
-                                   :isRepeatable="true"
+                                   :isRepeatable="false"
                                    :readonly="readonlyForm" />
                     </div>
                 </div>
