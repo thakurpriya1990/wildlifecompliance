@@ -177,3 +177,4 @@ DOT_EMAIL_ADDRESS = env('DOT_EMAIL_ADDRESS')
 # Details for Threathened Species and Communities server.
 TSC_URL = env('TSC_URL', 'https://tsc.dbca.wa.gov.au')
 TSC_AUTH = env('TSC_AUTH', 'NO_AUTH')
+EMAIL_BACKEND = 'django.core.mail.backends.console.EmailBackend'
