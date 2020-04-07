@@ -542,7 +542,7 @@ export default {
     }),
     personSearchVisibility: function() {
         let visible = false;
-        if (this.statusId ==='open' && !this.readonlyForm) {
+        if (this.statusId ==='open') {
             visible = true;
         }
         return visible;
