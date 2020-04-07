@@ -32,6 +32,7 @@ INSTALLED_APPS += [
     'rest_framework',
     'rest_framework_gis',
     'rest_framework_datatables',
+    'smart_selects',
 ]
 
 # maximum number of days allowed for a booking
@@ -48,6 +49,8 @@ REST_FRAMEWORK = {
     'DEFAULT_PAGINATION_CLASS': 'rest_framework_datatables.pagination.DatatablesPageNumberPagination',
     'PAGE_SIZE': 50,
 }
+
+USE_DJANGO_JQUERY=True
 
 if env('EMAIL_INSTANCE') is not None and env('EMAIL_INSTANCE','') != 'PROD':
     REST_FRAMEWORK['DEFAULT_RENDERER_CLASSES'] += ('rest_framework.renderers.BrowsableAPIRenderer',)

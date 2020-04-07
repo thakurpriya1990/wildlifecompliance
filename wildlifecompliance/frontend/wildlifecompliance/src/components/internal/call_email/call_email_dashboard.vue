@@ -150,7 +150,7 @@
                             searchable: false,
                             mRender: function (data, type, full) {
                                 if (data) {
-                                    return data.name;
+                                    return data.classification_display;
                                 } else {
                                     return '';
                                 }
