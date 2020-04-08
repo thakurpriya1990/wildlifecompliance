@@ -472,7 +472,8 @@ class ApplicationViewSet(viewsets.ModelViewSet):
                 'licence_activity', None)
             if licence_activity is not None:
                 qs = qs.filter(licence_activity=licence_activity)
-            serializer = ApplicationConditionSerializer(qs, many=True)
+            serializer = ApplicationConditionSerializer(
+                qs, many=True, context={'request': request})
             return Response(serializer.data)
         except serializers.ValidationError:
             print(traceback.print_exc())

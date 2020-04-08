@@ -136,9 +136,10 @@ export default {
                     {
                         mRender:function (data,type,full) {
                             let links = '';
-                            // TODO check permission to change the order
-                            links +=  `<a class="dtMoveUp" data-id="${full.id}" href='#'><i class="fa fa-angle-up"></i></a><br/>`;
-                            links +=  `<a class="dtMoveDown" data-id="${full.id}" href='#'><i class="fa fa-angle-down"></i></a><br/>`;
+                            if(vm.canEditConditions) {
+                                links +=  `<a class="dtMoveUp" data-id="${full.id}" href='#'><i class="fa fa-angle-up"></i></a><br/>`;
+                                links +=  `<a class="dtMoveDown" data-id="${full.id}" href='#'><i class="fa fa-angle-down"></i></a><br/>`;
+                            }
                             return links;
                         },
                         orderable: false
@@ -194,6 +195,7 @@ export default {
             return required_role && this.hasRole(required_role, this.selected_activity_tab_id);
         },
         canEditConditions: function() {
+            console.log('canEditConditions')
             if(!this.selected_activity_tab_id || this.activity == null) {
                 return false;
             }
@@ -331,22 +333,6 @@ export default {
             if (vm.moveRow(tr, 'down')){
                 vm.sendDirection($(e.target).parent().data('id'),'down');
             }
-        },
-        moveRow1(row, direction) {
-            // Move up or down (depending...)
-            var table = this.$refs.conditions_datatable.vmDataTable;
-            var index = table.row(row).index();
-            var order = -1;
-            if (direction === 'down') {
-              order = 1;
-            }
-            var data1 = table.row(index).data();
-            data1.order += order;
-            var data2 = table.row(index + order).data();
-            data2.order += -order;
-            table.row(index).data(data2);
-            table.row(index + order).data(data1);
-            table.page(0).draw(false);
         },
         moveRow(row, direction) {
             // Move up or down (depending...)
