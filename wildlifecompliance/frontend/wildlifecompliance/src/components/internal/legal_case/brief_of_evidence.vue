@@ -113,8 +113,9 @@
                             </FormSection>
                             <FormSection :formCollapse="false" label="Offences, Offenders and Records of Interview" treeHeight="yes">
                                 <div v-if="boeRoiVisibility" class="col-sm-12 form-group"><div class="row">
-                                    <TreeSelect 
-                                    ref="record_of_interview_tree" 
+                                    <TreeSelect
+                                    id="boe-record-of-interview-tree"
+                                    ref="boe_record_of_interview_tree" 
                                     :value="boeRoiTicked" 
                                     :options="boeRoiOptions" 
                                     :default-expand-level="Infinity" 
@@ -123,6 +124,7 @@
                                     @input="setBoeRoiTicked"
                                     alwaysOpen
                                     :searchable="false"
+                                    :disabled="readonlyForm"
                                     />
                                 </div></div>
                                 <span v-else class="col-sm-10">No Offences, Offenders or Records of Interview</span>
@@ -130,7 +132,8 @@
                             <FormSection :formCollapse="false" label="Witness Statements, Officer Statements, Expert Statements" treeHeight="yes">
                                 <div v-if="boeOtherStatementsVisibility" class="col-sm-12 form-group"><div class="row">
                                     <TreeSelect 
-                                    ref="other_statements_tree" 
+                                    id="boe-other-statements-tree"
+                                    ref="boe_other_statements_tree" 
                                     :value="boeOtherStatementsTicked" 
                                     :options="boeOtherStatementsOptions" 
                                     :default-expand-level="Infinity" 
@@ -139,6 +142,7 @@
                                     @input="setBoeOtherStatementsTicked"
                                     alwaysOpen
                                     :searchable="false"
+                                    :disabled="readonlyForm"
                                     />
                                 </div></div>
                                 <span v-else class="col-sm-10">No Witness Statements, Officer Statements or Expert Statements</span>
@@ -239,21 +243,7 @@ export default {
     name: "ViewBriefOfEvidence",
     data: function() {
         return {
-            //boeRoiTicked: [],
-            //boeRoiOptions: [],
-            //boeOtherStatementsOptions: [],
             uuid: 0,
-            //briefOfEvidence: {},
-            /*
-            physicalArtifacts: [],
-            physicalArtifactsNonSensitiveUnused: [],
-            physicalArtifactsSensitiveUnused: [],
-            physicalArtifactsUsed: [],
-            physicalArtifactsNonSensitiveUnusedTicked: [],
-            physicalArtifactsSensitiveUnusedTicked: [],
-            physicalArtifactsSensitiveUnusedReason: [],
-            physicalArtifactsUsedTicked: [],
-            */
       };
   },
   components: {
@@ -266,6 +256,14 @@ export default {
             type: Boolean,
             default: true,
         },
+  },
+  watch: {
+      readonlyForm: {
+          handler: function (newVal, oldVal){
+              this.showHideTreeControls();
+          },
+          deep: true
+      },
   },
   computed: {
     ...mapGetters('legalCaseStore', {
@@ -336,16 +334,6 @@ export default {
         }
         return visible;
     },
-      /*
-    briefOfEvidence: function() {
-        let brief = []
-        if (this.legal_case && this.legal_case.brief_of_evidence) {
-            brief = this.legal_case.brief_of_evidence;
-        }
-        return brief;
-    },
-    */
-
     readonlyForm: function() {
         let readonly = true
         if (this.legal_case && this.legal_case.id && !this.readonly) {
@@ -353,24 +341,6 @@ export default {
         }
         return readonly
     },
-      /*
-    readonlyForm: function() {
-        let readonly = true
-        if (this.legal_case && this.legal_case.id && !this.readonly && this.legal_case.can_user_action) {
-            readonly = false;
-        }
-        return readonly
-    },
-    */
-      /*
-    readonlyBriefOfEvidence: function() {
-        let readonly = true
-        if (this.legal_case && this.legal_case.id) {
-            readonly = !this.legal_case.can_user_action;
-        }
-        return readonly
-    },
-    */
     canUserAction: function() {
         let return_val = false
         if (this.legal_case && this.legal_case.id) {
@@ -424,33 +394,6 @@ export default {
         }
         return visibility;
     },
-    /*
-    boePhysicalArtifactsTicked: function() {
-        let ticked = []
-        if (this.legal_case && this.legal_case.boe_physical_artifacts_ticked) {
-            for (let id of this.legal_case.boe_physical_artifacts_ticked) {
-                ticked.push(id)
-            }
-        }
-        return ticked;
-    },
-    boePhysicalArtifactsOptions: function() {
-        let options = [];
-        if (this.legal_case && this.legal_case.boe_physical_artifacts_options) {
-            options = this.legal_case.boe_physical_artifacts_options;
-        }
-        return options;
-    },
-    boeDocumentArtifactsTicked: function() {
-        let ticked = []
-        if (this.legal_case && this.legal_case.boe_document_artifacts_ticked) {
-            for (let id of this.legal_case.boe_document_artifacts_ticked) {
-                ticked.push(id)
-            }
-        }
-        return ticked;
-    },
-    */
     documentArtifacts: function() {
         let options = [];
         if (this.legal_case && this.legal_case.boe_document_artifacts) {
@@ -476,89 +419,30 @@ export default {
       setBoeOtherStatementsTicked: 'setBoeOtherStatementsTicked',
       setBoePhysicalArtifactsTicked: 'setBoePhysicalArtifactsTicked',
       setBoeDocumentArtifactsTicked: 'setBoeDocumentArtifactsTicked',
-      //setPhysicalArtifactSensitiveUnusedReason: 'setPhysicalArtifactSensitiveUnusedReason',
     }),
-      /*
-    setPhysicalArtifactSensitiveUnusedReasonWrapper: async function(reasonEvent) {
-        //console.log(artifact)
-        await this.setPhysicalArtifactSensitiveUnusedReason(reasonEvent);
-    },
-    setPhysicalArtifactsUsed: function(artifact) {
-        console.log(artifact)
-    },
-    setPhysicalArtifactDetails: function(elemId, fieldValue) {
-        let physical_artifact_id = elemId.replace("boe_physical_artifact_", "");
-        let fieldUpdated = false;
-        for (let artifact of this.physicalArtifacts) {
-            if (artifact.physical_artifact_id === physical_artifact_id) {
-                artifact.details = fieldValue;
-                fieldUpdated = true;
-            } 
-        }
-        if (!fieldUpdated) {
-            this.physicalArtifacts.push({
-                "physical_artifact_id": physical_artifact_id,
-                "details": fieldValue,
+    showHideTreeControls: function() {
+        //let vm = this;
+        //console.log(this.readonlyForm);
+        if (this.readonlyForm) {
+            this.$nextTick(() => {
+                //console.log("true");
+                $("#boe-record-of-interview-tree").find(".vue-treeselect__control").css("display", "block");
+                $("#boe-other-statements-tree").find(".vue-treeselect__control").css("display", "block");
+            });
+        } else {
+            this.$nextTick(() => {
+                //console.log("false");
+                $('#boe-record-of-interview-tree').find(".vue-treeselect__control").css("display", "none");
+                $("#boe-other-statements-tree").find(".vue-treeselect__control").css("display", "none");
             });
         }
     },
-    addEventListeners: function() {
-      let vm = this;
-      let physicalArtifactsTree = $('#physical-artifacts-tree :input');
-      physicalArtifactsTree.on(
-          'input', 
-          (e) => {
-              //console.log(e)
-              this.setPhysicalArtifactDetails(e.target.id, e.target.value);
-          });
-    },
-    */
-
   },
   created: async function() {
-      /*
-      if (this.legal_case && this.legal_case.brief_of_evidence) {
-          Object.assign(this.briefOfEvidence, this.legal_case.brief_of_evidence);
-      }
-      */
-      /*
-      if (this.legal_case.boe_physical_artifacts_non_sensitive_unused_options &&
-          this.legal_case.boe_physical_artifacts_non_sensitive_unused_options.length > 0) {
-          for (let artifact of this.legal_case.boe_physical_artifacts_non_sensitive_unused_options) {
-              let cloned_artifact = _.cloneDeep(artifact);
-              this.physicalArtifactsNonSensitiveUnused.push(artifact)
-              if (artifact.ticked) {
-                  this.physicalArtifactsNonSensitiveUnusedTicked.push(artifact.id)
-              }
-            }
-      }
-      if (this.legal_case.boe_physical_artifacts_sensitive_unused_options &&
-          this.legal_case.boe_physical_artifacts_sensitive_unused_options.length > 0) {
-          for (let artifact of this.legal_case.boe_physical_artifacts_sensitive_unused_options) {
-              let cloned_artifact = _.cloneDeep(artifact);
-              this.physicalArtifactsSensitiveUnused.push(artifact)
-              if (artifact.ticked) {
-                  this.physicalArtifactsSensitiveUnusedTicked.push(artifact.id)
-              }
-          }
-      }
-      if (this.legal_case.boe_physical_artifacts_used_options &&
-          this.legal_case.boe_physical_artifacts_used_options.length > 0) {
-          for (let artifact of this.legal_case.boe_physical_artifacts_used_options) {
-              let cloned_artifact = _.cloneDeep(artifact);
-              this.physicalArtifactsUsed.push(artifact)
-              if (artifact.ticked) {
-                  this.physicalArtifactsUsedTicked.push(artifact.id)
-              }
-          }
-      }
-      */
-
   },
   mounted: function() {
       this.$nextTick(() => {
-          //this.addEventListeners();
-          $('.vue-treeselect__control').css("display", "none");
+          this.showHideTreeControls();
         });
   },
 };

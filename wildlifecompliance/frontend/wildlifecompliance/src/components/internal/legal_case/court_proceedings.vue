@@ -12,7 +12,7 @@
                                    name="prosecution-notice-document"
                                    :documentActionUrl="legal_case.prosecutionNoticeDocumentUrl"
                                    @update-parent="courtOutcomeDocumentUploaded"
-                                   :isRepeatable="true"
+                                   :isRepeatable="false"
                                    :readonly="readonlyForm" />
                     </div>
                 </div>
@@ -25,7 +25,7 @@
                                    name="court-hearing-notice-document"
                                    :documentActionUrl="legal_case.courtHearingNoticeDocumentUrl"
                                    @update-parent="courtOutcomeDocumentUploaded"
-                                   :isRepeatable="true"
+                                   :isRepeatable="false"
                                    :readonly="readonlyForm" />
                     </div>
                 </div>
@@ -50,8 +50,13 @@
             <FormSection :formCollapse="false" label="Court Journal">
                 <div class="col-sm-12 form-group"><div class="row">
                     <div class="row action-button">
-                        <div v-if="canUserAction">
+                        <div v-if="!readonlyForm">
                               <a @click="createNewCourtProceedingsEntry()" class="btn btn-primary pull-right new-row-button" >
+                                  New Row
+                              </a>
+                        </div>
+                        <div v-else>
+                              <a class="btn btn-primary pull-right new-row-button" disabled>
                                   New Row
                               </a>
                         </div>
@@ -67,19 +72,27 @@
             </FormSection>
 
             <FormSection :formCollapse="false" label="Court Outcome">
-                <div class="col-sm-12 form-group"><div class="row">
-                    <div v-if="hasCourtProceedings">
-                        <filefield ref="court_outcome_document"
-                                   name="court-outcome-document"
-                                   :documentActionUrl="legal_case.processCourtOutcomeDocumentUrl"
-                                   @update-parent="courtOutcomeDocumentUploaded"
-                                   :isRepeatable="true"
-                                   :readonly="readonlyForm" />
-                        <textarea :readonly="readonlyForm" 
-                                  class="form-control location_address_field" 
-                                  v-model="legal_case.court_proceedings.court_outcome_details" />
+                <template v-if="hasCourtProceedings">
+                    <div class="row form-group">
+                        <label class="col-md-2">Court outcome</label>
+                        <div class="col-md-9">
+                            <filefield ref="court_outcome_document"
+                                       name="court-outcome-document"
+                                       :documentActionUrl="legal_case.processCourtOutcomeDocumentUrl"
+                                       @update-parent="courtOutcomeDocumentUploaded"
+                                       :isRepeatable="true"
+                                       :readonly="readonlyForm" />
+                        </div>
                     </div>
-                </div></div>
+                    <div class="row form-group">
+                        <label class="col-md-2">Details</label>
+                        <div class="col-md-9">
+                            <textarea :readonly="readonlyForm" 
+                                      class="form-control location_address_field" 
+                                      v-model="legal_case.court_proceedings.court_outcome_details" />
+                        </div>
+                    </div>
+                </template>
             </FormSection>
         </div>
         <div v-if="courtProceedingsHistoryEntryBindId">
@@ -168,6 +181,8 @@ export default {
                                 retStr = '<strike>' + 
                                     `<div id=${row.number} style="min-height:20px" contenteditable="false">${row.description}</div>`
                                     '</strike>';
+                            } else if (!row.action) {
+                                retStr = `<div id=${row.number} style="min-height:20px" contenteditable="false">${row.description}</div>`
                             }
                             return retStr;
 
@@ -192,10 +207,8 @@ export default {
                                 } else {
                                     retStr += `<a id=${rowIdReinstate} class="row_reinstate" href="#">Reinstate</a><br/>`
                                 }
-
                             }
                             return retStr;
-
                         }
                     },
                 ]
@@ -213,19 +226,31 @@ export default {
         ...mapGetters('legalCaseStore', {
             legal_case: "legal_case",
         }),
+        readonlyForm: function() {
+            let readonly = true
+            if (this.legal_case && this.legal_case.id && !this.closedStatus) {
+                readonly = !this.legal_case.can_user_action;
+            }
+            console.log('=== readonlyForm ===');
+            console.log(readonly);
+            return readonly
+        },
+        closedStatus: function() {
+            let returnStatus = false
+            if (this.legal_case && this.statusId === 'closed') {
+                returnStatus = true
+            }
+            return returnStatus
+        },
+        statusId: function() {
+            return this.legal_case.status ? this.legal_case.status.id : '';
+        },
         ...mapGetters({
             current_user: 'current_user'
         }),
 
         csrf_token: function() {
             return helpers.getCookie("csrftoken");
-        },
-        readonlyForm: function() {
-            let readonly = true
-            if (this.legal_case && this.legal_case.id) {
-                readonly = !this.legal_case.can_user_action;
-            }
-            return readonly
         },
         canUserAction: function() {
             let return_val = false
@@ -579,7 +604,6 @@ export default {
     mounted: function() {
         this.$nextTick(() => {
             this.addEventListeners();
-            $('.vue-treeselect__control').css("display", "none");
             this.constructCourtProceedingsTableWrapper();
         });
     },
