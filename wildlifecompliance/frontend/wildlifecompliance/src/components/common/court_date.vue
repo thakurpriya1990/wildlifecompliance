@@ -4,7 +4,7 @@
         <label class="flexItemTitleDatetime">Date</label>
         <div class="flexItemDatetime">
             <div class="input-group date" ref="courtDatePicker">
-                <input type="text" class="form-control" :value="court_date" />
+                <input :readonly="readonlyForm" type="text" class="form-control" :value="court_date" />
                 <span class="input-group-addon">
                     <span class="glyphicon glyphicon-calendar"></span>
                 </span>
@@ -14,7 +14,7 @@
         <label class="flexItemTitleDatetime">Time</label>
         <div class="flexItemDatetime">
             <div class="input-group date" ref="courtTimePicker">
-                <input type="text" class="form-control" :value="court_time" />
+                <input :readonly="readonlyForm" type="text" class="form-control" :value="court_time" />
                 <span class="input-group-addon">
                     <span class="glyphicon glyphicon-calendar"></span>
                 </span>
@@ -23,7 +23,7 @@
 
         <label class="flexItemTitleComments">Comments</label>
         <div class="flexItemComments">
-            <input type="text" class="form-control" v-model="court_comments" ref="courtComments" />
+            <input :readonly="readonlyForm" type="text" class="form-control" v-model="court_comments" ref="courtComments" />
         </div>
 
     </div></div>
@@ -82,6 +82,25 @@ export default {
         }),
         csrf_token: function() {
             return helpers.getCookie("csrftoken");
+        },
+        readonlyForm: function() {
+            let readonly = true
+            if (this.legal_case && this.legal_case.id && !this.closedStatus) {
+                readonly = !this.legal_case.can_user_action;
+            }
+            console.log('=== readonlyForm ===');
+            console.log(readonly);
+            return readonly
+        },
+        closedStatus: function() {
+            let returnStatus = false
+            if (this.legal_case && this.statusId === 'closed') {
+                returnStatus = true
+            }
+            return returnStatus
+        },
+        statusId: function() {
+            return this.legal_case.status ? this.legal_case.status.id : '';
         },
     },
     methods: {
