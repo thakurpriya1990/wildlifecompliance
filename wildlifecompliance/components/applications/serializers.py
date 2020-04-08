@@ -1063,6 +1063,7 @@ class ApplicationConditionSerializer(serializers.ModelSerializer):
         allow_null=True)
     purpose_name = serializers.SerializerMethodField(read_only=True)
     source_name = serializers.SerializerMethodField(read_only=True)
+    source_group = serializers.SerializerMethodField(read_only=True)
 
     class Meta:
         model = ApplicationCondition
@@ -1093,7 +1094,20 @@ class ApplicationConditionSerializer(serializers.ModelSerializer):
         return obj.licence_purpose.short_name if obj.licence_purpose else None
 
     def get_source_name(self, obj):
-        return obj.source_group.name if obj.source_group else None
+        return obj.source_group.name if obj.source_group else 'SYSTEM'
+
+    def get_source_group(self, obj):
+        try:
+            user = self.context['request'].user
+
+        except (KeyError, AttributeError):
+            return None
+
+        is_member = None
+        if obj.source_group and user:
+            is_member = True if user in obj.source_group.members else False
+
+        return obj.source_group.name if is_member else None
 
 
 class ApplicationStandardConditionSerializer(serializers.ModelSerializer):

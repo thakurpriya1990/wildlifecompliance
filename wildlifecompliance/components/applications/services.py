@@ -139,6 +139,9 @@ class ApplicationService(object):
         for_condition_fields = StandardConditionFieldElement()
         for_condition_fields.accept(checkbox)
 
+        for_copy_to_licence_fields = CopyToLicenceFieldElement()
+        for_copy_to_licence_fields.accept(checkbox)
+
     @staticmethod
     def update_dynamic_attributes(application):
         """
@@ -276,6 +279,10 @@ class CheckboxAndRadioButtonVisitor(ApplicationFormVisitor):
         self._increase_application_fee_field = increase_fee_field
         self._compositor.do_algorithm(self._increase_application_fee_field)
 
+    def visit_copy_to_licence_field(self, copy_to_licence_field):
+        self._copy_to_licence_field = copy_to_licence_field
+        self._compositor.do_algorithm(self._copy_to_licence_field)
+
 
 class SpecialFieldElement(object):
     """
@@ -297,6 +304,7 @@ class CopyToLicenceFieldElement(SpecialFieldElement):
     _NAME = 'CopyToLicence'
 
     def accept(self, application_form_visitor):
+        self._sections = {'sections': []}
         self._application = application_form_visitor._application
         application_form_visitor.visit_standard_condition_field(self)
 
@@ -305,7 +313,7 @@ class CopyToLicenceFieldElement(SpecialFieldElement):
         Reset the selected licence activity to have no CopyToLicenceFields.
         """
         if isinstance(licence_activity, ApplicationSelectedActivity):
-            pass
+            licence_activity.additional_licence_info = self._sections
 
         return licence_activity
 
@@ -321,6 +329,9 @@ class CopyToLicenceFieldElement(SpecialFieldElement):
             """
             Set the selected licence activity to have CopyToLicenceFields.
             """
+            _header = {'header': component[self._NAME]}
+            activity.additional_licence_info['sections'].append(_header)
+            activity.save()
 
     def __str__(self):
         return 'Field Element: {0}'.format(self._NAME)
