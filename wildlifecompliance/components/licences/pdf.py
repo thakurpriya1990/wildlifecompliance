@@ -438,12 +438,14 @@ def _create_licence(licence_buffer, licence, application):
                 'ADDITIONAL INFORMATION', styles['BoldLeft']))
             elements.append(Spacer(1, SECTION_BUFFER_HEIGHT))
 
-            conditions = licence.current_application.conditions.all()
+            conditions = activity_conditions
             infos = []
-            c_num = 1
+            c_num = 0
             for c_id, condition in enumerate(conditions.order_by('order')):
-                info = condition.standard_condition.additional_information
-                c_num = c_num + c_id
+                info = None
+                if condition.standard_condition:
+                    info = condition.standard_condition.additional_information
+                    c_num = c_id + 1
                 if info:
                     infos.append('{0} (related to condition no.{1})'.format(
                         info.encode('utf8'), c_num))

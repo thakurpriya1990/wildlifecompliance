@@ -199,7 +199,9 @@
             
                           <FormSection :formCollapse="false" label="Location" Index="1">
                               <div v-if="call_email.location">
-                                <MapLocation v-bind:key="call_email.location.id"/>
+                                <MapLocation 
+                                :isReadonly="readonlyForm"
+                                v-bind:key="call_email.location.id"/>
                               </div>
                           </FormSection>
             

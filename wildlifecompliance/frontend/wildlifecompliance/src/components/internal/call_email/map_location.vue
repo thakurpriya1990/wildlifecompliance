@@ -58,7 +58,7 @@
         <div :id="idLocationFieldsDetails">
             <div class="col-sm-12 form-group"><div class="row">
                 <label class="col-sm-4">Details</label>
-                <textarea class="form-control location_address_field" v-model="call_email.location.properties.details" />
+                <textarea :readonly="isReadonly" class="form-control location_address_field" v-model="call_email.location.properties.details" />
             </div></div>
         </div>
     
@@ -119,6 +119,7 @@ export default {
             call_latitude: 'call_latitude',
             call_longitude: 'call_longitude',
         }),
+        /*
         isReadonly: function() {
             if (this.call_email.status && this.call_email.status.id === 'draft') {
                 return false;
@@ -126,6 +127,13 @@ export default {
                 return true;
             }
         },
+        */
+    },
+    props:{
+          isReadonly: {
+              type: Boolean,
+              default: true,
+          },
     },
     watch: {
         call_email: {
