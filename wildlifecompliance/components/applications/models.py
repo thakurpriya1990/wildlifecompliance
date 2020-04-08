@@ -2201,10 +2201,11 @@ class Application(RevisionedMixin):
 
                         # Additional Fees need to be set before processing fee.
                         # Fee amount may change by the issuer making decision.
-                        selected_activity.additional_fee = item[
-                            'additional_fee'] if item['additional_fee'] else 0
-                        selected_activity.additional_fee_text = item[
-                            'additional_fee_text']
+                        if item['additional_fee']:
+                            selected_activity.additional_fee = \
+                                Decimal(item['additional_fee'])
+                            selected_activity.additional_fee_text = item[
+                                'additional_fee_text']
 
                         # If there is an outstanding licence fee payment - attempt to charge the stored card.
                         payment_successful = selected_activity.process_licence_fee_payment(request, self)
@@ -3222,7 +3223,7 @@ class ApplicationSelectedActivity(models.Model):
         ]:
             return _status  # also includes overpaid.
         else:
-            if self.additional_fee > 0:
+            if self.additional_fee > Decimal(0.0):
                 try:
                     latest_invoice = Invoice.objects.get(
                         reference=self.invoices.latest('id').invoice_reference,
