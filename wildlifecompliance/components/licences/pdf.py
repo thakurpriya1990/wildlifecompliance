@@ -398,10 +398,12 @@ def _create_licence(licence_buffer, licence, application):
                 bulletFontSize=MEDIUM_FONTSIZE)
             elements.append(speciesList)
             elements.append(Spacer(1, SECTION_BUFFER_HEIGHT))
-  
+
         # application conditions
         activity_conditions = application.conditions.filter(
-            licence_activity_id=selected_activity.licence_activity_id)
+            licence_activity_id=selected_activity.licence_activity_id,
+            licence_purpose_id=selected_activity.issued_purposes[0].id)
+        conditionList = None
         if activity_conditions.exists():
             elements.append(Spacer(1, SECTION_BUFFER_HEIGHT))
             elements.append(Paragraph('CONDITIONS', styles['BoldLeft']))
@@ -432,6 +434,7 @@ def _create_licence(licence_buffer, licence, application):
         elements.append(Spacer(1, SECTION_BUFFER_HEIGHT))
 
         # additional information
+        infoList = None
         if licence.has_additional_information:
             elements.append(Spacer(1, SECTION_BUFFER_HEIGHT))
             elements.append(Paragraph(
