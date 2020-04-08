@@ -1117,7 +1117,9 @@ export default {
     openInspection() {
       this.uuid += 1;
       this.inspectionInitialised = true;
-        this.$nextTick(() => {
+        this.$nextTick(async () => {
+          //await this.saveLegalCase({create: false, internal: true })
+          await this.save({internalFlag:true});
           this.$refs.inspection.isModalOpen = true
       });
     },
@@ -1125,14 +1127,18 @@ export default {
     openSanctionOutcome(){
       this.uuid += 1;
       this.sanctionOutcomeInitialised = true;
-      this.$nextTick(() => {
+      this.$nextTick(async () => {
+          //await this.saveLegalCase({create: false, internal: true })
+          await this.save({internalFlag:true});
           this.$refs.sanction_outcome.isModalOpen = true;
       });
     },
     openOffence(){
       this.uuid += 1;
       this.offenceInitialised = true;
-      this.$nextTick(() => {
+      this.$nextTick(async () => {
+          //await this.saveLegalCase({create: false, internal: true })
+          await this.save({internalFlag:true});
           this.$refs.offence.isModalOpen = true;
       });
     },
@@ -1179,7 +1185,8 @@ export default {
         this.setLegalCaseWorkflowBindId();
         //this.updateWorkflowBindId();
         this.$nextTick(async () => {
-            await this.saveLegalCase({create: false, internal: true })
+            //await this.saveLegalCase({create: false, internal: true })
+            await this.save({internalFlag:true});
             this.$refs.legal_case_workflow.isModalOpen = true;
         });
     },
@@ -1187,7 +1194,8 @@ export default {
         this.documentTypeToGenerate = documentType
         this.setGenerateDocumentBindId();
         this.$nextTick(async () => {
-            await this.saveLegalCase({create: false, internal: true })
+            //await this.saveLegalCase({create: false, internal: true })
+            await this.save({internalFlag:true});
             this.$refs.generate_document.isModalOpen = true;
         });
     },
@@ -1732,8 +1740,6 @@ export default {
               this.constructRunningSheetTableWrapper();
           }
           */
-          //let treeSelectElement = $('.vue-treeselect__control').css("display", "none");
-          //$('.vue-treeselect__control').css("display", "none");
       });
   },
 };

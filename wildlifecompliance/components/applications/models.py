@@ -2999,6 +2999,7 @@ class ApplicationSelectedActivity(models.Model):
         blank=True,
         null=True,
         related_name='wildlifecompliance_officer')
+    additional_licence_info = JSONField(default=list)
 
     def __str__(self):
         return "Application {id} Selected Activity: {short_name} ({activity_id})".format(
