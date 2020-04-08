@@ -2201,10 +2201,11 @@ class Application(RevisionedMixin):
 
                         # Additional Fees need to be set before processing fee.
                         # Fee amount may change by the issuer making decision.
-                        selected_activity.additional_fee = item[
-                            'additional_fee'] if item['additional_fee'] else 0
-                        selected_activity.additional_fee_text = item[
-                            'additional_fee_text']
+                        if item['additional_fee']:
+                            selected_activity.additional_fee = \
+                                Decimal(item['additional_fee'])
+                            selected_activity.additional_fee_text = item[
+                                'additional_fee_text']
 
                         # If there is an outstanding licence fee payment - attempt to charge the stored card.
                         payment_successful = selected_activity.process_licence_fee_payment(request, self)
@@ -3222,7 +3223,7 @@ class ApplicationSelectedActivity(models.Model):
         ]:
             return _status  # also includes overpaid.
         else:
-            if self.additional_fee > 0:
+            if self.additional_fee > Decimal(0.0):
                 try:
                     latest_invoice = Invoice.objects.get(
                         reference=self.invoices.latest('id').invoice_reference,
@@ -3765,11 +3766,8 @@ class ApplicationCondition(OrderedModel):
 
     def set_source(self, user):
         """
-        Set the condition creator as Source when with Assessor.
+        Sets the users permission group as the source for this condition.
         """
-        if not self.get_assessor_permission_group(user):
-            return
-
         activity = self.application.activities.get(
             # Get the Application Selected Activity for this condition.
             licence_activity_id = self.licence_activity_id
@@ -3781,10 +3779,35 @@ class ApplicationCondition(OrderedModel):
             self.source_group = group.activitypermissiongroup
             self.save()
 
+        with_officer = [
+            ApplicationSelectedActivity.PROCESSING_STATUS_WITH_OFFICER,
+            ApplicationSelectedActivity.PROCESSING_STATUS_OFFICER_CONDITIONS]
+
+        if activity.processing_status in with_officer:
+            # Set the source_group when added by the officer.
+            group = self.get_officer_permission_group(user)
+            self.source_group = group.activitypermissiongroup
+            self.save()
+
     def get_assessor_permission_group(self, user, first=True):
         app_label = get_app_label()
         qs = user.groups.filter(
             permissions__codename='assessor'
+        )
+        activity_id = self.licence_activity.id
+        qs = qs.filter(
+            activitypermissiongroup__licence_activities__id__in=activity_id\
+                if isinstance(activity_id, (list, models.query.QuerySet)
+                ) else [activity_id]
+        )
+        if app_label:
+            qs = qs.filter(permissions__content_type__app_label=app_label)
+        return qs.first() if first else qs
+
+    def get_officer_permission_group(self, user, first=True):
+        app_label = get_app_label()
+        qs = user.groups.filter(
+            permissions__codename='licensing_officer'
         )
         activity_id = self.licence_activity.id
         qs = qs.filter(
