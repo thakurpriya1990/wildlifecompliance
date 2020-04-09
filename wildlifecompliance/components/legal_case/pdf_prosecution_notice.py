@@ -69,6 +69,15 @@ def _create_pdf(invoice_buffer, legal_case, offenders):
                               alignment=TA_CENTER))
     elements = []
     for offender in offenders:
+        offender = offender.person
+        if not offender:
+            continue
+
+        # Generate texts
+        accused_text = offender.get_full_name()
+        accused_dob_text = offender.dob.strftime('%d/%m/%Y') if offender.dob else ''
+        accused_address_text = offender.residential_address
+        # offence = legal_case.brief_of_evidence.
 
         # Head (col, row)
         invoice_table_style = TableStyle([
@@ -118,7 +127,7 @@ def _create_pdf(invoice_buffer, legal_case, offenders):
             Paragraph('<strong>Details of alleged offence</strong><br />'
                       '<i><font size="' + str(FONT_SIZE_S) + '">[This description must comply with the CPA Schedule 1 clause 5.]</font></i>', styles['Normal']),
             Paragraph('Accused', styles['Normal']),
-            Paragraph(get_font_str(offender.person.get_full_name()), styles['Normal']),
+            Paragraph(get_font_str(accused_text), styles['Normal']),
             '',
             '',
         ])
@@ -168,14 +177,14 @@ def _create_pdf(invoice_buffer, legal_case, offenders):
         data.append([
             '',
             Paragraph('Date of Birth', styles['Normal']),
-            'DOB?',
+            Paragraph(get_font_str(accused_dob_text), styles['Normal']),
             Paragraph('Male / Female', styles['Normal']),
             '',
         ])
         data.append([
             '',
             Paragraph('Address', styles['Normal']),
-            '',
+            Paragraph(get_font_str(accused_address_text), styles['Normal']),
             '',
             '',
         ])
