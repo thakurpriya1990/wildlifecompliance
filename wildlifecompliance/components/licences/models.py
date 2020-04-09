@@ -822,13 +822,20 @@ class WildlifeLicence(models.Model):
                self.purposes_available_to_add.count() > 0 and\
                self.can_action.get('can_amend')
 
-    @property
-    def has_additional_information(self):
+    def has_additional_information_for(self, selected_activity):
+        """
+        Check for additional information exist for selected activity on this 
+        licence.
+        """
         has_info = False
-        conditions = self.current_application.conditions.all()
-        for condition in conditions:
+        activity_conditions = selected_activity.application.conditions.filter(
+            licence_activity_id=selected_activity.licence_activity_id,
+            licence_purpose_id=selected_activity.issued_purposes[0].id)
+
+        for condition in activity_conditions:
             if condition.standard_condition:
-                has_info = condition.standard_condition.additional_information 
+                has_info = condition.standard_condition.additional_information
+                return has_info 
 
         return has_info
 
