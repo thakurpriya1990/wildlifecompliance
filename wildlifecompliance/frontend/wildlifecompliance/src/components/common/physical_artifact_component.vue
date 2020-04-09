@@ -379,28 +379,6 @@ export default {
                         searchable: true,
                         orderable: true
                     },
-                    /*
-                    {
-                        data: 'artifact_date',
-                        searchable: false,
-                        orderable: true,
-                        mRender: function (data, type, full) {
-                            return data != '' && data != null ? moment(data).format('DD/MM/YYYY') : '';
-                        }
-                    },
-                    {
-                        searchable: false,
-                        orderable: false,
-                        mRender: function (data, type,full){
-                            return '---';
-                        }
-                    },
-                    {
-                        searchable: false,
-                        orderable: false,
-                        data: 'status'
-                    },
-                    */
                     {
                         searchable: false,
                         orderable: false,
@@ -461,7 +439,7 @@ export default {
     },
     watch: {
         artifactType: {
-            handler: function (){
+            handler: function (newVal, oldVal){
                 if (this.artifactType === 'found_object') {
                     this.setStatementId(null);
                 }
@@ -473,7 +451,7 @@ export default {
                 }
                 */
             },
-            deep: true,
+            //deep: true,
         },
         selectedStatementArtifact: {
             handler: function() {
@@ -493,7 +471,7 @@ export default {
         }),
         siezureNoticeVisibility: function() {
             let visibility = false;
-            console.log(this.artifactType)
+            //console.log(this.artifactType)
             if (this.artifactType === 'seized_object') {
                 visibility = true;
             }
@@ -562,6 +540,7 @@ export default {
           }
           return ret_val;
         },
+        /*
         legalCaseExists: function() {
           let caseExists = false;
           if (this.legal_case && this.legal_case.id) {
@@ -569,6 +548,7 @@ export default {
           }
           return caseExists;
         },
+        */
         linkedLegalCase: function() {
             let caseExists = false;
             if (this.physical_artifact && this.physical_artifact.legal_case_id_list && this.physical_artifact.legal_case_id_list.length > 0) {
@@ -807,23 +787,18 @@ export default {
                 (this.physical_artifact && this.physical_artifact.statement)
                 )
             {
-                console.log("statementVisibility true")
+                //console.log("statementVisibility true")
                 this.statementVisibility = true;
             } else {
-                console.log("statementVisibility false")
+                //console.log("statementVisibility false")
                 this.statementVisibility = false;
             }
         },
         updateTabSelected: function(tabValue) {
             this.tabSelected = tabValue;
         },
-        /*
-        setTemporaryDocumentCollectionId: function(val) {
-            this.temporary_document_collection_id = val;
-        },
-        */
         entitySelected: function(entity) {
-            console.log(entity);
+            //console.log(entity);
             Object.assign(this.entity, entity)
         },
         save: async function() {
@@ -842,47 +817,13 @@ export default {
                 });
             }
         },
-        /*
-        create: async function() {
-                        await this.savePhysicalArtifact({ create: true, internal: true, legal_case_id: this.legalCaseId });
-            //this.entity.id = 
-            this.$nextTick(() => {
-                this.$emit('entity-selected', {
-                    id: this.physical_artifact.id,
-                    data_type: 'physical_artifact',
-                    identifier: this.physical_artifact.identifier,
-                    artifact_type: this.artifactType,
-                    display: this.artifactType,
-                });
-            });
-            //return physicalArtifactEntity;
-        },
-    */
-        /*
-        emitDocumentArtifact: async function(e) {
-            console.log(e)
-            let physicalArtifactId = e.target.dataset.id;
-            let physicalArtifactType = e.target.dataset.artifactType.replace(/~/g, ' ');
-            let physicalArtifactIdentifier = e.target.dataset.identifier.replace(/~/g, ' ');
-            this.$nextTick(() => {
-                this.$emit('existing-entity-selected', {
-                        id: physicalArtifactId,
-                        data_type: 'physical_artifact',
-                        identifier: physicalArtifactIdentifier,
-                        artifact_type: physicalArtifactType,
-                        display: physicalArtifactType,
-                    });
-            });
-            //this.$parent.$parent.ok();
-        },
-        */
         cancel: async function() {
             if (this.$refs.default_document) {
                 await this.$refs.default_document.cancel();
             }
         },
         emitPhysicalArtifact: async function(e) {
-            console.log(e)
+            //console.log(e)
             let physicalArtifactId = e.target.dataset.id;
             // update existing DocumentArtifact with legal_case_id
             let fetchUrl = helpers.add_endpoint_join(
@@ -892,7 +833,7 @@ export default {
             let payload = {
                 "legal_case_id": this.legalCaseId
             }
-            console.log(payload);
+            //console.log(payload);
             await Vue.http.put(fetchUrl, payload);
             let physicalArtifactType = e.target.dataset.artifactType.replace(/~/g, ' ');
             let physicalArtifactIdentifier = e.target.dataset.identifier.replace(/~/g, ' ').replace('null', '');
@@ -919,7 +860,7 @@ export default {
             showClear: true
             });
             el_fr_date.on("dp.change", function(e) {
-                console.log(e)
+                //console.log(e)
                 if (el_fr_date.data("DateTimePicker").date()) {
                   vm.physical_artifact.artifact_date = e.date.format("DD/MM/YYYY");
                 } else if (el_fr_date.data("date") === "") {
@@ -928,7 +869,7 @@ export default {
             });
             el_fr_time.datetimepicker({ format: "LT", showClear: true });
             el_fr_time.on("dp.change", function(e) {
-                console.log(e)
+                //console.log(e)
                 if (el_fr_time.data("DateTimePicker").date()) {
                   vm.physical_artifact.artifact_time = e.date.format("LT");
                 } else if (el_fr_time.data("date") === "") {
@@ -983,27 +924,15 @@ export default {
             showClear: true
             });
             disposal_date_control.on("dp.change", function(e) {
-                console.log(e)
+                //console.log(e)
                 if (disposal_date_control.data("DateTimePicker").date()) {
                   vm.physical_artifact.disposal_date = e.date.format("DD/MM/YYYY");
                 } else if (disposal_date_control.data("date") === "") {
                   vm.physical_artifact.disposal_date = "";
                 }
             });
-            
         },
-        /*
-        setSelectedCustodian: function(pk) {
-            for (let record of this.departmentStaffList) {
-                if (record.pk.toString() === pk) {
-                    console.log(record)
-                    Object.assign(this.selectedCustodian, record);
-                }
-            }
-        },
-        */
         compare: function(a, b) {
-            console.log("compare")
             const nameA = a.name.toLowerCase();
             const nameB = b.name.toLowerCase();
 
@@ -1016,7 +945,6 @@ export default {
             return comparison;
         },
         loadSchema: async function() {
-            console.log("load schema")
             this.$nextTick(async () => {
                 if (this.artifactTypeId) {
                     console.log("really load schema")
@@ -1028,19 +956,10 @@ export default {
                     'PhysicalArtifactTypeSchema',
                     this.artifactTypeId.toString(),
                     url);
-                    //let returnedSchema = await Vue.http.get(url);
-                    //console.log(returnedSchema)
                     if (returnedSchema) {
                         Object.assign(this.detailsSchema, returnedSchema.details_schema);
                         Object.assign(this.storageSchema, returnedSchema.storage_schema);
-                        /*
-                        Object.assign(this.detailsSchema, returnedSchema.body.details_schema);
-                        Object.assign(this.storageSchema, returnedSchema.body.storage_schema);
-                        */
-                        /*
-                        this.detailsSchema = returnedSchema.details_schema;
-                        this.storageSchema = returnedSchema.storage_schema;
-                        */
+
                     }
                 } else {
                     console.log(" no artifactTypeId")
@@ -1048,37 +967,14 @@ export default {
             });
         },
 
-      //createPhysicalActionUrl: async function(done) {
-      //  if (!this.inspection.id) {
-      //      // create inspection and update vuex
-      //      let returned_inspection = await this.saveInspection({ create: true, internal: true })
-      //      await this.loadInspection({inspection_id: returned_inspection.body.id});
-      //  }
-      //  // populate filefield physical_action_url
-      //  this.$refs.comms_log_file.physical_action_url = this.inspection.createInspectionProcessCommsLogsPhysicalUrl;
-      //  return done(true);
-      //},
-
     },
     mounted: function() {
       this.$nextTick(async () => {
           this.addEventListeners();
-          /*
-          // special processing for PhysicalArtifactLegalCases link
-          if (this.legalCaseId && this.physical_artifact.legal_case_links && this.physical_artifact.legal_case_links.length > 0) {
-              console.log("mounted links")
-              for (let link of this.physical_artifact.legal_case_links) {
-                  if (link.legal_case_id === this.legalCaseId) {
-                      this.setUsedWithinCase(link.used_within_case);
-                      this.setSensitiveNonDisclosable(link.sensitive_non_disclosable);
-                  }
-              }
-          }
-          */
       });
     },
     beforeDestroy: async function() {
-        console.log("beforeDestroy")
+        //console.log("beforeDestroy")
         await this.setPhysicalArtifact({});
     },
     /*
@@ -1094,16 +990,9 @@ export default {
             await this.loadPhysicalArtifact({ physical_artifact_id: this.entityEdit.id });
             console.log("artifact loaded");
         }
-
-        /*
-        // if main obj page, call loadLegalCase if document_artifact.legal_case_id exists
-        if (this.$route.name === 'view-artifact' && this.physical_artifact && this.physical_artifact.legal_case_id) {
-            await this.loadLegalCase({ legal_case_id: this.physical_artifact.legal_case_id });
-        }
-        */
+        // load detailsSchema and storageSchema
+        await this.loadSchema();
         this.setStatementVisibility();
-        //await this.loadPhysicalArtifact({ physical_artifact_id: 1 });
-        //console.log(this)
         // physical artifact types
         let returned_physical_artifact_types = await cache_helper.getSetCacheList(
           'PhysicalArtifactTypes',
@@ -1137,11 +1026,7 @@ export default {
             pk: "",
             name: "",
           });
-      this.$nextTick(async () => {
-          //this.addEventListeners();
-          await this.loadSchema();
-      });
-      this.$nextTick(() => {
+        this.$nextTick(async() => {
           // special processing for PhysicalArtifactLegalCases link
           if (this.legalCaseId && this.physical_artifact.legal_case_links && this.physical_artifact.legal_case_links.length > 0) {
               console.log("created links")
@@ -1152,33 +1037,7 @@ export default {
                   }
               }
           }
-      });
-        /*
-        if (this.physical_artifact && this.physical_artifact.officer_email) {
-            this.$refs.physical_artifact_department_users = this.physical_artifact.officer_email;
-        }
-        */
-        /*
-        let returned_department_staff = await cache_helper.getSetCacheList(
-          'DepartmentStaff',
-          //'https://itassets.dbca.wa.gov.au/api/users/fast/?minimal=true'
-          api_endpoints.department_users
-          );
-        //const sorted_department_staff = returned_department_staff.sort(this.compare);
-        this.$nextTick(() => {
-            //Object.assign(this.departmentStaffList, sorted_department_staff);
-            Object.assign(this.departmentStaffList, returned_department_staff);
-            // blank entry allows user to clear selection
-            this.departmentStaffList.splice(0, 0,
-              {
-                pk: "",
-                name: "",
-                //artifact_type: "",
-                //description: "",
-              });
         });
-        */
-
     },
 };
 </script>
