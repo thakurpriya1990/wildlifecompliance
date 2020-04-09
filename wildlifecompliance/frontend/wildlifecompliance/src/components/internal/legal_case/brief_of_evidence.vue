@@ -164,14 +164,16 @@
                                             <!--input class="col-sm-1" :id="'tickbox_' + artifact.id" type="checkbox" :value="artifact.id" v-model="physicalArtifactsSensitiveUnusedTicked"-->
                                             <input :disabled="readonlyForm" class="col-sm-1" :id="'tickbox_' + artifact.id" type="checkbox" v-model="artifact.ticked">
                                             <label class="col-sm-3">{{ artifact.label }}</label>
-                                            <label class="col-sm-3">Reason for sensitivity / non-disclosure</label>
-                                            <div class="col-sm-5">
-                                                <textarea 
-                                                    class="form-control" 
-                                                    v-model="artifact.reason_sensitive_non_disclosable" 
-                                                    :id="'reason_' + artifact.physical_artifact_id"
-                                                    :readonly="readonlyForm" 
-                                                    />
+                                            <div v-if="artifact.ticked">
+                                                <label class="col-sm-3">Reason for sensitivity / non-disclosure</label>
+                                                <div class="col-sm-5">
+                                                    <textarea 
+                                                        class="form-control" 
+                                                        v-model="artifact.reason_sensitive_non_disclosable" 
+                                                        :id="'reason_' + artifact.physical_artifact_id"
+                                                        :readonly="readonlyForm" 
+                                                        />
+                                                </div>
                                             </div>
                                         </div>
                                     </div>
