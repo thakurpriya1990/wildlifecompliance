@@ -276,7 +276,7 @@ export default {
             this.validation_form.resetForm();
 
             this.application.activities.forEach(a => {
-                a.additional_fee = null
+                a.additional_fee = '0.00'
                 a.additional_fee_text = null
             });
             this.checkedActivities = [];
