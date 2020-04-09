@@ -1,6 +1,6 @@
 <template lang="html">
         <!--div class="col-md-9"-->
-            <div class="row">
+            <div>
                             <FormSection :formCollapse="false" label="Statement of Facts">
                                 <div class="col-sm-12 form-group"><div class="row">
                                     <label class="col-sm-10">Statement of facts
