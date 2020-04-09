@@ -531,7 +531,7 @@ class ActivitySchemaUtil(object):
 
             for act in [
              a for a in self._activities if a.licence_activity == activity]:
-                if act.additional_licence_info['sections']:
+                if len(act.additional_licence_info) > 0:
                     for section in act.additional_licence_info['sections']:
                         schema_purpose += self.add_to_form(section, purpose)
 
