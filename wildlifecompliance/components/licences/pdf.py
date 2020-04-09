@@ -400,7 +400,7 @@ def _create_licence(licence_buffer, licence, application):
             elements.append(Spacer(1, SECTION_BUFFER_HEIGHT))
 
         # application conditions
-        activity_conditions = application.conditions.filter(
+        activity_conditions = selected_activity.application.conditions.filter(
             licence_activity_id=selected_activity.licence_activity_id,
             licence_purpose_id=selected_activity.issued_purposes[0].id)
         conditionList = None
