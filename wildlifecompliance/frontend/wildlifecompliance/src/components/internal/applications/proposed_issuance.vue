@@ -240,6 +240,9 @@ export default {
         },
         applicationSelectedActivitiesForPurposes: function() {
             return this.application.activities.filter( activity => { 
+                if (activity.additional_fee==null){
+                    activity.additional_fee = '0.00'
+                }
                 return activity.processing_status.name.match(/with officer/gi) 
                 } // only non-processed activities.
             );
@@ -292,9 +295,6 @@ export default {
         },
         getCheckedActivity: function(_id){
             return this.applicationSelectedActivitiesForPurposes.find(a => {
-                if (a.addition_fee==null){
-                    a.additional_fee = '0.00'
-                }
                 return a.id===_id
             });
         },
