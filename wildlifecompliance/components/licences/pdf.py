@@ -435,7 +435,7 @@ def _create_licence(licence_buffer, licence, application):
 
         # additional information
         infoList = None
-        if licence.has_additional_information:
+        if licence.has_additional_information_for(selected_activity):
             elements.append(Spacer(1, SECTION_BUFFER_HEIGHT))
             elements.append(Paragraph(
                 'ADDITIONAL INFORMATION', styles['BoldLeft']))
