@@ -1,6 +1,5 @@
 <template lang="html">
     <div>
-        <div class="row">
             <FormSection :formCollapse="false" label="Court Dates">
 
                 <div class="row file-upload-container">
@@ -94,7 +93,6 @@
                     </div>
                 </template>
             </FormSection>
-        </div>
         <div v-if="courtProceedingsHistoryEntryBindId">
             <JournalHistory 
             ref="journal_history"
@@ -604,6 +602,7 @@ export default {
     mounted: function() {
         this.$nextTick(() => {
             this.addEventListeners();
+            $('.vue-treeselect__control').css("display", "none");
             this.constructCourtProceedingsTableWrapper();
         });
     },
