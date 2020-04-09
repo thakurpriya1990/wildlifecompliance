@@ -292,6 +292,9 @@ export default {
         },
         getCheckedActivity: function(_id){
             return this.applicationSelectedActivitiesForPurposes.find(a => {
+                if (a.addition_fee==null){
+                    a.additional_fee = '0.00'
+                }
                 return a.id===_id
             });
         },
