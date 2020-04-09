@@ -580,9 +580,10 @@ def create_document_pdf_bytes(legal_case, request_data):
 
             # Retrieve offenders who are on the BriefOfEvidenceRecordOfInterview with ticked=True
             offenders = Offender.objects.filter(offender_boe_roi__in=BriefOfEvidenceRecordOfInterview.objects.filter(Q(legal_case=legal_case) & Q(ticked=True)))
+            boes = BriefOfEvidenceRecordOfInterview.objects.filter(Q(legal_case=legal_case) & Q(ticked=True))
 
             if document_type == 'prosecution_notice':
-                returned_invoice_buffer = pdf_prosecution_notice._create_pdf(invoice_buffer, legal_case, offenders)
+                returned_invoice_buffer = pdf_prosecution_notice._create_pdf(invoice_buffer, legal_case, boes)
             elif document_type == 'court_hearing_notice':
                 returned_invoice_buffer = pdf_court_hearing_notice._create_pdf(invoice_buffer, legal_case, offenders)
             else:
