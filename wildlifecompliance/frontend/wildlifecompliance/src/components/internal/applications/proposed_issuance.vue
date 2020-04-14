@@ -240,6 +240,9 @@ export default {
         },
         applicationSelectedActivitiesForPurposes: function() {
             return this.application.activities.filter( activity => { 
+                if (activity.additional_fee==null){
+                    activity.additional_fee = '0.00'
+                }
                 return activity.processing_status.name.match(/with officer/gi) 
                 } // only non-processed activities.
             );
@@ -276,7 +279,7 @@ export default {
             this.validation_form.resetForm();
 
             this.application.activities.forEach(a => {
-                a.additional_fee = null
+                a.additional_fee = '0.00'
                 a.additional_fee_text = null
             });
             this.checkedActivities = [];

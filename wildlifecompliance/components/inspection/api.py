@@ -824,6 +824,13 @@ class InspectionViewSet(viewsets.ModelViewSet):
                             workflow_entry, 
                             send_mail, 
                             email_type='request_amendment')
+                elif workflow_type == 'endorse':
+                    email_data = prepare_mail(
+                            request, 
+                            instance, 
+                            workflow_entry, 
+                            send_mail, 
+                            email_type='endorse')
                 else:
                     email_data = prepare_mail(request, instance, workflow_entry, send_mail)
 
