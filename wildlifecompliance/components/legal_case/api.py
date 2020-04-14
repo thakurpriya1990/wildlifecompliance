@@ -62,7 +62,7 @@ from wildlifecompliance.components.legal_case.models import (
     BriefOfEvidence,
     ProsecutionBrief,
     ProsecutionBriefDocument,
-    CourtProceedings, CourtDate)
+    CourtProceedings, CourtDate, Court)
 from wildlifecompliance.components.legal_case.generate_pdf import create_document_pdf_bytes
 
 from wildlifecompliance.components.call_email.models import (
@@ -94,7 +94,7 @@ from wildlifecompliance.components.legal_case.serializers import (
     CourtProceedingsJournalSerializer,
     BriefOfEvidenceSerializer,
     ProsecutionBriefSerializer,
-    SaveCourtDateEntrySerializer)
+    SaveCourtDateEntrySerializer, CourtSerializer)
 from wildlifecompliance.components.users.models import (
     CompliancePermissionGroup,    
 )
@@ -268,6 +268,23 @@ class LegalCaseViewSet(viewsets.ModelViewSet):
         return Response(serialized_instance.data)
 
     @list_route(methods=['GET', ])
+    def court_list(self, request):
+        try:
+            qs = Court.objects.all()
+            serializer = CourtSerializer(qs, many=True, context={'request': request})
+            return Response(serializer.data)
+        except serializers.ValidationError:
+            print(traceback.print_exc())
+            raise
+        except ValidationError as e:
+            print(traceback.print_exc())
+            raise serializers.ValidationError(repr(e.error_dict))
+        except Exception as e:
+            print(traceback.print_exc())
+            raise serializers.ValidationError(str(e))
+
+
+    @list_route(methods=['GET', ])
     def datatable_list(self, request, *args, **kwargs):
         try:
             qs = self.get_queryset()
@@ -291,7 +308,7 @@ class LegalCaseViewSet(viewsets.ModelViewSet):
             res_obj.append({'id': choice[0], 'display': choice[1]});
         res_json = json.dumps(res_obj)
         return HttpResponse(res_json, content_type='application/json')
-    
+
     @detail_route(methods=['GET', ])
     def action_log(self, request, *args, **kwargs):
         try:
@@ -422,6 +439,7 @@ class LegalCaseViewSet(viewsets.ModelViewSet):
                             comments = entry_copy.get('comments', '')
                             ascii_comments = comments.encode('ascii', 'xmlcharrefreplace')
                             entry_copy.update({'comments': ascii_comments})
+                            entry_copy['court_id'] = entry_copy['court']['id']
                             if entry_copy.get('id'):
                                 court_date = CourtDate.objects.get(id=entry_copy.get('id'))
                                 serializer = SaveCourtDateEntrySerializer(instance=court_date, data=entry_copy)

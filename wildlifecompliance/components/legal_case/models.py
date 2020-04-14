@@ -645,6 +645,9 @@ class Court(models.Model):
         verbose_name = 'CM_Court'
         verbose_name_plural = 'CM_Courts'
 
+    def __str__(self):
+        return self.identifier + ' ({})'.format(self.location)
+
 
 class CourtDate(models.Model):
     court_proceedings = models.ForeignKey(CourtProceedings, related_name='court_dates')

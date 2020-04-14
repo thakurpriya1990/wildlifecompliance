@@ -34,6 +34,7 @@
                         <CourtDate 
                             :court_datetime="new Date(court_date_obj.court_datetime)"
                             :comments="court_date_obj.comments"
+                            :court="court_date_obj.court"
                             :court_date_id="court_date_obj.id"
                             @data_changed="dataChanged"
                             :Key="court_date_obj.id"
@@ -274,6 +275,8 @@ export default {
             setCourtProceedingsDate: 'setCourtProceedingsDate',
         }),
         dataChanged: function(court_data_obj) {
+            console.log('*** dataChanged()');
+            console.log(court_data_obj);
             try {
                 court_data_obj.court_datetime = court_data_obj.court_datetime.toDate().toISOString();
                 this.setCourtProceedingsDate(court_data_obj);

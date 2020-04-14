@@ -1,32 +1,49 @@
 <template lang="html">
-    <div class="form-group"><div class="flexContainer">
+    <div class="form-group">
+        <div class="flexContainer">
+            <label class="flexItemTitleDatetime">Court</label>
 
-        <label class="flexItemTitleDatetime">Date</label>
-        <div class="flexItemDatetime">
-            <div class="input-group date" ref="courtDatePicker">
-                <input :readonly="readonlyForm" type="text" class="form-control" :value="court_date" />
-                <span class="input-group-addon">
-                    <span class="glyphicon glyphicon-calendar"></span>
-                </span>
+            <div class="flexItemDatetime" v-if="courts.length > 0">
+                <select :disabled="readonlyForm" class="form-control" v-model="court_location" @change="emitEvent()">
+                    <option value=""></option>
+                    <option v-for="co in courts" :value="co" :key="co.id">
+                        {{ co.identifier }}
+                    </option>
+                </select>
+            </div>
+
+            <div v-if="court_location">
+                {{ court_location.location }}
             </div>
         </div>
 
-        <label class="flexItemTitleDatetime">Time</label>
-        <div class="flexItemDatetime">
-            <div class="input-group date" ref="courtTimePicker">
-                <input :readonly="readonlyForm" type="text" class="form-control" :value="court_time" />
-                <span class="input-group-addon">
-                    <span class="glyphicon glyphicon-calendar"></span>
-                </span>
+        <div class="flexContainer">
+            <label class="flexItemTitleDatetime">Date</label>
+            <div class="flexItemDatetime">
+                <div class="input-group date" ref="courtDatePicker">
+                    <input :readonly="readonlyForm" type="text" class="form-control" :value="court_date" />
+                    <span class="input-group-addon">
+                        <span class="glyphicon glyphicon-calendar"></span>
+                    </span>
+                </div>
+            </div>
+
+            <label class="flexItemTitleDatetime">Time</label>
+            <div class="flexItemDatetime">
+                <div class="input-group date" ref="courtTimePicker">
+                    <input :readonly="readonlyForm" type="text" class="form-control" :value="court_time" />
+                    <span class="input-group-addon">
+                        <span class="glyphicon glyphicon-calendar"></span>
+                    </span>
+                </div>
+            </div>
+
+            <label class="flexItemTitleComments">Comments</label>
+            <div class="flexItemComments">
+                <input :readonly="readonlyForm" type="text" class="form-control" v-model="court_comments" ref="courtComments" />
             </div>
         </div>
-
-        <label class="flexItemTitleComments">Comments</label>
-        <div class="flexItemComments">
-            <input :readonly="readonlyForm" type="text" class="form-control" v-model="court_comments" ref="courtComments" />
-        </div>
-
-    </div></div>
+    </div>
 </template>
 
 <script>
@@ -48,6 +65,8 @@ export default {
             court_date: null,
             court_time: null,
             court_comments: '',
+            court_location: null,
+            courts: [],
         }
     },
     components: {
@@ -61,6 +80,10 @@ export default {
         comments: {
             type: String,
             default: '',
+        },
+        court: {
+            type: Object,
+            default: null,
         },
         court_date_id: {
             type: Number,
@@ -107,9 +130,6 @@ export default {
         ...mapActions('legalCaseStore', {
 
         }),
-        commentsChanged: function() {
-            this.$emit('comments_changed', { court_date_id: vm.court_date_id, comments: this.comments });
-        },
         courtOutcomeDocumentUploaded: function() {
             console.log('courtOutcomeDocumentUploaded');
         },
@@ -120,6 +140,7 @@ export default {
                 id: this.court_date_id,
                 court_datetime: test_m_datetime,
                 comments: this.court_comments,
+                court: this.court_location,
             });
         },
         addEventListeners: function() {
@@ -167,9 +188,13 @@ export default {
                 }
             });
         },
+        constructOptionsCourt: async function() {
+            let returned= await cache_helper.getSetCacheList('CourtProceedings_Courts', '/api/legal_case/court_list');
+            this.courts = returned;
+        },
     },
     created: async function() {
-
+        this.constructOptionsCourt();
     },
     mounted: function() {
         console.log('mounted');
@@ -185,6 +210,7 @@ export default {
             this.court_time = court_datetime_obj.format('LT');
         }
         this.court_comments = this.comments;
+        this.court_location = this.court;
     },
 };
 </script>

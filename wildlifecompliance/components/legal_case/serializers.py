@@ -14,7 +14,7 @@ from wildlifecompliance.components.legal_case.models import (
     CourtProceedings,
     BriefOfEvidence,
     ProsecutionBrief,
-    CourtDate)
+    CourtDate, Court)
 from wildlifecompliance.components.call_email.serializers import EmailUserSerializer
 from wildlifecompliance.components.main.related_item import get_related_items
 from wildlifecompliance.components.main.serializers import CommunicationLogEntrySerializer
@@ -187,11 +187,13 @@ class CourtProceedingsJournalEntrySerializer(serializers.ModelSerializer):
 
 class SaveCourtDateEntrySerializer(serializers.ModelSerializer):
     court_proceedings_id = serializers.IntegerField(required=False, write_only=True, allow_null=True)
+    court_id = serializers.IntegerField(required=False, write_only=True, allow_null=True)
 
     class Meta:
         model = CourtDate
         fields = (
             'court_proceedings_id',
+            'court_id',
             'court_datetime',
             'comments',
         )
@@ -256,7 +258,20 @@ class CreateCourtProceedingsJournalEntrySerializer(serializers.ModelSerializer):
         return new_entry
 
 
+class CourtSerializer(serializers.ModelSerializer):
+
+    class Meta:
+        model = Court
+        fields = (
+            'id',
+            'identifier',
+            'location',
+            'description',
+        )
+
+
 class CourtProceedingsCourtDateSerializer(serializers.ModelSerializer):
+    court = CourtSerializer(read_only=True)
 
     class Meta:
         model = CourtDate
@@ -264,6 +279,7 @@ class CourtProceedingsCourtDateSerializer(serializers.ModelSerializer):
             'id',
             'court_datetime',
             'comments',
+            'court',
         )
 
 
