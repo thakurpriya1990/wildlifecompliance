@@ -635,15 +635,30 @@ class CourtOutcomeDocument(Document):
         verbose_name_plural = 'CM_CourtOutcomeDocuments'
 
 
+class Court(models.Model):
+    identifier = models.CharField(max_length=255, blank=True, null=True)
+    location = models.CharField(max_length=255, blank=True, null=True)
+    description = models.TextField(blank=True, null=True)
+
+    class Meta:
+        app_label = 'wildlifecompliance'
+        verbose_name = 'CM_Court'
+        verbose_name_plural = 'CM_Courts'
+
+
 class CourtDate(models.Model):
     court_proceedings = models.ForeignKey(CourtProceedings, related_name='court_dates')
     court_datetime = models.DateTimeField(blank=True, null=True,)
     comments = models.TextField(blank=True)
+    court = models.ForeignKey(Court, blank=True, null=True)
 
     class Meta:
         app_label = 'wildlifecompliance'
         verbose_name = 'CM_CourtDate'
         verbose_name_plural = 'CM_CourtDates'
+
+
+
 
 
 import reversion
