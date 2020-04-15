@@ -10,20 +10,24 @@ from wildlifecompliance.components.main.utils import get_choice_value
 from wildlifecompliance.components.emails.emails import TemplateEmailBase
 from wildlifecompliance.components.main.email import prepare_attachments, _extract_email_headers
 import os
+from rest_framework import serializers
+import rest_framework.exceptions as rest_exceptions
+#from wildlifecompliance.components.artifact.serializers import (
+ #   ArtifactCommsLogEntrySerializer)
 
 logger = logging.getLogger(__name__)
 
 SYSTEM_NAME = 'Wildlife Licensing Automated Message'
 
 
-class LegalCaseForwardNotificationEmail(TemplateEmailBase):
+class ArtifactAwaitingDisposalNotificationEmail(TemplateEmailBase):
     subject = 'Forwarded Artifact'
-    html_template = 'wildlifecompliance/emails/send_artifact_forward_notification.html'
-    txt_template = 'wildlifecompliance/emails/send_artifact_forward_notification.txt'
+    html_template = 'wildlifecompliance/emails/send_awaiting_disposal_notification.html'
+    txt_template = 'wildlifecompliance/emails/send_awaiting_disposal_notification.txt'
 
 
-def send_mail(select_group, legal_case, workflow_entry, request=None):
-    email = LegalCaseForwardNotificationEmail()
+def send_mail(select_group, artifact, request=None, recipient_address=None):
+    email = ArtifactAwaitingDisposalNotificationEmail()
     if request.data.get('email_subject'):
         email.subject = request.data.get('email_subject')
     url = request.build_absolute_uri(
@@ -35,13 +39,18 @@ def send_mail(select_group, legal_case, workflow_entry, request=None):
     context = {
         'url': url,
         'artifact': artifact,
-        'workflow_entry_details': request.data.get('details'),
+        #'workflow_entry_details': request.data.get('details'),
+        'details': request.data.get('details'),
     }
-    email_group = [item.email for item in select_group]
+    email_group = None
+    if recipient_address:
+        email_group = [recipient_address,]
+    else:
+        email_group = [item.email for item in select_group]
     msg = email.send(email_group, 
         context=context,
-        attachments= 
-        prepare_attachments(workflow_entry.documents)
+        #attachments= 
+        #prepare_attachments(workflow_entry.documents)
         )
     sender = request.user if request else settings.DEFAULT_FROM_EMAIL
     email_data = _extract_email_headers(msg, sender=sender)
