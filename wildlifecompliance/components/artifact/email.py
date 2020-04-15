@@ -10,10 +10,6 @@ from wildlifecompliance.components.main.utils import get_choice_value
 from wildlifecompliance.components.emails.emails import TemplateEmailBase
 from wildlifecompliance.components.main.email import prepare_attachments, _extract_email_headers
 import os
-from rest_framework import serializers
-import rest_framework.exceptions as rest_exceptions
-#from wildlifecompliance.components.artifact.serializers import (
- #   ArtifactCommsLogEntrySerializer)
 
 logger = logging.getLogger(__name__)
 

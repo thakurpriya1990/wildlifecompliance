@@ -26,7 +26,6 @@ from wildlifecompliance.components.artifact.email import (
 from wildlifecompliance.components.main.email import prepare_mail
 from django.core.exceptions import ValidationError
 from wildlifecompliance.components.main.utils import FakeRequest
-import copy
 
 logger = logging.getLogger(__name__)
 
@@ -557,7 +556,6 @@ class PhysicalArtifact(Artifact):
               #          'assigned_to_id': self.custodian_email
                #         })
             #else:
-                #request_data = copy.deepcopy(request)
             if self.custodian_email:
                 request.data['recipient_address'] = self.custodian_email
             email_data = prepare_mail(request=request, instance=self, workflow_entry=None, send_mail=send_mail)
