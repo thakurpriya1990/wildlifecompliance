@@ -661,9 +661,6 @@ class CourtDate(models.Model):
         verbose_name_plural = 'CM_CourtDates'
 
 
-
-
-
 import reversion
 reversion.register(LegalCaseRunningSheetEntry, follow=['user'])
 reversion.register(CourtProceedingsJournalEntry, follow=['user'])

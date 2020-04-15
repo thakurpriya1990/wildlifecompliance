@@ -31,6 +31,7 @@
 
                 <div class="col-sm-12 form-group"><div class="row">
                     <template class="input-group date" id="court_date" v-for="court_date_obj in legal_case.court_proceedings.court_dates">
+                        <template v-if="court_date_obj.court_datetime">
                         <CourtDate 
                             :court_datetime="new Date(court_date_obj.court_datetime)"
                             :comments="court_date_obj.comments"
@@ -39,6 +40,16 @@
                             @data_changed="dataChanged"
                             :Key="court_date_obj.id"
                             />
+                        </template>
+                        <template v-else>
+                        <CourtDate 
+                            :comments="court_date_obj.comments"
+                            :court="court_date_obj.court"
+                            :court_date_id="court_date_obj.id"
+                            @data_changed="dataChanged"
+                            :Key="court_date_obj.id"
+                            />
+                        </template>
                     </template>
                         <CourtDate 
                             @data_changed="dataChanged"
@@ -275,13 +286,17 @@ export default {
             setCourtProceedingsDate: 'setCourtProceedingsDate',
         }),
         dataChanged: function(court_data_obj) {
-            console.log('*** dataChanged()');
+            console.log('*** in dataChanged() ***');
             console.log(court_data_obj);
             try {
-                court_data_obj.court_datetime = court_data_obj.court_datetime.toDate().toISOString();
+                if (court_data_obj.court_datetime.isValid()){
+                    court_data_obj.court_datetime = court_data_obj.court_datetime.toDate().toISOString()
+                } else {
+                    court_data_obj.court_datetime = null;
+                }
                 this.setCourtProceedingsDate(court_data_obj);
             } catch (err) {
-                console.warn('data not changed');
+
             }
         },
         courtOutcomeDocumentUploaded: function() {

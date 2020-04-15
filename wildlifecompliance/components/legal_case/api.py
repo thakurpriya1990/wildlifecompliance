@@ -439,13 +439,15 @@ class LegalCaseViewSet(viewsets.ModelViewSet):
                             comments = entry_copy.get('comments', '')
                             ascii_comments = comments.encode('ascii', 'xmlcharrefreplace')
                             entry_copy.update({'comments': ascii_comments})
-                            entry_copy['court_id'] = entry_copy['court']['id']
+                            entry_copy['court_id'] = entry_copy['court']['id'] if entry_copy['court'] else None
                             if entry_copy.get('id'):
+                                # Update existing court_date
                                 court_date = CourtDate.objects.get(id=entry_copy.get('id'))
                                 serializer = SaveCourtDateEntrySerializer(instance=court_date, data=entry_copy)
                                 if serializer.is_valid(raise_exception=True):
                                     serializer.save()
                             else:
+                                # Create new court_date
                                 entry_copy['court_proceedings_id'] = instance.court_proceedings.id
                                 serializer = SaveCourtDateEntrySerializer(data=entry_copy)
                                 if serializer.is_valid(raise_exception=True):

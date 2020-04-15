@@ -12,9 +12,7 @@
                 </select>
             </div>
 
-            <div v-if="court_location">
-                {{ court_location.location }}
-            </div>
+            <input type="text" v-if="court_location" :value="court_location.location" disabled />
         </div>
 
         <div class="flexContainer">
@@ -157,10 +155,10 @@ export default {
             el_court_date.on("dp.change", function(e) {
                 if (el_court_date.data("DateTimePicker").date()) {
                     vm.court_date = e.date.format('DD/MM/YYYY');
-                    vm.emitEvent();
                 } else if (el_court_date.data("date") === "") {
                     vm.court_date = null;
                 }
+                vm.emitEvent();
             });
 
             // Time
@@ -172,10 +170,10 @@ export default {
             el_court_time.on("dp.change", function(e) {
                 if (el_court_time.data("DateTimePicker").date()) {
                     vm.court_time = e.date.format('LT');
-                    vm.emitEvent();
                 } else if (el_court_time.data("date") === "") {
                     vm.court_time = null;
                 }
+                vm.emitEvent();
             });
 
             // Comments
@@ -202,6 +200,7 @@ export default {
             this.addEventListeners();
         });
         // Convert datetime representation in string to moment obj
+        console.log(this.court_datetime);
         if (this.court_datetime){
             let court_datetime_obj = moment(new Date(this.court_datetime.getTime()));
             // Assign date as String type
@@ -222,6 +221,7 @@ export default {
 .flexContainer {
     display: flex;
     align-items: center;
+    margin: 0 0 1em 0;
 }
 .flexItemTitleDatetime {
     width: 5%;
