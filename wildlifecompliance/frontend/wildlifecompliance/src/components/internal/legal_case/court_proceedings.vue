@@ -134,6 +134,7 @@ export default {
     data: function() {
         return {
             uuid: 0,
+            court_outcome_types: [],
             courtProceedingsEntriesUpdated: [],
             courtProceedingsEntriesUrl: [],
             courtProceedingsHistoryEntryBindId: '',
@@ -614,8 +615,13 @@ export default {
             }
             console.log("constructCourtProceedingsTable - end")
         },
+        constructOptionsCourtOutcomeType: async function() {
+            let returned= await cache_helper.getSetCacheList('CourtProceedings_CourtOutcomeTypes', '/api/legal_case/court_outcome_type_list');
+            this.court_outcome_types = returned;
+        },
     },
     created: async function() {
+        this.constructOptionsCourtOutcomeType();
     },
     mounted: function() {
         this.$nextTick(() => {

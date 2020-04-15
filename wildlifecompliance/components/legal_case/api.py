@@ -62,7 +62,7 @@ from wildlifecompliance.components.legal_case.models import (
     BriefOfEvidence,
     ProsecutionBrief,
     ProsecutionBriefDocument,
-    CourtProceedings, CourtDate, Court)
+    CourtProceedings, CourtDate, Court, CourtOutcomeType)
 from wildlifecompliance.components.legal_case.generate_pdf import create_document_pdf_bytes
 
 from wildlifecompliance.components.call_email.models import (
@@ -94,7 +94,7 @@ from wildlifecompliance.components.legal_case.serializers import (
     CourtProceedingsJournalSerializer,
     BriefOfEvidenceSerializer,
     ProsecutionBriefSerializer,
-    SaveCourtDateEntrySerializer, CourtSerializer)
+    SaveCourtDateEntrySerializer, CourtSerializer, CourtOutcomeTypeSerializer)
 from wildlifecompliance.components.users.models import (
     CompliancePermissionGroup,    
 )
@@ -268,6 +268,22 @@ class LegalCaseViewSet(viewsets.ModelViewSet):
         return Response(serialized_instance.data)
 
     @list_route(methods=['GET', ])
+    def court_outcome_type_list(self, request):
+        try:
+            qs = CourtOutcomeType.objects.all()
+            serializer = CourtOutcomeTypeSerializer(qs, many=True, context={'request': request})
+            return Response(serializer.data)
+        except serializers.ValidationError:
+            print(traceback.print_exc())
+            raise
+        except ValidationError as e:
+            print(traceback.print_exc())
+            raise serializers.ValidationError(repr(e.error_dict))
+        except Exception as e:
+            print(traceback.print_exc())
+            raise serializers.ValidationError(str(e))
+
+    @list_route(methods=['GET', ])
     def court_list(self, request):
         try:
             qs = Court.objects.all()
@@ -282,7 +298,6 @@ class LegalCaseViewSet(viewsets.ModelViewSet):
         except Exception as e:
             print(traceback.print_exc())
             raise serializers.ValidationError(str(e))
-
 
     @list_route(methods=['GET', ])
     def datatable_list(self, request, *args, **kwargs):

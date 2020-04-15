@@ -14,7 +14,7 @@ from wildlifecompliance.components.legal_case.models import (
     CourtProceedings,
     BriefOfEvidence,
     ProsecutionBrief,
-    CourtDate, Court)
+    CourtDate, Court, CourtOutcomeType)
 from wildlifecompliance.components.call_email.serializers import EmailUserSerializer
 from wildlifecompliance.components.main.related_item import get_related_items
 from wildlifecompliance.components.main.serializers import CommunicationLogEntrySerializer
@@ -270,6 +270,17 @@ class CourtSerializer(serializers.ModelSerializer):
         )
 
 
+class CourtOutcomeTypeSerializer(serializers.ModelSerializer):
+
+    class Meta:
+        model = CourtOutcomeType
+        fields = (
+            'id',
+            'identifier',
+            'description',
+        )
+
+
 class CourtProceedingsCourtDateSerializer(serializers.ModelSerializer):
     court = CourtSerializer(read_only=True)
 
@@ -294,6 +305,9 @@ class CourtProceedingsJournalSerializer(serializers.ModelSerializer):
                 'court_outcome_details',
                 'journal_entries',
                 'court_dates',
+                'court_outcome_fines',
+                'court_outcome_costs',
+                'court_outcome_type',
                 )
         read_only_fields = (
                 'id',
