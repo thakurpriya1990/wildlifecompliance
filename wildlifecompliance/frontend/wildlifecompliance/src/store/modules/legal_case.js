@@ -129,6 +129,8 @@ export const legalCaseStore = {
             state.legal_case.court_proceedings.journal_entries_transform[journal_entry_transform.number] = journal_entry_transform;
         },
         updateCourtProceedingsDate(state, date_entry) {
+            console.log('*** in updateCourtProceedingsDate() ***')
+            console.log(date_entry);
             if (!state.legal_case.court_proceedings.hasOwnProperty('date_entries_updated')){
                 state.legal_case.court_proceedings.date_entries_updated = {};
             }
@@ -373,6 +375,7 @@ export const legalCaseStore = {
             commit("updateCourtProceedingsTransform", journal_entry_transform);
         },
         setCourtProceedingsDate({ commit }, date_entry ) {
+            console.log('*** in setCourtProceedingsDate() ***');
             commit("updateCourtProceedingsDate", date_entry);
         },
         //setBriefOfEvidence({ commit }, {brief_of_evidence, physical_artifacts} ) {
