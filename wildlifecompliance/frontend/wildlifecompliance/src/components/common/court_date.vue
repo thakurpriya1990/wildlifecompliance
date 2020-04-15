@@ -12,7 +12,7 @@
                 </select>
             </div>
 
-            <input type="text" v-if="court_location" :value="court_location.location" disabled />
+            <input type="text" v-if="court_location" :value="court_location.location" class="form-control" disabled />
         </div>
 
         <div class="flexContainer">
