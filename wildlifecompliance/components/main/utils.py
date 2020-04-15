@@ -375,3 +375,9 @@ def search_reference(reference_number):
         return url_string
     else:
         raise ValidationError('Record with provided reference number does not exist')
+
+
+class FakeRequest():
+    def __init__(self, data):
+        self.data = data
+        self.user = None
