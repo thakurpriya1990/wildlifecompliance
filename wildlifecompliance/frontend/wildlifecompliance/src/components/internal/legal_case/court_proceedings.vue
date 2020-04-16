@@ -84,6 +84,22 @@
 
             <FormSection :formCollapse="false" label="Court Outcome">
                 <template v-if="hasCourtProceedings">
+                    <div class="row form-group" v-if="court_outcome_types.length > 0">
+                        <label class="col-md-2">Type</label>
+                        <div class="col-md-4">
+                            <select 
+                                :disabled="readonlyForm" 
+                                class="form-control" 
+                                v-model="legal_case.court_proceedings.court_outcome_type" 
+                            >
+                                <option value=""></option>
+                                <option v-for="type in court_outcome_types" :value="type" :key="type.id">
+                                    {{ type.identifier }}
+                                </option>
+                            </select>
+                        </div>
+                    </div>
+
                     <div class="row form-group">
                         <label class="col-md-2">Court outcome</label>
                         <div class="col-md-9">
@@ -95,12 +111,35 @@
                                        :readonly="readonlyForm" />
                         </div>
                     </div>
+
                     <div class="row form-group">
                         <label class="col-md-2">Details</label>
                         <div class="col-md-9">
                             <textarea :readonly="readonlyForm" 
                                       class="form-control location_address_field" 
                                       v-model="legal_case.court_proceedings.court_outcome_details" />
+                        </div>
+                    </div>
+
+                    <div class="row form-group">
+                        <label class="col-md-2">Fines</label>
+                        <div class="col-md-2">
+                            <input :readonly="readonlyForm" 
+                                   min="0"
+                                   type="number"
+                                   class="form-control currency" 
+                                   v-model="legal_case.court_proceedings.court_outcome_fines" />
+                        </div>
+                    </div>
+
+                    <div class="row form-group">
+                        <label class="col-md-2">Costs</label>
+                        <div class="col-md-2">
+                            <input :readonly="readonlyForm" 
+                                   min="0"
+                                   type="number"
+                                   class="form-control currency" 
+                                   v-model="legal_case.court_proceedings.court_outcome_costs" />
                         </div>
                     </div>
                 </template>
@@ -134,6 +173,7 @@ export default {
     data: function() {
         return {
             uuid: 0,
+            court_outcome_types: [],
             courtProceedingsEntriesUpdated: [],
             courtProceedingsEntriesUrl: [],
             courtProceedingsHistoryEntryBindId: '',
@@ -399,6 +439,12 @@ export default {
                     // insert text manually
                     document.execCommand("insertHTML", false, transformedText);
                 });
+            this.preventDecimalPlaces();
+        },
+        preventDecimalPlaces: function() {
+            $(".currency").change(function() {
+                $(this).val(parseFloat($(this).val()).toFixed(2));
+            });
         },
         courtProceedingsRowDelete: async function(e){
             this.showSpinner = true;
@@ -614,8 +660,13 @@ export default {
             }
             console.log("constructCourtProceedingsTable - end")
         },
+        constructOptionsCourtOutcomeType: async function() {
+            let returned= await cache_helper.getSetCacheList('CourtProceedings_CourtOutcomeTypes', '/api/legal_case/court_outcome_type_list');
+            this.court_outcome_types = returned;
+        },
     },
     created: async function() {
+        this.constructOptionsCourtOutcomeType();
     },
     mounted: function() {
         this.$nextTick(() => {
@@ -656,5 +707,8 @@ export default {
 .file-upload-container {
     margin-top: 1%;
     margin-bottom: 2%;
+}
+.currency {
+    text-align: right;
 }
 </style>

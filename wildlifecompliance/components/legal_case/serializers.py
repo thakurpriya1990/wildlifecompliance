@@ -14,7 +14,7 @@ from wildlifecompliance.components.legal_case.models import (
     CourtProceedings,
     BriefOfEvidence,
     ProsecutionBrief,
-    CourtDate, Court)
+    CourtDate, Court, CourtOutcomeType)
 from wildlifecompliance.components.call_email.serializers import EmailUserSerializer
 from wildlifecompliance.components.main.related_item import get_related_items
 from wildlifecompliance.components.main.serializers import CommunicationLogEntrySerializer
@@ -270,6 +270,28 @@ class CourtSerializer(serializers.ModelSerializer):
         )
 
 
+class CourtOutcomeTypeSerializer(serializers.ModelSerializer):
+
+    class Meta:
+        model = CourtOutcomeType
+        fields = (
+            'id',
+            'identifier',
+            'description',
+        )
+
+
+class CourtOutcomeTypeSerializer(serializers.ModelSerializer):
+
+    class Meta:
+        model = CourtOutcomeType
+        fields = (
+            'id',
+            'identifier',
+            'description',
+        )
+
+
 class CourtProceedingsCourtDateSerializer(serializers.ModelSerializer):
     court = CourtSerializer(read_only=True)
 
@@ -286,6 +308,8 @@ class CourtProceedingsCourtDateSerializer(serializers.ModelSerializer):
 class CourtProceedingsJournalSerializer(serializers.ModelSerializer):
     journal_entries = CourtProceedingsJournalEntrySerializer(many=True, read_only=True)
     court_dates = CourtProceedingsCourtDateSerializer(many=True, read_only=True)
+    court_outcome_type = CourtOutcomeTypeSerializer(read_only=True)
+    court_outcome_type_id = serializers.IntegerField(required=False, write_only=True, allow_null=True)
 
     class Meta:
         model = CourtProceedings
@@ -294,6 +318,10 @@ class CourtProceedingsJournalSerializer(serializers.ModelSerializer):
                 'court_outcome_details',
                 'journal_entries',
                 'court_dates',
+                'court_outcome_fines',
+                'court_outcome_costs',
+                'court_outcome_type',
+                'court_outcome_type_id',
                 )
         read_only_fields = (
                 'id',
@@ -302,14 +330,17 @@ class CourtProceedingsJournalSerializer(serializers.ModelSerializer):
     def validate(self, attrs):
         return attrs
 
+
 class RunningSheetEntryHistorySerializer(serializers.ModelSerializer):
     versions = serializers.SerializerMethodField()
+
     class Meta:
         model = LegalCaseRunningSheetEntry
         fields = (
                 'id',
                 'versions',
                 )
+
     def get_versions(self, obj):
         entry_versions = VersionSerializer(
                 Version.objects.get_for_object(obj),

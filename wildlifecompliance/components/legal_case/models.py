@@ -54,6 +54,19 @@ class CourtProceedings(models.Model):
         related_name="court_proceedings",
     )
     court_outcome_details = models.TextField(blank=True)
+    court_outcome_type = models.ForeignKey('CourtOutcomeType', null=True, blank=True)
+    court_outcome_fines = models.DecimalField(
+        verbose_name="Fines",
+        decimal_places=2,
+        max_digits=12,
+        blank=True,
+        null=True)
+    court_outcome_costs = models.DecimalField(
+        verbose_name="Costs",
+        decimal_places=2,
+        max_digits=12,
+        blank=True,
+        null=True)
 
     class Meta:
         app_label = 'wildlifecompliance'
