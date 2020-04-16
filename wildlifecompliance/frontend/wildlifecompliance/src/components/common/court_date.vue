@@ -41,6 +41,7 @@
                 <input :readonly="readonlyForm" type="text" class="form-control" v-model="court_comments" ref="courtComments" />
             </div>
         </div>
+    <hr>
     </div>
 </template>
 
@@ -94,8 +95,11 @@ export default {
         return_time_format: {
             type: String,
             default: 'HH:mm',
+        },
+        court_in_future: {
+            type: Boolean,
+            default: true,
         }
-
     },
     computed: {
         ...mapGetters('legalCaseStore', {
@@ -106,11 +110,9 @@ export default {
         },
         readonlyForm: function() {
             let readonly = true
-            if (this.legal_case && this.legal_case.id && !this.closedStatus) {
+            if (this.legal_case && this.legal_case.id && !this.closedStatus && this.court_in_future) {
                 readonly = !this.legal_case.can_user_action;
             }
-            console.log('=== readonlyForm ===');
-            console.log(readonly);
             return readonly
         },
         closedStatus: function() {

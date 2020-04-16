@@ -258,8 +258,8 @@ export const legalCaseStore = {
                         api_endpoints.legal_case, 
                         legal_case_id)
                     );
-
-                console.log(returnedLegalCase)
+                console.log('*** in loadLegalCase ***');
+                console.log(returnedLegalCase);
                 commit("updateLegalCase", returnedLegalCase.body);
 
             } catch (err) {
