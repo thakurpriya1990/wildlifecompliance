@@ -22,7 +22,7 @@ class LegalCaseForwardNotificationEmail(TemplateEmailBase):
     txt_template = 'wildlifecompliance/emails/send_legal_case_forward_notification.txt'
 
 
-def send_mail(select_group, legal_case, workflow_entry, request=None):
+def send_mail(select_group, legal_case, workflow_entry, request):
     email = LegalCaseForwardNotificationEmail()
     if request.data.get('email_subject'):
         email.subject = request.data.get('email_subject')

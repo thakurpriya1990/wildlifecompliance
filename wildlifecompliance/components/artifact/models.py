@@ -21,7 +21,11 @@ from wildlifecompliance.components.legal_case.models import (
         BriefOfEvidence,
         ProsecutionBrief
         )
+from wildlifecompliance.components.artifact.email import (
+    send_mail)
+from wildlifecompliance.components.main.email import prepare_mail
 from django.core.exceptions import ValidationError
+from wildlifecompliance.components.main.utils import FakeRequest
 
 logger = logging.getLogger(__name__)
 
@@ -539,11 +543,45 @@ class PhysicalArtifact(Artifact):
         #self.save()
         self.close()
 
-    def close(self, request=None):
+    #def close(self, request=None):
+    def close(self, request):
         # TODO: add logic to check for disposal date
         # NOTE: close_record logic moved to can_close_legal_case
         if not self.disposal_date:
             self.status = self.STATUS_WAITING_FOR_DISPOSAL
+            # send mail
+            #request_data = None
+            #if not request:
+             #   request_data = FakeRequest(data={
+              #          'assigned_to_id': self.custodian_email
+               #         })
+            #else:
+            if self.custodian_email:
+                request.data['recipient_address'] = self.custodian_email
+            email_data = prepare_mail(request=request, instance=self, workflow_entry=None, send_mail=send_mail)
+            #prepare_mail(request=request, instance=self, workflow_entry=None, send_mail=send_mail)
+            # write comms log based on email_data
+            print("email_data")
+            print(email_data)
+            to = email_data.get('to', '')
+            fromm = email_data.get('fromm', '')
+            cc = email_data.get('cc', '')
+            #log_type = email_data.get('log_type')
+            log_type = 'email'
+            reference = email_data.get('reference', '')
+            subject = email_data.get('subject', '')
+            text = email_data.get('text', '')
+            ArtifactCommsLogEntry.objects.create(
+                    artifact=self,
+                    to=to,
+                    fromm=fromm,
+                    cc=cc,
+                    log_type=log_type,
+                    reference=reference,
+                    subject=subject,
+                    text=text
+                    )
+            # action log
             self.log_user_action(
                     ArtifactUserAction.ACTION_WAITING_FOR_DISPOSAL.format(self.number),
                     request)
