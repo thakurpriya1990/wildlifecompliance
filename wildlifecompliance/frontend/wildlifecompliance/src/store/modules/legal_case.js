@@ -84,6 +84,11 @@ export const legalCaseStore = {
             Vue.set(state.legal_case, 'generatedDocumentsUrl', generatedDocumentsUrl);
             */
         },
+        updateLegalCaseNoRunningSheet(state, legal_case) {
+            // 20200416: current requirement is to only update statement artifacts and related items
+            Vue.set(state.legal_case, 'related_items', legal_case.related_items);
+            Vue.set(state.legal_case, 'statement_artifacts', legal_case.statement_artifacts);
+        },
         updateRelatedItems(state, related_items) {
             Vue.set(state.legal_case, 'related_items', related_items);
         },
@@ -268,6 +273,7 @@ export const legalCaseStore = {
             createBriefOfEvidence, 
             createProsecutionBrief,
             fullHttpResponse,
+            noRunningSheet,
         }) {
             let legalCaseId = null;
             let savedLegalCase = null;
@@ -313,6 +319,9 @@ export const legalCaseStore = {
                     if (fullHttpResponse) {
                         payload.full_http_response = true;
                     }
+                    if (noRunningSheet) {
+                        payload.no_running_sheet = true;
+                    }
                     fetchUrl = helpers.add_endpoint_join(
                         api_endpoints.legal_case,
                         state.legal_case.id + '/'
@@ -323,6 +332,10 @@ export const legalCaseStore = {
                 if (fullHttpResponse && savedLegalCase.ok) {
                     console.log(savedLegalCase)
                     await dispatch("setLegalCase", savedLegalCase.body);
+                }
+                if (noRunningSheet && savedLegalCase.ok) {
+                    console.log(savedLegalCase)
+                    await dispatch("setLegalCaseNoRunningSheet", savedLegalCase.body);
                 }
                 legalCaseId = savedLegalCase.body.id;
 
@@ -349,6 +362,9 @@ export const legalCaseStore = {
         },
         setLegalCase({ commit, }, legal_case) {
             commit("updateLegalCase", legal_case);
+        },
+        setLegalCaseNoRunningSheet({ commit, }, legal_case) {
+            commit("updateLegalCaseNoRunningSheet", legal_case);
         },
         setRelatedItems({ commit }, related_items ) {
             commit("updateRelatedItems", related_items);

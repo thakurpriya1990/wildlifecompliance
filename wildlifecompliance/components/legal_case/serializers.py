@@ -563,6 +563,130 @@ class ProsecutionBriefSerializer(serializers.ModelSerializer):
                 )
 
 
+class LegalCaseNoRunningSheetSerializer(serializers.ModelSerializer):
+    #running_sheet_entries = LegalCaseRunningSheetEntrySerializer(many=True)
+    legal_case_person = EmailUserSerializer(many=True)
+    allocated_group = serializers.SerializerMethodField()
+    user_in_group = serializers.SerializerMethodField()
+    can_user_action = serializers.SerializerMethodField()
+    user_is_assignee = serializers.SerializerMethodField()
+    status = CustomChoiceField(read_only=True)
+    related_items = serializers.SerializerMethodField()
+    statement_artifacts = serializers.SerializerMethodField()
+    legal_case_priority = LegalCasePrioritySerializer()
+    offence_list = serializers.SerializerMethodField()
+    brief_of_evidence = BriefOfEvidenceSerializer()
+    prosecution_brief = ProsecutionBriefSerializer()
+    court_proceedings = CourtProceedingsJournalSerializer()
+
+    class Meta:
+        model = LegalCase
+        fields = (
+                'id',
+                'number',
+                'status',
+                'title',
+                'details',
+                'case_created_date',
+                'case_created_time',
+                'assigned_to_id',
+                'allocated_group',
+                'allocated_group_id',
+                'user_in_group',
+                'can_user_action',
+                'user_is_assignee',
+                'related_items',
+                'call_email_id',
+                'region_id',
+                'district_id',
+                'legal_case_priority',
+                'legal_case_priority_id',
+                #'running_sheet_entries',
+                'statement_artifacts',
+                'legal_case_person',
+                'offence_list',
+                'brief_of_evidence',
+                'prosecution_brief',
+                'court_proceedings',
+
+                )
+        read_only_fields = (
+                'id',
+                )
+
+    def get_offence_list(self, obj):
+        offence_list = [{
+            'id': '',
+            'lodgement_number': '',
+            'identifier': '',
+            }]
+        offence_queryset = obj.offence_legal_case.all()
+        if offence_queryset and offence_queryset.first().id:
+            serializer = OffenceSerializer(offence_queryset, many=True, context=self.context)
+            offence_list.extend(serializer.data)
+        return offence_list
+
+    def get_statement_artifacts(self, obj):
+        artifact_list = []
+        for link in obj.documentartifactlegalcases_set.all():
+                if (link.primary and link.document_artifact.document_type and 
+                        link.document_artifact.document_type in [
+                    'record_of_interview',
+                    'witness_statement',
+                    'expert_statement',
+                    'officer_statement'
+                ]):
+                    serialized_artifact = DocumentArtifactStatementSerializer(link.document_artifact)
+                    artifact_list.append(serialized_artifact.data)
+        return artifact_list
+
+    def get_related_items(self, obj):
+        return get_related_items(obj)
+
+    def get_user_in_group(self, obj):
+        return_val = False
+        user_id = self.context.get('request', {}).user.id
+        if obj.allocated_group:
+           for member in obj.allocated_group.members:
+               if user_id == member.id:
+                  return_val = True
+        return return_val
+
+    def get_can_user_action(self, obj):
+        return_val = False
+        user_id = self.context.get('request', {}).user.id
+        if user_id == obj.assigned_to_id:
+            return_val = True
+        elif obj.allocated_group and not obj.assigned_to_id:
+           for member in obj.allocated_group.members:
+               if user_id == member.id:
+                  return_val = True
+        return return_val
+
+    def get_user_is_assignee(self, obj):
+        return_val = False
+        user_id = self.context.get('request', {}).user.id
+        if user_id == obj.assigned_to_id:
+            return_val = True
+
+        return return_val
+
+    def get_allocated_group(self, obj):
+        allocated_group = [{
+            'email': '',
+            'first_name': '',
+            'full_name': '',
+            'id': None,
+            'last_name': '',
+            'title': '',
+            }]
+        returned_allocated_group = CompliancePermissionGroupMembersSerializer(instance=obj.allocated_group)
+        for member in returned_allocated_group.data['members']:
+            allocated_group.append(member)
+
+        return allocated_group
+
+
 class BaseLegalCaseSerializer(serializers.ModelSerializer):
     running_sheet_entries = LegalCaseRunningSheetEntrySerializer(many=True)
     legal_case_person = EmailUserSerializer(many=True)
