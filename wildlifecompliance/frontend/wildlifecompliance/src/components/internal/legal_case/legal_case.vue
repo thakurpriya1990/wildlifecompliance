@@ -1148,7 +1148,8 @@ export default {
       //this.rowNumberSelected = rowNumber;
       this.personOrArtifactInitialised = true;
       //this.personObjectKeyPosition = offset;
-      this.$nextTick(() => {
+      this.$nextTick(async () => {
+          await this.save({internalFlag:true, noRunningSheet:true});
           this.$refs.person_or_artifact_modal.isModalOpen = true;
       });
     },
@@ -1208,6 +1209,7 @@ export default {
         createBriefOfEvidence=false,
         createProsecutionBrief=false,
         fullHttpResponse=false,
+        noRunningSheet=false,
         internalFlag=false,
     } = {}) {
       this.showSpinner = true;
@@ -1234,6 +1236,7 @@ export default {
           createBriefOfEvidence: createBriefOfEvidence,
           createProsecutionBrief: createProsecutionBrief,
           fullHttpResponse: fullHttpResponse,
+          noRunningSheet: noRunningSheet,
       });
       if (returnToDash) {
         // remove redundant eventListeners
