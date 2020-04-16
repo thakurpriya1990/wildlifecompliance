@@ -960,9 +960,15 @@ class BriefOfEvidenceOtherStatements(models.Model):
             label_text = 'Person: ' + full_name
         elif not self.associated_doc_artifact:
             # label_text = self.statement.document_type + ': ' + self.statement.number
-            label_text = self.statement.artifact_type + ': ' + self.statement.number
+            if self.statement.identifier:
+                label_text = self.statement.artifact_type + ': ' + self.statement.identifier
+            else:
+                label_text = self.statement.artifact_type + ': ' + self.statement.number
         else:
-            label_text = 'Associated Document Object: ' + self.associated_doc_artifact.number
+            if self.associated_doc_artifact.identifier:
+                label_text = 'Associated Document Object: ' + self.associated_doc_artifact.identifier
+            else:
+                label_text = 'Associated Document Object: ' + self.associated_doc_artifact.number
         return label_text
 
 
@@ -1011,9 +1017,15 @@ class BriefOfEvidenceRecordOfInterview(models.Model):
         elif not self.record_of_interview and not self.associated_doc_artifact:
             label_text = 'Offender: ' + str(self.offender)
         elif not self.associated_doc_artifact:
-            label_text = 'Record of Interview: ' + self.record_of_interview.number
+            if self.record_of_interview.identifier:
+                label_text = 'Record of Interview: ' + self.record_of_interview.identifier
+            else:
+                label_text = 'Record of Interview: ' + self.record_of_interview.number
         else:
-            label_text = 'Associated Document Object: ' + self.associated_doc_artifact.number
+            if self.associated_doc_artifact.identifier:
+                label_text = 'Associated Document Object: ' + self.associated_doc_artifact.identifier
+            else:
+                label_text = 'Associated Document Object: ' + self.associated_doc_artifact.number
         return label_text
 
 class ProsecutionBriefOtherStatements(models.Model):
@@ -1056,9 +1068,15 @@ class ProsecutionBriefOtherStatements(models.Model):
             full_name = self.person.get_full_name()
             label_text = 'Person: ' + full_name
         elif not self.associated_doc_artifact:
-            label_text = self.statement.artifact_type + ': ' + self.statement.number
+            if self.statement.identifier:
+                label_text = self.statement.artifact_type + ': ' + self.statement.identifier
+            else:
+                label_text = self.statement.artifact_type + ': ' + self.statement.number
         else:
-            label_text = 'Associated Document Object: ' + self.associated_doc_artifact.number
+            if self.associated_doc_artifact.identifier:
+                label_text = 'Associated Document Object: ' + self.associated_doc_artifact.identifier
+            else:
+                label_text = 'Associated Document Object: ' + self.associated_doc_artifact.number
         return label_text
 
 
@@ -1100,13 +1118,24 @@ class ProsecutionBriefRecordOfInterview(models.Model):
     def __str__(self):
         label_text = ''
         if not self.offender and not self.record_of_interview and not self.associated_doc_artifact:
-            label_text = 'Offence: ' + self.offence.lodgement_number
+            #label_text = 'Offence: ' + self.offence.lodgement_number
+            if self.offence.identifier:
+                label_text = 'Offence: ' + self.offence.identifier
+            else:
+                label_text = 'Offence: ' + self.offence.lodgement_number
         elif not self.record_of_interview and not self.associated_doc_artifact:
-            label_text = 'Offender: ' + str(self.offender.id)
+            label_text = 'Offender: ' + str(self.offender)
+            #label_text = 'Offender: ' + self.offender.__str__()
         elif not self.associated_doc_artifact:
-            label_text = 'Record of Interview: ' + self.record_of_interview.number
+            if self.record_of_interview.identifier:
+                label_text = 'Record of Interview: ' + self.record_of_interview.identifier
+            else:
+                label_text = 'Record of Interview: ' + self.record_of_interview.number
         else:
-            label_text = 'Associated Document Object: ' + self.associated_doc_artifact.number
+            if self.associated_doc_artifact.identifier:
+                label_text = 'Associated Document Object: ' + self.associated_doc_artifact.identifier
+            else:
+                label_text = 'Associated Document Object: ' + self.associated_doc_artifact.number
         return label_text
 
 #import reversion
