@@ -107,6 +107,7 @@ from rest_framework_datatables.pagination import DatatablesPageNumberPagination
 from rest_framework_datatables.filters import DatatablesFilterBackend
 from rest_framework_datatables.renderers import DatatablesRenderer
 
+from wildlifecompliance.components.main.utils import FakeRequest
 from wildlifecompliance.components.legal_case.email import (
     send_mail)
 from wildlifecompliance.components.artifact.utils import (
@@ -126,9 +127,9 @@ from wildlifecompliance.components.artifact.utils import (
         )
 
 
-class FakeRequest():
-    def __init__(self, data):
-        self.data = data
+#class FakeRequest():
+ #   def __init__(self, data):
+  #      self.data = data
 
 
 class LegalCaseFilterBackend(DatatablesFilterBackend):

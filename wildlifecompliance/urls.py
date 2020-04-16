@@ -203,6 +203,10 @@ urlpatterns = [
     # call_email emails to users
     url(r'^internal/call_email/(?P<call_email_id>\d+)/$', views.ApplicationView.as_view(),
         name='internal-call-email-detail'),
+    # following url is defined so that to include url path when sending
+    # artifact emails to users
+    url(r'^internal/object/(?P<artifact_id>\d+)/$', views.ApplicationView.as_view(),
+        name='internal-artifact-detail'),
     
     # following url is defined so that to include url path when sending
     # inspection emails to users
