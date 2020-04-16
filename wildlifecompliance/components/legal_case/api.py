@@ -431,6 +431,7 @@ class LegalCaseViewSet(viewsets.ModelViewSet):
                 # Court Proceedings
                 court_proceedings = request.data.get('court_proceedings', {})
                 if court_proceedings:
+                    court_proceedings['court_outcome_type_id'] = court_proceedings['court_outcome_type']['id'] if court_proceedings['court_outcome_type'] else None
                     serializer = CourtProceedingsJournalSerializer(instance=instance.court_proceedings, data=court_proceedings)
                     if serializer.is_valid(raise_exception=True):
                         serializer.save()

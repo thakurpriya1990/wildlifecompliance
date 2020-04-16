@@ -127,7 +127,7 @@
                             <input :readonly="readonlyForm" 
                                       min="0"
                                       type="number"
-                                      class="form-control" 
+                                      class="form-control currency" 
                                       v-model="legal_case.court_proceedings.court_outcome_fines" />
                         </div>
                     </div>
@@ -138,7 +138,7 @@
                             <input :readonly="readonlyForm" 
                                       min="0"
                                       type="number"
-                                      class="form-control" 
+                                      class="form-control currency" 
                                       v-model="legal_case.court_proceedings.court_outcome_costs" />
                         </div>
                     </div>
@@ -701,5 +701,8 @@ export default {
 .file-upload-container {
     margin-top: 1%;
     margin-bottom: 2%;
+}
+.currency {
+    text-align: right;
 }
 </style>
