@@ -125,10 +125,10 @@
                         <label class="col-md-2">Fines</label>
                         <div class="col-md-2">
                             <input :readonly="readonlyForm" 
-                                      min="0"
-                                      type="number"
-                                      class="form-control currency" 
-                                      v-model="legal_case.court_proceedings.court_outcome_fines" />
+                                   min="0"
+                                   type="number"
+                                   class="form-control currency" 
+                                   v-model="legal_case.court_proceedings.court_outcome_fines" />
                         </div>
                     </div>
 
@@ -136,10 +136,10 @@
                         <label class="col-md-2">Costs</label>
                         <div class="col-md-2">
                             <input :readonly="readonlyForm" 
-                                      min="0"
-                                      type="number"
-                                      class="form-control currency" 
-                                      v-model="legal_case.court_proceedings.court_outcome_costs" />
+                                   min="0"
+                                   type="number"
+                                   class="form-control currency" 
+                                   v-model="legal_case.court_proceedings.court_outcome_costs" />
                         </div>
                     </div>
                 </template>
@@ -439,6 +439,12 @@ export default {
                     // insert text manually
                     document.execCommand("insertHTML", false, transformedText);
                 });
+            this.preventDecimalPlaces();
+        },
+        preventDecimalPlaces: function() {
+            $(".currency").change(function() {
+                $(this).val(parseFloat($(this).val()).toFixed(2));
+            });
         },
         courtProceedingsRowDelete: async function(e){
             this.showSpinner = true;
