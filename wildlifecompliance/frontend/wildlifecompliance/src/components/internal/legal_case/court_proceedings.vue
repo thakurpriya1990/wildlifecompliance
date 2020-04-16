@@ -32,23 +32,25 @@
                 <div class="col-sm-12 form-group"><div class="row">
                     <template class="input-group date" id="court_date" v-for="court_date_obj in legal_case.court_proceedings.court_dates">
                         <template v-if="court_date_obj.court_datetime">
-                        <CourtDate 
-                            :court_datetime="new Date(court_date_obj.court_datetime)"
-                            :comments="court_date_obj.comments"
-                            :court="court_date_obj.court"
-                            :court_date_id="court_date_obj.id"
-                            @data_changed="dataChanged"
-                            :Key="court_date_obj.id"
-                            />
+                            <CourtDate 
+                                :court_datetime="new Date(court_date_obj.court_datetime)"
+                                :comments="court_date_obj.comments"
+                                :court="court_date_obj.court"
+                                :court_date_id="court_date_obj.id"
+                                :court_in_future="court_date_obj.court_in_future"
+                                @data_changed="dataChanged"
+                                :Key="court_date_obj.id"
+                                />
                         </template>
                         <template v-else>
-                        <CourtDate 
-                            :comments="court_date_obj.comments"
-                            :court="court_date_obj.court"
-                            :court_date_id="court_date_obj.id"
-                            @data_changed="dataChanged"
-                            :Key="court_date_obj.id"
-                            />
+                            <CourtDate 
+                                :comments="court_date_obj.comments"
+                                :court="court_date_obj.court"
+                                :court_date_id="court_date_obj.id"
+                                :court_in_future="court_date_obj.court_in_future"
+                                @data_changed="dataChanged"
+                                :Key="court_date_obj.id"
+                                />
                         </template>
                     </template>
                         <CourtDate 
@@ -353,6 +355,10 @@ export default {
             try {
                 let payload = {};
                 payload.document_type = doc_type;
+                payload.court_date_id = ''
+                if (this.legal_case.court_proceedings.court_dates.length > 0){
+                    payload.court_date_id = this.legal_case.court_proceedings.court_dates[0].id
+                }
 
                 let post_url = '/api/legal_case/' + this.legal_case.id + '/generate_document/'
                 const res = await fetch(

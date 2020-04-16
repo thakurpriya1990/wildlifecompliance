@@ -1,5 +1,7 @@
+import datetime
 import traceback
 
+import pytz
 from rest_framework.fields import CharField
 
 from ledger.accounts.models import EmailUser, Address
@@ -294,6 +296,14 @@ class CourtOutcomeTypeSerializer(serializers.ModelSerializer):
 
 class CourtProceedingsCourtDateSerializer(serializers.ModelSerializer):
     court = CourtSerializer(read_only=True)
+    court_in_future = serializers.SerializerMethodField()
+
+    def get_court_in_future(self, obj):
+        if not obj.court_datetime:
+            return True
+        else:
+            now = datetime.datetime.now(pytz.utc)
+            return True if obj.court_datetime > now else False
 
     class Meta:
         model = CourtDate
@@ -302,14 +312,15 @@ class CourtProceedingsCourtDateSerializer(serializers.ModelSerializer):
             'court_datetime',
             'comments',
             'court',
+            'court_in_future',
         )
 
 
 class CourtProceedingsJournalSerializer(serializers.ModelSerializer):
     journal_entries = CourtProceedingsJournalEntrySerializer(many=True, read_only=True)
-    court_dates = CourtProceedingsCourtDateSerializer(many=True, read_only=True)
     court_outcome_type = CourtOutcomeTypeSerializer(read_only=True)
     court_outcome_type_id = serializers.IntegerField(required=False, write_only=True, allow_null=True)
+    court_dates = serializers.SerializerMethodField()
 
     class Meta:
         model = CourtProceedings
@@ -326,6 +337,11 @@ class CourtProceedingsJournalSerializer(serializers.ModelSerializer):
         read_only_fields = (
                 'id',
         )
+
+    def get_court_dates(self, instance):
+        # Return court dates ordered by court_datetime
+        dates = instance.court_dates.all().order_by('court_datetime')
+        return CourtProceedingsCourtDateSerializer(dates, many=True).data
 
     def validate(self, attrs):
         return attrs
