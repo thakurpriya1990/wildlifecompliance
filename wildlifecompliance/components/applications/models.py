@@ -1617,8 +1617,11 @@ class Application(RevisionedMixin):
             # amendment.
             for activity in self.selected_activities.all():
                 previous_paid += activity.previous_paid_amount
+        else:
+            for activity in self.selected_activities.all():
+                previous_paid += activity.pre_adjusted_application_fee
 
-            previous_paid = previous_paid_under_review(previous_paid)
+        previous_paid = previous_paid_under_review(previous_paid)
 
         return previous_paid
 
@@ -3289,17 +3292,45 @@ class ApplicationSelectedActivity(models.Model):
     def total_paid_amount(self):
         """
         Property defining the total fees already paid for this licence Activity.
+        The total amount includes fee, adjustments and licence fee.
         """
         amount = 0
         if self.invoices.count() > 0:
             invoices = ActivityInvoice.objects.filter(
                 activity_id=self.id)
             for invoice in invoices:
-                detail = Invoice.objects.get(
-                    reference=invoice.invoice_reference)
-                amount = self.licence_fee
+                lines = ActivityInvoiceLine.objects.filter(
+                    invoice_id=invoice.id)
+                for line in lines:
+                    amount += line.amount
      
         return amount
+
+    @property
+    def has_adjusted_application_fee(self):
+        '''
+        Property indicating this Selected Activity has an adjusted application
+        fee different from the base admin fee.
+        '''
+        adjusted = False
+        charged = self.licence_fee + self.application_fee
+        if charged < self.total_paid_amount:
+            adjusted = True
+
+        return adjusted
+
+    @property
+    def pre_adjusted_application_fee(self):
+        '''
+        Property returning the base admin fee amount paid for this Selected
+        Activity regardless of any adjustments.
+        '''
+        pre_adjusted_fee = self.application_fee        
+        if self.has_adjusted_application_fee:
+            charged = self.licence_fee + pre_adjusted_fee
+            pre_adjusted_fee = self.total_paid_amount - charged 
+
+        return pre_adjusted_fee
 
     @property
     def requires_refund(self):
@@ -3343,13 +3374,16 @@ class ApplicationSelectedActivity(models.Model):
         # check for Customer licence amendment.
         if self.application.application_type ==\
                 Application.APPLICATION_TYPE_AMENDMENT:
-            previous = ApplicationSelectedActivity.objects.get(
-                application_id=self.application.previous_application.id,
-                licence_activity=self.licence_activity
-            )            
-            previous_paid += previous.application_fee if previous else 0
+            try:
+                previous = ApplicationSelectedActivity.objects.get(
+                    application_id=self.application.previous_application.id,
+                    licence_activity_id=self.licence_activity_id
+                ) 
+                previous_paid += previous.application_fee if previous else 0
+                previous_paid = previous_paid_under_review(previous_paid)
 
-            previous_paid = previous_paid_under_review(previous_paid)
+            except ApplicationSelectedActivity.DoesNotExist:
+                pass  # OK. Amendment involves adding new Activity/Purpose.
 
         return previous_paid
 
