@@ -401,19 +401,23 @@ def _create_licence(licence_buffer, licence, application):
             elements.append(speciesList)
             elements.append(Spacer(1, SECTION_BUFFER_HEIGHT))
 
-        # copy-to-licence sections with terms and additional information.
-        activity_util = ActivitySchemaUtil(selected_activity.application)
-        sections = selected_activity.additional_licence_info['sections']
-        for section in sections:
-            header = section['header']
-            if not header:
-                continue
-            elements.append(Spacer(1, SECTION_BUFFER_HEIGHT))
-            elements.append(Paragraph(header.upper(), styles['BoldLeft']))
-            elements.append(Spacer(1, SECTION_BUFFER_HEIGHT))
-            term = activity_util.get_ctl_text(header)
-            elements.append(Paragraph(term, styles['Left']))
-            elements.append(Spacer(1, SECTION_BUFFER_HEIGHT))
+        try:
+            # copy-to-licence sections with terms and additional information.
+            activity_util = ActivitySchemaUtil(selected_activity.application)
+            terms = selected_activity.additional_licence_info['terms']
+            for term in terms:
+                header = term['header']
+                if not header:
+                    continue
+                elements.append(Spacer(1, SECTION_BUFFER_HEIGHT))
+                elements.append(Paragraph(header.upper(), styles['BoldLeft']))
+                elements.append(Spacer(1, SECTION_BUFFER_HEIGHT))
+                text = activity_util.get_ctl_text(term)
+                elements.append(Paragraph(text, styles['Left']))
+                elements.append(Spacer(1, SECTION_BUFFER_HEIGHT))
+
+        except KeyError:
+            pass
 
         # application conditions
         activity_conditions = selected_activity.application.conditions.filter(

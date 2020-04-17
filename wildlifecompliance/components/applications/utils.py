@@ -484,45 +484,32 @@ class ActivitySchemaUtil(object):
         self._application = application
         self._activities = application.activities
 
-    def get_ctl_schema(self, section, purpose):
+    def get_ctl_text(self, term):
         """
-        Function to add a copy-to-licence section to the Form.
-        """
-        _section = []
-
-        _text = [{
-            "label": None,
-            "name": '{0}-{1}'.format(
-                self._COPY_TO_LICENCE,
-                section['header'].replace(' ', '-').lower()),
-            "type": "text_area",
-        }]
-
-        _section.append({
-            "type": "section",
-            "id": purpose.licence_activity_id,
-            "label": section['header'],
-            "name": 'section-{}'.format(
-                section['header'].replace(' ', '-').lower()),
-            "children": _text
-        })
-
-        return _section
-
-    def get_ctl_text(self, header):
-        """
-        Gets the text_area relating to the header from the form.
+        Gets the text_area relating to the new terminology from the form.
         """
         _info = 'N/A'
-        _schema_name = '{0}-{1}'.format(
-            self._COPY_TO_LICENCE,
-            header.replace(' ', '-').lower())
+        _condition = term['condition']
+        _has_condition = True if _condition else False
+        _name = term['name']
+
         try:
-            form_data = ApplicationFormDataRecord.objects.get(
-                application_id=self._application.id,
-                schema_name=_schema_name,
-            )
-            _info = form_data.value
+            if _has_condition:
+                field = _condition.keys()[0]
+                data = ApplicationFormDataRecord.objects.get(
+                    application_id=self._application.id,
+                    field_name=field,
+                )
+                _has_condition = False if data.value == term[
+                    'condition'][field] else True
+
+            if not _has_condition:
+                data = ApplicationFormDataRecord.objects.get(
+                    application_id=self._application.id,
+                    field_name=_name,
+                )
+            _info = data.value
+
         except ApplicationFormDataRecord.DoesNotExist:
             pass
 
@@ -552,14 +539,6 @@ class ActivitySchemaUtil(object):
                 schema_purpose += purpose_schema
                 # set special species lookup option
                 purpose.get_species_list
-
-            # set copy-to-licence sections for selected Activity.
-            for act in [
-             a for a in self._activities if a.licence_activity == activity]:
-                if len(act.additional_licence_info) > 0:
-                    for section in act.additional_licence_info['sections']:
-                        # add the copy-to-licence section to schema.
-                        schema_purpose += self.get_ctl_schema(section, purpose)
 
             schema_group.append({
                 "type": "tab",
