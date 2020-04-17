@@ -3,7 +3,9 @@ import re
 from django.core.exceptions import ValidationError
 from django.db import transaction
 from wildlifecompliance.components.applications.models import (
-    ApplicationDocument
+    ApplicationDocument,
+    ApplicationFormDataRecord,
+    ApplicationSelectedActivity,
 )
 from wildlifecompliance.components.applications.serializers import (
     SaveApplicationSerializer
@@ -398,7 +400,6 @@ def get_activity_schema(activity_ids):
     NOTE: Redundant has been replaced with a function from the class
     ActivitySchemaUtil.get_activity_schema(activity_ids).
     """
-    from wildlifecompliance.components.applications.models import ApplicationSelectedActivity
     schema_group = []
     try:
         purposes = LicencePurpose.objects.filter(
@@ -477,20 +478,22 @@ class ActivitySchemaUtil(object):
     """
     Utility to facilitate the manipulation of Schema attributes on an Activity.
     """
+    _COPY_TO_LICENCE = 'copy-to-licence'
 
     def __init__(self, application):
+        self._application = application
         self._activities = application.activities
 
-    def add_to_form(self, section, purpose):
+    def get_ctl_schema(self, section, purpose):
         """
-        Function to add new section to Form.
+        Function to add a copy-to-licence section to the Form.
         """
-
         _section = []
 
         _text = [{
             "label": None,
-            "name": 'text-{}'.format(
+            "name": '{0}-{1}'.format(
+                self._COPY_TO_LICENCE,
                 section['header'].replace(' ', '-').lower()),
             "type": "text_area",
         }]
@@ -506,8 +509,29 @@ class ActivitySchemaUtil(object):
 
         return _section
 
+    def get_ctl_text(self, header):
+        """
+        Gets the text_area relating to the header from the form.
+        """
+        _info = 'N/A'
+        _schema_name = '{0}-{1}'.format(
+            self._COPY_TO_LICENCE,
+            header.replace(' ', '-').lower())
+        try:
+            form_data = ApplicationFormDataRecord.objects.get(
+                application_id=self._application.id,
+                schema_name=_schema_name,
+            )
+            _info = form_data.value
+        except ApplicationFormDataRecord.DoesNotExist:
+            pass
+
+        return _info
+
     def get_activity_schema(self, activity_ids):
-        from wildlifecompliance.components.applications.models import ApplicationSelectedActivity
+        """
+        Gets a rebuilt Activity Schema with updated attributes.
+        """
         schema_group = []
         try:
             purposes = LicencePurpose.objects.filter(
@@ -529,11 +553,13 @@ class ActivitySchemaUtil(object):
                 # set special species lookup option
                 purpose.get_species_list
 
+            # set copy-to-licence sections for selected Activity.
             for act in [
              a for a in self._activities if a.licence_activity == activity]:
                 if len(act.additional_licence_info) > 0:
                     for section in act.additional_licence_info['sections']:
-                        schema_purpose += self.add_to_form(section, purpose)
+                        # add the copy-to-licence section to schema.
+                        schema_purpose += self.get_ctl_schema(section, purpose)
 
             schema_group.append({
                 "type": "tab",

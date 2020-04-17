@@ -13,6 +13,8 @@ from reportlab.lib.colors import HexColor
 from django.core.files import File
 from django.conf import settings
 
+from wildlifecompliance.components.applications.utils import ActivitySchemaUtil
+
 from wildlifecompliance.components.licences.models import LicenceDocument
 from wildlifecompliance.components.licences.models import LicenceSpecies
 
@@ -397,6 +399,20 @@ def _create_licence(licence_buffer, licence, application):
                 bulletFontName=BOLD_FONTNAME,
                 bulletFontSize=MEDIUM_FONTSIZE)
             elements.append(speciesList)
+            elements.append(Spacer(1, SECTION_BUFFER_HEIGHT))
+
+        # copy-to-licence sections with terms and additional information.
+        activity_util = ActivitySchemaUtil(selected_activity.application)
+        sections = selected_activity.additional_licence_info['sections']
+        for section in sections:
+            header = section['header']
+            if not header:
+                continue
+            elements.append(Spacer(1, SECTION_BUFFER_HEIGHT))
+            elements.append(Paragraph(header.upper(), styles['BoldLeft']))
+            elements.append(Spacer(1, SECTION_BUFFER_HEIGHT))
+            term = activity_util.get_ctl_text(header)
+            elements.append(Paragraph(term, styles['Left']))
             elements.append(Spacer(1, SECTION_BUFFER_HEIGHT))
 
         # application conditions
