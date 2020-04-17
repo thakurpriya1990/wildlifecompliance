@@ -31,11 +31,18 @@ class InspectionRequestAmendmentNotificationEmail(TemplateEmailBase):
     html_template = 'wildlifecompliance/emails/request_amendment_notification.html'
     txt_template = 'wildlifecompliance/emails/request_amendment_notification.txt'
 
+class InspectionEndorseNotificationEmail(TemplateEmailBase):
+    subject = 'Inspection Endorsed and Closed'
+    html_template = 'wildlifecompliance/emails/endorse_inspection_notification.html'
+    txt_template = 'wildlifecompliance/emails/endorse_inspection_notification.txt'
+
 def send_mail(select_group, inspection, workflow_entry, request=None, email_type=None):
     if email_type == 'send_to_manager':
         email = InspectionSendToManagerNotificationEmail()
     elif email_type == 'request_amendment':
         email = InspectionRequestAmendmentNotificationEmail()
+    elif email_type == 'endorse':
+        email = InspectionEndorseNotificationEmail()
     else:
         # default is Inspection forward notification
         email = InspectionForwardNotificationEmail()

@@ -31,7 +31,7 @@ PAGE_MARGIN = 5 * mm
 PAGE_WIDTH, PAGE_HEIGHT = A4
 
 
-def _create_pdf(invoice_buffer, legal_case, offenders):
+def _create_pdf(invoice_buffer, legal_case, brief_of_evidence_record_of_interviews):
     every_page_frame = Frame(PAGE_MARGIN, PAGE_MARGIN, PAGE_WIDTH - 2 * PAGE_MARGIN, PAGE_HEIGHT - 2 * PAGE_MARGIN, id='EveryPagesFrame', )  #showBoundary=Color(0, 1, 0))
     every_page_template = PageTemplate(id='EveryPages', frames=[every_page_frame,], )
     doc = BaseDocTemplate(invoice_buffer, pageTemplates=[every_page_template, ], pagesize=A4,)  # showBoundary=Color(1, 0, 0))
@@ -68,7 +68,21 @@ def _create_pdf(invoice_buffer, legal_case, offenders):
                               parent=styles['BodyText'],
                               alignment=TA_CENTER))
     elements = []
-    for offender in offenders:
+    for boe in brief_of_evidence_record_of_interviews:
+        offender = boe.offender.person
+        offence = boe.offence
+        if not offender or not offence:
+            continue
+
+        # Generate texts
+        accused_text = offender.get_full_name()
+        accused_dob_text = offender.dob.strftime('%d/%m/%Y') if offender.dob else ''
+        accused_address_text = offender.residential_address
+        offence_period = offence.occurrence_datetime_from.strftime("%d/%m/%Y")
+        if offence.occurrence_from_to:
+            offence_period += ' to ' + offence.occurrence_datetime_to.strftime("%d/%m/%Y")
+        offence_place = str(offence.location)
+        offence_description = offence.details
 
         # Head (col, row)
         invoice_table_style = TableStyle([
@@ -118,14 +132,38 @@ def _create_pdf(invoice_buffer, legal_case, offenders):
             Paragraph('<strong>Details of alleged offence</strong><br />'
                       '<i><font size="' + str(FONT_SIZE_S) + '">[This description must comply with the CPA Schedule 1 clause 5.]</font></i>', styles['Normal']),
             Paragraph('Accused', styles['Normal']),
-            Paragraph(get_font_str(offender.person.get_full_name()), styles['Normal']),
+            Paragraph(get_font_str(accused_text), styles['Normal']),
             '',
             '',
         ])
-        data.append(['', Paragraph('Date or period', styles['Normal']), '', '', ''])
-        data.append(['', Paragraph('Place', styles['Normal']), '', '', ''])
-        data.append(['', Paragraph('Description', styles['Normal']), '', '', ''])
-        data.append(['', Paragraph('Written law', styles['Normal']), '', '', ''])
+        data.append([
+            '',
+            Paragraph('Date or period', styles['Normal']),
+            Paragraph(get_font_str(offence_period), styles['Normal']),
+            '',
+            ''
+        ])
+        data.append([
+            '',
+            Paragraph('Place', styles['Normal']),
+            Paragraph(get_font_str(offence_place), styles['Normal']),
+            '',
+            ''
+        ])
+        data.append([
+            '',
+            Paragraph('Description', styles['Normal']),
+            Paragraph(get_font_str(offence_description), styles['Normal']),
+            '',
+            ''
+        ])
+        data.append([
+            '',
+            Paragraph('Written law', styles['Normal']),
+            '',
+            '',
+            ''
+        ])
         tbl_details = Table(data, style=style_tbl_details, colWidths=col_width_details, rowHeights=rowHeights)
 
         # Notice to accused
@@ -168,14 +206,14 @@ def _create_pdf(invoice_buffer, legal_case, offenders):
         data.append([
             '',
             Paragraph('Date of Birth', styles['Normal']),
-            'DOB?',
+            Paragraph(get_font_str(accused_dob_text), styles['Normal']),
             Paragraph('Male / Female', styles['Normal']),
             '',
         ])
         data.append([
             '',
             Paragraph('Address', styles['Normal']),
-            '',
+            Paragraph(get_font_str(accused_address_text), styles['Normal']),
             '',
             '',
         ])

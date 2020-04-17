@@ -1,6 +1,6 @@
 <template lang="html">
         <!--div class="col-md-9"-->
-            <div class="row">
+            <div>
                             <FormSection :formCollapse="false" label="Statement of Facts">
                                 <div class="col-sm-12 form-group"><div class="row">
                                     <label class="col-sm-10">Statement of facts
@@ -148,38 +148,43 @@
                             </FormSection>
                             <FormSection id="physical-artifacts-tree" :formCollapse="false" label="List of Exhibits, Sensitive Unused and Non-Sensitive Unused Materials" treeHeight="yes">
                                 <div class="col-sm-12 form-group"><div class="row">
-                                    <label v-if="physicalArtifactsUsedVisibility" class="col-sm-10">Select the objects to be included on the list of exhibits
+                                    <label class="col-sm-10">Select the objects to be included on the list of exhibits</label>
+                                    <div v-if="physicalArtifactsUsedVisibility" class="col-sm-10">
                                         <div class="row" v-for="artifact in physicalArtifactsUsed">
                                             <!--input class="col-sm-1" type="checkbox" :value="artifact.id" v-model="physicalArtifactsUsedTicked"-->
                                             <input :disabled="readonlyForm" class="col-sm-1" type="checkbox" v-model="artifact.ticked">
                                             <label class="col-sm-4">{{ artifact.label }}</label>
                                         </div>
-                                    </label>
+                                    </div>
                                     <span v-else class="col-sm-10">No objects on the list of exhibits</span>
-                                    <label v-if="physicalArtifactsSensitiveUnusedVisibility" class="col-sm-10">Select the objects to be included on the sensitive unused list of materials
+                                    <label class="col-sm-10">Select the objects to be included on the sensitive unused list of materials</label>
+                                    <div v-if="physicalArtifactsSensitiveUnusedVisibility" class="col-sm-10">
                                         <div class="row" v-for="artifact in physicalArtifactsSensitiveUnused">
                                             <!--input class="col-sm-1" :id="'tickbox_' + artifact.id" type="checkbox" :value="artifact.id" v-model="physicalArtifactsSensitiveUnusedTicked"-->
                                             <input :disabled="readonlyForm" class="col-sm-1" :id="'tickbox_' + artifact.id" type="checkbox" v-model="artifact.ticked">
                                             <label class="col-sm-3">{{ artifact.label }}</label>
-                                            <label class="col-sm-3">Reason for sensitivity / non-disclosure</label>
-                                            <div class="col-sm-5">
-                                                <textarea 
-                                                    class="form-control col-sm-6" 
-                                                    v-model="artifact.reason_sensitive_non_disclosable" 
-                                                    :id="'reason_' + artifact.physical_artifact_id"
-                                                    :readonly="readonlyForm"
-                                                    />
+                                            <div v-if="artifact.ticked">
+                                                <label class="col-sm-3">Reason for sensitivity / non-disclosure</label>
+                                                <div class="col-sm-5">
+                                                    <textarea 
+                                                        class="form-control col-sm-6" 
+                                                        v-model="artifact.reason_sensitive_non_disclosable" 
+                                                        :id="'reason_' + artifact.physical_artifact_id"
+                                                        :readonly="readonlyForm"
+                                                        />
+                                                </div>
                                             </div>
                                         </div>
-                                    </label>
+                                    </div>
                                     <span v-else class="col-sm-10">No objects on the sensitive unused list of materials</span>
-                                    <label v-if="physicalArtifactsNonSensitiveUnusedVisibility" class="col-sm-10">Select the objects to be included on the non-sensitive unused list of materials
+                                    <label class="col-sm-10">Select the objects to be included on the non-sensitive unused list of materials</label>
+                                    <div v-if="physicalArtifactsNonSensitiveUnusedVisibility" class="col-sm-10">
                                         <div class="row" v-for="artifact in physicalArtifactsNonSensitiveUnused">
                                             <!--input class="col-sm-1" type="checkbox" :value="artifact.id" v-model="physicalArtifactsNonSensitiveUnusedTicked"-->
                                             <input :disabled="readonlyForm" class="col-sm-1" type="checkbox" v-model="artifact.ticked">
                                             <label class="col-sm-4">{{ artifact.label }}</label>
                                         </div>
-                                    </label>
+                                    </div>
                                     <span v-else class="col-sm-10">No objects on the non-sensitive unused list of materials</span>
                                 </div></div>
                             </FormSection>
