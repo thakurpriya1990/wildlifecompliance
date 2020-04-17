@@ -191,11 +191,11 @@ export default {
 
                             if (full.is_latest_in_category) {
                                 if (full.can_add_purpose){
-                                    links += `<a add-activity-purpose='${full.id}' org-id='${org_id}' proxy-id='${proxy_id}' licence-category-id='${licence_category_id}'>Add Activity/Purpose</a><br/>`;
+                                    links += `<a add-activity-purpose='${full.id}' org-id='${org_id}' proxy-id='${proxy_id}' licence-category-id='${licence_category_id}'>Amend</a><br/>`;
                                 }
-                                if (full.can_action['can_amend']) {
-                                    links += `<a amend-licence='${full.id}' org-id='${org_id}' proxy-id='${proxy_id}' licence-category-id='${licence_category_id}'>Amend</a><br/>`
-                                }
+                                // if (full.can_action['can_amend']) {
+                                //     links += `<a amend-licence='${full.id}' org-id='${org_id}' proxy-id='${proxy_id}' licence-category-id='${licence_category_id}'>Amend</a><br/>`
+                                // }
                                 if (full.can_action['can_renew']) {
                                     links += `<a renew-licence='${full.id}' org-id='${org_id}' proxy-id='${proxy_id}' licence-category-id='${licence_category_id}'>Renew</a><br/>`
                                 }
@@ -320,7 +320,7 @@ export default {
             vm.$refs.licence_datatable.vmDataTable.on('click', 'a[add-activity-purpose]', function(e) {
                 e.preventDefault();
                 swal({
-                    title: "Add Activity/Purpose",
+                    title: "Amend Licence",
                     text: "Are you sure you want to add an activity or purpose to this licence?",
                     type: "question",
                     showCancelButton: true,

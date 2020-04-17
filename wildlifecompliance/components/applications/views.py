@@ -104,6 +104,12 @@ class ApplicationSuccessView(TemplateView):
                             amount=activity.licence_fee
                         )
 
+                        ActivityInvoiceLine.objects.get_or_create(
+                            invoice=invoice[0],
+                            licence_activity=activity.licence_activity,
+                            amount=activity.application_fee
+                        )
+
                 else:
                     # TODO: check if this ever occurs from the above code and
                     # provide error screen for user

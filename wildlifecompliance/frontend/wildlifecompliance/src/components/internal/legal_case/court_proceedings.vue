@@ -31,13 +31,27 @@
 
                 <div class="col-sm-12 form-group"><div class="row">
                     <template class="input-group date" id="court_date" v-for="court_date_obj in legal_case.court_proceedings.court_dates">
-                        <CourtDate 
-                            :court_datetime="new Date(court_date_obj.court_datetime)"
-                            :comments="court_date_obj.comments"
-                            :court_date_id="court_date_obj.id"
-                            @data_changed="dataChanged"
-                            :Key="court_date_obj.id"
-                            />
+                        <template v-if="court_date_obj.court_datetime">
+                            <CourtDate 
+                                :court_datetime="new Date(court_date_obj.court_datetime)"
+                                :comments="court_date_obj.comments"
+                                :court="court_date_obj.court"
+                                :court_date_id="court_date_obj.id"
+                                :court_in_future="court_date_obj.court_in_future"
+                                @data_changed="dataChanged"
+                                :Key="court_date_obj.id"
+                                />
+                        </template>
+                        <template v-else>
+                            <CourtDate 
+                                :comments="court_date_obj.comments"
+                                :court="court_date_obj.court"
+                                :court_date_id="court_date_obj.id"
+                                :court_in_future="court_date_obj.court_in_future"
+                                @data_changed="dataChanged"
+                                :Key="court_date_obj.id"
+                                />
+                        </template>
                     </template>
                         <CourtDate 
                             @data_changed="dataChanged"
@@ -72,6 +86,22 @@
 
             <FormSection :formCollapse="false" label="Court Outcome">
                 <template v-if="hasCourtProceedings">
+                    <div class="row form-group" v-if="court_outcome_types.length > 0">
+                        <label class="col-md-2">Type</label>
+                        <div class="col-md-4">
+                            <select 
+                                :disabled="readonlyForm" 
+                                class="form-control" 
+                                v-model="legal_case.court_proceedings.court_outcome_type" 
+                            >
+                                <option value=""></option>
+                                <option v-for="type in court_outcome_types" :value="type" :key="type.id">
+                                    {{ type.identifier }}
+                                </option>
+                            </select>
+                        </div>
+                    </div>
+
                     <div class="row form-group">
                         <label class="col-md-2">Court outcome</label>
                         <div class="col-md-9">
@@ -83,12 +113,35 @@
                                        :readonly="readonlyForm" />
                         </div>
                     </div>
+
                     <div class="row form-group">
                         <label class="col-md-2">Details</label>
                         <div class="col-md-9">
                             <textarea :readonly="readonlyForm" 
                                       class="form-control location_address_field" 
                                       v-model="legal_case.court_proceedings.court_outcome_details" />
+                        </div>
+                    </div>
+
+                    <div class="row form-group">
+                        <label class="col-md-2">Fines</label>
+                        <div class="col-md-2">
+                            <input :readonly="readonlyForm" 
+                                   min="0"
+                                   type="number"
+                                   class="form-control currency" 
+                                   v-model="legal_case.court_proceedings.court_outcome_fines" />
+                        </div>
+                    </div>
+
+                    <div class="row form-group">
+                        <label class="col-md-2">Costs</label>
+                        <div class="col-md-2">
+                            <input :readonly="readonlyForm" 
+                                   min="0"
+                                   type="number"
+                                   class="form-control currency" 
+                                   v-model="legal_case.court_proceedings.court_outcome_costs" />
                         </div>
                     </div>
                 </template>
@@ -122,6 +175,7 @@ export default {
     data: function() {
         return {
             uuid: 0,
+            court_outcome_types: [],
             courtProceedingsEntriesUpdated: [],
             courtProceedingsEntriesUrl: [],
             courtProceedingsHistoryEntryBindId: '',
@@ -274,11 +328,17 @@ export default {
             setCourtProceedingsDate: 'setCourtProceedingsDate',
         }),
         dataChanged: function(court_data_obj) {
+            console.log('*** in dataChanged() ***');
+            console.log(court_data_obj);
             try {
-                court_data_obj.court_datetime = court_data_obj.court_datetime.toDate().toISOString();
+                if (court_data_obj.court_datetime.isValid()){
+                    court_data_obj.court_datetime = court_data_obj.court_datetime.toDate().toISOString()
+                } else {
+                    court_data_obj.court_datetime = null;
+                }
                 this.setCourtProceedingsDate(court_data_obj);
             } catch (err) {
-                console.warn('data not changed');
+
             }
         },
         courtOutcomeDocumentUploaded: function() {
@@ -295,6 +355,10 @@ export default {
             try {
                 let payload = {};
                 payload.document_type = doc_type;
+                payload.court_date_id = ''
+                if (this.legal_case.court_proceedings.court_dates.length > 0){
+                    payload.court_date_id = this.legal_case.court_proceedings.court_dates[0].id
+                }
 
                 let post_url = '/api/legal_case/' + this.legal_case.id + '/generate_document/'
                 const res = await fetch(
@@ -381,6 +445,12 @@ export default {
                     // insert text manually
                     document.execCommand("insertHTML", false, transformedText);
                 });
+            this.preventDecimalPlaces();
+        },
+        preventDecimalPlaces: function() {
+            $(".currency").change(function() {
+                $(this).val(parseFloat($(this).val()).toFixed(2));
+            });
         },
         courtProceedingsRowDelete: async function(e){
             this.showSpinner = true;
@@ -596,8 +666,13 @@ export default {
             }
             console.log("constructCourtProceedingsTable - end")
         },
+        constructOptionsCourtOutcomeType: async function() {
+            let returned= await cache_helper.getSetCacheList('CourtProceedings_CourtOutcomeTypes', '/api/legal_case/court_outcome_type_list');
+            this.court_outcome_types = returned;
+        },
     },
     created: async function() {
+        this.constructOptionsCourtOutcomeType();
     },
     mounted: function() {
         this.$nextTick(() => {
@@ -638,5 +713,8 @@ export default {
 .file-upload-container {
     margin-top: 1%;
     margin-bottom: 2%;
+}
+.currency {
+    text-align: right;
 }
 </style>

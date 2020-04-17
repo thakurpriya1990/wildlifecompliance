@@ -12,3 +12,10 @@ class LegalCaseAdmin(admin.ModelAdmin):
 class LegalCasePriorityAdmin(admin.ModelAdmin):
     pass
 
+@admin.register(models.Court)
+class CourtAdmin(admin.ModelAdmin):
+    pass
+
+@admin.register(models.CourtOutcomeType)
+class CourtOutcomeTypeAdmin(admin.ModelAdmin):
+    pass
