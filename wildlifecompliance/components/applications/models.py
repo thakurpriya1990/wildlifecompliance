@@ -3209,12 +3209,13 @@ class ApplicationSelectedActivity(models.Model):
         if self.licence_fee == 0:
             _status = ActivityInvoice.PAYMENT_STATUS_NOT_REQUIRED
         else:
-            if self.invoices.count() == 0:
+            if self.activity_invoices.count() == 0:
                 _status = ActivityInvoice.PAYMENT_STATUS_UNPAID
             else:
                 try:
                     latest_invoice = Invoice.objects.get(
-                        reference=self.invoices.latest('id').invoice_reference)
+                        reference=self.activity_invoices.latest(
+                            'id').invoice_reference)
                     _status = latest_invoice.payment_status
                 except Invoice.DoesNotExist:
                     _status =  ActivityInvoice.PAYMENT_STATUS_UNPAID
@@ -3229,10 +3230,17 @@ class ApplicationSelectedActivity(models.Model):
             if self.additional_fee > Decimal(0.0):
                 try:
                     latest_invoice = Invoice.objects.get(
-                        reference=self.invoices.latest('id').invoice_reference,
-                        amount=self.application.additional_fees)
+                        reference=self.activity_invoices.latest(
+                            'id').invoice_reference,
+                        amount=self.additional_fee)
                     _status = latest_invoice.payment_status
+
                 except Invoice.DoesNotExist:
+                    if not self.processing_status == \
+                        ApplicationSelectedActivity.PROCESSING_STATUS_ACCEPTED:
+                        _status = ActivityInvoice.PAYMENT_STATUS_UNPAID
+
+                except BaseException:
                     if not self.processing_status == \
                         ApplicationSelectedActivity.PROCESSING_STATUS_ACCEPTED:
                         _status = ActivityInvoice.PAYMENT_STATUS_UNPAID
@@ -3295,7 +3303,7 @@ class ApplicationSelectedActivity(models.Model):
         The total amount includes fee, adjustments and licence fee.
         """
         amount = 0
-        if self.invoices.count() > 0:
+        if self.activity_invoices.count() > 0:
             invoices = ActivityInvoice.objects.filter(
                 activity_id=self.id)
             for invoice in invoices:
@@ -3579,7 +3587,9 @@ class ActivityInvoice(models.Model):
     PAYMENT_STATUS_PAID = 'paid'
     PAYMENT_STATUS_OVERPAID = 'over_paid'
 
-    activity = models.ForeignKey(ApplicationSelectedActivity, related_name='invoices')
+    activity = models.ForeignKey(
+        ApplicationSelectedActivity, 
+        related_name='activity_invoices')
     invoice_reference = models.CharField(
         max_length=50, null=True, blank=True, default='')
     invoice_datetime = models.DateTimeField(auto_now=True)
