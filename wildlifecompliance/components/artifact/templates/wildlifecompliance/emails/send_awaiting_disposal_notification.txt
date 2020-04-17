@@ -1,11 +1,11 @@
 {%  extends 'wildlifecompliance/emails/base_email.txt' %}
 
 {%  block content %}
-        This Case has been forwarded to you:
+        This Object is awaiting disposal:
 
-        Case : <a href="{{url}}">{{ legal_case.number }}</a> 
+        Object : <a href="{{url}}">{{ artifact.number }}</a> 
 
-        Message:  {{ workflow_entry_details }}
+        Message:  {{ details }}
 
         Note: If you haven't logged into the Wildlife Licensing System recently you may need to login first before using the provided link.
 

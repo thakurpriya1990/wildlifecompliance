@@ -84,6 +84,8 @@ export default {
             documentActionUrl: '',
             //allocatedGroup: [],
             allocated_group_id: null,
+            saveAndExit: false,
+            modalTitle: '',
       }
     },
     components: {
@@ -100,24 +102,7 @@ export default {
       ...mapGetters('legalCaseStore', {
         legal_case: "legal_case",
       }),
-      //allocatedGroupId: async function() {
-      //    let allocated_group_id = null;
-      //    if (this.workflow_type) {
-      //        allocated_group_id = await this.updateAllocatedGroupId()
-      //    }
-      //    this.$nextTick(() => {
-      //        return allocated_group_id;
-      //    });
-      //},
         /*
-      regionDistrictId: function() {
-          if (this.district_id || this.region_id) {
-              return this.district_id ? this.district_id : this.region_id;
-          } else {
-              return null;
-          }
-      },
-      */
       modalTitle: function() {
           if (this.workflow_type === 'close') {
               return "Close Legal Case";
@@ -145,16 +130,6 @@ export default {
               return "Back to Prosecution Council";
           }
       },
-        /*
-      groupPermission: function() {
-          if (this.workflow_type === 'send_to_manager') {
-              return "manager";
-          } else if (this.workflow_type === 'request_amendment') {
-              return "officer";
-          } else {
-              return null;
-          }
-      },
       */
     },
     filters: {
@@ -168,36 +143,17 @@ export default {
           loadLegalCase: 'loadLegalCase',
           setLegalCase: 'setLegalCase',
       }),
-        /*
-      ...mapActions({
-          loadAllocatedGroup: 'loadAllocatedGroup',
-      }),
-      updateAllocatedGroupId: async function() {
-          console.log("updateAllocatedGroup");
-          let allocated_group_id = null;
-          this.errorResponse = "";
-          if (this.regionDistrictId && this.groupPermission) {
-              let allocatedGroupResponse = await this.loadAllocatedGroup({
-              region_district_id: this.regionDistrictId,
-              group_permission: this.groupPermission,
-              });
-              if (allocatedGroupResponse.ok) {
-                  this.allocated_group_id = allocatedGroupResponse.body.group_id;
-              } else {
-                  // Display http error response on modal
-                  this.errorResponse = allocatedGroupResponse.statusText;
-              }
-          } else {
-              //this.allocatedGroup = [];
-          }
-      },
-      */
       ok: async function () {
           const response = await this.sendData();
           console.log(response);
           if (response.ok) {
               this.close();
-              this.$router.push({ name: 'internal-legal-case-dash' });
+              if (this.saveAndExit) {
+                  this.$router.push({ name: 'internal-legal-case-dash' });
+              } else {
+                  this.$router.go();
+                  //window.location.reload(true);
+              }
           }
       },
       cancel: async function() {
@@ -220,23 +176,6 @@ export default {
               this.$refs.comms_log_file.commsLogId ? payload.append('legal_case_comms_log_id', this.$refs.comms_log_file.commsLogId) : null;
           }
           this.workflow_type ? payload.append('workflow_type', this.workflow_type) : null;
-          //this.allocated_group_id ? payload.append('allocated_group_id', this.allocated_group_id) : null;
-          /*
-          let legalCaseResponse = await this.saveLegalCase({create: false, internal: true })
-          if (legalCaseResponse.ok) {
-              try {
-                  let res = await Vue.http.post(post_url, payload);
-                  console.log(res);
-                  if (res.ok) {
-                      return res
-                  }
-              } catch(err) {
-                      this.errorResponse = err.statusText;
-                  }
-          }
-          */
-          // first save LegalCase
-          //await this.saveLegalCase({create: false, internal: true })
           if (this.$parent) {
               await this.$parent.save({internalFlag: true})
           }
@@ -252,39 +191,46 @@ export default {
           }
 
       },
-        /*
-      createDocumentActionUrl: async function(done) {
-        if (!this.legal_case.id) {
-            // create inspection and update vuex
-            let returned_legal_case = await this.saveLegalCase({ create: true, internal: true })
-            await this.loadLegalCase({ legal_case_id: returned_legal_case.body.id});
-        }
-        // populate filefield document_action_url
-        this.$refs.comms_log_file.document_action_url = this.legal_case.createInspectionProcessCommsLogsDocumentUrl;
-        return done(true);
-      },
-      */
-
     },
     mounted: async function() {
         this.$nextTick(() => {
-            /*
-            console.log("update group id")
-            this.updateAllocatedGroupId()
-            */
         });
     },
     created: function() {
-        /*
-        if (this.legal_case && this.legal_case.id) {
-            //this.inspection_type_id = this.inspection.inspection_type_id;
-            //this.region_id = this.inspection.region_id;
-            //this.district_id = this.inspection.district_id;
+        if (this.workflow_type === 'close') {
+            this.modalTitle = "Close Legal Case";
+            this.saveAndExit = true;
+        } else if (this.workflow_type === 'brief_of_evidence') {
+            this.modalTitle = "Generate the Brief of Evidence";
+        } else if (this.workflow_type === 'prosecution_brief') {
+            this.modalTitle = "Generate the Prosecution Brief";
+        } else if (this.workflow_type === 'send_to_manager') {
+            this.modalTitle = "Send to Manager for approval";
+            this.saveAndExit = true;
+        } else if (this.workflow_type === 'back_to_case') {
+            this.modalTitle = "Re-open the Case";
+        } else if (this.workflow_type === 'back_to_officer') {
+            this.modalTitle = "Return to Officer";
+            this.saveAndExit = true;
+        } else if (this.workflow_type === 'approve_brief_of_evidence') {
+            this.modalTitle = "Approve the Brief of Evidence";
+            this.saveAndExit = true;
+        } else if (this.workflow_type === 'send_to_prosecution_council') {
+            this.modalTitle = "Send To Prosecution Council";
+            this.saveAndExit = true;
+        } else if (this.workflow_type === 'back_to_prosecution_coordinator') {
+            this.modalTitle = "Back to Prosecution Coordinator";
+            this.saveAndExit = true;
+        } else if (this.workflow_type === 'endorse_prosecution_brief') {
+            this.modalTitle = "Endorse Prosecution Brief";
+            this.saveAndExit = true;
+        } else if (this.workflow_type === 'approve_for_court') {
+            this.modalTitle = "Approve for Court";
+            this.saveAndExit = true;
+        } else if (this.workflow_type === 'back_to_prosecution_council') {
+            this.modalTitle = "Back to Prosecution Council";
+            this.saveAndExit = true;
         }
-        */
-
-        // // ensure allocated group is current
-        // await this.updateAllocatedGroup();
     }
 };
 </script>

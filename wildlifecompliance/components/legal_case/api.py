@@ -94,7 +94,9 @@ from wildlifecompliance.components.legal_case.serializers import (
     CourtProceedingsJournalSerializer,
     BriefOfEvidenceSerializer,
     ProsecutionBriefSerializer,
-    SaveCourtDateEntrySerializer)
+    SaveCourtDateEntrySerializer,
+    LegalCaseNoRunningSheetSerializer,
+    )
 from wildlifecompliance.components.users.models import (
     CompliancePermissionGroup,    
 )
@@ -107,6 +109,7 @@ from rest_framework_datatables.pagination import DatatablesPageNumberPagination
 from rest_framework_datatables.filters import DatatablesFilterBackend
 from rest_framework_datatables.renderers import DatatablesRenderer
 
+from wildlifecompliance.components.main.utils import FakeRequest
 from wildlifecompliance.components.legal_case.email import (
     send_mail)
 from wildlifecompliance.components.artifact.utils import (
@@ -126,9 +129,9 @@ from wildlifecompliance.components.artifact.utils import (
         )
 
 
-class FakeRequest():
-    def __init__(self, data):
-        self.data = data
+#class FakeRequest():
+ #   def __init__(self, data):
+  #      self.data = data
 
 
 class LegalCaseFilterBackend(DatatablesFilterBackend):
@@ -454,8 +457,19 @@ class LegalCaseViewSet(viewsets.ModelViewSet):
                             instance.number), request)
                     headers = self.get_success_headers(serializer.data)
                     full_http_response = request.data.get('full_http_response')
+                    no_running_sheet = request.data.get('no_running_sheet')
                     if full_http_response:
                         return_serializer = self.variable_serializer(request, instance)
+                        return Response(
+                                return_serializer.data,
+                                status=status.HTTP_201_CREATED,
+                                headers=headers
+                                )
+                    elif no_running_sheet:
+                        return_serializer = LegalCaseNoRunningSheetSerializer(
+                                instance, 
+                                context={'request': request}
+                                )
                         return Response(
                                 return_serializer.data,
                                 status=status.HTTP_201_CREATED,
