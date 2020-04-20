@@ -112,43 +112,87 @@
                     </div></div>
                 </FormSection>
                 <FormSection :formCollapse="false" label="Offences, Offenders and Records of Interview" treeHeight="yes">
-                    <div v-if="boeRoiVisibility" class="col-sm-12 form-group"><div class="row">
-                        <TreeSelect
-                        id="boe-record-of-interview-tree"
-                        ref="boe_record_of_interview_tree" 
-                        :value="boeRoiTicked" 
-                        :options="boeRoiOptions" 
-                        :default-expand-level="Infinity" 
-                        multiple
-                        value-consists-of="LEAF_PRIORITY"
-                        @input="setBoeRoiTicked"
-                        alwaysOpen
-                        :searchable="false"
-                        />
-                    </div></div>
-                    <div v-else class="col-sm-12 form-group"><div class="row">
-                        roi tree
-                    </div></div>
+                    <div v-if="boeRoiExist">
+                        <div v-if="boeRoiVisibility" class="col-sm-12 form-group"><div class="row">
+                            <TreeSelect
+                            id="boe-record-of-interview-tree"
+                            ref="boe_record_of_interview_tree" 
+                            :value="boeRoiTicked" 
+                            :options="boeRoiOptions" 
+                            :default-expand-level="Infinity" 
+                            multiple
+                            value-consists-of="LEAF_PRIORITY"
+                            @input="setBoeRoiTicked"
+                            alwaysOpen
+                            :searchable="false"
+                            />
+                        </div></div>
+                        <div v-else class="col-sm-12 form-group"><div class="row">
+                            <div v-for="record in boeRoiOptions">
+                                <a :href=record.hyperlink target="_blank">{{ record.label }}</a>
+                                <span v-if="record.ticked">
+                                    <input :disabled="true" type="checkbox" v-model="record.ticked">
+                                </span>
+                                <span v-for="child in record.children">
+                                    ; <a :href=child.hyperlink target="_blank">{{ child.label }}</a>
+                                    <span v-if="child.ticked">
+                                        <input :disabled="true" type="checkbox" v-model="child.ticked">
+                                    </span>
+                                    <span v-for="grandchild in child.children">
+                                        ; <a :href=grandchild.hyperlink target="_blank">{{ grandchild.label }}</a>
+                                        <span v-if="grandchild.ticked">
+                                            <input :disabled="true" type="checkbox" v-model="grandchild.ticked">
+                                        </span>
+                                        <span v-for="greatgrandchild in grandchild.children">
+                                            ; <a :href=greatgrandchild.hyperlink target="_blank">{{ greatgrandchild.label }}</a>
+                                            <span v-if="greatgrandchild.ticked">
+                                                <input :disabled="true" type="checkbox" v-model="greatgrandchild.ticked">
+                                            </span>
+                                        </span>
+                                    </span>
+                                </span>
+                            </div>
+                        </div></div>
+                    </div>
                     <span v-else class="col-sm-10">No Offences, Offenders or Records of Interview</span>
                 </FormSection>
                 <FormSection :formCollapse="false" label="Witness Statements, Officer Statements, Expert Statements" treeHeight="yes">
-                    <div v-if="boeOtherStatementsVisibility" class="col-sm-12 form-group"><div class="row">
-                        <TreeSelect 
-                        id="boe-other-statements-tree"
-                        ref="boe_other_statements_tree" 
-                        :value="boeOtherStatementsTicked" 
-                        :options="boeOtherStatementsOptions" 
-                        :default-expand-level="Infinity" 
-                        multiple
-                        value-consists-of="LEAF_PRIORITY"
-                        @input="setBoeOtherStatementsTicked"
-                        alwaysOpen
-                        :searchable="false"
-                        />
-                    </div></div>
-                    <div v-else class="col-sm-12 form-group"><div class="row">
-                        other tree
-                    </div></div>
+                    <div v-if="boeOtherStatementsExist">
+                        <div v-if="boeOtherStatementsVisibility" class="col-sm-12 form-group"><div class="row">
+                            <TreeSelect 
+                            id="boe-other-statements-tree"
+                            ref="boe_other_statements_tree" 
+                            :value="boeOtherStatementsTicked" 
+                            :options="boeOtherStatementsOptions" 
+                            :default-expand-level="Infinity" 
+                            multiple
+                            value-consists-of="LEAF_PRIORITY"
+                            @input="setBoeOtherStatementsTicked"
+                            alwaysOpen
+                            :searchable="false"
+                            />
+                        </div></div>
+                        <div v-else class="col-sm-12 form-group"><div class="row">
+                            <div v-for="record in boeOtherStatementsOptions">
+                                <a :href=record.hyperlink target="_blank">{{ record.label }}</a>
+                                <span v-if="record.ticked">
+                                    <input :disabled="true" type="checkbox" v-model="record.ticked">
+                                </span>
+                                <span v-for="child in record.children">
+                                    ; <a :href=child.hyperlink target="_blank">{{ child.label }}</a>
+                                    <span v-if="child.ticked">
+                                        <input :disabled="true" type="checkbox" v-model="child.ticked">
+                                    </span>
+                                    <span v-for="grandchild in child.children">
+                                        ; <a :href=grandchild.hyperlink target="_blank">{{ grandchild.label }}</a>
+                                        <span v-if="grandchild.ticked">
+                                            <input :disabled="true" type="checkbox" v-model="grandchild.ticked">
+                                        </span>
+                                    </span>
+                                </span>
+                            </div>
+                        </div></div>
+                    </div>
                     <span v-else class="col-sm-10">No Witness Statements, Officer Statements or Expert Statements</span>
                 </FormSection>
                 <FormSection id="physical-artifacts-tree" :formCollapse="false" label="List of Exhibits, Sensitive Unused and Non-Sensitive Unused Materials" treeHeight="yes">
@@ -390,10 +434,16 @@ export default {
         }
         return options;
     },
+    boeOtherStatementsExist: function() {
+        let visibility = false;
+        if (this.boeOtherStatementsOptions && this.boeOtherStatementsOptions.length > 0) {
+            visibility = true;
+        }
+        return visibility;
+    },
     boeOtherStatementsVisibility: function() {
         let visibility = false;
-        if (!this.readonlyForm && this.boeOtherStatementsOptions && this.boeOtherStatementsOptions.length > 0) {
-        //if (this.boeOtherStatementsOptions && this.boeOtherStatementsOptions.length > 0) {
+        if (!this.readonlyForm && this.boeOtherStatementsExist) {
             visibility = true;
         }
         return visibility;
@@ -405,9 +455,16 @@ export default {
         }
         return options;
     },
+    boeRoiExist: function() {
+        let visibility = false;
+        if (this.boeRoiOptions && this.boeRoiOptions.length > 0) {
+            visibility = true;
+        }
+        return visibility;
+    },
     boeRoiVisibility: function() {
         let visibility = false;
-        if (!this.readonlyForm && this.boeRoiOptions && this.boeRoiOptions.length > 0) {
+        if (!this.readonlyForm && this.boeRoiExist) {
         //if (this.boeRoiOptions && this.boeRoiOptions.length > 0) {
             visibility = true;
         }

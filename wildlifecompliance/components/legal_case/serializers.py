@@ -837,6 +837,7 @@ class LegalCaseBriefOfEvidenceSerializer(BaseLegalCaseSerializer):
     boe_physical_artifacts_sensitive_unused = serializers.SerializerMethodField()
     boe_physical_artifacts_non_sensitive_unused = serializers.SerializerMethodField()
     boe_document_artifacts = serializers.SerializerMethodField()
+    boe_roi_readonly = serializers.SerializerMethodField()
 
     class Meta:
         model = LegalCase
@@ -898,7 +899,7 @@ class LegalCaseBriefOfEvidenceSerializer(BaseLegalCaseSerializer):
                 'boe_physical_artifacts_sensitive_unused',
                 'boe_physical_artifacts_non_sensitive_unused',
                 'boe_document_artifacts',
-
+                'boe_roi_readonly',
                 )
         read_only_fields = (
                 'id',
@@ -1032,6 +1033,8 @@ class LegalCaseBriefOfEvidenceSerializer(BaseLegalCaseSerializer):
             offence_list.append(serialized_offence)
         return offence_list
 
+    def get_boe_roi_readonly(self, obj):
+        return '<a href="www.google.com">something</a>'
 
 #class LegalCaseProsecutionBriefSerializer(BaseLegalCaseSerializer):
 class LegalCaseProsecutionBriefSerializer(LegalCaseBriefOfEvidenceSerializer):
@@ -1123,6 +1126,7 @@ class LegalCaseProsecutionBriefSerializer(LegalCaseBriefOfEvidenceSerializer):
                 'pb_document_artifacts',
                 'boe_roi_ticked',
                 'boe_roi_options',
+                'boe_roi_readonly',
                 'legal_case_boe_roi',
                 'boe_other_statements_ticked',
                 'boe_other_statements_options',
@@ -1264,6 +1268,9 @@ class LegalCaseProsecutionBriefSerializer(LegalCaseBriefOfEvidenceSerializer):
             serialized_offence['children'] = offence_children
             offence_list.append(serialized_offence)
         return offence_list
+
+    def get_pb_roi_read_only(self, obj):
+        pass
 
 
 class SaveLegalCaseSerializer(serializers.ModelSerializer):

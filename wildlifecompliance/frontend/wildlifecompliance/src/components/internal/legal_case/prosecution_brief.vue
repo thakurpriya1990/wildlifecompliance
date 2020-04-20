@@ -111,37 +111,87 @@
                     </div></div>
                 </FormSection>
                 <FormSection :formCollapse="false" label="Offences, Offenders and Records of Interview" treeHeight="yes">
-                    <div v-if="pbRoiVisibility" class="col-sm-12 form-group"><div class="row">
-                        <TreeSelect 
-                        id="pb-record-of-interview-tree"
-                        ref="pb_record_of_interview_tree" 
-                        :value="pbRoiTicked" 
-                        :options="pbRoiOptions" 
-                        :default-expand-level="Infinity" 
-                        multiple
-                        value-consists-of="LEAF_PRIORITY"
-                        @input="setPbRoiTicked"
-                        alwaysOpen
-                        :searchable="false"
-                        />
-                    </div></div>
+                    <div v-if="pbRoiExist">
+                        <div v-if="pbRoiVisibility" class="col-sm-12 form-group"><div class="row">
+                            <TreeSelect 
+                            id="pb-record-of-interview-tree"
+                            ref="pb_record_of_interview_tree" 
+                            :value="pbRoiTicked" 
+                            :options="pbRoiOptions" 
+                            :default-expand-level="Infinity" 
+                            multiple
+                            value-consists-of="LEAF_PRIORITY"
+                            @input="setPbRoiTicked"
+                            alwaysOpen
+                            :searchable="false"
+                            />
+                        </div></div>
+                        <div v-else class="col-sm-12 form-group"><div class="row">
+                            <div v-for="record in pbRoiOptions">
+                                <a :href=record.hyperlink target="_blank">{{ record.label }}</a>
+                                <span v-if="record.ticked">
+                                    <input :disabled="true" type="checkbox" v-model="record.ticked">
+                                </span>
+                                <span v-for="child in record.children">
+                                    ; <a :href=child.hyperlink target="_blank">{{ child.label }}</a>
+                                    <span v-if="child.ticked">
+                                        <input :disabled="true" type="checkbox" v-model="child.ticked">
+                                    </span>
+                                    <span v-for="grandchild in child.children">
+                                        ; <a :href=grandchild.hyperlink target="_blank">{{ grandchild.label }}</a>
+                                        <span v-if="grandchild.ticked">
+                                            <input :disabled="true" type="checkbox" v-model="grandchild.ticked">
+                                        </span>
+                                        <span v-for="greatgrandchild in grandchild.children">
+                                            ; <a :href=greatgrandchild.hyperlink target="_blank">{{ greatgrandchild.label }}</a>
+                                            <span v-if="greatgrandchild.ticked">
+                                                <input :disabled="true" type="checkbox" v-model="greatgrandchild.ticked">
+                                            </span>
+                                        </span>
+                                    </span>
+                                </span>
+                            </div>
+                        </div></div>
+                    </div>
                     <span v-else class="col-sm-10">No Offences, Offenders or Records of Interview</span>
                 </FormSection>
                 <FormSection :formCollapse="false" label="Witness Statements, Officer Statements, Expert Statements" treeHeight="yes">
-                    <div v-if="pbOtherStatementsVisibility" class="col-sm-11 form-group"><div class="row">
-                        <TreeSelect 
-                        id="pb-other-statements-tree"
-                        ref="pb_other_statements_tree" 
-                        :value="pbOtherStatementsTicked" 
-                        :options="pbOtherStatementsOptions" 
-                        :default-expand-level="Infinity" 
-                        multiple
-                        value-consists-of="LEAF_PRIORITY"
-                        @input="setPbOtherStatementsTicked"
-                        alwaysOpen
-                        :searchable="false"
-                        />
-                    </div></div>
+                    <div v-if="pbOtherStatementsExist">
+                        <div v-if="pbOtherStatementsVisibility" class="col-sm-11 form-group"><div class="row">
+                            <TreeSelect 
+                            id="pb-other-statements-tree"
+                            ref="pb_other_statements_tree" 
+                            :value="pbOtherStatementsTicked" 
+                            :options="pbOtherStatementsOptions" 
+                            :default-expand-level="Infinity" 
+                            multiple
+                            value-consists-of="LEAF_PRIORITY"
+                            @input="setPbOtherStatementsTicked"
+                            alwaysOpen
+                            :searchable="false"
+                            />
+                        </div></div>
+                        <div v-else class="col-sm-12 form-group"><div class="row">
+                            <div v-for="record in pbOtherStatementsOptions">
+                                <a :href=record.hyperlink target="_blank">{{ record.label }}</a>
+                                <span v-if="record.ticked">
+                                    <input :disabled="true" type="checkbox" v-model="record.ticked">
+                                </span>
+                                <span v-for="child in record.children">
+                                    ; <a :href=child.hyperlink target="_blank">{{ child.label }}</a>
+                                    <span v-if="child.ticked">
+                                        <input :disabled="true" type="checkbox" v-model="child.ticked">
+                                    </span>
+                                    <span v-for="grandchild in child.children">
+                                        ; <a :href=grandchild.hyperlink target="_blank">{{ grandchild.label }}</a>
+                                        <span v-if="grandchild.ticked">
+                                            <input :disabled="true" type="checkbox" v-model="grandchild.ticked">
+                                        </span>
+                                    </span>
+                                </span>
+                            </div>
+                        </div></div>
+                    </div>
                     <span v-else class="col-sm-10">No Witness Statements, Officer Statements or Expert Statements</span>
                 </FormSection>
                 <FormSection id="physical-artifacts-tree" :formCollapse="false" label="List of Exhibits, Sensitive Unused and Non-Sensitive Unused Materials" treeHeight="yes">
@@ -384,9 +434,16 @@ export default {
         }
         return options;
     },
-    pbOtherStatementsVisibility: function() {
+    pbOtherStatementsExist: function() {
         let visibility = false;
         if (this.pbOtherStatementsOptions && this.pbOtherStatementsOptions.length > 0) {
+            visibility = true;
+        }
+        return visibility;
+    },
+    pbOtherStatementsVisibility: function() {
+        let visibility = false;
+        if (!this.readonlyForm && this.pbOtherStatementsExist) {
             visibility = true;
         }
         return visibility;
@@ -398,9 +455,16 @@ export default {
         }
         return options;
     },
-    pbRoiVisibility: function() {
+    pbRoiExist: function() {
         let visibility = false;
         if (this.pbRoiOptions && this.pbRoiOptions.length > 0) {
+            visibility = true;
+        }
+        return visibility;
+    },
+    pbRoiVisibility: function() {
+        let visibility = false;
+        if (!this.readonlyForm && this.pbRoiExist) {
             visibility = true;
         }
         return visibility;
