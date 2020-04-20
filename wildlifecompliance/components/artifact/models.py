@@ -401,6 +401,11 @@ class BriefOfEvidenceDocumentArtifacts(models.Model):
             label_text = self.document_artifact.number
         return label_text
 
+    @property
+    def hyperlink(self):
+        hyperlink = '/internal/object/' + str(self.document_artifact.id)
+        return hyperlink
+
 
 class ProsecutionBriefDocumentArtifacts(models.Model):
     legal_case = models.ForeignKey(
@@ -428,6 +433,11 @@ class ProsecutionBriefDocumentArtifacts(models.Model):
         else:
             label_text = self.document_artifact.number
         return label_text
+
+    @property
+    def hyperlink(self):
+        hyperlink = '/internal/object/' + str(self.document_artifact.id)
+        return hyperlink
 
 
 class PhysicalArtifact(Artifact):
@@ -682,6 +692,11 @@ class BriefOfEvidencePhysicalArtifacts(models.Model):
             label_text = self.physical_artifact.number
         return label_text
 
+    @property
+    def hyperlink(self):
+        hyperlink = '/internal/object/' + str(self.physical_artifact.id)
+        return hyperlink
+
 
 class ProsecutionBriefPhysicalArtifacts(models.Model):
     legal_case = models.ForeignKey(
@@ -709,9 +724,15 @@ class ProsecutionBriefPhysicalArtifacts(models.Model):
             label_text = self.physical_artifact.identifier
         else:
             label_text = self.physical_artifact.number
+            #label_text = '<a href=/internal/object/' + self.physical_artifact.number + ' target="_blank">Open</a>'
         return label_text
 
+    @property
+    def hyperlink(self):
+        hyperlink = '/internal/object/' + str(self.physical_artifact.id)
+        return hyperlink
 
+    
 @python_2_unicode_compatible
 class PhysicalArtifactFormDataRecord(models.Model):
 

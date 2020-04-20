@@ -714,6 +714,7 @@ class BriefOfEvidenceOtherStatementsSerializer(serializers.ModelSerializer):
 class BriefOfEvidencePhysicalArtifactsSerializer(serializers.ModelSerializer):
     #children = serializers.ListField(child=RecursiveField())
     label = serializers.SerializerMethodField()
+    hyperlink = serializers.SerializerMethodField()
 
     class Meta:
         model = BriefOfEvidencePhysicalArtifacts
@@ -723,6 +724,7 @@ class BriefOfEvidencePhysicalArtifactsSerializer(serializers.ModelSerializer):
                 'physical_artifact_id',
                 'ticked',
                 'label',
+                'hyperlink',
                 'reason_sensitive_non_disclosable',
                 #'children',
                 )
@@ -733,10 +735,14 @@ class BriefOfEvidencePhysicalArtifactsSerializer(serializers.ModelSerializer):
     def get_label(self, obj):
         return obj.label
 
+    def get_hyperlink(self, obj):
+        return obj.hyperlink
+
 
 class BriefOfEvidenceDocumentArtifactsSerializer(serializers.ModelSerializer):
     #children = serializers.ListField(child=RecursiveField())
     label = serializers.SerializerMethodField()
+    hyperlink = serializers.SerializerMethodField()
     attachments = serializers.SerializerMethodField()
 
     class Meta:
@@ -747,6 +753,7 @@ class BriefOfEvidenceDocumentArtifactsSerializer(serializers.ModelSerializer):
                 'document_artifact_id',
                 'ticked',
                 'label',
+                'hyperlink',
                 'attachments',
                 #'children',
                 )
@@ -766,6 +773,9 @@ class BriefOfEvidenceDocumentArtifactsSerializer(serializers.ModelSerializer):
 
     def get_label(self, obj):
         return obj.label
+
+    def get_hyperlink(self, obj):
+        return obj.hyperlink
 
 
 class ProsecutionBriefRecordOfInterviewSerializer(serializers.ModelSerializer):
