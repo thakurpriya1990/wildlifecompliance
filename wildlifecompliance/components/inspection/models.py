@@ -93,6 +93,7 @@ class Inspection(RevisionedMixin):
     planned_for_date = models.DateField(null=True)
     planned_for_time = models.TimeField(blank=True, null=True)
     inform_party_being_inspected = models.BooleanField(default=False)
+    informed_datetime = models.DateTimeField(null=True, blank=True)  # Store the datetime when notification email is sent
     party_inspected = models.CharField(
             max_length=30,
             choices=PARTY_CHOICES,

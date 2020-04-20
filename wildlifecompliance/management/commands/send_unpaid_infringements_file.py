@@ -99,6 +99,7 @@ class Command(BaseCommand):
                     members = get_infringement_notice_coordinators()
 
                     # Emailing
+
                     to_address = [member.email for member in members] if members else [settings.NOTIFICATION_EMAIL]
                     cc = None
                     bcc = None
