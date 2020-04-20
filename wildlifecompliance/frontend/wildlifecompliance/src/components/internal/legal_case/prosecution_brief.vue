@@ -151,7 +151,8 @@
                             <div class="row" v-for="artifact in physicalArtifactsUsed">
                                 <!--input class="col-sm-1" type="checkbox" :value="artifact.id" v-model="physicalArtifactsUsedTicked"-->
                                 <input :disabled="readonlyForm" class="col-sm-1" type="checkbox" v-model="artifact.ticked">
-                                <label class="col-sm-4">{{ artifact.label }}</label>
+                                <!--label class="col-sm-4">{{ artifact.label }}</label-->
+                                <a :href=artifact.hyperlink target="_blank">{{ artifact.label }}</a>
                             </div>
                         </div>
                         <span v-else class="col-sm-10">No objects on the list of exhibits</span>
@@ -160,7 +161,8 @@
                             <div class="row" v-for="artifact in physicalArtifactsSensitiveUnused">
                                 <!--input class="col-sm-1" :id="'tickbox_' + artifact.id" type="checkbox" :value="artifact.id" v-model="physicalArtifactsSensitiveUnusedTicked"-->
                                 <input :disabled="readonlyForm" class="col-sm-1" :id="'tickbox_' + artifact.id" type="checkbox" v-model="artifact.ticked">
-                                <label class="col-sm-3">{{ artifact.label }}</label>
+                                <!--label class="col-sm-3">{{ artifact.label }}</label-->
+                                <a :href=artifact.hyperlink target="_blank">{{ artifact.label }}</a>
                                 <div v-if="artifact.ticked">
                                     <label class="col-sm-3">Reason for sensitivity / non-disclosure</label>
                                     <div class="col-sm-5">
@@ -180,7 +182,8 @@
                             <div class="row" v-for="artifact in physicalArtifactsNonSensitiveUnused">
                                 <!--input class="col-sm-1" type="checkbox" :value="artifact.id" v-model="physicalArtifactsNonSensitiveUnusedTicked"-->
                                 <input :disabled="readonlyForm" class="col-sm-1" type="checkbox" v-model="artifact.ticked">
-                                <label class="col-sm-4">{{ artifact.label }}</label>
+                                <!--label class="col-sm-4">{{ artifact.label }}</label-->
+                                <a :href=artifact.hyperlink target="_blank">{{ artifact.label }}</a>
                             </div>
                         </div>
                         <span v-else class="col-sm-10">No objects on the non-sensitive unused list of materials</span>
@@ -191,9 +194,10 @@
                         <div class="row" v-for="artifact in documentArtifacts">
                             <!--input class="col-sm-1" type="checkbox" :value="artifact.id" v-model="physicalArtifactsUsedTicked"-->
                             <input :disabled="readonlyForm" class="col-sm-1" type="checkbox" v-model="artifact.ticked">
-                            <label class="col-sm-4">
+                            <a :href=artifact.hyperlink target="_blank">{{ artifact.label }}</a>
+                            <!--label class="col-sm-4">
                                 {{ artifact.label }}
-                            </label>
+                            </label-->
                             <div class="col-sm-12 form-group document-artifact-file"><div class="row">
                                 <div v-for="document in artifact.attachments">
                                     <label> {{ document.name }}
