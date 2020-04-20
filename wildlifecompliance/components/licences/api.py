@@ -26,6 +26,9 @@ from wildlifecompliance.components.applications.models import (
     Application,
     ApplicationSelectedActivity
 )
+from wildlifecompliance.components.applications.services import (
+    ApplicationFeePolicyForAmendment
+)
 from rest_framework_datatables.pagination import DatatablesPageNumberPagination
 from rest_framework_datatables.filters import DatatablesFilterBackend
 from rest_framework_datatables.renderers import DatatablesRenderer
@@ -686,6 +689,7 @@ class UserAvailableWildlifeLicencePurposesViewSet(viewsets.ModelViewSet):
         - licence_activity (LicenceActivity, id)
         - organisation_id (Organisation, id), used in Application.get_active_licence_applications
         - proxy_id (EmailUser, id), used in Application.get_active_licence_applications
+        - licence_no (WildlifeLicence, id)
         """
         from wildlifecompliance.components.licences.models import LicencePurpose
 
@@ -694,6 +698,7 @@ class UserAvailableWildlifeLicencePurposesViewSet(viewsets.ModelViewSet):
         application_type = request.GET.get('application_type')
         licence_category_id = request.GET.get('licence_category')
         licence_activity_id = request.GET.get('licence_activity')
+        licence_no = request.GET.get('licence_no')
         # active_applications are applications linked with licences that have CURRENT or SUSPENDED activities
         active_applications = Application.get_active_licence_applications(request, application_type)
         active_current_applications = active_applications.exclude(
@@ -706,6 +711,43 @@ class UserAvailableWildlifeLicencePurposesViewSet(viewsets.ModelViewSet):
             for app in open_applications:
                 available_purpose_records = available_purpose_records.exclude(
                     id__in=app.licence_purposes.all().values_list('id', flat=True))
+
+        if request.user.is_staff:
+            # filter out purposes not related to selected licence.
+            active_purpose_ids = []
+            if licence_no:
+                licence = WildlifeLicence.objects.get(id=licence_no)
+                for selected_activity in licence.current_activities:
+                    active_purpose_ids.extend(
+                        [purpose.id for purpose in selected_activity.purposes])
+              
+            if application_type in [
+                Application.APPLICATION_TYPE_ACTIVITY,
+                Application.APPLICATION_TYPE_NEW_LICENCE,
+            ]:
+                # filter out currently active purposes from available records.
+                available_purpose_records = available_purpose_records.exclude(
+                    id__in=active_purpose_ids
+                )
+
+            if application_type in [
+                Application.APPLICATION_TYPE_AMENDMENT,
+                Application.APPLICATION_TYPE_RENEWAL,
+                Application.APPLICATION_TYPE_REISSUE,
+            ]:
+                # rebuild available records with active purposes for Activity 
+                # Amendments.
+                active_purpose_ids = []
+                current = licence.current_activities.filter(
+                    licence_activity__id=licence_activity_id
+                )
+                for selected_activity in current:
+                    active_purpose_ids.extend(
+                        [purpose.id for purpose in selected_activity.purposes])
+
+                available_purpose_records = LicencePurpose.objects.filter(
+                    id__in=active_purpose_ids
+                )
 
         if not active_applications.count() and application_type == Application.APPLICATION_TYPE_RENEWAL:
             # Do not present with renewal options if no activities are within the renewal period
@@ -784,6 +826,12 @@ class UserAvailableWildlifeLicencePurposesViewSet(viewsets.ModelViewSet):
 
         # Filter out LicenceCategory objects that are not linked with available_purpose_records
         queryset = queryset.filter(activity__purpose__in=available_purpose_records).distinct()
+
+        # Set any changes to base fees.
+        if application_type == Application.APPLICATION_TYPE_AMENDMENT:
+            policy = ApplicationFeePolicyForAmendment
+            for purpose in available_purpose_records:
+                policy.set_zero_licence_fee_for(purpose)
 
         serializer = LicenceCategorySerializer(queryset, many=True, context={
             'request': request,
