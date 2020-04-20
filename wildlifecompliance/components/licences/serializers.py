@@ -330,13 +330,31 @@ class ActivitySerializer(serializers.ModelSerializer):
 
     def get_purpose(self, obj):
         purposes = self.context.get('purpose_records')
-        purpose_records = purposes if purposes else obj.purpose.all()
+        records = purposes if purposes else obj.purpose.all()
         serializer = PurposeSerializer(
-            purpose_records.filter(
+            records.filter(
                 licence_activity_id=obj.id
             ),
             many=True,
         )
+        try:
+            if purposes.target_field_name == 'licencepurpose':
+                # when field_name exists the purposes have not been built.
+                return serializer.data
+
+        except AttributeError:
+            pass
+
+        # update changes to the base fees.
+        for data in serializer.data:
+            licence_fee = [
+                p.base_licence_fee for p in records if p.id == data['id']]
+            application_fee = [
+                p.base_application_fee for p in records if p.id == data['id']]
+
+            data['base_licence_fee'] = licence_fee[0]
+            data['base_application_fee'] = application_fee[0]
+
         return serializer.data
 
 
