@@ -3903,6 +3903,8 @@ class ApplicationUserAction(UserAction):
     ACTION_DECLINE = "Decline application {}"
     ACTION_ENTER_CONDITIONS = "Entered condition for activity {}"
     ACTION_CREATE_CONDITION_ = "Create condition {}"
+    ACTION_ORDER_CONDITION_UP = "Moved ordering higher for condition {}"
+    ACTION_ORDER_CONDITION_DOWN = "Moved ordering lower for condition {}"
     ACTION_ISSUE_LICENCE_ = "Issue Licence for activity {}"
     ACTION_REISSUE_LICENCE_ = "Re-issuing Licence for activity {}"
     ACTION_DECLINE_LICENCE_ = "Decline Licence for activity {}"
@@ -3947,6 +3949,7 @@ reversion.register(ApplicationInvoiceLine)
 reversion.register(ApplicationDocument)
 reversion.register(ApplicationStandardCondition)
 reversion.register(ApplicationFormDataRecord)
+reversion.register(ApplicationLogEntry)
 reversion.register(AmendmentRequest)
 reversion.register(ActivityPermissionGroup)
 reversion.register(ActivityInvoice)

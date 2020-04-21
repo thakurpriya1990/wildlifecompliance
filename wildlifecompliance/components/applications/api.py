@@ -1497,7 +1497,7 @@ class ApplicationConditionViewSet(viewsets.ModelViewSet):
                 instance.submit()
                 instance.application.log_user_action(
                     ApplicationUserAction.ACTION_ENTER_CONDITIONS.format(
-                        instance.licence_activity.name), request)
+                        instance.condition[:256]), request)
             return Response(serializer.data)
         except serializers.ValidationError:
             print(traceback.print_exc())
@@ -1515,6 +1515,9 @@ class ApplicationConditionViewSet(viewsets.ModelViewSet):
             instance = self.get_object()
             instance.up()
             instance.save()
+            instance.application.log_user_action(
+                ApplicationUserAction.ACTION_ORDER_CONDITION_UP.format(
+                    instance.condition[:256]), request)
             serializer = self.get_serializer(instance)
             return Response(serializer.data)
         except serializers.ValidationError:
@@ -1533,6 +1536,9 @@ class ApplicationConditionViewSet(viewsets.ModelViewSet):
             instance = self.get_object()
             instance.down()
             instance.save()
+            instance.application.log_user_action(
+                ApplicationUserAction.ACTION_ORDER_CONDITION_DOWN.format(
+                    instance.condition[:256]), request)
             serializer = self.get_serializer(instance)
             return Response(serializer.data)
         except serializers.ValidationError:
