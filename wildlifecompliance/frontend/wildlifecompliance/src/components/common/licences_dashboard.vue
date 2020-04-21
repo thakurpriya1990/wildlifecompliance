@@ -188,16 +188,16 @@ export default {
                             let org_id = full.current_application.org_applicant ? full.current_application.org_applicant.id : '';
                             let proxy_id = full.current_application.proxy_applicant ? full.current_application.proxy_applicant.id : '';
                             let licence_category_id = full.current_application.category_id ? full.current_application.category_id : '';
-
+                            console.log(full)
                             if (full.is_latest_in_category) {
                                 if (full.can_add_purpose){
-                                    links += `<a add-activity-purpose='${full.id}' org-id='${org_id}' proxy-id='${proxy_id}' licence-category-id='${licence_category_id}'>Amend</a><br/>`;
+                                    links += `<a licence-id='${full.id}' add-activity-purpose='${full.id}' org-id='${org_id}' proxy-id='${proxy_id}' licence-category-id='${licence_category_id}'>Amend</a><br/>`;
                                 }
                                 // if (full.can_action['can_amend']) {
                                 //     links += `<a amend-licence='${full.id}' org-id='${org_id}' proxy-id='${proxy_id}' licence-category-id='${licence_category_id}'>Amend</a><br/>`
                                 // }
                                 if (full.can_action['can_renew']) {
-                                    links += `<a renew-licence='${full.id}' org-id='${org_id}' proxy-id='${proxy_id}' licence-category-id='${licence_category_id}'>Renew</a><br/>`
+                                    links += `<a licence-id='${full.id}' renew-licence='${full.id}' org-id='${org_id}' proxy-id='${proxy_id}' licence-category-id='${licence_category_id}'>Renew</a><br/>`
                                 }
                                 if (!vm.is_external && full.can_action['can_reactivate_renew']) {
                                     links += `<a reactivate-renew-licence='${full.id}'>Reactivate Renew</a><br/>`
@@ -328,11 +328,12 @@ export default {
                 }).then((result) => {
                     if (result.value) {
                         vm.setApplyLicenceSelect({licence_select: 'new_activity'});
+                        var licence_no = $(this).attr('licence-id');
                         var licence_category_id = $(this).attr('licence-category-id');
                         var licence_activity_id = null;
                         vm.setApplyProxyId({id: $(this).attr('proxy-id')});
                         vm.setApplyOrgId({id: $(this).attr('org-id')});
-                        vm.routeApplyLicence(licence_category_id, licence_activity_id);
+                        vm.routeApplyLicence(licence_no, licence_category_id, licence_activity_id);
                     }
                 },(error) => {
                 });
@@ -349,11 +350,12 @@ export default {
                 }).then((result) => {
                     if (result.value) {
                         vm.setApplyLicenceSelect({licence_select: 'amend_activity'});
+                        var licence_no = $(this).attr('licence-id');
                         var licence_category_id = $(this).attr('licence-category-id');
                         var licence_activity_id = null;
                         vm.setApplyProxyId({id: $(this).attr('proxy-id')});
                         vm.setApplyOrgId({id: $(this).attr('org-id')});
-                        vm.routeApplyLicence(licence_category_id, licence_activity_id);
+                        vm.routeApplyLicence(licence_no, licence_category_id, licence_activity_id);
                     }
                 },(error) => {
                 });
@@ -370,11 +372,12 @@ export default {
                 }).then((result) => {
                     if (result.value) {
                         vm.setApplyLicenceSelect({licence_select: 'amend_activity'});
+                        var licence_no = $(this).attr('licence-id');
                         var licence_category_id = $(this).attr('licence-category-id');
                         var licence_activity_id = $(this).attr('amend-activity');
                         vm.setApplyProxyId({id: $(this).attr('proxy-id')});
                         vm.setApplyOrgId({id: $(this).attr('org-id')});
-                        vm.routeApplyLicence(licence_category_id, licence_activity_id);
+                        vm.routeApplyLicence(licence_no, licence_category_id, licence_activity_id);
                     }
                 },(error) => {
                 });
@@ -391,11 +394,12 @@ export default {
                 }).then((result) => {
                     if (result.value) {
                         vm.setApplyLicenceSelect({licence_select: 'renew_activity'});
+                        var licence_no = $(this).attr('licence-id');
                         var licence_category_id = $(this).attr('licence-category-id');
                         var licence_activity_id = null;
                         vm.setApplyProxyId({id: $(this).attr('proxy-id')});
                         vm.setApplyOrgId({id: $(this).attr('org-id')});
-                        vm.routeApplyLicence(licence_category_id, licence_activity_id);
+                        vm.routeApplyLicence(licence_no, licence_category_id, licence_activity_id);
                     }
                 },(error) => {
                 });
@@ -412,11 +416,12 @@ export default {
                 }).then((result) => {
                     if (result.value) {
                         vm.setApplyLicenceSelect({licence_select: 'renew_activity'});
+                        var licence_no = $(this).attr('licence-id');
                         var licence_category_id = $(this).attr('licence-category-id');
                         var licence_activity_id = $(this).attr('renew-activity');
                         vm.setApplyProxyId({id: $(this).attr('proxy-id')});
                         vm.setApplyOrgId({id: $(this).attr('org-id')});
-                        vm.routeApplyLicence(licence_category_id, licence_activity_id);
+                        vm.routeApplyLicence(licence_no, licence_category_id, licence_activity_id);
                     }
                 },(error) => {
                 });
@@ -801,11 +806,11 @@ export default {
                                 <td>`;
                                     if (activity['can_action']['can_amend']) {
                                         activity_rows +=
-                                            `<a amend-activity='${activity["licence_activity_id"]}' proxy-id='${proxy_id}' org-id='${org_id}' licence-category-id='${licence_category_id}'>Amend</a></br>`;
+                                            `<a licence-id='${licence_id}' amend-activity='${activity["licence_activity_id"]}' proxy-id='${proxy_id}' org-id='${org_id}' licence-category-id='${licence_category_id}'>Amend</a></br>`;
                                     }
                                     if (activity['can_action']['can_renew']) {
                                         activity_rows +=
-                                            `<a renew-activity='${activity["licence_activity_id"]}' proxy-id='${proxy_id}' org-id='${org_id}' licence-category-id='${licence_category_id}'>Renew</a></br>`;
+                                            `<a licence-id='${licence_id}' renew-activity='${activity["licence_activity_id"]}' proxy-id='${proxy_id}' org-id='${org_id}' licence-category-id='${licence_category_id}'>Renew</a></br>`;
                                     }
                                     if (!vm.is_external && activity['can_action']['can_reactivate_renew']) {
                                         activity_rows +=
@@ -922,13 +927,14 @@ export default {
         getColumnIndex: function(column_name) {
             return this.licence_headers.map(header => header.toLowerCase()).indexOf(column_name.toLowerCase());
         },
-        routeApplyLicence:function (licence_category_id, licence_activity_id) {
+        routeApplyLicence:function (licence_no, licence_category_id, licence_activity_id) {
             this.setApplicationWorkflowState({bool: true});
             return this.$router.push({
                 name: "apply_application_licence",
                 params: {
                     licence_category: licence_category_id,
                     licence_activity: licence_activity_id,
+                    licence_no: licence_no,
                 }
             });
         },
