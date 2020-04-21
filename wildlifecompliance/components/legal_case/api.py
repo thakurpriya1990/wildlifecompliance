@@ -329,6 +329,32 @@ class LegalCaseViewSet(viewsets.ModelViewSet):
         return HttpResponse(res_json, content_type='application/json')
 
     @detail_route(methods=['GET', ])
+    def no_running_sheet(self, request, *args, **kwargs):
+        try:
+            instance = self.get_object()
+            #qs = instance.action_logs.all()
+            #serializer = LegalCaseUserActionSerializer(qs, many=True)
+            return_serializer = LegalCaseNoRunningSheetSerializer(
+                    instance, 
+                    context={'request': request}
+                    )
+            return Response(
+                    return_serializer.data,
+                    #status=status.HTTP_201_CREATED,
+                    #headers=headers
+                    )
+            #return Response(serializer.data)
+        except serializers.ValidationError:
+            print(traceback.print_exc())
+            raise
+        except ValidationError as e:
+            print(traceback.print_exc())
+            raise serializers.ValidationError(repr(e.error_dict))
+        except Exception as e:
+            print(traceback.print_exc())
+            raise serializers.ValidationError(str(e))
+
+    @detail_route(methods=['GET', ])
     def action_log(self, request, *args, **kwargs):
         try:
             instance = self.get_object()
@@ -494,7 +520,7 @@ class LegalCaseViewSet(viewsets.ModelViewSet):
                             instance.number), request)
                     headers = self.get_success_headers(serializer.data)
                     full_http_response = request.data.get('full_http_response')
-                    no_running_sheet = request.data.get('no_running_sheet')
+                    #no_running_sheet = request.data.get('no_running_sheet')
                     if full_http_response:
                         return_serializer = self.variable_serializer(request, instance)
                         return Response(
@@ -502,16 +528,16 @@ class LegalCaseViewSet(viewsets.ModelViewSet):
                                 status=status.HTTP_201_CREATED,
                                 headers=headers
                                 )
-                    elif no_running_sheet:
-                        return_serializer = LegalCaseNoRunningSheetSerializer(
-                                instance, 
-                                context={'request': request}
-                                )
-                        return Response(
-                                return_serializer.data,
-                                status=status.HTTP_201_CREATED,
-                                headers=headers
-                                )
+                    #elif no_running_sheet:
+                     #   return_serializer = LegalCaseNoRunningSheetSerializer(
+                      #          instance, 
+                       #         context={'request': request}
+                        #        )
+                        #return Response(
+                         #       return_serializer.data,
+                          #      status=status.HTTP_201_CREATED,
+                           #     headers=headers
+                            #    )
                     else:
                         return Response(
                                 status=status.HTTP_201_CREATED,
