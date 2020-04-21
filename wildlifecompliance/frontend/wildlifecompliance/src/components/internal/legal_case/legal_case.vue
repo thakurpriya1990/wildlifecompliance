@@ -1733,6 +1733,8 @@ export default {
   mounted: function() {
       this.$nextTick(() => {
           this.addEventListeners();
+          // removes header from both brief_of_evidence and prosecution_brief
+          $('.vue-treeselect__control').css("display", "none");
           /*
           if (this.openStatus) {
               this.constructRunningSheetTableWrapper();
