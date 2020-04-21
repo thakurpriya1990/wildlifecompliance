@@ -3952,12 +3952,12 @@ import reversion
 reversion.register(
     Application, 
     follow=[
-        'selected_activities'
+        'selected_activities',
         'invoices',
         'form_data_records',
         'conditions', 
         'action_logs', 
-        'comms_logs'
+        'comms_logs',
         ]
     )
 reversion.register(ApplicationSelectedActivity)
