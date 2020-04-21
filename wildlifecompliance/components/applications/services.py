@@ -1033,8 +1033,16 @@ class ApplicationFeePolicyForAmendment(ApplicationFeePolicy):
     def get_dynamic_attributes(self):
         return self._dynamic_attributes
 
+    @staticmethod
+    def set_zero_licence_fee_for(purpose):
+        '''
+        No base licence fees are paid for Amended Activity Purposes.
+        '''
+        if purpose:
+            purpose.base_licence_fee = 0
+
     def __str__(self):
-        return 'ApplicaitonFeePolicyForAmend'
+        return 'ApplicationFeePolicyForAmend'
 
 
 class ApplicationFeePolicyForRenew(ApplicationFeePolicy):

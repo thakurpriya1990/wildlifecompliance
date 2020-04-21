@@ -1,10 +1,12 @@
 # -*- coding: utf-8 -*-
-
+import datetime
 from io import BytesIO
 
+import pytz
 from django.core.files.storage import default_storage
 from django.http import HttpResponse
 from ledger.payments.pdf import BrokenLine
+from ledger.settings_base import TIME_ZONE
 from reportlab.lib.colors import red, green, blue
 from reportlab.lib.enums import TA_RIGHT, TA_CENTER
 from reportlab.lib.pagesizes import A4
@@ -58,8 +60,27 @@ def _create_pdf(invoice_buffer, legal_case, offenders):
                               parent=styles['BodyText'],
                               alignment=TA_CENTER))
 
+    court_date_qs = legal_case.court_proceedings.court_dates.all().order_by('court_datetime')
+    court_date_obj = None
+    if court_date_qs:
+        # Retrieve earliest one
+        court_date_obj = court_date_qs[0]
+
     elements = []
     for offender in offenders:
+        offender_full_name = ''
+        court_date_txt = ''
+        court_time_txt = ''
+        court_place_txt = ''
+
+        if offender.person:
+            offender_full_name = offender.person.get_full_name()
+        if court_date_obj and court_date_obj.court_datetime:
+            local_datetime = court_date_obj.court_datetime.astimezone(pytz.timezone(TIME_ZONE))
+            court_date_txt = local_datetime.strftime('%d/%m/%Y')
+            court_time_txt = local_datetime.strftime('%H:%M')
+        if court_date_obj and court_date_obj.court:
+            court_place_txt = court_date_obj.court.location
 
         ###
         # 1st page
@@ -113,7 +134,7 @@ def _create_pdf(invoice_buffer, legal_case, offenders):
         data.append([
             Paragraph('<strong>Accused\'s Details</strong><br />', styles['Normal']),
             Paragraph('Full name', styles['Normal']),  # ,
-            Paragraph(get_font_str(offender.person.last_name), styles['Normal']),
+            Paragraph(get_font_str(offender_full_name), styles['Normal']),
             '',
             '',
         ])
@@ -141,13 +162,14 @@ def _create_pdf(invoice_buffer, legal_case, offenders):
         data.append([
             Paragraph('<strong>Date and time</strong>', styles['Normal']),
             Paragraph('Date', styles['Normal']),
-            '',
+            Paragraph(get_font_str(court_date_txt), styles['Normal']),
             Paragraph('Time', styles['Normal']),
-            '',
+            Paragraph(get_font_str(court_time_txt), styles['Normal']),
         ])
         data.append([
             Paragraph('<strong>Place</strong>', styles['Normal']),
-            '', '', '', '',
+            Paragraph(get_font_str(court_place_txt), styles['Normal']),
+            '', '', '',
         ])
         tbl_hearing_details = Table(data, style=style_tbl_hearing_details, colWidths=col_width_details, )  # rowHeights=rowHeights)
 

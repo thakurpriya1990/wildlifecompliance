@@ -1,32 +1,48 @@
 <template lang="html">
-    <div class="form-group"><div class="flexContainer">
+    <div class="form-group">
+        <div class="flexContainer">
+            <label class="flexItemTitleDatetime">Court</label>
 
-        <label class="flexItemTitleDatetime">Date</label>
-        <div class="flexItemDatetime">
-            <div class="input-group date" ref="courtDatePicker">
-                <input :readonly="readonlyForm" type="text" class="form-control" :value="court_date" />
-                <span class="input-group-addon">
-                    <span class="glyphicon glyphicon-calendar"></span>
-                </span>
+            <div class="flexItemDatetime" v-if="courts.length > 0">
+                <select :disabled="readonlyForm" class="form-control" v-model="court_location" @change="emitEvent()">
+                    <option value=""></option>
+                    <option v-for="co in courts" :value="co" :key="co.id">
+                        {{ co.identifier }}
+                    </option>
+                </select>
+            </div>
+
+            <input type="text" v-if="court_location" :value="court_location.location" class="form-control" disabled />
+        </div>
+
+        <div class="flexContainer">
+            <label class="flexItemTitleDatetime">Date</label>
+            <div class="flexItemDatetime">
+                <div class="input-group date" ref="courtDatePicker">
+                    <input :readonly="readonlyForm" type="text" class="form-control" :value="court_date" />
+                    <span class="input-group-addon">
+                        <span class="glyphicon glyphicon-calendar"></span>
+                    </span>
+                </div>
+            </div>
+
+            <label class="flexItemTitleDatetime">Time</label>
+            <div class="flexItemDatetime">
+                <div class="input-group date" ref="courtTimePicker">
+                    <input :readonly="readonlyForm" type="text" class="form-control" :value="court_time" />
+                    <span class="input-group-addon">
+                        <span class="glyphicon glyphicon-calendar"></span>
+                    </span>
+                </div>
+            </div>
+
+            <label class="flexItemTitleComments">Comments</label>
+            <div class="flexItemComments">
+                <input :readonly="readonlyForm" type="text" class="form-control" v-model="court_comments" ref="courtComments" />
             </div>
         </div>
-
-        <label class="flexItemTitleDatetime">Time</label>
-        <div class="flexItemDatetime">
-            <div class="input-group date" ref="courtTimePicker">
-                <input :readonly="readonlyForm" type="text" class="form-control" :value="court_time" />
-                <span class="input-group-addon">
-                    <span class="glyphicon glyphicon-calendar"></span>
-                </span>
-            </div>
-        </div>
-
-        <label class="flexItemTitleComments">Comments</label>
-        <div class="flexItemComments">
-            <input :readonly="readonlyForm" type="text" class="form-control" v-model="court_comments" ref="courtComments" />
-        </div>
-
-    </div></div>
+    <hr>
+    </div>
 </template>
 
 <script>
@@ -48,6 +64,8 @@ export default {
             court_date: null,
             court_time: null,
             court_comments: '',
+            court_location: null,
+            courts: [],
         }
     },
     components: {
@@ -62,6 +80,10 @@ export default {
             type: String,
             default: '',
         },
+        court: {
+            type: Object,
+            default: null,
+        },
         court_date_id: {
             type: Number,
             default: null,
@@ -73,8 +95,11 @@ export default {
         return_time_format: {
             type: String,
             default: 'HH:mm',
+        },
+        court_in_future: {
+            type: Boolean,
+            default: true,
         }
-
     },
     computed: {
         ...mapGetters('legalCaseStore', {
@@ -85,11 +110,9 @@ export default {
         },
         readonlyForm: function() {
             let readonly = true
-            if (this.legal_case && this.legal_case.id && !this.closedStatus) {
+            if (this.legal_case && this.legal_case.id && !this.closedStatus && this.court_in_future) {
                 readonly = !this.legal_case.can_user_action;
             }
-            console.log('=== readonlyForm ===');
-            console.log(readonly);
             return readonly
         },
         closedStatus: function() {
@@ -107,9 +130,6 @@ export default {
         ...mapActions('legalCaseStore', {
 
         }),
-        commentsChanged: function() {
-            this.$emit('comments_changed', { court_date_id: vm.court_date_id, comments: this.comments });
-        },
         courtOutcomeDocumentUploaded: function() {
             console.log('courtOutcomeDocumentUploaded');
         },
@@ -120,6 +140,7 @@ export default {
                 id: this.court_date_id,
                 court_datetime: test_m_datetime,
                 comments: this.court_comments,
+                court: this.court_location,
             });
         },
         addEventListeners: function() {
@@ -136,10 +157,10 @@ export default {
             el_court_date.on("dp.change", function(e) {
                 if (el_court_date.data("DateTimePicker").date()) {
                     vm.court_date = e.date.format('DD/MM/YYYY');
-                    vm.emitEvent();
                 } else if (el_court_date.data("date") === "") {
                     vm.court_date = null;
                 }
+                vm.emitEvent();
             });
 
             // Time
@@ -151,10 +172,10 @@ export default {
             el_court_time.on("dp.change", function(e) {
                 if (el_court_time.data("DateTimePicker").date()) {
                     vm.court_time = e.date.format('LT');
-                    vm.emitEvent();
                 } else if (el_court_time.data("date") === "") {
                     vm.court_time = null;
                 }
+                vm.emitEvent();
             });
 
             // Comments
@@ -167,9 +188,13 @@ export default {
                 }
             });
         },
+        constructOptionsCourt: async function() {
+            let returned= await cache_helper.getSetCacheList('CourtProceedings_Courts', '/api/legal_case/court_list');
+            this.courts = returned;
+        },
     },
     created: async function() {
-
+        this.constructOptionsCourt();
     },
     mounted: function() {
         console.log('mounted');
@@ -177,6 +202,7 @@ export default {
             this.addEventListeners();
         });
         // Convert datetime representation in string to moment obj
+        console.log(this.court_datetime);
         if (this.court_datetime){
             let court_datetime_obj = moment(new Date(this.court_datetime.getTime()));
             // Assign date as String type
@@ -185,6 +211,7 @@ export default {
             this.court_time = court_datetime_obj.format('LT');
         }
         this.court_comments = this.comments;
+        this.court_location = this.court;
     },
 };
 </script>
@@ -196,6 +223,7 @@ export default {
 .flexContainer {
     display: flex;
     align-items: center;
+    margin: 0 0 1em 0;
 }
 .flexItemTitleDatetime {
     width: 5%;
