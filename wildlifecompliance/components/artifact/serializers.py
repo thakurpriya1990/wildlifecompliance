@@ -665,6 +665,7 @@ class BriefOfEvidenceRecordOfInterviewSerializer(serializers.ModelSerializer):
     #children = serializers.ListField(child=RecursiveField())
     label = serializers.SerializerMethodField()
     hyperlink = serializers.SerializerMethodField()
+    show = serializers.SerializerMethodField()
 
     class Meta:
         model = BriefOfEvidenceRecordOfInterview
@@ -679,6 +680,7 @@ class BriefOfEvidenceRecordOfInterviewSerializer(serializers.ModelSerializer):
                 'ticked',
                 'label',
                 'hyperlink',
+                'show',
                 #'children',
                 )
         read_only_fields = (
@@ -691,11 +693,15 @@ class BriefOfEvidenceRecordOfInterviewSerializer(serializers.ModelSerializer):
     def get_hyperlink(self, obj):
         return obj.hyperlink
 
+    def get_show(self, obj):
+        return obj.show
+
 
 class BriefOfEvidenceOtherStatementsSerializer(serializers.ModelSerializer):
     #children = serializers.ListField(child=RecursiveField())
     label = serializers.SerializerMethodField()
     hyperlink = serializers.SerializerMethodField()
+    show = serializers.SerializerMethodField()
 
     class Meta:
         model = BriefOfEvidenceOtherStatements
@@ -709,6 +715,7 @@ class BriefOfEvidenceOtherStatementsSerializer(serializers.ModelSerializer):
                 'ticked',
                 'label',
                 'hyperlink',
+                'show',
                 #'children',
                 )
         read_only_fields = (
@@ -720,6 +727,9 @@ class BriefOfEvidenceOtherStatementsSerializer(serializers.ModelSerializer):
 
     def get_hyperlink(self, obj):
         return obj.hyperlink
+
+    def get_show(self, obj):
+        return obj.show
 
 
 class BriefOfEvidencePhysicalArtifactsSerializer(serializers.ModelSerializer):
@@ -793,6 +803,7 @@ class ProsecutionBriefRecordOfInterviewSerializer(serializers.ModelSerializer):
     #children = serializers.ListField(child=RecursiveField())
     label = serializers.SerializerMethodField()
     hyperlink = serializers.SerializerMethodField()
+    show = serializers.SerializerMethodField()
 
     class Meta:
         model = ProsecutionBriefRecordOfInterview
@@ -807,6 +818,7 @@ class ProsecutionBriefRecordOfInterviewSerializer(serializers.ModelSerializer):
                 'ticked',
                 'label',
                 'hyperlink',
+                'show',
                 #'children',
                 )
         read_only_fields = (
@@ -819,10 +831,14 @@ class ProsecutionBriefRecordOfInterviewSerializer(serializers.ModelSerializer):
     def get_hyperlink(self, obj):
         return obj.hyperlink
 
+    def get_show(self, obj):
+        return obj.show
+
 class ProsecutionBriefOtherStatementsSerializer(serializers.ModelSerializer):
     #children = serializers.ListField(child=RecursiveField())
     label = serializers.SerializerMethodField()
     hyperlink = serializers.SerializerMethodField()
+    show = serializers.SerializerMethodField()
 
     class Meta:
         model = ProsecutionBriefOtherStatements
@@ -836,6 +852,7 @@ class ProsecutionBriefOtherStatementsSerializer(serializers.ModelSerializer):
                 'ticked',
                 'label',
                 'hyperlink',
+                'show',
                 #'children',
                 )
         read_only_fields = (
@@ -847,6 +864,9 @@ class ProsecutionBriefOtherStatementsSerializer(serializers.ModelSerializer):
 
     def get_hyperlink(self, obj):
         return obj.hyperlink
+
+    def get_show(self, obj):
+        return obj.show
 
 
 class ProsecutionBriefPhysicalArtifactsSerializer(serializers.ModelSerializer):

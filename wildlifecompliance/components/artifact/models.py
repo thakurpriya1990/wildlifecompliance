@@ -984,6 +984,25 @@ class BriefOfEvidenceOtherStatements(models.Model):
             hyperlink = '/internal/users/' + str(self.person.id)
         return hyperlink
 
+    @property
+    def show(self):
+        show = False
+        # person
+        if self.children.count():
+            # statement
+            for child in self.children.all():
+                if child.children.count():
+                    # associated_doc_artifact
+                    for grandchild in child.children.all():
+                        if grandchild.ticked:
+                            show = True
+                else:
+                    if child.ticked:
+                        show = True
+        else:
+            show = self.ticked
+        return show
+
     def __str__(self):
         label_text = ''
         if not self.statement and not self.associated_doc_artifact:
@@ -1033,6 +1052,31 @@ class BriefOfEvidenceRecordOfInterview(models.Model):
 
     class Meta:
         app_label = 'wildlifecompliance'
+
+    @property
+    def show(self):
+        show = False
+        # offence
+        if self.children.count():
+            # offender
+            for child in self.children.all():
+                if child.children.count():
+                    # record_of_interview
+                    for grandchild in child.children.all():
+                        if grandchild.children.count():
+                            # associated_doc_artifact
+                            for greatgrandchild in grandchild.children.all():
+                                if greatgrandchild.ticked:
+                                    show = True
+                        else:
+                            if grandchild.ticked:
+                                show = True
+                else:
+                    if child.ticked:
+                        show = True
+        else:
+            show = self.ticked
+        return show
 
     @property
     def hyperlink(self):
@@ -1104,6 +1148,25 @@ class ProsecutionBriefOtherStatements(models.Model):
         app_label = 'wildlifecompliance'
 
     @property
+    def show(self):
+        show = False
+        # person
+        if self.children.count():
+            # statement
+            for child in self.children.all():
+                if child.children.count():
+                    # associated_doc_artifact
+                    for grandchild in child.children.all():
+                        if grandchild.ticked:
+                            show = True
+                else:
+                    if child.ticked:
+                        show = True
+        else:
+            show = self.ticked
+        return show
+
+    @property
     def hyperlink(self):
         if self.associated_doc_artifact:
             hyperlink = '/internal/object/' + str(self.associated_doc_artifact.id)
@@ -1169,6 +1232,31 @@ class ProsecutionBriefRecordOfInterview(models.Model):
     @property
     def label(self):
         return self.__str__()
+
+    @property
+    def show(self):
+        show = False
+        # offence
+        if self.children.count():
+            # offender
+            for child in self.children.all():
+                if child.children.count():
+                    # record_of_interview
+                    for grandchild in child.children.all():
+                        if grandchild.children.count():
+                            # associated_doc_artifact
+                            for greatgrandchild in grandchild.children.all():
+                                if greatgrandchild.ticked:
+                                    show = True
+                        else:
+                            if grandchild.ticked:
+                                show = True
+                else:
+                    if child.ticked:
+                        show = True
+        else:
+            show = self.ticked
+        return show
 
     @property
     def hyperlink(self):
