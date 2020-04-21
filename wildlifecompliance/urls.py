@@ -253,6 +253,11 @@ urlpatterns = [
     url(r'^payment_deferred/(?P<sanction_outcome_pk>\d+)/$', DeferredInvoicingView.as_view(), name='deferred_invoicing'),
     url(r'^preview_deferred/(?P<sanction_outcome_pk>\d+)/$', DeferredInvoicingPreviewView.as_view(), name='preview_deferred_invoicing'),
 
+    # history comparison.
+    url(r'^history/application/(?P<pk>\d+)/$',
+        application_views.ApplicationHistoryCompareView.as_view(),
+        name='application-history')
+
 ] + ledger_patterns
 
 if not are_migrations_running():
