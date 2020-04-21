@@ -657,7 +657,8 @@ class BaseApplicationSerializer(serializers.ModelSerializer):
 
     def get_adjusted_paid_amount(self, obj):
         """
-        Total paid amount adjusted for presentation purposes. 
+        Total paid amount adjusted for presentation purposes. Only applicable
+        for internal officers to enforce refundable payments.
         """
         adjusted = None
         # Include previously paid amounts for amendments.
@@ -665,16 +666,16 @@ class BaseApplicationSerializer(serializers.ModelSerializer):
 
         if obj.processing_status == Application.PROCESSING_STATUS_UNDER_REVIEW:
             # when Under Review, fee for amendment is paid and included in
-            # previous paid amount as well as total paid amount. Need to 
+            # previous paid amount as well as total paid amount. Need to
             # exclude this previous amount.
             adjusted = adjusted - obj.previous_paid_amount
 
             # licence fee is paid with the application fee. Licence fee needs
             # to be excluded from total paid for application.
-            activities_paid = 0
+            licence_fee_paid = 0
             for activity in obj.activities:
-                activities_paid += activity.total_paid_amount
-            adjusted = adjusted - activities_paid
+                licence_fee_paid += activity.licence_fee
+            adjusted = adjusted - licence_fee_paid
 
         return adjusted
 
@@ -1063,6 +1064,7 @@ class ApplicationConditionSerializer(serializers.ModelSerializer):
         allow_null=True)
     purpose_name = serializers.SerializerMethodField(read_only=True)
     source_name = serializers.SerializerMethodField(read_only=True)
+    source_group = serializers.SerializerMethodField(read_only=True)
 
     class Meta:
         model = ApplicationCondition
@@ -1093,7 +1095,20 @@ class ApplicationConditionSerializer(serializers.ModelSerializer):
         return obj.licence_purpose.short_name if obj.licence_purpose else None
 
     def get_source_name(self, obj):
-        return obj.source_group.name if obj.source_group else None
+        return obj.source_group.name if obj.source_group else 'SYSTEM'
+
+    def get_source_group(self, obj):
+        try:
+            user = self.context['request'].user
+
+        except (KeyError, AttributeError):
+            return None
+
+        is_member = None
+        if obj.source_group and user:
+            is_member = True if user in obj.source_group.members else False
+
+        return obj.source_group.name if is_member else None
 
 
 class ApplicationStandardConditionSerializer(serializers.ModelSerializer):

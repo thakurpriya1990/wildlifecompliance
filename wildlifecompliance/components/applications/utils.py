@@ -3,7 +3,9 @@ import re
 from django.core.exceptions import ValidationError
 from django.db import transaction
 from wildlifecompliance.components.applications.models import (
-    ApplicationDocument
+    ApplicationDocument,
+    ApplicationFormDataRecord,
+    ApplicationSelectedActivity,
 )
 from wildlifecompliance.components.applications.serializers import (
     SaveApplicationSerializer
@@ -394,7 +396,10 @@ class SpecialFieldsSearch(object):
 
 
 def get_activity_schema(activity_ids):
-    from wildlifecompliance.components.applications.models import ApplicationSelectedActivity
+    """
+    NOTE: Redundant has been replaced with a function from the class
+    ActivitySchemaUtil.get_activity_schema(activity_ids).
+    """
     schema_group = []
     try:
         purposes = LicencePurpose.objects.filter(
@@ -414,8 +419,6 @@ def get_activity_schema(activity_ids):
                 item['purpose_id'] = purpose.id
             schema_purpose += purpose_schema
             # set special species lookup option
-            # purpose.get_group_species_list
-            # purpose.get_section_species_list
             purpose.get_species_list
 
         schema_group.append({"type": "tab",
@@ -469,3 +472,139 @@ def get_activity_schema(activity_ids):
     iterate_children(schema_group)
 
     return schema_group
+
+
+class ActivitySchemaUtil(object):
+    """
+    Utility to facilitate the manipulation of Schema attributes on an Activity.
+    """
+    _COPY_TO_LICENCE = 'copy-to-licence'
+
+    def __init__(self, application):
+        self._application = application
+        self._activities = application.activities
+
+    def get_ctl_text(self, term):
+        """
+        Gets the text_area relating to the new terminology from the form.
+        """
+        _info = 'N/A'
+        _condition = term['condition']
+        _has_condition = True if _condition else False
+        _name = term['name']
+
+        try:
+            if _has_condition:
+                field = _condition.keys()[0]
+                data = ApplicationFormDataRecord.objects.get(
+                    application_id=self._application.id,
+                    field_name=field,
+                )
+                _has_condition = False if data.value == term[
+                    'condition'][field] else True
+
+            if not _has_condition:
+                data = ApplicationFormDataRecord.objects.get(
+                    application_id=self._application.id,
+                    field_name=_name,
+                )
+            _info = data.value
+
+        except ApplicationFormDataRecord.DoesNotExist:
+            pass
+
+        return _info
+
+    def get_activity_schema(self, activity_ids):
+        """
+        Gets a rebuilt Activity Schema with updated attributes.
+        """
+        schema_group = []
+        try:
+            purposes = LicencePurpose.objects.filter(
+                id__in=activity_ids
+            )
+        except ValueError:
+            return schema_group
+        unique_type_purposes = purposes.distinct('licence_activity')
+
+        for index, activity in enumerate(unique_type_purposes):
+            activity = activity.licence_activity
+            schema_purpose = []
+
+            for purpose in purposes.filter(licence_activity__id=activity.id):
+                purpose_schema = purpose.schema
+                for item in purpose_schema:
+                    item['purpose_id'] = purpose.id
+                schema_purpose += purpose_schema
+                # set special species lookup option
+                purpose.get_species_list
+
+            schema_group.append({
+                "type": "tab",
+                "id": activity.id,
+                "label": activity.name,
+                "name": activity.name,
+                "status": ApplicationSelectedActivity.PROCESSING_STATUS_DRAFT,
+                "children": schema_purpose
+                })
+
+        # Iterate through the schema to add licence_activity_id to all form
+        # fields for storing in database
+
+        def iterate_children(
+            schema_group,
+            parent={},
+            parent_type='',
+            condition={},
+            activity_id=None,
+            purpose_id=None
+                ):
+
+            children_keys = [
+                'children',
+                'header',
+                'expander',
+                'conditions',
+            ]
+            container = {
+                i: schema_group[i] for i in range(len(schema_group))
+            } if isinstance(schema_group, list) else schema_group
+
+            for key, item in container.items():
+
+                try:
+                    activity_id = item['id']
+                except BaseException:
+                    pass
+
+                try:
+                    purpose_id = item['purpose_id']
+                except BaseException:
+                    pass
+
+                if isinstance(item, list):
+                    if parent_type == 'conditions':
+                        condition[parent['name']] = key
+                    iterate_children(
+                        item,
+                        parent,
+                        parent_type,
+                        condition, activity_id, purpose_id)
+                    continue
+
+                item['licence_activity_id'] = activity_id
+                item['licence_purpose_id'] = purpose_id
+
+                for children_key in children_keys:
+                    if children_key in item:
+                        iterate_children(
+                            item[children_key],
+                            item,
+                            children_key, condition, activity_id, purpose_id)
+
+                condition = {}
+
+        iterate_children(schema_group)
+
+        return schema_group

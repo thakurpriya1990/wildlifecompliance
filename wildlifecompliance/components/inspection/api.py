@@ -809,8 +809,28 @@ class InspectionViewSet(viewsets.ModelViewSet):
                     instance = self.modify_inspection_team(request, instance, workflow=True, user_id=instance.assigned_to_id)
 
                 # send email
-                if workflow_type in ('send_to_manager', 'request_amendment') and instance.inspection_team_lead_id:
-                    email_data = prepare_mail(request, instance, workflow_entry, send_mail, instance.inspection_team_lead_id)
+                if workflow_type == 'send_to_manager':
+                    email_data = prepare_mail(
+                            request, 
+                            instance, 
+                            workflow_entry, 
+                            send_mail, 
+                            recipient_id=instance.inspection_team_lead_id,
+                            email_type='send_to_manager')
+                elif workflow_type == 'request_amendment':
+                    email_data = prepare_mail(
+                            request, 
+                            instance, 
+                            workflow_entry, 
+                            send_mail, 
+                            email_type='request_amendment')
+                elif workflow_type == 'endorse':
+                    email_data = prepare_mail(
+                            request, 
+                            instance, 
+                            workflow_entry, 
+                            send_mail, 
+                            email_type='endorse')
                 else:
                     email_data = prepare_mail(request, instance, workflow_entry, send_mail)
 

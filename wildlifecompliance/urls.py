@@ -203,6 +203,10 @@ urlpatterns = [
     # call_email emails to users
     url(r'^internal/call_email/(?P<call_email_id>\d+)/$', views.ApplicationView.as_view(),
         name='internal-call-email-detail'),
+    # following url is defined so that to include url path when sending
+    # artifact emails to users
+    url(r'^internal/object/(?P<artifact_id>\d+)/$', views.ApplicationView.as_view(),
+        name='internal-artifact-detail'),
     
     # following url is defined so that to include url path when sending
     # inspection emails to users
@@ -252,6 +256,11 @@ urlpatterns = [
     # For 'Record Payment'
     url(r'^payment_deferred/(?P<sanction_outcome_pk>\d+)/$', DeferredInvoicingView.as_view(), name='deferred_invoicing'),
     url(r'^preview_deferred/(?P<sanction_outcome_pk>\d+)/$', DeferredInvoicingPreviewView.as_view(), name='preview_deferred_invoicing'),
+
+    # Reports
+    url(r'^api/oracle_job$',main_api.OracleJob.as_view(), name='get-oracle'),
+    #url(r'^api/oracle_job$',main_api.OracleJob.as_view(), name='get-oracle'),
+    url(r'^api/reports/booking_settlements$', main_api.BookingSettlementReportView.as_view(),name='booking-settlements-report'),
 
     # history comparison.
     url(r'^history/application/(?P<pk>\d+)/$',

@@ -21,7 +21,7 @@ class OracleIntegrationCronJob(CronJobBase):
     To Test (shortly after RUN_AT_TIMES):
         ./manage_wc.py runcrons
     """
-    RUN_AT_TIMES = ['00:40']
+    RUN_AT_TIMES = [settings.CRON_RUN_AT_TIMES]
 
     schedule = Schedule(run_at_times=RUN_AT_TIMES)
     code = 'wildlifels.oracle_integration'

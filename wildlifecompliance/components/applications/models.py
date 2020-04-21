@@ -1617,8 +1617,11 @@ class Application(RevisionedMixin):
             # amendment.
             for activity in self.selected_activities.all():
                 previous_paid += activity.previous_paid_amount
+        else:
+            for activity in self.selected_activities.all():
+                previous_paid += activity.pre_adjusted_application_fee
 
-            previous_paid = previous_paid_under_review(previous_paid)
+        previous_paid = previous_paid_under_review(previous_paid)
 
         return previous_paid
 
@@ -2199,6 +2202,14 @@ class Application(RevisionedMixin):
                                 start_date = latest_activity.start_date
                                 expiry_date = latest_activity.expiry_date
 
+                        # Additional Fees need to be set before processing fee.
+                        # Fee amount may change by the issuer making decision.
+                        if item['additional_fee']:
+                            selected_activity.additional_fee = \
+                                Decimal(item['additional_fee'])
+                            selected_activity.additional_fee_text = item[
+                                'additional_fee_text']
+
                         # If there is an outstanding licence fee payment - attempt to charge the stored card.
                         payment_successful = selected_activity.process_licence_fee_payment(request, self)
                         if not payment_successful:
@@ -2220,8 +2231,6 @@ class Application(RevisionedMixin):
                         selected_activity.expiry_date = expiry_date
                         selected_activity.cc_email = item['cc_email']
                         selected_activity.reason = item['reason']
-                        selected_activity.additional_fee = item['additional_fee']
-                        selected_activity.additional_fee_text = item['additional_fee_text']
 
                         proposed_purposes = selected_activity.proposed_purposes.all()
                         for proposed_purpose in proposed_purposes:
@@ -2994,6 +3003,7 @@ class ApplicationSelectedActivity(models.Model):
         blank=True,
         null=True,
         related_name='wildlifecompliance_officer')
+    additional_licence_info = JSONField(default=list)
 
     def __str__(self):
         return "Application {id} Selected Activity: {short_name} ({activity_id})".format(
@@ -3199,12 +3209,13 @@ class ApplicationSelectedActivity(models.Model):
         if self.licence_fee == 0:
             _status = ActivityInvoice.PAYMENT_STATUS_NOT_REQUIRED
         else:
-            if self.invoices.count() == 0:
+            if self.activity_invoices.count() == 0:
                 _status = ActivityInvoice.PAYMENT_STATUS_UNPAID
             else:
                 try:
                     latest_invoice = Invoice.objects.get(
-                        reference=self.invoices.latest('id').invoice_reference)
+                        reference=self.activity_invoices.latest(
+                            'id').invoice_reference)
                     _status = latest_invoice.payment_status
                 except Invoice.DoesNotExist:
                     _status =  ActivityInvoice.PAYMENT_STATUS_UNPAID
@@ -3216,13 +3227,20 @@ class ApplicationSelectedActivity(models.Model):
         ]:
             return _status  # also includes overpaid.
         else:
-            if self.additional_fee > 0:
+            if self.additional_fee > Decimal(0.0):
                 try:
                     latest_invoice = Invoice.objects.get(
-                        reference=self.invoices.latest('id').invoice_reference,
-                        amount=self.application.additional_fees)
+                        reference=self.activity_invoices.latest(
+                            'id').invoice_reference,
+                        amount=self.additional_fee)
                     _status = latest_invoice.payment_status
+
                 except Invoice.DoesNotExist:
+                    if not self.processing_status == \
+                        ApplicationSelectedActivity.PROCESSING_STATUS_ACCEPTED:
+                        _status = ActivityInvoice.PAYMENT_STATUS_UNPAID
+
+                except BaseException:
                     if not self.processing_status == \
                         ApplicationSelectedActivity.PROCESSING_STATUS_ACCEPTED:
                         _status = ActivityInvoice.PAYMENT_STATUS_UNPAID
@@ -3282,17 +3300,45 @@ class ApplicationSelectedActivity(models.Model):
     def total_paid_amount(self):
         """
         Property defining the total fees already paid for this licence Activity.
+        The total amount includes fee, adjustments and licence fee.
         """
         amount = 0
-        if self.invoices.count() > 0:
+        if self.activity_invoices.count() > 0:
             invoices = ActivityInvoice.objects.filter(
                 activity_id=self.id)
             for invoice in invoices:
-                detail = Invoice.objects.get(
-                    reference=invoice.invoice_reference)
-                amount = self.licence_fee
+                lines = ActivityInvoiceLine.objects.filter(
+                    invoice_id=invoice.id)
+                for line in lines:
+                    amount += line.amount
      
         return amount
+
+    @property
+    def has_adjusted_application_fee(self):
+        '''
+        Property indicating this Selected Activity has an adjusted application
+        fee different from the base admin fee.
+        '''
+        adjusted = False
+        charged = self.licence_fee + self.application_fee
+        if charged < self.total_paid_amount:
+            adjusted = True
+
+        return adjusted
+
+    @property
+    def pre_adjusted_application_fee(self):
+        '''
+        Property returning the base admin fee amount paid for this Selected
+        Activity regardless of any adjustments.
+        '''
+        pre_adjusted_fee = self.application_fee        
+        if self.has_adjusted_application_fee:
+            charged = self.licence_fee + pre_adjusted_fee
+            pre_adjusted_fee = self.total_paid_amount - charged 
+
+        return pre_adjusted_fee
 
     @property
     def requires_refund(self):
@@ -3336,13 +3382,16 @@ class ApplicationSelectedActivity(models.Model):
         # check for Customer licence amendment.
         if self.application.application_type ==\
                 Application.APPLICATION_TYPE_AMENDMENT:
-            previous = ApplicationSelectedActivity.objects.get(
-                application_id=self.application.previous_application.id,
-                licence_activity=self.licence_activity
-            )            
-            previous_paid += previous.application_fee if previous else 0
+            try:
+                previous = ApplicationSelectedActivity.objects.get(
+                    application_id=self.application.previous_application.id,
+                    licence_activity_id=self.licence_activity_id
+                ) 
+                previous_paid += previous.application_fee if previous else 0
+                previous_paid = previous_paid_under_review(previous_paid)
 
-            previous_paid = previous_paid_under_review(previous_paid)
+            except ApplicationSelectedActivity.DoesNotExist:
+                pass  # OK. Amendment involves adding new Activity/Purpose.
 
         return previous_paid
 
@@ -3538,7 +3587,9 @@ class ActivityInvoice(models.Model):
     PAYMENT_STATUS_PAID = 'paid'
     PAYMENT_STATUS_OVERPAID = 'over_paid'
 
-    activity = models.ForeignKey(ApplicationSelectedActivity, related_name='invoices')
+    activity = models.ForeignKey(
+        ApplicationSelectedActivity, 
+        related_name='activity_invoices')
     invoice_reference = models.CharField(
         max_length=50, null=True, blank=True, default='')
     invoice_datetime = models.DateTimeField(auto_now=True)
@@ -3759,11 +3810,8 @@ class ApplicationCondition(OrderedModel):
 
     def set_source(self, user):
         """
-        Set the condition creator as Source when with Assessor.
+        Sets the users permission group as the source for this condition.
         """
-        if not self.get_assessor_permission_group(user):
-            return
-
         activity = self.application.activities.get(
             # Get the Application Selected Activity for this condition.
             licence_activity_id = self.licence_activity_id
@@ -3775,10 +3823,35 @@ class ApplicationCondition(OrderedModel):
             self.source_group = group.activitypermissiongroup
             self.save()
 
+        with_officer = [
+            ApplicationSelectedActivity.PROCESSING_STATUS_WITH_OFFICER,
+            ApplicationSelectedActivity.PROCESSING_STATUS_OFFICER_CONDITIONS]
+
+        if activity.processing_status in with_officer:
+            # Set the source_group when added by the officer.
+            group = self.get_officer_permission_group(user)
+            self.source_group = group.activitypermissiongroup
+            self.save()
+
     def get_assessor_permission_group(self, user, first=True):
         app_label = get_app_label()
         qs = user.groups.filter(
             permissions__codename='assessor'
+        )
+        activity_id = self.licence_activity.id
+        qs = qs.filter(
+            activitypermissiongroup__licence_activities__id__in=activity_id\
+                if isinstance(activity_id, (list, models.query.QuerySet)
+                ) else [activity_id]
+        )
+        if app_label:
+            qs = qs.filter(permissions__content_type__app_label=app_label)
+        return qs.first() if first else qs
+
+    def get_officer_permission_group(self, user, first=True):
+        app_label = get_app_label()
+        qs = user.groups.filter(
+            permissions__codename='licensing_officer'
         )
         activity_id = self.licence_activity.id
         qs = qs.filter(

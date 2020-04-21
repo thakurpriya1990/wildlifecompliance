@@ -21,9 +21,37 @@ class InspectionForwardNotificationEmail(TemplateEmailBase):
     html_template = 'wildlifecompliance/emails/send_inspection_forward_notification.html'
     txt_template = 'wildlifecompliance/emails/send_inspection_forward_notification.txt'
 
+class InspectionSendToManagerNotificationEmail(TemplateEmailBase):
+    subject = 'Inspection sent to manager'
+    html_template = 'wildlifecompliance/emails/send_inspection_to_manager_notification.html'
+    txt_template = 'wildlifecompliance/emails/send_inspection_to_manager_notification.txt'
 
-def send_mail(select_group, inspection, workflow_entry, request=None):
-    email = InspectionForwardNotificationEmail()
+class InspectionRequestAmendmentNotificationEmail(TemplateEmailBase):
+    subject = 'Amendment Requested'
+    html_template = 'wildlifecompliance/emails/request_amendment_notification.html'
+    txt_template = 'wildlifecompliance/emails/request_amendment_notification.txt'
+
+class InspectionEndorseNotificationEmail(TemplateEmailBase):
+    subject = 'Inspection Endorsed and Closed'
+    html_template = 'wildlifecompliance/emails/endorse_inspection_notification.html'
+    txt_template = 'wildlifecompliance/emails/endorse_inspection_notification.txt'
+
+class InspectionNotificationEmail(TemplateEmailBase):
+    subject = 'Inspection performed soon'
+    html_template = 'wildlifecompliance/emails/inspection_notification.html'
+    txt_template = 'wildlifecompliance/emails/inspection_notification.txt'
+
+
+def send_mail(select_group, inspection, workflow_entry, request=None, email_type=None):
+    if email_type == 'send_to_manager':
+        email = InspectionSendToManagerNotificationEmail()
+    elif email_type == 'request_amendment':
+        email = InspectionRequestAmendmentNotificationEmail()
+    elif email_type == 'endorse':
+        email = InspectionEndorseNotificationEmail()
+    else:
+        # default is Inspection forward notification
+        email = InspectionForwardNotificationEmail()
     if request.data.get('email_subject'):
         email.subject = request.data.get('email_subject')
     url = request.build_absolute_uri(
@@ -47,3 +75,23 @@ def send_mail(select_group, inspection, workflow_entry, request=None):
     email_data = _extract_email_headers(msg, sender=sender)
     return email_data
 
+
+def send_notification_of_inspection_email(to_address, cc=None, bcc=None, attachments=[]):
+    email = InspectionNotificationEmail()
+    # if request.data.get('email_subject'):
+    #     email.subject = request.data.get('email_subject')
+    # url = request.build_absolute_uri(reverse('internal-sanction-outcome-detail', kwargs={ 'sanction_outcome_id': sanction_outcome.id }))
+    context = {
+        # 'url': url,
+        # 'sanction_outcome': sanction_outcome,
+        'workflow_entry_details': 'This is unpaid infringements message body.',
+    }
+    msg = email.send(to_address,
+                     context=context,
+                     attachments=attachments,
+                     cc=cc,
+                     bcc=bcc)
+    sender = settings.DEFAULT_FROM_EMAIL
+    email_data = _extract_email_headers(msg, sender=sender)
+
+    return email_data

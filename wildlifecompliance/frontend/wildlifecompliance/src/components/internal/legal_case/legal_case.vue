@@ -1117,7 +1117,9 @@ export default {
     openInspection() {
       this.uuid += 1;
       this.inspectionInitialised = true;
-        this.$nextTick(() => {
+        this.$nextTick(async () => {
+          //await this.saveLegalCase({create: false, internal: true })
+          await this.save({internalFlag:true});
           this.$refs.inspection.isModalOpen = true
       });
     },
@@ -1125,14 +1127,18 @@ export default {
     openSanctionOutcome(){
       this.uuid += 1;
       this.sanctionOutcomeInitialised = true;
-      this.$nextTick(() => {
+      this.$nextTick(async () => {
+          //await this.saveLegalCase({create: false, internal: true })
+          await this.save({internalFlag:true});
           this.$refs.sanction_outcome.isModalOpen = true;
       });
     },
     openOffence(){
       this.uuid += 1;
       this.offenceInitialised = true;
-      this.$nextTick(() => {
+      this.$nextTick(async () => {
+          //await this.saveLegalCase({create: false, internal: true })
+          await this.save({internalFlag:true});
           this.$refs.offence.isModalOpen = true;
       });
     },
@@ -1142,7 +1148,8 @@ export default {
       //this.rowNumberSelected = rowNumber;
       this.personOrArtifactInitialised = true;
       //this.personObjectKeyPosition = offset;
-      this.$nextTick(() => {
+      this.$nextTick(async () => {
+          await this.save({internalFlag:true, noRunningSheet:true});
           this.$refs.person_or_artifact_modal.isModalOpen = true;
       });
     },
@@ -1179,7 +1186,8 @@ export default {
         this.setLegalCaseWorkflowBindId();
         //this.updateWorkflowBindId();
         this.$nextTick(async () => {
-            await this.saveLegalCase({create: false, internal: true })
+            //await this.saveLegalCase({create: false, internal: true })
+            await this.save({internalFlag:true});
             this.$refs.legal_case_workflow.isModalOpen = true;
         });
     },
@@ -1187,7 +1195,8 @@ export default {
         this.documentTypeToGenerate = documentType
         this.setGenerateDocumentBindId();
         this.$nextTick(async () => {
-            await this.saveLegalCase({create: false, internal: true })
+            //await this.saveLegalCase({create: false, internal: true })
+            await this.save({internalFlag:true});
             this.$refs.generate_document.isModalOpen = true;
         });
     },
@@ -1200,6 +1209,7 @@ export default {
         createBriefOfEvidence=false,
         createProsecutionBrief=false,
         fullHttpResponse=false,
+        noRunningSheet=false,
         internalFlag=false,
     } = {}) {
       this.showSpinner = true;
@@ -1226,6 +1236,7 @@ export default {
           createBriefOfEvidence: createBriefOfEvidence,
           createProsecutionBrief: createProsecutionBrief,
           fullHttpResponse: fullHttpResponse,
+          noRunningSheet: noRunningSheet,
       });
       if (returnToDash) {
         // remove redundant eventListeners
@@ -1722,6 +1733,8 @@ export default {
   mounted: function() {
       this.$nextTick(() => {
           this.addEventListeners();
+          // removes header from both brief_of_evidence and prosecution_brief
+          $('.vue-treeselect__control').css("display", "none");
           /*
           if (this.openStatus) {
               this.constructRunningSheetTableWrapper();
@@ -1732,8 +1745,6 @@ export default {
               this.constructRunningSheetTableWrapper();
           }
           */
-          //let treeSelectElement = $('.vue-treeselect__control').css("display", "none");
-          //$('.vue-treeselect__control').css("display", "none");
       });
   },
 };

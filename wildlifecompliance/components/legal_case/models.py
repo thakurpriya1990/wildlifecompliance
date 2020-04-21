@@ -54,6 +54,19 @@ class CourtProceedings(models.Model):
         related_name="court_proceedings",
     )
     court_outcome_details = models.TextField(blank=True)
+    court_outcome_type = models.ForeignKey('CourtOutcomeType', null=True, blank=True)
+    court_outcome_fines = models.DecimalField(
+        verbose_name="Fines",
+        decimal_places=2,
+        max_digits=12,
+        blank=True,
+        null=True)
+    court_outcome_costs = models.DecimalField(
+        verbose_name="Costs",
+        decimal_places=2,
+        max_digits=12,
+        blank=True,
+        null=True)
 
     class Meta:
         app_label = 'wildlifecompliance'
@@ -153,8 +166,12 @@ class LegalCase(RevisionedMixin):
             cp.save()
 
     def log_user_action(self, action, request):
-        return LegalCaseUserAction.log_action(self, action, request.user)
-    
+        # return LegalCaseUserAction.log_action(self, action, request.user)
+        if request:
+            return LegalCaseUserAction.log_action(self, action, request.user)
+        else:
+            return LegalCaseUserAction.log_action(self, action)
+
     @property
     def get_related_items_identifier(self):
         return self.number
@@ -164,7 +181,7 @@ class LegalCase(RevisionedMixin):
         #return '{0}, {1}'.format(self.title, self.details)
         return self.title
 
-    def close(self, request):
+    def close(self, request=None):
         close_record, parents = can_close_legal_case(self, request)
         if close_record:
             self.status = self.STATUS_CLOSED
@@ -504,7 +521,8 @@ class LegalCaseCommsLogDocument(Document):
         app_label = 'wildlifecompliance'
 
 
-class LegalCaseUserAction(UserAction):
+# class LegalCaseUserAction(UserAction):
+class LegalCaseUserAction(models.Model):
     ACTION_CREATE_LEGAL_CASE = "Create Case {}"
     ACTION_SAVE_LEGAL_CASE = "Save Case {}"
     ACTION_STATUS_BRIEF_OF_EVIDENCE = "Generate 'Brief of Evidence' for Case {}"
@@ -528,13 +546,16 @@ class LegalCaseUserAction(UserAction):
         ordering = ('-when',)
 
     @classmethod
-    def log_action(cls, legal_case, action, user):
+    def log_action(cls, legal_case, action, user=None):
         return cls.objects.create(
             legal_case=legal_case,
             who=user,
             what=str(action)
         )
 
+    who = models.ForeignKey(EmailUser, null=True, blank=True)
+    when = models.DateTimeField(null=False, blank=False, auto_now_add=True)
+    what = models.TextField(blank=False)
     legal_case = models.ForeignKey(LegalCase, related_name='action_logs')
 
 
@@ -627,10 +648,38 @@ class CourtOutcomeDocument(Document):
         verbose_name_plural = 'CM_CourtOutcomeDocuments'
 
 
+class Court(models.Model):
+    identifier = models.CharField(max_length=255, blank=True, null=True)
+    location = models.CharField(max_length=255, blank=True, null=True)
+    description = models.TextField(blank=True, null=True)
+
+    class Meta:
+        app_label = 'wildlifecompliance'
+        verbose_name = 'CM_Court'
+        verbose_name_plural = 'CM_Courts'
+
+    def __str__(self):
+        return self.identifier + ' ({})'.format(self.location)
+
+
+class CourtOutcomeType(models.Model):
+    identifier = models.CharField(max_length=255, blank=True, null=True)
+    description = models.TextField(blank=True, null=True)
+
+    class Meta:
+        app_label = 'wildlifecompliance'
+        verbose_name = 'CM_CourtOutcomeType'
+        verbose_name_plural = 'CM_CourtOutcomeTypes'
+
+    def __str__(self):
+        return self.identifier
+
+
 class CourtDate(models.Model):
     court_proceedings = models.ForeignKey(CourtProceedings, related_name='court_dates')
     court_datetime = models.DateTimeField(blank=True, null=True,)
     comments = models.TextField(blank=True)
+    court = models.ForeignKey(Court, blank=True, null=True)
 
     class Meta:
         app_label = 'wildlifecompliance'

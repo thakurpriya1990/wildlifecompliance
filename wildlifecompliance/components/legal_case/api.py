@@ -62,7 +62,7 @@ from wildlifecompliance.components.legal_case.models import (
     BriefOfEvidence,
     ProsecutionBrief,
     ProsecutionBriefDocument,
-    CourtProceedings, CourtDate)
+    CourtProceedings, CourtDate, Court, CourtOutcomeType)
 from wildlifecompliance.components.legal_case.generate_pdf import create_document_pdf_bytes
 
 from wildlifecompliance.components.call_email.models import (
@@ -94,7 +94,10 @@ from wildlifecompliance.components.legal_case.serializers import (
     CourtProceedingsJournalSerializer,
     BriefOfEvidenceSerializer,
     ProsecutionBriefSerializer,
-    SaveCourtDateEntrySerializer)
+    SaveCourtDateEntrySerializer, 
+    CourtSerializer, 
+    LegalCaseNoRunningSheetSerializer,
+    CourtOutcomeTypeSerializer)
 from wildlifecompliance.components.users.models import (
     CompliancePermissionGroup,    
 )
@@ -107,6 +110,7 @@ from rest_framework_datatables.pagination import DatatablesPageNumberPagination
 from rest_framework_datatables.filters import DatatablesFilterBackend
 from rest_framework_datatables.renderers import DatatablesRenderer
 
+from wildlifecompliance.components.main.utils import FakeRequest
 from wildlifecompliance.components.legal_case.email import (
     send_mail)
 from wildlifecompliance.components.artifact.utils import (
@@ -126,9 +130,9 @@ from wildlifecompliance.components.artifact.utils import (
         )
 
 
-class FakeRequest():
-    def __init__(self, data):
-        self.data = data
+#class FakeRequest():
+ #   def __init__(self, data):
+  #      self.data = data
 
 
 class LegalCaseFilterBackend(DatatablesFilterBackend):
@@ -268,6 +272,38 @@ class LegalCaseViewSet(viewsets.ModelViewSet):
         return Response(serialized_instance.data)
 
     @list_route(methods=['GET', ])
+    def court_outcome_type_list(self, request):
+        try:
+            qs = CourtOutcomeType.objects.all()
+            serializer = CourtOutcomeTypeSerializer(qs, many=True, context={'request': request})
+            return Response(serializer.data)
+        except serializers.ValidationError:
+            print(traceback.print_exc())
+            raise
+        except ValidationError as e:
+            print(traceback.print_exc())
+            raise serializers.ValidationError(repr(e.error_dict))
+        except Exception as e:
+            print(traceback.print_exc())
+            raise serializers.ValidationError(str(e))
+
+    @list_route(methods=['GET', ])
+    def court_list(self, request):
+        try:
+            qs = Court.objects.all()
+            serializer = CourtSerializer(qs, many=True, context={'request': request})
+            return Response(serializer.data)
+        except serializers.ValidationError:
+            print(traceback.print_exc())
+            raise
+        except ValidationError as e:
+            print(traceback.print_exc())
+            raise serializers.ValidationError(repr(e.error_dict))
+        except Exception as e:
+            print(traceback.print_exc())
+            raise serializers.ValidationError(str(e))
+
+    @list_route(methods=['GET', ])
     def datatable_list(self, request, *args, **kwargs):
         try:
             qs = self.get_queryset()
@@ -291,7 +327,7 @@ class LegalCaseViewSet(viewsets.ModelViewSet):
             res_obj.append({'id': choice[0], 'display': choice[1]});
         res_json = json.dumps(res_obj)
         return HttpResponse(res_json, content_type='application/json')
-    
+
     @detail_route(methods=['GET', ])
     def action_log(self, request, *args, **kwargs):
         try:
@@ -399,6 +435,7 @@ class LegalCaseViewSet(viewsets.ModelViewSet):
                 # Court Proceedings
                 court_proceedings = request.data.get('court_proceedings', {})
                 if court_proceedings:
+                    court_proceedings['court_outcome_type_id'] = court_proceedings['court_outcome_type']['id'] if court_proceedings['court_outcome_type'] else None
                     serializer = CourtProceedingsJournalSerializer(instance=instance.court_proceedings, data=court_proceedings)
                     if serializer.is_valid(raise_exception=True):
                         serializer.save()
@@ -422,12 +459,15 @@ class LegalCaseViewSet(viewsets.ModelViewSet):
                             comments = entry_copy.get('comments', '')
                             ascii_comments = comments.encode('ascii', 'xmlcharrefreplace')
                             entry_copy.update({'comments': ascii_comments})
+                            entry_copy['court_id'] = entry_copy['court']['id'] if entry_copy['court'] else None
                             if entry_copy.get('id'):
+                                # Update existing court_date
                                 court_date = CourtDate.objects.get(id=entry_copy.get('id'))
                                 serializer = SaveCourtDateEntrySerializer(instance=court_date, data=entry_copy)
                                 if serializer.is_valid(raise_exception=True):
                                     serializer.save()
                             else:
+                                # Create new court_date
                                 entry_copy['court_proceedings_id'] = instance.court_proceedings.id
                                 serializer = SaveCourtDateEntrySerializer(data=entry_copy)
                                 if serializer.is_valid(raise_exception=True):
@@ -454,8 +494,19 @@ class LegalCaseViewSet(viewsets.ModelViewSet):
                             instance.number), request)
                     headers = self.get_success_headers(serializer.data)
                     full_http_response = request.data.get('full_http_response')
+                    no_running_sheet = request.data.get('no_running_sheet')
                     if full_http_response:
                         return_serializer = self.variable_serializer(request, instance)
+                        return Response(
+                                return_serializer.data,
+                                status=status.HTTP_201_CREATED,
+                                headers=headers
+                                )
+                    elif no_running_sheet:
+                        return_serializer = LegalCaseNoRunningSheetSerializer(
+                                instance, 
+                                context={'request': request}
+                                )
                         return Response(
                                 return_serializer.data,
                                 status=status.HTTP_201_CREATED,
@@ -739,10 +790,34 @@ class LegalCaseViewSet(viewsets.ModelViewSet):
     @detail_route(methods=['POST'])
     @renderer_classes((JSONRenderer,))
     def process_court_hearing_notice_document(self, request, *args, **kwargs):
+        try:
+            instance = self.get_object()
+            # process docs
+            returned_data = process_generic_document(request, instance, 'court_hearing_notice')
+            # delete Sanction Outcome if user cancels modal
+            action = request.data.get('action')
+            if action == 'cancel' and returned_data:
+                instance.status = 'discarded'
+                instance.save()
 
-        # TODO: implement
+            # return response
+            if returned_data:
+                return Response(returned_data)
+            else:
+                return Response()
 
-        return Response()
+        except serializers.ValidationError:
+            print(traceback.print_exc())
+            raise
+        except ValidationError as e:
+            if hasattr(e, 'error_dict'):
+                raise serializers.ValidationError(repr(e.error_dict))
+            else:
+                raise serializers.ValidationError(repr(e[0].encode('utf-8')))
+        except Exception as e:
+            print(traceback.print_exc())
+            raise serializers.ValidationError(str(e))
+
 
     @detail_route(methods=['POST'])
     @renderer_classes((JSONRenderer,))

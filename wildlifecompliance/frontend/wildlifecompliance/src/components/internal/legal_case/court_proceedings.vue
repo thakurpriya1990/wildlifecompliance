@@ -1,6 +1,5 @@
 <template lang="html">
     <div>
-        <div class="row">
             <FormSection :formCollapse="false" label="Court Dates">
 
                 <div class="row file-upload-container">
@@ -12,7 +11,7 @@
                                    name="prosecution-notice-document"
                                    :documentActionUrl="legal_case.prosecutionNoticeDocumentUrl"
                                    @update-parent="courtOutcomeDocumentUploaded"
-                                   :isRepeatable="true"
+                                   :isRepeatable="false"
                                    :readonly="readonlyForm" />
                     </div>
                 </div>
@@ -25,20 +24,34 @@
                                    name="court-hearing-notice-document"
                                    :documentActionUrl="legal_case.courtHearingNoticeDocumentUrl"
                                    @update-parent="courtOutcomeDocumentUploaded"
-                                   :isRepeatable="true"
+                                   :isRepeatable="false"
                                    :readonly="readonlyForm" />
                     </div>
                 </div>
 
                 <div class="col-sm-12 form-group"><div class="row">
                     <template class="input-group date" id="court_date" v-for="court_date_obj in legal_case.court_proceedings.court_dates">
-                        <CourtDate 
-                            :court_datetime="new Date(court_date_obj.court_datetime)"
-                            :comments="court_date_obj.comments"
-                            :court_date_id="court_date_obj.id"
-                            @data_changed="dataChanged"
-                            :Key="court_date_obj.id"
-                            />
+                        <template v-if="court_date_obj.court_datetime">
+                            <CourtDate 
+                                :court_datetime="new Date(court_date_obj.court_datetime)"
+                                :comments="court_date_obj.comments"
+                                :court="court_date_obj.court"
+                                :court_date_id="court_date_obj.id"
+                                :court_in_future="court_date_obj.court_in_future"
+                                @data_changed="dataChanged"
+                                :Key="court_date_obj.id"
+                                />
+                        </template>
+                        <template v-else>
+                            <CourtDate 
+                                :comments="court_date_obj.comments"
+                                :court="court_date_obj.court"
+                                :court_date_id="court_date_obj.id"
+                                :court_in_future="court_date_obj.court_in_future"
+                                @data_changed="dataChanged"
+                                :Key="court_date_obj.id"
+                                />
+                        </template>
                     </template>
                         <CourtDate 
                             @data_changed="dataChanged"
@@ -50,8 +63,13 @@
             <FormSection :formCollapse="false" label="Court Journal">
                 <div class="col-sm-12 form-group"><div class="row">
                     <div class="row action-button">
-                        <div v-if="canUserAction">
+                        <div v-if="!readonlyForm">
                               <a @click="createNewCourtProceedingsEntry()" class="btn btn-primary pull-right new-row-button" >
+                                  New Row
+                              </a>
+                        </div>
+                        <div v-else>
+                              <a class="btn btn-primary pull-right new-row-button" disabled>
                                   New Row
                               </a>
                         </div>
@@ -67,21 +85,67 @@
             </FormSection>
 
             <FormSection :formCollapse="false" label="Court Outcome">
-                <div class="col-sm-12 form-group"><div class="row">
-                    <div v-if="hasCourtProceedings">
-                        <filefield ref="court_outcome_document"
-                                   name="court-outcome-document"
-                                   :documentActionUrl="legal_case.processCourtOutcomeDocumentUrl"
-                                   @update-parent="courtOutcomeDocumentUploaded"
-                                   :isRepeatable="true"
-                                   :readonly="readonlyForm" />
-                        <textarea :readonly="readonlyForm" 
-                                  class="form-control location_address_field" 
-                                  v-model="legal_case.court_proceedings.court_outcome_details" />
+                <template v-if="hasCourtProceedings">
+                    <div class="row form-group" v-if="court_outcome_types.length > 0">
+                        <label class="col-md-2">Type</label>
+                        <div class="col-md-4">
+                            <select 
+                                :disabled="readonlyForm" 
+                                class="form-control" 
+                                v-model="legal_case.court_proceedings.court_outcome_type" 
+                            >
+                                <option value=""></option>
+                                <option v-for="type in court_outcome_types" :value="type" :key="type.id">
+                                    {{ type.identifier }}
+                                </option>
+                            </select>
+                        </div>
                     </div>
-                </div></div>
+
+                    <div class="row form-group">
+                        <label class="col-md-2">Court outcome</label>
+                        <div class="col-md-9">
+                            <filefield ref="court_outcome_document"
+                                       name="court-outcome-document"
+                                       :documentActionUrl="legal_case.processCourtOutcomeDocumentUrl"
+                                       @update-parent="courtOutcomeDocumentUploaded"
+                                       :isRepeatable="true"
+                                       :readonly="readonlyForm" />
+                        </div>
+                    </div>
+
+                    <div class="row form-group">
+                        <label class="col-md-2">Details</label>
+                        <div class="col-md-9">
+                            <textarea :readonly="readonlyForm" 
+                                      class="form-control location_address_field" 
+                                      v-model="legal_case.court_proceedings.court_outcome_details" />
+                        </div>
+                    </div>
+
+                    <div class="row form-group">
+                        <label class="col-md-2">Fines</label>
+                        <div class="col-md-2">
+                            <input :readonly="readonlyForm" 
+                                   min="0"
+                                   type="number"
+                                   class="form-control currency" 
+                                   v-model="legal_case.court_proceedings.court_outcome_fines" />
+                        </div>
+                    </div>
+
+                    <div class="row form-group">
+                        <label class="col-md-2">Costs</label>
+                        <div class="col-md-2">
+                            <input :readonly="readonlyForm" 
+                                   min="0"
+                                   type="number"
+                                   class="form-control currency" 
+                                   v-model="legal_case.court_proceedings.court_outcome_costs" />
+                        </div>
+                    </div>
+                </template>
             </FormSection>
-        </div>
         <div v-if="courtProceedingsHistoryEntryBindId">
             <JournalHistory 
             ref="journal_history"
@@ -111,6 +175,7 @@ export default {
     data: function() {
         return {
             uuid: 0,
+            court_outcome_types: [],
             courtProceedingsEntriesUpdated: [],
             courtProceedingsEntriesUrl: [],
             courtProceedingsHistoryEntryBindId: '',
@@ -168,6 +233,8 @@ export default {
                                 retStr = '<strike>' + 
                                     `<div id=${row.number} style="min-height:20px" contenteditable="false">${row.description}</div>`
                                     '</strike>';
+                            } else if (!row.action) {
+                                retStr = `<div id=${row.number} style="min-height:20px" contenteditable="false">${row.description}</div>`
                             }
                             return retStr;
 
@@ -192,10 +259,8 @@ export default {
                                 } else {
                                     retStr += `<a id=${rowIdReinstate} class="row_reinstate" href="#">Reinstate</a><br/>`
                                 }
-
                             }
                             return retStr;
-
                         }
                     },
                 ]
@@ -213,19 +278,31 @@ export default {
         ...mapGetters('legalCaseStore', {
             legal_case: "legal_case",
         }),
+        readonlyForm: function() {
+            let readonly = true
+            if (this.legal_case && this.legal_case.id && !this.closedStatus) {
+                readonly = !this.legal_case.can_user_action;
+            }
+            console.log('=== readonlyForm ===');
+            console.log(readonly);
+            return readonly
+        },
+        closedStatus: function() {
+            let returnStatus = false
+            if (this.legal_case && this.statusId === 'closed') {
+                returnStatus = true
+            }
+            return returnStatus
+        },
+        statusId: function() {
+            return this.legal_case.status ? this.legal_case.status.id : '';
+        },
         ...mapGetters({
             current_user: 'current_user'
         }),
 
         csrf_token: function() {
             return helpers.getCookie("csrftoken");
-        },
-        readonlyForm: function() {
-            let readonly = true
-            if (this.legal_case && this.legal_case.id) {
-                readonly = !this.legal_case.can_user_action;
-            }
-            return readonly
         },
         canUserAction: function() {
             let return_val = false
@@ -251,11 +328,17 @@ export default {
             setCourtProceedingsDate: 'setCourtProceedingsDate',
         }),
         dataChanged: function(court_data_obj) {
+            console.log('*** in dataChanged() ***');
+            console.log(court_data_obj);
             try {
-                court_data_obj.court_datetime = court_data_obj.court_datetime.toDate().toISOString();
+                if (court_data_obj.court_datetime.isValid()){
+                    court_data_obj.court_datetime = court_data_obj.court_datetime.toDate().toISOString()
+                } else {
+                    court_data_obj.court_datetime = null;
+                }
                 this.setCourtProceedingsDate(court_data_obj);
             } catch (err) {
-                console.warn('data not changed');
+
             }
         },
         courtOutcomeDocumentUploaded: function() {
@@ -272,6 +355,10 @@ export default {
             try {
                 let payload = {};
                 payload.document_type = doc_type;
+                payload.court_date_id = ''
+                if (this.legal_case.court_proceedings.court_dates.length > 0){
+                    payload.court_date_id = this.legal_case.court_proceedings.court_dates[0].id
+                }
 
                 let post_url = '/api/legal_case/' + this.legal_case.id + '/generate_document/'
                 const res = await fetch(
@@ -358,6 +445,12 @@ export default {
                     // insert text manually
                     document.execCommand("insertHTML", false, transformedText);
                 });
+            this.preventDecimalPlaces();
+        },
+        preventDecimalPlaces: function() {
+            $(".currency").change(function() {
+                $(this).val(parseFloat($(this).val()).toFixed(2));
+            });
         },
         courtProceedingsRowDelete: async function(e){
             this.showSpinner = true;
@@ -573,8 +666,13 @@ export default {
             }
             console.log("constructCourtProceedingsTable - end")
         },
+        constructOptionsCourtOutcomeType: async function() {
+            let returned= await cache_helper.getSetCacheList('CourtProceedings_CourtOutcomeTypes', '/api/legal_case/court_outcome_type_list');
+            this.court_outcome_types = returned;
+        },
     },
     created: async function() {
+        this.constructOptionsCourtOutcomeType();
     },
     mounted: function() {
         this.$nextTick(() => {
@@ -615,5 +713,8 @@ export default {
 .file-upload-container {
     margin-top: 1%;
     margin-bottom: 2%;
+}
+.currency {
+    text-align: right;
 }
 </style>

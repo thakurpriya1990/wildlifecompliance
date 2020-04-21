@@ -605,7 +605,7 @@ def can_close_legal_case(entity, request=None):
                         close_child_record = False
                 if close_child_record:
                     # attempt to close artifact
-                    child.close()
+                    child.close(request)
                 # Read the updated child status to determine whether legal case can be closed
                 if child.status not in ('closed', 'waiting_for_disposal'):
                     close_record = False

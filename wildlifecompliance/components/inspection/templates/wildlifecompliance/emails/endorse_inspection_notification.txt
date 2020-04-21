@@ -1,9 +1,9 @@
 {%  extends 'wildlifecompliance/emails/base_email.txt' %}
 
 {%  block content %}
-        This Case has been forwarded to you:
+        Inspection has been endorsed and closed:
 
-        Case : <a href="{{url}}">{{ legal_case.number }}</a> 
+        Inspection : <a href="{{url}}">{{ inspection.number }}</a> 
 
         Message:  {{ workflow_entry_details }}
 
