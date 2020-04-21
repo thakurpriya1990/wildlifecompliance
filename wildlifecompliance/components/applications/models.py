@@ -3384,12 +3384,22 @@ class ApplicationSelectedActivity(models.Model):
             Returns the previous amount that was paid for this activity on the
             current licence.
             '''
-            licence = WildlifeLicence.objects.get(
-                current_application_id=self.application.previous_application.id
-            )
-            for activity in licence.current_activities:
-                if activity.licence_activity_id == self.licence_activity_id:
-                    previous_paid = activity.total_paid_amount
+            try:
+                prev_id = self.application.previous_application.id
+                licence = WildlifeLicence.objects.get(
+                    current_application_id=prev_id
+                )
+                for activity in licence.current_activities:
+                    if activity.licence_activity_id == self.licence_activity_id:
+                        previous_paid = activity.total_paid_amount
+
+            except WildlifeLicence.DoesNotExist:
+                # The previous application is not the current on the licence.
+                # The previous amendment has been approved.
+                pass
+
+            except BaseException:
+                raise Exception('Exception in previous_paid_from_licence.')
 
             return previous_paid
 
