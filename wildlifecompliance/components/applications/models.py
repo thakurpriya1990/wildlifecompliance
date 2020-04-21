@@ -1612,17 +1612,12 @@ class Application(RevisionedMixin):
             return previous_paid
 
         previous_paid = 0
-        # check for Customer licence amendment.
-        if self.application_type == Application.APPLICATION_TYPE_AMENDMENT:
-            # only check previous amount for selected activities requiring
-            # amendment.
-            for activity in self.selected_activities.all():
-                previous_paid += activity.previous_paid_amount
-        else:
-            for activity in self.selected_activities.all():
-                previous_paid += activity.pre_adjusted_application_fee
-
-        previous_paid = previous_paid_under_review(previous_paid)
+        for activity in self.selected_activities.all():
+            previous_paid += activity.previous_paid_amount
+            # check for Customer licence amendment.
+            if self.application_type == Application.APPLICATION_TYPE_AMENDMENT:
+                # ignore refunds triggered by internal officers change.
+                previous_paid = previous_paid_under_review(previous_paid)
 
         return previous_paid
 
