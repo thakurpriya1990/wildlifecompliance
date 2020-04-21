@@ -129,24 +129,20 @@
                         </div></div>
                         <div v-else class="col-sm-12 form-group"><div class="row">
                             <div v-for="record in boeRoiOptions">
-                                <a :href=record.hyperlink target="_blank">{{ record.label }}</a>
-                                <span v-if="record.ticked">
-                                    <input :disabled="true" type="checkbox" v-model="record.ticked">
+                                <span v-if="record.show">
+                                    <a :href=record.hyperlink target="_blank">{{ record.label }}</a>
                                 </span>
                                 <span v-for="child in record.children">
-                                    ; <a :href=child.hyperlink target="_blank">{{ child.label }}</a>
-                                    <span v-if="child.ticked">
-                                        <input :disabled="true" type="checkbox" v-model="child.ticked">
+                                    <span v-if="child.show">
+                                        ; <a :href=child.hyperlink target="_blank">{{ child.label }}</a>
                                     </span>
                                     <span v-for="grandchild in child.children">
-                                        ; <a :href=grandchild.hyperlink target="_blank">{{ grandchild.label }}</a>
-                                        <span v-if="grandchild.ticked">
-                                            <input :disabled="true" type="checkbox" v-model="grandchild.ticked">
+                                        <span v-if="grandchild.show">
+                                            ; <a :href=grandchild.hyperlink target="_blank">{{ grandchild.label }}</a>
                                         </span>
                                         <span v-for="greatgrandchild in grandchild.children">
-                                            ; <a :href=greatgrandchild.hyperlink target="_blank">{{ greatgrandchild.label }}</a>
-                                            <span v-if="greatgrandchild.ticked">
-                                                <input :disabled="true" type="checkbox" v-model="greatgrandchild.ticked">
+                                            <span v-if="greatgrandchild.show">
+                                                ; <a :href=greatgrandchild.hyperlink target="_blank">{{ greatgrandchild.label }}</a>
                                             </span>
                                         </span>
                                     </span>
@@ -174,19 +170,16 @@
                         </div></div>
                         <div v-else class="col-sm-12 form-group"><div class="row">
                             <div v-for="record in boeOtherStatementsOptions">
-                                <a :href=record.hyperlink target="_blank">{{ record.label }}</a>
-                                <span v-if="record.ticked">
-                                    <input :disabled="true" type="checkbox" v-model="record.ticked">
+                                <span v-if="record.show">
+                                    <a :href=record.hyperlink target="_blank">{{ record.label }}</a>
                                 </span>
                                 <span v-for="child in record.children">
-                                    ; <a :href=child.hyperlink target="_blank">{{ child.label }}</a>
-                                    <span v-if="child.ticked">
-                                        <input :disabled="true" type="checkbox" v-model="child.ticked">
+                                    <span v-if="child.show">
+                                        ; <a :href=child.hyperlink target="_blank">{{ child.label }}</a>
                                     </span>
                                     <span v-for="grandchild in child.children">
-                                        ; <a :href=grandchild.hyperlink target="_blank">{{ grandchild.label }}</a>
-                                        <span v-if="grandchild.ticked">
-                                            <input :disabled="true" type="checkbox" v-model="grandchild.ticked">
+                                        <span v-if="grandchild.show">
+                                            ; <a :href=grandchild.hyperlink target="_blank">{{ grandchild.label }}</a>
                                         </span>
                                     </span>
                                 </span>
