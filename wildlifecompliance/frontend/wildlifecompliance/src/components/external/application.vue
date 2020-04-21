@@ -292,7 +292,6 @@ export default {
         });
     },
     pay_and_submit: function(){
-        console.log('pay_and-submit')
         let vm = this;
         this.isProcessing = true;
         let swal_title = 'Checkout and Submit Application'
