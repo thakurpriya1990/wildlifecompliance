@@ -1241,6 +1241,12 @@ class ApplicationViewSet(viewsets.ModelViewSet):
                 instance, request.data)
             # Send any relevant notifications.
             instance.alert_for_refund(request)
+            # Log save action for internal officer.
+            if request.user.is_staff:
+                instance.log_user_action(
+                    ApplicationUserAction.ACTION_SAVE_APPLICATION.format(
+                        instance.id), request)
+
             return Response({'success': True})
         except MissingFieldsException as e:
             return Response({

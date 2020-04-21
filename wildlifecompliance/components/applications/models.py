@@ -3882,6 +3882,7 @@ class ApplicationUserAction(UserAction):
     ACTION_CREATE_CUSTOMER_ = "Create customer {}"
     ACTION_CREATE_PROFILE_ = "Create profile {}"
     ACTION_LODGE_APPLICATION = "Lodge application {}"
+    ACTION_SAVE_APPLICATION = "Save changes to application {}"
     ACTION_ASSIGN_TO_OFFICER = "Assign application {} to officer {}"
     ACTION_UNASSIGN_OFFICER = "Unassign officer from application {}"
     ACTION_ACCEPT_ID = "Accept ID"
