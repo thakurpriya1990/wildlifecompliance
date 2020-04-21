@@ -68,6 +68,7 @@ from wildlifecompliance.components.licences.models import (
     LicenceActivity,
     LicencePurpose,
     LicenceDocument,
+    WildlifeLicence,
 )
 from wildlifecompliance.components.main.models import (
     TemporaryDocumentCollection
@@ -3378,20 +3379,26 @@ class ApplicationSelectedActivity(models.Model):
                 
             return previous_paid
 
+        def previous_paid_from_licence(previous_paid):
+            '''
+            Returns the previous amount that was paid for this activity on the
+            current licence.
+            '''
+            licence = WildlifeLicence.objects.get(
+                current_application_id=self.application.previous_application.id
+            )
+            for activity in licence.current_activities:
+                if activity.licence_activity_id == self.licence_activity_id:
+                    previous_paid = activity.total_paid_amount
+
+            return previous_paid
+
         previous_paid = 0
         # check for Customer licence amendment.
         if self.application.application_type ==\
                 Application.APPLICATION_TYPE_AMENDMENT:
-            try:
-                previous = ApplicationSelectedActivity.objects.get(
-                    application_id=self.application.previous_application.id,
-                    licence_activity_id=self.licence_activity_id
-                ) 
-                previous_paid += previous.application_fee if previous else 0
-                previous_paid = previous_paid_under_review(previous_paid)
-
-            except ApplicationSelectedActivity.DoesNotExist:
-                pass  # OK. Amendment involves adding new Activity/Purpose.
+            previous_paid = previous_paid_from_licence(previous_paid)
+            previous_paid = previous_paid_under_review(previous_paid)
 
         return previous_paid
 

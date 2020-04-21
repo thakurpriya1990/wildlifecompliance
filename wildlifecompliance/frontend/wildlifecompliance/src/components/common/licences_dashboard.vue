@@ -188,7 +188,6 @@ export default {
                             let org_id = full.current_application.org_applicant ? full.current_application.org_applicant.id : '';
                             let proxy_id = full.current_application.proxy_applicant ? full.current_application.proxy_applicant.id : '';
                             let licence_category_id = full.current_application.category_id ? full.current_application.category_id : '';
-                            console.log(full)
                             if (full.is_latest_in_category) {
                                 if (full.can_add_purpose){
                                     links += `<a licence-id='${full.id}' add-activity-purpose='${full.id}' org-id='${org_id}' proxy-id='${proxy_id}' licence-category-id='${licence_category_id}'>Amend</a><br/>`;
