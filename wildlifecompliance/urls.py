@@ -265,7 +265,7 @@ urlpatterns = [
     # history comparison.
     url(r'^history/application/(?P<pk>\d+)/$',
         application_views.ApplicationHistoryCompareView.as_view(),
-        name='application-history')
+        name='application-history'),
 
 ] + ledger_patterns
 
