@@ -1684,8 +1684,10 @@ class Application(RevisionedMixin):
         )
 
     def get_schema_for_purposes(self, purpose_id_list):
-        from wildlifecompliance.components.applications.utils import get_activity_schema
-        return get_activity_schema(purpose_id_list)
+        from wildlifecompliance.components.applications.utils \
+            import ActivitySchemaUtil
+        util = ActivitySchemaUtil(self)
+        return util.get_activity_schema(purpose_id_list)
 
     def get_schema_fields(self, schema_json):
         fields = {}
