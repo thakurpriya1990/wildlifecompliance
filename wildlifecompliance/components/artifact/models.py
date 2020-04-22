@@ -559,7 +559,7 @@ class PhysicalArtifact(Artifact):
         self.disposal_method_id = disposal_method_id
         self.disposal_details = disposal_details
         #self.save()
-        self.close()
+        self.close(request)
 
     #def close(self, request=None):
     def close(self, request):
