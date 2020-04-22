@@ -68,6 +68,7 @@ from wildlifecompliance.components.licences.models import (
     LicenceActivity,
     LicencePurpose,
     LicenceDocument,
+    WildlifeLicence,
 )
 from wildlifecompliance.components.main.models import (
     TemporaryDocumentCollection
@@ -1611,17 +1612,12 @@ class Application(RevisionedMixin):
             return previous_paid
 
         previous_paid = 0
-        # check for Customer licence amendment.
-        if self.application_type == Application.APPLICATION_TYPE_AMENDMENT:
-            # only check previous amount for selected activities requiring
-            # amendment.
-            for activity in self.selected_activities.all():
-                previous_paid += activity.previous_paid_amount
-        else:
-            for activity in self.selected_activities.all():
-                previous_paid += activity.pre_adjusted_application_fee
-
-        previous_paid = previous_paid_under_review(previous_paid)
+        for activity in self.selected_activities.all():
+            previous_paid += activity.previous_paid_amount
+            # check for Customer licence amendment.
+            if self.application_type == Application.APPLICATION_TYPE_AMENDMENT:
+                # ignore refunds triggered by internal officers change.
+                previous_paid = previous_paid_under_review(previous_paid)
 
         return previous_paid
 
@@ -1688,8 +1684,10 @@ class Application(RevisionedMixin):
         )
 
     def get_schema_for_purposes(self, purpose_id_list):
-        from wildlifecompliance.components.applications.utils import get_activity_schema
-        return get_activity_schema(purpose_id_list)
+        from wildlifecompliance.components.applications.utils \
+            import ActivitySchemaUtil
+        util = ActivitySchemaUtil(self)
+        return util.get_activity_schema(purpose_id_list)
 
     def get_schema_fields(self, schema_json):
         fields = {}
@@ -3378,20 +3376,36 @@ class ApplicationSelectedActivity(models.Model):
                 
             return previous_paid
 
+        def previous_paid_from_licence(previous_paid):
+            '''
+            Returns the previous amount that was paid for this activity on the
+            current licence.
+            '''
+            try:
+                prev_id = self.application.previous_application.id
+                licence = WildlifeLicence.objects.get(
+                    current_application_id=prev_id
+                )
+                for activity in licence.current_activities:
+                    if activity.licence_activity_id == self.licence_activity_id:
+                        previous_paid = activity.total_paid_amount
+
+            except WildlifeLicence.DoesNotExist:
+                # The previous application is not the current on the licence.
+                # The previous amendment has been approved.
+                pass
+
+            except BaseException:
+                raise Exception('Exception in previous_paid_from_licence.')
+
+            return previous_paid
+
         previous_paid = 0
         # check for Customer licence amendment.
         if self.application.application_type ==\
                 Application.APPLICATION_TYPE_AMENDMENT:
-            try:
-                previous = ApplicationSelectedActivity.objects.get(
-                    application_id=self.application.previous_application.id,
-                    licence_activity_id=self.licence_activity_id
-                ) 
-                previous_paid += previous.application_fee if previous else 0
-                previous_paid = previous_paid_under_review(previous_paid)
-
-            except ApplicationSelectedActivity.DoesNotExist:
-                pass  # OK. Amendment involves adding new Activity/Purpose.
+            previous_paid = previous_paid_from_licence(previous_paid)
+            previous_paid = previous_paid_under_review(previous_paid)
 
         return previous_paid
 
@@ -3868,6 +3882,7 @@ class ApplicationUserAction(UserAction):
     ACTION_CREATE_CUSTOMER_ = "Create customer {}"
     ACTION_CREATE_PROFILE_ = "Create profile {}"
     ACTION_LODGE_APPLICATION = "Lodge application {}"
+    ACTION_SAVE_APPLICATION = "Save changes to application {}"
     ACTION_ASSIGN_TO_OFFICER = "Assign application {} to officer {}"
     ACTION_UNASSIGN_OFFICER = "Unassign officer from application {}"
     ACTION_ACCEPT_ID = "Accept ID"
@@ -3891,6 +3906,8 @@ class ApplicationUserAction(UserAction):
     ACTION_DECLINE = "Decline application {}"
     ACTION_ENTER_CONDITIONS = "Entered condition for activity {}"
     ACTION_CREATE_CONDITION_ = "Create condition {}"
+    ACTION_ORDER_CONDITION_UP = "Moved ordering higher for condition {}"
+    ACTION_ORDER_CONDITION_DOWN = "Moved ordering lower for condition {}"
     ACTION_ISSUE_LICENCE_ = "Issue Licence for activity {}"
     ACTION_REISSUE_LICENCE_ = "Re-issuing Licence for activity {}"
     ACTION_DECLINE_LICENCE_ = "Decline Licence for activity {}"
@@ -3935,6 +3952,7 @@ reversion.register(ApplicationInvoiceLine)
 reversion.register(ApplicationDocument)
 reversion.register(ApplicationStandardCondition)
 reversion.register(ApplicationFormDataRecord)
+reversion.register(ApplicationLogEntry)
 reversion.register(AmendmentRequest)
 reversion.register(ActivityPermissionGroup)
 reversion.register(ActivityInvoice)
