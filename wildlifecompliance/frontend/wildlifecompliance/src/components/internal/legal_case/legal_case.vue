@@ -897,6 +897,7 @@ export default {
   methods: {
     ...mapActions('legalCaseStore', {
       loadLegalCase: 'loadLegalCase',
+      loadLegalCaseNoRunningSheet: 'loadLegalCaseNoRunningSheet',
       saveLegalCase: 'saveLegalCase',
       setLegalCase: 'setLegalCase',
       setRelatedItems: 'setRelatedItems',
@@ -1149,7 +1150,8 @@ export default {
       this.personOrArtifactInitialised = true;
       //this.personObjectKeyPosition = offset;
       this.$nextTick(async () => {
-          await this.save({internalFlag:true, noRunningSheet:true});
+          //await this.save({internalFlag:true, noRunningSheet:true});
+          await this.loadLegalCaseNoRunningSheet({legal_case_id: this.legal_case.id});
           this.$refs.person_or_artifact_modal.isModalOpen = true;
       });
     },
@@ -1209,7 +1211,7 @@ export default {
         createBriefOfEvidence=false,
         createProsecutionBrief=false,
         fullHttpResponse=false,
-        noRunningSheet=false,
+        //noRunningSheet=false,
         internalFlag=false,
     } = {}) {
       this.showSpinner = true;
@@ -1236,7 +1238,7 @@ export default {
           createBriefOfEvidence: createBriefOfEvidence,
           createProsecutionBrief: createProsecutionBrief,
           fullHttpResponse: fullHttpResponse,
-          noRunningSheet: noRunningSheet,
+          //noRunningSheet: noRunningSheet,
       });
       if (returnToDash) {
         // remove redundant eventListeners

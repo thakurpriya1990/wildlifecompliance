@@ -17,7 +17,7 @@ SYSTEM_NAME = 'Wildlife Licensing Automated Message'
 
 
 class ArtifactAwaitingDisposalNotificationEmail(TemplateEmailBase):
-    subject = 'Forwarded Artifact'
+    subject = 'Artifact awaiting disposal'
     html_template = 'wildlifecompliance/emails/send_awaiting_disposal_notification.html'
     txt_template = 'wildlifecompliance/emails/send_awaiting_disposal_notification.txt'
 
