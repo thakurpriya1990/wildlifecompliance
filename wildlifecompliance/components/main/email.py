@@ -87,9 +87,10 @@ def prepare_mail(request, instance, workflow_entry, send_mail, recipient_id=None
         elif request.data.get('allocated_group_id'):
             compliance_group = CompliancePermissionGroup.objects.get(id=request.data.get('allocated_group_id'))
             email_group.extend(compliance_group.members.all())
-        elif request.data.get('recipient_address'):
+        #elif request.data.get('recipient_address'):
+        #elif recipient_address:
             # retain original value
-            email_group = []
+            #email_group = []
         else:
             request_user = getattr(request, 'user')
             if request_user:
@@ -104,17 +105,19 @@ def prepare_mail(request, instance, workflow_entry, send_mail, recipient_id=None
                 workflow_entry,
                 request,
                 email_type)
+        #elif not workflow_entry:
+         #   email_data = send_mail(
+          #      email_group,
+           #     instance,
+            #    request)
         # added for artifact email
-        elif not workflow_entry:
-            email_data = send_mail(
-                email_group,
-                instance,
-                request)
-        elif request.data.get('recipient_address') and instance._meta.model_name == 'physicalartifact':
+        #elif request.data.get('recipient_address') and instance._meta.model_name == 'physicalartifact':
+        elif recipient_address and instance._meta.model_name == 'physicalartifact':
             email_data = send_mail(
                     email_group,
                     instance,
-                    request)
+                    request,
+                    recipient_address=recipient_address)
         else:
             email_data = send_mail(
                 email_group,

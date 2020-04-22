@@ -307,6 +307,7 @@ class DocumentArtifactSerializer(serializers.ModelSerializer):
     offender = OffenderSerializer(read_only=True)
     related_items = serializers.SerializerMethodField()
     available_statement_artifacts = serializers.SerializerMethodField()
+    primary_legal_case_id = serializers.SerializerMethodField()
     status = CustomChoiceField(read_only=True)
 
     class Meta:
@@ -330,6 +331,7 @@ class DocumentArtifactSerializer(serializers.ModelSerializer):
                 #'legal_case_id_list',
                 'associated_legal_case_id_list',
                 #'legal_case_id',
+                'primary_legal_case_id',
                 'offence',
                 'offender',
                 'offence_id',
@@ -348,6 +350,9 @@ class DocumentArtifactSerializer(serializers.ModelSerializer):
 
     def get_related_items(self, obj):
         return get_related_items(obj)
+
+    def get_primary_legal_case_id(self, obj):
+        return obj.primary_legal_case_id
 
     #def get_legal_case_id_list(self, obj):
     #    legal_case_id_list = []
