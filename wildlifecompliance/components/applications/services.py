@@ -12,6 +12,7 @@ from ledger.checkout.utils import calculate_excl_gst
 from wildlifecompliance.components.licences.models import (
     LicencePurpose,
     LicenceSpecies,
+    WildlifeLicence,
 )
 
 from wildlifecompliance.components.applications.models import (
@@ -903,24 +904,33 @@ class ApplicationFeePolicyForAmendment(ApplicationFeePolicy):
     def set_application_fee_to_previous_base_for(self, activity):
         """
         Application base fee is the same as previous application fee.
+        NOTE: Same as amend_adjusted_fee(self, attributes)
         """
         if activity.previous_paid_amount < 1:
             return
 
-        previous = activity
-        for a in self._application.previous_application.activities:
+        prev_total = 0
+        prev_act = 0
+        licence = WildlifeLicence.objects.get(
+            current_application_id=self._application.previous_application.id
+        )
+        for a in licence.current_activities:
+            # aggregate fees from previous applications on licence.
             if a.licence_activity_id == activity.licence_activity_id:
-                previous = a
-                break
-        prev_total = previous.total_paid_amount - previous.licence_fee
-        prev_act = previous.pre_adjusted_application_fee
+                prev_total += a.total_paid_amount - a.licence_fee
+                prev_act += a.pre_adjusted_application_fee
 
         fees_adj = activity.application_fee         # Adjusted Fees.
         prev_adj = prev_total - prev_act            # Previous Adjustments.
         fees = prev_act + prev_adj                  # Total Fees.
         new_adj = fees_adj - fees                   # New Adjusments.
         activity.application_fee = prev_act
-        activity.application_fee += new_adj if new_adj > 0 else 0
+        if new_adj < 0:
+            # No over-payments are reimbursed for Amendment applications - just
+            # pay new calculated fee.
+            activity.application_fee = fees_adj
+        else:
+            activity.application_fee += new_adj
 
     def set_licence_fee(self):
         """
@@ -998,6 +1008,7 @@ class ApplicationFeePolicyForAmendment(ApplicationFeePolicy):
     def amend_adjusted_fee(self, attributes):
         '''
         Amend only Application Fees for dynamic attributes.
+        NOTE: Same as set_application_fee_to_previous_base_for(self, activity)
         '''
         prev_total = 0
         prev_act = 0
@@ -1010,13 +1021,15 @@ class ApplicationFeePolicyForAmendment(ApplicationFeePolicy):
                 # A new Licence Activity is added for this amendment.
                 new_act += activity.base_fees['application']
             else:
-                previous = activity
-                for a in self._application.previous_application.activities:
+                previous_app = self._application.previous_application.id
+                licence = WildlifeLicence.objects.get(
+                    current_application_id=previous_app
+                )
+                for a in licence.current_activities:
+                    # aggregate fees from previous applications on licence.
                     if a.licence_activity_id == activity.licence_activity_id:
-                        previous = a
-                        break
-                prev_total += previous.total_paid_amount - previous.licence_fee
-                prev_act += previous.pre_adjusted_application_fee
+                        prev_total += a.total_paid_amount - a.licence_fee
+                        prev_act += a.pre_adjusted_application_fee
 
             # aggregate adjusted fees from calculated dynamic attributes.
             fees_adj += attributes[
@@ -1026,7 +1039,12 @@ class ApplicationFeePolicyForAmendment(ApplicationFeePolicy):
         fees = prev_act + prev_adj + new_act    # total fees
         new_adj = fees_adj - fees               # new adjustments
         attributes['fees']['application'] = prev_act + new_act
-        attributes['fees']['application'] += new_adj if new_adj > 0 else 0
+        if new_adj < 0:
+            # No over-payments are reimbursed for Amendment applications - just
+            # pay new calculated fee.
+            attributes['fees']['application'] = fees_adj
+        else:
+            attributes['fees']['application'] += new_adj
 
         return attributes
 
