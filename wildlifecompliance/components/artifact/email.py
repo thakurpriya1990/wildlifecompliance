@@ -17,7 +17,7 @@ SYSTEM_NAME = 'Wildlife Licensing Automated Message'
 
 
 class ArtifactAwaitingDisposalNotificationEmail(TemplateEmailBase):
-    subject = 'Artifact awaiting disposal'
+    subject = 'Object awaiting disposal'
     html_template = 'wildlifecompliance/emails/send_awaiting_disposal_notification.html'
     txt_template = 'wildlifecompliance/emails/send_awaiting_disposal_notification.txt'
 
@@ -41,8 +41,9 @@ def send_mail(select_group, artifact, request=None, recipient_address=None):
     email_group = None
     if recipient_address:
         email_group = [recipient_address,]
-    else:
-        email_group = [item.email for item in select_group]
+    # if there is no recipient address (custodian), send the email to the request.user
+    elif request and request.user and request.user.email:
+        email_group = [request.user.email,]
     msg = email.send(email_group, 
         context=context,
         #attachments= 
