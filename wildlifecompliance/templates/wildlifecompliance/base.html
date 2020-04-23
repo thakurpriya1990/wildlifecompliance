@@ -128,8 +128,9 @@
                                                 {% endif %}
                                                 {% if is_wildlifecompliance_admin_login %}
                                                     <li><a href="{% url 'admin:index' %}">Admin</a></li>
-                                                    <li><a href="{% url 'mgt-commands' %}">Management Commands</a></li>
-                                                    <!--li><a href="{% url 'infringement_penalty' 1 %}">Management Commands</a></li-->
+                                                    {% if request.user.is_superuser %}
+                                                        <li><a href="{% url 'mgt-commands' %}">Management Commands</a></li>
+                                                    {% endif %}
                                                     <li role="separator" class="divider"></li>
                                                 {% endif %}
 
