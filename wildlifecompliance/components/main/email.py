@@ -112,7 +112,8 @@ def prepare_mail(request, instance, workflow_entry, send_mail, recipient_id=None
             #    request)
         # added for artifact email
         #elif request.data.get('recipient_address') and instance._meta.model_name == 'physicalartifact':
-        elif recipient_address and instance._meta.model_name == 'physicalartifact':
+        #elif recipient_address and instance._meta.model_name == 'physicalartifact':
+        elif instance._meta.model_name == 'physicalartifact':
             email_data = send_mail(
                     email_group,
                     instance,
