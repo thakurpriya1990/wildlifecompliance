@@ -2844,17 +2844,15 @@ class Assessment(ApplicationRequest):
         """
         Property indicating an inspection is created and opened.
         """
-        open_status = [
-            Inspection.STATUS_OPEN,
-            Inspection.STATUS_AWAIT_ENDORSEMENT,
-            Inspection.STATUS_PENDING_CLOSURE
-            ]
-        inspections = AssessmentInspection.objects.filter(
-            assessment=self,
-            inspection__status__in=open_status
-        )
+        inspection_exists = False
 
-        return True if inspections.exists() else False
+        inspections = AssessmentInspection.objects.filter(
+            assessment=self
+        )
+        is_active = [i.is_active for i in inspections if i.is_active]
+        inspection_exists = is_active[0] if is_active else False
+
+        return inspection_exists
 
     def assessors(self):
         return self.assessor_group.members.all()
@@ -2877,23 +2875,21 @@ class AssessmentInspection(models.Model):
         return 'Assessment {0} : Inspection #{1}'.format(
             self.assessment_id, self.inspection.number)
 
-    # Properties
-    # ==================
     @property
-    def active(self):
-        try:
-            inspection = Inspection.objects.get(
-                id=self.inspection_id,
-            )
-            if inspection.status in [
-                    Inspection.STATUS_OPEN,
-                ]:
-                return true
+    def is_active(self):
+        '''
+        An attribute to indicate that this assessment inspection is currently
+        progressing.
+        '''
+        is_active = False
 
-        except Inspection.DoesNotExist:
-            pass
+        if self.inspection.status in [
+            Inspection.STATUS_OPEN,
+            Inspection.STATUS_AWAIT_ENDORSEMENT,
+        ]:
+            is_active = True
 
-        return False
+        return is_active
 
 
 class ApplicationSelectedActivity(models.Model):
