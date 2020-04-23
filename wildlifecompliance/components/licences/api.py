@@ -283,6 +283,32 @@ class LicenceViewSet(viewsets.ModelViewSet):
         return Response(serializer.data)
 
     @detail_route(methods=['POST', ])
+    def add_licence_inspection(self, request, pk=None, *args, **kwargs):
+        try:
+            if pk:
+                instance = self.get_object()
+                instance.create_inspection(request)
+
+                serializer = DTExternalWildlifeLicenceSerializer(
+                    instance,
+                    context={'request': request}
+                    )
+                   
+                return Response(serializer.data)
+
+            raise serializers.ValidationError('Licence ID must be specified')
+
+        except serializers.ValidationError:
+            print(traceback.print_exc())
+            raise
+        except ValidationError as e:
+            print(traceback.print_exc())
+            raise serializers.ValidationError(repr(e.error_dict))
+        except Exception as e:
+            print(traceback.print_exc())
+            raise serializers.ValidationError(str(e))
+
+    @detail_route(methods=['POST', ])
     def reactivate_renew_purposes(self, request, pk=None, *args, **kwargs):
         try:
             purpose_ids_list = request.data.get('purpose_ids_list', None)
