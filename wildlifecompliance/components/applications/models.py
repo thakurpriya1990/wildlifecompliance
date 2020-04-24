@@ -3387,9 +3387,14 @@ class ApplicationSelectedActivity(models.Model):
                 licence = WildlifeLicence.objects.get(
                     current_application_id=prev_id
                 )
-                for activity in licence.current_activities:
-                    if activity.licence_activity_id == self.licence_activity_id:
-                        previous_paid = activity.total_paid_amount
+                prev = licence.current_activities
+                self_id = self.licence_activity_id 
+                prev = [a for a in prev if a.licence_activity_id == self_id]
+                for p in self.proposed_purposes:
+                    ex = [pp for pp in prev.proposed_purposes if p]
+                    if p in prev.proposed_purposes:
+                        # only aggregate those in previous.
+                        previous_paid += p.total_paid_amount
 
             except WildlifeLicence.DoesNotExist:
                 # The previous application is not the current on the licence.
@@ -3543,6 +3548,29 @@ class ApplicationSelectedActivity(models.Model):
             except BaseException:
                 raise
 
+    def get_activity_from_previous(self):
+        '''
+        Gets this Application Selected Activity from the previous Application
+        Selected Activity application licence.
+        '''
+        previous = None
+        prev_id = self.selected_activity.application.previous_application.id
+
+        try:
+            licence = WildlifeLicence.objects.get(
+                current_application_id=prev_id
+            )
+
+        except WildlifeLicence.DoesNotExist:
+            return previous
+
+        prev = licence.current_activities
+        act_id = self.licence_activity_id 
+        prev = [a for a in prev if a.licence_activity_id == act_id]
+        previous = prev[0]
+
+        return previous
+
 class ApplicationSelectedActivityPurpose(models.Model):
     """
     A purpose selected for issue on an Application Selected Activity.
@@ -3561,25 +3589,66 @@ class ApplicationSelectedActivityPurpose(models.Model):
         'Processing Status',
         max_length=40,
         choices=PROCESSING_STATUS_CHOICES,
-        default=PROCESSING_STATUS_PROPOSED)
+        default=PROCESSING_STATUS_SELECTED)
     selected_activity = models.ForeignKey(
         ApplicationSelectedActivity, related_name='proposed_purposes')
     purpose = models.ForeignKey(
         LicencePurpose, related_name='selected_activity_proposed_purpose')
+    licence_fee = models.DecimalField(
+        max_digits=8, decimal_places=2, default='0')
+    application_fee = models.DecimalField(
+        max_digits=8, decimal_places=2, default='0')
+    additional_fee = models.DecimalField(
+        max_digits=8, decimal_places=2, default='0')
 
     @property
     def is_proposed(self):
-        proposed = False
-        if self.processing_status != self.PROCESSING_STATUS_DECLINED:
-            proposed = True
-        return proposed
+        '''
+        An attribute to indicate that this selected Activity Purpose has been 
+        proposed for issue.
+        '''
+        proposed_status = [
+            PROCESSING_STATUS_PROPOSED,
+            PROCESSING_STATUS_ISSUED,
+        ]
+
+        return True if self.processing_status in proposed_status else False
+
+    @property
+    def total_paid_amount(self):
+        '''
+        An attribute for the total fees paid for this Select Activity Purpose.
+        The total amount includes fee, additional and licence fee.
+        '''     
+        amount = application_fee + licence_fee + additional_fee
+
+        return amount
+
+    @property
+    def has_adjusted_application_fee(self):
+        '''
+        An Attribute indicating this Selected Activity Purpose has an adjusted 
+        application fee different from the base admin fee.
+        '''
+        return True if self.additional_fee > 0 else False
+
+    @property
+    def pre_adjusted_application_fee(self):
+        '''
+        An attribute for the base admin fee amount paid for this Selected
+        Activity Purpose regardless of any adjustments.
+        '''
+        return self.application_fee
 
     def __str__(self):
         application = self.selected_activity.application_id
         activity = self.selected_activity.short_name
         purpose = self.purpose.short_name
-        return "{0}{1}{2}".format(
+        return "{0}{1}{2}{3}{4}{5}".format(
             "Purpose: {purpose} ".format(purpose),
+            "App. Fee: {fee1} ".format(fee1=self.application_fee),
+            "Lic. Fee: {fee2} ".format(fee2=self.licence_fee),
+            "Add. Fee: {fee3} ".format(fee3=self.additional_fee),
             "(Act: {activity}".format(activity),
             " App: {application})".format(application),
         )
@@ -3587,6 +3656,31 @@ class ApplicationSelectedActivityPurpose(models.Model):
     class Meta:
         app_label = 'wildlifecompliance'
         verbose_name = 'Application selected activity purpose'
+
+    def get_purpose_from_previous(self):
+        '''
+        Gets this Application Selected Activity Purpose from the previous
+        Application Selected Activity application licence.
+        '''
+        previous = None
+        prev_id = self.selected_activity.application.previous_application.id
+
+        try:
+            licence = WildlifeLicence.objects.get(
+                current_application_id=prev_id
+            )
+
+        except WildlifeLicence.DoesNotExist:
+            return previous
+
+        prev = licence.current_activities
+        act_id = self.selected_activity.licence_activity_id 
+        prev = [a for a in prev if a.licence_activity_id == act_id]
+        self_id = self.purpose_id
+        prev = [p for p in prev.proposed_purposes if p.purpose_id == self_id]
+        previous = prev[0]
+
+        return previous
 
 
 class IssuanceDocument(Document):
