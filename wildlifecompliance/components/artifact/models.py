@@ -325,6 +325,14 @@ class DocumentArtifact(Artifact):
                 primary_case = legal_case
         return primary_case
 
+    @property
+    def primary_legal_case_id(self):
+        primary_case = None
+        for legal_case in self.documentartifactlegalcases_set.all():
+            if legal_case.primary:
+                primary_case = legal_case
+        return primary_case.legal_case_id
+
     def close(self, request=None):
         # NOTE: close_record logic moved to can_close_legal_case
         self.status = self.STATUS_CLOSED
@@ -551,7 +559,7 @@ class PhysicalArtifact(Artifact):
         self.disposal_method_id = disposal_method_id
         self.disposal_details = disposal_details
         #self.save()
-        self.close()
+        self.close(request)
 
     #def close(self, request=None):
     def close(self, request):
@@ -566,9 +574,10 @@ class PhysicalArtifact(Artifact):
               #          'assigned_to_id': self.custodian_email
                #         })
             #else:
-            if self.custodian_email:
-                request.data['recipient_address'] = self.custodian_email
-            email_data = prepare_mail(request=request, instance=self, workflow_entry=None, send_mail=send_mail)
+
+            #if self.custodian_email:
+             #   request.data['recipient_address'] = self.custodian_email
+            email_data = prepare_mail(request=request, instance=self, workflow_entry=None, send_mail=send_mail, recipient_address=self.custodian_email)
             #prepare_mail(request=request, instance=self, workflow_entry=None, send_mail=send_mail)
             # write comms log based on email_data
             print("email_data")
