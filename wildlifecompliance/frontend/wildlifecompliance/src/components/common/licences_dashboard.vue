@@ -69,11 +69,14 @@
             </div>
         </div>
         <LicenceActionPurposes ref="licence_action_purposes" :licence_activity_purposes="action_purpose_list" :licence_id="selected_licence_id" :action="licence_action" @refreshFromResponse="refreshFromResponse"></LicenceActionPurposes>
+        <InspectionRequest ref="inspection" @inspection-created="requestedInspection"></InspectionRequest>
     </div>
 </template>
 <script>
+import modal from '@vue-utils/bootstrap-modal.vue'
 import datatable from '@/utils/vue/datatable.vue'
 import LicenceActionPurposes from './licence_action_purposes.vue'
+import InspectionRequest from '../internal/inspection/create_inspection_modal'
 import { mapActions, mapGetters } from 'vuex'
 import {
     api_endpoints,
@@ -116,6 +119,9 @@ export default {
                 useCurrent:false,
                 keepInvalid:true,
                 allowInputToggle:true
+            },
+            inspection:{
+                isModalOpen: false
             },
 //            licence_status:[],
             licence_holders: [],
@@ -213,6 +219,9 @@ export default {
                                 if (!vm.is_external && full.can_action['can_reinstate']) {
                                     links += `<a reinstate-licence='${full.id}'>Reinstate</a><br/>`
                                 }
+                                if (!vm.is_external && full.can_add_purpose && !full.has_inspection_open) {
+                                    links += `<a inspection-licence='${full.id}'>Request Inspection</a><br/>`
+                                }
                             }
                             return links;
                         },
@@ -259,8 +268,10 @@ export default {
         }
     },
     components:{
+        modal,
         datatable,
-        LicenceActionPurposes
+        LicenceActionPurposes,
+        InspectionRequest,
     },
     watch:{
         filterLicenceType: function(){
@@ -768,6 +779,12 @@ export default {
                 },(error) => {
                 });
             });
+            // Create Inspection Listener.
+            vm.$refs.licence_datatable.vmDataTable.on('click', 'a[inspection-licence]', function(e) {
+                e.preventDefault();
+                vm.$refs.selected_licence_id = $(this).attr('inspection-licence');
+                vm.$refs.inspection.isModalOpen = true;
+            });
             // Child row listener
             vm.$refs.licence_datatable.vmDataTable.on('click', 'tr.licRecordRow', function(e) {
                 // If a link is clicked, ignore
@@ -870,6 +887,29 @@ export default {
             });
 
         },
+        requestedInspection: function(event){
+            const data = {
+                "inspection_id": event.inspection,
+            }
+            let licence_id = this.$refs.selected_licence_id
+            this.$http.post(helpers.add_endpoint_json(
+                    api_endpoints.licences, (licence_id+'/add_licence_inspection')
+                ), JSON.stringify(data)).then((response) => {
+                    swal(
+                            'Request Licence Inspection',
+                            'The selected licence has an opened Inspection #' + event.inspection,
+                            'success'
+                    )
+                    this.refreshFromResponse(response)
+
+                }, (error) => {
+                    swal(
+                        'Creating Inspection Error',
+                        helpers.apiVueResourceError(error),
+                        'error'
+                    )
+                }); 
+        },   
         refreshFromResponse:function(response){
             this.$refs.licence_datatable.vmDataTable.ajax.reload();
         },

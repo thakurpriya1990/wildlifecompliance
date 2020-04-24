@@ -2604,6 +2604,9 @@ class ApplicationLogEntry(CommunicationsLogEntry):
             self.reference = self.application.lodgement_number
         super(ApplicationLogEntry, self).save(**kwargs)
 
+    def __str__(self):
+        return 'Comms Log: {} Type: {} From: {}'.format(
+            self.subject, self.log_type, self.fromm)
 
 class ApplicationRequest(models.Model):
     application = models.ForeignKey(Application)
@@ -2841,17 +2844,15 @@ class Assessment(ApplicationRequest):
         """
         Property indicating an inspection is created and opened.
         """
-        open_status = [
-            Inspection.STATUS_OPEN,
-            Inspection.STATUS_AWAIT_ENDORSEMENT,
-            Inspection.STATUS_PENDING_CLOSURE
-            ]
-        inspections = AssessmentInspection.objects.filter(
-            assessment=self,
-            inspection__status__in=open_status
-        )
+        inspection_exists = False
 
-        return True if inspections.exists() else False
+        inspections = AssessmentInspection.objects.filter(
+            assessment=self
+        )
+        is_active = [i.is_active for i in inspections if i.is_active]
+        inspection_exists = is_active[0] if is_active else False
+
+        return inspection_exists
 
     def assessors(self):
         return self.assessor_group.members.all()
@@ -2874,23 +2875,21 @@ class AssessmentInspection(models.Model):
         return 'Assessment {0} : Inspection #{1}'.format(
             self.assessment_id, self.inspection.number)
 
-    # Properties
-    # ==================
     @property
-    def active(self):
-        try:
-            inspection = Inspection.objects.get(
-                id=self.inspection_id,
-            )
-            if inspection.status in [
-                    Inspection.STATUS_OPEN,
-                ]:
-                return true
+    def is_active(self):
+        '''
+        An attribute to indicate that this assessment inspection is currently
+        progressing.
+        '''
+        is_active = False
 
-        except Inspection.DoesNotExist:
-            pass
+        if self.inspection.status in [
+            Inspection.STATUS_OPEN,
+            Inspection.STATUS_AWAIT_ENDORSEMENT,
+        ]:
+            is_active = True
 
-        return False
+        return is_active
 
 
 class ApplicationSelectedActivity(models.Model):
@@ -3808,6 +3807,9 @@ class ApplicationCondition(OrderedModel):
     class Meta:
         app_label = 'wildlifecompliance'
 
+    def __str__(self):
+        return 'Condition: {}'.format(self.condition[:256])
+
     def submit(self):
         if self.standard:
             self.return_type = self.standard_condition.return_type
@@ -3943,7 +3945,17 @@ def delete_documents(sender, instance, *args, **kwargs):
 NOTE: REGISTER MODELS FOR REVERSION HERE.
 '''
 import reversion
-reversion.register(Application)
+reversion.register(
+    Application, 
+    follow=[
+        'selected_activities',
+        'invoices',
+        'form_data_records',
+        'conditions', 
+        'action_logs', 
+        'comms_logs',
+        ]
+    )
 reversion.register(ApplicationSelectedActivity)
 reversion.register(ApplicationSelectedActivityPurpose)
 reversion.register(ApplicationCondition)
@@ -3953,7 +3965,10 @@ reversion.register(ApplicationDocument)
 reversion.register(ApplicationStandardCondition)
 reversion.register(ApplicationFormDataRecord)
 reversion.register(ApplicationLogEntry)
+reversion.register(ApplicationUserAction)
 reversion.register(AmendmentRequest)
 reversion.register(ActivityPermissionGroup)
 reversion.register(ActivityInvoice)
 reversion.register(ActivityInvoiceLine)
+reversion.register(Assessment)
+reversion.register(AssessmentInspection)
