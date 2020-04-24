@@ -651,11 +651,15 @@ export default {
         },
         visibilitySanctionOutcomeButton: function() {
             let visibility = false;
+            let num_offenders = 0;
+            if (this.offence.offenders && this.offence.offenders.length){
+                num_offenders = this.offence.offenders.length;
+            }
             if (this.canUserAction){
                 if (this.offence.status.id === this.STATUS_OPEN){
                     for (let i=0; i<this.offence.alleged_offences.length; i++){
                         let alleged_offence = this.offence.alleged_offences[i];
-                        if (alleged_offence.number_linked_sanction_outcomes_active == 0){
+                        if (alleged_offence.connected_offenders.length < num_offenders){
                             visibility = true;
                             break;
                         }
