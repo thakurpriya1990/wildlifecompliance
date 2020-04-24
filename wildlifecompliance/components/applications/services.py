@@ -459,13 +459,12 @@ class StandardConditionFieldElement(SpecialFieldElement):
     def reset(self, licence_activity):
         """
         Reset the Selected Activity to have no Standard Condition created.
+
+        NOTE: Standard Conditions created will need to be manually deleted
+        by the officer when need to change so that it is audited.
         """
         if isinstance(licence_activity, ApplicationSelectedActivity):
-            # ApplicationCondition.objects.filter(
-            #     application_id=self._application.id,
-            #     licence_activity_id=licence_activity.licence_activity_id,
-            #     is_rendered=True
-            # ).delete()
+            # Do not delete when previously added.
             pass
 
         return licence_activity
@@ -505,6 +504,8 @@ class IncreaseApplicationFeeFieldElement(SpecialFieldElement):
     """
     An implementation of an SpecialFieldElement operation that takes a
     ApplicationFormVisitor as an argument.
+
+    NOTE: Increased Fees applies to an Activity Purpose on the Application.
     """
     _NAME = 'IncreaseApplicationFee'
 
@@ -895,20 +896,19 @@ class ApplicationFeePolicyForAmendment(ApplicationFeePolicy):
     def set_licence_fee_to_zero_for(self, activity):
         """
         No licence fee is paid for amended Activity/Purpose
-        """
-        if activity.previous_paid_amount < 1:
-            return
 
+        FIXME: calculate for purpose in activity.purposes.
+        """
         activity.licence_fee = 0
 
     def set_application_fee_to_previous_base_for(self, activity):
         """
         Application base fee is the same as previous application fee.
-        NOTE: Same as amend_adjusted_fee(self, attributes)
-        """
-        if activity.previous_paid_amount < 1:
-            return
 
+        NOTE: Same as amend_adjusted_fee(self, attributes)
+
+        FIXME: calculate for purpose in activity.purposes.
+        """
         prev_total = 0
         prev_act = 0
         licence = WildlifeLicence.objects.get(
@@ -916,6 +916,7 @@ class ApplicationFeePolicyForAmendment(ApplicationFeePolicy):
         )
         for a in licence.current_activities:
             # aggregate fees from previous applications on licence.
+            # FIXME:
             if a.licence_activity_id == activity.licence_activity_id:
                 prev_total += a.total_paid_amount - a.licence_fee
                 prev_act += a.pre_adjusted_application_fee
@@ -938,9 +939,6 @@ class ApplicationFeePolicyForAmendment(ApplicationFeePolicy):
         which have been added as part of this Licence Amendment.
         """
         fee = 0
-        for activity in self._application.activities:
-            if activity.previous_paid_amount < 1:
-                fee += activity.base_fees['licence']
 
         return Decimal(fee)
 
@@ -1008,28 +1006,28 @@ class ApplicationFeePolicyForAmendment(ApplicationFeePolicy):
     def amend_adjusted_fee(self, attributes):
         '''
         Amend only Application Fees for dynamic attributes.
+
         NOTE: Same as set_application_fee_to_previous_base_for(self, activity)
+
+        FIXME: calculate for purpose in activity.purposes.
         '''
         prev_total = 0
         prev_act = 0
         new_act = 0
         fees_adj = 0
 
+        previous_app = self._application.previous_application.id
+        licence = WildlifeLicence.objects.get(
+            current_application_id=previous_app
+        )
         for activity in self._application.activities:
 
-            if activity.previous_paid_amount < 1:
-                # A new Licence Activity is added for this amendment.
-                new_act += activity.base_fees['application']
-            else:
-                previous_app = self._application.previous_application.id
-                licence = WildlifeLicence.objects.get(
-                    current_application_id=previous_app
-                )
-                for a in licence.current_activities:
-                    # aggregate fees from previous applications on licence.
-                    if a.licence_activity_id == activity.licence_activity_id:
-                        prev_total += a.total_paid_amount - a.licence_fee
-                        prev_act += a.pre_adjusted_application_fee
+            for a in licence.current_activities:
+                # aggregate fees from previous applications on licence.
+                # FIXME:
+                if a.licence_activity_id == activity.licence_activity_id:
+                    prev_total += a.total_paid_amount - a.licence_fee
+                    prev_act += a.pre_adjusted_application_fee
 
             # aggregate adjusted fees from calculated dynamic attributes.
             fees_adj += attributes[

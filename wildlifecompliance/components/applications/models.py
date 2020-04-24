@@ -3003,10 +3003,12 @@ class ApplicationSelectedActivity(models.Model):
     additional_licence_info = JSONField(default=list)
 
     def __str__(self):
-        return "Application {id} Selected Activity: {short_name} ({activity_id})".format(
-            id=self.application_id,
-            short_name=self.licence_activity.short_name,
-            activity_id=self.licence_activity_id
+        return "{0}{1}{2}{3}{4}".format(
+            "Activity: {name} ".format(name=self.licence_activity.short_name),
+            "App. Fee: {fee1} ".format(fee1=self.pre_adjusted_application_fee),
+            "Lic. Fee: {fee2} ".format(fee2=self.licence_fee),
+            "Add. Fee: {fee3} ".format(fee3=self.additional_fee),
+            "(App: {id})".format(id=self.application_id),
         )
 
     class Meta:
@@ -3543,12 +3545,14 @@ class ApplicationSelectedActivity(models.Model):
 
 class ApplicationSelectedActivityPurpose(models.Model):
     """
-    A purpose proposed for issue on an Application Selected Activity.
+    A purpose selected for issue on an Application Selected Activity.
     """
+    PROCESSING_STATUS_SELECTED = 'selected'
     PROCESSING_STATUS_PROPOSED = 'propose'
     PROCESSING_STATUS_ISSUED = 'issue'
     PROCESSING_STATUS_DECLINED = 'decline'
     PROCESSING_STATUS_CHOICES = (
+        (PROCESSING_STATUS_SELECTED, 'Selected for Proposal'),
         (PROCESSING_STATUS_PROPOSED, 'Proposed for Issue'),
         (PROCESSING_STATUS_DECLINED, 'Declined'),
         (PROCESSING_STATUS_ISSUED, 'Issued')
@@ -3571,10 +3575,13 @@ class ApplicationSelectedActivityPurpose(models.Model):
         return proposed
 
     def __str__(self):
-        return "ASA {id} Purpose: {short_name} ({status})".format(
-            id=self.selected_activity.licence_activity_id,
-            short_name=self.purpose.short_name,
-            status=self.processing_status
+        application = self.selected_activity.application_id
+        activity = self.selected_activity.short_name
+        purpose = self.purpose.short_name
+        return "{0}{1}{2}".format(
+            "Purpose: {purpose} ".format(purpose),
+            "(Act: {activity}".format(activity),
+            " App: {application})".format(application),
         )
 
     class Meta:
