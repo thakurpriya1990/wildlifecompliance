@@ -3383,23 +3383,14 @@ class ApplicationSelectedActivity(models.Model):
             current licence.
             '''
             try:
-                prev_id = self.application.previous_application.id
-                licence = WildlifeLicence.objects.get(
-                    current_application_id=prev_id
-                )
-                prev = licence.current_activities
-                self_id = self.licence_activity_id 
-                prev = [a for a in prev if a.licence_activity_id == self_id]
-                for p in self.proposed_purposes:
-                    ex = [pp for pp in prev.proposed_purposes if p]
-                    if p in prev.proposed_purposes:
-                        # only aggregate those in previous.
-                        previous_paid += p.total_paid_amount
+                purposes = self.proposed_purposes.all()
+                for purpose in purposes:
+                    prev_purpose = purpose.get_purpose_from_previous()
+                    previous_paid += prev_purpose.total_paid_amount
 
-            except WildlifeLicence.DoesNotExist:
-                # The previous application is not the current on the licence.
-                # The previous amendment has been approved.
-                pass
+                prev_activity = self.get_activity_from_previous()
+                if prev_activity.has_adjusted_application_fee:
+                    previous_paid += prev_activity.additional_fee
 
             except BaseException:
                 raise Exception('Exception in previous_paid_from_licence.')
@@ -3554,9 +3545,11 @@ class ApplicationSelectedActivity(models.Model):
         Selected Activity application licence.
         '''
         previous = None
-        prev_id = self.selected_activity.application.previous_application.id
+        prev_id = self.application.previous_application.id
 
         try:
+            # Retrieve licence rather than from previous application. Previous
+            # application may not have the same activity.
             licence = WildlifeLicence.objects.get(
                 current_application_id=prev_id
             )
@@ -3608,8 +3601,8 @@ class ApplicationSelectedActivityPurpose(models.Model):
         proposed for issue.
         '''
         proposed_status = [
-            PROCESSING_STATUS_PROPOSED,
-            PROCESSING_STATUS_ISSUED,
+            self.PROCESSING_STATUS_PROPOSED,
+            self.PROCESSING_STATUS_ISSUED,
         ]
 
         return True if self.processing_status in proposed_status else False
@@ -3620,7 +3613,7 @@ class ApplicationSelectedActivityPurpose(models.Model):
         An attribute for the total fees paid for this Select Activity Purpose.
         The total amount includes fee, additional and licence fee.
         '''     
-        amount = application_fee + licence_fee + additional_fee
+        amount = self.application_fee + self.licence_fee + self.additional_fee
 
         return amount
 
@@ -3642,15 +3635,15 @@ class ApplicationSelectedActivityPurpose(models.Model):
 
     def __str__(self):
         application = self.selected_activity.application_id
-        activity = self.selected_activity.short_name
+        activity = self.selected_activity.licence_activity.short_name
         purpose = self.purpose.short_name
         return "{0}{1}{2}{3}{4}{5}".format(
-            "Purpose: {purpose} ".format(purpose),
+            "Purpose: {purpose} ".format(purpose=purpose),
             "App. Fee: {fee1} ".format(fee1=self.application_fee),
             "Lic. Fee: {fee2} ".format(fee2=self.licence_fee),
             "Add. Fee: {fee3} ".format(fee3=self.additional_fee),
-            "(Act: {activity}".format(activity),
-            " App: {application})".format(application),
+            "(Act: {activity}".format(activity=activity),
+            " App: {application})".format(application=application),
         )
 
     class Meta:
@@ -3666,6 +3659,8 @@ class ApplicationSelectedActivityPurpose(models.Model):
         prev_id = self.selected_activity.application.previous_application.id
 
         try:
+            # Retrieve licence rather than from previous application. Previous
+            # application may not have the same purpose.
             licence = WildlifeLicence.objects.get(
                 current_application_id=prev_id
             )
@@ -3673,11 +3668,12 @@ class ApplicationSelectedActivityPurpose(models.Model):
         except WildlifeLicence.DoesNotExist:
             return previous
 
-        prev = licence.current_activities
         act_id = self.selected_activity.licence_activity_id 
-        prev = [a for a in prev if a.licence_activity_id == act_id]
+        activities = licence.current_activities
+        prev = [a for a in activities if a.licence_activity_id == act_id]
         self_id = self.purpose_id
-        prev = [p for p in prev.proposed_purposes if p.purpose_id == self_id]
+        purposes = prev[0].proposed_purposes.all()
+        prev = [p for p in purposes if p.purpose_id == self_id]
         previous = prev[0]
 
         return previous
@@ -3694,6 +3690,7 @@ class IssuanceDocument(Document):
     class Meta:
         app_label = 'wildlifecompliance'
 
+
 class ActivityInvoice(models.Model):
     PAYMENT_STATUS_NOT_REQUIRED = 'payment_not_required'
     PAYMENT_STATUS_UNPAID = 'unpaid'
@@ -3708,16 +3705,14 @@ class ActivityInvoice(models.Model):
         max_length=50, null=True, blank=True, default='')
     invoice_datetime = models.DateTimeField(auto_now=True)
 
-    class Meta:
-        app_label = 'wildlifecompliance'
-        unique_together = ('activity', 'invoice_reference',)
-
     def __str__(self):
-        return 'Activity {} : Invoice #{}'.format(
-            self.activity_id, self.invoice_reference)
+        invoice = self.invoice_reference
+        activity = self.activity.short_name
+        return "{0}{1}".format(
+            "Invoice: {invoice} ".format(invoice),
+            "Activity: {activity} ".format(activity),
+        )
 
-    # Properties
-    # ==================
     @property
     def active(self):
         try:
@@ -3726,6 +3721,10 @@ class ActivityInvoice(models.Model):
         except Invoice.DoesNotExist:
             pass
         return False
+
+    class Meta:
+        app_label = 'wildlifecompliance'
+        unique_together = ('activity', 'invoice_reference',)
 
 
 class ActivityInvoiceLine(models.Model):
@@ -4057,7 +4056,13 @@ reversion.register(
         'comms_logs',
         ]
     )
-reversion.register(ApplicationSelectedActivity)
+reversion.register(
+    ApplicationSelectedActivity,
+    follow=[
+        'proposed_purposes',
+        'activity_invoices',
+        ]    
+    )
 reversion.register(ApplicationSelectedActivityPurpose)
 reversion.register(ApplicationCondition)
 reversion.register(ApplicationInvoice)
