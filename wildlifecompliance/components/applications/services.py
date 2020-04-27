@@ -198,8 +198,7 @@ class CheckboxAndRadioButtonCompositor(ApplicationFormCompositor):
 
         for selected_activity in self._application.activities:
 
-            selected_activity = self._field.reset(selected_activity)
-            selected_activity.save()
+            self._field.reset(selected_activity)
 
             schema_fields = self._application.get_schema_fields_for_purposes(
                 selected_activity.purposes.values_list('id', flat=True)
@@ -264,8 +263,7 @@ class TextAreaCompositor(ApplicationFormCompositor):
     def render(self):
         for selected_activity in self._application.activities:
 
-            selected_activity = self._field.reset(selected_activity)
-            selected_activity.save()
+            self._field.reset(selected_activity)
 
             schema_fields = self._application.get_schema_fields_for_purposes(
                 selected_activity.purposes.values_list('id', flat=True)
@@ -373,19 +371,27 @@ class CopyToLicenceFieldElement(SpecialFieldElement):
     """
     _NAME = 'CopyToLicence'
 
+    is_refreshing = False       # Flag indicating a page refresh.
+
     def accept(self, application_form_visitor):
         self._terms = {'terms': []}
         self._application = application_form_visitor._application
+        self._data_source = application_form_visitor._data_source
+        if not self._data_source:
+            self.is_refreshing = True
         application_form_visitor.visit_copy_to_licence_field(self)
 
     def reset(self, licence_activity):
         """
         Reset the selected licence activity to have no CopyToLicenceFields.
         """
+        if self.is_refreshing:
+            # No user update with a page refesh.
+            return
+
         if isinstance(licence_activity, ApplicationSelectedActivity):
             licence_activity.additional_licence_info = self._terms
-
-        return licence_activity
+            licence_activity.save()
 
     def parse_component(
             self,
@@ -394,6 +400,10 @@ class CopyToLicenceFieldElement(SpecialFieldElement):
             adjusted_by_fields,
             activity,
             purpose):
+
+        if self.is_refreshing:
+            # No user update with a page refesh.
+            return
 
         if set([self._NAME]).issubset(component):
             """
@@ -418,16 +428,24 @@ class PromptInpsectionFieldElement(SpecialFieldElement):
     """
     _NAME = 'PromptInspection'
 
+    is_refreshing = False       # Flag indicating a page refresh.
+
     def accept(self, application_form_visitor):
         self._application = application_form_visitor._application
+        self._data_source = application_form_visitor._data_source
+        if not self._data_source:
+            self.is_refreshing = True
         application_form_visitor.visit_prompt_inspection_field(self)
 
     def reset(self, licence_activity):
 
+        if self.is_refreshing:
+            # No user update with a page refesh.
+            return
+
         if isinstance(licence_activity, ApplicationSelectedActivity):
             licence_activity.is_inspection_required = False
-
-        return licence_activity
+            licence_activity.save()
 
     def parse_component(
             self,
@@ -436,6 +454,10 @@ class PromptInpsectionFieldElement(SpecialFieldElement):
             adjusted_by_fields,
             activity,
             purpose):
+
+        if self.is_refreshing:
+            # No user update with a page refesh.
+            return
 
         if set([self._NAME]).issubset(component):
             activity.is_inspection_required = True
@@ -452,8 +474,13 @@ class StandardConditionFieldElement(SpecialFieldElement):
     """
     _NAME = 'StandardCondition'
 
+    is_refreshing = False       # Flag indicating a page refresh.
+
     def accept(self, application_form_visitor):
         self._application = application_form_visitor._application
+        self._data_source = application_form_visitor._data_source
+        if not self._data_source:
+            self.is_refreshing = True
         application_form_visitor.visit_standard_condition_field(self)
 
     def reset(self, licence_activity):
@@ -463,11 +490,13 @@ class StandardConditionFieldElement(SpecialFieldElement):
         NOTE: Standard Conditions created will need to be manually deleted
         by the officer when need to change so that it is audited.
         """
+        if self.is_refreshing:
+            # No user update with a page refesh.
+            return
+
         if isinstance(licence_activity, ApplicationSelectedActivity):
             # Do not delete when previously added.
             pass
-
-        return licence_activity
 
     def parse_component(
             self,
@@ -476,6 +505,10 @@ class StandardConditionFieldElement(SpecialFieldElement):
             adjusted_by_fields,
             activity,
             purpose):
+
+        if self.is_refreshing:
+            # No user update with a page refesh.
+            return
 
         if set([self._NAME]).issubset(component):
             """
@@ -512,6 +545,7 @@ class IncreaseApplicationFeeFieldElement(SpecialFieldElement):
     dynamic_attributes = None   # Attributes on the Activity Purpose.
     additional_fee = 0          # Amount the Application Fee is increased by.
     is_updating = False         # Flag indicating if update or retrieval.
+    is_refreshing = False       # Flag indicating a page refresh.
 
     def accept(self, application_form_visitor):
         self._app = application_form_visitor._application
@@ -520,6 +554,7 @@ class IncreaseApplicationFeeFieldElement(SpecialFieldElement):
         self.fee_policy = ApplicationFeePolicy.get_fee_policy_for(self._app)
         if not self._data_source:  # No form data set fee from application fee.
             self.fee_policy.set_application_fee()
+            self.is_refreshing = True
         self.dynamic_attributes = self.fee_policy.get_dynamic_attributes()
 
         application_form_visitor.visit_increase_application_fee_field(self)
@@ -532,6 +567,12 @@ class IncreaseApplicationFeeFieldElement(SpecialFieldElement):
         self.is_updating = is_update
 
     def reset(self, licence_activity):
+        '''
+        Reset the fees for the licence activity to it base fee amount.
+        '''
+        if self.is_refreshing:
+            # No user update with a page refesh.
+            return
 
         if isinstance(licence_activity, ApplicationSelectedActivity):
             self.additional_fee = 0
@@ -548,7 +589,7 @@ class IncreaseApplicationFeeFieldElement(SpecialFieldElement):
                     p.additional_fee = self.additional_fee
                     p.save()
 
-        return licence_activity
+                licence_activity.save()
 
     def parse_component(
             self,
@@ -560,6 +601,10 @@ class IncreaseApplicationFeeFieldElement(SpecialFieldElement):
         '''
         Aggregate adjusted fees for the Activity/Purpose.
         '''
+        if self.is_refreshing:
+            # No user update with a page refesh.
+            return
+
         self.additional_fee = 0
         if set([self.NAME]).issubset(component):
             def increase_fee(fees, field, amount):
@@ -603,7 +648,7 @@ class IncreaseApplicationFeeFieldElement(SpecialFieldElement):
                 adjusted_by_fields[schema_name] += 1
 
             if self.is_updating and adjustments_performed:
-                # update additional fee on activity purpose.
+                # update adjusted fee for the activity purpose.
                 p = ApplicationSelectedActivityPurpose.objects.get_or_create(
                     purpose=purpose,
                     selected_activity=activity,
@@ -616,7 +661,12 @@ class IncreaseApplicationFeeFieldElement(SpecialFieldElement):
         Gets the new dynamic attributes after the Increase Application Fee
         has been applied with the relevant fee policy.
         '''
+        if self.is_refreshing:
+            # don't calculate new fees for attributes.
+            return self.dynamic_attributes['fees']
+
         self.fee_policy.set_dynamic_attributes(self.dynamic_attributes)
+
         return self.dynamic_attributes['fees']
 
     def set_adjusted_fees_for(self, activity):
@@ -624,6 +674,10 @@ class IncreaseApplicationFeeFieldElement(SpecialFieldElement):
         Sets the Increase Application Fee on the licence activity applying the
         relevant fee policy.
         '''
+        if self.is_refreshing:
+            # don't calculate new fees for attributes.
+            return
+
         self.fee_policy.set_dynamic_attributes_for(activity)
 
     def get_dynamic_attributes(self):
@@ -918,19 +972,73 @@ class ApplicationFeePolicy(object):
 
 
 class ApplicationFeePolicyForAmendment(ApplicationFeePolicy):
-    """
-    Amendment Application maintains the status of the previous application.
-    Allows the applicant to change the application status and fees after the
-    licence has been issued.
-
-    Note: No refunds are provided.
-    """
+    '''
+    A fee policy that applies to an application for a licence amendment.
+    - maintains a base application fee from previous application.
+    - applies no licence fee.
+    - all adjustment fees from the previous application are excluded.
+    - adjustment fees based on questions are added to the application fee.
+    '''
     AMEND = Application.APPLICATION_TYPE_AMENDMENT
 
+    application = None
+    dynamic_attributes = None   # Container for Activity fees.
+    is_refreshing = False       # Flag indicating a page refresh.
+
     def __init__(self, application):
-        self._application = application
-        if application.application_type == self.AMEND:
-            self.init_dynamic_attributes()
+        self.application = application
+        self.init_dynamic_attributes()
+
+    def __str__(self):
+        return 'Amend fee policy for {0}{1}'.format(
+           'Application: {app} '.format(app=self.application.id),
+           'attributes : {att} '.format(att=self.dynamic_attributes),
+        )
+
+    @staticmethod
+    def set_zero_licence_fee_for(purpose):
+        '''
+        No base licence fees are paid for Amended Activity Purposes.
+        '''
+        if isinstance(purpose, ApplicationSelectedActivityPurpose):
+            purpose.base_licence_fee = 0
+
+    @staticmethod
+    def set_previous_application_fee_for(purpose):
+        '''
+        The application fee is the same as the previous fee for Purpose.
+        '''
+        if isinstance(purpose, ApplicationSelectedActivityPurpose):
+            previous = purpose.get_purpose_from_previous()
+            purpose.application_fee = previous.application_fee
+
+    def init_dynamic_attributes(self):
+        '''
+        Initialise the dynamic attributes.
+        '''
+        self.is_refreshing = False
+        application_fees = Application.calculate_base_fees(
+                self.application.licence_purposes.values_list('id', flat=True)
+            )['application']
+
+        if self.application.application_fee > 0:
+            # Apply previous application fee amount instead of base.
+            prev_fees = self.application.previous_application.application_fee
+            prev_fees = 0
+            for activity in self.application.activities:
+                previous = activity.get_activity_from_previous()
+                for purpose in previous.proposed_purposes.all():
+                    prev_fees += purpose.application_fee
+
+            application_fees = prev_fees
+
+        self.dynamic_attributes = {
+            'fees': {
+                'application': application_fees,
+                'licence': self.set_licence_fee(),
+            },
+            'activity_attributes': {},
+        }
 
     def set_purpose_fees_for(self, activity):
         """
@@ -994,7 +1102,7 @@ class ApplicationFeePolicyForAmendment(ApplicationFeePolicy):
     #     prev_total = 0
     #     prev_act = 0
     #     licence = WildlifeLicence.objects.get(
-    #         current_application_id=self._application.previous_application.id
+    #         current_application_id=self.application.previous_application.id
     #     )
     #     for a in licence.current_activities:
     #         # aggregate fees from previous applications on licence.
@@ -1021,7 +1129,7 @@ class ApplicationFeePolicyForAmendment(ApplicationFeePolicy):
         which have been added as part of this Licence Amendment.
         """
         prev_total = 0
-        for purpose in activity.proposed_purposes:
+        for purpose in activity.proposed_purposes.all():
             prev_purpose = purpose.get_purpose_from_previous()
             prev_total += prev_purpose.application_fee
             prev_total += prev_purpose.additional_fee
@@ -1038,7 +1146,7 @@ class ApplicationFeePolicyForAmendment(ApplicationFeePolicy):
         which have been added as part of this Licence Amendment.
         """
         prev_actual = 0
-        for purpose in activity.proposed_purposes:
+        for purpose in activity.proposed_purposes.all():
             prev_purpose = purpose.get_purpose_from_previous()
             prev_actual += prev_purpose.application_fee
 
@@ -1058,59 +1166,25 @@ class ApplicationFeePolicyForAmendment(ApplicationFeePolicy):
         Set Application fee from the saved model. Required when presentation is
         refreshed and no attributes are passed.
         """
-        self._is_init = False
-        application_fees = Application.calculate_base_fees(
-                self._application.licence_purposes.values_list('id', flat=True)
-            )['application']
-
-        if self._application.application_fee > 0:
-            # Apply previous application fee amount instead of base.
-            prev_fees = self._application.previous_application.application_fee
-            application_fees = prev_fees
-
-        self._dynamic_attributes = {
-            'fees': {
-                'application': application_fees,
-                'licence': self.set_licence_fee(),
-                },
-            'activity_attributes': {},
-        }
-
-    def init_dynamic_attributes(self):
-        """
-        Initialise the dynamic attributes.
-        """
-        self.is_init = True
-        application_fees = Application.calculate_base_fees(
-            self._application.licence_purposes.values_list(
-                'id', flat=True))['application']
-
-        if self._application.application_fee > 0:
-            # Apply previous application fee amount instead of base.
-            prev_fees = self._application.previous_application.application_fee
-            application_fees = prev_fees
-
-        self._dynamic_attributes = {
-            'fees': {
-                'application': application_fees,
-                'licence': self.set_licence_fee(),
-            },
-            'activity_attributes': {},
-        }
+        self.init_dynamic_attributes()
+        self.is_refreshing = True
 
     def set_dynamic_attributes(self, attributes):
         '''
         Apply Licence Amendment Fee policy to dynamic attributes.
         '''
-        if self.is_init:
-            attributes = self.amend_adjusted_fee(attributes)
+        if self.is_refreshing:
+            return
+        attributes = self.amend_adjusted_fee(attributes)
 
-        self._dynamic_attrubutes = attributes
+        self.dynamic_attrubutes = attributes
 
     def set_dynamic_attributes_for(self, activity):
         '''
         Apply Licence Amendment Fee policy to Activity fees.
         '''
+        if self.is_refreshing:
+            return
         self.set_licence_fee_to_zero_for(activity)
         self.set_application_fee_to_previous_base_for(activity)
 
@@ -1126,7 +1200,7 @@ class ApplicationFeePolicyForAmendment(ApplicationFeePolicy):
         new_act = 0
         fees_adj = 0
 
-        for activity in self._application.activities:
+        for activity in self.application.activities:
             prev_total += self.get_previous_paid_total_for(activity)
             prev_act += self.get_previous_paid_actual_for(activity)
             # aggregate adjusted fees from calculated dynamic attributes.
@@ -1159,11 +1233,11 @@ class ApplicationFeePolicyForAmendment(ApplicationFeePolicy):
     #     new_act = 0
     #     fees_adj = 0
 
-    #     previous_app = self._application.previous_application.id
+    #     previous_app = self.application.previous_application.id
     #     licence = WildlifeLicence.objects.get(
     #         current_application_id=previous_app
     #     )
-    #     for activity in self._application.activities:
+    #     for activity in self.application.activities:
 
     #         for a in licence.current_activities:
     #             # aggregate fees from previous applications on licence.
@@ -1190,35 +1264,42 @@ class ApplicationFeePolicyForAmendment(ApplicationFeePolicy):
     #     return attributes
 
     def get_dynamic_attributes(self):
-        return self._dynamic_attributes
-
-    @staticmethod
-    def set_zero_licence_fee_for(purpose):
-        '''
-        No base licence fees are paid for Amended Activity Purposes.
-        '''
-        if purpose:
-            purpose.base_licence_fee = 0
-
-    def __str__(self):
-        return 'ApplicationFeePolicyForAmend'
+        return self.dynamic_attributes
 
 
 class ApplicationFeePolicyForRenew(ApplicationFeePolicy):
-    """
-    Renewal Application maintains the status of the previous application.
-    Allows applicant to renew a licence.
+    '''
+    A fee policy that applies to an application to renew a licence.
+    - maintains the application fee and licence fee from previous licence.
+    - adjustment fees from the previous application are excluded.
+    - adjustment fees based on questions are added to the application fee.
+    '''
+    is_refreshing = False       # Flag indicating a page refresh.
 
-    1. No refunds are provided.
-    """
     def __init__(self, application):
         self._application = application
         self.init_dynamic_attributes()
+
+    def __str__(self):
+        return 'Renew fee policy for {0}{1}'.format(
+           'Application: {app} '.format(app=self.application.id),
+           'attributes : {att} '.format(att=self.dynamic_attributes),
+        )
+
+    def init_dynamic_attributes(self):
+        self.is_refreshing = False
+        self._dynamic_attributes = {
+            'fees': Application.calculate_base_fees(
+                self._application.licence_purposes.values_list('id', flat=True)
+            ),
+            'activity_attributes': {},
+        }
 
     def set_application_fee(self):
         """
         Set Application fee from the saved model.
         """
+        self.is_refreshing = True
         application_fees = Application.calculate_base_fees(
                 self._application.licence_purposes.values_list('id', flat=True)
             )['application']
@@ -1237,35 +1318,30 @@ class ApplicationFeePolicyForRenew(ApplicationFeePolicy):
             'activity_attributes': {},
         }
 
-    def init_dynamic_attributes(self):
-        self._dynamic_attributes = {
-            'fees': Application.calculate_base_fees(
-                self._application.licence_purposes.values_list('id', flat=True)
-            ),
-            'activity_attributes': {},
-        }
-
     def set_dynamic_attributes(self, attributes):
+        if self.is_refreshing:
+            return
         self._dynamic_attributes = attributes
 
     def get_dynamic_attributes(self):
         return self._dynamic_attributes
 
     def set_dynamic_attributes_for(self, activity):
-        pass
-
-    def __str__(self):
-        return 'RenewApplicationFeePolicy'
+        if self.is_refreshing:
+            return
 
 
 class ApplicationFeePolicyForNew(ApplicationFeePolicy):
-    """
-    1. Set application from admin base fee
-    2. NewApplicationFeePolicy applies to Requested Amendment.
-    """
+    '''
+    A fee policy that applies to an application for a new licence.
+    - applies base purpose fees for both application and licence.
+    - adjustment fees based on questions is added to the application fee.
+    '''
     NEW = Application.APPLICATION_TYPE_ACTIVITY
+
     application = None
-    dynamic_attributes = {}
+    dynamic_attributes = None   # Container for Activity fees.
+    is_refreshing = False       # Flag indicating a page refresh.
 
     def __init__(self, application):
         self.application = application
@@ -1276,6 +1352,15 @@ class ApplicationFeePolicyForNew(ApplicationFeePolicy):
            'Application: {app} '.format(app=self.application.id),
            'attributes : {att} '.format(att=self.dynamic_attributes),
         )
+
+    def init_dynamic_attributes(self):
+        self.is_refreshing = False
+        self.dynamic_attributes = {
+            'fees': Application.calculate_base_fees(
+                self.application.licence_purposes.values_list('id', flat=True)
+            ),
+            'activity_attributes': {},
+        }
 
     def set_purpose_fees_for(self, activity):
         """
@@ -1302,6 +1387,7 @@ class ApplicationFeePolicyForNew(ApplicationFeePolicy):
         """
         Set Application fee from the saved model.
         """
+        self.is_refreshing = True
         application_fees = Application.calculate_base_fees(
                 self.application.licence_purposes.values_list('id', flat=True)
             )['application']
@@ -1312,7 +1398,7 @@ class ApplicationFeePolicyForNew(ApplicationFeePolicy):
         if self.application.application_fee > 0:
             application_fees = self.application.application_fee
 
-        self._dynamic_attributes = {
+        self.dynamic_attributes = {
             'fees': {
                 'application': application_fees,
                 'licence': licence_fees,
@@ -1320,15 +1406,9 @@ class ApplicationFeePolicyForNew(ApplicationFeePolicy):
             'activity_attributes': {},
         }
 
-    def init_dynamic_attributes(self):
-        self.dynamic_attributes = {
-            'fees': Application.calculate_base_fees(
-                self.application.licence_purposes.values_list('id', flat=True)
-            ),
-            'activity_attributes': {},
-        }
-
     def set_dynamic_attributes(self, attributes):
+        if self.is_refreshing:
+            return
         self.dynamic_attributes = attributes
 
     def get_dynamic_attributes(self):
@@ -1336,8 +1416,10 @@ class ApplicationFeePolicyForNew(ApplicationFeePolicy):
 
     def set_dynamic_attributes_for(self, activity):
         '''
-        Sets any updated attribute fees associated with the Activity. 
+        Sets any updated attribute fees associated with the Activity.
         '''
+        if self.is_refreshing:
+            return
         self.set_purpose_fees_for(activity)
 
 
