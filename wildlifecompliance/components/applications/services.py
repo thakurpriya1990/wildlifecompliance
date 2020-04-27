@@ -536,8 +536,8 @@ class StandardConditionFieldElement(SpecialFieldElement):
 class IncreaseApplicationFeeFieldElement(SpecialFieldElement):
     """
     An implementation of an SpecialFieldElement operation that takes a
-    ApplicationFormVisitor as an argument and dynamically updates the fee
-    attributes for an Activity/Purpose.
+    ApplicationFormVisitor as an argument and dynamically updates any increased
+    adjustments to the application fee for the Activity/Purpose.
     """
     NAME = 'IncreaseApplicationFee'
 
@@ -575,18 +575,17 @@ class IncreaseApplicationFeeFieldElement(SpecialFieldElement):
             return
 
         if isinstance(licence_activity, ApplicationSelectedActivity):
-            self.additional_fee = 0
             self.dynamic_attributes[
                 'activity_attributes'][licence_activity] = {
                     'fees': licence_activity.base_fees
                 }
-            # reset purpose amount
+            # reset purpose adjusted fee amount.
             if self.is_updating:
                 purposes = ApplicationSelectedActivityPurpose.objects.filter(
                     selected_activity=licence_activity,
                 )
                 for p in purposes:
-                    p.additional_fee = self.additional_fee
+                    p.adjusted_fee = 0
                     p.save()
 
                 licence_activity.save()
@@ -605,15 +604,15 @@ class IncreaseApplicationFeeFieldElement(SpecialFieldElement):
             # No user update with a page refesh.
             return
 
-        self.additional_fee = 0
+        self.adjusted_fee = 0
         if set([self.NAME]).issubset(component):
             def increase_fee(fees, field, amount):
                 fees[field] += amount
                 fees[field] = fees[field] if fees[field] >= 0 else 0
                 return True
 
-            def additional_fee(amount):
-                self.additional_fee += amount
+            def adjusted_fee(amount):
+                self.adjusted_fee += amount
                 return True
 
             fee_modifier_keys = {
@@ -640,7 +639,7 @@ class IncreaseApplicationFeeFieldElement(SpecialFieldElement):
                     'activity_attributes'][activity]['fees'],
                 field,
                 component[key]
-            ) and additional_fee(
+            ) and adjusted_fee(
                 component[key]
             ) for key, field in fee_modifier_keys.items())
 
@@ -653,7 +652,7 @@ class IncreaseApplicationFeeFieldElement(SpecialFieldElement):
                     purpose=purpose,
                     selected_activity=activity,
                 )
-                p[0].additional_fee = self.additional_fee
+                p[0].adjusted_fee = self.adjusted_fee
                 p[0].save()
 
     def get_adjusted_fees(self):
@@ -987,7 +986,8 @@ class ApplicationFeePolicyForAmendment(ApplicationFeePolicy):
 
     def __init__(self, application):
         self.application = application
-        self.init_dynamic_attributes()
+        if self.application.application_type == self.AMEND:
+            self.init_dynamic_attributes()
 
     def __str__(self):
         return 'Amend fee policy for {0}{1}'.format(
@@ -1010,7 +1010,8 @@ class ApplicationFeePolicyForAmendment(ApplicationFeePolicy):
         '''
         if isinstance(purpose, ApplicationSelectedActivityPurpose):
             previous = purpose.get_purpose_from_previous()
-            purpose.application_fee = previous.application_fee
+            prev_fee = previous.application_fee if previous else 0
+            purpose.application_fee = prev_fee
 
     def init_dynamic_attributes(self):
         '''
@@ -1026,8 +1027,9 @@ class ApplicationFeePolicyForAmendment(ApplicationFeePolicy):
             prev_fees = self.application.previous_application.application_fee
             prev_fees = 0
             for activity in self.application.activities:
-                previous = activity.get_activity_from_previous()
-                for purpose in previous.proposed_purposes.all():
+                prev = activity.get_activity_from_previous()
+                purposes = prev.proposed_purposes.all() if prev else None
+                for purpose in purposes:
                     prev_fees += purpose.application_fee
 
             application_fees = prev_fees
@@ -1057,7 +1059,8 @@ class ApplicationFeePolicyForAmendment(ApplicationFeePolicy):
                 purpose_id=purpose[0].id
             )
             previous = p.get_purpose_from_previous()
-            p.application_fee = previous.application_fee
+            prev_fee = previous.application_fee if previous else 0
+            p.application_fee = prev_fee
             p.licence_fee = self.set_licence_fee()
             p.additional_fee = 0
             p.save()
@@ -1091,38 +1094,6 @@ class ApplicationFeePolicyForAmendment(ApplicationFeePolicy):
         else:
             activity.application_fee += new_adj
 
-    # def set_application_fee_to_previous_base_for(self, activity):
-    #     """
-    #     Application base fee is the same as previous application fee.
-
-    #     NOTE: Same as amend_adjusted_fee(self, attributes)
-
-    #     FIXME: calculate for purpose in activity.purposes.
-    #     """
-    #     prev_total = 0
-    #     prev_act = 0
-    #     licence = WildlifeLicence.objects.get(
-    #         current_application_id=self.application.previous_application.id
-    #     )
-    #     for a in licence.current_activities:
-    #         # aggregate fees from previous applications on licence.
-    #         # FIXME:
-    #         if a.licence_activity_id == activity.licence_activity_id:
-    #             prev_total += a.total_paid_amount - a.licence_fee
-    #             prev_act += a.pre_adjusted_application_fee
-
-    #     fees_adj = activity.application_fee         # Adjusted Fees.
-    #     prev_adj = prev_total - prev_act            # Previous Adjustments.
-    #     fees = prev_act + prev_adj                  # Total Fees.
-    #     new_adj = fees_adj - fees                   # New Adjusments.
-    #     activity.application_fee = prev_act
-    #     if new_adj < 0:
-    #         # No over-payments are reimbursed for Amendment applications just
-    #         # pay new calculated fee.
-    #         activity.application_fee = fees_adj
-    #     else:
-    #         activity.application_fee += new_adj
-
     def get_previous_paid_total_for(self, activity):
         """
         Set Licence fee as an aggregated amount of all new Activity/Purposes
@@ -1130,12 +1101,14 @@ class ApplicationFeePolicyForAmendment(ApplicationFeePolicy):
         """
         prev_total = 0
         for purpose in activity.proposed_purposes.all():
-            prev_purpose = purpose.get_purpose_from_previous()
-            prev_total += prev_purpose.application_fee
-            prev_total += prev_purpose.additional_fee
+            prev = purpose.get_purpose_from_previous()
+            prev_app_fee = prev.application_fee if prev else 0
+            prev_adj_fee = prev.adjusted_fee if prev else 0
+            prev_total += prev_app_fee
+            prev_total += prev_adj_fee    # Fee from questions.
 
         prev_activity = activity.get_activity_from_previous()
-        if prev_activity.has_adjusted_application_fee:
+        if prev_activity and prev_activity.has_adjusted_application_fee:
             prev_total += prev_activity.additional_fee
 
         return prev_total
@@ -1148,7 +1121,8 @@ class ApplicationFeePolicyForAmendment(ApplicationFeePolicy):
         prev_actual = 0
         for purpose in activity.proposed_purposes.all():
             prev_purpose = purpose.get_purpose_from_previous()
-            prev_actual += prev_purpose.application_fee
+            prev_fee = prev_purpose.application_fee if prev_purpose else 0
+            prev_actual += prev_fee
 
         return prev_actual
 
@@ -1220,49 +1194,6 @@ class ApplicationFeePolicyForAmendment(ApplicationFeePolicy):
 
         return attributes
 
-    # def amend_adjusted_fee(self, attributes):
-    #     '''
-    #     Amend only Application Fees for dynamic attributes.
-
-    #     NOTE: Same as set_application_fee_to_previous_base_for(self,activity)
-
-    #     FIXME: calculate for purpose in activity.purposes.
-    #     '''
-    #     prev_total = 0
-    #     prev_act = 0
-    #     new_act = 0
-    #     fees_adj = 0
-
-    #     previous_app = self.application.previous_application.id
-    #     licence = WildlifeLicence.objects.get(
-    #         current_application_id=previous_app
-    #     )
-    #     for activity in self.application.activities:
-
-    #         for a in licence.current_activities:
-    #             # aggregate fees from previous applications on licence.
-    #             # FIXME:
-    #             if a.licence_activity_id == activity.licence_activity_id:
-    #                 prev_total += a.total_paid_amount - a.licence_fee
-    #                 prev_act += a.pre_adjusted_application_fee
-
-    #         # aggregate adjusted fees from calculated dynamic attributes.
-    #         fees_adj += attributes[
-    #             'activity_attributes'][activity]['fees']['application']
-
-    #     prev_adj = prev_total - prev_act        # previous adjustments
-    #     fees = prev_act + prev_adj + new_act    # total fees
-    #     new_adj = fees_adj - fees               # new adjustments
-    #     attributes['fees']['application'] = prev_act + new_act
-    #     if new_adj < 0:
-    #         # No over-payments are reimbursed for Amendment applications-just
-    #         # pay new calculated fee.
-    #         attributes['fees']['application'] = fees_adj
-    #     else:
-    #         attributes['fees']['application'] += new_adj
-
-    #     return attributes
-
     def get_dynamic_attributes(self):
         return self.dynamic_attributes
 
@@ -1274,11 +1205,14 @@ class ApplicationFeePolicyForRenew(ApplicationFeePolicy):
     - adjustment fees from the previous application are excluded.
     - adjustment fees based on questions are added to the application fee.
     '''
+    RENEW = Application.APPLICATION_TYPE_RENEWAL
+
     is_refreshing = False       # Flag indicating a page refresh.
 
     def __init__(self, application):
         self._application = application
-        self.init_dynamic_attributes()
+        if self._application.application_type == self.RENEW:
+            self.init_dynamic_attributes()
 
     def __str__(self):
         return 'Renew fee policy for {0}{1}'.format(
@@ -1337,7 +1271,10 @@ class ApplicationFeePolicyForNew(ApplicationFeePolicy):
     - applies base purpose fees for both application and licence.
     - adjustment fees based on questions is added to the application fee.
     '''
-    NEW = Application.APPLICATION_TYPE_ACTIVITY
+    NEW = [
+        Application.APPLICATION_TYPE_ACTIVITY,
+        Application.APPLICATION_TYPE_NEW_LICENCE
+    ]
 
     application = None
     dynamic_attributes = None   # Container for Activity fees.
@@ -1345,7 +1282,8 @@ class ApplicationFeePolicyForNew(ApplicationFeePolicy):
 
     def __init__(self, application):
         self.application = application
-        self.init_dynamic_attributes()
+        if self.application.application_type in self.NEW:
+            self.init_dynamic_attributes()
 
     def __str__(self):
         return 'New fee policy for {0}{1}'.format(

@@ -1567,6 +1567,10 @@ class Application(RevisionedMixin):
         activity_paid = 0
         for activity in self.activities:
             activity_paid += activity.licence_fee
+            # get previous activity for licence amendments and aggregate the
+            # previous licence fee. No licence fee will exist on the current.
+            previous = activity.get_activity_from_previous()
+            activity_paid += previous.licence_fee if previous else 0
         paid = paid - activity_paid
 
         over_paid = paid - int(self.application_fee)
@@ -2987,6 +2991,8 @@ class ApplicationSelectedActivity(models.Model):
         max_digits=8, decimal_places=2, default='0')
     application_fee = models.DecimalField(
         max_digits=8, decimal_places=2, default='0')
+    # Additional Fee is the amount an internal officer imposes on an Activity
+    # for services excluded from the application fee.
     additional_fee = models.DecimalField(
         max_digits=8, decimal_places=2, default='0')
     additional_fee_text = models.TextField(blank=True, null=True)
@@ -3299,7 +3305,8 @@ class ApplicationSelectedActivity(models.Model):
     def total_paid_amount(self):
         """
         Property defining the total fees already paid for this licence Activity.
-        The total amount includes fee, adjustments and licence fee.
+        The total amount includes application fee, additional fee, adjustments
+        and licence fee.
         """
         amount = 0
         if self.activity_invoices.count() > 0:
@@ -3316,8 +3323,8 @@ class ApplicationSelectedActivity(models.Model):
     @property
     def has_adjusted_application_fee(self):
         '''
-        Property indicating this Selected Activity has an adjusted application
-        fee different from the base admin fee.
+        Property indicating this Selected Activity has an application fee cost
+        different from the base admin fee Activity/Purpose.
         '''
         adjusted = False
         charged = self.licence_fee + self.application_fee
@@ -3329,8 +3336,8 @@ class ApplicationSelectedActivity(models.Model):
     @property
     def pre_adjusted_application_fee(self):
         '''
-        Property returning the base admin fee amount paid for this Selected
-        Activity regardless of any adjustments.
+        Property returning the application fee amount paid for this Selected
+        Activity excluding the additional fees imposed by officer.
         '''
         pre_adjusted_fee = self.application_fee        
         if self.has_adjusted_application_fee:
@@ -3385,12 +3392,13 @@ class ApplicationSelectedActivity(models.Model):
             try:
                 purposes = self.proposed_purposes.all()
                 for purpose in purposes:
-                    prev_purpose = purpose.get_purpose_from_previous()
-                    previous_paid += prev_purpose.total_paid_amount
+                    prev = purpose.get_purpose_from_previous()
+                    prev_total = prev.total_paid_amount if prev else 0
+                    previous_paid += prev_total
 
-                prev_activity = self.get_activity_from_previous()
-                if prev_activity.has_adjusted_application_fee:
-                    previous_paid += prev_activity.additional_fee
+                prev_act = self.get_activity_from_previous()
+                if prev_act and prev_act.has_adjusted_application_fee:
+                    previous_paid += prev_act.additional_fee
 
             except BaseException:
                 raise Exception('Exception in previous_paid_from_licence.')
@@ -3545,7 +3553,8 @@ class ApplicationSelectedActivity(models.Model):
         Selected Activity application licence.
         '''
         previous = None
-        prev_id = self.application.previous_application.id
+        prev_app = self.application.previous_application
+        prev_id = prev_app.id if prev_app else 0
 
         try:
             # Retrieve licence rather than from previous application. Previous
@@ -3591,7 +3600,9 @@ class ApplicationSelectedActivityPurpose(models.Model):
         max_digits=8, decimal_places=2, default='0')
     application_fee = models.DecimalField(
         max_digits=8, decimal_places=2, default='0')
-    additional_fee = models.DecimalField(
+    # Adjusted Fee is an adjustment amount included to the application fee. It
+    # occurs with questions selected by the applicant for an Activity Purpose.
+    adjusted_fee = models.DecimalField(
         max_digits=8, decimal_places=2, default='0')
 
     @property
@@ -3613,7 +3624,7 @@ class ApplicationSelectedActivityPurpose(models.Model):
         An attribute for the total fees paid for this Select Activity Purpose.
         The total amount includes fee, additional and licence fee.
         '''     
-        amount = self.application_fee + self.licence_fee + self.additional_fee
+        amount = self.application_fee + self.licence_fee + self.adjusted_fee
 
         return amount
 
@@ -3623,7 +3634,7 @@ class ApplicationSelectedActivityPurpose(models.Model):
         An Attribute indicating this Selected Activity Purpose has an adjusted 
         application fee different from the base admin fee.
         '''
-        return True if self.additional_fee > 0 else False
+        return True if self.adjusted_fee > 0 else False
 
     @property
     def pre_adjusted_application_fee(self):
@@ -3641,7 +3652,7 @@ class ApplicationSelectedActivityPurpose(models.Model):
             "Purpose: {purpose} ".format(purpose=purpose),
             "App. Fee: {fee1} ".format(fee1=self.application_fee),
             "Lic. Fee: {fee2} ".format(fee2=self.licence_fee),
-            "Add. Fee: {fee3} ".format(fee3=self.additional_fee),
+            "Adj. Fee: {fee3} ".format(fee3=self.adjusted_fee),
             "(Act: {activity}".format(activity=activity),
             " App: {application})".format(application=application),
         )
@@ -3656,7 +3667,8 @@ class ApplicationSelectedActivityPurpose(models.Model):
         Application Selected Activity application licence.
         '''
         previous = None
-        prev_id = self.selected_activity.application.previous_application.id
+        prev_app = self.selected_activity.application.previous_application
+        prev_id = prev_app.id if prev_app else 0
 
         try:
             # Retrieve licence rather than from previous application. Previous
@@ -3707,10 +3719,10 @@ class ActivityInvoice(models.Model):
 
     def __str__(self):
         invoice = self.invoice_reference
-        activity = self.activity.short_name
+        activity = self.activity.licence_activity.short_name
         return "{0}{1}".format(
-            "Invoice: {invoice} ".format(invoice),
-            "Activity: {activity} ".format(activity),
+            "Invoice: {invoice} ".format(invoice=invoice),
+            "Activity: {activity} ".format(activity=activity),
         )
 
     @property
