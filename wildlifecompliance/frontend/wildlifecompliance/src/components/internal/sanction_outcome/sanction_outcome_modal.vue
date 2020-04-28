@@ -7,7 +7,7 @@
                     <div class="col-sm-4">
                         <!-- <select class="form-control" v-on:change="typeSelected($event)"> -->
                         <!-- <select class="form-control" v-on:change="typeSelected($event)" v-bind:value="sanction_outcome.type"> -->
-                        <select class="form-control" v-model="sanction_outcome.type">
+                        <select class="form-control" v-model="sanction_outcome.type" @change="typeChanged()">
                             <option v-for="option in options_for_types" v-bind:value="option.id" v-bind:key="option.id">
                                 {{ option.display }} 
                             </option>
@@ -67,9 +67,9 @@
                                 </div>
                                 <div class="col-sm-7">
                                     <div v-show="sanction_outcome">
-                                        <select :disabled="offenceReadonly" class="form-control" v-on:change="offenceSelected($event)" v-bind:value="sanction_outcome.current_offence.id">
+                                        <select :disabled="offenceReadonly" class="form-control" v-on:change="currentOffenceChanged()" v-model="sanction_outcome.current_offence">
                                             <option value=""></option>
-                                            <option v-for="option in options_for_offences" v-bind:value="option.id" v-bind:key="option.id">
+                                            <option v-for="option in options_for_offences" v-bind:value="option" v-bind:key="option.id">
                                                 {{ option.lodgement_number + ': ' + option.identifier }} 
                                             </option>
                                         </select>
@@ -83,11 +83,14 @@
                                 </div>
                                 <div class="col-sm-7">
                                     <div v-if="sanction_outcome && sanction_outcome.current_offence && sanction_outcome.current_offence.offenders">
-                                    <!-- <div v-if="sanction_outcome"> -->
-                                        <select class="form-control" v-on:change="offenderSelected($event)" v-bind:value="sanction_outcome.current_offender.id">
+                                        <!--
+                                        <select class="form-control" @change="offenderSelected($event)" :value="sanction_outcome.current_offender.id" >
+                                        -->
+                                        <select class="form-control" v-model="sanction_outcome.current_offender" @change="currentOffenderChanged()">
                                             <option value=""></option>
-                                            <!-- <option v-for="offender in options_for_offenders" v-bind:value="offender.id" v-bind:key="offender.id"> -->
-                                            <option v-for="offender in sanction_outcome.current_offence.offenders" v-bind:value="offender.id" v-bind:key="offender.id">
+                                            <option v-for="offender in sanction_outcome.current_offence.offenders" 
+                                                :value="offender" 
+                                                :key="offender.id">
                                                 <span v-if="offender.person">
                                                     {{ offender.person.first_name + ' ' + offender.person.last_name + ', DOB:' + offender.person.dob }} 
                                                 </span>
@@ -374,10 +377,14 @@ export default {
             {
                 mRender: function(data, type, full) {
                     let ret_line = '';
-                    console.log('full');
-                    console.log(full);
 
-                    if (full.number_linked_sanction_outcomes_active > 0 || full.removed){
+                    // Chenck if this alleged offence has already a connection to the current offender selected
+                    let current_offender_has_connection = false;
+
+                    if (full.connected || full.removed){
+
+                        // Disabled
+
                         if (vm.sanction_outcome.type == 'infringement_notice'){
                             ret_line += '<input type="radio" name="infringement_radio_button" class="alleged_offence_include" value="' + full.id + '" disabled></input>';
                         } else if (vm.sanction_outcome.type == '' || vm.sanction_outcome.type == null) {
@@ -387,6 +394,9 @@ export default {
                             ret_line += '<input type="checkbox" class="alleged_offence_include" value="' + full.id + '" disabled></input>';
                         }
                     } else {
+
+                        // Enabled
+
                         if (vm.sanction_outcome.type == 'infringement_notice'){
                             ret_line += '<input type="radio" name="infringement_radio_button" class="alleged_offence_include" value="' + full.id + '"></input>';
                         } else if (vm.sanction_outcome.type == '' || vm.sanction_outcome.type == null) {
@@ -453,23 +463,21 @@ export default {
               }
             }
         },
-        current_type: {
-            handler: function() {
-                console.log('current_type in watch');
-                this.typeChanged();
-            }
-        },
-        current_offence: {
-            handler: function() {
-                console.log('current_offence in watch');
-                this.currentOffenceChanged();
-            }
-        },
-        current_offender: {
-            handler: function() {
-                this.currentOffenderChanged();
-            }
-        },
+      //  current_type: {
+      //      handler: function() {
+      //          this.typeChanged();
+      //      }
+      //  },
+      //  current_offence: {
+      //      handler: function() {
+      //          this.currentOffenceChanged();
+      //      }
+      //  },
+      //  current_offender: {
+      //      handler: function() {
+      //          this.currentOffenderChanged();
+      //      }
+      //  },
         current_region_id: {
             handler: function() {
                 this.currentRegionIdChanged();
@@ -485,25 +493,23 @@ export default {
             if(this.current_remediation_action.action && this.current_remediation_action.due_date){
                 enabled = true;
             }
-            console.log('enableAddActionButton' + enabled);
             return enabled;
         },
         issued_on_paper: function() {
             return this.sanction_outcome.issued_on_paper;
         },
-        current_offence: function() {
-            console.log('current_offence in computed');
-            return this.sanction_outcome.current_offence;
-        },
-        current_offender: function() {
-            return this.sanction_outcome.current_offender;
-        },
+       // current_offence: function() {
+       //     return this.sanction_outcome.current_offence;
+       // },
+       // current_offender: function() {
+       //     return this.sanction_outcome.current_offender;
+       // },
         current_region_id: function() {
             return this.sanction_outcome.region_id;
         },
-        current_type: function() {
-            return this.sanction_outcome.type;
-        },
+       // current_type: function() {
+       //     return this.sanction_outcome.type;
+       // },
         modalTitle: function() {
             return "Identify Sanction Outcome";
         },
@@ -568,7 +574,6 @@ export default {
             vm.check_if_is_parking_offence();
         },
         check_if_is_parking_offence: function() {
-            console.log('check_if_is_parking_offence');
             this.is_parking_offence = false;
             if (this.sanction_outcome.type == 'infringement_notice' && this.aco_ids_included.length == 1){
                 for (let i=0; i < this.aco_ids_included.length; i++){
@@ -640,6 +645,7 @@ export default {
             this.close();
         },
         typeChanged: function(){
+            console.log('typeChanged');
             this.constructAllegedOffencesTable();
             this.check_if_is_parking_offence();
         },
@@ -654,7 +660,6 @@ export default {
             this.isModalOpen = false;
         },
         loadDefaultData: function() {
-            console.log('loadDefaultData');
             if (this.$parent.call_email) {
                 this.sanction_outcome.region_id = this.$parent.call_email.region_id;
                 this.sanction_outcome.district_id = this.$parent.call_email.district_id;
@@ -668,8 +673,6 @@ export default {
             if (this.$parent.offence) {
                 this.sanction_outcome.region_id = this.$parent.offence.region_id;
                 this.sanction_outcome.district_id = this.$parent.offence.district_id;
-                console.log('options_for_offences');
-                console.log(this.options_for_offences);
                 for (let i = 0; i < this.options_for_offences.length; i++) {
                     if (this.options_for_offences[i].id == this.$parent.offence.id) {
                         this.sanction_outcome.current_offence = this.options_for_offences[i];
@@ -838,8 +841,6 @@ export default {
           Object.assign(this.regionDistricts, returned_region_districts);
         },
         sendData: async function() {
-            console.log('sendData');
-
             let vm = this;
             let alleged_offence_ids_included = [];
             let alleged_offence_ids_excluded = [];
@@ -884,13 +885,12 @@ export default {
             payload.inspection_id = this.$parent.inspection ? this.$parent.inspection.id : null;
             payload.workflow_type = 'send_to_manager'  // Because this modal is used only when creating new sanction outcome to send to manager
 
-            console.log('payload');
-            console.log(payload);
-  
             const savedObj = await Vue.http.post(postUrl, payload);
             return savedObj;
         },
         currentOffenderChanged: function() {
+            console.log('*** currentOffenderChanged ***');
+            this.constructAllegedOffencesTable();
         },
         clearTableAllegedOffence: function() {
           this.$refs.tbl_alleged_offence.vmDataTable.rows().remove().draw(); // Clear the table anyway
@@ -899,7 +899,6 @@ export default {
           this.$refs.tbl_remediation_actions.vmDataTable.rows().remove().draw(); // Clear the table anyway
         },
         currentOffenceChanged: function() {
-            console.log('currentOffenceChanged called by watch');
             this.sanction_outcome.current_offender = {};
   
             // The dropdown list of the offenders are directly linked to the vm.sanction_outcome.offence.offenders.
@@ -907,13 +906,29 @@ export default {
             this.constructAllegedOffencesTable();
         },
         constructAllegedOffencesTable: function(){
-            console.log('constructAllegedOffencesTable');
+            console.log('*** constructAllegedOffencesTable ***');
+            let current_offender_id = 0
+            if (this.sanction_outcome.current_offender.person){
+                current_offender_id = this.sanction_outcome.current_offender.person.id;
+            }
+
             // Construct the datatable of the alleged offences
             this.clearTableAllegedOffence();
 
             if (this.sanction_outcome.current_offence && this.sanction_outcome.current_offence.alleged_offences) {
                 for (let j = 0; j < this.sanction_outcome.current_offence.alleged_offences.length; j++) {
                     let alleged_offence = this.sanction_outcome.current_offence.alleged_offences[j];
+
+                    // Check if this alleged offence has already connection to the current user
+                    // Then store that info into the alleged_offence object, so that it can be used when render at mRender()
+                    let connected = false
+                    for (let i=0; i<alleged_offence.connected_offenders.length; i++){
+                        if (alleged_offence.connected_offenders[i].id == current_offender_id){
+                            connected = true
+                        }
+                    }
+                    alleged_offence.connected = connected;
+
                     this.$refs.tbl_alleged_offence.vmDataTable.row.add(alleged_offence).draw();
                 }
             }
