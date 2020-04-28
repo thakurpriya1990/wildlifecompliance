@@ -2,8 +2,8 @@
 
 {%  block content %}
         <p>Remediation Action Submitted</p>
-        <p>{{ action_taken }}</p>
+        <p>Action required: {{ remediation_action.action }}</p>
+        <p>Action taken: {{ remediation_action.action_taken }}</p>
         <p><strong>Sanction Outcome: <a href="{{url}}">{{ sanction_outcome.lodgement_number }}</a> </strong></p>
-        <p><strong>Message:  {{ workflow_entry_details }}</a></strong></p>
         <p>Note: If you haven't logged into the Wildlife Licensing System recently you may need to login first before using the provided link.</p>
 {%  endblock %}

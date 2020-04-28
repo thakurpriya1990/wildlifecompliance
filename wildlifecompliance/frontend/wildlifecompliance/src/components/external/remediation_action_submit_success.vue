@@ -1,6 +1,6 @@
 <template lang="html">
     <div class="container">
-        <div class="row">
+        <div class="row panel panel-default confirmation-box">
             <div class="col-md-12">
                 <h3>Your Remediation Action has been submitted successfully.</h3>
                 <div class="row">
@@ -92,6 +92,9 @@ export default {
 <style>
 .button-gap {
     margin: 0 0 0 1em;
+}
+.confirmation-box {
+    padding: 0 0 1.5em 0;
 }
 
 </style>

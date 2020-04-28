@@ -1,11 +1,13 @@
 {%  extends 'wildlifecompliance/emails/base_email.txt' %}
 
 {%  block content %}
-        Remediation Action Submitted blah-blah-blah...:
+        Remediation Action Submitted:
+
+        Action required: {{ remediation_action.action }}
+
+        Action taken: {{ remediation_action.action_taken }}
 
         Sanction Outcome : <a href="{{url}}">{{ sanction_outcome.lodgement_number }}</a>
-
-        Message:  {{ workflow_entry_details }}
 
         Note: If you haven't logged into the Wildlife Licensing System recently you may need to login first before using the provided link.
 
