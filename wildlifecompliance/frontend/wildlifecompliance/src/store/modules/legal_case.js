@@ -266,6 +266,22 @@ export const legalCaseStore = {
                 console.log(err);
             }
         },
+        async loadLegalCaseNoRunningSheet({ dispatch, commit }, { legal_case_id }) {
+            try {
+                const returnedLegalCase = await Vue.http.get(
+                    helpers.add_endpoint_json(
+                        api_endpoints.legal_case,
+                        legal_case_id + '/no_running_sheet'
+                    )
+                );
+                console.log('*** in loadLegalCase ***');
+                console.log(returnedLegalCase);
+                commit("updateLegalCaseNoRunningSheet", returnedLegalCase.body);
+
+            } catch (err) {
+                console.log(err);
+            }
+        },
         async saveLegalCase({ dispatch, state, rootGetters }, { 
             create, 
             internal, 
@@ -273,7 +289,7 @@ export const legalCaseStore = {
             createBriefOfEvidence, 
             createProsecutionBrief,
             fullHttpResponse,
-            noRunningSheet,
+            //noRunningSheet,
         }) {
             let legalCaseId = null;
             let savedLegalCase = null;
@@ -319,9 +335,11 @@ export const legalCaseStore = {
                     if (fullHttpResponse) {
                         payload.full_http_response = true;
                     }
+                    /*
                     if (noRunningSheet) {
                         payload.no_running_sheet = true;
                     }
+                    */
                     fetchUrl = helpers.add_endpoint_join(
                         api_endpoints.legal_case,
                         state.legal_case.id + '/'
@@ -333,10 +351,12 @@ export const legalCaseStore = {
                     console.log(savedLegalCase)
                     await dispatch("setLegalCase", savedLegalCase.body);
                 }
+                /*
                 if (noRunningSheet && savedLegalCase.ok) {
                     console.log(savedLegalCase)
                     await dispatch("setLegalCaseNoRunningSheet", savedLegalCase.body);
                 }
+                */
                 legalCaseId = savedLegalCase.body.id;
 
                 delete state.legal_case.court_proceedings.date_entries_updated

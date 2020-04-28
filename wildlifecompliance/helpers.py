@@ -1,4 +1,6 @@
 from __future__ import unicode_literals
+
+from django.contrib.auth.models import Group
 from ledger.accounts.models import EmailUser
 from wildlifecompliance import settings
 from wildlifecompliance.components.applications.models import ActivityPermissionGroup
@@ -44,8 +46,15 @@ def is_email_auth_backend(request):
 
 
 def is_wildlifecompliance_admin(request):
-    return request.user.is_authenticated() and is_model_backend(request) and in_dbca_domain(
-        request) and (request.user.has_perm('wildlifecompliance.system_administrator') or request.user.is_superuser)
+    return request.user.is_authenticated() and \
+           is_model_backend(request) and \
+           in_dbca_domain(request) and \
+           (
+               request.user.has_perm('wildlifecompliance.system_administrator') or
+               request.user.is_superuser or
+               request.user.groups.filter(name__in=['Wildlife Compliance Admin - Licensing', 'Wildlife Compliance Admin - Compliance']).exists()
+           )
+
 
 def in_dbca_domain(request):
     user = request.user

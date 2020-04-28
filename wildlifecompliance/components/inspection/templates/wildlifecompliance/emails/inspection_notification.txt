@@ -1,12 +1,13 @@
 {%  extends 'wildlifecompliance/emails/base_email.txt' %}
 
 {%  block content %}
-        Inspection will be performed soon:
+    Dear Sir/Madam,
 
-        Inspection : <a href="{{url}}">{{ inspection.number }}</a> 
+    Please be advised that a {{ inspection.inspection_type.inspection_type }} inspection is planned for {{ inspection.planned_for_date|date:"d/m/Y" }}, {{ inspection.planned_for_time|time:"h:s A" }}.
 
-        Message:  {{ workflow_entry_details }}
 
-        Note: If you haven't logged into the Wildlife Licensing System recently you may need to login first before using the provided link.
+    Yours sincerely,
+    Wildlife Licensing Section
 
+    Should you need to contact the licensing section of the Department of Biodiversity, Conservation and Attractions, please send emails to wildlifelicensing@dbca.wa.gov.au or call (08) 9219 9000.
 {%  endblock %}

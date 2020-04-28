@@ -95,6 +95,7 @@ class DTInternalWildlifeLicenceSerializer(WildlifeLicenceSerializer):
             'can_action',
             'can_add_purpose',
             'invoice_url',
+            'has_inspection_open',
         )
         # the serverSide functionality of datatables is such that only columns that have field 'data'
         # defined are requested from the serializer. Use datatables_always_serialize to force render

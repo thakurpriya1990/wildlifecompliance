@@ -57,7 +57,7 @@ class Command(BaseCommand):
                         cc = None
                         bcc = None
                         attachments = []
-                        email_data = send_notification_of_inspection_email(to_address, cc, bcc, attachments)
+                        email_data = send_notification_of_inspection_email(to_address, inspection, cc, bcc, attachments)
 
                         # Add communication log
                         if email_data:

@@ -125,32 +125,6 @@ class OffenceDatatableSerializer(serializers.ModelSerializer):
         return [ OffenderSerializer(offender).data for offender in offenders ]
 
 
-# class AllegedOffenceSerializer(serializers.ModelSerializer):
-#     section_regulation = SectionRegulationSerializer(read_only=True)
-#     removed_by_id = serializers.IntegerField(read_only=True)
-#     number_linked_sanction_outcomes = serializers.SerializerMethodField(read_only=True)
-#     number_linked_sanction_outcomes_active = serializers.SerializerMethodField(read_only=True)
-#
-#     class Meta:
-#         model = AllegedOffence
-#         fields = (
-#             'id',
-#             'section_regulation',
-#             'removed',
-#             'removed_by_id',
-#             'reason_for_removal',
-#             'number_linked_sanction_outcomes',
-#             'number_linked_sanction_outcomes_active',
-#         )
-#
-#     def get_number_linked_sanction_outcomes(self, alleged_offence):
-#         temp =  AllegedCommittedOffence.objects.filter(alleged_offence=alleged_offence)
-#         return temp.count()
-#
-#     def get_number_linked_sanction_outcomes_active(self, alleged_offence):
-#         return AllegedCommittedOffence.objects_active.filter(alleged_offence=alleged_offence).filter(sanction_outcome__in=SanctionOutcome.objects_active.all()).count()
-
-
 class OffenceSerializer(serializers.ModelSerializer):
     status = CustomChoiceField(read_only=True)
     location = LocationSerializer(read_only=True)
@@ -206,8 +180,8 @@ class OffenceSerializer(serializers.ModelSerializer):
     def get_in_editable_status(self, obj):
         return obj.status in (Offence.STATUS_DRAFT, Offence.STATUS_OPEN)
 
-    def get_alleged_offences(self, obj):
-        alleged_offences = AllegedOffence.objects.filter(offence=obj)
+    def get_alleged_offences(self, offence):
+        alleged_offences = AllegedOffence.objects.filter(offence=offence)
         ret_list = []
         for alleged_offence in alleged_offences:
             ret_obj = {}
@@ -225,7 +199,14 @@ class OffenceSerializer(serializers.ModelSerializer):
             ).count()
 
             # number_linked_to_sanction_outcomes which includes alleged offence and its status is other than draft
-            ret_obj['number_linked_sanction_outcomes_active'] = AllegedCommittedOffence.get_active_alleged_committed_offences(alleged_offence).count()
+            qs = AllegedCommittedOffence.get_active_alleged_committed_offences(alleged_offence)
+            ret_obj['number_linked_sanction_outcomes_active'] = qs.count()
+            connected_offenders = []
+            for aco in qs:
+                if aco.sanction_outcome and aco.sanction_outcome.offender:
+                    serializer = EmailUserSerializer(aco.sanction_outcome.offender.person)
+                    connected_offenders.append(serializer.data)
+            ret_obj['connected_offenders'] = connected_offenders
 
             ret_list.append(ret_obj)
         return ret_list

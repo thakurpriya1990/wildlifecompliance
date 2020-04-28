@@ -233,15 +233,19 @@ export default {
         if(vm.licence_categories[index].activity[index1].selected){
             for(var activity_index=0, len2=vm.licence_categories[index].activity[index1].purpose.length; activity_index<len2; activity_index++){
                 vm.licence_categories[index].activity[index1].purpose[activity_index].selected = this.isAmendment || this.isRenewal;
+                if (this.isAmendment) {
+                    this.application_fee = this.application_fee + vm.licence_categories[index].activity[index1].purpose[activity_index].base_application_fee
+                    this.licence_fee = this.licence_fee + vm.licence_categories[index].activity[index1].purpose[activity_index].base_licence_fee
+                }
             }
         }
     },
     handlePurposeCheckboxChange:function(index, event){
         if (this.selected_apply_licence_select=='amend_activity') {
             // Ammendments to licence activity purposes do not incur fees.
-            this.application_fee = 0
-            this.licence_fee = 0
-            return
+            // this.application_fee = 0
+            // this.licence_fee = 0
+            // return
         }
         const purpose_ids = [].concat.apply([], this.licence_categories[index].activity.map(
             activity => activity.purpose.filter(
