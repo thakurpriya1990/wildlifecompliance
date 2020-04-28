@@ -2007,7 +2007,8 @@ class Application(RevisionedMixin):
         Re-issued.
         1. Set Activity processing status to With Approver.
         2. Set Activity status to Current.
-        3. Set Application process status to Under Review.
+        3. Set Activity decision action to Re-issue.
+        4. Set Application process status to Under Review.
         """
         if not selected_activity.licence_fee_paid: # shouldn't occur if issued.
             raise Exception(
@@ -2019,6 +2020,8 @@ class Application(RevisionedMixin):
                     ApplicationSelectedActivity.PROCESSING_STATUS_OFFICER_FINALISATION
                 selected_activity.activity_status = \
                     ApplicationSelectedActivity.ACTIVITY_STATUS_CURRENT
+                selected_activity.decision_action = \
+                    ApplicationSelectedActivity.DECISION_ACTION_REISSUE
                 selected_activity.updated_by = request.user
                 # Log application action
                 self.log_user_action(
@@ -2909,10 +2912,12 @@ class ApplicationSelectedActivity(models.Model):
     DECISION_ACTION_DEFAULT = 'default'
     DECISION_ACTION_DECLINED = 'declined'
     DECISION_ACTION_ISSUED = 'issued'
+    DECISION_ACTION_REISSUE = 'reissue'
     DECISION_ACTION_CHOICES = (
         (DECISION_ACTION_DEFAULT, 'Default'),
         (DECISION_ACTION_DECLINED, 'Declined'),
         (DECISION_ACTION_ISSUED, 'Issued'),
+        (DECISION_ACTION_REISSUE, 'Re-issue'),
     )
 
     ACTIVITY_STATUS_DEFAULT = 'default'
@@ -3506,6 +3511,11 @@ class ApplicationSelectedActivity(models.Model):
             self.save()
 
     def reissue(self, request):
+        '''
+        Sets this Selected Activity to be a status that allows for re-issuing
+        by an approving officer.
+        '''
+        # TODO: clear previous generated returns to allow re-generation.
         with transaction.atomic():
             self.application.reissue_activity(request, self)
 
@@ -3551,16 +3561,20 @@ class ApplicationSelectedActivity(models.Model):
         '''
         Gets this Application Selected Activity from the previous Application
         Selected Activity application licence.
+
+        NOTE: Previous application will not be the current on the licence when
+        the Selected Activity is being re-issued.
         '''
         previous = None
         prev_app = self.application.previous_application
         prev_id = prev_app.id if prev_app else 0
+        current_id = self.application.id
 
         try:
             # Retrieve licence rather than from previous application. Previous
             # application may not have the same activity.
             licence = WildlifeLicence.objects.get(
-                current_application_id=prev_id
+                current_application_id__in=[prev_id, current_id]
             )
 
         except WildlifeLicence.DoesNotExist:
@@ -3665,16 +3679,20 @@ class ApplicationSelectedActivityPurpose(models.Model):
         '''
         Gets this Application Selected Activity Purpose from the previous
         Application Selected Activity application licence.
+
+        NOTE: Previous application will not be the current on the licence when
+        the Selected Activity is being re-issued.
         '''
         previous = None
         prev_app = self.selected_activity.application.previous_application
         prev_id = prev_app.id if prev_app else 0
+        current_id = self.selected_activity.application.id
 
         try:
             # Retrieve licence rather than from previous application. Previous
             # application may not have the same purpose.
             licence = WildlifeLicence.objects.get(
-                current_application_id=prev_id
+                current_application_id__in=[prev_id, current_id]
             )
 
         except WildlifeLicence.DoesNotExist:
