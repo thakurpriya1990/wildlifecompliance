@@ -471,11 +471,11 @@ def send_remediation_action_submitted_notice(to_address, remediation_action, req
     email = RemediationActionSubmittedMail()
     if request.data.get('email_subject'):
         email.subject = request.data.get('email_subject')
-    url = request.build_absolute_uri(reverse('external'))
+    url = request.build_absolute_uri(reverse('internal-sanction-outcome-detail', kwargs={'sanction_outcome_id': remediation_action.sanction_outcome.id}))
     context = {
         'url': url,
         'remediation_action': remediation_action,
-        'action_taken': remediation_action.action_taken,
+        'sanction_outcome': remediation_action.sanction_outcome,
     }
 
     # Attach files (files from the modal, and the PDF file generated above)
@@ -490,6 +490,7 @@ def send_remediation_action_submitted_notice(to_address, remediation_action, req
     sender = request.user if request else settings.DEFAULT_FROM_EMAIL
     email_data = _extract_email_headers(msg, sender=sender)
     return email_data
+
 
 def send_infringement_notice_issued_on_paper(to_address, sanction_outcome, workflow_entry, request, cc=None, bcc=None):
     email = InfringementNoticeIssuedOnPaperEmail()
