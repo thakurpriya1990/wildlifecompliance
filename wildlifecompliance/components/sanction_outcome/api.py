@@ -823,7 +823,7 @@ class SanctionOutcomeViewSet(viewsets.ModelViewSet):
                     # alleged_commited_offence = AllegedCommittedOffence.objects.create(sanction_outcome=instance, alleged_offence=alleged_offence, included=True)
 
                     data = {'alleged_offence_id': ao_id, 'sanction_outcome_id': instance.id}
-                    serializer = AllegedCommittedOffenceCreateSerializer(data=data)
+                    serializer = AllegedCommittedOffenceCreateSerializer(data=data, context={'request': request})
                     serializer.is_valid(raise_exception=True)
                     serializer.save()
                     count_alleged_offences += 1
