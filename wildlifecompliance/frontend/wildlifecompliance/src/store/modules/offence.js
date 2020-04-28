@@ -160,9 +160,12 @@ export const offenceStore = {
     },
     actions: {
         async loadOffence({ dispatch, }, { offence_id }) {
+            console.log('*** loadOffende ***');
             try {
                 if (offence_id) {
                     const returnedOffence = await Vue.http.get(helpers.add_endpoint_json(api_endpoints.offence, offence_id));
+                    console.log('*** returnedOffence.body ***')
+                    console.log('returnedOffence.body')
                     await dispatch("setOffence", returnedOffence.body);
                 } else {
                     dispatch("setOffenceEmpty");
