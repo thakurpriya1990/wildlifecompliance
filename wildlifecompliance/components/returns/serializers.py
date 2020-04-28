@@ -1,6 +1,9 @@
 from ledger.accounts.models import EmailUser
 from wildlifecompliance.components.applications.models import ReturnRequest
 from wildlifecompliance.components.main.fields import CustomChoiceField
+from wildlifecompliance.components.returns.services import (
+    ReturnService,
+)
 from wildlifecompliance.components.returns.models import (
     Return,
     ReturnType,
@@ -8,7 +11,7 @@ from wildlifecompliance.components.returns.models import (
     ReturnLogEntry,
 )
 from wildlifecompliance.components.applications.models import (
-    ApplicationCondition, 
+    ApplicationCondition,
     ApplicationStandardCondition,
 )
 from wildlifecompliance.components.licences.models import LicenceActivity
@@ -71,15 +74,17 @@ class EmailUserSerializer(serializers.ModelSerializer):
 
 class ReturnSerializer(serializers.ModelSerializer):
     # activity = serializers.CharField(source='application.activity')
+    # TODO: check if processing_status should be changed to use CustomChoice.
     processing_status = serializers.CharField(
-        source='get_processing_status_display')  # TODO: check if this should be changed to use CustomChoice
+        source='get_processing_status_display')
     submitter = EmailUserSerializer()
     lodgement_number = serializers.SerializerMethodField()
     sheet_activity_list = serializers.SerializerMethodField()
     sheet_species_list = serializers.SerializerMethodField()
     sheet_species = serializers.SerializerMethodField()
     licence = serializers.SerializerMethodField()
-    condition = ReturnConditionSerializer(read_only=True)    
+    condition = ReturnConditionSerializer(read_only=True)
+    table = serializers.SerializerMethodField()
 
     class Meta:
         model = Return
@@ -106,10 +111,16 @@ class ReturnSerializer(serializers.ModelSerializer):
             'return_fee',
         )
 
-        # the serverSide functionality of datatables is such that only columns that have field 'data'
-        # defined are requested from the serializer. Use datatables_always_serialize to force render
-        # of fields that are not listed as 'data' in the datatable columns
+        # the serverSide functionality of datatables is such that only columns
+        # that have field 'data' defined are requested from the serializer. Use
+        # datatables_always_serialize to force render of fields that are not
+        # listed as 'data' in the datatable columns
         datatables_always_serialize = fields
+
+    def get_table(self, _return):
+        '''
+        '''
+        return ReturnService.get_details_for(_return)
 
     def get_lodgement_number(self, _return):
         """
@@ -125,7 +136,8 @@ class ReturnSerializer(serializers.ModelSerializer):
         :param _return: Return instance.
         :return: List of available activities.
         """
-        return _return.sheet.activity_list if _return.has_sheet else None
+        # return _return.sheet.activity_list if _return.has_sheet else None
+        return ReturnService.get_sheet_activity_list_for(_return)
 
     def get_sheet_species_list(self, _return):
         """
@@ -133,7 +145,8 @@ class ReturnSerializer(serializers.ModelSerializer):
         :param _return: Return instance.
         :return: List of species for a Return Running Sheet.
         """
-        return _return.sheet.species_list if _return.has_sheet else None
+        # return _return.sheet.species_list if _return.has_sheet else None
+        return ReturnService.get_sheet_species_list_for(_return)
 
     def get_sheet_species(self, _return):
         """
@@ -141,7 +154,8 @@ class ReturnSerializer(serializers.ModelSerializer):
         :param _return: Return instance.
         :return: species identifier for a Return Running Sheet.
         """
-        return _return.sheet.species if _return.has_sheet else None
+        # return _return.sheet.species if _return.has_sheet else None
+        return ReturnService.get_sheet_species_for(_return)
 
     def get_licence(self, _return):
         """
