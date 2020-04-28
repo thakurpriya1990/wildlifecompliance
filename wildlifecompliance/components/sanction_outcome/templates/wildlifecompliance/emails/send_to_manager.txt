@@ -1,9 +1,8 @@
 {%  extends 'wildlifecompliance/emails/base_email.txt' %}
 
 {%  block content %}
-        Infringement Notice blah-blah-blah...:
 
-        Sanction Outcome : <a href="{{url}}">{{ sanction_outcome.lodgement_number }}</a>
+        The sanction outcome : <a href="{{url}}">{{ sanction_outcome.lodgement_number }} has been issued and requires your approval.</a>
 
         Message:  {{ workflow_entry_details }}
 
