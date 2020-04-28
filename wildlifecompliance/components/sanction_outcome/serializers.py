@@ -192,12 +192,20 @@ class AllegedCommittedOffenceCreateSerializer(serializers.ModelSerializer):
         )
 
     def validate(self, data):
+        request = self.context.get('request', {})
+        offender_id = request.data.get('offender_id', 0)
         alleged_offence = AllegedOffence.objects.get(id=data['alleged_offence_id'])
         acos = AllegedCommittedOffence.get_active_alleged_committed_offences(alleged_offence)
 
-        if acos.count():
-            ao = acos.first().alleged_offence
-            raise serializers.ValidationError('Alleged offence: %s is duplicated' % ao)
+        for aco in acos:
+            if aco.sanction_outcome.offender.person.id == offender_id:
+                raise serializers.ValidationError('Sanction outcome has been issued for the alleged offence: {} to the offender: {}'.
+                                                  format(alleged_offence.lodgement_number, aco.sanction_outcome.offender.person))
+
+        # if acos.count():
+        #     # TODO:
+        #     ao = acos.first().alleged_offence
+        #     raise serializers.ValidationError('Alleged offence: %s is duplicated' % ao)
 
         return data
 
