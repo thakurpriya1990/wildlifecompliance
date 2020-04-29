@@ -15,7 +15,7 @@
                             </div>
                         </div>
                         current due date: {{ comingDueDateDisplay }} <br />
-                        (New due: {{ extendMinDateDisplay }} --- {{ extendMaxDateDisplay }})
+                        (New due date: {{ extendMinDateDisplay }} --- {{ extendMaxDateDisplay }})
                     </div></div>
 
                     <div class="form-group"><div class="row">
@@ -114,17 +114,18 @@ export default {
             return 'Extend payment due date'
         },
         extendMinDateDisplay: function() {
+            console.log('*** in extendMinDateDisplay ***');
             if (this.comingDueDate){
-                let newDate = new Date()
-                newDate.setDate(this.comingDueDate.getDate() + 1)
-                return (newDate.getDate()) + '/' + (newDate.getMonth() + 1) + '/' + newDate.getFullYear()
+                let due_date_plus_1 = moment(this.comingDueDate).add(1, 'days');
+                return due_date_plus_1.format('DD/MM/YYYY');
             } else {
                 return '';
             }
         },
         extendMaxDateDisplay: function() {
             if (this.extendMaxDate){
-                return this.extendMaxDate.getDate() + '/' + (this.extendMaxDate.getMonth() + 1) + '/' + this.extendMaxDate.getFullYear()
+                let extend_max_date = moment(this.extendMaxDate);
+                return extend_max_date.format('DD/MM/YYYY');
             } else {
                 return '';
             }
@@ -134,7 +135,8 @@ export default {
         },
         comingDueDateDisplay: function() {
             if(this.comingDueDate){
-                return this.comingDueDate.getDate() + '/' + (this.comingDueDate.getMonth() + 1) + '/' + this.comingDueDate.getFullYear()
+                let due_date = moment(this.comingDueDate)
+                return due_date.format('DD/MM/YYYY');
             } else {
                 return '';
             }

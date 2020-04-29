@@ -590,7 +590,7 @@ export default {
                             let html = ''
 
                             let body = ''
-                            let td = '<td col="row">'
+                            let td = '<td col="row" class="action-taken-cell">'
                             let td_close = '</td>'
                             let th = '<th scope="col">'
                             let th_close = '</th>'
@@ -1349,5 +1349,10 @@ export default {
 </script>
 
 <style>
-
+.action-taken-cell {
+    max-width: 0;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: initial !important;
+}
 </style>
