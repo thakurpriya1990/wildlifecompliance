@@ -12,6 +12,7 @@ SITE_ID = 1
 STATIC_ROOT = os.path.join(BASE_DIR, 'staticfiles_wc')
 
 INSTALLED_APPS += [
+    'reversion_compare',
     'django.contrib.humanize',
     'bootstrap3',
     'wildlifecompliance',
@@ -34,6 +35,8 @@ INSTALLED_APPS += [
     'rest_framework_datatables',
     'smart_selects',
 ]
+
+ADD_REVERSION_ADMIN = True
 
 # maximum number of days allowed for a booking
 WSGI_APPLICATION = 'wildlifecompliance.wsgi.application'
@@ -181,3 +184,6 @@ DOT_EMAIL_ADDRESS = env('DOT_EMAIL_ADDRESS')
 TSC_URL = env('TSC_URL', 'https://tsc.dbca.wa.gov.au')
 TSC_AUTH = env('TSC_AUTH', 'NO_AUTH')
 CRON_RUN_AT_TIMES = '03:05'
+
+# if DEBUG:
+#     EMAIL_BACKEND = 'django.core.mail.backends.console.EmailBackend'

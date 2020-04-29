@@ -464,7 +464,6 @@ export default {
             }
             return retValue;
         },
-        */
         legalCaseExists: function() {
             let exists = false;
             if (this.legal_case && this.legal_case.id) {
@@ -472,6 +471,7 @@ export default {
             }
             return exists;
         },
+        */
         offenderList: function() {
             let offenderList = [{ 
                 "id": null,
@@ -937,8 +937,8 @@ export default {
             await this.loadDocumentArtifact({ document_artifact_id: this.entityEdit.id });
         }
         // if main obj page, call loadLegalCase if document_artifact.legal_case_id exists
-        if (this.$route.name === 'view-artifact' && this.document_artifact && this.document_artifact.legal_case_id) {
-            await this.loadLegalCase({ legal_case_id: this.document_artifact.legal_case_id });
+        if (this.$route.name === 'view-artifact' && this.document_artifact && this.document_artifact.primary_legal_case_id) {
+            await this.loadLegalCase({ legal_case_id: this.document_artifact.primary_legal_case_id });
         }
         this.setStatementVisibility();
         // document artifact types

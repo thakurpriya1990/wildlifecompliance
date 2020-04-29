@@ -22,6 +22,7 @@ from wildlifecompliance.components.main.utils import (
     delete_session_activity,
     bind_application_to_invoice,
 )
+from reversion_compare.views import HistoryCompareDetailView
 import json
 from wildlifecompliance.exceptions import BindApplicationException
 import xlwt
@@ -34,6 +35,15 @@ import traceback
 
 import logging
 logger = logging.getLogger(__name__)
+
+
+class ApplicationHistoryCompareView(HistoryCompareDetailView):
+    """
+    View for reversion_compare
+    """
+    model = Application
+    template_name = 'wildlifecompliance/reversion_history.html'
+
 
 class ApplicationView(TemplateView):
     template_name = 'wildlifecompliance/application.html'
@@ -102,6 +112,12 @@ class ApplicationSuccessView(TemplateView):
                             invoice=invoice[0],
                             licence_activity=activity.licence_activity,
                             amount=activity.licence_fee
+                        )
+
+                        ActivityInvoiceLine.objects.get_or_create(
+                            invoice=invoice[0],
+                            licence_activity=activity.licence_activity,
+                            amount=activity.application_fee
                         )
 
                 else:

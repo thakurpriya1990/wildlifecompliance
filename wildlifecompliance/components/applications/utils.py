@@ -3,7 +3,9 @@ import re
 from django.core.exceptions import ValidationError
 from django.db import transaction
 from wildlifecompliance.components.applications.models import (
-    ApplicationDocument
+    ApplicationDocument,
+    ApplicationFormDataRecord,
+    ApplicationSelectedActivity,
 )
 from wildlifecompliance.components.applications.serializers import (
     SaveApplicationSerializer
@@ -398,7 +400,6 @@ def get_activity_schema(activity_ids):
     NOTE: Redundant has been replaced with a function from the class
     ActivitySchemaUtil.get_activity_schema(activity_ids).
     """
-    from wildlifecompliance.components.applications.models import ApplicationSelectedActivity
     schema_group = []
     try:
         purposes = LicencePurpose.objects.filter(
@@ -477,37 +478,47 @@ class ActivitySchemaUtil(object):
     """
     Utility to facilitate the manipulation of Schema attributes on an Activity.
     """
+    _COPY_TO_LICENCE = 'copy-to-licence'
 
     def __init__(self, application):
+        self._application = application
         self._activities = application.activities
 
-    def add_to_form(self, section, purpose):
+    def get_ctl_text(self, term):
         """
-        Function to add new section to Form.
+        Gets the text_area relating to the new terminology from the form.
         """
+        _info = 'N/A'
+        _condition = term['condition']
+        _has_condition = True if _condition else False
+        _name = term['name']
 
-        _section = []
+        try:
+            if _has_condition:
+                field = _condition.keys()[0]
+                data = ApplicationFormDataRecord.objects.get(
+                    application_id=self._application.id,
+                    field_name=field,
+                )
+                _has_condition = False if data.value == term[
+                    'condition'][field] else True
 
-        _text = [{
-            "label": None,
-            "name": 'text-{}'.format(
-                section['header'].replace(' ', '-').lower()),
-            "type": "text_area",
-        }]
+            if not _has_condition:
+                data = ApplicationFormDataRecord.objects.get(
+                    application_id=self._application.id,
+                    field_name=_name,
+                )
+            _info = data.value
 
-        _section.append({
-            "type": "section",
-            "id": purpose.licence_activity_id,
-            "label": section['header'],
-            "name": 'section-{}'.format(
-                section['header'].replace(' ', '-').lower()),
-            "children": _text
-        })
+        except ApplicationFormDataRecord.DoesNotExist:
+            pass
 
-        return _section
+        return _info
 
     def get_activity_schema(self, activity_ids):
-        from wildlifecompliance.components.applications.models import ApplicationSelectedActivity
+        """
+        Gets a rebuilt Activity Schema with updated attributes.
+        """
         schema_group = []
         try:
             purposes = LicencePurpose.objects.filter(
@@ -528,12 +539,6 @@ class ActivitySchemaUtil(object):
                 schema_purpose += purpose_schema
                 # set special species lookup option
                 purpose.get_species_list
-
-            for act in [
-             a for a in self._activities if a.licence_activity == activity]:
-                if len(act.additional_licence_info) > 0:
-                    for section in act.additional_licence_info['sections']:
-                        schema_purpose += self.add_to_form(section, purpose)
 
             schema_group.append({
                 "type": "tab",

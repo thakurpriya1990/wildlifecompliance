@@ -325,6 +325,14 @@ class DocumentArtifact(Artifact):
                 primary_case = legal_case
         return primary_case
 
+    @property
+    def primary_legal_case_id(self):
+        primary_case = None
+        for legal_case in self.documentartifactlegalcases_set.all():
+            if legal_case.primary:
+                primary_case = legal_case
+        return primary_case.legal_case_id
+
     def close(self, request=None):
         # NOTE: close_record logic moved to can_close_legal_case
         self.status = self.STATUS_CLOSED
@@ -401,6 +409,11 @@ class BriefOfEvidenceDocumentArtifacts(models.Model):
             label_text = self.document_artifact.number
         return label_text
 
+    @property
+    def hyperlink(self):
+        hyperlink = '/internal/object/' + str(self.document_artifact.id)
+        return hyperlink
+
 
 class ProsecutionBriefDocumentArtifacts(models.Model):
     legal_case = models.ForeignKey(
@@ -428,6 +441,11 @@ class ProsecutionBriefDocumentArtifacts(models.Model):
         else:
             label_text = self.document_artifact.number
         return label_text
+
+    @property
+    def hyperlink(self):
+        hyperlink = '/internal/object/' + str(self.document_artifact.id)
+        return hyperlink
 
 
 class PhysicalArtifact(Artifact):
@@ -541,7 +559,7 @@ class PhysicalArtifact(Artifact):
         self.disposal_method_id = disposal_method_id
         self.disposal_details = disposal_details
         #self.save()
-        self.close()
+        self.close(request)
 
     #def close(self, request=None):
     def close(self, request):
@@ -556,9 +574,10 @@ class PhysicalArtifact(Artifact):
               #          'assigned_to_id': self.custodian_email
                #         })
             #else:
-            if self.custodian_email:
-                request.data['recipient_address'] = self.custodian_email
-            email_data = prepare_mail(request=request, instance=self, workflow_entry=None, send_mail=send_mail)
+
+            #if self.custodian_email:
+             #   request.data['recipient_address'] = self.custodian_email
+            email_data = prepare_mail(request=request, instance=self, workflow_entry=None, send_mail=send_mail, recipient_address=self.custodian_email)
             #prepare_mail(request=request, instance=self, workflow_entry=None, send_mail=send_mail)
             # write comms log based on email_data
             print("email_data")
@@ -682,6 +701,11 @@ class BriefOfEvidencePhysicalArtifacts(models.Model):
             label_text = self.physical_artifact.number
         return label_text
 
+    @property
+    def hyperlink(self):
+        hyperlink = '/internal/object/' + str(self.physical_artifact.id)
+        return hyperlink
+
 
 class ProsecutionBriefPhysicalArtifacts(models.Model):
     legal_case = models.ForeignKey(
@@ -709,9 +733,15 @@ class ProsecutionBriefPhysicalArtifacts(models.Model):
             label_text = self.physical_artifact.identifier
         else:
             label_text = self.physical_artifact.number
+            #label_text = '<a href=/internal/object/' + self.physical_artifact.number + ' target="_blank">Open</a>'
         return label_text
 
+    @property
+    def hyperlink(self):
+        hyperlink = '/internal/object/' + str(self.physical_artifact.id)
+        return hyperlink
 
+    
 @python_2_unicode_compatible
 class PhysicalArtifactFormDataRecord(models.Model):
 
@@ -953,6 +983,35 @@ class BriefOfEvidenceOtherStatements(models.Model):
     def label(self):
         return self.__str__()
 
+    @property
+    def hyperlink(self):
+        if self.associated_doc_artifact:
+            hyperlink = '/internal/object/' + str(self.associated_doc_artifact.id)
+        elif self.statement:
+            hyperlink = '/internal/object/' + str(self.statement.id)
+        else:
+            hyperlink = '/internal/users/' + str(self.person.id)
+        return hyperlink
+
+    @property
+    def show(self):
+        show = False
+        # person
+        if self.children.count():
+            # statement
+            for child in self.children.all():
+                if child.children.count():
+                    # associated_doc_artifact
+                    for grandchild in child.children.all():
+                        if grandchild.ticked:
+                            show = True
+                else:
+                    if child.ticked:
+                        show = True
+        else:
+            show = self.ticked
+        return show
+
     def __str__(self):
         label_text = ''
         if not self.statement and not self.associated_doc_artifact:
@@ -1002,6 +1061,45 @@ class BriefOfEvidenceRecordOfInterview(models.Model):
 
     class Meta:
         app_label = 'wildlifecompliance'
+
+    @property
+    def show(self):
+        show = False
+        # offence
+        if self.children.count():
+            # offender
+            for child in self.children.all():
+                if child.children.count():
+                    # record_of_interview
+                    for grandchild in child.children.all():
+                        if grandchild.children.count():
+                            # associated_doc_artifact
+                            for greatgrandchild in grandchild.children.all():
+                                if greatgrandchild.ticked:
+                                    show = True
+                        else:
+                            if grandchild.ticked:
+                                show = True
+                else:
+                    if child.ticked:
+                        show = True
+        else:
+            show = self.ticked
+        return show
+
+    @property
+    def hyperlink(self):
+        hyperlink = ''
+        if not self.offender and not self.record_of_interview and not self.associated_doc_artifact:
+            hyperlink = '/internal/offence/' + str(self.offence.id)
+        elif not self.record_of_interview and not self.associated_doc_artifact:
+            if self.offender.person:
+                hyperlink = '/internal/users/' + str(self.offender.person.id)
+        elif not self.associated_doc_artifact:
+            hyperlink = '/internal/object/' + str(self.record_of_interview.id)
+        else:
+            hyperlink = '/internal/object/' + str(self.associated_doc_artifact.id)
+        return hyperlink
 
     @property
     def label(self):
@@ -1059,6 +1157,35 @@ class ProsecutionBriefOtherStatements(models.Model):
         app_label = 'wildlifecompliance'
 
     @property
+    def show(self):
+        show = False
+        # person
+        if self.children.count():
+            # statement
+            for child in self.children.all():
+                if child.children.count():
+                    # associated_doc_artifact
+                    for grandchild in child.children.all():
+                        if grandchild.ticked:
+                            show = True
+                else:
+                    if child.ticked:
+                        show = True
+        else:
+            show = self.ticked
+        return show
+
+    @property
+    def hyperlink(self):
+        if self.associated_doc_artifact:
+            hyperlink = '/internal/object/' + str(self.associated_doc_artifact.id)
+        elif self.statement:
+            hyperlink = '/internal/object/' + str(self.statement.id)
+        else:
+            hyperlink = '/internal/users/' + str(self.person.id)
+        return hyperlink
+
+    @property
     def label(self):
         return self.__str__()
 
@@ -1114,6 +1241,45 @@ class ProsecutionBriefRecordOfInterview(models.Model):
     @property
     def label(self):
         return self.__str__()
+
+    @property
+    def show(self):
+        show = False
+        # offence
+        if self.children.count():
+            # offender
+            for child in self.children.all():
+                if child.children.count():
+                    # record_of_interview
+                    for grandchild in child.children.all():
+                        if grandchild.children.count():
+                            # associated_doc_artifact
+                            for greatgrandchild in grandchild.children.all():
+                                if greatgrandchild.ticked:
+                                    show = True
+                        else:
+                            if grandchild.ticked:
+                                show = True
+                else:
+                    if child.ticked:
+                        show = True
+        else:
+            show = self.ticked
+        return show
+
+    @property
+    def hyperlink(self):
+        hyperlink = ''
+        if not self.offender and not self.record_of_interview and not self.associated_doc_artifact:
+            hyperlink = '/internal/offence/' + str(self.offence.id)
+        elif not self.record_of_interview and not self.associated_doc_artifact:
+            if self.offender.person:
+                hyperlink = '/internal/users/' + str(self.offender.person.id)
+        elif not self.associated_doc_artifact:
+            hyperlink = '/internal/object/' + str(self.record_of_interview.id)
+        else:
+            hyperlink = '/internal/object/' + str(self.associated_doc_artifact.id)
+        return hyperlink
 
     def __str__(self):
         label_text = ''

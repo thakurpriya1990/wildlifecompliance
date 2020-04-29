@@ -122,6 +122,16 @@ COMPLIANCE_PERMISSION_GROUPS = [
         'per_district': False,
         'permissions': ['compliance_management_readonly']
     },
+    {
+        'name': 'Wildlife Compliance Admin - Compliance',
+        'per_district': False,
+        'permissions': ['wildlife_compliance_admin_compliance']
+    },
+    {
+        'name': 'Wildlife Compliance Admin - Licensing',
+        'per_district': False,
+        'permissions': ['wildlife_compliance_admin_licensing']
+    },
 ]
 
 COMPLIANCE_GROUP_PERMISSIONS = {
@@ -167,6 +177,16 @@ COMPLIANCE_GROUP_PERMISSIONS = {
     },
     'compliance_management_readonly': {
         'name': 'Compliance Management Read-Only',
+        'app_label': 'wildlifecompliance',
+        'model': 'compliancepermissiongroup',
+    },
+    'wildlife_compliance_admin_compliance': {
+        'name': 'Wildlife Compliance Admin - Compliance',
+        'app_label': 'wildlifecompliance',
+        'model': 'compliancepermissiongroup',
+    },
+    'wildlife_compliance_admin_licensing': {
+        'name': 'Wildlife Compliance Admin - Licensing',
         'app_label': 'wildlifecompliance',
         'model': 'compliancepermissiongroup',
     },

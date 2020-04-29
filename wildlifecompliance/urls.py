@@ -262,6 +262,11 @@ urlpatterns = [
     #url(r'^api/oracle_job$',main_api.OracleJob.as_view(), name='get-oracle'),
     url(r'^api/reports/booking_settlements$', main_api.BookingSettlementReportView.as_view(),name='booking-settlements-report'),
 
+    # history comparison.
+    url(r'^history/application/(?P<pk>\d+)/$',
+        application_views.ApplicationHistoryCompareView.as_view(),
+        name='application-history'),
+
 ] + ledger_patterns
 
 if not are_migrations_running():

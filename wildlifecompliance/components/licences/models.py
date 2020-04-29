@@ -9,6 +9,9 @@ from django.db.models import Max
 from django.db.models import Q
 from ledger.accounts.models import EmailUser
 from ledger.licence.models import LicenceType
+
+from wildlifecompliance.components.inspection.models import Inspection
+
 from wildlifecompliance.ordered_model import OrderedModel
 from wildlifecompliance.components.main.models import (
     CommunicationsLogEntry,
@@ -596,6 +599,50 @@ class WildlifeLicence(models.Model):
 
         return can_action
 
+    @property
+    def has_inspection_open(self):
+        """
+        An attribute indicating a licence inspection is created and opened for
+        this License.
+        """
+        inspection_exists = False
+
+        inspections = LicenceInspection.objects.filter(
+            licence=self
+        )
+        is_active = [i.is_active for i in inspections if i.is_active]
+        inspection_exists = is_active[0] if is_active else False
+
+        return inspection_exists
+
+    def create_inspection(self, request):
+        '''
+        Creates an inspection for this licence.
+        '''
+        with transaction.atomic():
+            try:
+                inspection = Inspection.objects.get(
+                    id=request.data.get('inspection_id'))
+
+                licence_inspection, created = \
+                    LicenceInspection.objects.get_or_create(
+                        licence=self,
+                        inspection=inspection
+                    )
+                licence_inspection.save()
+
+                # Create a log entry for the inspection
+                action = LicenceUserAction.ACTION_CREATE_LICENCE_INSPECTION
+                self.log_user_action(
+                    action.format(
+                        inspection.number, self.licence_number), request)
+
+            except Inspection.DoesNotExist:
+                raise Exception('Inspection was not created')
+
+            except BaseException:
+                raise
+
     def apply_action_to_licence(self, request, action):
         """
         Applies a specified action to a all of a licence's activities and purposes for a licence
@@ -849,6 +896,39 @@ class WildlifeLicence(models.Model):
         return LicenceUserAction.log_action(self, action, request.user)
 
 
+class LicenceInspection(models.Model):
+    '''
+    A model represention of an Inspection for Wildlife Licence.
+    '''
+    licence = models.ForeignKey(
+        WildlifeLicence, related_name='licence_inspections')
+    inspection = models.ForeignKey(
+        Inspection, related_name='wildlifecompliance_licence_inspection')
+    request_datetime = models.DateTimeField(auto_now=True)
+
+    class Meta:
+        app_label = 'wildlifecompliance'
+
+    def __str__(self):
+        return 'Inspection #{0} for Licence {1}'.format(
+            self.inspection.number, self.licence.licence_number)
+
+    @property
+    def is_active(self):
+        '''
+        An attribute to indicate that this licence inspection is currently
+        progressing.
+        '''
+        is_active = False
+
+        if self.inspection.status in [
+            Inspection.STATUS_OPEN,
+            Inspection.STATUS_AWAIT_ENDORSEMENT,
+        ]:
+            is_active = True
+
+        return is_active
+
 class LicenceLogEntry(CommunicationsLogEntry):
     licence = models.ForeignKey(WildlifeLicence, related_name='comms_logs')
 
@@ -865,6 +945,8 @@ class LicenceLogEntry(CommunicationsLogEntry):
 class LicenceUserAction(UserAction):
     ACTION_CREATE_LICENCE = "Create licence {}"
     ACTION_UPDATE_LICENCE = "Create licence {}"
+    ACTION_CREATE_LICENCE_INSPECTION = \
+        "Inspection {} for licence {} was requested."   
 
     class Meta:
         app_label = 'wildlifecompliance'

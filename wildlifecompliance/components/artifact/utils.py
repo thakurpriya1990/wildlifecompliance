@@ -42,8 +42,7 @@ def copy_brief_of_evidence_artifacts_to_prosecution_brief(legal_case):
                 legal_case_id=os_record.legal_case_id,
                 person_id=os_record.person_id,
                 statement_id=os_record.statement_id,
-                associated_doc_artifact_id=os_record.associated_doc_artifact_id,
-                ticked=os_record.ticked
+                associated_doc_artifact_id=os_record.associated_doc_artifact_id
                 )
         #pb_os_record.save()
         for child in os_record.children.all():

@@ -103,6 +103,7 @@ export default {
     return {
         licence_category : this.$route.params.licence_category,
         licence_activity : this.$route.params.licence_activity,
+        licence_no : this.$route.params.licence_no,
         application: null,
         agent: {},
         activity :{
@@ -232,15 +233,19 @@ export default {
         if(vm.licence_categories[index].activity[index1].selected){
             for(var activity_index=0, len2=vm.licence_categories[index].activity[index1].purpose.length; activity_index<len2; activity_index++){
                 vm.licence_categories[index].activity[index1].purpose[activity_index].selected = this.isAmendment || this.isRenewal;
+                if (this.isAmendment) {
+                    this.application_fee = this.application_fee + vm.licence_categories[index].activity[index1].purpose[activity_index].base_application_fee
+                    this.licence_fee = this.licence_fee + vm.licence_categories[index].activity[index1].purpose[activity_index].base_licence_fee
+                }
             }
         }
     },
     handlePurposeCheckboxChange:function(index, event){
         if (this.selected_apply_licence_select=='amend_activity') {
             // Ammendments to licence activity purposes do not incur fees.
-            this.application_fee = 0
-            this.licence_fee = 0
-            return
+            // this.application_fee = 0
+            // this.licence_fee = 0
+            // return
         }
         const purpose_ids = [].concat.apply([], this.licence_categories[index].activity.map(
             activity => activity.purpose.filter(
@@ -350,6 +355,7 @@ export default {
             "licence_activity": this.licence_activity,
             "proxy_id": this.selected_apply_proxy_id,
             "organisation_id": this.selected_apply_org_id,
+            "licence_no": this.licence_no,
         }),
         this.selected_apply_org_id ? utils.fetchOrganisation(this.selected_apply_org_id) : '',
         this.selected_apply_proxy_id ? internal_utils.fetchUser(this.selected_apply_proxy_id) : '',

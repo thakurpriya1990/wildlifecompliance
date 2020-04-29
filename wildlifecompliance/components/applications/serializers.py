@@ -657,7 +657,8 @@ class BaseApplicationSerializer(serializers.ModelSerializer):
 
     def get_adjusted_paid_amount(self, obj):
         """
-        Total paid amount adjusted for presentation purposes. 
+        Total paid amount adjusted for presentation purposes. Only applicable
+        for internal officers to enforce refundable payments.
         """
         adjusted = None
         # Include previously paid amounts for amendments.
@@ -665,16 +666,16 @@ class BaseApplicationSerializer(serializers.ModelSerializer):
 
         if obj.processing_status == Application.PROCESSING_STATUS_UNDER_REVIEW:
             # when Under Review, fee for amendment is paid and included in
-            # previous paid amount as well as total paid amount. Need to 
+            # previous paid amount as well as total paid amount. Need to
             # exclude this previous amount.
             adjusted = adjusted - obj.previous_paid_amount
 
             # licence fee is paid with the application fee. Licence fee needs
             # to be excluded from total paid for application.
-            activities_paid = 0
+            licence_fee_paid = 0
             for activity in obj.activities:
-                activities_paid += activity.total_paid_amount
-            adjusted = adjusted - activities_paid
+                licence_fee_paid += activity.licence_fee
+            adjusted = adjusted - licence_fee_paid
 
         return adjusted
 

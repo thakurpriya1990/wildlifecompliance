@@ -1,5 +1,7 @@
+import datetime
 import traceback
 
+import pytz
 from rest_framework.fields import CharField
 
 from ledger.accounts.models import EmailUser, Address
@@ -14,7 +16,7 @@ from wildlifecompliance.components.legal_case.models import (
     CourtProceedings,
     BriefOfEvidence,
     ProsecutionBrief,
-    CourtDate)
+    CourtDate, Court, CourtOutcomeType)
 from wildlifecompliance.components.call_email.serializers import EmailUserSerializer
 from wildlifecompliance.components.main.related_item import get_related_items
 from wildlifecompliance.components.main.serializers import CommunicationLogEntrySerializer
@@ -187,11 +189,13 @@ class CourtProceedingsJournalEntrySerializer(serializers.ModelSerializer):
 
 class SaveCourtDateEntrySerializer(serializers.ModelSerializer):
     court_proceedings_id = serializers.IntegerField(required=False, write_only=True, allow_null=True)
+    court_id = serializers.IntegerField(required=False, write_only=True, allow_null=True)
 
     class Meta:
         model = CourtDate
         fields = (
             'court_proceedings_id',
+            'court_id',
             'court_datetime',
             'comments',
         )
@@ -256,7 +260,50 @@ class CreateCourtProceedingsJournalEntrySerializer(serializers.ModelSerializer):
         return new_entry
 
 
+class CourtSerializer(serializers.ModelSerializer):
+
+    class Meta:
+        model = Court
+        fields = (
+            'id',
+            'identifier',
+            'location',
+            'description',
+        )
+
+
+class CourtOutcomeTypeSerializer(serializers.ModelSerializer):
+
+    class Meta:
+        model = CourtOutcomeType
+        fields = (
+            'id',
+            'identifier',
+            'description',
+        )
+
+
+class CourtOutcomeTypeSerializer(serializers.ModelSerializer):
+
+    class Meta:
+        model = CourtOutcomeType
+        fields = (
+            'id',
+            'identifier',
+            'description',
+        )
+
+
 class CourtProceedingsCourtDateSerializer(serializers.ModelSerializer):
+    court = CourtSerializer(read_only=True)
+    court_in_future = serializers.SerializerMethodField()
+
+    def get_court_in_future(self, obj):
+        if not obj.court_datetime:
+            return True
+        else:
+            now = datetime.datetime.now(pytz.utc)
+            return True if obj.court_datetime > now else False
 
     class Meta:
         model = CourtDate
@@ -264,12 +311,16 @@ class CourtProceedingsCourtDateSerializer(serializers.ModelSerializer):
             'id',
             'court_datetime',
             'comments',
+            'court',
+            'court_in_future',
         )
 
 
 class CourtProceedingsJournalSerializer(serializers.ModelSerializer):
     journal_entries = CourtProceedingsJournalEntrySerializer(many=True, read_only=True)
-    court_dates = CourtProceedingsCourtDateSerializer(many=True, read_only=True)
+    court_outcome_type = CourtOutcomeTypeSerializer(read_only=True)
+    court_outcome_type_id = serializers.IntegerField(required=False, write_only=True, allow_null=True)
+    court_dates = serializers.SerializerMethodField()
 
     class Meta:
         model = CourtProceedings
@@ -278,22 +329,34 @@ class CourtProceedingsJournalSerializer(serializers.ModelSerializer):
                 'court_outcome_details',
                 'journal_entries',
                 'court_dates',
+                'court_outcome_fines',
+                'court_outcome_costs',
+                'court_outcome_type',
+                'court_outcome_type_id',
                 )
         read_only_fields = (
                 'id',
         )
 
+    def get_court_dates(self, instance):
+        # Return court dates ordered by court_datetime
+        dates = instance.court_dates.all().order_by('court_datetime')
+        return CourtProceedingsCourtDateSerializer(dates, many=True).data
+
     def validate(self, attrs):
         return attrs
 
+
 class RunningSheetEntryHistorySerializer(serializers.ModelSerializer):
     versions = serializers.SerializerMethodField()
+
     class Meta:
         model = LegalCaseRunningSheetEntry
         fields = (
                 'id',
                 'versions',
                 )
+
     def get_versions(self, obj):
         entry_versions = VersionSerializer(
                 Version.objects.get_for_object(obj),
@@ -774,6 +837,7 @@ class LegalCaseBriefOfEvidenceSerializer(BaseLegalCaseSerializer):
     boe_physical_artifacts_sensitive_unused = serializers.SerializerMethodField()
     boe_physical_artifacts_non_sensitive_unused = serializers.SerializerMethodField()
     boe_document_artifacts = serializers.SerializerMethodField()
+    boe_roi_readonly = serializers.SerializerMethodField()
 
     class Meta:
         model = LegalCase
@@ -835,7 +899,7 @@ class LegalCaseBriefOfEvidenceSerializer(BaseLegalCaseSerializer):
                 'boe_physical_artifacts_sensitive_unused',
                 'boe_physical_artifacts_non_sensitive_unused',
                 'boe_document_artifacts',
-
+                'boe_roi_readonly',
                 )
         read_only_fields = (
                 'id',
@@ -969,6 +1033,8 @@ class LegalCaseBriefOfEvidenceSerializer(BaseLegalCaseSerializer):
             offence_list.append(serialized_offence)
         return offence_list
 
+    def get_boe_roi_readonly(self, obj):
+        return '<a href="www.google.com">something</a>'
 
 #class LegalCaseProsecutionBriefSerializer(BaseLegalCaseSerializer):
 class LegalCaseProsecutionBriefSerializer(LegalCaseBriefOfEvidenceSerializer):
@@ -1060,6 +1126,7 @@ class LegalCaseProsecutionBriefSerializer(LegalCaseBriefOfEvidenceSerializer):
                 'pb_document_artifacts',
                 'boe_roi_ticked',
                 'boe_roi_options',
+                'boe_roi_readonly',
                 'legal_case_boe_roi',
                 'boe_other_statements_ticked',
                 'boe_other_statements_options',
@@ -1201,6 +1268,9 @@ class LegalCaseProsecutionBriefSerializer(LegalCaseBriefOfEvidenceSerializer):
             serialized_offence['children'] = offence_children
             offence_list.append(serialized_offence)
         return offence_list
+
+    def get_pb_roi_read_only(self, obj):
+        pass
 
 
 class SaveLegalCaseSerializer(serializers.ModelSerializer):
