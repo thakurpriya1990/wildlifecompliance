@@ -1340,6 +1340,9 @@ class ApplicationViewSet(viewsets.ModelViewSet):
                     cleaned_purpose_ids = set(active_current_purposes) & set(licence_purposes)
                     data['licence_purposes'] = cleaned_purpose_ids
 
+                    # FIXME: For the 3 application types store the associated
+                    # licence against the application.
+
                 # Use serializer for external application creation - do not expose unneeded fields
                 serializer = CreateExternalApplicationSerializer(data=data)
                 serializer.is_valid(raise_exception=True)

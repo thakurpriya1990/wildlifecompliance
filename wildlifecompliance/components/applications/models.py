@@ -2323,27 +2323,40 @@ class Application(RevisionedMixin):
         self.update_customer_approval_status()
 
     def update_customer_approval_status(self):
-        # Update application customer approval status depending on count of approved/declined/unpaid activities
+        # Update application customer approval status depending on count of 
+        # approved/declined/unpaid activities.
+        PAY = ApplicationSelectedActivity.PROCESSING_STATUS_AWAITING_LICENCE_FEE_PAYMENT
+        ACCEPTED = ApplicationSelectedActivity.PROCESSING_STATUS_ACCEPTED
+        DECLINED = ApplicationSelectedActivity.PROCESSING_STATUS_DECLINED
+        PARTIALLY_APPROVED = Application.CUSTOMER_STATUS_PARTIALLY_APPROVED
+        AMEND = Application.CUSTOMER_STATUS_AMENDMENT_REQUIRED
+
         total_activity_count = self.selected_activities.count()
 
         approved_activity_count = self.selected_activities.filter(
-            processing_status=ApplicationSelectedActivity.PROCESSING_STATUS_ACCEPTED).count()
+            processing_status=ACCEPTED).count()
 
         declined_activity_count = self.selected_activities.filter(
-            processing_status=ApplicationSelectedActivity.PROCESSING_STATUS_DECLINED).count()
+            processing_status=DECLINED).count()
 
         unpaid_activity_count = self.selected_activities.filter(
-            processing_status=ApplicationSelectedActivity.PROCESSING_STATUS_AWAITING_LICENCE_FEE_PAYMENT).count()
+            processing_status=PAY).count()
+
+        request_amend_activity_count = self.active_amendment_requests.filter(
+            status=AmendmentRequest.AMENDMENT_REQUEST_STATUS_REQUESTED).count()
 
         if 0 < approved_activity_count < total_activity_count:
-            self.customer_status = Application.CUSTOMER_STATUS_PARTIALLY_APPROVED
+            self.customer_status = PARTIALLY_APPROVED
+        elif request_amend_activity_count > 0:
+            self.customer_status = AMEND
         elif approved_activity_count == total_activity_count:
-            self.customer_status = Application.CUSTOMER_STATUS_ACCEPTED
+            self.customer_status = ACCEPTED
         elif declined_activity_count == total_activity_count:
-            self.customer_status = Application.CUSTOMER_STATUS_DECLINED
+            self.customer_status = DECLINED
+
         # override decision status if payment is pending.
         if unpaid_activity_count > 0:
-            self.customer_status = Application.CUSTOMER_STATUS_AWAITING_PAYMENT
+            self.customer_status = PAY
 
         self.save()
 
@@ -3563,7 +3576,9 @@ class ApplicationSelectedActivity(models.Model):
         Selected Activity application licence.
 
         NOTE: Previous application will not be the current on the licence when
-        the Selected Activity is being re-issued.
+        the Selected Activity is being re-issued/renewed/amended.
+        TODO: Store current licence with new application instead of using 
+        previous or current application id for licence search. 
         '''
         previous = None
         prev_app = self.application.previous_application
@@ -3577,13 +3592,13 @@ class ApplicationSelectedActivity(models.Model):
                 current_application_id__in=[prev_id, current_id]
             )
 
-        except WildlifeLicence.DoesNotExist:
-            return previous
+            prev = licence.current_activities
+            act_id = self.licence_activity_id 
+            prev = [a for a in prev if a.licence_activity_id == act_id]
+            previous = prev[0]
 
-        prev = licence.current_activities
-        act_id = self.licence_activity_id 
-        prev = [a for a in prev if a.licence_activity_id == act_id]
-        previous = prev[0]
+        except BaseException:
+            pass
 
         return previous
 
@@ -3681,7 +3696,9 @@ class ApplicationSelectedActivityPurpose(models.Model):
         Application Selected Activity application licence.
 
         NOTE: Previous application will not be the current on the licence when
-        the Selected Activity is being re-issued.
+        the Selected Activity is being re-issued/renewed/amended.
+        TODO: Store current licence with new application instead of using 
+        previous or current application id for licence search. 
         '''
         previous = None
         prev_app = self.selected_activity.application.previous_application
@@ -3695,16 +3712,16 @@ class ApplicationSelectedActivityPurpose(models.Model):
                 current_application_id__in=[prev_id, current_id]
             )
 
-        except WildlifeLicence.DoesNotExist:
-            return previous
+            act_id = self.selected_activity.licence_activity_id 
+            activities = licence.current_activities
+            prev = [a for a in activities if a.licence_activity_id == act_id]
+            self_id = self.purpose_id
+            purposes = prev[0].proposed_purposes.all()
+            prev = [p for p in purposes if p.purpose_id == self_id]
+            previous = prev[0]
 
-        act_id = self.selected_activity.licence_activity_id 
-        activities = licence.current_activities
-        prev = [a for a in activities if a.licence_activity_id == act_id]
-        self_id = self.purpose_id
-        purposes = prev[0].proposed_purposes.all()
-        prev = [p for p in purposes if p.purpose_id == self_id]
-        previous = prev[0]
+        except BaseException:
+            pass
 
         return previous
 

@@ -206,7 +206,7 @@ class ApplicationFeePolicyForAmendment(ApplicationFeePolicy):
             prev_fee = previous.application_fee if previous else 0
             p.application_fee = prev_fee
             p.licence_fee = self.set_licence_fee()
-            p.additional_fee = 0
+            p.adjusted_fee = 0
             p.save()
 
     def set_licence_fee_to_zero_for(self, activity):

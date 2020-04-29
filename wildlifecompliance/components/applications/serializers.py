@@ -584,6 +584,11 @@ class BaseApplicationSerializer(serializers.ModelSerializer):
         result = False if obj.customer_status == \
             Application.CUSTOMER_STATUS_AWAITING_PAYMENT else obj.can_user_edit
 
+        if obj.processing_status == \
+                Application.PROCESSING_STATUS_AWAITING_APPLICANT_RESPONSE:
+            # Outstanding amendment request - edit required.
+            result = True
+
         if result and (
             is_app_licence_officer 
             or is_submitter
@@ -670,12 +675,12 @@ class BaseApplicationSerializer(serializers.ModelSerializer):
             # exclude this previous amount.
             adjusted = adjusted - obj.previous_paid_amount
 
-            # licence fee is paid with the application fee. Licence fee needs
-            # to be excluded from total paid for application.
-            licence_fee_paid = 0
-            for activity in obj.activities:
-                licence_fee_paid += activity.licence_fee
-            adjusted = adjusted - licence_fee_paid
+        # licence fee is paid with the application fee. Licence fee needs
+        # to be excluded from total paid for application.
+        licence_fee_paid = 0
+        for activity in obj.activities:
+            licence_fee_paid += activity.licence_fee
+        adjusted = adjusted - licence_fee_paid
 
         return adjusted
 
