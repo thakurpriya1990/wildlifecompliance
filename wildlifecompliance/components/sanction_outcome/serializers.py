@@ -517,8 +517,12 @@ class SanctionOutcomeDatatableSerializer(serializers.ModelSerializer):
                     if inv_ref:
                         # There is an invoice
                         if obj.payment_status != SanctionOutcome.PAYMENT_STATUS_PAID:
-                            # Partially paid
-                            url_list.append(record_payment_url)
+                            if obj.payment_status == SanctionOutcome.PAYMENT_STATUS_PARTIALLY_PAID:
+                                # Partially paid
+                                url_list.append(record_payment_url)
+                            elif obj.payment_status == SanctionOutcome.PAYMENT_STATUS_UNPAID:
+                                url_list.append(cc_payment_url)
+                                url_list.append(record_payment_url)
                         else:
                             # Paid
                             url_list.append(view_payment_url)
