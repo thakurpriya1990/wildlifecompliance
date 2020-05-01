@@ -549,6 +549,12 @@ class IncreaseApplicationFeeFieldElement(SpecialFieldElement):
     is_updating = False         # Flag indicating if update or retrieval.
     is_refreshing = False       # Flag indicating a page refresh.
 
+    def __init__(self):
+        pass
+
+    def __str__(self):
+        return 'Field Element: {0}'.format(self._NAME)
+
     def accept(self, application_form_visitor):
         self._app = application_form_visitor._application
         self._data_source = application_form_visitor._data_source
@@ -581,8 +587,9 @@ class IncreaseApplicationFeeFieldElement(SpecialFieldElement):
                 'activity_attributes'][licence_activity] = {
                     'fees': licence_activity.base_fees
                 }
-            # reset purpose adjusted fee amount.
+
             if self.is_updating:
+                # reset purpose adjusted fee amount.
                 purposes = ApplicationSelectedActivityPurpose.objects.filter(
                     selected_activity=licence_activity,
                 )
@@ -648,7 +655,7 @@ class IncreaseApplicationFeeFieldElement(SpecialFieldElement):
             if adjustments_performed:
                 adjusted_by_fields[schema_name] += 1
 
-            if self.is_updating and adjustments_performed:
+            if adjustments_performed and self.is_updating:
                 # update adjusted fee for the activity purpose.
                 p = ApplicationSelectedActivityPurpose.objects.get_or_create(
                     purpose=purpose,
@@ -665,7 +672,7 @@ class IncreaseApplicationFeeFieldElement(SpecialFieldElement):
         if self.is_refreshing:
             # don't calculate new fees for attributes.
             return self.dynamic_attributes['fees']
-
+        # apply fee policy to re-calculate total fees for application.
         self.fee_policy.set_dynamic_attributes(self.dynamic_attributes)
 
         return self.dynamic_attributes['fees']
@@ -678,17 +685,20 @@ class IncreaseApplicationFeeFieldElement(SpecialFieldElement):
         if self.is_refreshing:
             # don't calculate new fees for attributes.
             return
-
+        # apply fee policy to re-calculate total fees for application.
         self.fee_policy.set_dynamic_attributes_for(activity)
 
     def get_dynamic_attributes(self):
         '''
         Gets the current dynamic attributes created by this Field Element.
         '''
-        return self.dynamic_attributes
+        if self.is_refreshing:
+            # don't calculate new fees for attributes.
+            return self.dynamic_attributes
+        # apply fee policy to re-calculate total fees for application.
+        self.fee_policy.set_dynamic_attributes(self.dynamic_attributes)
 
-    def __str__(self):
-        return 'Field Element: {0}'.format(self._NAME)
+        return self.dynamic_attributes
 
 
 def do_process_form(
@@ -847,16 +857,16 @@ def do_update_dynamic_attributes(application):
 
         # Check for refunds to Application Amendment, Renewals and Requested
         # Amendment Fees.
-        REQUEST_AMEND = Application.CUSTOMER_STATUS_AMENDMENT_REQUIRED
-        if application.application_type in [
-            Application.APPLICATION_TYPE_AMENDMENT,
-            Application.APPLICATION_TYPE_RENEWAL,
-        ] or application.customer_status == REQUEST_AMEND:
+        # REQUEST_AMEND = Application.CUSTOMER_STATUS_AMENDMENT_REQUIRED
+        # if application.application_type in [
+        #     Application.APPLICATION_TYPE_AMENDMENT,
+        #     Application.APPLICATION_TYPE_RENEWAL,
+        # ] or application.customer_status == REQUEST_AMEND:
 
-            # set fee to zero when refund exists.
-            if fees['application']\
-                    < selected_activity.base_fees['application']:
-                selected_activity.application_fee = Decimal(0.0)
+        #     # set fee to zero when refund exists.
+        #     if fees['application']\
+        #             < selected_activity.base_fees['application']:
+        #         selected_activity.application_fee = Decimal(0.0)
 
         # Adjust fees to include the Increase Fee updated form questions.
         for_increase_fee_fields.set_adjusted_fees_for(selected_activity)
