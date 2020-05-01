@@ -354,8 +354,10 @@ def send_application_submitter_email_notification(application, request):
 def send_amendment_refund_email_notification(
         group_email, application, request):
     # An email to internal users notifying about required refund.
-    paid = application.total_paid_amount + application.previous_paid_amount
-
+    # paid = application.total_paid_amount + application.previous_paid_amount
+    # FIXME: paid is not the total paid with the previous paid for app.
+    # paid is just what has been paid on the current application. 
+    paid = application.total_paid_amount
     # Licence fee is also paid up front.
     licence_paid = 0
     for activity in application.activities:

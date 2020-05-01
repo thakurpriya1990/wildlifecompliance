@@ -1440,7 +1440,7 @@ class Application(RevisionedMixin):
         if paid > 0 and paid < self.application_fee:
             fees_amended = True
 
-        return fees_amended
+        return False
 
     @property
     def has_additional_fees(self):
@@ -1553,27 +1553,34 @@ class Application(RevisionedMixin):
         Check on the previously paid invoice amount against application fee.
         Refund is required when application fee is more than what has been
         paid. Application fee amount can be adjusted more or less than base.
+
+        FIXME: The previous paid amount now excludes the licence fee.
         """
-        ACCEPT = Application.CUSTOMER_STATUS_ACCEPTED
-        AWAIT = Application.CUSTOMER_STATUS_AWAITING_PAYMENT
-        if self.customer_status == ACCEPT or self.customer_status == AWAIT \
-           or self.application_fee < 1:
+        ignore = [
+            Application.CUSTOMER_STATUS_ACCEPTED,
+            Application.CUSTOMER_STATUS_AWAITING_PAYMENT,
+            Application.CUSTOMER_STATUS_DRAFT,
+        ]
+
+        if self.customer_status in ignore or self.application_fee < 1:
             return False
 
-        paid = self.total_paid_amount + self.previous_paid_amount
+        # paid = self.application_fee + self.previous_paid_amount
 
         # licence fee is paid up front with application fee.
         # exclude licence fee amount from paid aswell.
-        activity_paid = 0
-        for activity in self.activities:
-            activity_paid += activity.licence_fee
+        # activity_paid = 0
+        # for activity in self.activities:
+        #     activity_paid += activity.licence_fee
             # get previous activity for licence amendments and aggregate the
             # previous licence fee. No licence fee will exist on the current.
-            previous = activity.get_activity_from_previous()
-            activity_paid += previous.licence_fee if previous else 0
-        paid = paid - activity_paid
+            # previous = activity.get_activity_from_previous()
+            # activity_paid += previous.licence_fee if previous else 0
+        # paid = paid - activity_paid
 
-        over_paid = paid - int(self.application_fee)
+        # over_paid = paid - int(self.application_fee)
+
+        over_paid = self.previous_paid_amount - int(self.application_fee)
 
         return True if over_paid > 0 else False
 
@@ -1608,8 +1615,8 @@ class Application(RevisionedMixin):
             if self.processing_status ==\
                 Application.PROCESSING_STATUS_UNDER_REVIEW:
                 # apply the total_paid_amount as application fee is paid.
-                if not previous_paid > self.total_paid_amount:
-                    previous_paid = self.total_paid_amount - previous_paid
+                if not previous_paid > self.application_fee:
+                    previous_paid = self.application_fee - previous_paid
                 else:
                     previous_paid = 0
                 
@@ -1621,7 +1628,8 @@ class Application(RevisionedMixin):
             # check for Customer licence amendment.
             if self.application_type == Application.APPLICATION_TYPE_AMENDMENT:
                 # ignore refunds triggered by internal officers change.
-                previous_paid = previous_paid_under_review(previous_paid)
+                # previous_paid = previous_paid_under_review(previous_paid)
+                pass
 
         return previous_paid
 
@@ -2350,13 +2358,13 @@ class Application(RevisionedMixin):
         elif request_amend_activity_count > 0:
             self.customer_status = AMEND
         elif approved_activity_count == total_activity_count:
-            self.customer_status = ACCEPTED
+            self.customer_status = Application.CUSTOMER_STATUS_ACCEPTED
         elif declined_activity_count == total_activity_count:
-            self.customer_status = DECLINED
+            self.customer_status = Application.CUSTOMER_STATUS_DECLINED
 
         # override decision status if payment is pending.
         if unpaid_activity_count > 0:
-            self.customer_status = PAY
+            self.customer_status = Application.CUSTOMER_STATUS_AWAITING_PAYMENT
 
         self.save()
 
@@ -3225,11 +3233,14 @@ class ApplicationSelectedActivity(models.Model):
         Activity payment consist of Licence and Additional Fee. Property 
         shows the status for both of these payments. Licence Fee is paid up
         front before additional fees.
+
+        FIXME: Need to check for adjustments to fees by officer which may need
+        to be paid at issuance.
         """
         _status = None
 
         # Check Licence Fee
-        if self.licence_fee == 0:
+        if self.licence_fee == 0 and self.application_fee == 0:
             _status = ActivityInvoice.PAYMENT_STATUS_NOT_REQUIRED
         else:
             if self.activity_invoices.count() == 0:
@@ -3380,12 +3391,25 @@ class ApplicationSelectedActivity(models.Model):
 
     @property
     def previous_paid_amount(self):
-        """
-        Gets the paid amount from the previous application for licence Activity
-        amendments.
+        '''
+        Property for the total application fee (including adjustments) paid for
+        on the selected activity. For licence amendments it will be the amount
+        paid on the previous application activity when no invoice exist for the
+        selected activity.
+        '''
+        def previous_paid_from_invoice(previous_paid):
+            """
+            Returns the total application fee (including adjustments) for this
+            selected activity.
+            """
+            if self.payment_status in [
+                ActivityInvoice.PAYMENT_STATUS_PAID,
+            ]:
+                additional = self.licence_fee + self.additional_fee
+                previous_paid = self.total_paid_amount - additional
+                
+            return previous_paid
 
-        NOTE: Application Fee is required for ammendments.
-        """
         def previous_paid_under_review(previous_paid):
             """
             Under Review an Application Ammendment cannot get a refund amount
@@ -3395,8 +3419,8 @@ class ApplicationSelectedActivity(models.Model):
             if self.application.processing_status ==\
                 Application.PROCESSING_STATUS_UNDER_REVIEW:
                 # apply the total_paid_amount as application fee is paid.
-                if not previous_paid > self.total_paid_amount:
-                    previous_paid = self.total_paid_amount - previous_paid
+                if not previous_paid > self.application_fee:
+                    previous_paid = self.application_fee - previous_paid
                 else:
                     previous_paid = 0
                 
@@ -3411,15 +3435,16 @@ class ApplicationSelectedActivity(models.Model):
                 purposes = self.proposed_purposes.all()
                 for purpose in purposes:
                     prev = purpose.get_purpose_from_previous()
-                    prev_total = prev.total_paid_amount if prev else 0
-                    previous_paid += prev_total
+                    previous_paid += prev.application_fee if prev else 0
+                    previous_paid += prev.adjusted_fee if prev else 0
+                    # previous_paid += prev_total
 
-                prev_act = self.get_activity_from_previous()
-                if prev_act and prev_act.has_adjusted_application_fee:
-                    previous_paid += prev_act.additional_fee
+                # prev_act = self.get_activity_from_previous()
+                # if prev_act and prev_act.has_adjusted_application_fee:
+                #     previous_paid += prev_act.additional_fee
 
             except BaseException:
-                raise Exception('Exception in previous_paid_from_licence.')
+                raise
 
             return previous_paid
 
@@ -3428,7 +3453,8 @@ class ApplicationSelectedActivity(models.Model):
         if self.application.application_type ==\
                 Application.APPLICATION_TYPE_AMENDMENT:
             previous_paid = previous_paid_from_licence(previous_paid)
-            previous_paid = previous_paid_under_review(previous_paid)
+            previous_paid = previous_paid_from_invoice(previous_paid)
+            # previous_paid = previous_paid_under_review(previous_paid)
 
         return previous_paid
 
@@ -3577,19 +3603,17 @@ class ApplicationSelectedActivity(models.Model):
 
         NOTE: Previous application will not be the current on the licence when
         the Selected Activity is being re-issued/renewed/amended.
-        TODO: Store current licence with new application instead of using 
-        previous or current application id for licence search. 
         '''
         previous = None
         prev_app = self.application.previous_application
-        prev_id = prev_app.id if prev_app else 0
-        current_id = self.application.id
+        # prev_id = prev_app.id if prev_app else 0
+        current_id = self.application.licence_id
 
         try:
             # Retrieve licence rather than from previous application. Previous
             # application may not have the same activity.
             licence = WildlifeLicence.objects.get(
-                current_application_id__in=[prev_id, current_id]
+                id=current_id
             )
 
             prev = licence.current_activities
@@ -3597,8 +3621,11 @@ class ApplicationSelectedActivity(models.Model):
             prev = [a for a in prev if a.licence_activity_id == act_id]
             previous = prev[0]
 
-        except BaseException:
+        except WildlifeLicence.DoesNotExist:
             pass
+
+        except BaseException:
+            raise Exception('Exception in get_activity_from_previous.')
 
         return previous
 
@@ -3697,19 +3724,17 @@ class ApplicationSelectedActivityPurpose(models.Model):
 
         NOTE: Previous application will not be the current on the licence when
         the Selected Activity is being re-issued/renewed/amended.
-        TODO: Store current licence with new application instead of using 
-        previous or current application id for licence search. 
         '''
         previous = None
         prev_app = self.selected_activity.application.previous_application
-        prev_id = prev_app.id if prev_app else 0
-        current_id = self.selected_activity.application.id
+        # prev_id = prev_app.id if prev_app else 0
+        current_id = self.selected_activity.application.licence_id
 
         try:
             # Retrieve licence rather than from previous application. Previous
             # application may not have the same purpose.
             licence = WildlifeLicence.objects.get(
-                current_application_id__in=[prev_id, current_id]
+                id=current_id
             )
 
             act_id = self.selected_activity.licence_activity_id 
@@ -3720,8 +3745,11 @@ class ApplicationSelectedActivityPurpose(models.Model):
             prev = [p for p in purposes if p.purpose_id == self_id]
             previous = prev[0]
 
-        except BaseException:
+        except WildlifeLicence.DoesNotExist:
             pass
+
+        except BaseException:
+            raise Exception('Exception in get_purpose_from_previous.')
 
         return previous
 
