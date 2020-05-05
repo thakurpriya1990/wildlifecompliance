@@ -665,7 +665,7 @@ class BaseApplicationSerializer(serializers.ModelSerializer):
         Total paid amount adjusted for presentation purposes. Only applicable
         for internal officers to enforce refundable payments.
 
-        FIXME: Not adjusted paid amount anymore - it is the previous.
+        TODO: REDUNDANT
         """
         # adjusted = None
         # # Include previously paid amounts for amendments.
@@ -685,7 +685,7 @@ class BaseApplicationSerializer(serializers.ModelSerializer):
         #     licence_fee_paid += activity.licence_fee
         # adjusted = adjusted - licence_fee_paid
 
-        adjusted = obj.previous_paid_amount
+        adjusted = 0
 
         return adjusted
 
