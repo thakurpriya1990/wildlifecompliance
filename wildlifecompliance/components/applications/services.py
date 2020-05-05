@@ -545,7 +545,6 @@ class IncreaseApplicationFeeFieldElement(SpecialFieldElement):
 
     fee_policy = None           # Policy applied to the fee update.
     dynamic_attributes = None   # Attributes on the Activity Purpose.
-    additional_fee = 0          # Amount the Application Fee is increased by.
     is_updating = False         # Flag indicating if update or retrieval.
     is_refreshing = False       # Flag indicating a page refresh.
 
@@ -833,11 +832,6 @@ def do_update_dynamic_attributes(application):
     for_increase_fee_fields.accept(checkbox)
     dynamic_attributes = for_increase_fee_fields.get_dynamic_attributes()
 
-    # Update application and licence fees
-    fees = dynamic_attributes['fees']
-    application.application_fee = fees['application']
-    application.save()
-
     # Save any parsed per-activity modifiers
     for selected_activity, field_data in \
             dynamic_attributes['activity_attributes'].items():
@@ -848,12 +842,12 @@ def do_update_dynamic_attributes(application):
 
         # Check when under review for changes in fee amount.
         # Application fees can also be adjusted by internal officer.
-        UNDER_REVIEW = Application.PROCESSING_STATUS_UNDER_REVIEW
-        if application.processing_status == UNDER_REVIEW\
-            and fees['application']\
-                > selected_activity.base_fees['application']:
-            selected_activity.application_fee = fees['application'] \
-                - selected_activity.base_fees['application']
+        # UNDER_REVIEW = Application.PROCESSING_STATUS_UNDER_REVIEW
+        # if application.processing_status == UNDER_REVIEW\
+        #     and fees['application']\
+        #         > selected_activity.base_fees['application']:
+        #     selected_activity.application_fee = fees['application'] \
+        #         - selected_activity.base_fees['application']
 
         # Check for refunds to Application Amendment, Renewals and Requested
         # Amendment Fees.
@@ -875,6 +869,11 @@ def do_update_dynamic_attributes(application):
             setattr(selected_activity, field, value)
 
         selected_activity.save()
+
+    # Update application and licence fees
+    fees = dynamic_attributes['fees']
+    application.application_fee = fees['application']
+    application.save()
 
 
 """
