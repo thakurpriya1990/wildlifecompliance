@@ -527,8 +527,9 @@ class Application(RevisionedMixin):
 
     @property
     def payment_status(self):
-        # TODO: needs more work, underpaid/overpaid statuses to be added, refactor to key/name like processing_status
-        if self.application_fee == 0:
+        # TODO: needs more work, underpaid/overpaid statuses to be added,
+        # refactor to key/name like processing_status
+        if self.application_fee == 0 and self.total_paid_amount < 1:
             return ApplicationInvoice.PAYMENT_STATUS_NOT_REQUIRED
         else:
             if self.requires_refund:
@@ -3265,7 +3266,7 @@ class ApplicationSelectedActivity(models.Model):
         to be paid at issuance.
         """
         def get_payment_status_for_licence(_status):
-            if self.licence_fee == 0 and self.application_fee == 0:
+            if self.application_fee == 0 and self.total_paid_amount < 1:
                 _status = ActivityInvoice.PAYMENT_STATUS_NOT_REQUIRED
             else:
                 if self.activity_invoices.count() == 0:
@@ -3304,11 +3305,14 @@ class ApplicationSelectedActivity(models.Model):
             return _status
 
         def get_payment_status_for_adjustment(_status):
-            if self.has_adjusted_application_fee:
+            if self.application_fee > 0 and self.has_adjusted_application_fee:
                 _status = ActivityInvoice.PAYMENT_STATUS_UNPAID
-                fee = self.application_fee + self.pre_adjusted_application_fee
-                total = fee + self.licence_fee + self.additional_fee
-                if self.total_paid_amount == total:
+                fees_tot = 0
+                for purpose in self.proposed_purposes.all():
+                    fees_tot += purpose.licence_fee
+                    fees_tot += purpose.adjusted_fee
+                    fees_tot += purpose.application_fee              
+                if self.total_paid_amount == fees_tot:
                     _status = ActivityInvoice.PAYMENT_STATUS_PAID
 
             return _status
