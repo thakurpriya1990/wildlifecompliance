@@ -320,21 +320,21 @@ class ApplicationFeePolicyForAmendment(ApplicationFeePolicy):
 
         NOTE: Same calculation for set_application_fee_from_attributes.
         '''
-        # licence fee is zero so allow for additional fees.
         licence_paid = False if activity.total_paid_amount < 1 else True
-
+        policy_licence_fee = self.dynamic_attributes['fees']['licence']
         self.set_purpose_fees_for(activity)         # update fees on purpose.
         prev_adj = self.get_previous_adjusted_fee_for(activity)
 
         fees_new = activity.application_fee - prev_adj
         if licence_paid:
             # application fee is paid just pay adjustments.
+            # no licence fee is included.
             activity.application_fee = 0
-            fees_lic = activity.licence_fee
-            fees_new = fees_lic + fees_new - activity.total_paid_amount
+            fees_new = fees_new - activity.total_paid_amount
 
         if fees_new != 0:
             activity.application_fee = fees_new
+        activity.licence_fee = policy_licence_fee
 
     def set_application_fee_from_attributes(self, attributes):
         '''
