@@ -495,8 +495,9 @@ class ApplicationFeePolicyForRenew(ApplicationFeePolicy):
         fees_new = fees_app + fees_adj
         if licence_paid:
             # application fee is paid just pay adjustments.
-            activity.application_fee = 0
             fees_new = fees_lic + fees_new - activity.total_paid_amount
+            activity.application_fee = 0
+            fees_lic = 0
 
         if fees_new != 0:
             activity.application_fee = fees_new
