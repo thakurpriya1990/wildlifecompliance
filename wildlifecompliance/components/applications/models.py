@@ -3660,22 +3660,30 @@ class ApplicationSelectedActivity(models.Model):
         Gets this Application Selected Activity from the previous Application
         Selected Activity application licence.
 
-        NOTE: Previous application will not be the current on the licence when
-        the Selected Activity is being re-issued/renewed/amended.
+        TODO: Utilise Licence No to get previous instead of chain.
         '''
         previous = None
         prev_app = self.application.previous_application
         # prev_id = prev_app.id if prev_app else 0
-        current_id = self.application.licence_id
+        # current_id = self.application.licence_id
+        status = {
+            ApplicationSelectedActivity.ACTIVITY_STATUS_CURRENT,
+        }
+        prev = prev_app.get_activity_chain(
+            activity_status__in=status).order_by(
+                'licence_activity_id', '-issue_date'
+            )
+        if not prev:
+            return previous
 
         try:
             # Retrieve licence rather than from previous application. Previous
             # application may not have the same activity.
-            licence = WildlifeLicence.objects.get(
-                id=current_id
-            )
+            # licence = WildlifeLicence.objects.get(
+            #     id=current_id
+            # )
 
-            prev = licence.current_activities
+            # prev = licence.current_activities
             act_id = self.licence_activity_id 
             prev = [a for a in prev if a.licence_activity_id == act_id]
             previous = prev[0]
@@ -3683,8 +3691,8 @@ class ApplicationSelectedActivity(models.Model):
         except WildlifeLicence.DoesNotExist:
             pass
 
-        except BaseException:
-            raise Exception('Exception in get_activity_from_previous.')
+        except BaseException as e:
+            raise Exception('get_activity_from_previous(): {}'.format(e))
 
         return previous
 
@@ -3779,25 +3787,33 @@ class ApplicationSelectedActivityPurpose(models.Model):
     def get_purpose_from_previous(self):
         '''
         Gets this Application Selected Activity Purpose from the previous
-        Application Selected Activity application licence.
+        selected Activity.
 
-        NOTE: Previous application will not be the current on the licence when
-        the Selected Activity is being re-issued/renewed/amended.
+        TODO: Utilise Licence No to get previous instead of chain.
         '''
         previous = None
         prev_app = self.selected_activity.application.previous_application
         # prev_id = prev_app.id if prev_app else 0
-        current_id = self.selected_activity.application.licence_id
+        # current_id = self.selected_activity.application.licence_id
+        status = {
+            ApplicationSelectedActivity.ACTIVITY_STATUS_CURRENT,
+        }
+        activities = prev_app.get_activity_chain(
+            activity_status__in=status).order_by(
+                'licence_activity_id', '-issue_date'
+            )
+        if not activities:
+            return previous
 
         try:
             # Retrieve licence rather than from previous application. Previous
             # application may not have the same purpose.
-            licence = WildlifeLicence.objects.get(
-                id=current_id
-            )
+            # licence = WildlifeLicence.objects.get(
+            #     id=current_id
+            # )
+            # activities = licence.current_activities
 
             act_id = self.selected_activity.licence_activity_id 
-            activities = licence.current_activities
             prev = [a for a in activities if a.licence_activity_id == act_id]
             self_id = self.purpose_id
             purposes = prev[0].proposed_purposes.all()
@@ -3807,8 +3823,9 @@ class ApplicationSelectedActivityPurpose(models.Model):
         except WildlifeLicence.DoesNotExist:
             pass
 
-        except BaseException:
-            raise Exception('Exception in get_purpose_from_previous.')
+        except BaseException as e:
+            print('get_purpose_from_previous(): ({0}) {1}'.format(self, e))
+            raise Exception('get_purpose_from_previous(): {}'.format(e))
 
         return previous
 
