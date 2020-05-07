@@ -151,22 +151,19 @@ class ApplicationFeePolicy(object):
             self.dynamic_attributes['fees']['licence'] = fees_lic_tot
 
     def set_application_fee_on_purpose_for(self, activity):
-        """
-        Set all fees for the selected activity/purpose.
+        '''
+        Set the base fees for all purposes on the selected activity. 
 
-        """
-        # get purposes from the application form.
-        purpose_ids = self.get_form_purpose_ids_for(activity)
-        # set the selected activity purpose base fees.
-        for p_id in purpose_ids:
-            purpose = [p for p in activity.purposes if p.id == p_id]
+        '''
+        for purpose in activity.purposes:
             p, c = ApplicationSelectedActivityPurpose.objects.get_or_create(
                 selected_activity_id=activity.id,
-                purpose_id=purpose[0].id
+                purpose_id=purpose.id
             )
-            p.application_fee = purpose[0].base_application_fee
-            p.licence_fee = purpose[0].base_licence_fee
-            p.save()
+            if c:  # Only save fees for those not created.
+                p.application_fee = purpose.base_application_fee
+                p.licence_fee = purpose.base_licence_fee
+                p.save()
 
 
 class ApplicationFeePolicyForAmendment(ApplicationFeePolicy):
