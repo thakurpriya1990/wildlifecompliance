@@ -265,7 +265,8 @@ class ExternalApplicationSelectedActivityMergedSerializer(serializers.Serializer
         return obj.get('start_date').strftime('%d/%m/%Y') if obj.get('start_date') else ''
 
     def get_expiry_date(self, obj):
-        return obj.get('expiry_date').strftime('%d/%m/%Y') if obj.get('expiry_date') else ''
+        # return obj.get('expiry_date').strftime('%d/%m/%Y') if obj.get('expiry_date') else ''
+        return obj.get('expiry_date') if obj.get('expiry_date') else ''
 
 
 class EmailUserAppViewSerializer(serializers.ModelSerializer):
