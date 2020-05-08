@@ -2334,6 +2334,7 @@ class Application(RevisionedMixin):
                         licence=parent_licence
                     )
                     self.licence_document = parent_licence.licence_document
+                    self.licence = parent_licence
                     self.save()
                 # If there are no issued_activities in this application and the parent_licence was
                 # created as part of this application (i.e. it was not a pre-existing one), delete it
