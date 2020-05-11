@@ -26,7 +26,7 @@ from wildlifecompliance.components.applications.models import (
     Application,
     ApplicationSelectedActivity
 )
-from wildlifecompliance.components.applications.services import (
+from wildlifecompliance.components.applications.payments import (
     ApplicationFeePolicyForAmendment
 )
 from rest_framework_datatables.pagination import DatatablesPageNumberPagination

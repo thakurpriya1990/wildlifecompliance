@@ -354,14 +354,7 @@ def send_application_submitter_email_notification(application, request):
 def send_amendment_refund_email_notification(
         group_email, application, request):
     # An email to internal users notifying about required refund.
-    paid = application.total_paid_amount + application.previous_paid_amount
-
-    # Licence fee is also paid up front.
-    licence_paid = 0
-    for activity in application.activities:
-        licence_paid = licence_paid + activity.licence_fee
-
-    over_paid = paid - int(application.application_fee) - licence_paid
+    over_paid = application.get_refund_amount()
 
     email = ApplicationRefundNotificationEmail()
     url = request.build_absolute_uri(

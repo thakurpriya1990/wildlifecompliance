@@ -95,8 +95,9 @@ class ApplicationSuccessView(TemplateView):
                         kwargs={'reference': invoice_ref}))
 
                 if application.application_fee_paid:
-
-                    application.submit(request)
+                    # can only submit again if application is in Draft.
+                    if application.can_user_edit:
+                        application.submit(request)
                     send_application_invoice_email_notification(
                         application, invoice_ref, request)
 

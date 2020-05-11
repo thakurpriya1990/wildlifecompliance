@@ -474,10 +474,12 @@ class WildlifeLicence(models.Model):
                     'activity_name_str': activity.licence_activity.name,
                     'issue_date': activity.issue_date,
                     'start_date': activity.start_date,
-                    'expiry_date': activity.expiry_date,
+                    'expiry_date': '\n'.join(['{}'.format(
+                        activity.expiry_date.strftime("%d/%m/%Y"))
+                        for p in activity.proposed_purposes.all()]),
                     'activity_purpose_names_and_status': '\n'.join(['{} ({})'.format(
-                        p.name, activity.get_activity_status_display())
-                        for p in activity.purposes]),
+                        p.purpose.name, activity.get_activity_status_display())
+                        for p in activity.proposed_purposes.all()]),
                     'can_action':
                         {
                             'licence_activity_id': activity.licence_activity_id,
