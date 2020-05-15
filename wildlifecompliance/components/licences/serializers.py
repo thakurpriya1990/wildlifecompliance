@@ -67,7 +67,8 @@ class WildlifeLicenceSerializer(serializers.ModelSerializer):
         )
 
     def get_last_issue_date(self, obj):
-        return obj.latest_activities.first().issue_date if obj.latest_activities else ''
+        # return obj.latest_activities.first().issue_date if obj.latest_activities else ''
+        return obj.latest_activities.first().get_issue_date() if obj.latest_activities else ''
 
     def get_licence_number(self, obj):
         return obj.reference
@@ -103,7 +104,8 @@ class DTInternalWildlifeLicenceSerializer(WildlifeLicenceSerializer):
         datatables_always_serialize = fields
 
     def get_last_issue_date(self, obj):
-        return obj.latest_activities.first().issue_date if obj.latest_activities else ''
+        # return obj.latest_activities.first().issue_date if obj.latest_activities else ''
+        return obj.latest_activities.first().get_issue_date() if obj.latest_activities else ''
 
     def get_can_action(self, obj):
         # set default but use to_representation to calculate based on latest_activities_merged.can_action
@@ -195,7 +197,8 @@ class DTExternalWildlifeLicenceSerializer(WildlifeLicenceSerializer):
         datatables_always_serialize = fields
 
     def get_last_issue_date(self, obj):
-        return obj.latest_activities.first().issue_date if obj.latest_activities else ''
+        # return obj.latest_activities.first().issue_date if obj.latest_activities else ''
+        return obj.latest_activities.first().get_issue_date() if obj.latest_activities else ''
 
     def get_can_action(self, obj):
         # set default but use to_representation to calculate based on latest_activities_merged.can_action
