@@ -88,7 +88,7 @@ class LicenceFilterBackend(DatatablesFilterBackend):
                     # if (pytz.timezone('utc').localize(datetime.strptime(date_from, '%Y-%m-%d'))
                     #         <= wildlifelicence.current_activities.order_by('-issue_date').first().issue_date):
                     #             date_from_licence_ids.append(wildlifelicence.id)
-                    _date_from = (pytz.timezone('utc').localize(
+                    _date_from = pytz.timezone('utc').localize(
                         datetime.strptime(date_from, '%Y-%m-%d'))
 
                     _issue_date = wildlifelicence.current_activities.first(
@@ -105,7 +105,7 @@ class LicenceFilterBackend(DatatablesFilterBackend):
                     # if (pytz.timezone('utc').localize(datetime.strptime(date_to, '%Y-%m-%d')) + timedelta(days=1)
                     #         >= wildlifelicence.current_activities.order_by('-issue_date').first().issue_date):
                     #             date_to_licence_ids.append(wildlifelicence.id)
-                    _date_to = (pytz.timezone('utc').localize(
+                    _date_to = pytz.timezone('utc').localize(
                         datetime.strptime(date_to, '%Y-%m-%d')
                         ) + timedelta(days=1)
 
