@@ -525,7 +525,7 @@ class WildlifeLicence(models.Model):
                     'issue_date': activity.get_issue_date(),
                     'start_date': activity.get_start_date(),
                     'expiry_date': '\n'.join(['{}'.format(
-                        activity.get_expiry_date())
+                        p.expiry_date.strftime('%d/%m/%Y') if p.expiry_date else '')
                         for p in activity.proposed_purposes.all()]),
                     'activity_purpose_names_and_status': '\n'.join(['{} ({})'.format(
                         p.purpose.name, activity.get_activity_status_display())
@@ -548,6 +548,10 @@ class WildlifeLicence(models.Model):
                     '\n' + '\n'.join(['{} ({})'.format(
                         p.name, activity.get_activity_status_display())
                         for p in activity.purposes])
+                activity_key['expiry_date'] += \
+                    '\n' + '\n'.join(['{}'.format(
+                        p.expiry_date.strftime('%d/%m/%Y'))
+                        for p in activity.proposed_purposes.all()])
                 activity_key['can_action']['can_renew'] =\
                     activity_key['can_action']['can_renew'] or activity_can_action['can_renew']
                 activity_key['can_action']['can_amend'] =\
