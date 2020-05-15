@@ -264,8 +264,8 @@ def _create_licence(licence_buffer, licence, application):
     activityList = ListFlowable(
         [Paragraph("{name}: {start_date} - {expiry_date}".format(
             name=selected_activity.licence_activity.name,
-            start_date=selected_activity.start_date.strftime(DATE_FORMAT),
-            expiry_date=selected_activity.expiry_date.strftime(DATE_FORMAT)
+            start_date=selected_activity.get_start_date(),
+            expiry_date=selected_activity.get_expiry_date()
         ), styles['Left'],) for selected_activity in licence.current_activities],
         bulletFontName=BOLD_FONTNAME, bulletFontSize=MEDIUM_FONTSIZE)
     elements.append(activityList)
@@ -345,16 +345,15 @@ def _create_licence(licence_buffer, licence, application):
                 'Date Valid From', styles['BoldLeft']), Paragraph(
                 'Date of Expiry', styles['BoldLeft'])]
         date_values = [
-            Paragraph(
-                selected_activity.issue_date.strftime(
-                    DATE_FORMAT), styles['Left']), Paragraph(
-                selected_activity.start_date.strftime(
-                    DATE_FORMAT), styles['Left']), Paragraph(
-                    selected_activity.expiry_date.strftime(
-                        DATE_FORMAT), styles['Left'])]
+            Paragraph(selected_activity.get_issue_date(
+                ).strftime('%d/%m/%Y'), styles['Left']),
+            Paragraph(selected_activity.get_start_date(
+                ).strftime('%d/%m/%Y'), styles['Left']),
+            Paragraph(selected_activity.get_expiry_date(
+                ).strftime('%d/%m/%Y'), styles['Left'])
+        ]
 
-        if not selected_activity.original_issue_date.date() == \
-                selected_activity.issue_date.date():
+        if selected_activity.is_reissued:
             date_headings.insert(
                 0,
                 Paragraph(
@@ -363,8 +362,7 @@ def _create_licence(licence_buffer, licence, application):
             date_values.insert(
                 0,
                 Paragraph(
-                    selected_activity.original_issue_date.strftime(
-                        DATE_FORMAT),
+                    selected_activity.get_original_issue_date(),
                     styles['Left']))
 
         delegation.append(
