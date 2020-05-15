@@ -618,7 +618,15 @@ class Application(RevisionedMixin):
 
     @property
     def licence_type_data(self):
-        from wildlifecompliance.components.licences.serializers import LicenceCategorySerializer
+        '''
+        Get valid licence categories and associated activities associated with
+        thie application.
+
+        Used in the presentation for authorised selected licence activities.
+        '''
+        from wildlifecompliance.components.licences.serializers import (
+            LicenceCategorySerializer
+        )
 
         serializer = LicenceCategorySerializer(
             self.licence_purposes.first().licence_category,
@@ -636,8 +644,10 @@ class Application(RevisionedMixin):
                     ApplicationSelectedActivity.PROCESSING_STATUS_CHOICES
                 )
             }
-            activity['start_date'] = selected_activity.start_date
-            activity['expiry_date'] = selected_activity.expiry_date
+            # although these fields are retrieved it is not applied for the
+            # authorisation.
+            activity['start_date'] = selected_activity.get_start_date()
+            activity['expiry_date'] = selected_activity.get_expiry_date()
         return licence_data
 
     @property
@@ -782,65 +792,84 @@ class Application(RevisionedMixin):
     def log_user_action(self, action, request):
         return ApplicationUserAction.log_action(self, action, request.user)
 
-    def copy_application_purposes_for_status(self, purpose_ids_list, new_activity_status):
+    def copy_application_purposes_for_status(
+            self, purpose_ids_list, new_activity_status):
         '''
         Creates a copy of the Application and associated records
         for the specified purposes and activity status.
-        '''
 
+        TODO: Activity consist of proposed_purposes with effective dates and
+        status. These need to be copied and handled appropriately with Replace.
+        '''
         # Get the ID of the original application
         original_app_id = self.id
 
-        # Validate purpose_ids_list against LicencePurpose records for the application
+        # Validate purpose_ids_list against LicencePurpose records for the
+        # application.
         if purpose_ids_list:
             try:
                 for licence_purpose_id in purpose_ids_list:
-                    LicencePurpose.objects.get(id=licence_purpose_id, application__id=original_app_id)
+                    LicencePurpose.objects.get(
+                        id=licence_purpose_id, application__id=original_app_id)
             except BaseException:
-                raise ValidationError('One or more IDs in the purpose list are not valid')
+                raise ValidationError(
+                    'One or more IDs in the purpose list are not valid')
         else:
             raise ValidationError('Purpose list is empty')
 
-        # Confirm all purposes are of the same LicenceActivity type and then set licence_activity_id
+        # Confirm all purposes are of the same LicenceActivity type and then
+        # set licence_activity_id.
         if LicencePurpose.objects.filter(id__in=purpose_ids_list) \
-                .values_list('licence_activity_id', flat=True).distinct().count() > 1:
-            raise ValidationError('Purpose list contains purposes of different licence activities')
+                .values_list(
+                    'licence_activity_id', flat=True).distinct().count() > 1:
+            raise ValidationError(
+              'Purpose list contains purposes of different licence activities')
         else:
-            licence_activity_id = LicencePurpose.objects.filter(id__in=purpose_ids_list).first().licence_activity_id
+            licence_activity_id = LicencePurpose.objects.filter(
+                id__in=purpose_ids_list).first().licence_activity_id
 
-        # Only continue if valid and current licence exists and original application is part of the chain
+        # Only continue if valid and current licence exists and original
+        # application is part of the chain.
         try:
-            parent_licence, created = self.get_parent_licence(auto_create=False)
-            application_chain = parent_licence.current_application.get_application_children()
+            parent_licence, created = self.get_parent_licence(
+                auto_create=False)
+            application_chain =\
+                parent_licence.current_application.get_application_children()
             if self in application_chain:
                 pass
             else:
-                raise ValidationError('Application you are trying to copy'
-                                      ' is not associated with a valid current licence')
+                raise ValidationError('Application you are trying to copy is'
+                                      ' not associated with a valid current'
+                                      ' licence')
         except BaseException:
-            raise ValidationError('Application you are trying to copy'
-                                  ' is not associated with a valid current licence')
+            raise ValidationError('Application you are trying to copy is not'
+                                  ' associated with a valid current licence')
 
         with transaction.atomic():
 
             # Create new application as a clone of the original application
             new_app = Application.objects.get(id=original_app_id)
             new_app.id = None
-            new_app.application_type = Application.APPLICATION_TYPE_SYSTEM_GENERATED
+            new_app.application_type =\
+                Application.APPLICATION_TYPE_SYSTEM_GENERATED
             new_app.lodgement_number = ''
             new_app.application_fee = Decimal('0.00')
-            # Use parent_licence.current_application to always retrieve the latest application in the chain
+            # Use parent_licence.current_application to always retrieve the
+            # latest application in the chain.
             new_app.previous_application = parent_licence.current_application
             new_app.save()
 
-            # Set the associated licence's current_application to the new application
+            # Set the associated licence's current_application to the new
+            # application.
             parent_licence.current_application = new_app
             parent_licence.save()
 
             # Create ApplicationSelectedActivity record for the new application
             selected_activity = Application.objects.get(id=original_app_id)\
-                .selected_activities.get(licence_activity_id=licence_activity_id)
-            selected_activity.activity_status = ApplicationSelectedActivity.ACTIVITY_STATUS_REPLACED
+                .selected_activities.get(
+                    licence_activity_id=licence_activity_id)
+            selected_activity.activity_status =\
+                ApplicationSelectedActivity.ACTIVITY_STATUS_REPLACED
             selected_activity.save()
             new_activity = selected_activity
             new_activity.id = None
@@ -849,28 +878,62 @@ class Application(RevisionedMixin):
             new_activity.activity_status = new_activity_status
             new_activity.save()
 
+            # copy selected activity purposes with status and effective dates.
+            self.copy_activity_purpose_to_target_for_status(
+                selected_activity,
+                new_activity,
+            )
+            REP = ApplicationSelectedActivityPurpose.PROCESSING_STATUS_REPLACED
+            for purpose in selected_activity.proposed_purposes.all():
+                purpose.processing_status = REP
+                purpose.save()
+
             # Link the target LicencePurpose IDs to the new application
-            # Copy ApplicationFormDataRecord rows from old application, licence_activity and licence_purpose
+            # Copy ApplicationFormDataRecord rows from old application,
+            # licence_activity and licence_purpose.
             for licence_purpose_id in purpose_ids_list:
-                self.copy_application_purpose_to_target_application(new_app, licence_purpose_id)
+                self.copy_application_purpose_to_target_application(
+                    new_app, licence_purpose_id)
 
         return new_app
 
-    def copy_application_purpose_to_target_application(self, target_application=None, licence_purpose_id=None):
+    def copy_activity_purpose_to_target_for_status(self, selected, target):
+        '''
+        Copies the Selected Activity Purposes from the selected to the target.
+        To ensure effective dates are carried over to the new activity.
+        '''
+        SELECT = ApplicationSelectedActivityPurpose.PROCESSING_STATUS_SELECTED
+        for purpose in selected.proposed_purposes.all():
+            purpose.id = None
+            purpose.selected_activity_id = target.id
+            purpose.processing_status = SELECT
+            purpose.save()
+
+    def copy_application_purpose_to_target_application(
+            self, target_application=None, licence_purpose_id=None):
+        '''
+        Copies the licence purpose identifier associated with this application
+        to another application (renewal, admendment, reissue) and copies
+        associated Form Data for the purpose to the target.
+        '''
         if not target_application or not licence_purpose_id:
-            raise ValidationError('Target application and licence_purpose_id must be specified')
+            raise ValidationError(
+                'Target application and licence_purpose_id must be specified')
         try:
             LicencePurpose.objects.get(id=licence_purpose_id, application=self)
         except BaseException:
-            raise ValidationError('The licence purpose ID is not valid for this application')
+            raise ValidationError(
+                'The licence purpose ID is not valid for this application')
 
         with transaction.atomic():
             # Link the target LicencePurpose ID to the target_application
             target_application.licence_purposes.add(licence_purpose_id)
 
-            # Copy ApplicationFormDataRecord rows from application (self) for selected
-            # licence_activity and licence_purpose to target_application
-            licence_activity_id = LicencePurpose.objects.get(id=licence_purpose_id).licence_activity_id
+            # Copy ApplicationFormDataRecord rows from application (self) for
+            # selected licence_activity and licence_purpose to
+            # target_application.
+            licence_activity_id = LicencePurpose.objects.get(
+                    id=licence_purpose_id).licence_activity_id
             for data_row in ApplicationFormDataRecord.objects.filter(
                     application_id=self,
                     licence_activity_id=licence_activity_id,
@@ -911,16 +974,23 @@ class Application(RevisionedMixin):
                     for activity in self.licence_type_data['activity']:
                         if activity["processing_status"]["id"] != ApplicationSelectedActivity.PROCESSING_STATUS_DRAFT:
                             continue
-                        if self.application_type == Application.APPLICATION_TYPE_REISSUE:
-                            latest_activity = self.get_latest_current_activity(activity["id"])
+
+                        if self.application_type \
+                                == Application.APPLICATION_TYPE_REISSUE:
+                            latest_activity =\
+                                self.get_latest_current_activity(activity["id"])
                             if not latest_activity:
                                 raise Exception("Active licence not found for activity ID: %s" % activity["id"])
                             self.set_activity_processing_status(
                                 activity["id"], ApplicationSelectedActivity.PROCESSING_STATUS_OFFICER_FINALISATION)
-                            selected_activity = self.get_selected_activity(activity["id"])
-                            selected_activity.proposed_action = ApplicationSelectedActivity.PROPOSED_ACTION_ISSUE
-                            selected_activity.proposed_start_date = latest_activity.start_date
-                            selected_activity.proposed_end_date = latest_activity.expiry_date
+                            selected_activity = \
+                                self.get_selected_activity(activity["id"])
+                            selected_activity.proposed_action =\
+                                ApplicationSelectedActivity.PROPOSED_ACTION_ISSUE
+                            selected_activity.proposed_start_date =\
+                                latest_activity.start_date
+                            selected_activity.proposed_end_date =\
+                                latest_activity.expiry_date
                             selected_activity.save()
                         else:
                             self.set_activity_processing_status(
@@ -1704,19 +1774,67 @@ class Application(RevisionedMixin):
             **activity_filters
         ) if self.previous_application and self.previous_application != self else activity_chain
 
+    def get_current_activity_chain(self, **activity_filters):
+        '''
+        Get chain of current activities by the expiry date.
+        '''
+        a_chain = self.selected_activities.filter(**activity_filters)
+        # TODO: may only want to chain active activities.
+        # if a_chain.count() > 0:
+        #     a_chain = [a for a in a_chain if a.is_current]
+        return a_chain | self.previous_application.get_current_activity_chain(
+            **activity_filters
+        ) if self.previous_application and self.previous_application != self\
+            else a_chain
+
     def get_application_children(self):
         application_self_queryset = Application.objects.filter(id=self.id)
         return application_self_queryset | self.previous_application.get_application_children()\
             if self.previous_application and self.previous_application != self\
             else application_self_queryset
 
-    def get_latest_current_activity(self, activity_id):
+    def get_latest_current_activity_ordered(self, activity_id):
+        '''
+        Get the last issued activity from all previous applications associated
+        with this selected application by ordering on Issue Date.
+
+        NOTE: Issue date is for Activity Purpose and not Activity. The result
+        may be incorrect.
+        '''
         return self.get_activity_chain(
             licence_activity_id=activity_id,
             activity_status=ApplicationSelectedActivity.ACTIVITY_STATUS_CURRENT
         ).order_by(
             '-issue_date'
         ).first()
+
+    def get_latest_current_activity(self, activity_id):
+        '''
+        Get the last issued activity from all previous applications with 
+        current activities associated with this selected application.
+        '''
+        latest_activity = None
+        a_chain = self.get_current_activity_chain(
+            licence_activity_id=activity_id,
+            activity_status=ApplicationSelectedActivity.ACTIVITY_STATUS_CURRENT
+        )
+        # Check each licence purpose on the chain to find the last issued
+        # Licence Activity Purpose.
+        issue_date = '0001-01-01'
+        for a in a_chain:
+            try:
+                i_itime = datetime.datetime.strptime(issue_date, '%Y-%m-%d')
+                a_issue_date = a.get_issue_date()
+                a_itime = datetime.datetime.strptime(
+                    a_issue_date.strftime('%Y-%m-%d'), '%Y-%m-%d'
+                )
+                latest_activity = a if a_itime > i_itime else latest_activity
+
+            except BaseException as e:
+                print(e)
+                issue_date = '0001-01-01'
+
+        return latest_activity
 
     def get_schema_fields_for_purposes(self, purpose_id_list):
         return self.get_schema_fields(
@@ -1874,8 +1992,10 @@ class Application(RevisionedMixin):
                         activity.processing_status = ApplicationSelectedActivity.PROCESSING_STATUS_OFFICER_FINALISATION
                         activity.reason = details.get('reason')
                         activity.cc_email = details.get('cc_email', None)
-                        activity.proposed_start_date = latest_activity.start_date
-                        activity.proposed_end_date = latest_activity.expiry_date
+                        activity.proposed_start_date =\
+                            latest_activity.get_start_date()
+                        activity.proposed_end_date =\
+                            latest_activity.get_expiry_date()
 
                         # update Additional fees for selected proposed 
                         # activities.
@@ -2015,8 +2135,9 @@ class Application(RevisionedMixin):
             ).order_by('-id').distinct().first()
             if existing_licence:
                 # Only load licence if any associated activities are still current or suspended.
-                if not existing_licence.current_application.get_activity_chain(
-                    expiry_date__gte=current_date,
+                # TODO: get current activities in chain.
+                # get_current_activity_chain()
+                if not existing_licence.current_application.get_current_activity_chain(
                     activity_status__in=[
                         ApplicationSelectedActivity.ACTIVITY_STATUS_CURRENT,
                         ApplicationSelectedActivity.ACTIVITY_STATUS_SUSPENDED,
@@ -2225,6 +2346,8 @@ class Application(RevisionedMixin):
                         continue
 
                     if item['final_status'] == ApplicationSelectedActivity.DECISION_ACTION_ISSUED:
+                        # TODO: set period dates for issuance on the Purpose
+                        # for the selected Activity.
 
                         original_issue_date = start_date = item.get('start_date')
                         expiry_date = item.get('end_date')
@@ -2237,11 +2360,15 @@ class Application(RevisionedMixin):
                             if not latest_activity:
                                 raise Exception("Active licence not found for activity ID: %s" % licence_activity_id)
 
-                            if self.application_type == Application.APPLICATION_TYPE_AMENDMENT:
-                                # Populate start and expiry dates from the latest issued activity record
-                                original_issue_date = latest_activity.original_issue_date
-                                start_date = latest_activity.start_date
-                                expiry_date = latest_activity.expiry_date
+                            if self.application_type ==\
+                                Application.APPLICATION_TYPE_AMENDMENT:
+                                # Populate start and expiry dates from the
+                                # latest issued activity record.
+                                # TODO: Set from the purpose dates
+                                original_issue_date = \
+                                    latest_activity.get_original_issue_date()
+                                start_date = latest_activity.get_start_date()
+                                expiry_date = latest_activity.get_expiry_date()
 
                         # Additional Fees need to be set before processing fee.
                         # Fee amount may change by the issuer making decision.
@@ -2261,25 +2388,40 @@ class Application(RevisionedMixin):
                                 request, selected_activity, 
                                 parent_licence, generate_licence=False)
 
-                        # Populate fields below even if the token payment has failed.
-                        # They will be reused after a successful payment by the applicant.
+                        # Populate fields below even if the token payment has
+                        # failed. They will be reused after a successful
+                        # payment by the applicant.
                         selected_activity.assigned_approver = None
-                        selected_activity.original_issue_date = original_issue_date
-                        selected_activity.issue_date = timezone.now()
-                        selected_activity.decision_action = ApplicationSelectedActivity.DECISION_ACTION_ISSUED
+                        selected_activity.decision_action =\
+                            ApplicationSelectedActivity.DECISION_ACTION_ISSUED
                         selected_activity.updated_by = request.user
-                        selected_activity.start_date = start_date
-                        selected_activity.expiry_date = expiry_date
                         selected_activity.cc_email = item['cc_email']
                         selected_activity.reason = item['reason']
 
-                        proposed_purposes = selected_activity.proposed_purposes.all()
+                        selected_activity.set_original_issue_date(
+                            original_issue_date)
+                        selected_activity.set_issue_date(timezone.now())
+                        selected_activity.set_start_date(start_date)
+                        selected_activity.set_expiry_date(expiry_date)
+
+                        proposed_purposes =\
+                            selected_activity.proposed_purposes.all()
+                        ISSUE = ApplicationSelectedActivityPurpose.PROCESSING_STATUS_ISSUED
+                        DECLINE = ApplicationSelectedActivityPurpose.PROCESSING_STATUS_DECLINED
                         for proposed_purpose in proposed_purposes:
-                            purpose = ApplicationSelectedActivityPurpose.objects.get(id=proposed_purpose.id)                         
+                            purpose =\
+                                ApplicationSelectedActivityPurpose.objects.get(
+                                    id=proposed_purpose.id
+                                )
                             if proposed_purpose.purpose_id in item['purposes']:
-                                purpose.processing_status = ApplicationSelectedActivityPurpose.PROCESSING_STATUS_ISSUED
+                                purpose.processing_status = ISSUE
+                                purpose.issue_date = timezone.now()
                             else:
-                                purpose.processing_status = ApplicationSelectedActivityPurpose.PROCESSING_STATUS_DECLINED
+                                purpose.processing_status = DECLINE
+                            purpose.original_issue_date = original_issue_date
+                            purpose.start_date = start_date
+                            purpose.expiry_date = expiry_date
+                            
                             purpose.save()
 
                         selected_activity.save()
@@ -2502,20 +2644,40 @@ class Application(RevisionedMixin):
         )
 
     @staticmethod
-    def get_active_licence_applications(request, for_application_type=APPLICATION_TYPE_NEW_LICENCE):
+    def get_active_licence_applications(
+            request, for_application_type=APPLICATION_TYPE_NEW_LICENCE):
         '''
-        Returns a filtered list of applications for the user/proxy/org applicant where
-        application's selected activities are CURRENT OR SUSPENDED
+        Returns a filtered list of applications for the user/proxy/org
+        applicant where application's selected activities are CURRENT OR
+        SUSPENDED.
+
+        NOTE: used when creating new application to check applicant for 
+        open applications. 
         '''
         date_filter = Application.get_activity_date_filter(
-            for_application_type, 'selected_activities__')
-        return Application.get_request_user_applications(request).filter(
+            for_application_type)
+
+        activities = None
+        # TODO: date_filter applies expiry_date
+        applications = Application.get_request_user_applications(request).filter(
             selected_activities__activity_status__in=[
                 ApplicationSelectedActivity.ACTIVITY_STATUS_CURRENT,
                 ApplicationSelectedActivity.ACTIVITY_STATUS_SUSPENDED,
             ],
-            **date_filter
+            # **date_filter
         ).distinct()
+
+        activities = applications.filter().values_list('selected_activities__id', flat=True)
+        a_ids = ApplicationSelectedActivityPurpose.objects.filter(
+            # Apply the date filtering on the Purposes.
+            selected_activity_id__in=activities,
+            **date_filter
+        ).values_list('selected_activity_id', flat=True)
+        applications = applications.filter(
+            selected_activities__id__in=a_ids
+        )
+
+        return applications
 
     @staticmethod
     def get_open_applications(request):
@@ -3037,10 +3199,6 @@ class ApplicationSelectedActivity(models.Model):
     proposed_end_date = models.DateField(null=True, blank=True)
     additional_info = models.TextField(blank=True, null=True)
     conditions = models.TextField(blank=True, null=True)
-    original_issue_date = models.DateTimeField(blank=True, null=True)
-    issue_date = models.DateTimeField(blank=True, null=True)
-    start_date = models.DateField(blank=True, null=True)
-    expiry_date = models.DateField(blank=True, null=True)
     is_inspection_required = models.BooleanField(default=False)
     licence_fee = models.DecimalField(
         max_digits=8, decimal_places=2, default='0')
@@ -3062,6 +3220,11 @@ class ApplicationSelectedActivity(models.Model):
         null=True,
         related_name='wildlifecompliance_officer')
     additional_licence_info = JSONField(default=list)
+    # TODO: issue dates and period dates are not required on Activity.
+    original_issue_date = models.DateTimeField(blank=True, null=True)
+    issue_date = models.DateTimeField(blank=True, null=True)
+    start_date = models.DateField(blank=True, null=True)
+    expiry_date = models.DateField(blank=True, null=True)
 
     def __str__(self):
         return "{0}{1}{2}{3}{4}".format(
@@ -3361,23 +3524,27 @@ class ApplicationSelectedActivity(models.Model):
     @staticmethod
     def get_current_activities_for_application_type(application_type, **kwargs):
         """
-        Retrieves the current or suspended activities for an ApplicationSelectedActivity,
-        filterable by LicenceActivity ID and Application.APPLICATION_TYPE in the case
-        of the additional date_filter (use Application.APPLICATION_TYPE_SYSTEM_GENERATED
-        for no APPLICATION_TYPE filters)
+        Retrieves the current or suspended activities for an
+        ApplicationSelectedActivity, filterable by LicenceActivity ID and
+        Application.APPLICATION_TYPE in the case of the additional date_filter
+        (use Application.APPLICATION_TYPE_SYSTEM_GENERATED for no 
+        APPLICATION_TYPE filters)
         """
-
         applications = kwargs.get('applications', Application.objects.none())
         activity_ids = kwargs.get('activity_ids', [])
+        activities = None
 
         date_filter = Application.get_activity_date_filter(
             application_type)
-        return ApplicationSelectedActivity.objects.filter(
+
+        ACCEPT = ApplicationSelectedActivity.PROCESSING_STATUS_ACCEPTED
+        # TODO: date_filter applies expiry_date
+        activities = ApplicationSelectedActivity.objects.filter(
             Q(id__in=activity_ids) if activity_ids else
             Q(application_id__in=applications.values_list('id', flat=True)),
-            **date_filter
+            # **date_filter
         ).filter(
-            processing_status=ApplicationSelectedActivity.PROCESSING_STATUS_ACCEPTED
+            processing_status=ACCEPT
         ).exclude(
             activity_status__in=[
                 ApplicationSelectedActivity.ACTIVITY_STATUS_SURRENDERED,
@@ -3386,6 +3553,15 @@ class ApplicationSelectedActivity(models.Model):
                 ApplicationSelectedActivity.ACTIVITY_STATUS_REPLACED
             ]
         ).distinct()
+
+        a_ids = ApplicationSelectedActivityPurpose.objects.filter(
+            # Apply the date filtering on the Purposes.
+            selected_activity_id__in=[a.id for a in activities],
+            **date_filter
+        ).values_list('selected_activity_id', flat=True)
+        activities = activities.filter(id__in=a_ids)
+
+        return activities
 
     @property
     def total_paid_amount(self):
@@ -3517,6 +3693,160 @@ class ApplicationSelectedActivity(models.Model):
             # previous_paid = previous_paid_under_review(previous_paid)
 
         return previous_paid
+
+    def set_original_issue_date(self, issue_date):
+        '''
+        Set the original issue date on all purposes on this activity.
+        '''
+        for p in self.proposed_purposes.all():
+            p.original_issue_date = issue_date
+            p.save()
+
+    def get_original_issue_date(self):
+        '''
+        Get the earliest original issue date from all purposes on this activity.
+        '''
+        o_date = '31/12/9999'
+
+        try:
+            for p in self.proposed_purposes.all():
+                o_otime = datetime.datetime.strptime(o_date, '%d/%m/%Y')
+                p_otime = datetime.datetime.strptime(
+                    p.original_issue_date, '%d/%m/%Y')
+                o_date = p.original_issue_date if p_otime < o_otime else o_date
+
+        except BaseException:
+            o_date = None
+
+        return o_date.strftime('%d/%m/%Y') if o_date else o_date
+
+    def set_issue_date(self, issue_date):
+        '''
+        Set the issue date on all purposes on this activity.
+        '''
+        for p in self.proposed_purposes.all():
+            p.issue_date = issue_date
+            p.save()
+
+    def get_issue_date(self):
+        '''
+        Get the earliest issue date from all purposes on this activity.
+        '''
+        issue_date = '9999-12-31'
+        try:
+            for p in self.proposed_purposes.all():
+                i_itime = datetime.datetime.strptime(issue_date, '%Y-%m-%d')
+                p_itime = datetime.datetime.strptime(
+                    p.issue_date.strftime('%Y-%m-%d'), '%Y-%m-%d'
+                )
+                # p_itime = p.issue_date.strftime('%Y,%m,%d')
+                issue_date = p.issue_date if p_itime < i_itime else issue_date
+                print(issue_date)
+
+        except BaseException as e:
+            print(e)
+            issue_date = None
+
+        #return issue_date.strftime('%d/%m/%Y') if issue_date else issue_date
+        return issue_date
+
+    def set_start_date(self, start_date):
+        '''
+        Set the start date on all purposes on this activity.
+        '''
+        for p in self.proposed_purposes.all():
+            p.start_date = start_date
+            p.save()
+
+    def get_start_date(self):
+        '''
+        Get the earliest start date from all purposes on this activity.
+        '''
+        start_date = '31/12/9999'
+        try:
+            for p in self.proposed_purposes.all():
+                s_stime = datetime.datetime.strptime(start_date, '%d/%m/%Y')
+                p_stime = datetime.datetime.strptime(
+                    p.start_date.strftime('%Y,%m,%d'), '%Y,%m,%d'
+                )
+                # p_stime = datetime.datetime.strptime(p.start_date, '%d/%m/%Y')
+                start_date = p.start_date if p_stime < s_stime else start_date
+
+        except BaseException as e:
+            print(e)
+            start_date = None
+
+        return start_date
+
+    def set_expiry_date(self, expiry_date):
+        '''
+        Set the expiry date on all purposes on this activity.
+        '''
+        for p in self.proposed_purposes.all():
+            p.expiry_date = expiry_date
+            p.save()
+    
+    def get_expiry_date(self):
+        '''
+        Get the latest expiry date from all purposes on this activity.
+        '''
+        exp_date = '01/01/0001'
+
+        try:
+            for p in self.proposed_purposes.all():
+                e_etime = datetime.datetime.strptime(exp_date, '%d/%m/%Y')
+                p_etime = datetime.datetime.strptime(
+                    p.expiry_date.strftime('%Y,%m,%d'), '%Y,%m,%d'
+                )
+                #p_etime = datetime.datetime.strptime(p.expiry_date, '%d/%m/%Y')
+                exp_date = p.expiry_date if p_etime > e_etime else exp_date
+
+        except BaseException:
+            exp_date = None
+
+        return exp_date
+
+    def is_current(self):
+        '''
+        Get flag indicating that this activity contains a purpose that has not
+        expired.
+        '''
+        is_current = False
+        c_date = timezone.now().date()
+
+        try:
+            c_ctime = datetime.datetime.strptime(c_date, '%d/%m/%Y')
+            for p in self.proposed_purposes.all():
+                p_etime = datetime.datetime.strptime(p.expiry_date, '%d/%m/%Y')
+                if c_ctime <= p_etime:
+                    is_current = True 
+                    break
+
+        except BaseException:
+            pass
+
+        return is_current
+
+    @property
+    def is_reissued(self):
+        '''
+        Attribute to indicate that this activity has been reissued.
+        '''
+        is_reissued = False
+        c_date = timezone.now().date()
+
+        try:
+            i_date = self.get_issue_date()
+            o_date = self.get_original_issue_date()
+            i_dtime = datetime.datetime.strptime(i_date, '%d/%m/%Y')
+            o_dtime = datetime.datetime.strptime(o_date, '%d/%m/%Y')
+
+            is_reissued = False if idtime == o_dtime else True
+
+        except BaseException as e:
+            print(e)
+
+        return is_reissued
 
     def process_licence_fee_payment(self, request, application):
         from ledger.payments.models import BpointToken
@@ -3669,10 +3999,11 @@ class ApplicationSelectedActivity(models.Model):
         # current_id = self.application.licence_id
         status = {
             ApplicationSelectedActivity.ACTIVITY_STATUS_CURRENT,
+            ApplicationSelectedActivity.ACTIVITY_STATUS_REPLACED,
         }
-        prev = prev_app.get_activity_chain(
+        prev = prev_app.get_current_activity_chain(
             activity_status__in=status).order_by(
-                'licence_activity_id', '-issue_date'
+                'licence_activity_id',
             )
         if not prev:
             return previous
@@ -3705,11 +4036,13 @@ class ApplicationSelectedActivityPurpose(models.Model):
     PROCESSING_STATUS_PROPOSED = 'propose'
     PROCESSING_STATUS_ISSUED = 'issue'
     PROCESSING_STATUS_DECLINED = 'decline'
+    PROCESSING_STATUS_REPLACED = 'replace'
     PROCESSING_STATUS_CHOICES = (
         (PROCESSING_STATUS_SELECTED, 'Selected for Proposal'),
         (PROCESSING_STATUS_PROPOSED, 'Proposed for Issue'),
         (PROCESSING_STATUS_DECLINED, 'Declined'),
-        (PROCESSING_STATUS_ISSUED, 'Issued')
+        (PROCESSING_STATUS_ISSUED, 'Issued'),
+        (PROCESSING_STATUS_REPLACED, 'Replaced'),
     )
     processing_status = models.CharField(
         'Processing Status',
@@ -3728,6 +4061,10 @@ class ApplicationSelectedActivityPurpose(models.Model):
     # occurs with questions selected by the applicant for an Activity Purpose.
     adjusted_fee = models.DecimalField(
         max_digits=8, decimal_places=2, default='0')
+    original_issue_date = models.DateTimeField(blank=True, null=True)
+    issue_date = models.DateTimeField(blank=True, null=True)
+    start_date = models.DateField(blank=True, null=True)
+    expiry_date = models.DateField(blank=True, null=True)
 
     @property
     def is_proposed(self):
@@ -3798,11 +4135,15 @@ class ApplicationSelectedActivityPurpose(models.Model):
         # current_id = self.selected_activity.application.licence_id
         status = {
             ApplicationSelectedActivity.ACTIVITY_STATUS_CURRENT,
+            ApplicationSelectedActivity.ACTIVITY_STATUS_REPLACED,
         }
-        activities = prev_app.get_activity_chain(
-            activity_status__in=status).order_by(
-                'licence_activity_id', '-issue_date'
-            )
+        # activities = prev_app.get_current_activity_chain(
+        #     activity_status__in=status).order_by(
+        #         'licence_activity_id',
+        #     )
+        activities = prev_app.get_current_activity_chain(
+            activity_status__in=status)
+
         if not activities:
             return previous
 

@@ -120,13 +120,16 @@ class ApplicationSelectedActivitySerializer(serializers.ModelSerializer):
         return obj.licence_activity.name if obj.licence_activity else ''
 
     def get_issue_date(self, obj):
-        return obj.issue_date.strftime('%d/%m/%Y %H:%M') if obj.issue_date else ''
+        # return obj.get_issue_date().strftime('%d/%m/%Y %H:%M') if obj.get_issue_date() else ''
+        return obj.get_issue_date() if obj.get_issue_date() else ''
 
     def get_start_date(self, obj):
-        return obj.start_date.strftime('%Y-%m-%d') if obj.start_date else ''
+        # return obj.get_start_date().strftime('%Y-%m-%d') if obj.get_start_date() else ''
+        return obj.get_start_date() if obj.get_start_date() else ''
 
     def get_expiry_date(self, obj):
-        return obj.expiry_date.strftime('%Y-%m-%d') if obj.expiry_date else ''
+        # return obj.get_expiry_date().strftime('%Y-%m-%d') if obj.get_expiry_date() else ''
+        return obj.get_expiry_date() if obj.get_expiry_date() else ''
 
     def get_approve_options(self, obj):
         return [{'label': 'Approved', 'value': 'approved'}, {'label': 'Declined', 'value': 'declined'}]
@@ -215,13 +218,16 @@ class ExternalApplicationSelectedActivitySerializer(serializers.ModelSerializer)
         return obj.licence_activity.name if obj.licence_activity else ''
 
     def get_issue_date(self, obj):
-        return obj.issue_date.strftime('%d/%m/%Y') if obj.issue_date else ''
+        # return obj.get_issue_date().strftime('%d/%m/%Y') if obj.get_issue_date() else ''
+        return obj.get_issue_date() if obj.get_issue_date() else ''
 
     def get_start_date(self, obj):
-        return obj.start_date.strftime('%d/%m/%Y') if obj.start_date else ''
+        # return obj.get_start_date().strftime('%d/%m/%Y') if obj.get_start_date() else ''
+        return obj.get_start_date() if obj.get_start_date() else ''
 
     def get_expiry_date(self, obj):
-        return obj.expiry_date.strftime('%d/%m/%Y') if obj.expiry_date else ''
+        # return obj.get_expiry_date().strftime('%d/%m/%Y') if obj.get_expiry_date() else ''
+        return obj.get_expiry_date() if obj.get_expiry_date() else ''
 
     def get_activity_purpose_names(self, obj):
         return ','.join([p.name for p in obj.purposes])
@@ -259,12 +265,15 @@ class ExternalApplicationSelectedActivityMergedSerializer(serializers.Serializer
         datatables_always_serialize = fields
 
     def get_issue_date(self, obj):
-        return obj.get('issue_date').strftime('%d/%m/%Y') if obj.get('issue_date') else ''
+        # return obj.get('issue_date').strftime('%d/%m/%Y') if obj.get('issue_date') else ''
+        return obj.get('issue_date') if obj.get('issue_date') else ''
 
     def get_start_date(self, obj):
-        return obj.get('start_date').strftime('%d/%m/%Y') if obj.get('start_date') else ''
+        # return obj.get('start_date').strftime('%d/%m/%Y') if obj.get('start_date') else ''
+        return obj.get('start_date') if obj.get('start_date') else ''
 
     def get_expiry_date(self, obj):
+        # return obj.get('expiry_date').strftime('%d/%m/%Y') if obj.get('expiry_date') else ''
         # return obj.get('expiry_date').strftime('%d/%m/%Y') if obj.get('expiry_date') else ''
         return obj.get('expiry_date') if obj.get('expiry_date') else ''
 
