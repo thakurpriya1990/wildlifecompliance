@@ -3706,19 +3706,23 @@ class ApplicationSelectedActivity(models.Model):
         '''
         Get the earliest original issue date from all purposes on this activity.
         '''
-        o_date = '31/12/9999'
-
+        o_date = datetime.datetime.strptime('9999-12-31', '%Y-%m-%d')
         try:
             for p in self.proposed_purposes.all():
-                o_otime = datetime.datetime.strptime(o_date, '%d/%m/%Y')
+                o_otime = datetime.datetime.strptime(
+                    o_date.strftime('%Y-%m-%d'),
+                    '%Y-%m-%d'
+                )
                 p_otime = datetime.datetime.strptime(
-                    p.original_issue_date, '%d/%m/%Y')
+                    p.original_issue_date,
+                    '%Y-%m-%d'
+                )
                 o_date = p.original_issue_date if p_otime < o_otime else o_date
 
         except BaseException:
             o_date = None
 
-        return o_date.strftime('%d/%m/%Y') if o_date else o_date
+        return o_date
 
     def set_issue_date(self, issue_date):
         '''
@@ -3732,12 +3736,16 @@ class ApplicationSelectedActivity(models.Model):
         '''
         Get the earliest issue date from all purposes on this activity.
         '''
-        issue_date = '9999-12-31'
+        issue_date = datetime.datetime.strptime('9999-12-31', '%Y-%m-%d')
         try:
             for p in self.proposed_purposes.all():
-                i_itime = datetime.datetime.strptime(issue_date, '%Y-%m-%d')
+                i_itime = datetime.datetime.strptime(
+                    issue_date.strftime('%Y-%m-%d'), 
+                    '%Y-%m-%d'
+                )
                 p_itime = datetime.datetime.strptime(
-                    p.issue_date.strftime('%Y-%m-%d'), '%Y-%m-%d'
+                    p.issue_date.strftime('%Y-%m-%d'),
+                    '%Y-%m-%d'
                 )
                 # p_itime = p.issue_date.strftime('%Y,%m,%d')
                 issue_date = p.issue_date if p_itime < i_itime else issue_date
@@ -3762,12 +3770,16 @@ class ApplicationSelectedActivity(models.Model):
         '''
         Get the earliest start date from all purposes on this activity.
         '''
-        start_date = '31/12/9999'
+        start_date = datetime.datetime.strptime('9999-12-31', '%Y-%m-%d')
         try:
             for p in self.proposed_purposes.all():
-                s_stime = datetime.datetime.strptime(start_date, '%d/%m/%Y')
+                s_stime = datetime.datetime.strptime(
+                    start_date.strftime('%Y-%m-%d'),
+                    '%Y-%m-%d'
+                )
                 p_stime = datetime.datetime.strptime(
-                    p.start_date.strftime('%Y,%m,%d'), '%Y,%m,%d'
+                    p.start_date.strftime('%Y-%m-%d'),
+                    '%Y-%m-%d'
                 )
                 # p_stime = datetime.datetime.strptime(p.start_date, '%d/%m/%Y')
                 start_date = p.start_date if p_stime < s_stime else start_date
@@ -3790,18 +3802,22 @@ class ApplicationSelectedActivity(models.Model):
         '''
         Get the latest expiry date from all purposes on this activity.
         '''
-        exp_date = '01/01/0001'
-
+        exp_date = datetime.datetime.strptime('1901-01-01', '%Y-%m-%d')
         try:
             for p in self.proposed_purposes.all():
-                e_etime = datetime.datetime.strptime(exp_date, '%d/%m/%Y')
+                e_etime = datetime.datetime.strptime(
+                    exp_date.strftime('%Y-%m-%d'),
+                    '%Y-%m-%d'
+                )
                 p_etime = datetime.datetime.strptime(
-                    p.expiry_date.strftime('%Y,%m,%d'), '%Y,%m,%d'
+                    p.expiry_date.strftime('%Y-%m-%d'),
+                    '%Y-%m-%d'
                 )
                 #p_etime = datetime.datetime.strptime(p.expiry_date, '%d/%m/%Y')
                 exp_date = p.expiry_date if p_etime > e_etime else exp_date
 
-        except BaseException:
+        except BaseException as e:
+            print(e)
             exp_date = None
 
         return exp_date
@@ -3838,8 +3854,14 @@ class ApplicationSelectedActivity(models.Model):
         try:
             i_date = self.get_issue_date()
             o_date = self.get_original_issue_date()
-            i_dtime = datetime.datetime.strptime(i_date, '%d/%m/%Y')
-            o_dtime = datetime.datetime.strptime(o_date, '%d/%m/%Y')
+            i_dtime = datetime.datetime.strptime(
+                i_date.strftime('%Y-%m-%d'),
+                '%Y-%m-%d'
+            )
+            o_dtime = datetime.datetime.strptime(
+                o_date.strftime('%Y-%m-%d'),
+                '%Y-%m-%d'
+            )
 
             is_reissued = False if idtime == o_dtime else True
 
@@ -4104,6 +4126,32 @@ class ApplicationSelectedActivityPurpose(models.Model):
         Activity Purpose regardless of any adjustments.
         '''
         return self.application_fee
+
+    @property
+    def is_reissued(self):
+        '''
+        Attribute to indicate that this purpose has been reissued.
+        '''
+        is_reissued = False
+
+        try:
+            i_date = self.issue_date
+            o_date = self.original_issue_date
+            i_dtime = datetime.datetime.strptime(
+                i_date.strftime('%Y-%m-%d'),
+                '%Y-%m-%d'
+            )
+            o_dtime = datetime.datetime.strptime(
+                o_date.strftime('%Y-%m-%d'),
+                '%Y-%m-%d'
+            )
+
+            is_reissued = False if idtime == o_dtime else True
+
+        except BaseException as e:
+            print(e)
+
+        return is_reissued
 
     def __str__(self):
         application = self.selected_activity.application_id
