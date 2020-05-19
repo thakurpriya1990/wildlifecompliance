@@ -798,7 +798,7 @@ class Application(RevisionedMixin):
         Creates a copy of the Application and associated records
         for the specified purposes and activity status.
 
-        TODO: Activity consist of proposed_purposes with effective dates and
+        TODO:AYN Activity consist of proposed_purposes with effective dates and
         status. These need to be copied and handled appropriately with Replace.
         '''
         # Get the ID of the original application
@@ -868,6 +868,8 @@ class Application(RevisionedMixin):
             selected_activity = Application.objects.get(id=original_app_id)\
                 .selected_activities.get(
                     licence_activity_id=licence_activity_id)
+            # TODO:AYN Replace needs to be set at the purpose level.
+            # REP code below did NOT process.
             selected_activity.activity_status =\
                 ApplicationSelectedActivity.ACTIVITY_STATUS_REPLACED
             selected_activity.save()
@@ -878,16 +880,6 @@ class Application(RevisionedMixin):
             new_activity.activity_status = new_activity_status
             new_activity.save()
 
-            # copy selected activity purposes with status and effective dates.
-            self.copy_activity_purpose_to_target_for_status(
-                selected_activity,
-                new_activity,
-            )
-            REP = ApplicationSelectedActivityPurpose.PROCESSING_STATUS_REPLACED
-            for purpose in selected_activity.proposed_purposes.all():
-                purpose.processing_status = REP
-                purpose.save()
-
             # Link the target LicencePurpose IDs to the new application
             # Copy ApplicationFormDataRecord rows from old application,
             # licence_activity and licence_purpose.
@@ -895,19 +887,49 @@ class Application(RevisionedMixin):
                 self.copy_application_purpose_to_target_application(
                     new_app, licence_purpose_id)
 
+                self.copy_activity_purpose_to_target_for_status(
+                    licence_purpose_id,
+                    selected_activity,
+                    new_activity,
+                )
+
+            # REP = ApplicationSelectedActivityPurpose.PROCESSING_STATUS_REPLACED
+            # for purpose in selected_activity.proposed_purposes.all():
+            #     # FIXME: does not set correctly on a licence amendment.
+            #     purpose.processing_status = REP
+            #     purpose.save()
+
         return new_app
 
-    def copy_activity_purpose_to_target_for_status(self, selected, target):
+    def copy_activity_purpose_to_target_for_status(self, p_id, old, new):
         '''
         Copies the Selected Activity Purposes from the selected to the target.
-        To ensure effective dates are carried over to the new activity.
+        To ensure effective dates are carried over to new (target) activity.
+
+        TODO:AYN copy status dates across and mark selected as being REPLACED.
         '''
+        # update Application Selected Activity Purposes
         SELECT = ApplicationSelectedActivityPurpose.PROCESSING_STATUS_SELECTED
-        for purpose in selected.proposed_purposes.all():
-            purpose.id = None
-            purpose.selected_activity_id = target.id
-            purpose.processing_status = SELECT
-            purpose.save()
+        REPLACE = ApplicationSelectedActivityPurpose.PROCESSING_STATUS_REPLACED
+
+        lp = LicencePurpose.objects.get(id=p_id)
+        issued = old.proposed_purposes.filter(
+            purpose=lp
+        ).first()
+
+        purpose, c = ApplicationSelectedActivityPurpose.objects.get_or_create(
+            purpose=lp,
+            selected_activity=new,
+        )
+        purpose.processing_status = SELECT
+        purpose.start_date = issued.start_date
+        purpose.expiry_date = issued.expiry_date
+        purpose.original_issue_date = issued.original_issue_date
+        purpose.issue_date = issued.issue_date
+        purpose.save()
+
+        issued.processing_status = REPLACE
+        issued.save()
 
     def copy_application_purpose_to_target_application(
             self, target_application=None, licence_purpose_id=None):
@@ -915,6 +937,8 @@ class Application(RevisionedMixin):
         Copies the licence purpose identifier associated with this application
         to another application (renewal, admendment, reissue) and copies
         associated Form Data for the purpose to the target.
+
+        TODO:AYN copy activity purpose date to the target.
         '''
         if not target_application or not licence_purpose_id:
             raise ValidationError(
@@ -1782,10 +1806,19 @@ class Application(RevisionedMixin):
         # TODO: may only want to chain active activities.
         # if a_chain.count() > 0:
         #     a_chain = [a for a in a_chain if a.is_current]
-        return a_chain | self.previous_application.get_current_activity_chain(
+        a_chain = a_chain | self.previous_application.get_activity_chain(
             **activity_filters
         ) if self.previous_application and self.previous_application != self\
             else a_chain
+
+        if self.licence_id:
+            apps = Application.objects.filter(licence_id=self.licence_id)
+            a_chain = self.selected_activities.filter(**activity_filters)
+            for app in apps:
+                a_chain = a_chain | app.selected_activities.filter(
+                    **activity_filters)
+
+        return a_chain
 
     def get_application_children(self):
         application_self_queryset = Application.objects.filter(id=self.id)
@@ -1810,8 +1843,8 @@ class Application(RevisionedMixin):
 
     def get_latest_current_activity(self, activity_id):
         '''
-        Get the last issued activity from all previous applications with 
-        current activities associated with this selected application.
+        Get the last issued activity from all previous applications with
+        current activities associated with this selected application purpose.
         '''
         latest_activity = None
         a_chain = self.get_current_activity_chain(
@@ -1821,18 +1854,30 @@ class Application(RevisionedMixin):
         # Check each licence purpose on the chain to find the last issued
         # Licence Activity Purpose.
         issue_date = '0001-01-01'
-        for a in a_chain:
-            try:
-                i_itime = datetime.datetime.strptime(issue_date, '%Y-%m-%d')
-                a_issue_date = a.get_issue_date()
-                a_itime = datetime.datetime.strptime(
-                    a_issue_date.strftime('%Y-%m-%d'), '%Y-%m-%d'
-                )
-                latest_activity = a if a_itime > i_itime else latest_activity
+        self_activity = [
+            a for a in self.activities if a.licence_activity_id == activity_id]
 
-            except BaseException as e:
-                print(e)
-                issue_date = '0001-01-01'
+        for self_p in self_activity[0].purposes:
+            for a in a_chain:
+                issued_p = [
+                    p for p in a.proposed_purposes.all() if p.purpose == self_p
+                ]
+
+                if issued_p[0]:
+                    try:
+                        i_itime = datetime.datetime.strptime(
+                            issue_date, '%Y-%m-%d')
+                        a_issue_date = issued_p[0].issue_date
+                        a_itime = datetime.datetime.strptime(
+                            a_issue_date.strftime('%Y-%m-%d'), '%Y-%m-%d'
+                        )
+                        latest_activity = \
+                            a if a_itime > i_itime else latest_activity
+                        issue_date = issued_p[0].issue_date
+
+                    except BaseException as e:
+                        print(e)
+                        issue_date = '0001-01-01'
 
         return latest_activity
 
@@ -1992,10 +2037,34 @@ class Application(RevisionedMixin):
                         activity.processing_status = ApplicationSelectedActivity.PROCESSING_STATUS_OFFICER_FINALISATION
                         activity.reason = details.get('reason')
                         activity.cc_email = details.get('cc_email', None)
-                        activity.proposed_start_date =\
-                            latest_activity.get_start_date()
-                        activity.proposed_end_date =\
-                            latest_activity.get_expiry_date()
+
+                        # TODO:AYN Update ActivityPurposes with dates for 
+                        # activity then propsed start date can be start date 
+                        # for the activity instead of latest_activity.
+                        for p in purpose_list:
+                            # update Application Selected Activity Purposes
+                            lp = LicencePurpose.objects.get(id=p['id'])
+                            issued = latest_activity.proposed_purposes.filter(
+                                purpose=lp
+                            ).first()
+                            status = 'issue' if p['isProposed'] else 'decline'
+
+                            purpose, c = ApplicationSelectedActivityPurpose.objects.get_or_create(
+                                purpose=issued.purpose,
+                                selected_activity=activity,
+                            )
+                            purpose.processing_status = status
+                            purpose.start_date = issued.start_date
+                            purpose.expiry_date = issued.expiry_date
+                            purpose.original_issue_date = \
+                                issued.original_issue_date
+                            purpose.issue_date = issued.issue_date
+                            purpose.save()
+
+                        prev_start_date = activity.get_start_date()
+                        prev_expiry_date = activity.get_expiry_date()
+                        activity.proposed_start_date = prev_start_date
+                        activity.proposed_end_date = prev_expiry_date
 
                         # update Additional fees for selected proposed 
                         # activities.
@@ -2012,17 +2081,7 @@ class Application(RevisionedMixin):
                                     'additional_fee'] > 0 else None
 
                         activity.save()
-
-                        # update Application Selected Activity Purposes
-                        for p in purpose_list:
-                            purpose = LicencePurpose.objects.get(id=p['id'])
-                            status = 'issue' if p['isProposed'] else 'decline'
-                            activity_purpose = ApplicationSelectedActivityPurpose.objects.get_or_create(
-                                purpose=purpose,
-                                selected_activity=activity,
-                            )
-                            activity_purpose[0].processing_status = status
-                            activity_purpose[0].save()                                    
+                                 
                 else:
                     ApplicationSelectedActivity.objects.filter(
                         application_id=self.id,
@@ -2240,6 +2299,7 @@ class Application(RevisionedMixin):
                     # mark activity as replaced
                     elif not remaining_purpose_ids_list:
                         existing_activity.updated_by = request.user
+                        # TODO: AYN set status on Purpose as being replaced.
                         existing_activity.activity_status = ApplicationSelectedActivity.ACTIVITY_STATUS_REPLACED
                         existing_activity.save()
 
@@ -2259,6 +2319,7 @@ class Application(RevisionedMixin):
 
                         # Mark existing_activity as replaced
                         existing_activity.updated_by = request.user
+                        # TODO: set replace status on the purpose aswell.
                         existing_activity.activity_status = ApplicationSelectedActivity.ACTIVITY_STATUS_REPLACED
                         existing_activity.save()
 
@@ -3972,6 +4033,7 @@ class ApplicationSelectedActivity(models.Model):
 
     def mark_as_replaced(self, request):
         with transaction.atomic():
+            # TODO:AYN mark on the licence purpose as well.
             self.activity_status = ApplicationSelectedActivity.ACTIVITY_STATUS_REPLACED
             self.updated_by = request.user
             self.save()
@@ -4204,8 +4266,11 @@ class ApplicationSelectedActivityPurpose(models.Model):
             # activities = licence.current_activities
 
             act_id = self.selected_activity.licence_activity_id 
-            prev = [a for a in activities if a.licence_activity_id == act_id]
             self_id = self.purpose_id
+            prev = [a for a in activities if a.licence_activity_id == act_id
+                        and self.purpose in a.issued_purposes
+            ]
+
             purposes = prev[0].proposed_purposes.all()
             prev = [p for p in purposes if p.purpose_id == self_id]
             previous = prev[0]

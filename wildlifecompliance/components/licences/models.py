@@ -393,7 +393,7 @@ class WildlifeLicence(models.Model):
         status using the last issued application to chain all previous
         application activities.
         '''
-        return self.current_application.get_activity_chain(
+        return self.current_application.get_current_activity_chain(
             processing_status=status).order_by(
             'licence_activity_id',
         )
@@ -517,7 +517,10 @@ class WildlifeLicence(models.Model):
                     'can_reinstate': False,
                 }
 
-            # Check if a record for the licence_activity_id already exists, if not, add
+            # Check if a record for the licence_activity_id already exists, if
+            # not, add.
+            # TODO:AYN multiple purposes with different dates are being merged
+            # under one activity.
             if not merged_activities.get(activity.licence_activity_id):
                 merged_activities[activity.licence_activity_id] = {
                     'licence_activity_id': activity.licence_activity_id,
@@ -548,10 +551,11 @@ class WildlifeLicence(models.Model):
                     '\n' + '\n'.join(['{} ({})'.format(
                         p.name, activity.get_activity_status_display())
                         for p in activity.purposes])
+                exp_date = activity.get_expiry_date()
                 activity_key['expiry_date'] += \
                     '\n' + '\n'.join(['{}'.format(
-                        p.expiry_date.strftime('%d/%m/%Y'))
-                        for p in activity.proposed_purposes.all()])
+                        exp_date.strftime('%d/%m/%Y'))
+                        for p in activity.proposed_purposes.all() if p.purpose in activity.purposes])
                 activity_key['can_action']['can_renew'] =\
                     activity_key['can_action']['can_renew'] or activity_can_action['can_renew']
                 activity_key['can_action']['can_amend'] =\
@@ -573,6 +577,12 @@ class WildlifeLicence(models.Model):
 
     @property
     def latest_activities(self):
+        '''
+        Returns the most recently issued activities.
+
+        NOTE:AYN Replace status needs to be checked at the purpose level as one
+        activity could have multiple purposes.
+        '''
         from wildlifecompliance.components.applications.models import (
             ApplicationSelectedActivity)
 
@@ -737,6 +747,8 @@ class WildlifeLicence(models.Model):
         activity_id and selected purposes list If not all purposes for an
         activity are to be actioned, create new SYSTEM_GENERATED Applications
         and associated activities to apply the relevant statuses for each.
+
+        TODO: Set dates on activity Purposes.
         """
         from wildlifecompliance.components.applications.models import (
             Application, ApplicationSelectedActivity
@@ -875,6 +887,7 @@ class WildlifeLicence(models.Model):
                         # else, if new previous_status application exists, link the target LicencePurpose IDs to it
                         else:
                             # Link the target LicencePurpose IDs to the application
+                            # TODO:AYN copy activity purpose status dates across
                             for licence_purpose_id in remaining_previous_status_purpose_ids:
                                 application.copy_application_purpose_to_target_application(
                                     new_previous_status_applications[previous_status],
@@ -882,6 +895,7 @@ class WildlifeLicence(models.Model):
 
                         # create new actioned application from this application if not yet exists
                         if not new_actioned_application:
+                            # TODO:AYN copy activity purpose status dates across.
                             new_actioned_application = application.copy_application_purposes_for_status(
                                 common_actioned_purpose_ids, post_actioned_status)
                         # else, if new actioned application exists, link the target LicencePurpose IDs to it
