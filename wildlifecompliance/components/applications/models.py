@@ -4179,11 +4179,12 @@ class ApplicationSelectedActivityPurpose(models.Model):
     def is_proposed(self):
         '''
         An attribute to indicate that this selected Activity Purpose has been 
-        proposed for issue.
+        selected for issuance.
         '''
         proposed_status = [
             self.PROCESSING_STATUS_PROPOSED,
             self.PROCESSING_STATUS_ISSUED,
+            self.PROCESSING_STATUS_SELECTED,
         ]
 
         return True if self.processing_status in proposed_status else False
