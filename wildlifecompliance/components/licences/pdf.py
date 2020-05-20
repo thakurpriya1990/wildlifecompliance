@@ -495,6 +495,9 @@ def _create_licence(licence_buffer, licence, application):
     for selected_activity in licence.current_activities:
         # create purpose details available for the activity.
         for purpose in selected_activity.proposed_purposes.all():
+            if not purpose.is_proposed:
+                # Exclude purposes that have been replaced.
+                break
             _create_licence_purpose(elements, selected_activity, purpose)
 
     doc.build(elements)

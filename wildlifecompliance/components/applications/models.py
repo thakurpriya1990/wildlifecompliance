@@ -2299,15 +2299,19 @@ class Application(RevisionedMixin):
 
                     # If there are no remaining purposes in the existing_activity
                     # (i.e. this issued activity replaces them all),
-                    # mark activity as replaced
+                    # mark activity and purposes as replaced.
                     elif not remaining_purpose_ids_list:
                         existing_activity.updated_by = request.user
-                        # TODO: AYN set status on Purpose as being replaced.
+                        for p_id in common_purpose_ids:
+                            existing_activity.mark_selected_purpose_as_replaced(
+                                p_id
+                            )
                         existing_activity.activity_status = ApplicationSelectedActivity.ACTIVITY_STATUS_REPLACED
                         existing_activity.save()
 
-                    # If only a subset of the existing_activity's purposes are to be actioned,
-                    # create new_activity for remaining purposes:
+                    # If only a subset of the existing_activity's purposes are 
+                    # to be actioned, create new_activity for remaining 
+                    # purposes:
                     elif remaining_purpose_ids_list:
                         existing_application = existing_activity.application
                         existing_activity_status = existing_activity.activity_status
@@ -2322,7 +2326,10 @@ class Application(RevisionedMixin):
 
                         # Mark existing_activity as replaced
                         existing_activity.updated_by = request.user
-                        # TODO: set replace status on the purpose aswell.
+                        for p_id in common_purpose_ids:
+                            existing_activity.mark_selected_purpose_as_replaced(
+                                p_id
+                            )
                         existing_activity.activity_status = ApplicationSelectedActivity.ACTIVITY_STATUS_REPLACED
                         existing_activity.save()
 
@@ -4040,6 +4047,21 @@ class ApplicationSelectedActivity(models.Model):
             self.activity_status = ApplicationSelectedActivity.ACTIVITY_STATUS_REPLACED
             self.updated_by = request.user
             self.save()
+
+    def mark_selected_purpose_as_replaced(self, p_id):
+        '''
+        Set all Selected Purposes for the activity to a processing status of
+        replaced.
+        '''
+        REPLACE = ApplicationSelectedActivityPurpose.PROCESSING_STATUS_REPLACED
+        lp = LicencePurpose.objects.get(id=p_id)
+        selected_purposes = self.proposed_purposes.filter(
+            purpose=lp
+        )
+
+        for selected in selected_purposes:
+            selected.processing_status = REPLACE
+            selected.save()
 
     def store_proposed_attachments(self, proposed_attachments):
         """
