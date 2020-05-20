@@ -1853,7 +1853,7 @@ class Application(RevisionedMixin):
         )
         # Check each licence purpose on the chain to find the last issued
         # Licence Activity Purpose.
-        issue_date = '0001-01-01'
+        issue_date = datetime.datetime.strptime('1901-01-01', '%Y-%m-%d')
         self_activity = [
             a for a in self.activities if a.licence_activity_id == activity_id]
 
@@ -1863,21 +1863,24 @@ class Application(RevisionedMixin):
                     p for p in a.proposed_purposes.all() if p.purpose == self_p
                 ]
 
-                if issued_p[0]:
+                if len(issued_p) > 0:
                     try:
                         i_itime = datetime.datetime.strptime(
-                            issue_date, '%Y-%m-%d')
+                            issue_date.strftime('%Y-%m-%d'), 
+                            '%Y-%m-%d'
+                        )
                         a_issue_date = issued_p[0].issue_date
                         a_itime = datetime.datetime.strptime(
-                            a_issue_date.strftime('%Y-%m-%d'), '%Y-%m-%d'
+                            a_issue_date.strftime('%Y-%m-%d'),
+                            '%Y-%m-%d'
                         )
                         latest_activity = \
                             a if a_itime > i_itime else latest_activity
                         issue_date = issued_p[0].issue_date
 
                     except BaseException as e:
-                        print(e)
-                        issue_date = '0001-01-01'
+                        logger.info(
+                            'get_latest_current_activity: {0}'.format(e))
 
         return latest_activity
 
