@@ -850,11 +850,15 @@ class ApplicationViewSet(viewsets.ModelViewSet):
         if not instance:
             return Response({'activity': None})
 
-        last_activity = instance.get_activity_chain(
+        # last_activity = instance.get_activity_chain(
+        #     activity_status=ApplicationSelectedActivity.ACTIVITY_STATUS_CURRENT
+        # ).order_by(
+        #     '-issue_date'
+        # ).first()
+
+        last_activity = instance.get_current_activity_chain(
             activity_status=ApplicationSelectedActivity.ACTIVITY_STATUS_CURRENT
-        ).order_by(
-            '-issue_date'
-        ).first()
+        )
 
         if not last_activity:
             return Response({'activity': None})
