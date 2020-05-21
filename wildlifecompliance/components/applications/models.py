@@ -847,7 +847,9 @@ class Application(RevisionedMixin):
 
         with transaction.atomic():
 
-            # Create new application as a clone of the original application
+            # Create new application as a clone of the original application.
+            # NOTE: System Generated Applications cannot be processed by staff
+            # and so processing status for activity needs to be accepted.
             new_app = Application.objects.get(id=original_app_id)
             new_app.id = None
             new_app.application_type =\
@@ -857,6 +859,7 @@ class Application(RevisionedMixin):
             # Use parent_licence.current_application to always retrieve the
             # latest application in the chain.
             new_app.previous_application = parent_licence.current_application
+            new_app.licence = parent_licence
             new_app.save()
 
             # Set the associated licence's current_application to the new
@@ -1803,7 +1806,7 @@ class Application(RevisionedMixin):
         Get chain of current activities by the expiry date.
         '''
         a_chain = self.selected_activities.filter(**activity_filters)
-        # TODO: may only want to chain active activities.
+        # TODO:AYN may only want to chain active activities.
         # if a_chain.count() > 0:
         #     a_chain = [a for a in a_chain if a.is_current]
         a_chain = a_chain | self.previous_application.get_activity_chain(
@@ -2228,6 +2231,9 @@ class Application(RevisionedMixin):
         2. Set Activity status to Current.
         3. Set Activity decision action to Re-issue.
         4. Set Application process status to Under Review.
+
+        NOTE: Cannot reissue activity for a system generated application. These
+        application cannot be processed by staff.
         """
         if not selected_activity.licence_fee_paid: # shouldn't occur if issued.
             raise Exception(
@@ -2237,6 +2243,14 @@ class Application(RevisionedMixin):
             try:
                 selected_activity.processing_status = \
                     ApplicationSelectedActivity.PROCESSING_STATUS_OFFICER_FINALISATION
+
+                if self.application_type == \
+                   self.APPLICATION_TYPE_SYSTEM_GENERATED:
+                   # System generated applications cannot be processed by staff
+                   # therefore set as accepted.
+                    selected_activity.processing_status = \
+                        ApplicationSelectedActivity.PROCESSING_STATUS_ACCEPTED                    
+
                 selected_activity.activity_status = \
                     ApplicationSelectedActivity.ACTIVITY_STATUS_CURRENT
                 selected_activity.decision_action = \
@@ -2311,7 +2325,8 @@ class Application(RevisionedMixin):
 
                     # If only a subset of the existing_activity's purposes are 
                     # to be actioned, create new_activity for remaining 
-                    # purposes:
+                    # purposes. New system generated application is created.
+                    # TODO:AYN check system generated app created correctly.
                     elif remaining_purpose_ids_list:
                         existing_application = existing_activity.application
                         existing_activity_status = existing_activity.activity_status
@@ -3770,7 +3785,8 @@ class ApplicationSelectedActivity(models.Model):
         Set the original issue date on all purposes on this activity.
         '''
         for p in self.proposed_purposes.all():
-            p.original_issue_date = issue_date
+            p.original_issue_date = issue_date if p.is_proposed \
+                else p.original_issue_date
             p.save()
 
     def get_original_issue_date(self):
@@ -3788,9 +3804,11 @@ class ApplicationSelectedActivity(models.Model):
                     p.original_issue_date,
                     '%Y-%m-%d'
                 )
-                o_date = p.original_issue_date if p_otime < o_otime else o_date
+                o_date = p.original_issue_date \
+                    if p_otime < o_otime and p.is_proposed else o_date
 
-        except BaseException:
+        except BaseException as e:
+            logger.error('get_original_issue_date(): {0}'.format(e))
             o_date = None
 
         return o_date
@@ -3800,7 +3818,7 @@ class ApplicationSelectedActivity(models.Model):
         Set the issue date on all purposes on this activity.
         '''
         for p in self.proposed_purposes.all():
-            p.issue_date = issue_date
+            p.issue_date = issue_date if p.is_proposed else p.issue_date
             p.save()
 
     def get_issue_date(self):
@@ -3819,11 +3837,11 @@ class ApplicationSelectedActivity(models.Model):
                     '%Y-%m-%d'
                 )
                 # p_itime = p.issue_date.strftime('%Y,%m,%d')
-                issue_date = p.issue_date if p_itime < i_itime else issue_date
-                print(issue_date)
+                issue_date = p.issue_date \
+                    if p_itime < i_itime and p.is_proposed else issue_date
 
         except BaseException as e:
-            print(e)
+            logger.error('get_issue_date(): {0}'.format(e))
             issue_date = None
 
         #return issue_date.strftime('%d/%m/%Y') if issue_date else issue_date
@@ -3834,7 +3852,7 @@ class ApplicationSelectedActivity(models.Model):
         Set the start date on all purposes on this activity.
         '''
         for p in self.proposed_purposes.all():
-            p.start_date = start_date
+            p.start_date = start_date if p.is_proposed else p.start_date
             p.save()
 
     def get_start_date(self):
@@ -3853,10 +3871,11 @@ class ApplicationSelectedActivity(models.Model):
                     '%Y-%m-%d'
                 )
                 # p_stime = datetime.datetime.strptime(p.start_date, '%d/%m/%Y')
-                start_date = p.start_date if p_stime < s_stime else start_date
+                start_date = p.start_date \
+                    if p_stime < s_stime and p.is_proposed else start_date
 
         except BaseException as e:
-            print(e)
+            logger.error('get_start_date(): {0}'.format(e))
             start_date = None
 
         return start_date
@@ -3866,7 +3885,7 @@ class ApplicationSelectedActivity(models.Model):
         Set the expiry date on all purposes on this activity.
         '''
         for p in self.proposed_purposes.all():
-            p.expiry_date = expiry_date
+            p.expiry_date = expiry_date if p.is_proposed else p.expiry_date
             p.save()
     
     def get_expiry_date(self):
@@ -3888,7 +3907,7 @@ class ApplicationSelectedActivity(models.Model):
                 exp_date = p.expiry_date if p_etime > e_etime else exp_date
 
         except BaseException as e:
-            print(e)
+            logger.error('get_expiry_date(): {0}'.format(e))
             exp_date = None
 
         return exp_date
@@ -3905,12 +3924,12 @@ class ApplicationSelectedActivity(models.Model):
             c_ctime = datetime.datetime.strptime(c_date, '%d/%m/%Y')
             for p in self.proposed_purposes.all():
                 p_etime = datetime.datetime.strptime(p.expiry_date, '%d/%m/%Y')
-                if c_ctime <= p_etime:
+                if c_ctime <= p_etime and p.is_proposed:
                     is_current = True 
                     break
 
-        except BaseException:
-            pass
+        except BaseException as e:
+            logger.error('ASA.is_current(): {0}'.format(e))
 
         return is_current
 
@@ -3937,7 +3956,7 @@ class ApplicationSelectedActivity(models.Model):
             is_reissued = False if idtime == o_dtime else True
 
         except BaseException as e:
-            print(e)
+            logger.error('ASA.is_reissued(): {0}'.format(e))
 
         return is_reissued
 
@@ -4037,7 +4056,7 @@ class ApplicationSelectedActivity(models.Model):
         Sets this Selected Activity to be a status that allows for re-issuing
         by an approving officer.
         '''
-        # TODO: clear previous generated returns to allow re-generation.
+        # TODO:AYN clear previous generated returns to allow re-generation.
         with transaction.atomic():
             self.application.reissue_activity(request, self)
 
