@@ -26,7 +26,7 @@ from wildlifecompliance.components.applications.models import (
     Application,
     ApplicationSelectedActivity
 )
-from wildlifecompliance.components.applications.services import (
+from wildlifecompliance.components.applications.payments import (
     ApplicationFeePolicyForAmendment
 )
 from rest_framework_datatables.pagination import DatatablesPageNumberPagination
@@ -84,16 +84,37 @@ class LicenceFilterBackend(DatatablesFilterBackend):
             if date_from:
                 date_from_licence_ids = []
                 for wildlifelicence in queryset:
-                    if (pytz.timezone('utc').localize(datetime.strptime(date_from, '%Y-%m-%d'))
-                            <= wildlifelicence.current_activities.order_by('-issue_date').first().issue_date):
-                                date_from_licence_ids.append(wildlifelicence.id)
+                    # Order the queryset 'from' by issue date licence purpose.
+                    # if (pytz.timezone('utc').localize(datetime.strptime(date_from, '%Y-%m-%d'))
+                    #         <= wildlifelicence.current_activities.order_by('-issue_date').first().issue_date):
+                    #             date_from_licence_ids.append(wildlifelicence.id)
+                    _date_from = pytz.timezone('utc').localize(
+                        datetime.strptime(date_from, '%Y-%m-%d'))
+
+                    _issue_date = wildlifelicence.current_activities.first(
+                        ).get_issue_date()
+
+                    if _date_from <= _issue_date:
+                        date_from_licence_ids.append(wildlifelicence.id)
+
                 queryset = queryset.filter(id__in=date_from_licence_ids)
             if date_to:
                 date_to_licence_ids = []
                 for wildlifelicence in queryset:
-                    if (pytz.timezone('utc').localize(datetime.strptime(date_to, '%Y-%m-%d')) + timedelta(days=1)
-                            >= wildlifelicence.current_activities.order_by('-issue_date').first().issue_date):
-                                date_to_licence_ids.append(wildlifelicence.id)
+                    # Order the queryset 'to' by issue date on licence purpose.
+                    # if (pytz.timezone('utc').localize(datetime.strptime(date_to, '%Y-%m-%d')) + timedelta(days=1)
+                    #         >= wildlifelicence.current_activities.order_by('-issue_date').first().issue_date):
+                    #             date_to_licence_ids.append(wildlifelicence.id)
+                    _date_to = pytz.timezone('utc').localize(
+                        datetime.strptime(date_to, '%Y-%m-%d')
+                        ) + timedelta(days=1)
+
+                    _issue_date = wildlifelicence.current_activities.first(
+                         ).get_issue_date()
+
+                    if _date_to >= _issue_date:
+                        date_to_licence_ids.append(wildlifelicence.id)
+
                 queryset = queryset.filter(id__in=date_to_licence_ids)
             holder = holder.lower() if holder else 'all'
             if holder != 'all':
