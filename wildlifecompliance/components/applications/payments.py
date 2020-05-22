@@ -134,9 +134,9 @@ class ApplicationFeePolicy(object):
             fees_adj = 0
             fees_lic = 0
             for p in activity.proposed_purposes.all():
-                fees_adj += p.adjusted_fee
-                fees_app += p.application_fee
-                fees_lic += p.licence_fee
+                fees_adj += p.adjusted_fee if p.is_proposed else 0
+                fees_app += p.application_fee if p.is_proposed else 0
+                fees_lic += p.licence_fee if p.is_proposed else 0
                 has_purpose = True
             paid_amt = activity.total_paid_amount
             fees_app = fees_app + fees_adj
@@ -246,7 +246,7 @@ class ApplicationFeePolicyForAmendment(ApplicationFeePolicy):
         for activity in licence.current_activities:
             purposes_ids = self.get_form_purpose_ids_for(activity)
             for p in activity.proposed_purposes.all():
-                if p.purpose_id in purposes_ids:
+                if p.purpose_id in purposes_ids and p.is_proposed:
                     application_fees += p.application_fee
 
         self.dynamic_attributes = {
@@ -362,7 +362,8 @@ class ApplicationFeePolicyForAmendment(ApplicationFeePolicy):
                 # base fee is paid just pay the adjustments difference.
                 fees_lic = 0
                 for purpose in activity.proposed_purposes.all():
-                    fees_lic += purpose.licence_fee
+                    fees_lic += purpose.licence_fee if purpose.is_proposed \
+                        else 0
                 fees_new = fees_adj + fees_lic - activity.total_paid_amount
                 policy_licence_fee = 0
             else:
@@ -382,7 +383,7 @@ class ApplicationFeePolicyForAmendment(ApplicationFeePolicy):
         prev_activity = activity.get_activity_from_previous()
         purposes_ids = self.get_form_purpose_ids_for(activity)
         for p in prev_activity.proposed_purposes.all():
-            if p.purpose_id in purposes_ids:
+            if p.purpose_id in purposes_ids and p.is_proposed:
                 prev_adjusted += p.adjusted_fee
 
         return prev_adjusted
@@ -396,7 +397,7 @@ class ApplicationFeePolicyForAmendment(ApplicationFeePolicy):
         prev_act = activity.get_activity_from_previous()
         purposes_ids = self.get_form_purpose_ids_for(activity)
         for p in prev_act.proposed_purposes.all():
-            if p.purpose_id in purposes_ids:
+            if p.purpose_id in purposes_ids and p.is_proposed:
                 prev_fee += p.application_fee
 
         return prev_fee
@@ -446,7 +447,7 @@ class ApplicationFeePolicyForRenew(ApplicationFeePolicy):
         for activity in licence.current_activities:
             purposes_ids = self.get_form_purpose_ids_for(activity)
             for p in activity.proposed_purposes.all():
-                if p.purpose_id in purposes_ids:
+                if p.purpose_id in purposes_ids and p.is_proposed:
                     fees_adj += p.adjusted_fee
 
         self.dynamic_attributes['fees']['application'] += fees_adj
@@ -482,9 +483,9 @@ class ApplicationFeePolicyForRenew(ApplicationFeePolicy):
         fees_lic = 0
 
         for purpose in activity.proposed_purposes.all():
-            fees_adj += purpose.adjusted_fee
-            fees_app += purpose.application_fee
-            fees_lic += purpose.licence_fee
+            fees_adj += purpose.adjusted_fee if purpose.is_proposed else 0
+            fees_app += purpose.application_fee if purpose.is_proposed else 0
+            fees_lic += purpose.licence_fee if purpose.is_proposed else 0
 
         licence_paid = False if activity.total_paid_amount < 1 else True
         # self.set_purpose_fees_for(activity)         # update fees on purpose.
@@ -525,7 +526,8 @@ class ApplicationFeePolicyForRenew(ApplicationFeePolicy):
                 # base fee is paid just pay the adjustments difference.
                 fees_lic = 0
                 for purpose in activity.proposed_purposes.all():
-                    fees_lic += purpose.licence_fee
+                    fees_lic += purpose.licence_fee if purpose.is_proposed \
+                        else 0
                 fees_new = fees_adj + fees_lic - activity.total_paid_amount
                 policy_licence_fee = 0
             else:
@@ -583,7 +585,7 @@ class ApplicationFeePolicyForRenew(ApplicationFeePolicy):
         prev_activity = activity.get_activity_from_previous()
         purposes_ids = self.get_form_purpose_ids_for(activity)
         for p in prev_activity.proposed_purposes.all():
-            if p.purpose_id in purposes_ids:
+            if p.purpose_id in purposes_ids and p.is_proposed:
                 prev_adjusted += p.adjusted_fee
 
         return prev_adjusted
@@ -688,9 +690,9 @@ class ApplicationFeePolicyForNew(ApplicationFeePolicy):
         licence_paid = False if activity.total_paid_amount < 1 else True
 
         for purpose in activity.proposed_purposes.all():
-            fees_adj += purpose.adjusted_fee
-            fees_app += purpose.application_fee
-            fees_lic += purpose.licence_fee
+            fees_adj += purpose.adjusted_fee if purpose.is_proposed else 0
+            fees_app += purpose.application_fee if purpose.is_proposed else 0
+            fees_lic += purpose.licence_fee if purpose.is_proposed else 0
 
         fees_new = fees_app + fees_adj
         if licence_paid:
@@ -728,7 +730,8 @@ class ApplicationFeePolicyForNew(ApplicationFeePolicy):
             if licence_paid:
                 fees_lic = 0
                 for purpose in activity.proposed_purposes.all():
-                    fees_lic += purpose.licence_fee
+                    fees_lic += purpose.licence_fee if purpose.is_proposed \
+                        else 0
                 fees_new = fees_adj + fees_lic - activity.total_paid_amount
                 policy_licence_fee = 0
             else:
