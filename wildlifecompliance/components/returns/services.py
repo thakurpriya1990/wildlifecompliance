@@ -33,19 +33,29 @@ logger = logging.getLogger(__name__)
 
 
 class ReturnService(object):
-    """
+    '''
     Services available for Licence Species Returns.
-    """
+    '''
 
     def __init__(self):
         pass
 
     @staticmethod
+    def calculate_fees(a_return, data_source=None):
+        '''
+        Calculates fees for a Return.
+        '''
+        # update any fees.
+        fee_policy = ReturnFeePolicy.get_fee_policy_for(a_return)
+
+        return fee_policy.get_dynamic_attributes()
+
+    @staticmethod
     def get_product_lines(a_return):
-        """
+        '''
         Get product lines for fees associated with a return to be charged
         through checkout.
-        """
+        '''
         return ReturnFeePolicy.get_fee_product_lines_for(a_return)
 
     @staticmethod
@@ -74,7 +84,7 @@ class ReturnService(object):
         )
         for a_return in due_returns:
             if not for_all and not a_return.id == id:
-                break
+                continue
             a_return.set_due_status()
 
         overdue_returns = Return.objects.filter(
@@ -87,7 +97,7 @@ class ReturnService(object):
         )
         for a_return in overdue_returns:
             if not for_all and not a_return.id == id:
-                break
+                continue
             a_return.set_overdue_status()
 
     @staticmethod
@@ -128,6 +138,8 @@ class ReturnService(object):
             question = ReturnQuestion(a_return)
             question.store(request)
 
+        fee = ReturnService.calculate_fees(a_return)
+        a_return.set_return_fee(fee['fees']['return'])
         return []
 
     @staticmethod
