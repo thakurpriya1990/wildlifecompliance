@@ -85,6 +85,8 @@ class ReturnSerializer(serializers.ModelSerializer):
     licence = serializers.SerializerMethodField()
     condition = ReturnConditionSerializer(read_only=True)
     table = serializers.SerializerMethodField()
+    return_fee = serializers.DecimalField(
+        max_digits=8, decimal_places=2, coerce_to_string=False, read_only=True)
 
     class Meta:
         model = Return
@@ -109,6 +111,7 @@ class ReturnSerializer(serializers.ModelSerializer):
             'sheet_species_list',
             'sheet_species',
             'return_fee',
+            'return_fee_paid',
         )
 
         # the serverSide functionality of datatables is such that only columns

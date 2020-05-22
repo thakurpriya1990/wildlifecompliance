@@ -203,9 +203,5 @@ export default {
     // TODO: Species list can be rendered here for internal/external Returns.
     // this.setReturnsSpecies({});
   },
-  mounted: function() {
-    console.log('mounted returns renderer')
-    console.log(this.returns)
-  }
 }
 </script>

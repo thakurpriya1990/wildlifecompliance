@@ -298,25 +298,25 @@ class Return(models.Model):
         Property defining fee status for this Return.
         :return:
         """
-        if self.return_fee == 0:
-            return Invoice.PAYMENT_STATUS_NOT_REQUIRED
+        if not self.return_type.fee_required:
+            return ReturnInvoice.PAYMENT_STATUS_NOT_REQUIRED
         else:
             if self.invoices.count() == 0:
-                return Invoice.PAYMENT_STATUS_UNPAID
+                return ReturnInvoice.PAYMENT_STATUS_UNPAID
             else:
                 try:
                     latest_invoice = Invoice.objects.get(
                         reference=self.invoices.latest('id').invoice_reference)
-                except Invoice.DoesNotExist:
-                    return Invoice.PAYMENT_STATUS_UNPAID
+                except ReturnInvoice.DoesNotExist:
+                    return ReturnInvoice.PAYMENT_STATUS_UNPAID
                 return latest_invoice.payment_status
 
     @property
     def return_fee_paid(self):
         return self.payment_status in [
-            Invoice.PAYMENT_STATUS_NOT_REQUIRED,
-            Invoice.PAYMENT_STATUS_PAID,
-            Invoice.PAYMENT_STATUS_OVERPAID,
+            ReturnInvoice.PAYMENT_STATUS_NOT_REQUIRED,
+            ReturnInvoice.PAYMENT_STATUS_PAID,
+            ReturnInvoice.PAYMENT_STATUS_OVERPAID,
         ]
 
     @property
@@ -326,7 +326,7 @@ class Return(models.Model):
         :return:
         """
         has_payment = False
-        if self.payment_status != Invoice.PAYMENT_STATUS_NOT_REQUIRED:
+        if self.payment_status != ReturnInvoice.PAYMENT_STATUS_NOT_REQUIRED:
             has_payment = True
 
         return has_payment
@@ -379,6 +379,13 @@ class Return(models.Model):
         Set the processing status for this Return as Overdue for submission.
         '''
         self.processing_status = self.RETURN_PROCESSING_STATUS_OVERDUE
+        self.save()
+
+    def set_return_fee(self, fee):
+        '''
+        Set the submission fee for this return.
+        '''
+        self.return_fee = fee
         self.save()
 
     @transaction.atomic
@@ -1295,6 +1302,15 @@ class ReturnLogEntry(CommunicationsLogEntry):
 
 
 class ReturnInvoice(models.Model):
+    '''
+    An model object representing an invoice for a return.
+    '''
+    PAYMENT_STATUS_NOT_REQUIRED = 'payment_not_required'
+    PAYMENT_STATUS_UNPAID = 'unpaid'
+    PAYMENT_STATUS_PARTIALLY_PAID = 'partially_paid'
+    PAYMENT_STATUS_PAID = 'paid'
+    PAYMENT_STATUS_OVERPAID = 'over_paid'
+
     invoice_return = models.ForeignKey(Return, related_name='invoices')
     invoice_reference = models.CharField(
         max_length=50, null=True, blank=True, default='')

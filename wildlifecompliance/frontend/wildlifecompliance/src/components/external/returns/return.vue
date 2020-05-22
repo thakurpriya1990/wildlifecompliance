@@ -17,10 +17,11 @@
                     <div class="navbar-inner">
                         <div class="container">
                             <p class="pull-right" style="margin-top:5px;">
+                                <strong style="font-size: 18px;" v-if="isPayable">Return submission fee: {{returns.return_fee | toCurrency}}</strong><br>
                                 <button style="width:150px;" class="btn btn-primary btn-md" @click.prevent="save(false)" name="save_exit">Save and Exit</button>
                                 <button style="width:150px;" class="btn btn-primary btn-md" @click.prevent="save(true)" name="save_continue">Save and Continue</button>
                                 <button style="width:150px;" class="btn btn-primary btn-md" v-if="isSubmittable" @click.prevent="submit()" name="submit">Submit</button>
-                                <button style="width:150px;" class="btn btn-primary btn-md" v-if="isPayable" @click.prevent="submit_and_checkout()" name="submit">Submit &amp; Checkout</button>                                
+                                <button style="width:150px;" class="btn btn-primary btn-md" v-if="isPayable" @click.prevent="submit_and_checkout()" name="submit">Pay and Submit</button>                                
                             </p>
                         </div>
                     </div>
@@ -70,10 +71,10 @@ export default {
         'species_transfer',
     ]),
     isSubmittable() {
-      return this.returns.format !== 'sheet' && this.returns.lodgement_date == null
+      return this.returns.format !== 'sheet' && this.returns.lodgement_date == null && !this.isPayable
     },
     isPayable() {
-      return false
+      return this.returns.return_fee > 0 && !this.returns.return_fee_paid ? true : false
     },
     requiresCheckout: function() {
       return this.returns.return_fee > 0 && [

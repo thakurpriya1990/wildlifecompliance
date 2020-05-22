@@ -108,22 +108,23 @@ class ReturnFeePolicyForData(ReturnFeePolicy):
         '''
         self.is_refreshing = False
 
-        return_fees = 0
+        return_fees = self.the_return.return_type.fee_amount
+        is_required = self.the_return.return_type.fee_required
 
         self.dynamic_attributes = {
             'fees': {
-                'return': return_fees,
+                'return': return_fees if is_required else 0,
             },
         }
 
         if self.the_return.return_fee_paid:
             self.dynamic_attributes['fees'] = {'return': 0}
 
-    def set_application_fee(self):
-        """
+    def set_return_fee(self):
+        '''
         Set Return fee from the saved model. Required when presentation is
         refreshed and no attributes are passed.
-        """
+        '''
         self.is_refreshing = True
         self.init_dynamic_attributes()
 
@@ -181,11 +182,11 @@ class ReturnFeePolicyForSheet(ReturnFeePolicy):
         if self.the_return.return_fee_paid:
             self.dynamic_attributes['fees'] = {'return': 0}
 
-    def set_application_fee(self):
-        """
+    def set_return_fee(self):
+        '''
         Set Return fee from the saved model. Required when presentation is
         refreshed and no attributes are passed.
-        """
+        '''
         self.is_refreshing = True
         self.init_dynamic_attributes()
 
@@ -244,11 +245,11 @@ class ReturnFeePolicyForQuestion(ReturnFeePolicy):
         if self.the_return.return_fee_paid:
             self.dynamic_attributes['fees'] = {'return': 0}
 
-    def set_application_fee(self):
-        """
+    def set_return_fee(self):
+        '''
         Set Return fee from the saved model. Required when presentation is
         refreshed and no attributes are passed.
-        """
+        '''
         self.is_refreshing = True
         self.init_dynamic_attributes()
 
