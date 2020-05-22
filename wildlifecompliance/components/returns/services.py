@@ -1,6 +1,8 @@
 import ast
 import logging
 
+from datetime import date, timedelta
+
 from concurrency.exceptions import RecordModifiedError
 
 from django.core.exceptions import ValidationError, FieldError
@@ -37,6 +39,48 @@ class ReturnService(object):
 
     def __init__(self):
         pass
+
+    @staticmethod
+    def verify_due_return_id(return_id):
+        '''
+        Vertification of return due date for a single return.
+        '''
+        ReturnService.verify_due_returns(return_id, False)
+
+    @staticmethod
+    def verify_due_returns(id=0, for_all=True):
+        '''
+        Vertification of return due date seven days before it is due and
+        updating the processing status.
+        '''
+        DUE_DAYS = 7
+
+        today_plus_7 = date.today() + timedelta(days=DUE_DAYS)
+        today = date.today()
+        due_returns = Return.objects.filter(
+            due_date__range=[today, today_plus_7],
+            processing_status__in=[
+                Return.RETURN_PROCESSING_STATUS_DRAFT,
+                Return.RETURN_PROCESSING_STATUS_FUTURE
+            ]
+        )
+        for a_return in due_returns:
+            if not for_all and not a_return.id == id:
+                break
+            a_return.set_due_status()
+
+        overdue_returns = Return.objects.filter(
+            due_date__lt=today,
+            processing_status__in=[
+                Return.RETURN_PROCESSING_STATUS_DRAFT,
+                Return.RETURN_PROCESSING_STATUS_FUTURE,
+                Return.RETURN_PROCESSING_STATUS_DUE
+            ]
+        )
+        for a_return in overdue_returns:
+            if not for_all and not a_return.id == id:
+                break
+            a_return.set_overdue_status()
 
     @staticmethod
     def get_details_for(a_return):

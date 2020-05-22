@@ -367,6 +367,20 @@ class Return(models.Model):
         except BaseException:
             raise
 
+    def set_due_status(self):
+        '''
+        Set the processing status for this Return as Due for submission.
+        '''
+        self.processing_status = self.RETURN_PROCESSING_STATUS_DUE
+        self.save()
+
+    def set_overdue_status(self):
+        '''
+        Set the processing status for this Return as Overdue for submission.
+        '''
+        self.processing_status = self.RETURN_PROCESSING_STATUS_OVERDUE
+        self.save()
+
     @transaction.atomic
     def accept(self, request):
         try:
