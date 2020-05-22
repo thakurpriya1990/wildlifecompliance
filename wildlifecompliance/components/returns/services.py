@@ -24,7 +24,7 @@ from wildlifecompliance.components.returns.models import (
     ReturnRow,
     ReturnUserAction,
 )
-
+from wildlifecompliance.components.returns.payments import ReturnFeePolicy
 from wildlifecompliance.components.returns.email import (
     send_sheet_transfer_email_notification
 )
@@ -39,6 +39,14 @@ class ReturnService(object):
 
     def __init__(self):
         pass
+
+    @staticmethod
+    def get_product_lines(a_return):
+        """
+        Get product lines for fees associated with a return to be charged
+        through checkout.
+        """
+        return ReturnFeePolicy.get_fee_product_lines_for(a_return)
 
     @staticmethod
     def verify_due_return_id(return_id):
