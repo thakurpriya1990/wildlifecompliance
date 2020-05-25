@@ -4571,7 +4571,7 @@ class ApplicationCondition(OrderedModel):
         if self.standard:
             return self.standard_condition.text
         elif self.is_default:
-            return self.default_condition.condition
+            return self.default_condition.standard_condition.text
         else:
             return self.free_condition
 

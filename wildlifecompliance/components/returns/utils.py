@@ -120,7 +120,7 @@ def bind_return_to_invoice(request, returns, invoice_ref):
 
         raise Exception
 
-    if inv.system not in ['0999']:
+    if inv.system not in [settings.WC_PAYMENT_SYSTEM_PREFIX]:
 
         logger.error(
             u'{} tried making an return with an invoice from another system \
@@ -154,13 +154,15 @@ def bind_return_to_invoice(request, returns, invoice_ref):
                 reference {}'.format(
                 u'User {} with id {}'.format(
                     returns.submitter.get_full_name(),
-                    returns.submitter.id) 
+                    returns.submitter.id)
                 if returns.submitter else u'An anonymous user',
                 returns.id,
                 invoice_ref))
 
         app_inv, created = ReturnInvoice.objects.get_or_create(
-            returns=returns, invoice_reference=invoice_ref)
+            invoice_return=returns,
+            invoice_reference=invoice_ref
+        )
         returns.save()
 
         request.session['wc_last_return'] = returns.id

@@ -1347,14 +1347,19 @@ class ApplicationViewSet(viewsets.ModelViewSet):
                     )
                     cleaned_purpose_ids = set(active_current_purposes) & set(licence_purposes)
                     data['licence_purposes'] = cleaned_purpose_ids
+
+                if latest_active_licence:
+                    # Store currently active licence against application.
                     data['licence'] = latest_active_licence.id
 
-                # Use serializer for external application creation - do not expose unneeded fields
+                # Use serializer for external application creation - do not
+                # expose unneeded fields.
                 serializer = CreateExternalApplicationSerializer(data=data)
                 serializer.is_valid(raise_exception=True)
                 serializer.save()
 
-                # Pre-fill the ApplicationFormDataRecord table with data from latest current applications
+                # Pre-fill the ApplicationFormDataRecord table with data from
+                # latest current applications.
                 # for selected purpose ids
                 if application_type in [
                     Application.APPLICATION_TYPE_AMENDMENT,
