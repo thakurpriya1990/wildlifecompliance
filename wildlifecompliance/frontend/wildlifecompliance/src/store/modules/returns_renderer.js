@@ -50,6 +50,9 @@ export const returnsRendererStore = {
         setReturnsTabs({ commit }, { tabs }) {
             commit(UPDATE_RETURNS_TABS, tabs);
         },
+        setReturnsTabId({ commit }, { tab_id }) {
+            commit(UPDATE_SELECTED_TAB_ID, tab_id);
+        },
         setReturnsSpecies({ commit }, { species }) {
             console.log('setReturnSpecies')
             // Mock species list used for dev.
