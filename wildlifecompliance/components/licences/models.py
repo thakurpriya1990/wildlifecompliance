@@ -439,19 +439,58 @@ class WildlifeLicence(models.Model):
             latest_activities = []
         return latest_activities
 
-    def get_latest_purposes_for_licence_activity_and_action(self, licence_activity_id=None, action=None):
+    def get_latest_purposes_for_licence_activity_and_action(
+            self, licence_activity_id=None, action=None):
         """
-        Return a list of LicencePurpose records for the licence
-        Filter by licence_activity_id (optional) and/or specified action (optional)
-        Exclude purposes that are currently in an application being processed
+        Return a list of LicencePurpose records for the licence Filter by
+        licence_activity_id (optional) and/or specified action (optional)
+        Exclude purposes that are currently in an application being processed.
         """
         can_action_purpose_list = []
-        purposes_in_open_applications_for_applicant = self.get_purposes_in_open_applications()
-        for activity in self.get_latest_activities_for_licence_activity_and_action(licence_activity_id, action):
+        active_licence_purposes = self.get_purposes_in_open_applications()
+        latest_activities = self.get_latest_activities_for_licence_activity_and_action(licence_activity_id, action)
+
+        for activity in latest_activities:
             for purpose in activity.purposes:
-                if purpose.id not in purposes_in_open_applications_for_applicant:
+                if purpose.id not in active_licence_purposes:
                     can_action_purpose_list.append(purpose.id)
-        return LicencePurpose.objects.filter(id__in=can_action_purpose_list).distinct()
+        records = LicencePurpose.objects.filter(
+            id__in=can_action_purpose_list
+        ).distinct()
+
+        return records
+
+    def get_latest_purposes_for_licence(self, licence_activity_id):
+        '''
+        Return a list of LicencePurpose records for the licence. Exclude
+        purposes that are currently in an application being processed.
+        '''
+        from wildlifecompliance.components.applications.models import (
+            ApplicationSelectedActivity,
+            ApplicationSelectedActivityPurpose,
+        )
+        can_action_purpose_list = []
+        status = {
+            ApplicationSelectedActivity.ACTIVITY_STATUS_CURRENT,
+            ApplicationSelectedActivity.ACTIVITY_STATUS_REPLACED,
+        }
+
+        active_licence_purposes = self.get_purposes_in_open_applications()
+        latest = self.current_application.get_current_activity_chain(
+            activity_status__in=status
+        ).filter(licence_activity_id=licence_activity_id)
+
+        for activity in latest:
+            for proposed in activity.proposed_purposes.all():
+                if proposed.purpose.id not in active_licence_purposes\
+                        and proposed.is_proposed:
+                    can_action_purpose_list.append(proposed.id)
+
+        records = ApplicationSelectedActivityPurpose.objects.filter(
+            id__in=can_action_purpose_list
+        ).distinct()
+
+        return records
 
     def get_purposes_in_open_applications(self):
         """

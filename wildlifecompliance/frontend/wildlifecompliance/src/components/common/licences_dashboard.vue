@@ -684,32 +684,65 @@ export default {
                 });
             });
             // Reissue activity listener
+            // vm.$refs.licence_datatable.vmDataTable.on('click', 'a[reissue-activity]', function(e) {
+            //     e.preventDefault();
+            //     swal({
+            //         title: "Reissue Activity",
+            //         text: "Are you sure you want to reissue this activity?",
+            //         type: "question",
+            //         showCancelButton: true,
+            //         confirmButtonText: 'Accept'
+            //     }).then((result) => {
+            //         if (result.value) {
+            //             var action_licence = {
+            //                 purpose_ids_list:[]
+            //             };                        
+            //             action_licence.purpose_ids_list[0] = $(this).attr('reissue-activity');
+            //             var licence_id = $(this).attr('lic-id');
+            //             vm.licence_action = 'reissue';
+            //             vm.selected_licence_id = licence_id;
+            //             vm.$http.post(helpers.add_endpoint_json(api_endpoints.licences,licence_id+'/reissue_purposes'),JSON.stringify(action_licence),{
+            //                 emulateJSON:true,
+            //                 }).then((response)=>{
+            //                     // route back to application for reissue.
+            //                     vm.$router.push({name:"internal-application", params:{application_id: response.body.current_application.id}});
+            //                 },(error)=>{
+            //                     vm.errors = true;
+            //                     vm.actioningPurposes = false;
+            //                     vm.errorString = helpers.apiVueResourceError(error);
+            //                 });
+            //         }
+            //     },(error) => {
+            //     });
+            // });
             vm.$refs.licence_datatable.vmDataTable.on('click', 'a[reissue-activity]', function(e) {
                 e.preventDefault();
                 swal({
                     title: "Reissue Activity",
-                    text: "Are you sure you want to reissue this activity?",
+                    text: "Are you sure you want to reissue purposes on this activity?",
                     type: "question",
                     showCancelButton: true,
                     confirmButtonText: 'Accept'
                 }).then((result) => {
                     if (result.value) {
-                        var action_licence = {
-                            purpose_ids_list:[]
-                        };                        
-                        action_licence.purpose_ids_list[0] = $(this).attr('reissue-activity');
+                        var licence_activity_id = $(this).attr('reissue-activity');
                         var licence_id = $(this).attr('lic-id');
                         vm.licence_action = 'reissue';
                         vm.selected_licence_id = licence_id;
-                        vm.$http.post(helpers.add_endpoint_json(api_endpoints.licences,licence_id+'/reissue_purposes'),JSON.stringify(action_licence),{
-                            emulateJSON:true,
-                            }).then((response)=>{
-                                // route back to application for reissue.
-                                vm.$router.push({name:"internal-application", params:{application_id: response.body.current_application.id}});
-                            },(error)=>{
-                                vm.errors = true;
-                                vm.actioningPurposes = false;
-                                vm.errorString = helpers.apiVueResourceError(error);
+                        vm.$http.get(helpers.add_endpoint_join(
+                            api_endpoints.licences,licence_id+
+                            '/get_latest_purposes_for_licence_activity_and_action/?licence_activity_id='+
+                            licence_activity_id+'&action='+vm.licence_action)).then(res=>{
+                                if (res.body) {
+                                    vm.action_purpose_list = res.body;
+                                    vm.$refs.licence_action_purposes.isModalOpen = true;
+                                }
+                            }, (error) => {
+                                swal(
+                                    'Reissue Activity Error',
+                                    helpers.apiVueResourceError(error),
+                                    'error'
+                                )
                             });
                     }
                 },(error) => {

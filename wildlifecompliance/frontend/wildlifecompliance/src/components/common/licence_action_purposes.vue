@@ -11,7 +11,7 @@
                                     <div v-if=hasActionableLicencePurposes class="col-sm-12">
                                         <div v-for="purpose in actionableLicencePurposes">
                                             <div>
-                                                <input type="checkbox" :value ="purpose.id" :id="purpose.id" v-model="action_licence.purpose_ids_list"> {{purpose.name}}
+                                                <input type="checkbox" :value ="purpose.purpose.id" :id="purpose.purpose.id" v-model="action_licence.purpose_ids_list"> {{purpose.name}} {{purpose.application}}
                                             </div>
                                         </div>
                                     </div>
@@ -83,6 +83,8 @@ export default {
                 return 'Select purpose(s) to surrender';
             } else if (this.action == 'reactivate-renew'){
                 return 'Select purpose(s) to reactivate renew';
+            } else if (this.action == 'reissue'){
+                return 'Select purpose(s) to reissue';
             } else if (this.action == 'reinstate'){
                 return 'Select purpose(s) to reinstate';
             }
@@ -96,6 +98,8 @@ export default {
                 return 'Surrender';
             } else if (this.action == 'reactivate-renew'){
                 return 'Reactivate Renew';
+            } else if (this.action == 'reissue'){
+                return 'Reissue';
             } else if (this.action == 'reinstate'){
                 return 'Reinstate';
             }
@@ -109,9 +113,16 @@ export default {
                 return 'Surrendering';
             } else if (this.action == 'reactivate-renew'){
                 return 'Reactivating Renew';
+            } else if (this.action == 'reissue'){
+                return 'Reissue';
             } else if (this.action == 'reinstate'){
                 return 'Reinstating';
             }
+        },
+        actionableLicencePurposesByAppId: function(appId) {
+            return this.licence_activity_purposes.filter(activity => {
+                return activity.application===appId;
+            });
         },
         actionableLicencePurposes: function() {
             return this.licence_activity_purposes;
@@ -244,6 +255,32 @@ export default {
                     swal(
                          'Reactivate Renew Purpose',
                          'Please select at least once licenced purpose to Reactivate Renew.',
+                         'error'
+                    )
+                }
+            } else if (vm.action == 'reissue'){
+                if (vm.action_licence.purpose_ids_list.length > 0){
+                    vm.$http.post(helpers.add_endpoint_json(api_endpoints.licences,vm.licence_id+'/reissue_purposes'),JSON.stringify(vm.action_licence),{
+                            emulateJSON:true,
+                        }).then((response)=>{
+                            swal(
+                                    'Reissue Purposes',
+                                    'The selected licenced purposes have been Reissued.',
+                                    'success'
+                            )
+                            vm.actioningPurposes = false;
+                            vm.close();
+                            vm.$emit('refreshFromResponse',response);
+                        },(error)=>{
+                            vm.errors = true;
+                            vm.actioningPurposes = false;
+                            vm.errorString = helpers.apiVueResourceError(error);
+                        });
+                } else {
+                    vm.actioningPurposes = false;
+                    swal(
+                         'Reissue Purpose',
+                         'Please select at least once licenced purpose to Reissue.',
                          'error'
                     )
                 }
