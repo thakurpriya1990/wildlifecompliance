@@ -28,6 +28,7 @@ from wildlifecompliance.components.returns.payments import ReturnFeePolicy
 from wildlifecompliance.components.returns.email import (
     send_sheet_transfer_email_notification,
     send_return_invoice_notification,
+    send_return_accept_email_notification,
 )
 from wildlifecompliance.components.returns.utils import (
     get_session_return,
@@ -44,6 +45,34 @@ class ReturnService(object):
 
     def __init__(self):
         pass
+
+    @staticmethod
+    def accept_return_request(request, a_return):
+        '''
+        Process an accepted requested return.
+        '''
+        workflow_status = [
+            # Expected status for requested return.
+            Return.RETURN_PROCESSING_STATUS_WITH_CURATOR
+        ]
+        try:
+            if a_return.processing_status not in workflow_status:
+                raise Exception('Cannot accept a return not with curator.')
+
+            # Set status.
+            status = Return.RETURN_PROCESSING_STATUS_ACCEPTED
+            a_return.set_processing_status(status)
+            # Send notification.
+            send_return_accept_email_notification(a_return, request)
+            # Log action.
+            a_return.log_user_action(
+                ReturnUserAction.ACTION_ACCEPT_REQUEST.format(a_return),
+                request
+            )
+
+        except BaseException as e:
+            logger.error('accept_return_request(): {0}'.format(e))
+            raise
 
     @staticmethod
     def submit_session_return_request(request):

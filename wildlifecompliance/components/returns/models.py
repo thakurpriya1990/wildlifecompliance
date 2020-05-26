@@ -330,6 +330,9 @@ class Return(models.Model):
 
     @transaction.atomic
     def set_submitted(self, request):
+        '''
+        TODO:AYN This is redundant. ReturnService.
+        '''
         try:
             submit_status = [
                 Return.RETURN_PROCESSING_STATUS_FUTURE,
@@ -358,6 +361,7 @@ class Return(models.Model):
         except BaseException:
             raise
 
+    @transaction.atomic
     def set_processing_status(self, status):
         '''
         Set the processing status for this Return.
@@ -365,6 +369,7 @@ class Return(models.Model):
         self.processing_status = status
         self.save()
 
+    @transaction.atomic
     def set_return_fee(self, fee):
         '''
         Set the submission fee for this return.
@@ -394,6 +399,9 @@ class Return(models.Model):
 
     @transaction.atomic
     def accept(self, request):
+        '''
+        TODO:AYN This is redundant. ReturnService.
+        '''
         try:
             self.processing_status = Return.RETURN_PROCESSING_STATUS_ACCEPTED
             self.save()
