@@ -9,7 +9,7 @@
                             <div class="form-group">
                                 <div class="row">
                                     <div v-if=hasActionableLicencePurposes class="col-sm-12">
-                                        <div v-for="purpose in actionableLicencePurposes">
+                                        <div v-for="(purpose, index) in actionableLicencePurposes" v-bind:key="`purpose_${index}`">
                                             <div>
                                                 <input type="checkbox" :value ="purpose.purpose.id" :id="purpose.purpose.id" v-model="action_licence.purpose_ids_list"> {{purpose.name}} {{purpose.application}}
                                             </div>
@@ -64,6 +64,10 @@ export default {
             errorString: '',
             successString: '',
             success:false,
+            checkbox_list: {
+                application: 0,
+                purpose_ids: [],
+            },
         }
     },
     computed: {
@@ -149,6 +153,17 @@ export default {
             this.errors = false;
             $('.has-error').removeClass('has-error');
             this.validation_form.resetForm();
+        },
+        close_back_to_application:function (app_id) {
+            this.isModalOpen = false;
+            this.action_licence = {
+                purpose_ids_list:[]
+            };
+            this.errors = false;
+            $('.has-error').removeClass('has-error');
+            this.validation_form.resetForm();
+            // route back to application for reissue.
+            this.$router.push({name:"internal-application", params:{application_id: app_id}});
         },
         sendData:function(){
             let vm = this;
@@ -263,13 +278,11 @@ export default {
                     vm.$http.post(helpers.add_endpoint_json(api_endpoints.licences,vm.licence_id+'/reissue_purposes'),JSON.stringify(vm.action_licence),{
                             emulateJSON:true,
                         }).then((response)=>{
-                            swal(
-                                    'Reissue Purposes',
-                                    'The selected licenced purposes have been Reissued.',
-                                    'success'
-                            )
                             vm.actioningPurposes = false;
-                            vm.close();
+                            let p1 = this.licence_activity_purposes.filter(pur => {
+                                return pur.purpose.id===this.action_licence.purpose_ids_list[0];
+                            })
+                            vm.close_back_to_application(p1[0].application);
                             vm.$emit('refreshFromResponse',response);
                         },(error)=>{
                             vm.errors = true;
@@ -339,6 +352,49 @@ export default {
                     }
                 }
             });
+        },
+        updateCheckboxList: function() {
+            // TODO: filtered purpose checkbox list per application.
+            console.log('updateCheckboxList')
+
+            let last_id = this.action_licence.purpose_ids_list.length-1
+            let p1 = this.licence_activity_purposes.filter(pur => {
+                return pur.purpose.id===this.action_licence.purpose_ids_list[last_id];
+            })
+
+            //var p1 = this.action_licence.purpose_ids_list[0];
+            if (p1[0] && this.checkbox_list.application!==p1[0].application){
+                // not the same application
+                this.checkbox_list.application = p1[0].application;
+                this.checkbox_list.purpose_ids = [];
+                for (let i=0; i<this.licence_activity_purposes.length; i++){
+                    // go through all purposes available
+                    let p = this.licence_activity_purposes[i]
+
+                    if (p.application===p1[0].application && this.action_licence.purpose_ids_list.find(id => id === p.purpose.id)){
+                        // match on application and selected
+                        this.checkbox_list.purpose_ids.push(p.purpose.id);
+                    }
+                }
+            } else if (p1[0] && this.checkbox_list.application===p1[0].application){
+                // same application
+                this.checkbox_list.purpose_ids = [];
+                for (let i=0; i<this.licence_activity_purposes.length; i++){
+                    let p = this.licence_activity_purposes[i]
+                    if (p.application===p1[0].application && this.action_licence.purpose_ids_list.find(id => id === p.purpose.id)){
+                        // match on application and selected
+                        this.checkbox_list.purpose_ids.push(p.purpose.id)
+                    }
+                }
+            }
+            if (!p1[0]){
+                this.checkbox_list.application = 0;
+                this.checkbox_list.purpose_ids = [];
+            }
+            console.log(this.checkbox_list.purpose_ids);
+            console.log(this.action_licence.purpose_ids_list)
+            //this.action_licence.purpose_ids_list = []
+
         },
    },
    mounted:function () {
