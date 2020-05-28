@@ -641,8 +641,6 @@ class LicenceViewSet(viewsets.ModelViewSet):
                   'Selected purposes must all be of the same licence activity')
 
             if purpose_ids_list and pk:
-                licence_activity_id = LicencePurpose.objects.filter(
-                    licence_activity_id__in=purpose_ids_list).first().licence_activity_id
                 instance = self.get_object()
 
                 instance.apply_action_to_purposes(

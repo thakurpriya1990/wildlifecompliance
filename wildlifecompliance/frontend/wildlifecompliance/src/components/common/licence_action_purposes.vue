@@ -11,7 +11,7 @@
                                     <div v-if=hasActionableLicencePurposes class="col-sm-12">
                                         <div v-for="(purpose, index) in actionableLicencePurposes" v-bind:key="`purpose_${index}`">
                                             <div>
-                                                <input type="checkbox" :value ="purpose.purpose.id" :id="purpose.purpose.id" v-model="action_licence.purpose_ids_list"> {{purpose.name}} {{purpose.application}}
+                                                <input type="checkbox" :value ="purpose.purpose.id" :id="purpose.purpose.id" v-model="action_licence.purpose_ids_list"> {{purpose.name}}
                                             </div>
                                         </div>
                                     </div>
