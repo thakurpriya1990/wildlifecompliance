@@ -850,6 +850,7 @@ class ApplicationViewSet(viewsets.ModelViewSet):
         if not instance:
             return Response({'activity': None})
 
+        # TODO: last current activity is not ordered
         # last_activity = instance.get_activity_chain(
         #     activity_status=ApplicationSelectedActivity.ACTIVITY_STATUS_CURRENT
         # ).order_by(
@@ -858,7 +859,7 @@ class ApplicationViewSet(viewsets.ModelViewSet):
 
         last_activity = instance.get_current_activity_chain(
             activity_status=ApplicationSelectedActivity.ACTIVITY_STATUS_CURRENT
-        )
+        ).first()
 
         if not last_activity:
             return Response({'activity': None})
