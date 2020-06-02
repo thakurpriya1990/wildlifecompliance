@@ -337,6 +337,7 @@
                                         </div>
                                         <div class="col-sm-9">
                                             <RegistrationHolder
+                                                :showClearPerson="true"
                                                 :excludeStaff="true"
                                                 :personOnly="true"
                                                 :displayTitle="false"
@@ -344,6 +345,7 @@
                                                 :parentEntity="registrationHolder"
                                                 classNames="form-control"
                                                 @entity-selected="registrationHolderSelected"
+                                                @clear-person="clearRegistrationHolder"
                                                 showCreateUpdate
                                                 ref="search_registration_holder"
                                                 domIdHelper="registration_holder"
@@ -354,6 +356,7 @@
                                         </div>
                                         <div class="col-sm-9">
                                             <Driver
+                                                :showClearPerson="true"
                                                 :excludeStaff="true"
                                                 :personOnly="true"
                                                 :displayTitle="false"
@@ -361,6 +364,7 @@
                                                 :parentEntity="driver"
                                                 classNames="form-control"
                                                 @entity-selected="driverSelected"
+                                                @clear-person="clearDriver"
                                                 showCreateUpdate
                                                 ref="search_driver"
                                                 domIdHelper="driver"
@@ -1034,6 +1038,14 @@ export default {
             setDriver: 'setDriver',
             loadRemediationAction: 'loadRemediationAction',
         }),
+        clearRegistrationHolder: function(){
+            console.log('clearRegistrationHolder');
+            this.setRegistrationHolder({data_type: 'individual', id: null});
+        },
+        clearDriver: function() {
+            console.log('clearDriver');
+            this.setDriver({data_type: 'individual', id: null});
+        },
         onRemediationActionUpdated: async function(remediation_action_id){_
             console.log('onRemediationActionUpdated');
             console.log(remediation_action_id);
