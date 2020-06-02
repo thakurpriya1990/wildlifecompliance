@@ -195,13 +195,13 @@ export default {
                             let proxy_id = full.current_application.proxy_applicant ? full.current_application.proxy_applicant.id : '';
                             let licence_category_id = full.current_application.category_id ? full.current_application.category_id : '';
                             if (full.is_latest_in_category) {
-                                if (full.can_add_purpose){
+                                if (vm.is_external && full.can_add_purpose){
                                     links += `<a licence-id='${full.id}' add-activity-purpose='${full.id}' org-id='${org_id}' proxy-id='${proxy_id}' licence-category-id='${licence_category_id}'>Amend</a><br/>`;
                                 }
                                 // if (full.can_action['can_amend']) {
                                 //     links += `<a amend-licence='${full.id}' org-id='${org_id}' proxy-id='${proxy_id}' licence-category-id='${licence_category_id}'>Amend</a><br/>`
                                 // }
-                                if (full.can_action['can_renew']) {
+                                if (vm.is_external && full.can_action['can_renew']) {
                                     links += `<a licence-id='${full.id}' renew-licence='${full.id}' org-id='${org_id}' proxy-id='${proxy_id}' licence-category-id='${licence_category_id}'>Renew</a><br/>`
                                 }
                                 if (!vm.is_external && full.can_action['can_reactivate_renew']) {
@@ -818,13 +818,13 @@ export default {
                                 <td>${activity['activity_name_str']}</td>
                                 <td>${activity['activity_purpose_names_and_status'].
                                     replace(/(?:\r\n|\r|\n|,)/g, '<br>')}</td>
-                                <td>${activity['expiry_date']}</td>
+                                <td>${activity['expiry_date'].replace(/(?:\r\n|\r|\n|,)/g, '<br>')}</td>
                                 <td>`;
-                                    if (activity['can_action']['can_amend']) {
+                                    if (vm.is_external && activity['can_action']['can_amend']) {
                                         activity_rows +=
                                             `<a licence-id='${licence_id}' amend-activity='${activity["licence_activity_id"]}' proxy-id='${proxy_id}' org-id='${org_id}' licence-category-id='${licence_category_id}'>Amend</a></br>`;
                                     }
-                                    if (activity['can_action']['can_renew']) {
+                                    if (vm.is_external && activity['can_action']['can_renew']) {
                                         activity_rows +=
                                             `<a licence-id='${licence_id}' renew-activity='${activity["licence_activity_id"]}' proxy-id='${proxy_id}' org-id='${org_id}' licence-category-id='${licence_category_id}'>Renew</a></br>`;
                                     }
