@@ -231,63 +231,19 @@ def _create_licence_header(canvas, doc, draw_page_number=True):
 
 
 def _create_licence(licence_buffer, licence, application):
-    site_url = settings.SITE_URL
-    every_page_frame = Frame(
-        PAGE_MARGIN,
-        PAGE_MARGIN,
-        PAGE_WIDTH - 2 * PAGE_MARGIN,
-        PAGE_HEIGHT - 160,
-        id='EveryPagesFrame')
-    every_page_template = PageTemplate(
-        id='EveryPages',
-        frames=[every_page_frame],
-        onPage=_create_licence_header)
+    '''
+    Creates licence summary and purpose details for licence.
+    '''
 
-    doc = BaseDocTemplate(
-        licence_buffer,
-        pageTemplates=[every_page_template],
-        pagesize=A4)
-
-    # this is the only way to get data into the onPage callback function
-    doc.licence = licence
-    doc.site_url = site_url
-
-    licence_table_style = TableStyle([('VALIGN', (0, 0), (-1, -1), 'TOP')])
-
-    elements = []
-
-    elements.append(Paragraph('Licence Summary', styles['InfoTitleVeryLargeCenter']))
-    elements.append(Spacer(1, SECTION_BUFFER_HEIGHT))
-    elements.append(Paragraph('Activities', styles['BoldLeft']))
-    elements.append(Spacer(1, SECTION_BUFFER_HEIGHT))
-
-    activityList = ListFlowable(
-        [Paragraph("{name}: {start_date} - {expiry_date}".format(
-            name=selected_activity.licence_activity.name,
-            start_date=selected_activity.start_date.strftime(DATE_FORMAT),
-            expiry_date=selected_activity.expiry_date.strftime(DATE_FORMAT)
-        ), styles['Left'],) for selected_activity in licence.current_activities],
-        bulletFontName=BOLD_FONTNAME, bulletFontSize=MEDIUM_FONTSIZE)
-    elements.append(activityList)
-
-    elements.append(Spacer(1, SECTION_BUFFER_HEIGHT))
-    elements.append(Paragraph('Purposes', styles['BoldLeft']))
-    elements.append(Spacer(1, SECTION_BUFFER_HEIGHT))
-
-    purposeList = ListFlowable(
-        [[Paragraph("{name}".format(
-            name=purpose.name,
-        ), styles['Left'],) for purpose in selected_activity.issued_purposes] for selected_activity in licence.current_activities],
-        bulletFontName=BOLD_FONTNAME, bulletFontSize=MEDIUM_FONTSIZE)
-    elements.append(purposeList)
-    elements.append(PageBreak())
-
-    for selected_activity in licence.current_activities:
-
+    def _create_licence_purpose(elements, selected_activity, issued_purpose):
+        '''
+        Creates the licence purpose details per page available on the activity.
+        '''
         # delegation holds the dates, licencee and issuer details.
         delegation = []
 
-        licence_purpose = selected_activity.issued_purposes[0].name
+        # TODO: per purpose
+        licence_purpose = issued_purpose.purpose.name
         elements.append(Paragraph(
             licence_purpose.upper(),
             styles['InfoTitleVeryLargeCenter']))
@@ -345,16 +301,15 @@ def _create_licence(licence_buffer, licence, application):
                 'Date Valid From', styles['BoldLeft']), Paragraph(
                 'Date of Expiry', styles['BoldLeft'])]
         date_values = [
-            Paragraph(
-                selected_activity.issue_date.strftime(
-                    DATE_FORMAT), styles['Left']), Paragraph(
-                selected_activity.start_date.strftime(
-                    DATE_FORMAT), styles['Left']), Paragraph(
-                    selected_activity.expiry_date.strftime(
-                        DATE_FORMAT), styles['Left'])]
-
-        if not selected_activity.original_issue_date.date() == \
-                selected_activity.issue_date.date():
+            Paragraph(selected_activity.get_issue_date(
+                ).strftime('%d/%m/%Y'), styles['Left']),
+            Paragraph(selected_activity.get_start_date(
+                ).strftime('%d/%m/%Y'), styles['Left']),
+            Paragraph(selected_activity.get_expiry_date(
+                ).strftime('%d/%m/%Y'), styles['Left'])
+        ]
+        # TODO: per purpose reissued.
+        if issued_purpose.is_reissued:
             date_headings.insert(
                 0,
                 Paragraph(
@@ -363,8 +318,7 @@ def _create_licence(licence_buffer, licence, application):
             date_values.insert(
                 0,
                 Paragraph(
-                    selected_activity.original_issue_date.strftime(
-                        DATE_FORMAT),
+                    selected_activity.get_original_issue_date(),
                     styles['Left']))
 
         delegation.append(
@@ -374,17 +328,12 @@ def _create_licence(licence_buffer, licence, application):
                 style=dates_licensing_officer_table_style))
 
         delegation.append(Spacer(1, SECTION_BUFFER_HEIGHT))
-        # delegation.append(
-        #     Paragraph(
-        #         'Issued by a Wildlife Licensing Officer of the {} '
-        #         'under delegation from the Minister for Environment pursuant to section 133(1) '
-        #         'of the Conservation and Land Management Act 1984.'.format(
-        #             settings.DEP_NAME), styles['Left']))
 
         elements.append(KeepTogether(delegation))
 
         # species
-        species_ids = selected_activity.issued_purposes[0].get_species_list
+        # TODO: per purpose - species list on purpose.
+        species_ids = issued_purpose.purpose.get_species_list
         if species_ids:
             elements.append(Spacer(1, SECTION_BUFFER_HEIGHT))
             elements.append(Paragraph('SPECIES', styles['BoldLeft']))
@@ -420,9 +369,10 @@ def _create_licence(licence_buffer, licence, application):
             pass
 
         # application conditions
+        # TODO: per purpose application conditions
         activity_conditions = selected_activity.application.conditions.filter(
             licence_activity_id=selected_activity.licence_activity_id,
-            licence_purpose_id=selected_activity.issued_purposes[0].id)
+            licence_purpose_id=issued_purpose.purpose.id)
         conditionList = None
         if activity_conditions.exists():
             elements.append(Spacer(1, SECTION_BUFFER_HEIGHT))
@@ -430,7 +380,9 @@ def _create_licence(licence_buffer, licence, application):
             elements.append(Spacer(1, SECTION_BUFFER_HEIGHT))
 
             conditionList = ListFlowable(
-                [Paragraph(a.condition, styles['Left']) for a in activity_conditions.order_by('order')],
+                [Paragraph(
+                    a.condition, styles['Left']
+                    ) for a in activity_conditions.order_by('order')],
                 bulletFontName=BOLD_FONTNAME, bulletFontSize=MEDIUM_FONTSIZE)
             elements.append(conditionList)
 
@@ -482,9 +434,330 @@ def _create_licence(licence_buffer, licence, application):
 
         elements.append(PageBreak())
 
+    # create the summary for this licence.
+    site_url = settings.SITE_URL
+    every_page_frame = Frame(
+        PAGE_MARGIN,
+        PAGE_MARGIN,
+        PAGE_WIDTH - 2 * PAGE_MARGIN,
+        PAGE_HEIGHT - 160,
+        id='EveryPagesFrame')
+    every_page_template = PageTemplate(
+        id='EveryPages',
+        frames=[every_page_frame],
+        onPage=_create_licence_header)
+
+    doc = BaseDocTemplate(
+        licence_buffer,
+        pageTemplates=[every_page_template],
+        pagesize=A4)
+
+    # this is the only way to get data into the onPage callback function
+    doc.licence = licence
+    doc.site_url = site_url
+
+    licence_table_style = TableStyle([('VALIGN', (0, 0), (-1, -1), 'TOP')])
+
+    elements = []
+
+    elements.append(Paragraph(
+        'Licence Summary', styles['InfoTitleVeryLargeCenter']))
+    elements.append(Spacer(1, SECTION_BUFFER_HEIGHT))
+    elements.append(Paragraph('Activities', styles['BoldLeft']))
+    elements.append(Spacer(1, SECTION_BUFFER_HEIGHT))
+
+    activityList = ListFlowable(
+        [Paragraph("{name}: {start_date} - {expiry_date}".format(
+            name=selected_activity.licence_activity.name,
+            start_date=selected_activity.get_start_date(),
+            expiry_date=selected_activity.get_expiry_date()
+        ),
+            styles['Left'],
+        ) for selected_activity in licence.current_activities],
+        bulletFontName=BOLD_FONTNAME, bulletFontSize=MEDIUM_FONTSIZE)
+    elements.append(activityList)
+
+    elements.append(Spacer(1, SECTION_BUFFER_HEIGHT))
+    elements.append(Paragraph('Purposes', styles['BoldLeft']))
+    elements.append(Spacer(1, SECTION_BUFFER_HEIGHT))
+
+    purposeList = ListFlowable(
+        [[Paragraph("{name}".format(
+            name=purpose.name,
+        ),
+            styles['Left'],
+        ) for purpose in selected_activity.issued_purposes
+        ] for selected_activity in licence.current_activities],
+        bulletFontName=BOLD_FONTNAME, bulletFontSize=MEDIUM_FONTSIZE)
+    elements.append(purposeList)
+    elements.append(PageBreak())
+
+    for selected_activity in licence.current_activities:
+        # create purpose details available for the activity.
+        for purpose in selected_activity.proposed_purposes.all():
+            if not purpose.is_proposed:
+                # Exclude purposes that have been replaced.
+                break
+            _create_licence_purpose(elements, selected_activity, purpose)
+
     doc.build(elements)
 
     return licence_buffer
+
+
+# def _create_licence(licence_buffer, licence, application):
+    # site_url = settings.SITE_URL
+    # every_page_frame = Frame(
+    #     PAGE_MARGIN,
+    #     PAGE_MARGIN,
+    #     PAGE_WIDTH - 2 * PAGE_MARGIN,
+    #     PAGE_HEIGHT - 160,
+    #     id='EveryPagesFrame')
+    # every_page_template = PageTemplate(
+    #     id='EveryPages',
+    #     frames=[every_page_frame],
+    #     onPage=_create_licence_header)
+
+    # doc = BaseDocTemplate(
+    #     licence_buffer,
+    #     pageTemplates=[every_page_template],
+    #     pagesize=A4)
+
+    # # this is the only way to get data into the onPage callback function
+    # doc.licence = licence
+    # doc.site_url = site_url
+
+    # licence_table_style = TableStyle([('VALIGN', (0, 0), (-1, -1), 'TOP')])
+
+    # elements = []
+
+    # elements.append(Paragraph('Licence Summary', styles['InfoTitleVeryLargeCenter']))
+    # elements.append(Spacer(1, SECTION_BUFFER_HEIGHT))
+    # elements.append(Paragraph('Activities', styles['BoldLeft']))
+    # elements.append(Spacer(1, SECTION_BUFFER_HEIGHT))
+
+    # activityList = ListFlowable(
+    #     [Paragraph("{name}: {start_date} - {expiry_date}".format(
+    #         name=selected_activity.licence_activity.name,
+    #         start_date=selected_activity.get_start_date(),
+    #         expiry_date=selected_activity.get_expiry_date()
+    #     ), styles['Left'],) for selected_activity in licence.current_activities],
+    #     bulletFontName=BOLD_FONTNAME, bulletFontSize=MEDIUM_FONTSIZE)
+    # elements.append(activityList)
+
+    # elements.append(Spacer(1, SECTION_BUFFER_HEIGHT))
+    # elements.append(Paragraph('Purposes', styles['BoldLeft']))
+    # elements.append(Spacer(1, SECTION_BUFFER_HEIGHT))
+
+    # purposeList = ListFlowable(
+    #     [[Paragraph("{name}".format(
+    #         name=purpose.name,
+    #     ), styles['Left'],) for purpose in selected_activity.issued_purposes] for selected_activity in licence.current_activities],
+    #     bulletFontName=BOLD_FONTNAME, bulletFontSize=MEDIUM_FONTSIZE)
+    # elements.append(purposeList)
+    # elements.append(PageBreak())
+
+    # for selected_activity in licence.current_activities:
+
+    #     # delegation holds the dates, licencee and issuer details.
+    #     delegation = []
+
+    #     licence_purpose = selected_activity.issued_purposes[0].name
+    #     elements.append(Paragraph(
+    #         licence_purpose.upper(),
+    #         styles['InfoTitleVeryLargeCenter']))
+    #     elements.append(Paragraph(
+    #         'Regulation 28, Biodiversity Conservation Regulations 2018',
+    #         styles['Center']))
+
+    #     # applicant details
+    #     delegation.append(Spacer(1, SECTION_BUFFER_HEIGHT))
+    #     if application.applicant_type \
+    #             == application.APPLICANT_TYPE_ORGANISATION:
+    #         address = application.org_applicant.address
+    #         pass
+    #     elif application.applicant_type == application.APPLICANT_TYPE_PROXY:
+    #         address = application.proxy_applicant.residential_address
+    #         pass
+    #     else:
+    #         # applic.applicant_type == application.APPLICANT_TYPE_SUBMITTER
+    #         address = application.submitter.residential_address
+
+    #     address_paragraphs = [
+    #         Paragraph(address.line1, styles['Left']),
+    #         Paragraph(address.line2, styles['Left']),
+    #         Paragraph(address.line3, styles['Left']),
+    #         Paragraph('%s %s %s' % (
+    #             address.locality, address.state,
+    #             address.postcode), styles['Left']),
+    #         Paragraph(address.country.name, styles['Left'])
+    #         ]
+
+    #     delegation.append(
+    #         Table([[[Paragraph('Licence Number', styles['BoldLeft']),
+    #                 Paragraph('Licence Holder', styles['BoldLeft']),
+    #                 Paragraph('Address', styles['BoldLeft'])],
+    #                 [Paragraph(
+    #                     licence.licence_number,
+    #                     styles['Left']
+    #                     )] + [Paragraph(
+    #                         licence.current_application.applicant,
+    #                         styles['Left']
+    #                     )] + address_paragraphs]], colWidths=(
+    #                         120, PAGE_WIDTH - (
+    #                             2 * PAGE_MARGIN) - 120
+    #                         ), style=licence_table_style))
+
+    #     # dates
+    #     dates_licensing_officer_table_style = TableStyle([(
+    #         'VALIGN', (0, 0), (-2, -1), 'TOP'),
+    #         ('VALIGN', (0, 0), (-1, -1), 'BOTTOM')])
+
+    #     delegation.append(Spacer(1, SECTION_BUFFER_HEIGHT))
+    #     date_headings = [
+    #         Paragraph(
+    #             'Date of Issue', styles['BoldLeft']), Paragraph(
+    #             'Date Valid From', styles['BoldLeft']), Paragraph(
+    #             'Date of Expiry', styles['BoldLeft'])]
+    #     date_values = [
+    #         Paragraph(selected_activity.get_issue_date(
+    #             ).strftime('%d/%m/%Y'), styles['Left']),
+    #         Paragraph(selected_activity.get_start_date(
+    #             ).strftime('%d/%m/%Y'), styles['Left']),
+    #         Paragraph(selected_activity.get_expiry_date(
+    #             ).strftime('%d/%m/%Y'), styles['Left'])
+    #     ]
+
+    #     if selected_activity.is_reissued:
+    #         date_headings.insert(
+    #             0,
+    #             Paragraph(
+    #                 'Original Date of Issue',
+    #                 styles['BoldLeft']))
+    #         date_values.insert(
+    #             0,
+    #             Paragraph(
+    #                 selected_activity.get_original_issue_date(),
+    #                 styles['Left']))
+
+    #     delegation.append(
+    #         Table(
+    #             [[date_headings, date_values]],
+    #             colWidths=(120, PAGE_WIDTH - (2 * PAGE_MARGIN) - 120),
+    #             style=dates_licensing_officer_table_style))
+
+    #     delegation.append(Spacer(1, SECTION_BUFFER_HEIGHT))
+    #     # delegation.append(
+    #     #     Paragraph(
+    #     #         'Issued by a Wildlife Licensing Officer of the {} '
+    #     #         'under delegation from the Minister for Environment pursuant to section 133(1) '
+    #     #         'of the Conservation and Land Management Act 1984.'.format(
+    #     #             settings.DEP_NAME), styles['Left']))
+
+    #     elements.append(KeepTogether(delegation))
+
+    #     # species
+    #     species_ids = selected_activity.issued_purposes[0].get_species_list
+    #     if species_ids:
+    #         elements.append(Spacer(1, SECTION_BUFFER_HEIGHT))
+    #         elements.append(Paragraph('SPECIES', styles['BoldLeft']))
+    #         elements.append(Spacer(1, SECTION_BUFFER_HEIGHT))
+    #         species = LicenceSpecies.objects.values_list('data').filter(
+    #             specie_id__in=species_ids
+    #         )
+    #         speciesList = ListFlowable(
+    #             [Paragraph(
+    #                 s[0][0][
+    #                     'vernacular_names'], styles['Left']) for s in species],
+    #             bulletFontName=BOLD_FONTNAME,
+    #             bulletFontSize=MEDIUM_FONTSIZE)
+    #         elements.append(speciesList)
+    #         elements.append(Spacer(1, SECTION_BUFFER_HEIGHT))
+
+    #     try:
+    #         # copy-to-licence sections with terms and additional information.
+    #         activity_util = ActivitySchemaUtil(selected_activity.application)
+    #         terms = selected_activity.additional_licence_info['terms']
+    #         for term in terms:
+    #             header = term['header']
+    #             if not header:
+    #                 continue
+    #             elements.append(Spacer(1, SECTION_BUFFER_HEIGHT))
+    #             elements.append(Paragraph(header.upper(), styles['BoldLeft']))
+    #             elements.append(Spacer(1, SECTION_BUFFER_HEIGHT))
+    #             text = activity_util.get_ctl_text(term)
+    #             elements.append(Paragraph(text, styles['Left']))
+    #             elements.append(Spacer(1, SECTION_BUFFER_HEIGHT))
+
+    #     except KeyError:
+    #         pass
+
+    #     # application conditions
+    #     activity_conditions = selected_activity.application.conditions.filter(
+    #         licence_activity_id=selected_activity.licence_activity_id,
+    #         licence_purpose_id=selected_activity.issued_purposes[0].id)
+    #     conditionList = None
+    #     if activity_conditions.exists():
+    #         elements.append(Spacer(1, SECTION_BUFFER_HEIGHT))
+    #         elements.append(Paragraph('CONDITIONS', styles['BoldLeft']))
+    #         elements.append(Spacer(1, SECTION_BUFFER_HEIGHT))
+
+    #         conditionList = ListFlowable(
+    #             [Paragraph(a.condition, styles['Left']) for a in activity_conditions.order_by('order')],
+    #             bulletFontName=BOLD_FONTNAME, bulletFontSize=MEDIUM_FONTSIZE)
+    #         elements.append(conditionList)
+
+    #     elements += _layout_extracted_fields(licence.extracted_fields)
+    #     elements.append(Spacer(1, SECTION_BUFFER_HEIGHT))
+
+    #     # signature block
+    #     elements.append(Spacer(1, SECTION_BUFFER_HEIGHT))
+
+    #     issue_officer = '{} {}'.format(
+    #         selected_activity.updated_by.first_name,
+    #         selected_activity.updated_by.last_name
+    #         )
+    #     elements.append(Paragraph('____________________', styles['Left']))
+    #     elements.append(Paragraph(issue_officer, styles['Left']))
+    #     elements.append(Paragraph('LICENSING OFFICER', styles['Left']))
+    #     elements.append(
+    #         Paragraph('WILDLIFE PROTECTION BRANCH', styles['Left']))
+    #     elements.append(Spacer(1, SECTION_BUFFER_HEIGHT))
+    #     elements.append(Paragraph('Delegate of CEO', styles['ItalicLeft']))
+    #     elements.append(Spacer(1, SECTION_BUFFER_HEIGHT))
+
+    #     # additional information
+    #     infoList = None
+    #     if licence.has_additional_information_for(selected_activity):
+    #         elements.append(Spacer(1, SECTION_BUFFER_HEIGHT))
+    #         elements.append(Paragraph(
+    #             'ADDITIONAL INFORMATION', styles['BoldLeft']))
+    #         elements.append(Spacer(1, SECTION_BUFFER_HEIGHT))
+
+    #         conditions = activity_conditions
+    #         infos = []
+    #         c_num = 0
+    #         for c_id, condition in enumerate(conditions.order_by('order')):
+    #             info = None
+    #             if condition.standard_condition:
+    #                 info = condition.standard_condition.additional_information
+    #                 c_num = c_id + 1
+    #             if info:
+    #                 infos.append('{0} (related to condition no.{1})'.format(
+    #                     info.encode('utf8'), c_num))
+
+    #         infoList = ListFlowable(
+    #             [Paragraph("{info}".format(
+    #                 info=i,
+    #             ), styles['Left'],) for i in infos],
+    #             bulletFontName=BOLD_FONTNAME, bulletFontSize=MEDIUM_FONTSIZE)
+    #         elements.append(infoList)
+
+    #     elements.append(PageBreak())
+
+    # doc.build(elements)
+
+    # return licence_buffer
 
 
 def _layout_extracted_fields(extracted_fields):

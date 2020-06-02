@@ -350,14 +350,52 @@ class WildlifeLicence(models.Model):
                 self.next_licence_number_id)
             self.save()
 
+    def get_activities_by_activity_status_ordered(self, status):
+        '''
+        Get all activities available on this licence by status using the last
+        issued application to chain all previous application activities. The
+        list is ordered by issue date.
+
+        NOTE: Issue Date is by Activity Purpose not Licence Activity therefore
+        getter may not perform correctly.
+        '''
+        return self.current_application.get_activity_chain(
+            activity_status=status).order_by(
+            'licence_activity_id', '-issue_date'
+        )
+
     def get_activities_by_activity_status(self, status):
-        return self.current_application.get_activity_chain(activity_status=status).order_by(
+        '''
+        Get all current activities available on this licence by status using
+        the last issued application to chain all previous application
+        activities.
+        '''
+        return self.current_application.get_current_activity_chain(
+            activity_status=status)
+
+    def get_activities_by_processing_status_ordered(self, status):
+        '''
+        Get all activities available on this licence by processing status using
+        the last issued application to chain all previous application
+        activities. The list is ordered by issue date.
+
+        NOTE: Issue Date is by Activity Purpose not Licence Activity therefore
+        getter may not perform correctly.
+        '''
+        return self.current_application.get_activity_chain(
+            processing_status=status).order_by(
             'licence_activity_id', '-issue_date'
         )
 
     def get_activities_by_processing_status(self, status):
-        return self.current_application.get_activity_chain(processing_status=status).order_by(
-            'licence_activity_id', '-issue_date'
+        '''
+        Get all current activities available on this licence by the processing
+        status using the last issued application to chain all previous
+        application activities.
+        '''
+        return self.current_application.get_current_activity_chain(
+            processing_status=status).order_by(
+            'licence_activity_id',
         )
 
     def get_latest_activities_for_licence_activity_and_action(self, licence_activity_id=None, action=None):
@@ -417,16 +455,21 @@ class WildlifeLicence(models.Model):
 
     def get_purposes_in_open_applications(self):
         """
-        Return a list of LicencePurpose records for the licence that are currently in an application being processed
+        Return a list of LicencePurpose records for the licence that are
+        currently in an application being processed
         """
-        from wildlifecompliance.components.applications.models import Application, ApplicationSelectedActivity
+        from wildlifecompliance.components.applications.models import (
+            Application, ApplicationSelectedActivity)
 
         open_applications = Application.objects.filter(
             Q(org_applicant=self.current_application.org_applicant)
             if self.current_application.org_applicant
             else Q(proxy_applicant=self.current_application.proxy_applicant)
             if self.current_application.proxy_applicant
-            else Q(submitter=self.current_application.submitter, proxy_applicant=None, org_applicant=None)
+            else Q(
+                submitter=self.current_application.submitter,
+                proxy_applicant=None,
+                org_applicant=None)
         ).computed_filter(
             licence_category_id=self.licence_category.id
         ).exclude(
@@ -436,25 +479,32 @@ class WildlifeLicence(models.Model):
                 ApplicationSelectedActivity.PROCESSING_STATUS_DISCARDED
             ]
         )
-        open_purposes = open_applications.values_list('licence_purposes', flat=True)
+        open_purposes = open_applications.values_list(
+            'licence_purposes',
+            flat=True)
+
         return open_purposes
 
     @property
     def latest_activities_merged(self):
         """
-        Return a list of activities for the licence, merged by licence_activity_id (1 per LicenceActivity)
+        Return a list of activities for the licence, merged by
+        licence_activity_id (1 per LicenceActivity)
         """
         latest_activities = self.latest_activities
         merged_activities = {}
 
         if self.is_latest_in_category:
-            purposes_in_open_applications = list(self.get_purposes_in_open_applications())
+            purposes_in_open_applications = list(
+                self.get_purposes_in_open_applications())
         else:
             purposes_in_open_applications = None
 
         for activity in latest_activities:
-            if purposes_in_open_applications or purposes_in_open_applications == []:
-                activity_can_action = activity.can_action(purposes_in_open_applications)
+            if purposes_in_open_applications or\
+                    purposes_in_open_applications == []:
+                activity_can_action = activity.can_action(
+                    purposes_in_open_applications)
             else:
                 activity_can_action = {
                     'licence_activity_id': activity.licence_activity_id,
@@ -467,17 +517,20 @@ class WildlifeLicence(models.Model):
                     'can_reinstate': False,
                 }
 
-            # Check if a record for the licence_activity_id already exists, if not, add
+            # Check if a record for the licence_activity_id already exists, if
+            # not, add.
             if not merged_activities.get(activity.licence_activity_id):
                 merged_activities[activity.licence_activity_id] = {
                     'licence_activity_id': activity.licence_activity_id,
                     'activity_name_str': activity.licence_activity.name,
-                    'issue_date': activity.issue_date,
-                    'start_date': activity.start_date,
-                    'expiry_date': activity.expiry_date,
+                    'issue_date': activity.get_issue_date(),
+                    'start_date': activity.get_start_date(),
+                    'expiry_date': '\n'.join(['{}'.format(
+                        p.expiry_date.strftime('%d/%m/%Y') if p.expiry_date else '')
+                        for p in activity.proposed_purposes.all() if p.is_proposed]),
                     'activity_purpose_names_and_status': '\n'.join(['{} ({})'.format(
-                        p.name, activity.get_activity_status_display())
-                        for p in activity.purposes]),
+                        p.purpose.name, activity.get_activity_status_display())
+                        for p in activity.proposed_purposes.all() if p.is_proposed]),
                     'can_action':
                         {
                             'licence_activity_id': activity.licence_activity_id,
@@ -496,6 +549,11 @@ class WildlifeLicence(models.Model):
                     '\n' + '\n'.join(['{} ({})'.format(
                         p.name, activity.get_activity_status_display())
                         for p in activity.purposes])
+                exp_date = activity.get_expiry_date()
+                activity_key['expiry_date'] += \
+                    '\n' + '\n'.join(['{}'.format(
+                        exp_date.strftime('%d/%m/%Y'))
+                        for p in activity.proposed_purposes.all() if p.is_proposed and p.purpose in activity.purposes])
                 activity_key['can_action']['can_renew'] =\
                     activity_key['can_action']['can_renew'] or activity_can_action['can_renew']
                 activity_key['can_action']['can_amend'] =\
@@ -517,9 +575,18 @@ class WildlifeLicence(models.Model):
 
     @property
     def latest_activities(self):
-        from wildlifecompliance.components.applications.models import ApplicationSelectedActivity
-        return self.get_activities_by_processing_status(ApplicationSelectedActivity.PROCESSING_STATUS_ACCEPTED)\
-            .exclude(activity_status=ApplicationSelectedActivity.ACTIVITY_STATUS_REPLACED)
+        '''
+        Returns the most recently issued activities.
+
+        '''
+        from wildlifecompliance.components.applications.models import (
+            ApplicationSelectedActivity)
+
+        REPLACE = ApplicationSelectedActivity.ACTIVITY_STATUS_REPLACED
+
+        return self.get_activities_by_processing_status(
+            ApplicationSelectedActivity.PROCESSING_STATUS_ACCEPTED
+        ).exclude(activity_status=REPLACE)
 
     @property
     def current_activities(self):
@@ -676,6 +743,8 @@ class WildlifeLicence(models.Model):
         activity_id and selected purposes list If not all purposes for an
         activity are to be actioned, create new SYSTEM_GENERATED Applications
         and associated activities to apply the relevant statuses for each.
+
+        TODO: Set dates on activity Purposes.
         """
         from wildlifecompliance.components.applications.models import (
             Application, ApplicationSelectedActivity
@@ -814,6 +883,7 @@ class WildlifeLicence(models.Model):
                         # else, if new previous_status application exists, link the target LicencePurpose IDs to it
                         else:
                             # Link the target LicencePurpose IDs to the application
+                            # TODO:AYN copy activity purpose status dates across
                             for licence_purpose_id in remaining_previous_status_purpose_ids:
                                 application.copy_application_purpose_to_target_application(
                                     new_previous_status_applications[previous_status],
@@ -821,6 +891,7 @@ class WildlifeLicence(models.Model):
 
                         # create new actioned application from this application if not yet exists
                         if not new_actioned_application:
+                            # TODO:AYN copy activity purpose status dates across.
                             new_actioned_application = application.copy_application_purposes_for_status(
                                 common_actioned_purpose_ids, post_actioned_status)
                         # else, if new actioned application exists, link the target LicencePurpose IDs to it
