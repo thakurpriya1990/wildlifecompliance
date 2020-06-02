@@ -772,8 +772,12 @@ class SanctionOutcomeViewSet(viewsets.ModelViewSet):
                         raise serializers.ValidationError(['You must define at least one remediation action.'])
 
                 # offence and offender
-                request_data['offence_id'] = request_data.get('current_offence', {}).get('id', None);
-                request_data['offender_id'] = request_data.get('current_offender', {}).get('id', None);
+                request_data['offence_id'] = request_data.get('current_offence', {}).get('id', None)  # This raises an error when empty string is passed
+                request_data['offender_id'] = request_data.get('current_offender', {})
+                if request_data['offender_id'] in ({}, ''):
+                    request_data['offender_id'] = None
+                else:
+                    request_data['offender_id'] = request_data['offender_id'].get('id', None)
 
                 # workflow
                 workflow_type = request_data.get('workflow_type', '')
