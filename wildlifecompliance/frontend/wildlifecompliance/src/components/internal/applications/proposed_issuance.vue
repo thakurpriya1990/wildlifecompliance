@@ -15,24 +15,38 @@
                                 <div class="row">
                                     <div class="col-sm-12" v-for="(a, index) in applicationSelectedActivitiesForPurposes" v-bind:key="`a_${index}`">
                                         <input type="checkbox" name="licence_activity" :value ="a.id" :id="a.id" v-model="checkedActivities" > {{a.activity_name_str}}
-                                        <table border=0 width='80%'>
-
-                                            <div v-show="checkedActivities.find(checked => checked===a.id)">    
-                                                <div v-for="p in a.purposes">
-                                                    <div><tr><td width="40%">  
-                                                    &nbsp;&nbsp;&nbsp;&nbsp;{{p.short_name}}</td>
-                                                    <td width="10%">Issue <input type="radio" :value ="true" :id="p.id" v-model="getPickedPurpose(p.id).isProposed" ></td>
-                                                    <td width="10%">Decline <input type="radio" :value ="false" :id="p.id" v-model="getPickedPurpose(p.id).isProposed" ></td>
-                                                    </tr>
+                                        <div v-show="checkedActivities.find(checked => checked===a.id)">    
+                                            <div v-for="(p, p_idx) in a.proposed_purposes" v-bind:key="`p_${p_idx}`">
+                                                <div class="col-sm-3">
+                                                    &nbsp;<b>{{p.purpose.short_name}}</b>
+                                                </div>
+                                                <div class="col-sm-3">
+                                                    Issue <input type="radio" :value ="true" :id="p.purpose.id" v-model="getPickedPurpose(p.purpose.id).isProposed" />
+                                                    &nbsp;Decline <input type="radio" :value ="false" :id="p.purpose.id" v-model="getPickedPurpose(p.purpose.id).isProposed" />
+                                                    &nbsp;&nbsp;&nbsp;&nbsp;<b>Period</b>
+                                                </div>
+                                                <div class="col-sm-3">
+                                                    <div class="input-group date" :ref="`start_date_${p.id}`" style="width: 100%;">
+                                                        <input type="text" class="form-control" :name="`start_date_${p.id}`" placeholder="DD/MM/YYYY" v-model="p.start_date">
+                                                        <span class="input-group-addon">
+                                                            <span class="glyphicon glyphicon-calendar"></span>
+                                                        </span>
+                                                    </div>
+                                                </div>
+                                                <div class="col-sm-3">                                                        
+                                                    <div class="input-group date" :ref="`due_date_${p.id}`" style="width: 100%;">
+                                                        <input type="text" class="form-control" :name="`due_date_${p.id}`" placeholder="DD/MM/YYYY" v-model="p.expiry_date">
+                                                        <span class="input-group-addon">
+                                                            <span class="glyphicon glyphicon-calendar"></span>
+                                                        </span>
                                                     </div>
                                                 </div>
                                             </div>
-
-                                        </table>
+                                        </div>
                                     </div>
                                 </div>
                             </div>
-                            <div class="form-group" v-if="canEditLicenceDates">
+                            <!-- <div class="form-group" v-if="canEditLicenceDates">
                                 <div class="row">
                                     <div class="col-sm-3">
                                         
@@ -62,7 +76,7 @@
                                         </div>
                                     </div>
                                 </div>
-                            </div>
+                            </div> -->
                             <div class="form-group">
                                 <div class="row">
                                     <div class="col-sm-3">
@@ -398,7 +412,34 @@ export default {
                     vm.propose_issue.start_date = "";
                 }
              });
-        },
+            console.log(vm.$refs)
+            for (let i=0; i<vm.applicationSelectedActivitiesForPurposes.length; i++){
+                let act = vm.applicationSelectedActivitiesForPurposes[i]
+                for (let p=0; p<act.proposed_purposes.length; p++){
+                    let purpose = act.proposed_purposes[p]
+                    let start_date = 'start_date_' + purpose.id
+                    $(`[name='${start_date}']`).datetimepicker(vm.datepickerOptions);
+                    $(`[name='${start_date}']`).on('dp.change', function(e){
+                        if ($(`[name='${start_date}']`).data('DateTimePicker').date()) {
+                            purpose.start_date =  e.date.format('DD/MM/YYYY');
+                        }
+                        else if ($(`[name='${start_date}']`).data('date') === "") {
+                            purpose.start_date = "";
+                        }
+                    });
+                    let due_date = 'due_date_' + purpose.id
+                    $(`[name='${due_date}']`).datetimepicker(vm.datepickerOptions);
+                    $(`[name='${due_date}']`).on('dp.change', function(e){
+                        if ($(`[name='${due_date}']`).data('DateTimePicker').date()) {
+                            purpose.expiry_date =  e.date.format('DD/MM/YYYY');
+                        }
+                        else if ($(`[name='${due_date}']`).data('date') === "") {
+                            purpose.expiry_date = "";
+                        }
+                    });
+                }
+            }
+         },
         preloadLastActivity: function() {
             this.$http.get(
                 helpers.add_endpoint_json(api_endpoints.applications, this.application_id+'/last_current_activity')

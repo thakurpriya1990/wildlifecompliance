@@ -1,6 +1,5 @@
 from django.urls import reverse
 from ledger.accounts.models import EmailUser
-# from wildlifecompliance.components.applications.utils import amendment_requests
 from wildlifecompliance.components.applications.models import (
     Application,
     ApplicationUserAction,
@@ -12,7 +11,7 @@ from wildlifecompliance.components.applications.models import (
     AmendmentRequest,
     ApplicationSelectedActivity,
     ApplicationFormDataRecord,
-    AssessmentInspection,
+    ApplicationSelectedActivityPurpose,
 )
 from wildlifecompliance.components.organisations.models import (
     Organisation
@@ -85,6 +84,39 @@ class ApplicationSelectedActivityCanActionSerializer(serializers.Serializer):
             ], obj.get('licence_activity_id'))) and obj.get('can_reissue')
 
 
+class ApplicationSelectedActivityPurposeSerializer(
+        serializers.ModelSerializer):
+    purpose = serializers.SerializerMethodField(read_only=True)
+
+    class Meta:
+        model = ApplicationSelectedActivityPurpose
+        fields = '__all__'
+
+    def get_purpose(self, obj):
+        from wildlifecompliance.components.licences.serializers import (
+            PurposeSerializer
+        )
+        return PurposeSerializer(obj.purpose).data
+
+    def get_start_date(self, obj):
+        return obj.start_date.strftime(
+            '%d/%m/%Y') if obj.start_date else ''
+        # return obj.get_start_date() if obj.get_start_date() else ''
+
+    def get_expiry_date(self, obj):
+        return obj.expiry_date.strftime(
+            '%d/%m/%Y') if obj.expiry_date else ''
+        # return obj.get_expiry_date() if obj.get_expiry_date() else ''
+
+    def get_proposed_start_date(self, obj):
+        return obj.proposed_start_date.strftime(
+            '%d/%m/%Y') if obj.proposed_start_date else ''
+
+    def get_proposed_end_date(self, obj):
+        return obj.proposed_end_date.strftime(
+            '%d/%m/%Y') if obj.proposed_end_date else ''
+
+
 class ApplicationSelectedActivitySerializer(serializers.ModelSerializer):
     activity_name_str = serializers.SerializerMethodField(read_only=True)
     issue_date = serializers.SerializerMethodField(read_only=True)
@@ -97,14 +129,16 @@ class ApplicationSelectedActivitySerializer(serializers.ModelSerializer):
     activity_status = CustomChoiceField(read_only=True)
     can_action = ApplicationSelectedActivityCanActionSerializer(read_only=True)
     licence_fee = serializers.DecimalField(
-        max_digits=8, decimal_places=2, coerce_to_string=False, read_only=True),
+        max_digits=8, decimal_places=2, coerce_to_string=False, read_only=True)
     payment_status = serializers.CharField(read_only=True)
     can_pay_licence_fee = serializers.SerializerMethodField()
     officer_name = serializers.SerializerMethodField(read_only=True)
     licensing_officers = EmailUserSerializer(many=True)
     issuing_officers = EmailUserSerializer(many=True)
     is_with_officer = serializers.SerializerMethodField(read_only=True)
-    proposed_purposes = serializers.SerializerMethodField(read_only=True)
+    # proposed_purposes = serializers.SerializerMethodField(read_only=True)
+    proposed_purposes = ApplicationSelectedActivityPurposeSerializer(
+        many=True)
     additional_fee_text = serializers.CharField(
         required=False, allow_null=True)
     additional_fee = serializers.DecimalField(
@@ -138,14 +172,9 @@ class ApplicationSelectedActivitySerializer(serializers.ModelSerializer):
         from wildlifecompliance.components.licences.serializers import PurposeSerializer
         return PurposeSerializer(obj.purposes, many=True).data
 
-    def get_proposed_purposes(self, obj):
-        from wildlifecompliance.components.licences.serializers\
-             import PurposeSerializer
-        purposes = []
-        proposed_purposes = obj.proposed_purposes.all()
-        for proposed in proposed_purposes:
-            purposes.append(proposed.purpose)
-        return PurposeSerializer(purposes, many=True).data
+    # def get_proposed_purposes(self, obj):
+    #     return ApplicationSelectedActivityPurposeSerializer(
+    #         obj.proposed_purposes, many=True).data
 
     def get_issued_purposes(self, obj):
         from wildlifecompliance.components.licences.serializers\
