@@ -696,15 +696,19 @@ class ApplicationViewSet(viewsets.ModelViewSet):
 
             # Adjustments occuring only to the application fee.
             activities = instance.selected_activities.all()
-            if instance.has_amended_fees:
-                activities = instance.amended_activities
+            if instance.has_adjusted_fees:
+                # activities = instance.amended_activities
                 # only fees awaiting payment
-                activities_with_payments = [
+                activities_pay = [
                     a for a in activities if a.processing_status == PAY_STATUS
+                ]
+                # only fees with adjustments.
+                activities_adj = [
+                   a for a in activities_pay if a.has_adjusted_application_fee
                 ]
                 # only fees which are greater than zero.
                 activities_with_fees = [
-                   a for a in activities_with_payments if a.application_fee > 0
+                   a for a in activities_adj if a.application_fee > 0
                 ]
 
                 for activity in activities_with_fees:
@@ -846,11 +850,15 @@ class ApplicationViewSet(viewsets.ModelViewSet):
         if not instance:
             return Response({'activity': None})
 
-        last_activity = instance.get_activity_chain(
+        # last_activity = instance.get_activity_chain(
+        #     activity_status=ApplicationSelectedActivity.ACTIVITY_STATUS_CURRENT
+        # ).order_by(
+        #     '-issue_date'
+        # ).first()
+
+        last_activity = instance.get_current_activity_chain(
             activity_status=ApplicationSelectedActivity.ACTIVITY_STATUS_CURRENT
-        ).order_by(
-            '-issue_date'
-        ).first()
+        )
 
         if not last_activity:
             return Response({'activity': None})
@@ -1339,6 +1347,7 @@ class ApplicationViewSet(viewsets.ModelViewSet):
                     )
                     cleaned_purpose_ids = set(active_current_purposes) & set(licence_purposes)
                     data['licence_purposes'] = cleaned_purpose_ids
+                    data['licence'] = latest_active_licence.id
 
                 # Use serializer for external application creation - do not expose unneeded fields
                 serializer = CreateExternalApplicationSerializer(data=data)

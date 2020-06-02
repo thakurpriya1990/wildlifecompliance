@@ -120,13 +120,16 @@ class ApplicationSelectedActivitySerializer(serializers.ModelSerializer):
         return obj.licence_activity.name if obj.licence_activity else ''
 
     def get_issue_date(self, obj):
-        return obj.issue_date.strftime('%d/%m/%Y %H:%M') if obj.issue_date else ''
+        # return obj.get_issue_date().strftime('%d/%m/%Y %H:%M') if obj.get_issue_date() else ''
+        return obj.get_issue_date() if obj.get_issue_date() else ''
 
     def get_start_date(self, obj):
-        return obj.start_date.strftime('%Y-%m-%d') if obj.start_date else ''
+        # return obj.get_start_date().strftime('%Y-%m-%d') if obj.get_start_date() else ''
+        return obj.get_start_date() if obj.get_start_date() else ''
 
     def get_expiry_date(self, obj):
-        return obj.expiry_date.strftime('%Y-%m-%d') if obj.expiry_date else ''
+        # return obj.get_expiry_date().strftime('%Y-%m-%d') if obj.get_expiry_date() else ''
+        return obj.get_expiry_date() if obj.get_expiry_date() else ''
 
     def get_approve_options(self, obj):
         return [{'label': 'Approved', 'value': 'approved'}, {'label': 'Declined', 'value': 'declined'}]
@@ -215,13 +218,16 @@ class ExternalApplicationSelectedActivitySerializer(serializers.ModelSerializer)
         return obj.licence_activity.name if obj.licence_activity else ''
 
     def get_issue_date(self, obj):
-        return obj.issue_date.strftime('%d/%m/%Y') if obj.issue_date else ''
+        # return obj.get_issue_date().strftime('%d/%m/%Y') if obj.get_issue_date() else ''
+        return obj.get_issue_date() if obj.get_issue_date() else ''
 
     def get_start_date(self, obj):
-        return obj.start_date.strftime('%d/%m/%Y') if obj.start_date else ''
+        # return obj.get_start_date().strftime('%d/%m/%Y') if obj.get_start_date() else ''
+        return obj.get_start_date() if obj.get_start_date() else ''
 
     def get_expiry_date(self, obj):
-        return obj.expiry_date.strftime('%d/%m/%Y') if obj.expiry_date else ''
+        # return obj.get_expiry_date().strftime('%d/%m/%Y') if obj.get_expiry_date() else ''
+        return obj.get_expiry_date() if obj.get_expiry_date() else ''
 
     def get_activity_purpose_names(self, obj):
         return ','.join([p.name for p in obj.purposes])
@@ -259,13 +265,17 @@ class ExternalApplicationSelectedActivityMergedSerializer(serializers.Serializer
         datatables_always_serialize = fields
 
     def get_issue_date(self, obj):
-        return obj.get('issue_date').strftime('%d/%m/%Y') if obj.get('issue_date') else ''
+        # return obj.get('issue_date').strftime('%d/%m/%Y') if obj.get('issue_date') else ''
+        return obj.get('issue_date') if obj.get('issue_date') else ''
 
     def get_start_date(self, obj):
-        return obj.get('start_date').strftime('%d/%m/%Y') if obj.get('start_date') else ''
+        # return obj.get('start_date').strftime('%d/%m/%Y') if obj.get('start_date') else ''
+        return obj.get('start_date') if obj.get('start_date') else ''
 
     def get_expiry_date(self, obj):
-        return obj.get('expiry_date').strftime('%d/%m/%Y') if obj.get('expiry_date') else ''
+        # return obj.get('expiry_date').strftime('%d/%m/%Y') if obj.get('expiry_date') else ''
+        # return obj.get('expiry_date').strftime('%d/%m/%Y') if obj.get('expiry_date') else ''
+        return obj.get('expiry_date') if obj.get('expiry_date') else ''
 
 
 class EmailUserAppViewSerializer(serializers.ModelSerializer):
@@ -584,6 +594,11 @@ class BaseApplicationSerializer(serializers.ModelSerializer):
         result = False if obj.customer_status == \
             Application.CUSTOMER_STATUS_AWAITING_PAYMENT else obj.can_user_edit
 
+        if obj.processing_status == \
+                Application.PROCESSING_STATUS_AWAITING_APPLICANT_RESPONSE:
+            # Outstanding amendment request - edit required.
+            result = True
+
         if result and (
             is_app_licence_officer 
             or is_submitter
@@ -659,23 +674,28 @@ class BaseApplicationSerializer(serializers.ModelSerializer):
         """
         Total paid amount adjusted for presentation purposes. Only applicable
         for internal officers to enforce refundable payments.
+
+        TODO: REDUNDANT
         """
-        adjusted = None
-        # Include previously paid amounts for amendments.
-        adjusted = obj.total_paid_amount + obj.previous_paid_amount
+        # adjusted = None
+        # # Include previously paid amounts for amendments.
+        # adjusted = obj.total_paid_amount + obj.previous_paid_amount
 
-        if obj.processing_status == Application.PROCESSING_STATUS_UNDER_REVIEW:
-            # when Under Review, fee for amendment is paid and included in
-            # previous paid amount as well as total paid amount. Need to
-            # exclude this previous amount.
-            adjusted = adjusted - obj.previous_paid_amount
+        # if obj.processing_status == \
+        #   Application.PROCESSING_STATUS_UNDER_REVIEW:
+        #     # when Under Review, fee for amendment is paid and included in
+        #     # previous paid amount as well as total paid amount. Need to
+        #     # exclude this previous amount.
+        #     adjusted = adjusted - obj.previous_paid_amount
 
-            # licence fee is paid with the application fee. Licence fee needs
-            # to be excluded from total paid for application.
-            licence_fee_paid = 0
-            for activity in obj.activities:
-                licence_fee_paid += activity.licence_fee
-            adjusted = adjusted - licence_fee_paid
+        # # licence fee is paid with the application fee. Licence fee needs
+        # # to be excluded from total paid for application.
+        # licence_fee_paid = 0
+        # for activity in obj.activities:
+        #     licence_fee_paid += activity.licence_fee
+        # adjusted = adjusted - licence_fee_paid
+
+        adjusted = 0
 
         return adjusted
 
@@ -847,7 +867,8 @@ class CreateExternalApplicationSerializer(serializers.ModelSerializer):
             'submitter',
             'licence_purposes',
             'application_type',
-            'previous_application'
+            'previous_application',
+            'licence',
         )
 
 

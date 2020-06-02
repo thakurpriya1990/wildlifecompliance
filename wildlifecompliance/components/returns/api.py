@@ -12,6 +12,10 @@ from rest_framework.decorators import (
 )
 from rest_framework.response import Response
 from rest_framework.renderers import JSONRenderer
+from rest_framework_datatables.pagination import DatatablesPageNumberPagination
+from rest_framework_datatables.filters import DatatablesFilterBackend
+from rest_framework_datatables.renderers import DatatablesRenderer
+
 from wildlifecompliance.helpers import is_customer, is_internal
 from wildlifecompliance.components.returns.utils import (
     SpreadSheet,
@@ -41,10 +45,9 @@ from wildlifecompliance.components.applications.models import (
 from wildlifecompliance.components.returns.email import (
     send_return_amendment_email_notification,
 )
-
-from rest_framework_datatables.pagination import DatatablesPageNumberPagination
-from rest_framework_datatables.filters import DatatablesFilterBackend
-from rest_framework_datatables.renderers import DatatablesRenderer
+from wildlifecompliance.components.returns.services import (
+    ReturnService,
+)
 
 
 class ReturnFilterBackend(DatatablesFilterBackend):
@@ -227,9 +230,12 @@ class ReturnViewSet(viewsets.ReadOnlyModelViewSet):
     def sheet_details(self, request, *args, **kwargs):
         return_id = self.request.query_params.get('return_id')
         species_id = self.request.query_params.get('species_id')
-        instance = Return.objects.get(id=return_id).sheet
-        instance.set_species(species_id)
-        return Response(instance.table)
+        # instance = Return.objects.get(id=return_id).sheet
+        # instance.set_species(species_id)
+        instance = Return.objects.get(id=return_id)
+        ReturnService.set_sheet_species_for(instance, species_id)
+        # return Response(instance.table)
+        return Response(ReturnService.get_details_for(instance))
 
     @detail_route(methods=['POST', ])
     def sheet_check_transfer(self, request, *args, **kwargs):
@@ -308,14 +314,15 @@ class ReturnViewSet(viewsets.ReadOnlyModelViewSet):
         try:
             instance = self.get_object()
 
-            if instance.has_data:
-                instance.data.store(request)
+            ReturnService.store_request_details_for(instance, request)
+            # if instance.has_data:
+            #     instance.data.store(request)
 
-            if instance.has_sheet:
-                instance.sheet.store(request)
+            # if instance.has_sheet:
+            #     instance.sheet.store(request)
 
-            if instance.has_question:
-                instance.question.store(request)
+            # if instance.has_question:
+            #     instance.question.store(request)
 
             instance.save()
             serializer = self.get_serializer(instance)
