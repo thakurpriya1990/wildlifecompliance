@@ -1,6 +1,8 @@
 import ast
 import logging
 
+from datetime import date, timedelta
+
 from concurrency.exceptions import RecordModifiedError
 
 from django.core.exceptions import ValidationError, FieldError
@@ -22,21 +24,136 @@ from wildlifecompliance.components.returns.models import (
     ReturnRow,
     ReturnUserAction,
 )
-
+from wildlifecompliance.components.returns.payments import ReturnFeePolicy
 from wildlifecompliance.components.returns.email import (
-    send_sheet_transfer_email_notification
+    send_sheet_transfer_email_notification,
+    send_return_invoice_notification,
+)
+from wildlifecompliance.components.returns.utils import (
+    get_session_return,
+    bind_return_to_invoice,
 )
 
 logger = logging.getLogger(__name__)
 
 
 class ReturnService(object):
-    """
+    '''
     Services available for Licence Species Returns.
-    """
+    '''
 
     def __init__(self):
         pass
+
+    @staticmethod
+    def submit_session_return_request(request):
+        '''
+        Process a requested return submission using session attributes from the
+        request.
+
+        NOTE: Session is not deleted on successful submission.
+        '''
+        is_submitted = False
+        try:
+            the_return = get_session_return(request.session)
+            the_return.set_submitted(request)
+            is_submitted = True
+
+            logger.info('Submit Successful Return: {0}'.format(
+                the_return.id))
+
+        except BaseException as e:
+            logger.error('submit_session_return_request(): {0}'.format(e))
+            raise
+
+        return is_submitted
+
+    @staticmethod
+    def invoice_session_return_request(request):
+        '''
+        Process a return payment invoice using session attributes from the
+        request.
+
+        NOTE: Session is not deleted on successful invoicing.
+        '''
+        is_invoiced = False
+        try:
+            the_return = get_session_return(request.session)
+            invoice_ref = request.GET.get('invoice')
+            bind_return_to_invoice(request, the_return, invoice_ref)
+            send_return_invoice_notification(the_return, invoice_ref, request)
+            is_invoiced = True
+
+            logger.info('Paid Invoice: {0} Return: {1} Amt: {2}'.format(
+                invoice_ref, the_return.id, the_return.return_fee))
+
+        except BaseException as e:
+            logger.error('invoice_session_return_request(): {0}'.format(e))
+            raise
+
+        return is_invoiced
+
+    @staticmethod
+    def calculate_fees(a_return, data_source=None):
+        '''
+        Calculates fees for a Return.
+        '''
+        # update any fees.
+        fee_policy = ReturnFeePolicy.get_fee_policy_for(a_return)
+
+        return fee_policy.get_dynamic_attributes()
+
+    @staticmethod
+    def get_product_lines(a_return):
+        '''
+        Get product lines for fees associated with a return to be charged
+        through checkout.
+        '''
+        return ReturnFeePolicy.get_fee_product_lines_for(a_return)
+
+    @staticmethod
+    def verify_due_return_id(return_id):
+        '''
+        Vertification of return due date for a single return.
+        '''
+        ReturnService.verify_due_returns(return_id, False)
+
+    @staticmethod
+    def verify_due_returns(id=0, for_all=True):
+        '''
+        Vertification of return due date seven days before it is due and
+        updating the processing status.
+        '''
+        DUE_DAYS = 7
+
+        today_plus_7 = date.today() + timedelta(days=DUE_DAYS)
+        today = date.today()
+        due_returns = Return.objects.filter(
+            due_date__range=[today, today_plus_7],
+            processing_status__in=[
+                Return.RETURN_PROCESSING_STATUS_DRAFT,
+                Return.RETURN_PROCESSING_STATUS_FUTURE
+            ]
+        )
+        status = Return.RETURN_PROCESSING_STATUS_DUE
+        for a_return in due_returns:
+            if not for_all and not a_return.id == id:
+                continue
+            a_return.set_processing_status(status)
+
+        overdue_returns = Return.objects.filter(
+            due_date__lt=today,
+            processing_status__in=[
+                Return.RETURN_PROCESSING_STATUS_DRAFT,
+                Return.RETURN_PROCESSING_STATUS_FUTURE,
+                Return.RETURN_PROCESSING_STATUS_DUE
+            ]
+        )
+        status = Return.RETURN_PROCESSING_STATUS_OVERDUE
+        for a_return in overdue_returns:
+            if not for_all and not a_return.id == id:
+                continue
+            a_return.set_processing_status(status)
 
     @staticmethod
     def get_details_for(a_return):
@@ -76,6 +193,8 @@ class ReturnService(object):
             question = ReturnQuestion(a_return)
             question.store(request)
 
+        fee = ReturnService.calculate_fees(a_return)
+        a_return.set_return_fee(fee['fees']['return'])
         return []
 
     @staticmethod
