@@ -280,19 +280,12 @@ class ReturnViewSet(viewsets.ReadOnlyModelViewSet):
             instance = self.get_object()
             product_lines = []
 
-            return_submission = u'Return submitted by {} {} confirmation {}\
+            return_submission = u'Return submitted by {0} {1} confirmation {2}\
                 '.format(instance.submitter.first_name,
                          instance.submitter.last_name,
                          instance.lodgement_number)
             set_session_return(request.session, instance)
-            product_lines.append({
-                'ledger_description': '{}'.format("Return Description"),
-                'quantity': 1,
-                'price_incl_tax': str(instance.return_fee),
-                'price_excl_tax': str(calculate_excl_gst(instance.return_fee)),
-                'oracle_code': ''
-            })
-
+            product_lines = ReturnService.get_product_lines(instance)
             checkout_result = checkout(request,
                                        instance, lines=product_lines,
                                        invoice_text=return_submission)

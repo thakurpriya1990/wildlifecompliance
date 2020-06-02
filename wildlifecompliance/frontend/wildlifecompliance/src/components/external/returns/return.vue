@@ -5,22 +5,23 @@
         <div class='col-md-3'/>
         <div class='col-md-9' >
 
-            <ReturnSheet v-if="returns.lodgement_date==null && returns.format==='sheet'"></ReturnSheet>
-            <ReturnQuestion v-if="returns.lodgement_date==null && returns.format==='question'"></ReturnQuestion>
-            <ReturnData v-if="returns.lodgement_date==null && returns.format==='data'"></ReturnData>
-            <ReturnSubmit v-if="returns.lodgement_date!=null"></ReturnSubmit>
+            <ReturnSheet v-if="selected_returns_tab_id===0 && returns.format==='sheet'"></ReturnSheet>
+            <ReturnQuestion v-if="selected_returns_tab_id===0 && returns.format==='question'"></ReturnQuestion>
+            <ReturnData v-if="selected_returns_tab_id===0 && returns.format==='data'"></ReturnData>
+            <ReturnSubmit v-if="selected_returns_tab_id===1 && returns.lodgement_date!=null"></ReturnSubmit>
 
             <!-- End template for Return Tab -->
 
-            <div class="row" style="margin-bottom:50px;">
+            <div class="row" style="margin-bottom:50px;" v-if="selected_returns_tab_id===0">
                 <div class="navbar navbar-fixed-bottom" style="background-color: #f5f5f5 ">
                     <div class="navbar-inner">
                         <div class="container">
                             <p class="pull-right" style="margin-top:5px;">
-                                <button style="width:150px;" class="btn btn-primary btn-md" @click.prevent="save(false)" name="save_exit">Save and Exit</button>
-                                <button style="width:150px;" class="btn btn-primary btn-md" @click.prevent="save(true)" name="save_continue">Save and Continue</button>
+                                <strong style="font-size: 18px;" v-if="isPayable">Return submission fee: {{returns.return_fee | toCurrency}}</strong><br>
+                                <button style="width:150px;" class="btn btn-primary btn-md" v-if="isSubmittable" @click.prevent="save(false)" name="save_exit">Save and Exit</button>
+                                <button style="width:150px;" class="btn btn-primary btn-md" v-if="isSubmittable" @click.prevent="save(true)" name="save_continue">Save and Continue</button>
                                 <button style="width:150px;" class="btn btn-primary btn-md" v-if="isSubmittable" @click.prevent="submit()" name="submit">Submit</button>
-                                <button style="width:150px;" class="btn btn-primary btn-md" v-if="isPayable" @click.prevent="submit_and_checkout()" name="submit">Submit &amp; Checkout</button>                                
+                                <button style="width:150px;" class="btn btn-primary btn-md" v-if="isPayable" @click.prevent="submit_and_checkout()" name="submit">Pay and Submit</button>                                
                             </p>
                         </div>
                     </div>
@@ -68,12 +69,16 @@ export default {
         'species_list',
         'species_cache',
         'species_transfer',
+        'selected_returns_tab_id',
     ]),
     isSubmittable() {
-      return this.returns.format !== 'sheet' && this.returns.lodgement_date == null
+      let submittable = ['Draft','Due','Overdue'];
+      let can_submit = submittable.indexOf(this.returns.processing_status) > -1
+
+      return can_submit && this.returns.format !== 'sheet' && !this.isPayable
     },
     isPayable() {
-      return false
+      return this.returns.return_fee > 0 && !this.returns.return_fee_paid ? true : false
     },
     requiresCheckout: function() {
       return this.returns.return_fee > 0 && [
