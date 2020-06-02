@@ -1,3 +1,4 @@
+from django.urls import reverse
 from ledger.accounts.models import EmailUser
 from wildlifecompliance.components.applications.models import ReturnRequest
 from wildlifecompliance.components.main.fields import CustomChoiceField
@@ -74,9 +75,9 @@ class EmailUserSerializer(serializers.ModelSerializer):
 
 class ReturnSerializer(serializers.ModelSerializer):
     # activity = serializers.CharField(source='application.activity')
-    # TODO: check if processing_status should be changed to use CustomChoice.
     processing_status = serializers.CharField(
         source='get_processing_status_display')
+    customer_status = serializers.SerializerMethodField()
     submitter = EmailUserSerializer()
     lodgement_number = serializers.SerializerMethodField()
     sheet_activity_list = serializers.SerializerMethodField()
@@ -85,6 +86,9 @@ class ReturnSerializer(serializers.ModelSerializer):
     licence = serializers.SerializerMethodField()
     condition = ReturnConditionSerializer(read_only=True)
     table = serializers.SerializerMethodField()
+    return_fee = serializers.DecimalField(
+        max_digits=8, decimal_places=2, coerce_to_string=False, read_only=True)
+    invoice_url = serializers.SerializerMethodField(read_only=True)
 
     class Meta:
         model = Return
@@ -93,6 +97,7 @@ class ReturnSerializer(serializers.ModelSerializer):
             'application',
             'due_date',
             'processing_status',
+            'customer_status',
             'submitter',
             'assigned_to',
             'lodgement_number',
@@ -109,6 +114,8 @@ class ReturnSerializer(serializers.ModelSerializer):
             'sheet_species_list',
             'sheet_species',
             'return_fee',
+            'return_fee_paid',
+            'invoice_url',
         )
 
         # the serverSide functionality of datatables is such that only columns
@@ -116,6 +123,12 @@ class ReturnSerializer(serializers.ModelSerializer):
         # datatables_always_serialize to force render of fields that are not
         # listed as 'data' in the datatable columns
         datatables_always_serialize = fields
+
+    def get_customer_status(self, _return):
+        '''
+        Get displayable custom choice for customer status.
+        '''
+        return _return.get_customer_status()
 
     def get_table(self, _return):
         '''
@@ -164,6 +177,17 @@ class ReturnSerializer(serializers.ModelSerializer):
         :return: formatted Licence Number.
         """
         return _return.licence.licence_number
+
+    def get_invoice_url(self, _return):
+        url = None
+        if _return.return_fee_paid:
+            latest_invoice = _return.get_latest_invoice()
+            if latest_invoice:
+                url = reverse(
+                    'payments:invoice-pdf',
+                    kwargs={'reference': latest_invoice.reference})
+
+        return url
 
 
 class ReturnTypeSerializer(serializers.ModelSerializer):

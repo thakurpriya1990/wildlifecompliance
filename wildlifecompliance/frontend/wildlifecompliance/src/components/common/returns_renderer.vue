@@ -71,8 +71,8 @@
         <div class="col-md-9" >
             <div id="tabs" v-show="displayable_tabs">
                 <ul class="nav nav-pills mb-3" id="tab-section" data-tabs="tabs" >
-                    <li class="nav-item active"><a id="0" class="nav-link" data-toggle="pill">1. Return</a></li>
-                    <li class="nav-item" v-if="returns.has_payment" ><a id="1" class="nav-link" data-toggle="pill">2. Confirmation</a></li>
+                    <li class="nav-item active"><a id="0" class="nav-link" data-toggle="pill" v-on:click="selectReturnsTab(0)">{{tabs[0]}}</a></li>
+                    <li class="nav-item" v-if="returns.has_payment" ><a id="1" class="nav-link" data-toggle="pill" v-on:click="selectReturnsTab(1)">{{tabs[1]}}</a></li>
                 </ul>
             </div>
             <div class="tab-content">
@@ -120,6 +120,10 @@ export default {
   },
   data: function() {
     return {
+        tabs: {
+          0: 'Return',
+          1: 'Confirmation',
+        },
         returns_tab_id: 0,
 
         assignTo: false,
@@ -157,6 +161,7 @@ export default {
       return 'Return: ' + this.returns.lodgement_number
     },
     displayable_tabs: function() {
+      return true
       if (this.is_external && this.returns.lodgement_date != null) {
           return false
       }
@@ -165,15 +170,15 @@ export default {
   },
   methods: {
     ...mapActions([
-      'setReturnsTabs',
+      'setReturnsTabId',
       'setReturnsSpecies',
       'setReturnsExternal',
       'setReturns',
       'loadCurrentUser',
     ]),
-    selectReturnsTab: function(component) {
-        this.returns_tab_id = component.id;
-        this.setReturnsTab({id: component.id, name: component.label});
+    selectReturnsTab: function(id) {
+        this.returns_tab_id = id;
+        this.setReturnsTabId({tab_id: id});
     },
     amendmentRequest: function(){
       let vm = this;
@@ -203,9 +208,5 @@ export default {
     // TODO: Species list can be rendered here for internal/external Returns.
     // this.setReturnsSpecies({});
   },
-  mounted: function() {
-    console.log('mounted returns renderer')
-    console.log(this.returns)
-  }
 }
 </script>
