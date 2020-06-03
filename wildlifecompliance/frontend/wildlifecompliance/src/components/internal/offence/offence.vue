@@ -659,10 +659,10 @@ export default {
                 if (this.offence.status.id === this.STATUS_OPEN){
                     for (let i=0; i<this.offence.alleged_offences.length; i++){
                         let alleged_offence = this.offence.alleged_offences[i];
-                        if (alleged_offence.connected_offenders.length < num_offenders){
+                        //if (alleged_offence.connected_offenders.length < num_offenders){
                             visibility = true;
                             break;
-                        }
+                        //}
                     }
                 }
             }

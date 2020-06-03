@@ -886,8 +886,9 @@ export default {
                 if (this.sanction_outcome.type.id == 'infringement_notice' && this.sanction_outcome.is_parking_offence){
                     if (this.sanction_outcome.status.id === this.STATUS_AWAITING_ISSUANCE ||
                         this.sanction_outcome.status.id === this.STATUS_AWAITING_PAYMENT){
-                        // This is when Infringement Notice Coordinator withdraw
-                        visibility = true;
+                        if (this.sanction_outcome.registration_holder_id || this.sanction_outcome.driver_id){
+                            visibility = true;
+                        }
                     }
                 }
             }
