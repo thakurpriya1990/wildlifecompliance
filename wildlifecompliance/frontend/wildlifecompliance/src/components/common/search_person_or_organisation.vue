@@ -18,6 +18,9 @@
                 <div v-if="showCreateNewPerson" class="col-sm-2">
                     <input :disabled="!isEditable" type="button" class="btn btn-primary" value="Create New Person" @click.prevent="createNewPerson()" />
                 </div>
+                <div v-if="showClearPerson" class="col-sm-2">
+                    <input :disabled="!isEditable" type="button" class="btn btn-primary" value="Clear Person" @click.prevent="clearPerson()" />
+                </div>
                 <div v-else-if="showCreateNewOrganisation" class="col-sm-2">
                     <input :disabled="!isEditable" type="button" class="btn btn-primary" value="Create New Organisation" @click.prevent="createNewOrganisation" />
                 </div>
@@ -161,6 +164,10 @@ export default {
         },
     },
     props: {
+        showClearPerson: {
+            required: false,
+            default: false,
+        },
         classNames: {
             required: false,
             default: 'form-control',
@@ -237,7 +244,18 @@ export default {
             console.log(savedEntity)
             return savedEntity;
         },
-
+        clearPerson: function() {
+            this.$emit('clear-person');
+            this.entity = {
+                'id': 0, 
+                'data_type': 'individual',
+                'full_name': '',
+            };
+            let element_search = $('#' + this.elemId);
+            console.log(element_search);
+            element_search.val('');
+            this.displayUpdateCreatePerson = false;
+        },
         createNewPerson: function() {
             this.creatingPerson = true;
             this.entity = {

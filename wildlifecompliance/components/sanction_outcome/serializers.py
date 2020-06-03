@@ -207,6 +207,7 @@ class AllegedCommittedOffenceCreateSerializer(serializers.ModelSerializer):
                         alleged_offence.section_regulation.name,
                         aco.sanction_outcome.offender.person))
             else:
+                # Sanction outome has been already created without any offenders
                 raise serializers.ValidationError('Sanction outcome has been issued for the alleged offence: {} - {}'.format(
                     alleged_offence.section_regulation.act,
                     alleged_offence.section_regulation.name))
