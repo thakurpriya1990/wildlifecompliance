@@ -824,7 +824,9 @@ export default {
                     if (this.sanction_outcome.status.id === this.STATUS_WITH_DOT ||
                         this.sanction_outcome.status.id === this.STATUS_AWAITING_ISSUANCE ||
                         this.sanction_outcome.status.id === this.STATUS_AWAITING_PAYMENT){
-                        canUserEdit = true;
+                        if (!this.sanction_outcome.offender){
+                            canUserEdit = true;
+                        }
                     }
                 }
             }

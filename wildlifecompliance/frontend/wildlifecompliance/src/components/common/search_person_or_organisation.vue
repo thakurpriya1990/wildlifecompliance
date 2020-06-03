@@ -246,6 +246,15 @@ export default {
         },
         clearPerson: function() {
             this.$emit('clear-person');
+            this.entity = {
+                'id': 0, 
+                'data_type': 'individual',
+                'full_name': '',
+            };
+            let element_search = $('#' + this.elemId);
+            console.log(element_search);
+            element_search.val('');
+            this.displayUpdateCreatePerson = false;
         },
         createNewPerson: function() {
             this.creatingPerson = true;
