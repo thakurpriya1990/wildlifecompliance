@@ -429,7 +429,8 @@ class SanctionOutcomeDatatableSerializer(serializers.ModelSerializer):
     paper_notices = serializers.SerializerMethodField()
     coming_due_date = serializers.ReadOnlyField()
     # remediation_actions = serializers.SerializerMethodField()
-    remediation_actions = RemediationActionSerializer(read_only=True, many=True)  # This is related field
+    # remediation_actions = RemediationActionSerializer(read_only=True, many=True)  # This is related field
+    remediation_actions = serializers.SerializerMethodField()
 
     class Meta:
         model = SanctionOutcome
@@ -456,6 +457,11 @@ class SanctionOutcomeDatatableSerializer(serializers.ModelSerializer):
             'remediation_actions',
         )
         read_only_fields = ()
+
+    def get_remediation_actions(self, obj):
+        r_actions = obj.remediation_actions.all().order_by('due_date')
+        remes = RemediationActionSerializer(r_actions, many=True, context={'request': self.context.get('request', {})})
+        return remes.data
 
     def get_offender(self, obj):
         if obj.driver:
