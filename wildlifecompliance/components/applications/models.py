@@ -1556,16 +1556,17 @@ class Application(RevisionedMixin):
         adjusted_fees = [
             a.id for a in self.activities if a.has_adjusted_application_fee]
 
-        return True if adjusted_fees.__len__ > 0 else False
+        return len(adjusted_fees)
 
     @property
     def has_additional_fees(self):
         """
         Check for additional costs manually included by officer at proposal.
         """
-        additional_fees = [a.id for a in self.activities if a.additional_fee>0]
+        additional_fees = [
+            a.id for a in self.activities if a.additional_fee > 0]
 
-        return True if additional_fees.__len__ > 0 else False
+        return len(additional_fees)
 
     @property
     def additional_fees(self):
@@ -1577,95 +1578,6 @@ class Application(RevisionedMixin):
             fees = fees + a.additional_fee
 
         return Decimal(fees)
-
-    # @property
-    # def amended_activities(self):
-    #     """
-    #     Sets the application fee for each activity with a new amended amount
-    #     based on the difference already paid.
-
-    #     TODO: Redundant.
-    #     """
-    #     def on_licence_amend():
-    #         """
-    #         Determines amended amount from already paid on previous
-    #         """
-    #         amended = []
-    #         previous = self.previous_application
-    #         if not previous.latest_invoice:
-    #             return amended
-    #         latest_inv = previous.latest_invoice
-    #         app_inv = ApplicationInvoice.objects.filter(
-    #             invoice_reference=latest_inv.reference).first()
-    #         for activity in self.selected_activities.all():
-    #             invoice_line = ApplicationInvoiceLine.objects.filter(
-    #                 invoice=app_inv,
-    #                 licence_activity=activity.licence_activity).first()
-    #             inv_amount = previous.activity_invoice_amount(activity)
-
-    #             if activity.application_fee != inv_amount:
-    #                 activity.application_fee = activity.application_fee \
-    #                     + activity.base_fees['application']
-
-    #             if (invoice_line and activity.application_fee > inv_amount):
-    #                 difference = activity.application_fee - inv_amount
-    #                 activity.application_fee = difference
-    #                 amended.append(activity)
-
-    #         return amended
-
-    #     def on_request_amend():
-    #         """
-    #         Determines amended amount from already paid on current application.
-    #         """
-    #         amended = []
-    #         if not self.latest_invoice:
-    #             return amended
-    #         latest_inv = self.latest_invoice
-    #         app_inv = ApplicationInvoice.objects.filter(
-    #             invoice_reference=latest_inv.reference).first()
-
-    #         for activity in self.selected_activities.all():
-    #             invoice_line = ApplicationInvoiceLine.objects.filter(
-    #                 invoice=app_inv,
-    #                 licence_activity=activity.licence_activity).first()
-    #             inv_amount = self.activity_invoice_amount(activity)
-
-    #             if activity.application_fee != inv_amount:
-    #                 activity.application_fee = activity.application_fee \
-    #                     + activity.base_fees['application']
-
-    #             if (invoice_line and activity.application_fee > inv_amount):
-    #                 difference = activity.application_fee - inv_amount
-    #                 activity.application_fee = difference
-    #                 amended.append(activity)             
-
-    #         return amended
-
-    #     amended = []
-    #     # check for Customer licence amendment.
-    #     if self.application_type == Application.APPLICATION_TYPE_AMENDMENT:
-    #         amended = on_licence_amend()
-    #     else:
-    #         amended = on_request_amend()
-    #     return amended
-
-    # @property
-    # def activity_invoice_amount(self, activity):
-    #     """
-    #     Gets the total amount paid for an activity across multiple invoices.
-
-    #     TODO: Redundant.
-    #     """
-    #     amount = 0
-    #     invoices = ApplicationInvoice.objects.filter(application_id=self.id)
-    #     for invoice in invoices:
-    #         line = ApplicationInvoiceLine.objects.filter(
-    #             invoice=invoice,
-    #             licence_activity=activity.licence_activity).first()
-    #         amount += line.amount if line else 0
-
-    #     return amount
 
     @property
     def requires_refund(self):
@@ -1742,14 +1654,14 @@ class Application(RevisionedMixin):
             triggered by internal officers change to Application. Previous
             paid will be zero.
             """
-            if self.processing_status ==\
-                Application.PROCESSING_STATUS_UNDER_REVIEW:
+            UNDER_REVIEW = Application.PROCESSING_STATUS_UNDER_REVIEW
+            if self.processing_status == UNDER_REVIEW:
                 # apply the total_paid_amount as application fee is paid.
                 if not previous_paid > self.application_fee:
                     previous_paid = self.application_fee - previous_paid
                 else:
                     previous_paid = 0
-                
+
             return previous_paid
 
         previous_paid = 0
