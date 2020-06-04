@@ -44,10 +44,10 @@ class Command(BaseCommand):
                     logger.info('DEBUG = True')
                     sanction_outcomes_debug = SanctionOutcome.objects.filter(
                         Q(type=SanctionOutcome.TYPE_INFRINGEMENT_NOTICE) &
-                        Q(status=SanctionOutcome.STATUS_AWAITING_PAYMENT) &
-                        Q(payment_status=SanctionOutcome.PAYMENT_STATUS_UNPAID) &
-                        Q(description__icontains='__overdue2nd__'))\
-                        .filter(due_dates__in=SanctionOutcomeDueDate.objects.filter(Q(due_date_term_currently_applied='2nd')))
+                        # Q(status=SanctionOutcome.STATUS_AWAITING_PAYMENT) &
+                        # Q(payment_status=SanctionOutcome.PAYMENT_STATUS_UNPAID) &
+                        Q(description__icontains='__overdue2nd__'))
+                        # .filter(due_dates__in=SanctionOutcomeDueDate.objects.filter(Q(due_date_term_currently_applied='2nd')))
 
                 # Merge querysets
                 sanction_outcomes = (sanction_outcomes_base | sanction_outcomes_debug).distinct()

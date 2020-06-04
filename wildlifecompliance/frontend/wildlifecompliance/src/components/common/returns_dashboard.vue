@@ -120,7 +120,12 @@ export default {
                             return data != '' && data != null ? moment(data).format(vm.dateFormat): '';
                         }
                     },
-                    {data: "processing_status"},
+                    {   
+                        data: "processing_status",
+                        mRender:function (data,type,full) {
+                            return vm.is_external ? full.customer_status : full.processing_status;
+                        }                        
+                    },
                     {
                         data: "licence",
                         mRender:function (data,type,full) {
@@ -130,11 +135,15 @@ export default {
                     {
                         mRender:function (data,type,full) {
                             let links = '';
-
-                            if (!vm.is_external) {
-                                 links +=  `<a href='/internal/return/${full.id}'>View</a><br/>`;
+                            let int_view =  `<a href='/internal/return/${full.id}'>View</a><br/>`;
+                            let int_continue =  `<a href='/internal/return/${full.id}'>Continue</a><br/>`;
+                            let ext_view =  `<a href='/external/return/${full.id}'>View</a><br/>`;
+                            let ext_continue =  `<a href='/external/return/${full.id}'>Continue</a><br/>`;
+                            let submittable = ['Draft','Due','Overdue'];
+                            if (vm.is_external) {
+                                links = submittable.indexOf(full.processing_status) > -1 ? ext_continue : ext_view
                             } else {
-                                 links +=  `<a href='/external/return/${full.id}'>Continue</a><br/>`;
+                                links = submittable.indexOf(full.processing_status) > -1 ? int_view : int_continue
                             };
 
                             return links;
