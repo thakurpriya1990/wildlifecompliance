@@ -577,6 +577,9 @@ export default {
             this.is_parking_offence = false;
             if (this.sanction_outcome.type == 'infringement_notice' && this.aco_ids_included.length == 1){
                 for (let i=0; i < this.sanction_outcome.current_offence.alleged_offences.length; i++){
+
+                    console.log(this.sanction_outcome.current_offence.alleged_offences[i]);
+
                     if (this.sanction_outcome.current_offence.alleged_offences[i].id == this.aco_ids_included[0]){
                         if (this.sanction_outcome.current_offence.alleged_offences[i].section_regulation.is_parking_offence){
                             this.is_parking_offence = true
