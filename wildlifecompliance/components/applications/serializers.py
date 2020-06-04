@@ -1,3 +1,4 @@
+import datetime
 from django.urls import reverse
 from ledger.accounts.models import EmailUser
 from wildlifecompliance.components.applications.models import (
@@ -1220,6 +1221,33 @@ class ProposedLicenceSerializer(serializers.Serializer):
         if incomplete_fees:
             raise serializers.ValidationError(
                 'Please provide description for additional fees.')
+
+        # validate proposal dates.
+        try:
+            proposed_ids = [
+                p['id'] for p in self.initial_data[
+                    'purposes'] if p['isProposed']
+            ]
+            for p_activity in activities:
+                proposed_purposes = p_activity['proposed_purposes']
+                for p_proposed in proposed_purposes:
+                    if p_proposed['purpose']['id'] not in proposed_ids:
+                        continue
+                    start_date = p_proposed['proposed_start_date']
+                    end_date = p_proposed['proposed_end_date']
+                    s_time = datetime.datetime.strptime(start_date, '%d/%m/%Y')
+                    e_time = datetime.datetime.strptime(end_date, '%d/%m/%Y')
+                    if e_time < s_time:
+                        raise serializers.ValidationError(
+                            'End Date can not be before start date.')
+
+        except (AttributeError):
+            raise serializers.ValidationError(
+                'Date value required for proposed dates.')
+
+        except (ValueError):
+            raise serializers.ValidationError(
+                'Date value required for proposed dates.')
 
         return obj
 

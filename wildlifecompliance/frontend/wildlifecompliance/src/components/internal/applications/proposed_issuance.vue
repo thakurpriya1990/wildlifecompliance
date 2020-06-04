@@ -367,20 +367,20 @@ export default {
                     $(`[name='${start_date}']`).datetimepicker(vm.datepickerOptions);
                     $(`[name='${start_date}']`).on('dp.change', function(e){
                         if ($(`[name='${start_date}']`).data('DateTimePicker').date()) {
-                            purpose.start_date =  e.date.format('DD/MM/YYYY');
+                            purpose.proposed_start_date =  e.date.format('DD/MM/YYYY');
                         }
                         else if ($(`[name='${start_date}']`).data('date') === "") {
-                            purpose.start_date = "";
+                            purpose.proposed_start_date = "";
                         }
                     });
                     let end_date = 'end_date_' + purpose.id
                     $(`[name='${end_date}']`).datetimepicker(vm.datepickerOptions);
                     $(`[name='${end_date}']`).on('dp.change', function(e){
                         if ($(`[name='${end_date}']`).data('DateTimePicker').date()) {
-                            purpose.end_date =  e.date.format('DD/MM/YYYY');
+                            purpose.proposed_end_date =  e.date.format('DD/MM/YYYY');
                         }
                         else if ($(`[name='${end_date}']`).data('date') === "") {
-                            purpose.end_date = "";
+                            purpose.proposed_end_date = "";
                         }
                     });
                 }
@@ -393,7 +393,7 @@ export default {
 
                 for(let p=0; p<activity.proposed_purposes.length; p++){
                     let purpose = activity.proposed_purposes[p]
-                    if (purpose.proposed_start_date.charAt(2)==='/'){
+                    if (purpose.proposed_start_date == null || purpose.proposed_start_date.charAt(2)==='/'){
                         continue
                     }
                     let date1 = moment(purpose.proposed_start_date, 'YYYY-MM-DD').format('DD/MM/YYYY')
