@@ -198,9 +198,19 @@ class AllegedCommittedOffenceCreateSerializer(serializers.ModelSerializer):
         acos = AllegedCommittedOffence.get_active_alleged_committed_offences(alleged_offence)
 
         for aco in acos:
-            if aco.sanction_outcome.offender.person.id == offender_id:
-                raise serializers.ValidationError('Sanction outcome has been issued for the alleged offence: {} to the offender: {}'.
-                                                  format(alleged_offence.lodgement_number, aco.sanction_outcome.offender.person))
+            if aco.sanction_outcome.offender:
+                # Sanction outcome has an offender
+                if aco.sanction_outcome.offender.person.id == offender_id:
+                    # Sanction outcome has been already created for this offender
+                    raise serializers.ValidationError('Sanction outcome has been issued for the alleged offence: {} - {} to the offender: {}'.format(
+                        alleged_offence.section_regulation.act,
+                        alleged_offence.section_regulation.name,
+                        aco.sanction_outcome.offender.person))
+            else:
+                # Sanction outome has been already created without any offenders
+                raise serializers.ValidationError('Sanction outcome has been issued for the alleged offence: {} - {}'.format(
+                    alleged_offence.section_regulation.act,
+                    alleged_offence.section_regulation.name))
 
         # if acos.count():
         #     # TODO:
@@ -419,7 +429,8 @@ class SanctionOutcomeDatatableSerializer(serializers.ModelSerializer):
     paper_notices = serializers.SerializerMethodField()
     coming_due_date = serializers.ReadOnlyField()
     # remediation_actions = serializers.SerializerMethodField()
-    remediation_actions = RemediationActionSerializer(read_only=True, many=True)  # This is related field
+    # remediation_actions = RemediationActionSerializer(read_only=True, many=True)  # This is related field
+    remediation_actions = serializers.SerializerMethodField()
 
     class Meta:
         model = SanctionOutcome
@@ -446,6 +457,11 @@ class SanctionOutcomeDatatableSerializer(serializers.ModelSerializer):
             'remediation_actions',
         )
         read_only_fields = ()
+
+    def get_remediation_actions(self, obj):
+        r_actions = obj.remediation_actions.all().order_by('due_date')
+        remes = RemediationActionSerializer(r_actions, many=True, context={'request': self.context.get('request', {})})
+        return remes.data
 
     def get_offender(self, obj):
         if obj.driver:
