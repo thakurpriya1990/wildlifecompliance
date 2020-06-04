@@ -28,14 +28,6 @@
                                                         <input type="checkbox" class="confirmation-checkbox" v-model="getActivity(item.id).confirmed">
                                                     </div>
                                                 </div>
-                                                <!-- <div class="row">
-                                                    <div class="col-sm-3">
-                                                        <input type="radio"  id="issue" name="licence_category" v-model="getActivity(item.id).final_status"  value="issued" > Issue
-                                                    </div>
-                                                    <div class="col-sm-3">
-                                                        <input type="radio"  id="decline" name="licence_category" v-model="getActivity(item.id).final_status"  value="declined" > Decline
-                                                    </div>
-                                                </div> -->
                                                 <div class="row">
                                                     <div class="col-sm-3">
                                                         <label class="control-label pull-left">Proposed Purposes</label>
@@ -43,7 +35,6 @@
                                                     <div class="col-sm-12">
                                                         <div v-for="(p, index) in applicationSelectedActivitiesForPurposes" v-bind:key="`p_${index}`">
                                                             <div class="col-sm-3">
-                                                            <!-- <input type="checkbox" :value ="p.id" :id="p.id" v-model="getActivity(item.id).purposes"> {{p.purpose['short_name']}} -->
                                                             {{p.purpose['short_name']}}
                                                             </div>
                                                             <div class="col-sm-3">
@@ -72,33 +63,6 @@
                                                         </div>
                                                     </div>
                                                 </div>                                                
-                                                <!-- <div class="row" v-if="finalStatus(item.id) === 'issued' && canEditLicenceDates">
-                                                    <div class="col-sm-3">
-                                                        <label class="control-label pull-left">Proposed Start Date</label>
-                                                    </div>
-                                                    <div class="col-sm-9">
-                                                        <div class="input-group date" ref="start_date" style="width: 70%;" :data-init="false" :data-activity="item.id">
-                                                            <input type="text" class="form-control" name="start_date" placeholder="DD/MM/YYYY">
-                                                            <span class="input-group-addon">
-                                                                <span class="glyphicon glyphicon-calendar"></span>
-                                                            </span>
-                                                        </div>
-                                                    </div>
-
-                                                </div>
-                                                <div class="row" v-if="finalStatus(item.id) === 'issued' && canEditLicenceDates">
-                                                    <div class="col-sm-3">
-                                                        <label class="control-label pull-left">Proposed Expiry Date</label>
-                                                    </div>
-                                                    <div class="col-sm-9">
-                                                        <div class="input-group date" ref="end_date" style="width: 70%;" :data-activity="item.id">
-                                                            <input type="text" class="form-control" name="end_date" placeholder="DD/MM/YYYY">
-                                                            <span class="input-group-addon">
-                                                                <span class="glyphicon glyphicon-calendar"></span>
-                                                            </span>
-                                                        </div>
-                                                    </div>
-                                                </div> -->
                                                 <div class="row">
                                                     <div class="col-sm-3">
                                                         <label class="control-label pull-left">Additional Fee Details</label>
@@ -266,6 +230,7 @@ export default {
                 return_check:false,
                 current_application: vm.application.id,
                 purposes: [],
+                selected_purpose_ids: [],
                 },
             datepickerOptions:{
                 format: 'DD/MM/YYYY',
@@ -436,6 +401,8 @@ export default {
                 confirmButtonText: 'Finalise'
             }).then((result) => {
                 if (result.value) {
+                    vm.licence.purposes = this.selectedApplicationActivity.proposed_purposes
+                    vm.licence.selected_purpose_ids = this.pickedPurposes
                     let licence = JSON.parse(JSON.stringify(vm.licence));
                     licence.activity = this.licence.activity.map(activity => {
                         const date_formats = ["DD/MM/YYYY", "YYYY-MM-DD"];
@@ -483,12 +450,6 @@ export default {
             }
             return picked
         },
-        isPickedPurpose: function(_id){
-            // let activities = this.applicationSelectedActivitiesForPurposes.filter( a => {return this.checkedActivities.includes(a.id)})
-            // return activities.find(a => { 
-            //     return a.purposes.find(p => p.id === _id)
-            // })
-        },
         initialiseLicenceDetails() {
             var final_status = null;
             for(let proposal of this.proposed_licence){
@@ -535,6 +496,22 @@ export default {
             if(this.application.return_check_status.id == 'not_checked'){
                 this.licence.return_check=false;
             }
+
+            let activities = this.selectedApplicationActivity
+            for(let a=0; a<activities.length; a++){
+                let activity = activities[a]
+
+                for(let p=0; p<activity.proposed_purposes.length; p++){
+                    let purpose = activity.proposed_purposes[p]
+                    if (purpose.proposed_start_date.charAt(2)==='/'){
+                        continue
+                    }
+                    let date1 = moment(purpose.proposed_start_date, 'YYYY-MM-DD').format('DD/MM/YYYY')
+                    let date2 = moment(purpose.proposed_end_date, 'YYYY-MM-DD').format('DD/MM/YYYY')
+                    purpose.proposed_start_date = date1
+                    purpose.proposed_end_date = date2
+                }
+            } 
         },
         
         fetchProposeIssue(){
@@ -588,16 +565,9 @@ export default {
 
         //Initialise Date Picker
         initDatePicker: function() {
-            console.log('initDatePicker')
-            // if(this.$refs === undefined || this.$refs.end_date === undefined) {
-            //     return;
-            // }
-
-            //let act = vm.applicationSelectedActivitiesForPurposes[i]
             let activity = this.selectedApplicationActivity
             for (let p=0; p<activity.proposed_purposes.length; p++){
                 let purpose = activity.proposed_purposes[p]
-                console.log(purpose)
                 let start_date = 'start_date_' + purpose.id
                 $(`[name='${start_date}']`).datetimepicker(this.datepickerOptions);
                 $(`[name='${start_date}']`).on('dp.change', function(e){
@@ -619,39 +589,6 @@ export default {
                     }
                 });
             }
-
-            // for (let i=0; i < this.$refs.end_date.length; i++) {
-            //     const start_date = this.$refs.start_date[i];
-            //     const end_date = this.$refs.end_date[i];
-            //     const activity_id = end_date.dataset.activity;
-            //     if(end_date.dataset.init) {
-            //         continue;
-            //     }
-
-            //     const activity = this.getActivity(activity_id);
-            //     const proposedStartDate = new Date(activity.start_date);
-            //     const proposedEndDate = new Date(activity.end_date);
-
-            //     end_date.dataset.init = true;
-            //     start_date.dataset.init = true;
-            //     $(end_date).datetimepicker(this.datepickerOptions);
-            //     $(end_date).data('DateTimePicker').date(proposedEndDate);
-            //     $(end_date).off('dp.change').on('dp.change', (e) => {
-            //         const selected_end_date = $(end_date).data('DateTimePicker').date().format('DD/MM/YYYY');
-            //         if (selected_end_date && selected_end_date != activity.end_date) {
-            //             activity.end_date = selected_end_date;
-            //         }
-            //     });
-
-            //     $(start_date).datetimepicker(this.datepickerOptions);
-            //     $(start_date).data('DateTimePicker').date(proposedStartDate);
-            //     $(start_date).off('dp.change').on('dp.change', (e) => {
-            //         const selected_start_date = $(start_date).data('DateTimePicker').date().format('DD/MM/YYYY');
-            //         if (selected_start_date && selected_start_date != activity.start_date) {
-            //             activity.start_date = selected_start_date;
-            //         }
-            //     });
-            // }
         }
     },
     mounted: function(){
@@ -664,11 +601,6 @@ export default {
         });
 
     },
-    updated: function() {
-        // this.$nextTick(() => {
-        //     this.initDatePicker();
-        // });
-    }
     
 }
 </script>

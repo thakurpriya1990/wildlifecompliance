@@ -2052,9 +2052,6 @@ class Application(RevisionedMixin):
                         activity.reason = details.get('reason')
                         activity.cc_email = details.get('cc_email', None)
 
-                        # TODO:AYN Update ActivityPurposes with dates for 
-                        # activity then propsed start date can be start date 
-                        # for the activity instead of latest_activity.
                         for p in purpose_list:
                             # update Application Selected Activity Purposes
                             lp = LicencePurpose.objects.get(id=p['id'])
@@ -2078,13 +2075,6 @@ class Application(RevisionedMixin):
                             purpose.proposed_end_date = \
                                 issued.proposed_end_date
                             purpose.save()
-
-                        # TODO:AYN set on purpose.
-                        # setting proposed dates on the activity is redundant.
-                        # prev_start_date = activity.get_start_date()
-                        # prev_expiry_date = activity.get_expiry_date()
-                        # activity.proposed_start_date = prev_start_date
-                        # activity.proposed_end_date = prev_expiry_date
 
                         # update Additional fees for selected proposed 
                         # activities.
@@ -2112,8 +2102,6 @@ class Application(RevisionedMixin):
                         processing_status=ApplicationSelectedActivity.PROCESSING_STATUS_OFFICER_FINALISATION,
                         reason=details.get('reason'),
                         cc_email=details.get('cc_email', None),
-                        # proposed_start_date=details.get('start_date', None),
-                        # proposed_end_date=details.get('expiry_date', None),
                     )
                     # update Additional fees for selected proposed activities.
                     proposed_activities = request.data.get('activities')
@@ -2146,36 +2134,20 @@ class Application(RevisionedMixin):
                                 purpose_id=p_purpose['id'],
                                 selected_activity=activity,
                             )
-                            # actual start and expiry dates are not set on 
-                            # officer proposals.
-                            # proposed.start_date = p_proposed['start_date']
-                            # proposed.expiry_date = p_proposed['expiry_date']
                             proposed.proposed_start_date = \
                                 datetime.datetime.strptime(
-                                    p_proposed['start_date'], '%d/%m/%Y')
+                                    p_proposed[
+                                        'proposed_start_date'], '%d/%m/%Y')
 
                             proposed.proposed_end_date = \
                                 datetime.datetime.strptime(
-                                    p_proposed['expiry_date'], '%d/%m/%Y')
+                                    p_proposed[
+                                        'proposed_end_date'], '%d/%m/%Y')
 
                             proposed.processing_status = status
                             proposed.save()
 
                         activity.save()
-
-                    # update Application Selected Activity Purposes
-                    # for p in purpose_list:
-                    #     purpose = LicencePurpose.objects.get(id=p['id'])
-                    #     activity = proposed_activities.filter(
-                    #         licence_activity_id = purpose.licence_activity_id
-                    #     ).first()
-                    #     status = 'issue' if p['isProposed'] else 'decline'
-                    #     # activity_purpose = ApplicationSelectedActivityPurpose.objects.get_or_create(
-                    #     #     purpose=purpose,
-                    #     #     selected_activity=activity,
-                    #     # )
-                    #     activity_purpose.processing_status = status
-                    #     activity_purpose.save()
 
                 # Email licence approver group of proposed action.
                 attachments_id = request.data.get('email_attachments_id')
@@ -2540,22 +2512,29 @@ class Application(RevisionedMixin):
                         selected_activity.set_start_date(start_date)
                         selected_activity.set_expiry_date(expiry_date)
 
-                        proposed_purposes =\
-                            selected_activity.proposed_purposes.all()
+                        selected_activity.save()
+
+                        # Set the start and expiry date from the proposed 
+                        # dates.
+                        selected_ids = [
+                            p['id'] for p in request.data.get(
+                                'selected_purpose_ids') if p['isProposed']
+                        ]
+                        proposed_purposes = request.data.get('purposes')
                         ISSUE = ApplicationSelectedActivityPurpose.PROCESSING_STATUS_ISSUED
                         DECLINE = ApplicationSelectedActivityPurpose.PROCESSING_STATUS_DECLINED
-                        for proposed_purpose in proposed_purposes:
+                        for proposed in proposed_purposes:
                             purpose =\
                                 ApplicationSelectedActivityPurpose.objects.get(
-                                    id=proposed_purpose.id
+                                    id=proposed['id']
                                 )
                             # No need to check if purpose has been selected
                             # for issuing.
-                            # if proposed_purpose.purpose_id in item['purposes']:
-                            #     purpose.processing_status = ISSUE
-                            #     purpose.issue_date = timezone.now()
-                            # else:
-                            #     purpose.processing_status = DECLINE
+                            if purpose.purpose_id in selected_ids:
+                                purpose.processing_status = ISSUE
+                                purpose.issue_date = timezone.now()
+                            else:
+                                purpose.processing_status = DECLINE
 
                             if self.application_type not in [
                                 Application.APPLICATION_TYPE_AMENDMENT,
@@ -2564,12 +2543,10 @@ class Application(RevisionedMixin):
                                 purpose.original_issue_date = \
                                     original_issue_date
 
-                            purpose.start_date = purpose.proposed_start_date
-                            purpose.expiry_date = purpose.proposed_end_date
+                            purpose.start_date = proposed['proposed_start_date']
+                            purpose.expiry_date = proposed['proposed_end_date']
                             
                             purpose.save()
-
-                        selected_activity.save()
 
                     elif item['final_status'] == ApplicationSelectedActivity.DECISION_ACTION_DECLINED:
                         selected_activity.assigned_approver = None

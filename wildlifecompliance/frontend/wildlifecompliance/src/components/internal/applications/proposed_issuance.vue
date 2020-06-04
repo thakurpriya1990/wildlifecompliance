@@ -27,15 +27,15 @@
                                                 </div>
                                                 <div class="col-sm-3">
                                                     <div class="input-group date" :ref="`start_date_${p.id}`" style="width: 100%;">
-                                                        <input type="text" class="form-control" :name="`start_date_${p.id}`" placeholder="DD/MM/YYYY" v-model="p.start_date">
+                                                        <input type="text" class="form-control" :name="`start_date_${p.id}`" placeholder="DD/MM/YYYY" v-model="p.proposed_start_date">
                                                         <span class="input-group-addon">
                                                             <span class="glyphicon glyphicon-calendar"></span>
                                                         </span>
                                                     </div>
                                                 </div>
                                                 <div class="col-sm-3">                                                        
-                                                    <div class="input-group date" :ref="`due_date_${p.id}`" style="width: 100%;">
-                                                        <input type="text" class="form-control" :name="`due_date_${p.id}`" placeholder="DD/MM/YYYY" v-model="p.expiry_date">
+                                                    <div class="input-group date" :ref="`end_date_${p.id}`" style="width: 100%;">
+                                                        <input type="text" class="form-control" :name="`end_date_${p.id}`" placeholder="DD/MM/YYYY" v-model="p.proposed_end_date">
                                                         <span class="input-group-addon">
                                                             <span class="glyphicon glyphicon-calendar"></span>
                                                         </span>
@@ -46,37 +46,6 @@
                                     </div>
                                 </div>
                             </div>
-                            <!-- <div class="form-group" v-if="canEditLicenceDates">
-                                <div class="row">
-                                    <div class="col-sm-3">
-                                        
-                                        <label class="control-label pull-left" for="Name">Proposed Start Date</label>
-                                    </div>
-                                    <div class="col-sm-9">
-                                        <div class="input-group date" ref="start_date" style="width: 70%;">
-                                            <input type="text" class="form-control" name="start_date" placeholder="DD/MM/YYYY" v-model="propose_issue.start_date">
-                                            <span class="input-group-addon">
-                                                <span class="glyphicon glyphicon-calendar"></span>
-                                            </span>
-                                        </div>
-                                    </div>
-                                </div>
-                            </div>
-                            <div class="form-group" v-if="canEditLicenceDates">
-                                <div class="row">
-                                    <div class="col-sm-3">
-                                        <label class="control-label pull-left" for="Name">Proposed Expiry Date</label>
-                                    </div>
-                                    <div class="col-sm-9">
-                                        <div class="input-group date" ref="due_date" style="width: 70%;">
-                                            <input type="text" class="form-control" name="due_date" placeholder="DD/MM/YYYY" v-model="propose_issue.expiry_date">
-                                            <span class="input-group-addon">
-                                                <span class="glyphicon glyphicon-calendar"></span>
-                                            </span>
-                                        </div>
-                                    </div>
-                                </div>
-                            </div> -->
                             <div class="form-group">
                                 <div class="row">
                                     <div class="col-sm-3">
@@ -205,8 +174,6 @@ export default {
                 purposes: [],
                 cc_email:null,
                 reason:null,
-                expiry_date:null,
-                start_date:null,
                 approver_detail:null,
                 additional_fee_text:null,
                 additional_fee:0,
@@ -284,8 +251,6 @@ export default {
                 activity:[],
                 cc_email:null,
                 reason:null,
-                expiry_date:null,
-                start_date:null,
                 purposes:[],
             };
             this.errors = false;
@@ -394,25 +359,6 @@ export default {
        eventListeners:function () {
             let vm = this;
             // Initialise Date Picker
-            $(vm.$refs.due_date).datetimepicker(vm.datepickerOptions);
-            $(vm.$refs.due_date).on('dp.change', function(e){
-                if ($(vm.$refs.due_date).data('DateTimePicker').date()) {
-                    vm.propose_issue.expiry_date =  e.date.format('DD/MM/YYYY');
-                }
-                else if ($(vm.$refs.due_date).data('date') === "") {
-                    vm.propose_issue.expiry_date = "";
-                }
-             });
-            $(vm.$refs.start_date).datetimepicker(vm.datepickerOptions);
-            $(vm.$refs.start_date).on('dp.change', function(e){
-                if ($(vm.$refs.start_date).data('DateTimePicker').date()) {
-                    vm.propose_issue.start_date =  e.date.format('DD/MM/YYYY');
-                }
-                else if ($(vm.$refs.start_date).data('date') === "") {
-                    vm.propose_issue.start_date = "";
-                }
-             });
-            console.log(vm.$refs)
             for (let i=0; i<vm.applicationSelectedActivitiesForPurposes.length; i++){
                 let act = vm.applicationSelectedActivitiesForPurposes[i]
                 for (let p=0; p<act.proposed_purposes.length; p++){
@@ -427,32 +373,35 @@ export default {
                             purpose.start_date = "";
                         }
                     });
-                    let due_date = 'due_date_' + purpose.id
-                    $(`[name='${due_date}']`).datetimepicker(vm.datepickerOptions);
-                    $(`[name='${due_date}']`).on('dp.change', function(e){
-                        if ($(`[name='${due_date}']`).data('DateTimePicker').date()) {
-                            purpose.expiry_date =  e.date.format('DD/MM/YYYY');
+                    let end_date = 'end_date_' + purpose.id
+                    $(`[name='${end_date}']`).datetimepicker(vm.datepickerOptions);
+                    $(`[name='${end_date}']`).on('dp.change', function(e){
+                        if ($(`[name='${end_date}']`).data('DateTimePicker').date()) {
+                            purpose.end_date =  e.date.format('DD/MM/YYYY');
                         }
-                        else if ($(`[name='${due_date}']`).data('date') === "") {
-                            purpose.expiry_date = "";
+                        else if ($(`[name='${end_date}']`).data('date') === "") {
+                            purpose.end_date = "";
                         }
                     });
                 }
             }
          },
         preloadLastActivity: function() {
-            this.$http.get(
-                helpers.add_endpoint_json(api_endpoints.applications, this.application_id+'/last_current_activity')
-            ).then((response) => {
-                if(response.body.activity) {
-                    const start_date = response.body.activity.start_date;
-                    const expiry_date = response.body.activity.expiry_date;
-                    this.propose_issue.start_date = moment(start_date, 'YYYY-MM-DD').format('DD/MM/YYYY');
-                    this.propose_issue.expiry_date = moment(expiry_date, 'YYYY-MM-DD').format('DD/MM/YYYY');
+            let activities = this.applicationSelectedActivitiesForPurposes
+            for(let a=0; a<activities.length; a++){
+                let activity = activities[a]
+
+                for(let p=0; p<activity.proposed_purposes.length; p++){
+                    let purpose = activity.proposed_purposes[p]
+                    if (purpose.proposed_start_date.charAt(2)==='/'){
+                        continue
+                    }
+                    let date1 = moment(purpose.proposed_start_date, 'YYYY-MM-DD').format('DD/MM/YYYY')
+                    let date2 = moment(purpose.proposed_end_date, 'YYYY-MM-DD').format('DD/MM/YYYY')
+                    purpose.proposed_start_date = date1
+                    purpose.proposed_end_date = date2
                 }
-            },(error) => {
-                console.log(error);
-            } );
+            }
         },
    },
    mounted:function () {
