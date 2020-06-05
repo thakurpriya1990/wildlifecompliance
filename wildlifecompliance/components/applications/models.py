@@ -3984,23 +3984,62 @@ class ApplicationSelectedActivity(models.Model):
             self.updated_by = request.user
             self.save()
 
+    @transaction.atomic
     def surrender(self, request):
-        with transaction.atomic():
-            self.activity_status = ApplicationSelectedActivity.ACTIVITY_STATUS_SURRENDERED
-            self.updated_by = request.user
-            self.save()
+        '''
+        Surrender the activity when all proposed purposes are surrendered.
+        '''
+        SURRENDER = ApplicationSelectedActivity.ACTIVITY_STATUS_SURRENDERED
 
+        purpose_ids_list = request.data.get('purpose_ids_list', None)
+        purpose_ids_list = list(set(purpose_ids_list))
+        purpose_ids_list.sort()
+        self.set_proposed_purposes_status_for(purpose_ids_list, SURRENDER)
+
+        if not self.is_proposed_purposes_status(SURRENDER):
+            return
+
+        self.activity_status = SURRENDER
+        self.updated_by = request.user
+        self.save()
+
+    @transaction.atomic
     def cancel(self, request):
-        with transaction.atomic():
-            self.activity_status = ApplicationSelectedActivity.ACTIVITY_STATUS_CANCELLED
-            self.updated_by = request.user
-            self.save()
+        '''
+        Cancel the activity when all proposed purposes are cancelled.
+        '''
+        CANCEL = ApplicationSelectedActivity.ACTIVITY_STATUS_CANCELLED
 
+        purpose_ids_list = request.data.get('purpose_ids_list', None)
+        purpose_ids_list = list(set(purpose_ids_list))
+        purpose_ids_list.sort()
+        self.set_proposed_purposes_status_for(purpose_ids_list, SUSPEND)
+
+        if not self.is_proposed_purposes_status(CANCEL):
+            return
+
+        self.activity_status = CANCEL
+        self.updated_by = request.user
+        self.save()
+
+    @transaction.atomic
     def suspend(self, request):
-        with transaction.atomic():
-            self.activity_status = ApplicationSelectedActivity.ACTIVITY_STATUS_SUSPENDED
-            self.updated_by = request.user
-            self.save()
+        '''
+        Suspend the activity when all proposed purposes are suspended.
+        '''
+        SUSPEND = ApplicationSelectedActivity.ACTIVITY_STATUS_SUSPENDED
+
+        purpose_ids_list = request.data.get('purpose_ids_list', None)
+        purpose_ids_list = list(set(purpose_ids_list))
+        purpose_ids_list.sort()
+        self.set_proposed_purposes_status_for(purpose_ids_list, SUSPEND)
+
+        if not self.is_proposed_purposes_status(SUSPEND):
+            return
+
+        self.activity_status = SUSPEND
+        self.updated_by = request.user
+        self.save()
 
     def reinstate(self, request):
         with transaction.atomic():
@@ -4038,6 +4077,35 @@ class ApplicationSelectedActivity(models.Model):
         for selected in selected_purposes:
             selected.processing_status = REPLACE
             selected.save()
+
+    def is_proposed_purposes_status(self, status):
+        '''
+        Check all purposes on this activity have the same status. Used to check
+        if this activity is still current.
+        '''
+        is_same = False
+
+        for purpose in self.proposed_purposes.all():
+            is_same = True if purpose.purpose_status == status else False
+
+        return is_same
+
+    @transaction.atomic
+    def set_proposed_purposes_status_for(self, ids, status):
+        '''
+        Set the status for the selected proposed purposes.
+        '''
+        is_updated = False
+        selected = [
+            p for p in self.proposed_purposes.all() if p.purpose.id in ids
+        ]
+
+        for purpose in selected:
+            purpose.purpose_status = status
+            purpose.save()
+            is_updated = True
+
+        return is_updated
 
     def store_proposed_attachments(self, proposed_attachments):
         """
