@@ -401,7 +401,16 @@ export default {
                 confirmButtonText: 'Finalise'
             }).then((result) => {
                 if (result.value) {
-                    vm.licence.purposes = this.selectedApplicationActivity.proposed_purposes
+                    let selected = []
+                    for (let a=0; a<this.application.activities.length; a++){
+                        let activity = this.application.activities[a]
+                        let proposed = activity.proposed_purposes
+                        for (let p=0; p<proposed.length; p++){
+                            let purpose = proposed[p]
+                            selected.push(purpose)
+                        }
+                    }
+                    vm.licence.purposes = selected
                     vm.licence.selected_purpose_ids = this.pickedPurposes
                     let licence = JSON.parse(JSON.stringify(vm.licence));
                     licence.purposes = vm.licence.purposes.map(purpose => {
@@ -491,16 +500,18 @@ export default {
                 this.licence.return_check=false;
             }
 
-            let activity = this.selectedApplicationActivity
-            for(let p=0; p<activity.proposed_purposes.length; p++){
-                let purpose = activity.proposed_purposes[p]
-                if (purpose.proposed_start_date.charAt(2)==='/'){
-                    continue
+            for (let a=0; a<this.application.activities.length; a++){
+                let activity = this.application.activities[a];
+                for(let p=0; p<activity.proposed_purposes.length; p++){
+                    let purpose = activity.proposed_purposes[p]
+                    if (purpose.proposed_start_date.charAt(2)==='/'){
+                        continue
+                    }
+                    let date1 = moment(purpose.proposed_start_date, 'YYYY-MM-DD').format('DD/MM/YYYY')
+                    let date2 = moment(purpose.proposed_end_date, 'YYYY-MM-DD').format('DD/MM/YYYY')
+                    purpose.proposed_start_date = date1
+                    purpose.proposed_end_date = date2
                 }
-                let date1 = moment(purpose.proposed_start_date, 'YYYY-MM-DD').format('DD/MM/YYYY')
-                let date2 = moment(purpose.proposed_end_date, 'YYYY-MM-DD').format('DD/MM/YYYY')
-                purpose.proposed_start_date = date1
-                purpose.proposed_end_date = date2
             }
         },
         
