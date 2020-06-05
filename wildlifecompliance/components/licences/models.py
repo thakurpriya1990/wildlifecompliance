@@ -483,14 +483,17 @@ class WildlifeLicence(models.Model):
 
     def get_latest_purposes_for_licence_activity_and_action(
             self, licence_activity_id=None, action=None):
-        """
+        '''
         Return a list of LicencePurpose records for the licence Filter by
         licence_activity_id (optional) and/or specified action (optional)
         Exclude purposes that are currently in an application being processed.
-        """
+        '''
         can_action_purpose_list = []
         active_licence_purposes = self.get_purposes_in_open_applications()
-        latest_activities = self.get_latest_activities_for_licence_activity_and_action(licence_activity_id, action)
+        latest_activities = \
+            self.get_latest_activities_for_licence_activity_and_action(
+                licence_activity_id, action
+            )
 
         for activity in latest_activities:
             for purpose in activity.purposes:
@@ -515,6 +518,7 @@ class WildlifeLicence(models.Model):
         status = {
             ApplicationSelectedActivity.ACTIVITY_STATUS_CURRENT,
             ApplicationSelectedActivity.ACTIVITY_STATUS_REPLACED,
+            ApplicationSelectedActivity.ACTIVITY_STATUS_SUSPENDED,
         }
 
         active_licence_purposes = self.get_purposes_in_open_applications()

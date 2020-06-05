@@ -3317,10 +3317,27 @@ class ApplicationSelectedActivity(models.Model):
         return purposes
 
     def can_action(self, purposes_in_open_applications=[]):
-        # Returns a DICT object containing can_<action> Boolean results of each 
-        # action check.
-        # TODO:AYN can_action checks need to be done at the purpose level 
-        # instead of activity as period dates will not be correct.
+        '''
+        Returns a DICT object containing can_<action> Boolean results of each 
+        action check.
+        '''
+        def is_reinstatable():
+            '''
+            Check if this activity can be reinstated.
+            '''
+            status = [
+                ApplicationSelectedActivityPurpose.PURPOSE_STATUS_SUSPENDED,
+                ApplicationSelectedActivityPurpose.PURPOSE_STATUS_CANCELLED,
+                ApplicationSelectedActivityPurpose.PURPOSE_STATUS_SURRENDERED
+            ]
+            can_reinstate = len(
+                [p.id for p in self.proposed_purposes.all() \
+                    if p.purpose_status in status and p.expiry_date \
+                    and p.expiry_date >= current_date]
+            )
+
+            return can_reinstate
+
         can_action = {
             'licence_activity_id': self.licence_activity_id,
             'can_amend': False,
@@ -3417,14 +3434,7 @@ class ApplicationSelectedActivity(models.Model):
 
         # can_reinstate is true if the activity has not yet expired and is 
         # currently SUSPENDED, CANCELLED or SURRENDERED.
-        # TODO:AYN needs to be checked at purpose level.
-        can_action['can_reinstate'] = self.expiry_date and \
-               self.expiry_date >= current_date and \
-               self.activity_status in [
-                   ApplicationSelectedActivity.ACTIVITY_STATUS_SUSPENDED,
-                   ApplicationSelectedActivity.ACTIVITY_STATUS_CANCELLED,
-                   ApplicationSelectedActivity.ACTIVITY_STATUS_SURRENDERED
-               ]
+        can_action['can_reinstate'] = is_reinstatable()
 
         return can_action
 
@@ -4041,11 +4051,24 @@ class ApplicationSelectedActivity(models.Model):
         self.updated_by = request.user
         self.save()
 
+    @transaction.atomic
     def reinstate(self, request):
-        with transaction.atomic():
-            self.activity_status = ApplicationSelectedActivity.ACTIVITY_STATUS_CURRENT
-            self.updated_by = request.user
-            self.save()
+        '''
+        Reinstate the activity when all proposed purposes are current.
+        '''
+        CURRENT = ApplicationSelectedActivity.ACTIVITY_STATUS_CURRENT
+
+        purpose_ids_list = request.data.get('purpose_ids_list', None)
+        purpose_ids_list = list(set(purpose_ids_list))
+        purpose_ids_list.sort()
+        self.set_proposed_purposes_status_for(purpose_ids_list, CURRENT)
+
+        if not self.is_proposed_purposes_status(CURRENT):
+            return
+
+        self.activity_status = CURRENT
+        self.updated_by = request.user
+        self.save()
 
     def reissue(self, request):
         '''
