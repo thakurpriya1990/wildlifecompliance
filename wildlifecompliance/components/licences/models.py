@@ -532,8 +532,10 @@ class WildlifeLicence(models.Model):
                         and proposed.is_proposed:
                     can_action_purpose_list.append(proposed.id)
 
+        ISSUED = ApplicationSelectedActivityPurpose.PROCESSING_STATUS_ISSUED
         records = ApplicationSelectedActivityPurpose.objects.filter(
-            id__in=can_action_purpose_list
+            id__in=can_action_purpose_list,
+            processing_status=ISSUED,
         ).distinct()
 
         return records
