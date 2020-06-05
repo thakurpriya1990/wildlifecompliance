@@ -3146,6 +3146,7 @@ class AssessmentInspection(models.Model):
 
 
 class ApplicationSelectedActivity(models.Model):
+    # TODO:AYN PROPOSED_ACTION replaced in Activity Purposes.
     PROPOSED_ACTION_DEFAULT = 'default'
     PROPOSED_ACTION_DECLINE = 'propose_decline'
     PROPOSED_ACTION_ISSUE = 'propose_issue'
@@ -3154,7 +3155,7 @@ class ApplicationSelectedActivity(models.Model):
         (PROPOSED_ACTION_DECLINE, 'Propose Decline'),
         (PROPOSED_ACTION_ISSUE, 'Propose Issue')
     )
-
+    # TODO:AYN DECISION_ACTION replaced in Activity Purposes
     DECISION_ACTION_DEFAULT = 'default'
     DECISION_ACTION_DECLINED = 'declined'
     DECISION_ACTION_ISSUED = 'issued'
@@ -3316,7 +3317,10 @@ class ApplicationSelectedActivity(models.Model):
         return purposes
 
     def can_action(self, purposes_in_open_applications=[]):
-        # Returns a DICT object containing can_<action> Boolean results of each action check
+        # Returns a DICT object containing can_<action> Boolean results of each 
+        # action check.
+        # TODO:AYN can_action checks need to be done at the purpose level 
+        # instead of activity as period dates will not be correct.
         can_action = {
             'licence_activity_id': self.licence_activity_id,
             'can_amend': False,
@@ -3395,10 +3399,12 @@ class ApplicationSelectedActivity(models.Model):
             activity_ids=[self.id]
         ).exclude(activity_status=ApplicationSelectedActivity.ACTIVITY_STATUS_SUSPENDED).count() > 0
 
-        # can_reissue is true if the activity can be included in a Reissue Application
-        # Extra exclude for SUSPENDED due to get_current_activities_for_application_type
+        # can_reissue is true if the activity can be included in a Reissue 
+        # Application Extra exclude for SUSPENDED due to get_current_activities_for_application_type
         # intentionally not excluding these as part of the default queryset
-        # disable if there are any open applications to maintain licence sequence data integrity
+        # disable if there are any open applications to maintain licence 
+        # sequence data integrity.
+        # TODO:AYN need to check at purpose level.
         if not purposes_in_open_applications:
             can_action['can_reissue'] = ApplicationSelectedActivity.get_current_activities_for_application_type(
                 Application.APPLICATION_TYPE_REISSUE,
@@ -3409,7 +3415,9 @@ class ApplicationSelectedActivity(models.Model):
                 ]
             ).count() > 0
 
-        # can_reinstate is true if the activity has not yet expired and is currently SUSPENDED, CANCELLED or SURRENDERED
+        # can_reinstate is true if the activity has not yet expired and is 
+        # currently SUSPENDED, CANCELLED or SURRENDERED.
+        # TODO:AYN needs to be checked at purpose level.
         can_action['can_reinstate'] = self.expiry_date and \
                self.expiry_date >= current_date and \
                self.activity_status in [
@@ -4106,26 +4114,50 @@ class ApplicationSelectedActivity(models.Model):
         return previous
 
 class ApplicationSelectedActivityPurpose(models.Model):
-    """
+    '''
     A purpose selected for issue on an Application Selected Activity.
-    """
+    '''
+    PURPOSE_STATUS_DEFAULT = 'default'
+    PURPOSE_STATUS_CURRENT = 'current'
+    PURPOSE_STATUS_EXPIRED = 'expired'
+    PURPOSE_STATUS_CANCELLED = 'cancelled'
+    PURPOSE_STATUS_SURRENDERED = 'surrendered'
+    PURPOSE_STATUS_SUSPENDED = 'suspended'
+    PURPOSE_STATUS_REPLACED = 'replaced'
+    PURPOSE_STATUS_CHOICES = (
+        (PURPOSE_STATUS_DEFAULT, 'Default'),
+        (PURPOSE_STATUS_CURRENT, 'Current'),
+        (PURPOSE_STATUS_EXPIRED, 'Expired'),
+        (PURPOSE_STATUS_CANCELLED, 'Cancelled'),
+        (PURPOSE_STATUS_SURRENDERED, 'Surrendered'),
+        (PURPOSE_STATUS_SUSPENDED, 'Suspended'),
+        (PURPOSE_STATUS_REPLACED, 'Replaced'),
+    )
     PROCESSING_STATUS_SELECTED = 'selected'
     PROCESSING_STATUS_PROPOSED = 'propose'
     PROCESSING_STATUS_ISSUED = 'issue'
     PROCESSING_STATUS_DECLINED = 'decline'
+    # TODO:AYN replace processing status is redundant.
     PROCESSING_STATUS_REPLACED = 'replace'
+    PROCESSING_STATUS_REISSUE = 'reissue'
     PROCESSING_STATUS_CHOICES = (
         (PROCESSING_STATUS_SELECTED, 'Selected for Proposal'),
         (PROCESSING_STATUS_PROPOSED, 'Proposed for Issue'),
         (PROCESSING_STATUS_DECLINED, 'Declined'),
         (PROCESSING_STATUS_ISSUED, 'Issued'),
         (PROCESSING_STATUS_REPLACED, 'Replaced'),
+        (PROCESSING_STATUS_REISSUE, 'Reissued'),
     )
     processing_status = models.CharField(
         'Processing Status',
         max_length=40,
         choices=PROCESSING_STATUS_CHOICES,
         default=PROCESSING_STATUS_SELECTED)
+    purpose_status = models.CharField(
+        'Purpose Status',
+        max_length=40,
+        choices=PURPOSE_STATUS_CHOICES,
+        default=PURPOSE_STATUS_DEFAULT)
     selected_activity = models.ForeignKey(
         ApplicationSelectedActivity, related_name='proposed_purposes')
     purpose = models.ForeignKey(
