@@ -404,28 +404,22 @@ export default {
                     vm.licence.purposes = this.selectedApplicationActivity.proposed_purposes
                     vm.licence.selected_purpose_ids = this.pickedPurposes
                     let licence = JSON.parse(JSON.stringify(vm.licence));
-                    licence.activity = this.licence.activity.map(activity => {
+                    licence.purposes = vm.licence.purposes.map(purpose => {
                         const date_formats = ["DD/MM/YYYY", "YYYY-MM-DD"];
                         return {
-                            ...activity,
-                            start_date: activity.start_date ?
-                                moment(activity.start_date, date_formats).format('YYYY-MM-DD') : null,
-                            end_date: activity.end_date ?
-                                moment(activity.end_date, date_formats).format('YYYY-MM-DD') : null,
+                            ...purpose,
+                            proposed_start_date: purpose.proposed_start_date ?
+                                moment(purpose.proposed_start_date, date_formats).format('YYYY-MM-DD') : null,
+                            proposed_end_date: purpose.proposed_end_date ?
+                                moment(purpose.proposed_end_date, date_formats).format('YYYY-MM-DD') : null,
                         }
                     });
                     vm.$http.post(helpers.add_endpoint_json(api_endpoints.applications,vm.application.id+'/final_decision'),JSON.stringify(licence),{
                                 emulateJSON:true,
+
                             }).then((response)=>{
-                                //swal(
-                                //    'Activities Finalised',
-                                //    'The selected activities have been successfully finalised!',
-                                //    'success'
-                                //);
-                                //vm.$parent.refreshFromResponse(response);
-                                vm.$router.push({
-                                    name:"internal-dash",
-                                });     
+                                vm.$router.push({ name:"internal-dash", });
+
                             },(error)=>{
                                 swal(
                                     'Application Error',
@@ -497,21 +491,17 @@ export default {
                 this.licence.return_check=false;
             }
 
-            let activities = this.selectedApplicationActivity
-            for(let a=0; a<activities.length; a++){
-                let activity = activities[a]
-
-                for(let p=0; p<activity.proposed_purposes.length; p++){
-                    let purpose = activity.proposed_purposes[p]
-                    if (purpose.proposed_start_date.charAt(2)==='/'){
-                        continue
-                    }
-                    let date1 = moment(purpose.proposed_start_date, 'YYYY-MM-DD').format('DD/MM/YYYY')
-                    let date2 = moment(purpose.proposed_end_date, 'YYYY-MM-DD').format('DD/MM/YYYY')
-                    purpose.proposed_start_date = date1
-                    purpose.proposed_end_date = date2
+            let activity = this.selectedApplicationActivity
+            for(let p=0; p<activity.proposed_purposes.length; p++){
+                let purpose = activity.proposed_purposes[p]
+                if (purpose.proposed_start_date.charAt(2)==='/'){
+                    continue
                 }
-            } 
+                let date1 = moment(purpose.proposed_start_date, 'YYYY-MM-DD').format('DD/MM/YYYY')
+                let date2 = moment(purpose.proposed_end_date, 'YYYY-MM-DD').format('DD/MM/YYYY')
+                purpose.proposed_start_date = date1
+                purpose.proposed_end_date = date2
+            }
         },
         
         fetchProposeIssue(){
