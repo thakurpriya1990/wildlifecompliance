@@ -7,6 +7,7 @@ from wildlifecompliance.components.licences.models import (
 )
 from wildlifecompliance.components.applications.models import (
     ApplicationSelectedActivity,
+    ApplicationSelectedActivityPurpose,
     ActivityInvoice,
 )
 from wildlifecompliance.components.applications.serializers import (
@@ -286,6 +287,28 @@ class DefaultPurposeSerializer(BasePurposeSerializer):
             'base_licence_fee',
             'short_name'
         )
+
+
+class ProposedPurposeSerializer(serializers.ModelSerializer):
+    purpose = DefaultPurposeSerializer(read_only=True)
+    name = serializers.SerializerMethodField()
+    application = serializers.SerializerMethodField()
+
+    class Meta:
+        model = ApplicationSelectedActivityPurpose
+        fields = (
+            'id',
+            'selected_activity',
+            'purpose',
+            'name',
+            'application',
+        )
+
+    def get_name(self, obj):
+        return obj.purpose.name if obj.purpose else ''
+
+    def get_application(self, obj):
+        return obj.selected_activity.application_id
 
 
 class DefaultActivitySerializer(serializers.ModelSerializer):

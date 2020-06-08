@@ -195,6 +195,27 @@ export default {
     userIsAssignedOfficer: function(){
       return this.current_user.id == this.returns.assigned_to;
     },
+    acceptReturn: function(){
+      const self = this;
+      self.form=document.forms.external_returns_form;
+      self.$http.post(helpers.add_endpoint_json(api_endpoints.returns,self.returns.id+'/accept'),{
+                      emulateJSON:true,
+                    }).then((response)=>{
+                      //  let species_id = self.returns.sheet_species;
+                      //  self.setReturns(response.body);
+                      //  self.returns.sheet_species = species_id;
+                      //  swal('Save',
+                      //       'Return Submitted',
+                      //       'success'
+                      //  );
+                    },(error)=>{
+                        console.log(error);
+                        swal('Error',
+                             'There was an error accepting the return.<br/>' + error.body,
+                             'error'
+                        )
+                    });
+    },
   },
   created: function() {
     this.loadCurrentUser({ url: `/api/my_user_details` });
