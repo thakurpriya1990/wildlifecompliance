@@ -58,7 +58,7 @@ class ReturnFilterBackend(DatatablesFilterBackend):
         # Get built-in DRF datatables queryset first to join with search text,
         # then apply additional filters.
         super_queryset = super(ReturnFilterBackend, self).filter_queryset(
-            request, queryset, view).distinct()
+            request, queryset, view).distinct().order_by('-id')
 
         date_from = request.GET.get('date_from')
         date_to = request.GET.get('date_to')
