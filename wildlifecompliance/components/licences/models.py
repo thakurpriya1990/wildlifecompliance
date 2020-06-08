@@ -398,60 +398,147 @@ class WildlifeLicence(models.Model):
             'licence_activity_id',
         )
 
-    def get_latest_activities_for_licence_activity_and_action(self, licence_activity_id=None, action=None):
+    def get_application_activities_by(
+            self, activity_id=None, action=None, purpose_ids=None):
+        '''
+        Returns the latest list of ApplicationSelectedActivity records for a
+        single application.
+
+        Supports actioning by allowing single applications with multiple
+        activities and purposes to be actioned by an officer in one process.
+
+        NOTE: Supporting only Reissue.
+        '''
+        acts = self.get_latest_activities_for_licence_activity_and_action(
+            activity_id,
+            action
+        )
+        if action == WildlifeLicence.ACTIVITY_PURPOSE_ACTION_REISSUE:
+            activities = self.latest_activities
+            acts = activities.filter(
+                proposed_purposes__purpose_id__in=purpose_ids)
+            first = acts[0]
+            acts = acts.filter(application_id=first.application_id)
+
+        return acts
+
+    def get_latest_activities_for_licence_activity_and_action(
+            self, licence_activity_id=None, action=None):
         '''
         Return a list of ApplicationSelectedActivity records for the licence
-        Filter by licence_activity_id (optional) and/or specified action (optional)
+        Filter by licence_activity_id (optional) and/or specified action
+        (optional).
+
         '''
-        # for a given licence_activity_id and action, return relevant applications
-        # only check if licence is the latest in its category for the applicant
-        print('get_latest_activities_for_licence_activity_and_action in licence/models')
+        # for a given licence_activity_id and action, return relevant
+        # applications only check if licence is the latest in its category for
+        # the applicant.
+        CANCEL = WildlifeLicence.ACTIVITY_PURPOSE_ACTION_CANCEL
+        SUSPEND = WildlifeLicence.ACTIVITY_PURPOSE_ACTION_SUSPEND
+        SURRENDER = WildlifeLicence.ACTIVITY_PURPOSE_ACTION_SURRENDER
+        RENEW = WildlifeLicence.ACTIVITY_PURPOSE_ACTION_REACTIVATE_RENEW
+        REINSTATE = WildlifeLicence.ACTIVITY_PURPOSE_ACTION_REINSTATE
+        REISSUE = WildlifeLicence.ACTIVITY_PURPOSE_ACTION_REISSUE
+
         if self.is_latest_in_category:
             latest_activities = self.latest_activities
             if licence_activity_id:
-                latest_activities = latest_activities.filter(licence_activity_id=licence_activity_id)
+                latest_activities = latest_activities.filter(
+                    licence_activity_id=licence_activity_id)
+
             # get the list of can_<action> ApplicationSelectedActivity records
             if action:
                 can_action_activity_ids = []
-                purposes_in_open_applications = self.get_purposes_in_open_applications()
+                purposes_in_open_applications = \
+                    self.get_purposes_in_open_applications()
+
                 for activity in latest_activities:
-                    activity_can_action = activity.can_action(purposes_in_open_applications)
-                    if action == WildlifeLicence.ACTIVITY_PURPOSE_ACTION_CANCEL:
+                    activity_can_action = activity.can_action(
+                        purposes_in_open_applications)
+                    if action == CANCEL:
                         if activity_can_action['can_cancel']:
                             can_action_activity_ids.append(activity.id)
-                    elif action == WildlifeLicence.ACTIVITY_PURPOSE_ACTION_SUSPEND:
+                    elif action == SUSPEND:
                         if activity_can_action['can_suspend']:
                             can_action_activity_ids.append(activity.id)
-                    elif action == WildlifeLicence.ACTIVITY_PURPOSE_ACTION_SURRENDER:
+                    elif action == SURRENDER:
                         if activity_can_action['can_surrender']:
                             can_action_activity_ids.append(activity.id)
-                    elif action == WildlifeLicence.ACTIVITY_PURPOSE_ACTION_REACTIVATE_RENEW:
+                    elif action == RENEW:
                         if activity_can_action['can_reactivate_renew']:
                             can_action_activity_ids.append(activity.id)
-                    elif action == WildlifeLicence.ACTIVITY_PURPOSE_ACTION_REINSTATE:
+                    elif action == REINSTATE:
                         if activity_can_action['can_reinstate']:
                             can_action_activity_ids.append(activity.id)
-                    elif action == WildlifeLicence.ACTIVITY_PURPOSE_ACTION_REISSUE:
+                    elif action == REISSUE:
                         if activity_can_action['can_reissue']:
                             can_action_activity_ids.append(activity.id)
-                latest_activities = latest_activities.filter(id__in=can_action_activity_ids)
+
+                latest_activities = latest_activities.filter(
+                    id__in=can_action_activity_ids)
         else:
             latest_activities = []
+
         return latest_activities
 
-    def get_latest_purposes_for_licence_activity_and_action(self, licence_activity_id=None, action=None):
-        """
-        Return a list of LicencePurpose records for the licence
-        Filter by licence_activity_id (optional) and/or specified action (optional)
-        Exclude purposes that are currently in an application being processed
-        """
+    def get_latest_purposes_for_licence_activity_and_action(
+            self, licence_activity_id=None, action=None):
+        '''
+        Return a list of LicencePurpose records for the licence Filter by
+        licence_activity_id (optional) and/or specified action (optional)
+        Exclude purposes that are currently in an application being processed.
+        '''
         can_action_purpose_list = []
-        purposes_in_open_applications_for_applicant = self.get_purposes_in_open_applications()
-        for activity in self.get_latest_activities_for_licence_activity_and_action(licence_activity_id, action):
+        active_licence_purposes = self.get_purposes_in_open_applications()
+        latest_activities = \
+            self.get_latest_activities_for_licence_activity_and_action(
+                licence_activity_id, action
+            )
+
+        for activity in latest_activities:
             for purpose in activity.purposes:
-                if purpose.id not in purposes_in_open_applications_for_applicant:
+                if purpose.id not in active_licence_purposes:
                     can_action_purpose_list.append(purpose.id)
-        return LicencePurpose.objects.filter(id__in=can_action_purpose_list).distinct()
+        records = LicencePurpose.objects.filter(
+            id__in=can_action_purpose_list
+        ).distinct()
+
+        return records
+
+    def get_latest_purposes_for_licence(self, licence_activity_id):
+        '''
+        Return a list of LicencePurpose records for the licence. Exclude
+        purposes that are currently in an application being processed.
+        '''
+        from wildlifecompliance.components.applications.models import (
+            ApplicationSelectedActivity,
+            ApplicationSelectedActivityPurpose,
+        )
+        can_action_purpose_list = []
+        status = {
+            ApplicationSelectedActivity.ACTIVITY_STATUS_CURRENT,
+            ApplicationSelectedActivity.ACTIVITY_STATUS_REPLACED,
+            ApplicationSelectedActivity.ACTIVITY_STATUS_SUSPENDED,
+        }
+
+        active_licence_purposes = self.get_purposes_in_open_applications()
+        latest = self.current_application.get_current_activity_chain(
+            activity_status__in=status
+        ).filter(licence_activity_id=licence_activity_id)
+
+        for activity in latest:
+            for proposed in activity.proposed_purposes.all():
+                if proposed.purpose.id not in active_licence_purposes\
+                        and proposed.is_proposed:
+                    can_action_purpose_list.append(proposed.id)
+
+        ISSUED = ApplicationSelectedActivityPurpose.PROCESSING_STATUS_ISSUED
+        records = ApplicationSelectedActivityPurpose.objects.filter(
+            id__in=can_action_purpose_list,
+            processing_status=ISSUED,
+        ).distinct()
+
+        return records
 
     def get_purposes_in_open_applications(self):
         """
@@ -749,14 +836,15 @@ class WildlifeLicence(models.Model):
         from wildlifecompliance.components.applications.models import (
             Application, ApplicationSelectedActivity
         )
+        CANCEL = WildlifeLicence.ACTIVITY_PURPOSE_ACTION_CANCEL
+        SUSPEND = WildlifeLicence.ACTIVITY_PURPOSE_ACTION_SUSPEND
+        SURRENDER = WildlifeLicence.ACTIVITY_PURPOSE_ACTION_SURRENDER
+        RENEW = WildlifeLicence.ACTIVITY_PURPOSE_ACTION_REACTIVATE_RENEW
+        REINSTATE = WildlifeLicence.ACTIVITY_PURPOSE_ACTION_REINSTATE
+        REISSUE = WildlifeLicence.ACTIVITY_PURPOSE_ACTION_REISSUE
+
         if action not in [
-            WildlifeLicence.ACTIVITY_PURPOSE_ACTION_REACTIVATE_RENEW,
-            WildlifeLicence.ACTIVITY_PURPOSE_ACTION_SURRENDER,
-            WildlifeLicence.ACTIVITY_PURPOSE_ACTION_CANCEL,
-            WildlifeLicence.ACTIVITY_PURPOSE_ACTION_SUSPEND,
-            WildlifeLicence.ACTIVITY_PURPOSE_ACTION_REINSTATE,
-            WildlifeLicence.ACTIVITY_PURPOSE_ACTION_REISSUE,
-        ]:
+         RENEW, SURRENDER, CANCEL, SUSPEND, REINSTATE, REISSUE]:
             raise ValidationError('Selected action is not valid')
 
         with transaction.atomic():
@@ -782,105 +870,140 @@ class WildlifeLicence(models.Model):
 
             # A Reissue on Activity Purpose occurs on the selected Activity
             # only and does apply to all activities.
+            # TODO:AYN requirement that reissue of active licence purposes only
+            # from the same licence application.
             if action == WildlifeLicence.ACTIVITY_PURPOSE_ACTION_REISSUE:
                 can_action_purposes_ids_list = purpose_ids_list
-                licence_activity_id = purpose_ids_list[0]
+                # licence_activity_id = purpose_ids_list[0]
 
             # if all purposes were selected by the user for action,
             # action all previous status ApplicationSelectedActivity records
             if purpose_ids_list == can_action_purposes_ids_list:
-                activities_to_action = \
-                    self.get_latest_activities_for_licence_activity_and_action(
-                        licence_activity_id, action)
-
+                # TODO:AYN only want latest activity for purposes from the one
+                # app.
+                activities_to_action = self.get_application_activities_by(
+                    licence_activity_id,
+                    action,
+                    can_action_purposes_ids_list,
+                )
                 # action target activities
                 for activity in activities_to_action:
-                    if action == WildlifeLicence.ACTIVITY_PURPOSE_ACTION_REACTIVATE_RENEW:
+                    if action == RENEW:
                         activity.reactivate_renew(request)
-                    elif action == WildlifeLicence.ACTIVITY_PURPOSE_ACTION_SURRENDER:
+                    elif action == SURRENDER:
                         activity.surrender(request)
-                    elif action == WildlifeLicence.ACTIVITY_PURPOSE_ACTION_CANCEL:
+                    elif action == CANCEL:
                         activity.cancel(request)
-                    elif action == WildlifeLicence.ACTIVITY_PURPOSE_ACTION_SUSPEND:
+                    elif action == SUSPEND:
                         activity.suspend(request)
-                    elif action == WildlifeLicence.ACTIVITY_PURPOSE_ACTION_REINSTATE:
+                    elif action == REINSTATE:
                         activity.reinstate(request)
-                    elif action == WildlifeLicence.ACTIVITY_PURPOSE_ACTION_REISSUE:
+                    elif action == REISSUE:
                         activity.reissue(request)
 
             else:
-                # else, if not all purposes were selected by the user for action:
-                #  - if any ApplicationSelectedActivity records can be actioned completely (i.e. all purposes in the
-                #        Application record are selected for action), action them
-                #  - create new Application for the purposes to remain in previous status,
-                #        using the first application found to have a purpose_id to remain in previous status
-                #  - create new Application for the purposes to be actioned, using the first application found
-                #        to have a purpose_id to action
-                #  - add purposes from other relevant applications to either the new previous status
-                #        or new actioned application copying data from their respective Applications
-                #  - mark all previous status and not actioned ApplicationSelectedActivity records as REPLACED
+                # else, if not all purposes were selected by the user for
+                # action:
+                #  - if any ApplicationSelectedActivity records can be actioned
+                #    completely (i.e. all purposes in the Application record
+                #    are selected for action), action them.
+                #  - create new Application for the purposes to remain in
+                #    previous status, using the first application found to have
+                #    a purpose_id to remain in previous status.
+                #  - create new Application for the purposes to be actioned,
+                #    using the first application found to have a purpose_id to
+                #    action.
+                #  - add purposes from other relevant applications to either
+                #    the new previous status or new actioned application
+                #    copying data from their respective Applications.
+                #  - mark all previous status and not actioned
+                #    ApplicationSelectedActivity records as REPLACED.
 
-                # Use dict for new_previous_status_applications, new application per previous possible status
-                # e.g. REINSTATE can come from both CANCELLED and SURRENDERED activities/purposes
+                # Use dict for new_previous_status_applications, new
+                # application per previous possible status.
+                # e.g. REINSTATE can come from both CANCELLED and SURRENDERED
+                # activities/purposes.
                 new_previous_status_applications = {}
                 new_actioned_application = None
-
-                licence_latest_activities = self.get_latest_activities_for_licence_activity_and_action(
-                    licence_activity_id, action)
-                previous_statuses = list(set(licence_latest_activities.values_list('activity_status', flat=True)))
+                # TODO:AYN get latest activities by application for reissue.
+                licence_latest_activities = self.get_application_activities_by(
+                    licence_activity_id, action, can_action_purposes_ids_list
+                )
+                previous_statuses = list(
+                    set(licence_latest_activities.values_list(
+                        'activity_status', flat=True))
+                )
                 for previous_status in previous_statuses:
                     new_previous_status_applications[previous_status] = None
                 original_application_ids = licence_latest_activities.filter(
-                    application__licence_purposes__in=purpose_ids_list).values_list('application_id', flat=True)
-                original_applications = Application.objects.filter(id__in=original_application_ids)
+                    application__licence_purposes__in=purpose_ids_list
+                    ).values_list('application_id', flat=True)
+                original_applications = Application.objects.filter(
+                    id__in=original_application_ids)
 
                 for application in original_applications:
                     # get purpose_ids linked with application
-                    application_licence_purpose_ids_list = application.licence_purposes.filter(
-                        licence_activity_id=licence_activity_id).values_list('id', flat=True)
+                    application_licence_purpose_ids_list = \
+                        application.licence_purposes.filter(
+                            licence_activity_id=licence_activity_id
+                        ).values_list('id', flat=True)
 
-                    activity = application.selected_activities.get(licence_activity_id=licence_activity_id)
+                    activity = application.selected_activities.get(
+                        licence_activity_id=licence_activity_id
+                    )
                     # Get previous_status and target post_actioned_status
                     previous_status = activity.activity_status
-                    if action == WildlifeLicence.ACTIVITY_PURPOSE_ACTION_REACTIVATE_RENEW:
-                        post_actioned_status = ApplicationSelectedActivity.ACTIVITY_STATUS_EXPIRED
-                    elif action == WildlifeLicence.ACTIVITY_PURPOSE_ACTION_SURRENDER:
-                        post_actioned_status = ApplicationSelectedActivity.ACTIVITY_STATUS_SURRENDERED
-                    elif action == WildlifeLicence.ACTIVITY_PURPOSE_ACTION_CANCEL:
-                        post_actioned_status = ApplicationSelectedActivity.ACTIVITY_STATUS_CANCELLED
-                    elif action == WildlifeLicence.ACTIVITY_PURPOSE_ACTION_SUSPEND:
-                        post_actioned_status = ApplicationSelectedActivity.ACTIVITY_STATUS_SUSPENDED
-                    elif action == WildlifeLicence.ACTIVITY_PURPOSE_ACTION_REINSTATE:
-                        post_actioned_status = ApplicationSelectedActivity.ACTIVITY_STATUS_CURRENT
-                    elif action == WildlifeLicence.ACTIVITY_PURPOSE_ACTION_REISSUE:
-                        post_actioned_status = ApplicationSelectedActivity.ACTIVITY_STATUS_CURRENT
+                    if action == RENEW:
+                        post_actioned_status = \
+                            ApplicationSelectedActivity.ACTIVITY_STATUS_EXPIRED
+                    elif action == SURRENDER:
+                        post_actioned_status = \
+                            ApplicationSelectedActivity.ACTIVITY_STATUS_SURRENDERED
+                    elif action == CANCEL:
+                        post_actioned_status = \
+                            ApplicationSelectedActivity.ACTIVITY_STATUS_CANCELLED
+                    elif action == SUSPEND:
+                        post_actioned_status = \
+                            ApplicationSelectedActivity.ACTIVITY_STATUS_SUSPENDED
+                    elif action == REINSTATE:
+                        post_actioned_status = \
+                            ApplicationSelectedActivity.ACTIVITY_STATUS_CURRENT
+                    elif action == REISSUE:
+                        post_actioned_status = \
+                            ApplicationSelectedActivity.ACTIVITY_STATUS_CURRENT
 
-                    # if an application's purpose_ids are all in the purpose_ids_list,
-                    # completely action the ApplicationSelectedActivity
-                    if not set(application_licence_purpose_ids_list) - set(purpose_ids_list):
-                        if action == WildlifeLicence.ACTIVITY_PURPOSE_ACTION_REACTIVATE_RENEW:
+                    # if an application's purpose_ids are all in the
+                    # purpose_ids_list, completely action the
+                    # ApplicationSelectedActivity.
+                    if not set(application_licence_purpose_ids_list) \
+                            - set(purpose_ids_list):
+                        if action == RENEW:
                             activity.reactivate_renew(request)
-                        elif action == WildlifeLicence.ACTIVITY_PURPOSE_ACTION_SURRENDER:
+                        elif action == SURRENDER:
                             activity.surrender(request)
-                        elif action == WildlifeLicence.ACTIVITY_PURPOSE_ACTION_CANCEL:
+                        elif action == CANCEL:
                             activity.cancel(request)
-                        elif action == WildlifeLicence.ACTIVITY_PURPOSE_ACTION_SUSPEND:
+                        elif action == SUSPEND:
                             activity.suspend(request)
-                        elif action == WildlifeLicence.ACTIVITY_PURPOSE_ACTION_REINSTATE:
+                        elif action == REINSTATE:
                             activity.reinstate(request)
-                        elif action == WildlifeLicence.ACTIVITY_PURPOSE_ACTION_REISSUE:
+                        elif action == REISSUE:
                             activity.reissue(request)
 
-                    # if application still has previous_status purposes after actioning selected purposes
-                    elif set(application_licence_purpose_ids_list) - set(purpose_ids_list):
+                    # if application still has previous_status purposes after
+                    # actioning selected purposes.
+                    elif set(application_licence_purpose_ids_list) \
+                            - set(purpose_ids_list):
                         common_actioned_purpose_ids = set(application_licence_purpose_ids_list) & set(purpose_ids_list)
                         remaining_previous_status_purpose_ids = set(application_licence_purpose_ids_list) - set(purpose_ids_list)
 
-                        # create new previous_status application from this application if not yet exists
+                        # create new previous_status application from this
+                        # application if not yet exists.
                         if not new_previous_status_applications[previous_status]:
                             new_previous_status_applications[previous_status] = application.copy_application_purposes_for_status(
                                 remaining_previous_status_purpose_ids, previous_status)
-                        # else, if new previous_status application exists, link the target LicencePurpose IDs to it
+                        # else, if new previous_status application exists, link
+                        # the target LicencePurpose IDs to it.
                         else:
                             # Link the target LicencePurpose IDs to the application
                             # TODO:AYN copy activity purpose status dates across
@@ -889,20 +1012,27 @@ class WildlifeLicence(models.Model):
                                     new_previous_status_applications[previous_status],
                                     licence_purpose_id)
 
-                        # create new actioned application from this application if not yet exists
+                        # create new actioned application from this application
+                        # if not yet exists.
                         if not new_actioned_application:
-                            # TODO:AYN copy activity purpose status dates across.
+                            # TODO:AYN copy activity purpose status dates
+                            # across.
                             new_actioned_application = application.copy_application_purposes_for_status(
-                                common_actioned_purpose_ids, post_actioned_status)
-                        # else, if new actioned application exists, link the target LicencePurpose IDs to it
+                                common_actioned_purpose_ids,
+                                post_actioned_status
+                            )
+                        # else, if new actioned application exists, link the
+                        # target LicencePurpose IDs to it.
                         else:
-                            # Link the target LicencePurpose IDs to the application
+                            # Link the target LicencePurpose IDs to the
+                            # application.
                             for licence_purpose_id in common_actioned_purpose_ids:
                                 application.copy_application_purpose_to_target_application(
                                     new_actioned_application,
                                     licence_purpose_id)
 
-                # Set original activities to REPLACED except for any that were ACTIONED completely
+                # Set original activities to REPLACED except for any that were
+                # ACTIONED completely.
                 original_activities = ApplicationSelectedActivity.objects.\
                     filter(application__id__in=original_application_ids).\
                     exclude(activity_status=post_actioned_status)

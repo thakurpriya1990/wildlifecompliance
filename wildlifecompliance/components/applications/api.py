@@ -841,24 +841,24 @@ class ApplicationViewSet(viewsets.ModelViewSet):
 
     @detail_route(methods=['GET', ])
     def last_current_activity(self, request, *args, **kwargs):
+        '''
+        NOTE: retrieval of last current activity is only utilised in the
+        Reissuing process. Filtered on this action.
+        '''
         instance = self.get_object()
         user = request.user
         if user not in instance.licence_officers:
             raise serializers.ValidationError(
-                'You are not in any relevant licence officer groups for this application.')
+                'You are not authorised for this application.')
 
         if not instance:
             return Response({'activity': None})
 
-        # last_activity = instance.get_activity_chain(
-        #     activity_status=ApplicationSelectedActivity.ACTIVITY_STATUS_CURRENT
-        # ).order_by(
-        #     '-issue_date'
-        # ).first()
-
+        current = ApplicationSelectedActivity.ACTIVITY_STATUS_CURRENT
         last_activity = instance.get_current_activity_chain(
-            activity_status=ApplicationSelectedActivity.ACTIVITY_STATUS_CURRENT
-        )
+            activity_status=current,
+            decision_action='reissue'
+        ).first()
 
         if not last_activity:
             return Response({'activity': None})

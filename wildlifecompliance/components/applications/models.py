@@ -1014,10 +1014,15 @@ class Application(RevisionedMixin):
                                 self.get_selected_activity(activity["id"])
                             selected_activity.proposed_action =\
                                 ApplicationSelectedActivity.PROPOSED_ACTION_ISSUE
-                            selected_activity.proposed_start_date =\
-                                latest_activity.start_date
-                            selected_activity.proposed_end_date =\
-                                latest_activity.expiry_date
+
+                            # TODO:AYN set propose dates on the purpose.
+                            # for reissuing setting on the activity is
+                            # redundant.
+                            # selected_activity.proposed_start_date =\
+                            #     latest_activity.start_date
+                            # selected_activity.proposed_end_date =\
+                            #     latest_activity.expiry_date
+
                             selected_activity.save()
                         else:
                             self.set_activity_processing_status(
@@ -1551,16 +1556,17 @@ class Application(RevisionedMixin):
         adjusted_fees = [
             a.id for a in self.activities if a.has_adjusted_application_fee]
 
-        return True if adjusted_fees.__len__ > 0 else False
+        return len(adjusted_fees)
 
     @property
     def has_additional_fees(self):
         """
         Check for additional costs manually included by officer at proposal.
         """
-        additional_fees = [a.id for a in self.activities if a.additional_fee>0]
+        additional_fees = [
+            a.id for a in self.activities if a.additional_fee > 0]
 
-        return True if additional_fees.__len__ > 0 else False
+        return len(additional_fees)
 
     @property
     def additional_fees(self):
@@ -1572,95 +1578,6 @@ class Application(RevisionedMixin):
             fees = fees + a.additional_fee
 
         return Decimal(fees)
-
-    # @property
-    # def amended_activities(self):
-    #     """
-    #     Sets the application fee for each activity with a new amended amount
-    #     based on the difference already paid.
-
-    #     TODO: Redundant.
-    #     """
-    #     def on_licence_amend():
-    #         """
-    #         Determines amended amount from already paid on previous
-    #         """
-    #         amended = []
-    #         previous = self.previous_application
-    #         if not previous.latest_invoice:
-    #             return amended
-    #         latest_inv = previous.latest_invoice
-    #         app_inv = ApplicationInvoice.objects.filter(
-    #             invoice_reference=latest_inv.reference).first()
-    #         for activity in self.selected_activities.all():
-    #             invoice_line = ApplicationInvoiceLine.objects.filter(
-    #                 invoice=app_inv,
-    #                 licence_activity=activity.licence_activity).first()
-    #             inv_amount = previous.activity_invoice_amount(activity)
-
-    #             if activity.application_fee != inv_amount:
-    #                 activity.application_fee = activity.application_fee \
-    #                     + activity.base_fees['application']
-
-    #             if (invoice_line and activity.application_fee > inv_amount):
-    #                 difference = activity.application_fee - inv_amount
-    #                 activity.application_fee = difference
-    #                 amended.append(activity)
-
-    #         return amended
-
-    #     def on_request_amend():
-    #         """
-    #         Determines amended amount from already paid on current application.
-    #         """
-    #         amended = []
-    #         if not self.latest_invoice:
-    #             return amended
-    #         latest_inv = self.latest_invoice
-    #         app_inv = ApplicationInvoice.objects.filter(
-    #             invoice_reference=latest_inv.reference).first()
-
-    #         for activity in self.selected_activities.all():
-    #             invoice_line = ApplicationInvoiceLine.objects.filter(
-    #                 invoice=app_inv,
-    #                 licence_activity=activity.licence_activity).first()
-    #             inv_amount = self.activity_invoice_amount(activity)
-
-    #             if activity.application_fee != inv_amount:
-    #                 activity.application_fee = activity.application_fee \
-    #                     + activity.base_fees['application']
-
-    #             if (invoice_line and activity.application_fee > inv_amount):
-    #                 difference = activity.application_fee - inv_amount
-    #                 activity.application_fee = difference
-    #                 amended.append(activity)             
-
-    #         return amended
-
-    #     amended = []
-    #     # check for Customer licence amendment.
-    #     if self.application_type == Application.APPLICATION_TYPE_AMENDMENT:
-    #         amended = on_licence_amend()
-    #     else:
-    #         amended = on_request_amend()
-    #     return amended
-
-    # @property
-    # def activity_invoice_amount(self, activity):
-    #     """
-    #     Gets the total amount paid for an activity across multiple invoices.
-
-    #     TODO: Redundant.
-    #     """
-    #     amount = 0
-    #     invoices = ApplicationInvoice.objects.filter(application_id=self.id)
-    #     for invoice in invoices:
-    #         line = ApplicationInvoiceLine.objects.filter(
-    #             invoice=invoice,
-    #             licence_activity=activity.licence_activity).first()
-    #         amount += line.amount if line else 0
-
-    #     return amount
 
     @property
     def requires_refund(self):
@@ -1737,14 +1654,14 @@ class Application(RevisionedMixin):
             triggered by internal officers change to Application. Previous
             paid will be zero.
             """
-            if self.processing_status ==\
-                Application.PROCESSING_STATUS_UNDER_REVIEW:
+            UNDER_REVIEW = Application.PROCESSING_STATUS_UNDER_REVIEW
+            if self.processing_status == UNDER_REVIEW:
                 # apply the total_paid_amount as application fee is paid.
                 if not previous_paid > self.application_fee:
                     previous_paid = self.application_fee - previous_paid
                 else:
                     previous_paid = 0
-                
+
             return previous_paid
 
         previous_paid = 0
@@ -2003,6 +1920,9 @@ class Application(RevisionedMixin):
                 raise
 
     def proposed_licence(self, request, details):
+        '''
+        Propose licence purposes for issuing by Approver.
+        '''
         with transaction.atomic():
             try:
                 activity_list = []
@@ -2044,9 +1964,6 @@ class Application(RevisionedMixin):
                         activity.reason = details.get('reason')
                         activity.cc_email = details.get('cc_email', None)
 
-                        # TODO:AYN Update ActivityPurposes with dates for 
-                        # activity then propsed start date can be start date 
-                        # for the activity instead of latest_activity.
                         for p in purpose_list:
                             # update Application Selected Activity Purposes
                             lp = LicencePurpose.objects.get(id=p['id'])
@@ -2065,12 +1982,11 @@ class Application(RevisionedMixin):
                             purpose.original_issue_date = \
                                 issued.original_issue_date
                             purpose.issue_date = issued.issue_date
+                            purpose.proposed_start_date = \
+                                issued.proposed_start_date
+                            purpose.proposed_end_date = \
+                                issued.proposed_end_date
                             purpose.save()
-
-                        prev_start_date = activity.get_start_date()
-                        prev_expiry_date = activity.get_expiry_date()
-                        activity.proposed_start_date = prev_start_date
-                        activity.proposed_end_date = prev_expiry_date
 
                         # update Additional fees for selected proposed 
                         # activities.
@@ -2098,8 +2014,6 @@ class Application(RevisionedMixin):
                         processing_status=ApplicationSelectedActivity.PROCESSING_STATUS_OFFICER_FINALISATION,
                         reason=details.get('reason'),
                         cc_email=details.get('cc_email', None),
-                        proposed_start_date=details.get('start_date', None),
-                        proposed_end_date=details.get('expiry_date', None),
                     )
                     # update Additional fees for selected proposed activities.
                     proposed_activities = request.data.get('activities')
@@ -2111,21 +2025,41 @@ class Application(RevisionedMixin):
                         activity.additional_fee_text=p_activity[
                             'additional_fee_text'] if p_activity[
                                 'additional_fee'] > 0 else None
-                        activity.save()
 
-                    # update Application Selected Activity Purposes
-                    for p in purpose_list:
-                        purpose = LicencePurpose.objects.get(id=p['id'])
-                        activity = self.activities.get(
-                            licence_activity_id = purpose.licence_activity_id
-                        )
-                        status = 'issue' if p['isProposed'] else 'decline'
-                        activity_purpose = ApplicationSelectedActivityPurpose.objects.get_or_create(
-                            purpose=purpose,
-                            selected_activity=activity,
-                        )
-                        activity_purpose[0].processing_status = status
-                        activity_purpose[0].save()
+                        # update the Application Selected Activity Purposes
+                        # which have been proposed for this activity.
+                        proposed_ids = [p['id'] for p in purpose_list]
+                        proposed_purposes = p_activity['proposed_purposes']
+                        for p_proposed in proposed_purposes:
+                            p_purpose = p_proposed['purpose']
+                            if p_purpose['id'] not in proposed_ids:
+                                continue
+                            is_proposed = [
+                                p['isProposed'] for p in purpose_list \
+                                    if p['id']==p_purpose['id']
+                            ]
+                            status = 'issue' if is_proposed[0] else 'decline'
+                            proposed = activity.proposed_purposes.filter(
+                                id=p_proposed['id']
+                            ).first()
+                            proposed, c = ApplicationSelectedActivityPurpose.objects.get_or_create(
+                                purpose_id=p_purpose['id'],
+                                selected_activity=activity,
+                            )
+                            proposed.proposed_start_date = \
+                                datetime.datetime.strptime(
+                                    p_proposed[
+                                        'proposed_start_date'], '%d/%m/%Y')
+
+                            proposed.proposed_end_date = \
+                                datetime.datetime.strptime(
+                                    p_proposed[
+                                        'proposed_end_date'], '%d/%m/%Y')
+
+                            proposed.processing_status = status
+                            proposed.save()
+
+                        activity.save()
 
                 # Email licence approver group of proposed action.
                 attachments_id = request.data.get('email_attachments_id')
@@ -2446,15 +2380,15 @@ class Application(RevisionedMixin):
                             if not latest_activity:
                                 raise Exception("Active licence not found for activity ID: %s" % licence_activity_id)
 
-                            if self.application_type ==\
-                                Application.APPLICATION_TYPE_AMENDMENT:
+                            # if self.application_type ==\
+                            #     Application.APPLICATION_TYPE_AMENDMENT:
                                 # Populate start and expiry dates from the
                                 # latest issued activity record.
-                                # TODO: Set from the purpose dates
-                                original_issue_date = \
-                                    latest_activity.get_original_issue_date()
-                                start_date = latest_activity.get_start_date()
-                                expiry_date = latest_activity.get_expiry_date()
+                                # TODO:AYN Set from the purpose dates
+                                # original_issue_date = \
+                                #     latest_activity.get_original_issue_date()
+                                # start_date = latest_activity.get_start_date()
+                                # expiry_date = latest_activity.get_expiry_date()
 
                         # Additional Fees need to be set before processing fee.
                         # Fee amount may change by the issuer making decision.
@@ -2490,27 +2424,41 @@ class Application(RevisionedMixin):
                         selected_activity.set_start_date(start_date)
                         selected_activity.set_expiry_date(expiry_date)
 
-                        proposed_purposes =\
-                            selected_activity.proposed_purposes.all()
+                        selected_activity.save()
+
+                        # Set the start and expiry date from the proposed 
+                        # dates.
+                        selected_ids = [
+                            p['id'] for p in request.data.get(
+                                'selected_purpose_ids') if p['isProposed']
+                        ]
+                        proposed_purposes = request.data.get('purposes')
                         ISSUE = ApplicationSelectedActivityPurpose.PROCESSING_STATUS_ISSUED
                         DECLINE = ApplicationSelectedActivityPurpose.PROCESSING_STATUS_DECLINED
-                        for proposed_purpose in proposed_purposes:
+                        for proposed in proposed_purposes:
                             purpose =\
                                 ApplicationSelectedActivityPurpose.objects.get(
-                                    id=proposed_purpose.id
+                                    id=proposed['id']
                                 )
-                            if proposed_purpose.purpose_id in item['purposes']:
+                            # No need to check if purpose has been selected
+                            # for issuing.
+                            if purpose.purpose_id in selected_ids:
                                 purpose.processing_status = ISSUE
                                 purpose.issue_date = timezone.now()
                             else:
                                 purpose.processing_status = DECLINE
-                            purpose.original_issue_date = original_issue_date
-                            purpose.start_date = start_date
-                            purpose.expiry_date = expiry_date
+
+                            if self.application_type not in [
+                                Application.APPLICATION_TYPE_AMENDMENT,
+                                Application.APPLICATION_TYPE_REISSUE,
+                            ]:
+                                purpose.original_issue_date = \
+                                    original_issue_date
+
+                            purpose.start_date = proposed['proposed_start_date']
+                            purpose.expiry_date = proposed['proposed_end_date']
                             
                             purpose.save()
-
-                        selected_activity.save()
 
                     elif item['final_status'] == ApplicationSelectedActivity.DECISION_ACTION_DECLINED:
                         selected_activity.assigned_approver = None
@@ -3198,6 +3146,7 @@ class AssessmentInspection(models.Model):
 
 
 class ApplicationSelectedActivity(models.Model):
+    # TODO:AYN PROPOSED_ACTION replaced in Activity Purposes.
     PROPOSED_ACTION_DEFAULT = 'default'
     PROPOSED_ACTION_DECLINE = 'propose_decline'
     PROPOSED_ACTION_ISSUE = 'propose_issue'
@@ -3206,7 +3155,7 @@ class ApplicationSelectedActivity(models.Model):
         (PROPOSED_ACTION_DECLINE, 'Propose Decline'),
         (PROPOSED_ACTION_ISSUE, 'Propose Issue')
     )
-
+    # TODO:AYN DECISION_ACTION replaced in Activity Purposes
     DECISION_ACTION_DEFAULT = 'default'
     DECISION_ACTION_DECLINED = 'declined'
     DECISION_ACTION_ISSUED = 'issued'
@@ -3281,8 +3230,6 @@ class ApplicationSelectedActivity(models.Model):
     activity = JSONField(blank=True, null=True)
     licence_activity = models.ForeignKey(
         'wildlifecompliance.LicenceActivity', null=True)
-    proposed_start_date = models.DateField(null=True, blank=True)
-    proposed_end_date = models.DateField(null=True, blank=True)
     additional_info = models.TextField(blank=True, null=True)
     conditions = models.TextField(blank=True, null=True)
     is_inspection_required = models.BooleanField(default=False)
@@ -3306,11 +3253,14 @@ class ApplicationSelectedActivity(models.Model):
         null=True,
         related_name='wildlifecompliance_officer')
     additional_licence_info = JSONField(default=list)
-    # TODO: issue dates and period dates are not required on Activity.
+    # TODO:AYN issue dates and period dates are not required on Activity.
+    # remove these status dates and logic.
     original_issue_date = models.DateTimeField(blank=True, null=True)
     issue_date = models.DateTimeField(blank=True, null=True)
     start_date = models.DateField(blank=True, null=True)
     expiry_date = models.DateField(blank=True, null=True)
+    proposed_start_date = models.DateField(null=True, blank=True)
+    proposed_end_date = models.DateField(null=True, blank=True)
 
     def __str__(self):
         return "{0}{1}{2}{3}{4}".format(
@@ -3367,7 +3317,27 @@ class ApplicationSelectedActivity(models.Model):
         return purposes
 
     def can_action(self, purposes_in_open_applications=[]):
-        # Returns a DICT object containing can_<action> Boolean results of each action check
+        '''
+        Returns a DICT object containing can_<action> Boolean results of each 
+        action check.
+        '''
+        def is_reinstatable():
+            '''
+            Check if this activity can be reinstated.
+            '''
+            status = [
+                ApplicationSelectedActivityPurpose.PURPOSE_STATUS_SUSPENDED,
+                ApplicationSelectedActivityPurpose.PURPOSE_STATUS_CANCELLED,
+                ApplicationSelectedActivityPurpose.PURPOSE_STATUS_SURRENDERED
+            ]
+            can_reinstate = len(
+                [p.id for p in self.proposed_purposes.all() \
+                    if p.purpose_status in status and p.expiry_date \
+                    and p.expiry_date >= current_date]
+            )
+
+            return can_reinstate
+
         can_action = {
             'licence_activity_id': self.licence_activity_id,
             'can_amend': False,
@@ -3446,10 +3416,12 @@ class ApplicationSelectedActivity(models.Model):
             activity_ids=[self.id]
         ).exclude(activity_status=ApplicationSelectedActivity.ACTIVITY_STATUS_SUSPENDED).count() > 0
 
-        # can_reissue is true if the activity can be included in a Reissue Application
-        # Extra exclude for SUSPENDED due to get_current_activities_for_application_type
+        # can_reissue is true if the activity can be included in a Reissue 
+        # Application Extra exclude for SUSPENDED due to get_current_activities_for_application_type
         # intentionally not excluding these as part of the default queryset
-        # disable if there are any open applications to maintain licence sequence data integrity
+        # disable if there are any open applications to maintain licence 
+        # sequence data integrity.
+        # TODO:AYN need to check at purpose level.
         if not purposes_in_open_applications:
             can_action['can_reissue'] = ApplicationSelectedActivity.get_current_activities_for_application_type(
                 Application.APPLICATION_TYPE_REISSUE,
@@ -3460,14 +3432,9 @@ class ApplicationSelectedActivity(models.Model):
                 ]
             ).count() > 0
 
-        # can_reinstate is true if the activity has not yet expired and is currently SUSPENDED, CANCELLED or SURRENDERED
-        can_action['can_reinstate'] = self.expiry_date and \
-               self.expiry_date >= current_date and \
-               self.activity_status in [
-                   ApplicationSelectedActivity.ACTIVITY_STATUS_SUSPENDED,
-                   ApplicationSelectedActivity.ACTIVITY_STATUS_CANCELLED,
-                   ApplicationSelectedActivity.ACTIVITY_STATUS_SURRENDERED
-               ]
+        # can_reinstate is true if the activity has not yet expired and is 
+        # currently SUSPENDED, CANCELLED or SURRENDERED.
+        can_action['can_reinstate'] = is_reinstatable()
 
         return can_action
 
@@ -4027,29 +3994,81 @@ class ApplicationSelectedActivity(models.Model):
             self.updated_by = request.user
             self.save()
 
+    @transaction.atomic
     def surrender(self, request):
-        with transaction.atomic():
-            self.activity_status = ApplicationSelectedActivity.ACTIVITY_STATUS_SURRENDERED
-            self.updated_by = request.user
-            self.save()
+        '''
+        Surrender the activity when all proposed purposes are surrendered.
+        '''
+        SURRENDER = ApplicationSelectedActivity.ACTIVITY_STATUS_SURRENDERED
 
+        purpose_ids_list = request.data.get('purpose_ids_list', None)
+        purpose_ids_list = list(set(purpose_ids_list))
+        purpose_ids_list.sort()
+        self.set_proposed_purposes_status_for(purpose_ids_list, SURRENDER)
+
+        if not self.is_proposed_purposes_status(SURRENDER):
+            return
+
+        self.activity_status = SURRENDER
+        self.updated_by = request.user
+        self.save()
+
+    @transaction.atomic
     def cancel(self, request):
-        with transaction.atomic():
-            self.activity_status = ApplicationSelectedActivity.ACTIVITY_STATUS_CANCELLED
-            self.updated_by = request.user
-            self.save()
+        '''
+        Cancel the activity when all proposed purposes are cancelled.
+        '''
+        CANCEL = ApplicationSelectedActivity.ACTIVITY_STATUS_CANCELLED
 
+        purpose_ids_list = request.data.get('purpose_ids_list', None)
+        purpose_ids_list = list(set(purpose_ids_list))
+        purpose_ids_list.sort()
+        self.set_proposed_purposes_status_for(purpose_ids_list, SUSPEND)
+
+        if not self.is_proposed_purposes_status(CANCEL):
+            return
+
+        self.activity_status = CANCEL
+        self.updated_by = request.user
+        self.save()
+
+    @transaction.atomic
     def suspend(self, request):
-        with transaction.atomic():
-            self.activity_status = ApplicationSelectedActivity.ACTIVITY_STATUS_SUSPENDED
-            self.updated_by = request.user
-            self.save()
+        '''
+        Suspend the activity when all proposed purposes are suspended.
+        '''
+        SUSPEND = ApplicationSelectedActivity.ACTIVITY_STATUS_SUSPENDED
 
+        purpose_ids_list = request.data.get('purpose_ids_list', None)
+        purpose_ids_list = list(set(purpose_ids_list))
+        purpose_ids_list.sort()
+        self.set_proposed_purposes_status_for(purpose_ids_list, SUSPEND)
+
+        if not self.is_proposed_purposes_status(SUSPEND):
+            return
+
+        self.activity_status = SUSPEND
+        self.updated_by = request.user
+        self.save()
+
+    @transaction.atomic
     def reinstate(self, request):
-        with transaction.atomic():
-            self.activity_status = ApplicationSelectedActivity.ACTIVITY_STATUS_CURRENT
-            self.updated_by = request.user
-            self.save()
+        '''
+        Reinstate the activity when all proposed purposes are current.
+        '''
+        CURRENT = ApplicationSelectedActivity.ACTIVITY_STATUS_CURRENT
+
+        purpose_ids_list = request.data.get('purpose_ids_list', None)
+        purpose_ids_list = list(set(purpose_ids_list))
+        purpose_ids_list.sort()
+        self.set_proposed_purposes_status_for(purpose_ids_list, CURRENT)
+
+        if not self.is_proposed_purposes_status(CURRENT):
+            return
+
+        self.activity_status = CURRENT
+        self.updated_by = request.user
+        self.save()
 
     def reissue(self, request):
         '''
@@ -4081,6 +4100,35 @@ class ApplicationSelectedActivity(models.Model):
         for selected in selected_purposes:
             selected.processing_status = REPLACE
             selected.save()
+
+    def is_proposed_purposes_status(self, status):
+        '''
+        Check all purposes on this activity have the same status. Used to check
+        if this activity is still current.
+        '''
+        is_same = False
+
+        for purpose in self.proposed_purposes.all():
+            is_same = True if purpose.purpose_status == status else False
+
+        return is_same
+
+    @transaction.atomic
+    def set_proposed_purposes_status_for(self, ids, status):
+        '''
+        Set the status for the selected proposed purposes.
+        '''
+        is_updated = False
+        selected = [
+            p for p in self.proposed_purposes.all() if p.purpose.id in ids
+        ]
+
+        for purpose in selected:
+            purpose.purpose_status = status
+            purpose.save()
+            is_updated = True
+
+        return is_updated
 
     def store_proposed_attachments(self, proposed_attachments):
         """
@@ -4157,26 +4205,50 @@ class ApplicationSelectedActivity(models.Model):
         return previous
 
 class ApplicationSelectedActivityPurpose(models.Model):
-    """
+    '''
     A purpose selected for issue on an Application Selected Activity.
-    """
+    '''
+    PURPOSE_STATUS_DEFAULT = 'default'
+    PURPOSE_STATUS_CURRENT = 'current'
+    PURPOSE_STATUS_EXPIRED = 'expired'
+    PURPOSE_STATUS_CANCELLED = 'cancelled'
+    PURPOSE_STATUS_SURRENDERED = 'surrendered'
+    PURPOSE_STATUS_SUSPENDED = 'suspended'
+    PURPOSE_STATUS_REPLACED = 'replaced'
+    PURPOSE_STATUS_CHOICES = (
+        (PURPOSE_STATUS_DEFAULT, 'Default'),
+        (PURPOSE_STATUS_CURRENT, 'Current'),
+        (PURPOSE_STATUS_EXPIRED, 'Expired'),
+        (PURPOSE_STATUS_CANCELLED, 'Cancelled'),
+        (PURPOSE_STATUS_SURRENDERED, 'Surrendered'),
+        (PURPOSE_STATUS_SUSPENDED, 'Suspended'),
+        (PURPOSE_STATUS_REPLACED, 'Replaced'),
+    )
     PROCESSING_STATUS_SELECTED = 'selected'
     PROCESSING_STATUS_PROPOSED = 'propose'
     PROCESSING_STATUS_ISSUED = 'issue'
     PROCESSING_STATUS_DECLINED = 'decline'
+    # TODO:AYN replace processing status is redundant.
     PROCESSING_STATUS_REPLACED = 'replace'
+    PROCESSING_STATUS_REISSUE = 'reissue'
     PROCESSING_STATUS_CHOICES = (
         (PROCESSING_STATUS_SELECTED, 'Selected for Proposal'),
         (PROCESSING_STATUS_PROPOSED, 'Proposed for Issue'),
         (PROCESSING_STATUS_DECLINED, 'Declined'),
         (PROCESSING_STATUS_ISSUED, 'Issued'),
         (PROCESSING_STATUS_REPLACED, 'Replaced'),
+        (PROCESSING_STATUS_REISSUE, 'Reissued'),
     )
     processing_status = models.CharField(
         'Processing Status',
         max_length=40,
         choices=PROCESSING_STATUS_CHOICES,
         default=PROCESSING_STATUS_SELECTED)
+    purpose_status = models.CharField(
+        'Purpose Status',
+        max_length=40,
+        choices=PURPOSE_STATUS_CHOICES,
+        default=PURPOSE_STATUS_DEFAULT)
     selected_activity = models.ForeignKey(
         ApplicationSelectedActivity, related_name='proposed_purposes')
     purpose = models.ForeignKey(
@@ -4193,6 +4265,8 @@ class ApplicationSelectedActivityPurpose(models.Model):
     issue_date = models.DateTimeField(blank=True, null=True)
     start_date = models.DateField(blank=True, null=True)
     expiry_date = models.DateField(blank=True, null=True)
+    proposed_start_date = models.DateField(null=True, blank=True)
+    proposed_end_date = models.DateField(null=True, blank=True)
 
     @property
     def is_proposed(self):

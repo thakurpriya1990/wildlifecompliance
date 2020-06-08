@@ -16,11 +16,10 @@ from wildlifecompliance.components.applications.serializers import (
     ExternalApplicationSelectedActivitySerializer
 )
 from wildlifecompliance.components.licences.serializers import (
-    WildlifeLicenceSerializer,
     LicenceCategorySerializer,
     DTInternalWildlifeLicenceSerializer,
     DTExternalWildlifeLicenceSerializer,
-    BasePurposeSerializer
+    ProposedPurposeSerializer
 )
 from wildlifecompliance.components.applications.models import (
     Application,
@@ -642,8 +641,6 @@ class LicenceViewSet(viewsets.ModelViewSet):
                   'Selected purposes must all be of the same licence activity')
 
             if purpose_ids_list and pk:
-                licence_activity_id = LicencePurpose.objects.filter(
-                    licence_activity_id__in=purpose_ids_list).first().licence_activity_id
                 instance = self.get_object()
 
                 instance.apply_action_to_purposes(
@@ -694,14 +691,18 @@ class LicenceViewSet(viewsets.ModelViewSet):
     def get_latest_purposes_for_licence_activity_and_action(self, request, *args, **kwargs):
         try:
             instance = self.get_object()
-            licence_activity_id = request.GET.get('licence_activity_id', None)
+            activity_id = request.GET.get('licence_activity_id', None)
             action = request.GET.get('action', None)
-            if not licence_activity_id or not action:
+            if not activity_id or not action:
                 raise serializers.ValidationError(
                     'A licence activity ID and action must be specified')
-            queryset = instance.get_latest_purposes_for_licence_activity_and_action(licence_activity_id, action)
-            serializer = BasePurposeSerializer(queryset, many=True)
+            # queryset = instance.get_latest_purposes_for_licence_activity_and_action(licence_activity_id, action)
+            # TODO:AYN include associated application id.
+            queryset = instance.get_latest_purposes_for_licence(activity_id)
+            serializer = ProposedPurposeSerializer(queryset, many=True)
+
             return Response(serializer.data)
+
         except serializers.ValidationError:
             print(traceback.print_exc())
             raise

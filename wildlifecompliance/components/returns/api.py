@@ -3,7 +3,6 @@ from datetime import datetime, timedelta
 from django.db.models import Q
 from django.db import transaction
 from django.core.exceptions import ValidationError
-from ledger.checkout.utils import calculate_excl_gst
 from rest_framework import viewsets, serializers, status, views
 from rest_framework.decorators import (
     detail_route,
@@ -56,8 +55,10 @@ class ReturnFilterBackend(DatatablesFilterBackend):
     """
     def filter_queryset(self, request, queryset, view):
 
-        # Get built-in DRF datatables queryset first to join with search text, then apply additional filters
-        super_queryset = super(ReturnFilterBackend, self).filter_queryset(request, queryset, view).distinct()
+        # Get built-in DRF datatables queryset first to join with search text,
+        # then apply additional filters.
+        super_queryset = super(ReturnFilterBackend, self).filter_queryset(
+            request, queryset, view).distinct()
 
         date_from = request.GET.get('date_from')
         date_to = request.GET.get('date_to')
@@ -75,10 +76,12 @@ class ReturnFilterBackend(DatatablesFilterBackend):
                         status_ids.append(returns.id)
                 queryset = queryset.filter(id__in=status_ids).distinct()
             if date_from:
-                date_from = datetime.strptime(date_from, '%Y-%m-%d') + timedelta(days=1)
+                date_from = datetime.strptime(
+                    date_from, '%Y-%m-%d') + timedelta(days=1)
                 queryset = queryset.filter(lodgement_date__gte=date_from)
             if date_to:
-                date_to = datetime.strptime(date_to, '%Y-%m-%d') + timedelta(days=1)
+                date_to = datetime.strptime(
+                    date_to, '%Y-%m-%d') + timedelta(days=1)
                 queryset = queryset.filter(lodgement_date__lte=date_to)
 
         return queryset
@@ -86,9 +89,12 @@ class ReturnFilterBackend(DatatablesFilterBackend):
 
 class ReturnRenderer(DatatablesRenderer):
     def render(self, data, accepted_media_type=None, renderer_context=None):
-        if 'view' in renderer_context and hasattr(renderer_context['view'], '_datatables_total_count'):
-            data['recordsTotal'] = renderer_context['view']._datatables_total_count
-        return super(ReturnRenderer, self).render(data, accepted_media_type, renderer_context)
+        if 'view' in renderer_context and \
+                hasattr(renderer_context['view'], '_datatables_total_count'):
+            data['recordsTotal'] = \
+                renderer_context['view']._datatables_total_count
+        return super(ReturnRenderer, self).render(
+            data, accepted_media_type, renderer_context)
 
 
 class ReturnPaginatedViewSet(viewsets.ModelViewSet):
@@ -139,7 +145,8 @@ class ReturnPaginatedViewSet(viewsets.ModelViewSet):
         queryset = self.filter_queryset(queryset)
         self.paginator.page_size = queryset.count()
         result_page = self.paginator.paginate_queryset(queryset, request)
-        serializer = ReturnSerializer(result_page, context={'request': request}, many=True)
+        serializer = ReturnSerializer(
+            result_page, context={'request': request}, many=True)
         return self.paginator.get_paginated_response(serializer.data)
 
 
@@ -170,7 +177,8 @@ class ReturnViewSet(viewsets.ReadOnlyModelViewSet):
         # Filter by proxy_applicant
         proxy_applicant_id = request.GET.get('proxy_applicant_id', None)
         if proxy_applicant_id:
-            queryset = queryset.filter(application__proxy_applicant_id=proxy_applicant_id)
+            queryset = queryset.filter(
+                application__proxy_applicant_id=proxy_applicant_id)
         # Filter by submitter
         submitter_id = request.GET.get('submitter_id', None)
         if submitter_id:
@@ -180,16 +188,19 @@ class ReturnViewSet(viewsets.ReadOnlyModelViewSet):
 
     @list_route(methods=['GET', ])
     def user_list(self, request, *args, **kwargs):
-        qs = self.get_queryset().exclude(processing_status=Return.RETURN_PROCESSING_STATUS_FUTURE)
+        qs = self.get_queryset().exclude(
+            processing_status=Return.RETURN_PROCESSING_STATUS_FUTURE
+        )
 
         serializer = ReturnSerializer(qs, many=True)
         return Response(serializer.data)
 
-    @detail_route(methods=['GET', ])
+    @detail_route(methods=['POST', ])
     def accept(self, request, *args, **kwargs):
         try:
             instance = self.get_object()
-            instance.accept(request)
+            # instance.accept(request)
+            ReturnService.accept_return_request(request, instance)
             serializer = self.get_serializer(instance)
             return Response(serializer.data)
         except serializers.ValidationError:
@@ -208,11 +219,17 @@ class ReturnViewSet(viewsets.ReadOnlyModelViewSet):
             instance = self.get_object()
             if not instance.has_data:
                 return Response(
-                    {'error': 'Upload not applicable for Return Type.'}, status=status.HTTP_406_NOT_ACCEPTABLE)
-            spreadsheet = SpreadSheet(instance, request.FILES['spreadsheet']).factory()
+                    {'error': 'Upload not applicable for Return Type.'},
+                    status=status.HTTP_406_NOT_ACCEPTABLE
+                )
+            spreadsheet = SpreadSheet(
+                instance, request.FILES['spreadsheet']).factory()
+
             if not spreadsheet.is_valid():
                 return Response(
-                    {'error': 'Enter data in correct format.'}, status=status.HTTP_404_NOT_FOUND)
+                    {'error': 'Enter data in correct format.'},
+                    status=status.HTTP_404_NOT_FOUND
+                )
             table = instance.data.build_table(spreadsheet.rows_list)
 
             return Response(table)
