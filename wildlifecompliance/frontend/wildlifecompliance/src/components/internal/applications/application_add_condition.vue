@@ -58,7 +58,7 @@
                                     </div>
                                 </div>
                             </div>
-                            <div class="form-group" v-if="validDate">
+                            <div class="form-group" v-if="!condition.standard && validDate">
                                 <div class="row">
                                     <div class="col-sm-3">
                                         <label class="control-label pull-left"  for="Name">Return Type</label>
