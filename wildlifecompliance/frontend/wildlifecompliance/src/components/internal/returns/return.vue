@@ -51,7 +51,7 @@
                 <div class="navbar-inner">
                     <div class="container">
                         <p class="pull-right" style="margin-top:5px;">
-                            <button style="width:150px;" class="btn btn-primary btn-md" @click.prevent="save()" name="save_exit">Save</button>
+                            <button style="width:150px;" class="btn btn-primary btn-md" @click.prevent="save()" name="save_exit">Save Changes</button>
                         </p>
                     </div>
                 </div>
