@@ -28,10 +28,15 @@ export const returnsStore = {
                     if (res.body.format !== 'sheet') {    // Return Sheets utilise Non-rendered data.
                         var obj = res.body.table[0]['data'][0]
                         for(let form_data_record of Object.keys(obj)) {
+                            let deficiency_key = form_data_record + '-deficiency-field'    
                             dispatch('setFormValue', {
                                 key: form_data_record,
-                                value: {"value" :  obj[form_data_record] }
+                                value: {
+                                    "value" :  obj[form_data_record], 
+                                    "deficiency_value": obj[deficiency_key],                               
+                                }
                             });
+
                         }
                     }
 

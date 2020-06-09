@@ -89,6 +89,7 @@ class ReturnSerializer(serializers.ModelSerializer):
     return_fee = serializers.DecimalField(
         max_digits=8, decimal_places=2, coerce_to_string=False, read_only=True)
     invoice_url = serializers.SerializerMethodField(read_only=True)
+    activity_curators = EmailUserSerializer(many=True)
 
     class Meta:
         model = Return
@@ -116,6 +117,7 @@ class ReturnSerializer(serializers.ModelSerializer):
             'return_fee',
             'return_fee_paid',
             'invoice_url',
+            'activity_curators',
         )
 
         # the serverSide functionality of datatables is such that only columns

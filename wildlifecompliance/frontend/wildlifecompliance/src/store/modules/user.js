@@ -51,19 +51,35 @@ export const userStore = {
             );
         },
         canViewDeficiencies: (state, getters) => {
-            return getters.hasRole('licensing_officer') || getters.application.can_current_user_edit;
+            if (getters.isApplicationLoaded){
+
+                return getters.hasRole('licensing_officer') || getters.application.can_current_user_edit;
+            }
+            if (getters.isReturnsLoaded){
+
+                return getters.returns.activity_curators.find(curator => curator.id === getters.current_user.id);
+            }
+            return false
         },
         canEditDeficiencies: (state, getters) => {
-            return getters.application.activities.find(activity => {
+            if (getters.isApplicationLoaded){
 
-                return activity.licence_activity === getters.selected_activity_tab_id
-                    // verify role exist for selected activity.
-                    && getters.hasRole('licensing_officer', activity.licence_activity)
-                    // verify activity status.
-                    && ['with_officer', 'with_officer_conditions'].includes(activity.processing_status.id)
-                    // verify current user is associated.
-                    && activity.licensing_officers.find(officer => officer.id === getters.current_user.id);
-            });                    
+                return getters.application.activities.find(activity => {
+
+                    return activity.licence_activity === getters.selected_activity_tab_id
+                        // verify role exist for selected activity.
+                        && getters.hasRole('licensing_officer', activity.licence_activity)
+                        // verify activity status.
+                        && ['with_officer', 'with_officer_conditions'].includes(activity.processing_status.id)
+                        // verify current user is associated.
+                        && activity.licensing_officers.find(officer => officer.id === getters.current_user.id);
+                });   
+            }
+            if (getters.isReturnsLoaded){
+
+                return getters.returns.activity_curators.find(curator => curator.id === getters.current_user.id);
+            }
+            return false
         },
         canViewComments: (state, getters) => {
             return getters.hasRole('licensing_officer') || getters.hasRole('assessor');

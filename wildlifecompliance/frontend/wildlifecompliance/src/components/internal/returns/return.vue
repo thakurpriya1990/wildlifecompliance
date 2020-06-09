@@ -44,6 +44,20 @@
         <ReturnQuestion v-if="returns.format==='question'"></ReturnQuestion>
         <ReturnData v-if="returns.format==='data'"></ReturnData>
 
+        <!-- End template for Return Tab -->
+
+        <div class="row" style="margin-bottom:50px;">
+            <div class="navbar navbar-fixed-bottom" style="background-color: #f5f5f5 ">
+                <div class="navbar-inner">
+                    <div class="container">
+                        <p class="pull-right" style="margin-top:5px;">
+                            <button style="width:150px;" class="btn btn-primary btn-md" @click.prevent="save()" name="save_exit">Save</button>
+                        </p>
+                    </div>
+                </div>
+            </div>
+        </div>
+
         </div>
     </Returns>
 </div>
@@ -105,9 +119,44 @@ export default {
         'setReturns',
     ]),
     save: function(e) {
-      console.log('ENTERED Save')
-      let vm = this;
-      let data = new FormData()
+      const self = this;
+      self.form=document.forms.internal_returns_form;
+      var data = new FormData(self.form);
+      // cache only used in Returns sheets
+      for (const speciesID in self.species_cache) { // Running Sheet Cache
+        let speciesJSON = []
+        for (let i=0;i<self.species_cache[speciesID].length;i++){
+          speciesJSON[i] = JSON.stringify(self.species_cache[speciesID][i])
+        }
+        data.append(speciesID, speciesJSON)
+      };
+      var speciesJSON = []
+      let cnt = 0;
+      for (const speciesID in self.species_transfer) { // Running Sheet Transfers
+        Object.keys(self.species_transfer[speciesID]).forEach(function(key) {
+          speciesJSON[cnt] = JSON.stringify(self.species_transfer[speciesID][key])
+          cnt++;
+        });
+        data.append('transfer', speciesJSON)
+      }
+      self.$http.post(helpers.add_endpoint_json(api_endpoints.returns,self.returns.id+'/save'),data,{
+                      emulateJSON:true,
+                    }).then((response)=>{
+                      let species_id = self.returns.sheet_species;
+                      self.setReturns(response.body);
+                      self.returns.sheet_species = species_id;
+
+                      swal( 'Save', 
+                            'Return Details Saved', 
+                            'success' )
+                    
+                    },(error)=>{
+                      console.log(error);
+                      swal('Error',
+                           'There was an error saving your return details.<br/>' + error.body,
+                           'error'
+                      )
+                    });
     },
 
   },
