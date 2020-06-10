@@ -222,7 +222,7 @@ export default {
     if (this.returns.format != 'sheet') { // Return Running Sheet checks 'internal' for read-only.
       var headers = this.returns.table[0]['headers']
       for(let i = 0; i<headers.length; i++) {
-        headers[i]['readonly'] = !this.is_external || this.returns.processing_status !== 'Draft'
+        headers[i]['readonly'] = !this.is_external || !['Draft', 'Due', 'Overdue'].includes(this.returns.processing_status)
       }
       this.setReturns(this.returns);
     }
