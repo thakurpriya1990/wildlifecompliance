@@ -46,6 +46,7 @@ from wildlifecompliance.components.returns.email import (
 )
 from wildlifecompliance.components.returns.services import (
     ReturnService,
+    ReturnData,
 )
 
 
@@ -230,7 +231,8 @@ class ReturnViewSet(viewsets.ReadOnlyModelViewSet):
                     {'error': 'Enter data in correct format.'},
                     status=status.HTTP_404_NOT_FOUND
                 )
-            table = instance.data.build_table(spreadsheet.rows_list)
+            data = ReturnData(instance)
+            table = data.build_table(spreadsheet.rows_list)
 
             return Response(table)
         except serializers.ValidationError:
