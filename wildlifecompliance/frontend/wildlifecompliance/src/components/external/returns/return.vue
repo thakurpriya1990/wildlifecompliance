@@ -18,8 +18,8 @@
                         <div class="container">
                             <p class="pull-right" style="margin-top:5px;">
                                 <strong style="font-size: 18px;" v-if="isPayable">Return submission fee: {{returns.return_fee | toCurrency}}</strong><br>
-                                <button style="width:150px;" class="btn btn-primary btn-md" v-if="isSubmittable" @click.prevent="save(false)" name="save_exit">Save and Exit</button>
-                                <button style="width:150px;" class="btn btn-primary btn-md" v-if="isSubmittable" @click.prevent="save(true)" name="save_continue">Save and Continue</button>
+                                <button style="width:150px;" class="btn btn-primary btn-md" @click.prevent="save(false)" name="save_exit">Save and Exit</button>
+                                <button style="width:150px;" class="btn btn-primary btn-md" @click.prevent="save(true)" name="save_continue">Save and Continue</button>
                                 <button style="width:150px;" class="btn btn-primary btn-md" v-if="isSubmittable" @click.prevent="submit()" name="submit">Submit</button>
                                 <button style="width:150px;" class="btn btn-primary btn-md" v-if="isPayable" @click.prevent="submit_and_checkout()" name="submit">Pay and Submit</button>                                
                             </p>

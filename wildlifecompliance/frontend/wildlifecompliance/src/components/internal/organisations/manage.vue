@@ -330,9 +330,17 @@ export default {
                             return full.first_name + " " + full.last_name;
                         }
                     },
-                    {data:'user_role'},
+                    {
+                        mRender:function (data,type,full) {
+                            return full.user_role.name;
+                        }
+                    },
                     {data:'email'},
-                    {data:'user_status'},
+                    {
+                        mRender:function (data,type,full) {
+                            return full.user_status.name;
+                        }
+                    },
                   ],
                   processing: true
                   

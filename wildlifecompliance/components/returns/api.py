@@ -46,6 +46,7 @@ from wildlifecompliance.components.returns.email import (
 )
 from wildlifecompliance.components.returns.services import (
     ReturnService,
+    ReturnData,
 )
 
 
@@ -58,7 +59,7 @@ class ReturnFilterBackend(DatatablesFilterBackend):
         # Get built-in DRF datatables queryset first to join with search text,
         # then apply additional filters.
         super_queryset = super(ReturnFilterBackend, self).filter_queryset(
-            request, queryset, view).distinct()
+            request, queryset, view).distinct().order_by('-id')
 
         date_from = request.GET.get('date_from')
         date_to = request.GET.get('date_to')
@@ -230,7 +231,8 @@ class ReturnViewSet(viewsets.ReadOnlyModelViewSet):
                     {'error': 'Enter data in correct format.'},
                     status=status.HTTP_404_NOT_FOUND
                 )
-            table = instance.data.build_table(spreadsheet.rows_list)
+            data = ReturnData(instance)
+            table = data.build_table(spreadsheet.rows_list)
 
             return Response(table)
         except serializers.ValidationError:
@@ -376,6 +378,24 @@ class ReturnViewSet(viewsets.ReadOnlyModelViewSet):
             instance = self.get_object()
             serializer = self.get_serializer(instance)
             return Response(serializer.data)
+        except serializers.ValidationError:
+            print(traceback.print_exc())
+            raise
+        except ValidationError as e:
+            print(traceback.print_exc())
+            raise serializers.ValidationError(repr(e.error_dict))
+        except Exception as e:
+            print(traceback.print_exc())
+            raise serializers.ValidationError(str(e))
+
+    @detail_route(methods=['POST', ])
+    def estimate_price(self, request, *args, **kwargs):
+        try:
+            instance = self.get_object()
+            # return_id = request.data.get('return_id')
+
+            return Response({'fees': ReturnService.calculate_fees(instance)})
+
         except serializers.ValidationError:
             print(traceback.print_exc())
             raise
