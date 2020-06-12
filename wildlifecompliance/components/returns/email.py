@@ -63,6 +63,9 @@ def send_return_accept_email_notification(return_obj, request):
 
 
 def send_external_submit_email_notification(request, return_obj):
+    '''
+    Sends a notification email to submitter confirming return submission.
+    '''
     email = ReturnExternalSubmitSendNotificationEmail()
     url = request.build_absolute_uri(
         '/external/return/{}'.format(return_obj.id)
@@ -76,8 +79,7 @@ def send_external_submit_email_notification(request, return_obj):
 
     msg = email.send(return_obj.submitter.email, context=context)
     sender = request.user if request else settings.DEFAULT_FROM_EMAIL
-    _log_return_email(msg, return_obj._return, sender=sender)
-    # _log_org_email(msg, return_obj.proposal.applicant, return_obj.submitter, sender=sender)
+    _log_return_email(msg, return_obj, sender=sender)
 
 
 def send_sheet_transfer_email_notification(request, return_obj, licence):

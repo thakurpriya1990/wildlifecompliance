@@ -320,6 +320,17 @@ class Return(models.Model):
 
         return has_payment
 
+    @property
+    def activity_curators(self):
+        '''
+        QuerySet of authorised licence activity curators for this return.
+        '''
+        groups = self.get_permission_groups('return_curator').values_list(
+            'id', flat=True
+        )
+
+        return EmailUser.objects.filter(groups__id__in=groups).distinct()
+
     # Append 'R' to Return id to generate Return lodgement number.
     def save(self, *args, **kwargs):
         super(Return, self).save(*args, **kwargs)
@@ -396,6 +407,25 @@ class Return(models.Model):
                 return None
 
         return latest_invoice
+
+    def get_permission_groups(self, codename):
+        '''
+        Get the queryset of ActivityPermissionGroups matching this return based
+        on licence activity.
+        '''
+        from wildlifecompliance.components.applications.models import (
+            ActivityPermissionGroup
+        )
+        selected_activity_ids = ApplicationCondition.objects.filter(
+            id=self.condition_id,
+            licence_activity__isnull=False
+        ).values_list('licence_activity__id', flat=True)
+
+        if not selected_activity_ids:
+            return ActivityPermissionGroup.objects.none()
+
+        return ActivityPermissionGroup.get_groups_for_activities(
+            selected_activity_ids, codename)
 
     @transaction.atomic
     def accept(self, request):
