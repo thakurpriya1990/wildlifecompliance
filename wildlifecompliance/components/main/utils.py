@@ -6,11 +6,17 @@ from django.conf import settings
 from django.core.exceptions import ValidationError
 from django.core.urlresolvers import reverse
 from django.http import HttpResponseRedirect
-from ledger.checkout.utils import create_basket_session, create_checkout_session, place_order_submission
+from ledger.checkout.utils import (
+    create_basket_session,
+    create_checkout_session,
+    place_order_submission
+)
+from django.db import transaction
 from ledger.payments.models import Invoice
 from wildlifecompliance.exceptions import BindApplicationException
-from django.db.models import Q
 from django.core.cache import cache
+
+logger = logging.getLogger(__name__)
 
 
 def retrieve_department_users():
@@ -96,6 +102,63 @@ def internal_create_application_invoice(application, reference):
     app_inv = ApplicationInvoice.objects.create(
         application=application, invoice_reference=reference)
     return app_inv
+
+
+@transaction.atomic
+def create_other_application_invoice(application, request):
+    '''
+    Create and return an Invoice for an application.
+    '''
+    from wildlifecompliance.components.applications.models import (
+        ApplicationInvoice,
+    )
+
+    try:
+        order = create_application_invoice(application, payment_method='other')
+        invoice = Invoice.objects.get(order_number=order.number)
+
+        # TODO:AYN set application to identify other payment type ie. cash.
+        # application.save
+
+        app_inv, c = ApplicationInvoice.objects.get_or_create(
+            application=application,
+            invoice_reference=invoice.reference
+        )
+
+        return invoice
+
+    except Exception as e:
+        logger.error(
+            'Fail to create OTHER invoice for {0} : {1}'.format(application, e)
+        )
+
+
+def create_application_invoice(application, payment_method='bpay'):
+    '''
+    This will create and invoice and order from a basket bypassing the session
+    and payment bpoint code constraints.
+    '''
+    from wildlifecompliance.components.applications.services import (
+        ApplicationService,
+    )
+    from ledger.checkout.utils import createCustomBasket
+    from ledger.payments.invoice.utils import CreateInvoiceBasket
+
+    products = ApplicationService.get_product_lines(application)
+    user = application.submitter
+    invoice_text = 'Payment Invoice'
+
+    basket = createCustomBasket(
+        products, user, settings.WC_PAYMENT_SYSTEM_ID
+    )
+    order = CreateInvoiceBasket(
+        payment_method=payment_method,
+        system=settings.WC_PAYMENT_SYSTEM_PREFIX
+
+    ).create_invoice_and_order(
+        basket, 0, None, None, user=user, invoice_text=invoice_text)
+
+    return order
 
 
 def set_session_application(session, application):
