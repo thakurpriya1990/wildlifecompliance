@@ -65,8 +65,6 @@ class ReturnFeePolicy(object):
         Set fees in attributes container for managing dynamic fee calculation.
         '''
         try:
-            if self.is_refreshing:
-                return
             self.set_return_fee_from_attributes(attributes)
             self.dynamic_attributes = attributes
 
@@ -124,9 +122,12 @@ class ReturnFeePolicyForData(ReturnFeePolicy):
         '''
         Set Return fee from the saved model. Required when presentation is
         refreshed and no attributes are passed.
+
+        calculate return fee from the return data table.
         '''
         self.is_refreshing = True
-        self.init_dynamic_attributes()
+        # self.init_dynamic_attributes()
+        self.calculate_table_fee()
 
     def set_return_fee_from_attributes(self, attributes):
         '''
@@ -134,13 +135,31 @@ class ReturnFeePolicyForData(ReturnFeePolicy):
 
         Captures any changes to the return fee.
         '''
-        fees_new = 0
-        policy_return_fee = self.dynamic_attributes['fees']['return']
+        fees_new = attributes['fees']['return']
+        # policy_return_fee = self.dynamic_attributes['fees']['return']
 
         if fees_new != 0:
-            attributes['fees']['return'] = fees_new
             self.dynamic_attributes['fees']['return'] = fees_new
-        attributes['fees']['return'] = policy_return_fee
+
+        # attributes['fees']['return'] = policy_return_fee
+
+    def calculate_table_fee(self):
+        '''
+        Dynamically calculates applicable fees from Return data schema table.
+        '''
+        from wildlifecompliance.components.returns.utils import (
+            NumberFieldVisitor,
+            ApplyFeeFieldElement,
+        )
+
+        # Set schema field to be visited.
+        schema_field = NumberFieldVisitor(self.the_return, self.DATA)
+        for_apply_fee_fields = ApplyFeeFieldElement()
+        for_apply_fee_fields.set_updating(True)
+        for_apply_fee_fields.accept(schema_field)
+
+        dynamic_attributes = for_apply_fee_fields.get_dynamic_attributes()
+        self.set_dynamic_attributes(dynamic_attributes)
 
 
 class ReturnFeePolicyForSheet(ReturnFeePolicy):

@@ -52,5 +52,18 @@ export const returnsStore = {
         setReturns({ dispatch, commit }, returns) {
             commit(UPDATE_RETURNS, returns);
         },
+        refreshReturnFees({ dispatch, state, getters, rootGetters }) {
+            Vue.http.post('/api/returns/' + getters.return_id + '/estimate_price/', {
+                    'return_id': getters.return_id,
+            }).then(res => {
+                var obj = Object.values(res.body.fees)
+                // dispatch('setReturns', {
+                //     ...state.returns,
+                //     return_fee: res.body.fees.return,
+                // });
+            }, err => {
+                console.log(err);
+            });
+        },
     }
 }

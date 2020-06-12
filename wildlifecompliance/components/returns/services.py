@@ -129,6 +129,7 @@ class ReturnService(object):
         '''
         # update any fees.
         fee_policy = ReturnFeePolicy.get_fee_policy_for(a_return)
+        fee_policy.set_return_fee()  # force a re-calculation.
 
         return fee_policy.get_dynamic_attributes()
 
