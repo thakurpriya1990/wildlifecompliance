@@ -639,7 +639,7 @@ class WildlifeLicence(models.Model):
                 exp_date = activity.get_expiry_date()
                 activity_key['expiry_date'] += \
                     '\n' + '\n'.join(['{}'.format(
-                        exp_date.strftime('%d/%m/%Y'))
+                        exp_date.strftime('%d/%m/%Y') if exp_date else '')
                         for p in activity.proposed_purposes.all() if p.is_proposed and p.purpose in activity.purposes])
                 activity_key['can_action']['can_renew'] =\
                     activity_key['can_action']['can_renew'] or activity_can_action['can_renew']
