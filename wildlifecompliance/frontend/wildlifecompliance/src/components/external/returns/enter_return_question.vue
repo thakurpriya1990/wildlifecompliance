@@ -10,6 +10,7 @@
         <div class="panel-body panel-collapse in" :id="pdBody">
             <div class="col-sm-16">
                 <div>
+                    <AmendmentRequestDetails v-show="is_external"/>
                     <div v-for="item in returns.table" v-bind:key="`headers_${item.headers}`">
                         <renderer-block v-for="(question,key) in item.headers"
                               :component="question"
@@ -28,6 +29,7 @@
 import Vue from 'vue'
 import { mapActions, mapGetters } from 'vuex'
 import CommsLogs from '@common-components/comms_logs.vue'
+import AmendmentRequestDetails from './return_amendment.vue';
 import {
   api_endpoints,
   helpers
@@ -45,7 +47,11 @@ export default {
     ...mapGetters([
         'isReturnsLoaded',
         'returns',
+        'is_external',
     ]),
+  },
+  components: {
+    AmendmentRequestDetails,
   },
   methods: {
     ...mapActions({

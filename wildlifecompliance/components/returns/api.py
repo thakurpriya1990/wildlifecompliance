@@ -511,6 +511,8 @@ class ReturnAmendmentRequestViewSet(viewsets.ModelViewSet):
             text = amend_data.pop('text')
 
             returns = Return.objects.get(id=a_return['id'])
+            returns.processing_status = Return.RETURN_PROCESSING_STATUS_DRAFT
+            returns.save()
             application = a_return['application']
             licence = a_return['licence']
             assigned_to = a_return['assigned_to']
