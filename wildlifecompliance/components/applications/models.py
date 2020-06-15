@@ -2046,15 +2046,16 @@ class Application(RevisionedMixin):
                                 purpose_id=p_purpose['id'],
                                 selected_activity=activity,
                             )
-                            proposed.proposed_start_date = \
-                                datetime.datetime.strptime(
-                                    p_proposed[
-                                        'proposed_start_date'], '%d/%m/%Y')
+                            if status == 'issue':
+                                proposed.proposed_start_date = \
+                                    datetime.datetime.strptime(
+                                        p_proposed[
+                                            'proposed_start_date'], '%d/%m/%Y')
 
-                            proposed.proposed_end_date = \
-                                datetime.datetime.strptime(
-                                    p_proposed[
-                                        'proposed_end_date'], '%d/%m/%Y')
+                                proposed.proposed_end_date = \
+                                    datetime.datetime.strptime(
+                                        p_proposed[
+                                            'proposed_end_date'], '%d/%m/%Y')
 
                             proposed.processing_status = status
                             proposed.save()

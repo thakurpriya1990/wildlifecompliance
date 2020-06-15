@@ -504,7 +504,16 @@ export default {
                 let activity = this.application.activities[a];
                 for(let p=0; p<activity.proposed_purposes.length; p++){
                     let purpose = activity.proposed_purposes[p]
-                    if (purpose.proposed_start_date.charAt(2)==='/'){
+                    if (purpose.processing_status === 'issue') {
+                        let picked = {id: purpose.purpose.id, isProposed: true}
+                        this.pickedPurposes.push(picked) 
+                    } else {
+                        let picked = {id: purpose.purpose.id, isProposed: false}
+                        this.pickedPurposes.push(picked)
+                        purpose.proposed_start_date = '2000-01-01'
+                        purpose.proposed_end_date = '2000-01-01'
+                    }
+                    if (purpose.proposed_start_date != null && purpose.proposed_start_date.charAt(2)==='/'){
                         continue
                     }
                     let date1 = moment(purpose.proposed_start_date, 'YYYY-MM-DD').format('DD/MM/YYYY')
@@ -578,6 +587,9 @@ export default {
                     else if ($(`[name='${start_date}']`).data('date') === "") {
                         purpose.proposed_start_date = "";
                     }
+                    else {
+                        purpose.proposed_start_date = "01/01/2000";
+                    }
                 });
                 let end_date = 'end_date_' + purpose.id
                 $(`[name='${end_date}']`).datetimepicker(this.datepickerOptions);
@@ -587,6 +599,9 @@ export default {
                     }
                     else if ($(`[name='${end_date}']`).data('date') === "") {
                         purpose.proposed_end_date = "";
+                    }
+                    else {
+                        purpose.proposed_end_date = "01/01/2000";
                     }
                 });
             }
