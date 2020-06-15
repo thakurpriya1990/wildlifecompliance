@@ -227,7 +227,7 @@ export default {
       this.setReturns(this.returns);
     }
     // TODO: Species list can be rendered here for internal/external Returns.
-    // this.setReturnsSpecies({});
+    this.setReturnsSpecies({species: this.returns.sheet_species_list});
   },
 }
 </script>

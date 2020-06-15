@@ -14,7 +14,7 @@
                     <div class="form-group">
                         <label for="">Species Available:</label>
                         <select class="form-control" >
-                            <option class="change-species" v-for="specie in returns.sheet_species_list" :value="returns.sheet_species" :species_id="specie" v-bind:key="`specie_${specie}`" >{{species_list[specie]}}</option>
+                            <option class="change-species" v-for="(specie, s_idx) in returns.sheet_species_list" :value="returns.sheet_species" :species_id="specie" v-bind:key="`specie_${s_idx}`" >{{specie}}</option>
                         </select>
                     </div>
                 </div>
@@ -30,7 +30,7 @@
                         <label for="">Activity Type:</label>
                         <select class="form-control" v-model="filterActivityType">
                             <option value="All">All</option>
-                            <option v-for="sa in sheet_activity_type" :value="sa['label']" v-bind:key="`sa_type_${sa}`">{{sa['label']}}</option>
+                            <option v-for="(sa, sa_idx) in sheet_activity_type" :value="sa['label']" v-bind:key="`sa_type_${sa_idx}`">{{sa['label']}}</option>
                         </select>
                     </div>
                 </div>
@@ -228,16 +228,11 @@ export default {
       self.$refs.sheet_entry.entryDateTime = '';
       self.$refs.sheet_entry.isSubmitable = true;
       self.$refs.sheet_entry.isModalOpen = true;
-    }
-  },
-  created: function(){
-     this.form = document.forms.enter_return_sheet;
-     this.readonly = !this.is_external;
-     this.select_species_list = this.species_list;
-  },
-  mounted: function(){
-     var vm = this; // preserve created ViewModel context when mounted for function calls.
-     vm.$refs.return_datatable.vmDataTable.on('click','.edit-row', function(e) {
+    },
+    addEventListeners: function(){
+      let vm = this;
+
+      vm.$refs.return_datatable.vmDataTable.on('click','.edit-row', function(e) {
         e.preventDefault();
         vm.$refs.sheet_entry.isChangeEntry = true;
         vm.$refs.sheet_entry.activityList = vm.returns.sheet_activity_list;
@@ -260,9 +255,9 @@ export default {
         vm.$refs.sheet_entry.isSubmitable = true;
         vm.$refs.sheet_entry.isModalOpen = true;
         vm.$refs.sheet_entry.errors = false;
-     });
+      });
 
-     vm.$refs.return_datatable.vmDataTable.on('click','.accept-row', function(e) {
+      vm.$refs.return_datatable.vmDataTable.on('click','.accept-row', function(e) {
         e.preventDefault();
         var selected = vm.$refs.return_datatable.vmDataTable.row('#'+$(this).attr('data-rowid'));
         var rows = vm.$refs.return_datatable.vmDataTable.data();
@@ -286,10 +281,9 @@ export default {
         vm.$refs.return_datatable.vmDataTable.clear().draw();
         vm.$refs.return_datatable.vmDataTable.rows.add(vm.species_cache[vm.returns.sheet_species]);
         vm.$refs.return_datatable.vmDataTable.draw();
+      });
 
-     });
-
-     vm.$refs.return_datatable.vmDataTable.on('click','.decline-row', function(e) {
+      vm.$refs.return_datatable.vmDataTable.on('click','.decline-row', function(e) {
         e.preventDefault();
         var selected = vm.$refs.return_datatable.vmDataTable.row('#'+$(this).attr('data-rowid'));
         var rows = vm.$refs.return_datatable.vmDataTable.data();
@@ -310,10 +304,18 @@ export default {
         vm.$refs.return_datatable.vmDataTable.clear().draw();
         vm.$refs.return_datatable.vmDataTable.rows.add(vm.species_cache[vm.returns.sheet_species]);
         vm.$refs.return_datatable.vmDataTable.draw();
-     });
+      });
 
-     // Instantiate Form Actions
-     $('form').on('click', '.change-species', function(e) {
+      // payment row listener
+      vm.$refs.return_datatable.vmDataTable.on('click', 'tr.payRecordRow', function(e) {
+          // If a link is clicked, ignore
+          if($(e.target).is('a')){
+              return;
+          }
+      });
+
+      // Instantiate Form Actions
+      $('form').on('click', '.change-species', function(e) {
         e.preventDefault();
         let selected_id = $(this).attr('species_id');
         if (vm.species_cache[vm.returns.sheet_species]==null
@@ -334,7 +336,19 @@ export default {
                     .ajax.url = helpers.add_endpoint_json(api_endpoints.returns,'sheet_details');
             vm.$refs.return_datatable.vmDataTable.ajax.reload();
         };
-     });
+      });
+    },
+  },
+  created: function(){
+     this.form = document.forms.enter_return_sheet;
+     this.readonly = !this.is_external;
+     this.select_species_list = this.species_list;
+  },
+  mounted: function(){
+    var vm = this;
+    this.$nextTick(() => {
+        vm.addEventListeners();
+    });
   },
 };
 </script>
