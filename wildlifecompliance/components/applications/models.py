@@ -4023,7 +4023,7 @@ class ApplicationSelectedActivity(models.Model):
         purpose_ids_list = request.data.get('purpose_ids_list', None)
         purpose_ids_list = list(set(purpose_ids_list))
         purpose_ids_list.sort()
-        self.set_proposed_purposes_status_for(purpose_ids_list, SUSPEND)
+        self.set_proposed_purposes_status_for(purpose_ids_list, CANCEL)
 
         if not self.is_proposed_purposes_status(CANCEL):
             return
