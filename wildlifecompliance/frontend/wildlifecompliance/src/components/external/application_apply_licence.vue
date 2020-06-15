@@ -17,6 +17,20 @@
                     <div class="panel-body collapse in" :id="pBody">
                         <form v-if="categoryCount" class="form-horizontal" name="personal_form" method="post">
                           
+                            <div class="col-sm-12" >
+                                <div class="row">
+                                    <label class="col-sm-3">
+                                        Payment method for customer:
+                                    </label>
+
+                                    <div class="col-sm-6">
+                                        <input type="radio" name="customer_pay_method" value="card"> Credit Card &nbsp;&nbsp;</input>
+                                        <input type="radio" name="customer_pay_method" value="cash"> Cash &nbsp;&nbsp;</input>
+                                        <input type="radio" name="customer_pay_method" value="none"> No Payment &nbsp;&nbsp;</input>
+                                    </div>
+                                </div>
+                            </div>
+
                             <div class="col-sm-12">
                                 <div class="row">
                                     <label class="col-sm-6">
@@ -132,6 +146,7 @@ export default {
         licence_fee: 0,
         selected_apply_org_id_details : {},
         selected_apply_proxy_id_details: {},
+        customer_pay_method:null,
     }
   },
   components: {

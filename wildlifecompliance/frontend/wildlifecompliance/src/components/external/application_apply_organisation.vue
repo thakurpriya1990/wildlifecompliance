@@ -29,6 +29,11 @@
                                           <input  type="radio"  name="behalf_of_org" v-model="org_applicant"  :value="org.id" > On behalf of {{org.name}} (as a Consultant)
                                         </label>
                                     </div>
+                                    <div class="radio" v-if="current_user.is_internal">
+                                        <label>
+                                        <input type="radio"  name="behalf_of_org" value="public"> On behalf of public (Non Organisation)
+                                        </label>
+                                    </div>
                             </div>
                            
                             <div class="col-sm-12">
