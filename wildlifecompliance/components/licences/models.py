@@ -529,7 +529,7 @@ class WildlifeLicence(models.Model):
         for activity in latest:
             for proposed in activity.proposed_purposes.all():
                 if proposed.purpose.id not in active_licence_purposes\
-                        and proposed.is_proposed:
+                        and proposed.is_issued:
                     can_action_purpose_list.append(proposed.id)
 
         ISSUED = ApplicationSelectedActivityPurpose.PROCESSING_STATUS_ISSUED
@@ -614,10 +614,10 @@ class WildlifeLicence(models.Model):
                     'start_date': activity.get_start_date(),
                     'expiry_date': '\n'.join(['{}'.format(
                         p.expiry_date.strftime('%d/%m/%Y') if p.expiry_date else '')
-                        for p in activity.proposed_purposes.all() if p.is_proposed]),
+                        for p in activity.proposed_purposes.all() if p.is_issued]),
                     'activity_purpose_names_and_status': '\n'.join(['{} ({})'.format(
                         p.purpose.name, activity.get_activity_status_display())
-                        for p in activity.proposed_purposes.all() if p.is_proposed]),
+                        for p in activity.proposed_purposes.all() if p.is_issued]),
                     'can_action':
                         {
                             'licence_activity_id': activity.licence_activity_id,
@@ -640,7 +640,7 @@ class WildlifeLicence(models.Model):
                 activity_key['expiry_date'] += \
                     '\n' + '\n'.join(['{}'.format(
                         exp_date.strftime('%d/%m/%Y') if exp_date else '')
-                        for p in activity.proposed_purposes.all() if p.is_proposed and p.purpose in activity.purposes])
+                        for p in activity.proposed_purposes.all() if p.is_issued and p.purpose in activity.purposes])
                 activity_key['can_action']['can_renew'] =\
                     activity_key['can_action']['can_renew'] or activity_can_action['can_renew']
                 activity_key['can_action']['can_amend'] =\

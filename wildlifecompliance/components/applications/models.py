@@ -1254,6 +1254,13 @@ class Application(RevisionedMixin):
             ).distinct()
             email_list = [user.email for user in group_users]
 
+        # Set all proposed purposes back to selected so they can be proposed.
+        STATUS = ApplicationSelectedActivityPurpose.PROCESSING_STATUS_SELECTED
+        p_ids = [
+            p.purpose.id for p in selected_activity.proposed_purposes.all()
+        ]
+        selected_activity.set_proposed_purposes_status_for(p_ids, STATUS)
+
         self.set_activity_processing_status(
             activity_id,
             ApplicationSelectedActivity.PROCESSING_STATUS_OFFICER_CONDITIONS
@@ -1923,6 +1930,8 @@ class Application(RevisionedMixin):
         '''
         Propose licence purposes for issuing by Approver.
         '''
+        propose = ApplicationSelectedActivityPurpose.PROCESSING_STATUS_PROPOSED
+        select = ApplicationSelectedActivityPurpose.PROCESSING_STATUS_SELECTED
         with transaction.atomic():
             try:
                 activity_list = []
@@ -1970,7 +1979,8 @@ class Application(RevisionedMixin):
                             issued = latest_activity.proposed_purposes.filter(
                                 purpose=lp
                             ).first()
-                            status = 'issue' if p['isProposed'] else 'decline'
+                            # set status to propose for the selected.
+                            status = propose if p['isProposed'] else select
 
                             purpose, c = ApplicationSelectedActivityPurpose.objects.get_or_create(
                                 purpose=issued.purpose,
@@ -2038,7 +2048,7 @@ class Application(RevisionedMixin):
                                 p['isProposed'] for p in purpose_list \
                                     if p['id']==p_purpose['id']
                             ]
-                            status = 'issue' if is_proposed[0] else 'decline'
+                            status = propose if is_proposed[0] else select
                             proposed = activity.proposed_purposes.filter(
                                 id=p_proposed['id']
                             ).first()
@@ -2046,7 +2056,7 @@ class Application(RevisionedMixin):
                                 purpose_id=p_purpose['id'],
                                 selected_activity=activity,
                             )
-                            if status == 'issue':
+                            if status == propose:
                                 proposed.proposed_start_date = \
                                     datetime.datetime.strptime(
                                         p_proposed[
@@ -3753,7 +3763,7 @@ class ApplicationSelectedActivity(models.Model):
         Set the original issue date on all purposes on this activity.
         '''
         for p in self.proposed_purposes.all():
-            p.original_issue_date = issue_date if p.is_proposed \
+            p.original_issue_date = issue_date if p.is_issued \
                 else p.original_issue_date
             p.save()
 
@@ -3773,7 +3783,7 @@ class ApplicationSelectedActivity(models.Model):
                     '%Y-%m-%d'
                 )
                 o_date = p.original_issue_date \
-                    if p_otime < o_otime and p.is_proposed else o_date
+                    if p_otime < o_otime and p.is_issued else o_date
 
         except BaseException as e:
             logger.error('get_original_issue_date(): {0}'.format(e))
@@ -3786,7 +3796,7 @@ class ApplicationSelectedActivity(models.Model):
         Set the issue date on all purposes on this activity.
         '''
         for p in self.proposed_purposes.all():
-            p.issue_date = issue_date if p.is_proposed else p.issue_date
+            p.issue_date = issue_date if p.is_issued else p.issue_date
             p.save()
 
     def get_issue_date(self):
@@ -3806,7 +3816,7 @@ class ApplicationSelectedActivity(models.Model):
                 )
                 # p_itime = p.issue_date.strftime('%Y,%m,%d')
                 issue_date = p.issue_date \
-                    if p_itime < i_itime and p.is_proposed else issue_date
+                    if p_itime < i_itime and p.is_issued else issue_date
 
         except BaseException as e:
             logger.error('get_issue_date(): {0}'.format(e))
@@ -3892,7 +3902,7 @@ class ApplicationSelectedActivity(models.Model):
             c_ctime = datetime.datetime.strptime(c_date, '%d/%m/%Y')
             for p in self.proposed_purposes.all():
                 p_etime = datetime.datetime.strptime(p.expiry_date, '%d/%m/%Y')
-                if c_ctime <= p_etime and p.is_proposed:
+                if c_ctime <= p_etime and p.is_issued:
                     is_current = True 
                     break
 
@@ -4277,11 +4287,35 @@ class ApplicationSelectedActivityPurpose(models.Model):
         '''
         proposed_status = [
             self.PROCESSING_STATUS_PROPOSED,
+        ]
+
+        return True if self.processing_status in proposed_status else False
+
+    @property
+    def is_issued(self):
+        '''
+        An attribute to indicate that this selected Activity Purpose has been 
+        issued.
+        '''
+        issue_status = [
+            self.PROCESSING_STATUS_ISSUED,
+        ]
+
+        return True if self.processing_status in issue_status else False
+
+    @property
+    def is_payable(self):
+        '''
+        An attribute to indicate that this selected Activity Purpose has been 
+        selected with a fee.
+        '''
+        payable_status = [
+            self.PROCESSING_STATUS_PROPOSED,
             self.PROCESSING_STATUS_ISSUED,
             self.PROCESSING_STATUS_SELECTED,
         ]
 
-        return True if self.processing_status in proposed_status else False
+        return True if self.processing_status in payable_status else False
 
     @property
     def total_paid_amount(self):

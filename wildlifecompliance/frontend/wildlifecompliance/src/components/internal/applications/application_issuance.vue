@@ -42,7 +42,7 @@
                                                                 <input type="radio" :value ="false" :id="p.purpose.id" v-model="getPickedPurpose(p.purpose.id).isProposed" /> Decline
                                                             </div>
                                                             <div class="col-sm-3">
-                                                                <div class="input-group date" :ref="`start_date_${p.id}`" style="width: 100%;">
+                                                                <div class="input-group date" v-if="getPickedPurpose(p.purpose.id).isProposed" :ref="`start_date_${p.id}`" style="width: 100%;">
                                                                     <input type="text" class="form-control" :name="`start_date_${p.id}`" placeholder="DD/MM/YYYY" v-model="p.proposed_start_date">
                                                                     <span class="input-group-addon">
                                                                         <span class="glyphicon glyphicon-calendar"></span>
@@ -50,14 +50,14 @@
                                                                 </div>
                                                             </div>                                                
                                                             <div class="col-sm-3">                                                        
-                                                                <div class="input-group date" :ref="`end_date_${p.id}`" style="width: 100%;">
+                                                                <div class="input-group date" v-if="getPickedPurpose(p.purpose.id).isProposed" :ref="`end_date_${p.id}`" style="width: 100%;">
                                                                     <input type="text" class="form-control" :name="`end_date_${p.id}`" placeholder="DD/MM/YYYY" v-model="p.proposed_end_date">
                                                                     <span class="input-group-addon">
                                                                         <span class="glyphicon glyphicon-calendar"></span>
                                                                     </span>
                                                                 </div>
                                                             </div>
-                                                            <div class="col-sm-12">                                                        
+                                                            <div class="col-sm-12" v-if="!getPickedPurpose(p.purpose.id).isProposed">                                                        
                                                                 &nbsp;
                                                             </div>
                                                         </div>
@@ -504,7 +504,7 @@ export default {
                 let activity = this.application.activities[a];
                 for(let p=0; p<activity.proposed_purposes.length; p++){
                     let purpose = activity.proposed_purposes[p]
-                    if (purpose.processing_status === 'issue') {
+                    if (['issue','propose'].includes(purpose.processing_status)) {
                         let picked = {id: purpose.purpose.id, isProposed: true}
                         this.pickedPurposes.push(picked) 
                     } else {
