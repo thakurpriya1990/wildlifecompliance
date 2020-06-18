@@ -344,13 +344,6 @@ export default {
             ).length;
             return confirmations === required_confirmations;
         },
-        selectedActivityPurpose: function() {
-            const required_confirmations = this.visibleLicenceActivities.length
-            const confirmations = this.licence.activity.filter(
-                activity => activity.purposes.length>0 && activity.confirmed
-            ).length;
-            return confirmations === required_confirmations;
-        },
         canEditLicenceDates: function() {
             return this.application.application_type && this.application.application_type.id !== 'amend_activity';
         },
@@ -381,14 +374,6 @@ export default {
                 return swal(
                     'Cannot issue/decline',
                     "One or more activity tabs hasn't been marked as ready for finalisation!",
-                    'error'
-                );
-            }
-
-            if(!this.selectedActivityPurpose) {
-                return swal(
-                    'Cannot issue/decline',
-                    "One or more purposes hasn't been selected!",
                     'error'
                 );
             }
@@ -504,20 +489,22 @@ export default {
                 let activity = this.application.activities[a];
                 for(let p=0; p<activity.proposed_purposes.length; p++){
                     let purpose = activity.proposed_purposes[p]
-                    if (['issue','propose'].includes(purpose.processing_status)) {
+                    if (['reissue','propose'].includes(purpose.processing_status)) {
                         let picked = {id: purpose.purpose.id, isProposed: true}
                         this.pickedPurposes.push(picked) 
                     } else {
                         let picked = {id: purpose.purpose.id, isProposed: false}
                         this.pickedPurposes.push(picked)
-                        purpose.proposed_start_date = '2000-01-01'
-                        purpose.proposed_end_date = '2000-01-01'
                     }
                     if (purpose.proposed_start_date != null && purpose.proposed_start_date.charAt(2)==='/'){
                         continue
                     }
                     let date1 = moment(purpose.proposed_start_date, 'YYYY-MM-DD').format('DD/MM/YYYY')
                     let date2 = moment(purpose.proposed_end_date, 'YYYY-MM-DD').format('DD/MM/YYYY')
+                    if (purpose.proposed_start_date == null){
+                        date1 = '';
+                        date2 = ''
+                    }
                     purpose.proposed_start_date = date1
                     purpose.proposed_end_date = date2
                 }
@@ -575,37 +562,42 @@ export default {
 
         //Initialise Date Picker
         initDatePicker: function() {
-            let activity = this.selectedApplicationActivity
-            for (let p=0; p<activity.proposed_purposes.length; p++){
-                let purpose = activity.proposed_purposes[p]
-                let start_date = 'start_date_' + purpose.id
-                $(`[name='${start_date}']`).datetimepicker(this.datepickerOptions);
-                $(`[name='${start_date}']`).on('dp.change', function(e){
-                    if ($(`[name='${start_date}']`).data('DateTimePicker').date()) {
-                        purpose.proposed_start_date =  e.date.format('DD/MM/YYYY');
-                    }
-                    else if ($(`[name='${start_date}']`).data('date') === "") {
-                        purpose.proposed_start_date = "";
-                    }
-                    else {
-                        purpose.proposed_start_date = "01/01/2000";
-                    }
-                });
-                let end_date = 'end_date_' + purpose.id
-                $(`[name='${end_date}']`).datetimepicker(this.datepickerOptions);
-                $(`[name='${end_date}']`).on('dp.change', function(e){
-                    if ($(`[name='${end_date}']`).data('DateTimePicker').date()) {
-                        purpose.proposed_end_date =  e.date.format('DD/MM/YYYY');
-                    }
-                    else if ($(`[name='${end_date}']`).data('date') === "") {
-                        purpose.proposed_end_date = "";
-                    }
-                    else {
-                        purpose.proposed_end_date = "01/01/2000";
-                    }
-                });
+            for (let a=0; a<this.application.activities.length; a++){
+                let activity = this.application.activities[a];
+                for (let p=0; p<activity.proposed_purposes.length; p++){
+                    let purpose = activity.proposed_purposes[p]
+                    let start_date = 'start_date_' + purpose.id
+                    $(`[name='${start_date}']`).datetimepicker(this.datepickerOptions);
+                    $(`[name='${start_date}']`).on('dp.change', function(e){
+                        if ($(`[name='${start_date}']`).data('DateTimePicker').date()) {
+                            purpose.proposed_start_date =  e.date.format('DD/MM/YYYY');
+                        }
+                        else if ($(`[name='${start_date}']`).data('date') === "") {
+                            purpose.proposed_start_date = "";
+                        }
+                        else {
+                            purpose.proposed_start_date = "";
+                        }
+                    });
+                    let end_date = 'end_date_' + purpose.id
+                    $(`[name='${end_date}']`).datetimepicker(this.datepickerOptions);
+                    $(`[name='${end_date}']`).on('dp.change', function(e){
+                        if ($(`[name='${end_date}']`).data('DateTimePicker').date()) {
+                            purpose.proposed_end_date =  e.date.format('DD/MM/YYYY');
+                        }
+                        else if ($(`[name='${end_date}']`).data('date') === "") {
+                            purpose.proposed_end_date = "";
+                        }
+                        else {
+                            purpose.proposed_end_date = "";
+                        }
+                    });
+                }
             }
         }
+    },
+    updated: function(){
+        this.eventListeners();
     },
     mounted: function(){
         let vm = this;

@@ -18,7 +18,7 @@
                                         <div v-show="checkedActivities.find(checked => checked===a.id)">    
                                             <div v-for="(p, p_idx) in a.proposed_purposes" v-bind:key="`p_${p_idx}`">
                                                 <div class="col-sm-3">
-                                                    &nbsp;<b>{{p.purpose.short_name}}</b>
+                                                    &nbsp;<b>{{p.purpose.short_name.substr(0,25)}}</b>
                                                 </div>
                                                 <div class="col-sm-3">
                                                     Issue <input type="radio" :value ="true" :id="p.purpose.id" v-model="getPickedPurpose(p.purpose.id).isProposed" />
