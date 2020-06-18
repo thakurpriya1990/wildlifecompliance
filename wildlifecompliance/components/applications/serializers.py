@@ -185,8 +185,9 @@ class ApplicationSelectedActivitySerializer(serializers.ModelSerializer):
         return PurposeSerializer(purposes, many=True).data
 
     def get_activity_purpose_names(self, obj):
-        purposes = [p.purpose for p in obj.proposed_purposes.exclude(
-            processing_status='decline')]
+        purposes = [
+            p.purpose for p in obj.proposed_purposes.all()
+        ]
 
         if obj.proposed_action \
                 == ApplicationSelectedActivity.PROPOSED_ACTION_DEFAULT:
