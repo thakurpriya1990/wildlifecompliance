@@ -1878,7 +1878,7 @@ class AmendmentRequestViewSet(viewsets.ModelViewSet):
                   ApplicationSelectedActivityPurpose.PROCESSING_STATUS_SELECTED
                 p_ids = [ p.purpose.id \
                     for p in selected_activity.proposed_purposes.all() ]
-                selected_activity.set_proposed_purposes_status_for(
+                selected_activity.set_proposed_purposes_process_status_for(
                     p_ids, STATUS)
 
             # send email
