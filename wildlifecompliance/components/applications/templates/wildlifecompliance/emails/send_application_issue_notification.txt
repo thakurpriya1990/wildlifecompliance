@@ -10,8 +10,8 @@
     Activities:
     {% for activity in activities %}
         {{activity.licence_activity.name}}
-        Start Date: {{activity.get_start_date()}}
-        Expiry Date: {{activity.get_expiry_date()}}
+        Start Date: {{activity.get_start_date}}
+        Expiry Date: {{activity.get_expiry_date}}
     {% endfor %}
 
     Link: {{url}}
