@@ -60,6 +60,7 @@ from wildlifecompliance.components.applications.email import (
     send_activity_invoice_issue_notification,
     send_amendment_refund_email_notification,
     send_activity_propose_issue_notification,
+    send_activity_refund_issue_notification,
 )
 from wildlifecompliance.components.main.utils import get_choice_value
 from wildlifecompliance.ordered_model import OrderedModel
@@ -2475,21 +2476,22 @@ class Application(RevisionedMixin):
 
                         # Set the start and expiry date from the proposed 
                         # dates.
+                        decline_ids = set([
+                            p['id'] for p in request.data.get(
+                                'selected_purpose_ids') if not p['isProposed']
+                        ])
                         issue_ids = list(set([
                             p['id'] for p in request.data.get(
                                 'selected_purpose_ids') if p['isProposed']
-                        ]))
-                        decline_ids = list(set([
-                            p['id'] for p in request.data.get(
-                                'selected_purpose_ids') if not p['isProposed']
-                        ]))
+                        ]) - decline_ids)
+                        decline_ids = list(decline_ids)
                         proposed_purposes = request.data.get('purposes')
                         ISSUE = ApplicationSelectedActivityPurpose.PROCESSING_STATUS_ISSUED
                         DECLINE = ApplicationSelectedActivityPurpose.PROCESSING_STATUS_DECLINED
                         SELECT = ApplicationSelectedActivityPurpose.PROCESSING_STATUS_SELECTED
                         DEFAULT = ApplicationSelectedActivityPurpose.PURPOSE_STATUS_DEFAULT
                         CURRENT = ApplicationSelectedActivityPurpose.PURPOSE_STATUS_CURRENT
-                        REFUND = ApplicationSelectedActivity.DECISION_ACTION_ISSUE_WITH_REFUND
+                        REFUND = ApplicationSelectedActivity.DECISION_ACTION_ISSUED_WITH_REFUND
                         for proposed in proposed_purposes:
                             purpose =\
                                 ApplicationSelectedActivityPurpose.objects.get(
@@ -2518,16 +2520,19 @@ class Application(RevisionedMixin):
                             elif purpose.purpose_id in decline_ids:
                                 purpose.processing_status = DECLINE
                                 purpose.status = DEFAULT
-                                selected_activity.decision_action = REFUND
-                                selected_activity.save()
+                                p_selected_activity = purpose.selected_activity
+                                p_selected_activity.decision_action = REFUND
+                                p_selected_activity.save()
 
                                 # Send out notification to officer of refund.
+                                send_activity_refund_issue_notification(
+                                    request, self, purpose.licence_fee)
 
                                 if not len(issue_ids):
                                     # if nothing to issue on activity.
-                                    selected_activity.processing_status = \
+                                    p_selected_activity.processing_status = \
                                         ApplicationSelectedActivity.PROCESSING_STATUS_DECLINED
-                                    selected_activity.save()
+                                    p_selected_activity.save()
 
                             if self.application_type not in [
                                 Application.APPLICATION_TYPE_AMENDMENT,
