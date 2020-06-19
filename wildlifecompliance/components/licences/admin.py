@@ -42,3 +42,8 @@ class LicenceSpeciesAdmin(admin.ModelAdmin):
         for selected in queryset:
             ApplicationService.verify_licence_specie_id(selected.specie_id)
         self.message_user(request, 'Selected species have been verified.')
+
+
+@admin.register(models.WildlifeLicenceReceptionEmail)
+class WildlifeLicenceReceptionEmailAdmin(admin.ModelAdmin):
+    pass

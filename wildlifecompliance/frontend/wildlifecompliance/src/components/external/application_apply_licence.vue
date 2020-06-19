@@ -17,7 +17,7 @@
                     <div class="panel-body collapse in" :id="pBody">
                         <form v-if="categoryCount" class="form-horizontal" name="personal_form" method="post">
                           
-                            <div class="col-sm-12" >
+                            <div class="col-sm-12" v-show='current_user.is_reception' >
                                 <div class="row">
                                     <label class="col-sm-3">
                                         Payment method for customer:
@@ -147,6 +147,7 @@ export default {
         selected_apply_org_id_details : {},
         selected_apply_proxy_id_details: {},
         customer_pay_method:null,
+        current_user: null,
     }
   },
   components: {
@@ -373,12 +374,14 @@ export default {
         }),
         this.selected_apply_org_id ? utils.fetchOrganisation(this.selected_apply_org_id) : '',
         this.selected_apply_proxy_id ? internal_utils.fetchUser(this.selected_apply_proxy_id) : '',
+        utils.fetchCurrentUser()
     ];
 
     Promise.all(initialisers).then(data => {
         this.licence_categories = data[0];
         this.selected_apply_org_id_details = data[1];
         this.selected_apply_proxy_id_details = data[2];
+        this.current_user = data[3];
     });
   },
   beforeRouteEnter:function(to,from,next){

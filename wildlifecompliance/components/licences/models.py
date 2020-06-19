@@ -1175,6 +1175,20 @@ class LicenceUserAction(UserAction):
 #     for document in instance.documents.all():
 #         document.delete()
 
+class WildlifeLicenceReceptionEmail(models.Model):
+    '''
+    An model representation of an Wildlife Licensing Reception email address
+    used for general purposes.
+    '''
+    name = models.CharField(max_length=64)
+    address = models.CharField(max_length=128)
+
+    class Meta:
+        app_label = 'wildlifecompliance'
+
+    def __str__(self):
+        return self.address
+
 
 '''
 NOTE: REGISTER MODELS FOR REVERSION HERE.
