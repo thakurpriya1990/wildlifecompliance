@@ -261,7 +261,10 @@ export default {
             return url;
         },
         applicationSelectedActivitiesForPurposes: function() {
-            return this.selectedApplicationActivity.proposed_purposes
+            var proposed = this.selectedApplicationActivity.proposed_purposes.filter(purpose => {
+                return ['selected','reissue','propose'].includes(purpose.processing_status)
+            });
+            return proposed;
         },
         canIssueOrDecline: function() {
             return (this.allActivitiesDeclined || (
@@ -392,7 +395,9 @@ export default {
                         let proposed = activity.proposed_purposes
                         for (let p=0; p<proposed.length; p++){
                             let purpose = proposed[p]
-                            selected.push(purpose)
+                            if (['reissue','propose','selected'].includes(purpose.processing_status)){
+                                selected.push(purpose)
+                            }
                         }
                     }
                     vm.licence.purposes = selected
