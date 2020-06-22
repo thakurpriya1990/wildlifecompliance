@@ -13,7 +13,7 @@ from rest_framework.renderers import JSONRenderer
 from ledger.accounts.models import EmailUser
 from ledger.checkout.utils import calculate_excl_gst
 from django.urls import reverse
-from django.shortcuts import redirect
+from django.shortcuts import redirect, render
 from wildlifecompliance.components.applications.utils import (
     SchemaParser,
     MissingFieldsException,
@@ -38,7 +38,6 @@ from wildlifecompliance.components.applications.models import (
     AmendmentRequest,
     ApplicationUserAction,
     ApplicationFormDataRecord,
-    ActivityInvoice,
 )
 from wildlifecompliance.components.applications.services import (
     ApplicationService
@@ -675,6 +674,66 @@ class ApplicationViewSet(viewsets.ModelViewSet):
             print(traceback.print_exc())
             raise serializers.ValidationError(str(e))
 
+    @detail_route(methods=['post'])
+    @renderer_classes((JSONRenderer,))
+    def application_fee_reception(self, request, *args, **kwargs):
+        '''
+        Process to pay application fee and record by licensing reception.
+        '''
+        from wildlifecompliance.components.applications.payments import (
+            InvoiceClearable,
+        )
+        try:
+            instance = self.get_object()
+
+            if not request.user.is_staff:
+                raise Exception('Non staff member.')
+
+            session = request.session
+            set_session_application(session, instance)
+
+            # establish payment method. (cash or no-payment)
+            payment_method = request.data.get('pay_method')
+
+            if payment_method == InvoiceClearable.TYPE_CASH:
+                invoice = ApplicationService.cash_payment_submission(
+                    request)
+
+            elif payment_method == InvoiceClearable.TYPE_NONE:
+                invoice = ApplicationService.none_payment_submission(
+                    request)
+
+            else:
+                raise Exception('Cannot make this type of payment.')
+
+            # create invoice for cash payment.
+            # or create invoice for zero amount (transfer licence)
+
+            # return template application-success
+            template_name = 'wildlifecompliance/application_success.html'
+            invoice_url = request.build_absolute_uri(
+                reverse(
+                    'payments:invoice-pdf',
+                    kwargs={'reference': invoice}))
+            context = {
+                'application': instance,
+                'invoice_ref': invoice,
+                'invoice_url': invoice_url
+            }
+
+            return render(request, template_name, context)
+
+        except serializers.ValidationError:
+            print(traceback.print_exc())
+            raise
+        except ValidationError as e:
+            if hasattr(e, 'error_dict'):
+                raise serializers.ValidationError(repr(e.error_dict))
+            else:
+                raise serializers.ValidationError(repr(e[0].encode('utf-8')))
+        except Exception as e:
+            print(traceback.print_exc())
+            raise serializers.ValidationError(str(e))
 
     @detail_route(methods=['post'])
     @renderer_classes((JSONRenderer,))

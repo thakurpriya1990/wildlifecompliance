@@ -3,8 +3,6 @@ import abc
 import requests
 import logging
 
-from decimal import Decimal
-
 from wildlifecompliance import settings
 
 from wildlifecompliance.components.licences.models import (
@@ -14,6 +12,14 @@ from wildlifecompliance.components.licences.models import (
 
 from wildlifecompliance.components.applications.payments import (
     ApplicationFeePolicy,
+    InvoiceClearable,
+)
+
+from wildlifecompliance.components.main.utils import (
+    get_session_application,
+    delete_session_application,
+    set_session_other_pay_method,
+    create_other_application_invoice,
 )
 
 from wildlifecompliance.components.applications.models import (
@@ -38,6 +44,64 @@ class ApplicationService(object):
 
     def __init__(self):
         pass
+
+    @staticmethod
+    def cash_payment_submission(request):
+        '''
+        Prepares licence application with cash payments.
+
+        :return: invoice reference.
+        '''
+        try:
+            application = get_session_application(request.session)
+            delete_session_application(request.session)
+
+            do_update_dynamic_attributes(application)
+
+            set_session_other_pay_method(
+                request.session, InvoiceClearable.TYPE_CASH)
+            invoice = create_other_application_invoice(application, request)
+            invoice_ref = invoice.reference
+
+            # submit application if successful.
+            application.submit(request)
+            # send_application_invoice_email_notification(
+            #     application, invoice_ref, request)
+
+        except Exception as e:
+            delete_session_application(request.session)
+            logger.error('Fail cash_payment_submission: {0}'.format(e))
+            raise Exception('Failed cash payment application submission.')
+
+        return invoice_ref
+
+    def none_payment_submission(request):
+        '''
+        Prepares licence application with no base fee payment. Supports the
+        transfer of previously paid licenses not in the system.
+
+        :return: invoice reference.
+        '''
+        try:
+            application = get_session_application(request.session)
+            delete_session_application(request.session)
+            has_fee_exemption = True
+            do_update_dynamic_attributes(application, has_fee_exemption)
+
+            set_session_other_pay_method(
+                request.session, InvoiceClearable.TYPE_NONE)
+            invoice = create_other_application_invoice(application)
+            invoice_ref = invoice.reference
+
+            # submit application if successful.
+            application.submit(request)
+
+        except Exception as e:
+            delete_session_application(request.session)
+            logger.error('Fail none_payment_submission: {0}'.format(e))
+            raise Exception('Failed none payment application submission.')
+
+        return invoice_ref
 
     @staticmethod
     def get_licence_species(species_list):
@@ -547,6 +611,7 @@ class IncreaseApplicationFeeFieldElement(SpecialFieldElement):
     dynamic_attributes = None   # Attributes on the Activity Purpose.
     is_updating = False         # Flag indicating if update or retrieval.
     is_refreshing = False       # Flag indicating a page refresh.
+    has_fee_exemption = False   # Allow exemption for zero amount invoice.
 
     def __init__(self):
         pass
@@ -572,6 +637,14 @@ class IncreaseApplicationFeeFieldElement(SpecialFieldElement):
         for estimate calculation.
         '''
         self.is_updating = is_update
+
+    def set_has_fee_exemption(self, is_exempt):
+        '''
+        Sets the flag indicating that this visit will force a zero amount to be
+        calculated for invoicing (zero amount invoice). The fee stored is only
+        for the adjusted amounts on the licence purpose.
+        '''
+        self.has_fee_exemption = is_exempt
 
     def reset(self, licence_activity):
         '''
@@ -615,6 +688,8 @@ class IncreaseApplicationFeeFieldElement(SpecialFieldElement):
         self.adjusted_fee = 0
         if set([self.NAME]).issubset(component):
             def increase_fee(fees, field, amount):
+                if self.has_fee_exemption:
+                    return True
                 fees[field] += amount
                 fees[field] = fees[field] if fees[field] >= 0 else 0
                 return True
@@ -695,6 +770,7 @@ class IncreaseApplicationFeeFieldElement(SpecialFieldElement):
             # don't calculate new fees for attributes.
             return self.dynamic_attributes
         # apply fee policy to re-calculate total fees for application.
+        self.fee_policy.set_has_fee_exemption(self.has_fee_exemption)
         self.fee_policy.set_dynamic_attributes(self.dynamic_attributes)
 
         return self.dynamic_attributes
@@ -814,10 +890,12 @@ def do_process_form(
         )
 
 
-def do_update_dynamic_attributes(application):
-    """ Update application and activity attributes based on selected JSON
-        schema options.
-    """
+def do_update_dynamic_attributes(application, fee_exemption=False):
+    '''
+    Update application and activity attributes based on selected JSON schema
+    options. Any attributes which impact the fee for the application can be
+    exempted.
+    '''
     if application.processing_status not in [
             Application.PROCESSING_STATUS_DRAFT,
             Application.PROCESSING_STATUS_AWAITING_APPLICANT_RESPONSE,
@@ -830,6 +908,7 @@ def do_update_dynamic_attributes(application):
     for_increase_fee_fields = IncreaseApplicationFeeFieldElement()
     for_increase_fee_fields.set_updating(True)
     for_increase_fee_fields.accept(checkbox)
+    for_increase_fee_fields.set_has_fee_exemption(fee_exemption)
     dynamic_attributes = for_increase_fee_fields.get_dynamic_attributes()
 
     # Save any parsed per-activity modifiers
