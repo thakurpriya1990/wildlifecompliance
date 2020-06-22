@@ -545,7 +545,6 @@ class BaseApplicationSerializer(serializers.ModelSerializer):
             'application_type',
             'invoice_url',
             'total_paid_amount',
-            'has_amended_fees',
             'payment_url',
             'requires_refund',
             'all_payments_url',

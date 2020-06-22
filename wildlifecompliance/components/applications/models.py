@@ -1553,22 +1553,6 @@ class Application(RevisionedMixin):
         return self.amendment_requests.filter(licence_activity_id__in=activity_ids)
 
     @property
-    def has_amended_fees(self):
-        """
-        Check on previous invoice amounts for difference in application fee.
-        (on serializer)
-        TODO: Redundant.
-        """
-        # fees_amended = False
-        # # Application amendments requires a new submission and applies the
-        # # previous paid for adjustments.
-        # paid = self.total_paid_amount + self.previous_paid_amount
-        # if paid > 0 and paid < self.application_fee:
-        #     fees_amended = True
-
-        return False
-
-    @property
     def has_adjusted_fees(self):
         '''
         Check for adjustments to the application form causing a change to the
@@ -1656,31 +1640,6 @@ class Application(RevisionedMixin):
         over_paid = self.get_refund_amount()
 
         return True if over_paid > 0 else False
-
-    def get_refund_amount_REDUNDANT(self):
-        """
-        Get refund amount for this application.
-        TODO:AYN remove
-        """
-        paid = self.total_paid_amount
-        fees_app_tot = 0
-        fees_lic_tot = 0
-        for activity in self.activities:
-            fees_app = 0
-            fees_adj = 0
-            fees_lic = 0
-            for p in activity.proposed_purposes.all():
-                fees_adj += p.adjusted_fee
-                fees_app += p.application_fee
-                fees_lic += p.licence_fee
-                has_purpose = True
-            fees_app = fees_app + fees_adj
-            fees_app_tot += fees_app
-            fees_lic_tot += fees_lic
-
-        over_paid = paid - fees_app_tot - fees_lic_tot
-
-        return over_paid if over_paid > 0 else 0
 
     def has_declined_refund(self):
         '''
