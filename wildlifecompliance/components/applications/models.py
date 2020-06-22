@@ -530,20 +530,31 @@ class Application(RevisionedMixin):
     def payment_status(self):
         # TODO: needs more work, underpaid/overpaid statuses to be added,
         # refactor to key/name like processing_status
-        if self.application_fee == 0 and self.total_paid_amount < 1:
+        if self.application_fee == 0 and self.invoices.count() == 0:
+            # when no application fee and no invoices.
             return ApplicationInvoice.PAYMENT_STATUS_NOT_REQUIRED
+
+        elif self.requires_record:
+            # when the last invoice balance exceeds payment amount.
+            return 'under_paid'
+
+        elif self.requires_refund:
+            return ApplicationInvoice.PAYMENT_STATUS_OVERPAID
+
+        elif self.invoices.count() == 0:
+            return ApplicationInvoice.PAYMENT_STATUS_UNPAID
+
         else:
-            if self.requires_refund:
-                return ApplicationInvoice.PAYMENT_STATUS_OVERPAID
-            if self.invoices.count() == 0:
+
+            try:
+                latest_invoice = Invoice.objects.get(
+                    reference=self.invoices.latest('id').invoice_reference
+                )
+
+            except Invoice.DoesNotExist:
                 return ApplicationInvoice.PAYMENT_STATUS_UNPAID
-            else:
-                try:
-                    latest_invoice = Invoice.objects.get(
-                        reference=self.invoices.latest('id').invoice_reference)
-                except Invoice.DoesNotExist:
-                    return ApplicationInvoice.PAYMENT_STATUS_UNPAID
-                return latest_invoice.payment_status
+
+            return latest_invoice.payment_status
 
     @property
     def latest_invoice(self):
@@ -1588,6 +1599,37 @@ class Application(RevisionedMixin):
             fees = fees + a.additional_fee
 
         return Decimal(fees)
+
+    @property
+    def requires_record(self):
+        '''
+        Check on the previously paid invoice amount against application fee.
+        A record is required when the application fee is paid using 'other'
+        method where an invoice is created for amount owed. (non credit card)
+        '''
+        ignore = [
+            Application.CUSTOMER_STATUS_ACCEPTED,
+            Application.CUSTOMER_STATUS_AWAITING_PAYMENT,
+            Application.CUSTOMER_STATUS_DRAFT,
+            Application.CUSTOMER_STATUS_AMENDMENT_REQUIRED,
+        ]
+
+        if self.customer_status in ignore or self.invoices.count() < 1:
+            return False
+
+        under_paid = self.get_owe_amount()
+
+        return True if under_paid > 0 else False
+
+    def get_owe_amount(self):
+        '''
+        Get owing amount for this application where the last invoice has a 
+        balance amount exceeding the payment amount.
+        '''
+        under_paid = \
+            self.latest_invoice.amount - self.latest_invoice.payment_amount
+
+        return under_paid if under_paid > 0 else 0
 
     @property
     def requires_refund(self):
@@ -2881,17 +2923,30 @@ class ApplicationInvoice(models.Model):
     PAYMENT_STATUS_PAID = 'paid'
     PAYMENT_STATUS_OVERPAID = 'over_paid'
 
+    OTHER_PAYMENT_METHOD = 'other'
+    OTHER_PAYMENT_METHOD_CASH = 'cash'
+    OTHER_PAYMENT_METHOD_NONE = 'none'
+    OTHER_PAYMENT_METHOD_CHOICES = (
+        (OTHER_PAYMENT_METHOD, 'Invoice for Other Payment'),
+        (OTHER_PAYMENT_METHOD_CASH, 'Invoice for Cash'),
+        (OTHER_PAYMENT_METHOD_NONE, 'Invoice for No Payment'),
+    )
+
     application = models.ForeignKey(Application, related_name='invoices')
     invoice_reference = models.CharField(
         max_length=50, null=True, blank=True, default='')
     invoice_datetime = models.DateTimeField(auto_now=True)
+    other_payment_method = models.CharField(
+        max_length=50,
+        choices=OTHER_PAYMENT_METHOD_CHOICES,
+        null=True,
+        blank=True)
 
     class Meta:
         app_label = 'wildlifecompliance'
 
     def __str__(self):
-        return 'Application {} : Invoice #{}'.format(
-            self.application_id, self.invoice_reference)
+        return 'ApplicationInvoiceID: {}'.format(self.id)
 
     # Properties
     # ==================

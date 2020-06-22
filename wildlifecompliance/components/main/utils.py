@@ -105,25 +105,49 @@ def internal_create_application_invoice(application, reference):
 
 
 @transaction.atomic
-def create_other_application_invoice(application, request):
+def create_other_application_invoice(application, request=None):
     '''
     Create and return an Invoice for an application.
     '''
     from wildlifecompliance.components.applications.models import (
         ApplicationInvoice,
+        ActivityInvoice,
+        ActivityInvoiceLine,
     )
 
     try:
-        order = create_application_invoice(application, payment_method='other')
-        invoice = Invoice.objects.get(order_number=order.number)
+        other_pay_method = get_session_other_pay_method(request.session)
+        delete_session_other_pay_method(request.session)
 
-        # TODO:AYN set application to identify other payment type ie. cash.
-        # application.save
+        order = create_application_invoice(
+            application, payment_method='other')
+        invoice = Invoice.objects.get(order_number=order.number)
 
         app_inv, c = ApplicationInvoice.objects.get_or_create(
             application=application,
-            invoice_reference=invoice.reference
+            invoice_reference=invoice.reference,
+            other_payment_method=other_pay_method,
         )
+
+        # record invoice payment for licence activities.
+        for activity in application.activities:
+
+            act_inv = ActivityInvoice.objects.get_or_create(
+                activity=activity,
+                invoice_reference=invoice.reference
+            )
+
+            ActivityInvoiceLine.objects.get_or_create(
+                invoice=act_inv[0],
+                licence_activity=activity.licence_activity,
+                amount=activity.licence_fee
+            )
+
+            ActivityInvoiceLine.objects.get_or_create(
+                invoice=act_inv[0],
+                licence_activity=activity.licence_activity,
+                amount=activity.application_fee
+            )
 
         return invoice
 
@@ -133,7 +157,8 @@ def create_other_application_invoice(application, request):
         )
 
 
-def create_application_invoice(application, payment_method='bpay'):
+@transaction.atomic
+def create_application_invoice(application, payment_method='cc'):
     '''
     This will create and invoice and order from a basket bypassing the session
     and payment bpoint code constraints.
@@ -185,6 +210,42 @@ def get_session_application(session):
 def delete_session_application(session):
     if 'wc_application' in session:
         del session['wc_application']
+        session.modified = True
+
+
+def set_session_other_pay_method(session, other_pay_method):
+    '''
+    Set the Other payment method type on the session for a ledger payment.
+    '''
+    OTHER_PAY_METHOD = 'wc_other_pay_method'
+
+    session[OTHER_PAY_METHOD] = other_pay_method
+    session.modified = True
+
+
+def get_session_other_pay_method(session):
+    '''
+    Set the Other payment method type from the session for a ledger payment.
+    '''
+    OTHER_PAY_METHOD = 'wc_other_pay_method'
+
+    if OTHER_PAY_METHOD in session:
+        other_pay_method = session[OTHER_PAY_METHOD]
+
+    else:
+        raise Exception('Payment Method does not exist on Session')
+
+    return other_pay_method
+
+
+def delete_session_other_pay_method(session):
+    '''
+    Cleanup the Other payment method type from the session.
+    '''
+    OTHER_PAY_METHOD = 'wc_other_pay_method'
+
+    if OTHER_PAY_METHOD in session:
+        del session[OTHER_PAY_METHOD]
         session.modified = True
 
 
