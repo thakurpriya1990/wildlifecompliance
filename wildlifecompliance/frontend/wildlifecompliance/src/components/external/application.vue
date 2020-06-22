@@ -20,15 +20,16 @@
                         <div class="navbar-inner">
                             <div class="container">
                                 <p class="pull-right" style="margin-top:5px;">
-                                    <span v-if="requiresCheckout" style="margin-right: 5px; font-size: 18px; display: block;">
+                                    <span v-if="showCardPayButton || showCashPayButton" style="margin-right: 5px; font-size: 18px; display: block;">
                                         <strong>Estimated application fee: {{adjusted_application_fee | toCurrency}}</strong>
                                         <strong>Estimated licence fee: {{application.licence_fee | toCurrency}}</strong>
                                     </span>
                                     <input v-if="!isProcessing && canDiscardActivity" type="button" @click.prevent="discardActivity" class="btn btn-danger" value="Discard Activity"/>
                                     <input v-if="!isProcessing" type="button" @click.prevent="saveExit" class="btn btn-primary" value="Save and Exit"/>
                                     <input v-if="!isProcessing" type="button" @click.prevent="save" class="btn btn-primary" value="Save and Continue"/>
-                                    <input v-if="!isProcessing && !requiresCheckout" type="button" @click.prevent="submit" class="btn btn-primary" value="Submit"/>
-                                    <input v-if="!isProcessing && requiresCheckout" type="button" @click.prevent="pay_and_submit" class="btn btn-primary" value="Pay and Submit"/>
+                                    <input v-show="showNonePayButton" type="button" @click.prevent="submit" class="btn btn-primary" value="Submit"/>
+                                    <input v-show="showCardPayButton" type="button" @click.prevent="pay_and_submit" class="btn btn-primary" value="Pay and Submit"/>
+                                    <input v-show="showCashPayButton" type="button" @click.prevent="submit_and_record" class="btn btn-primary" value="Submit and Record"/>          
                                     <button v-if="isProcessing" disabled class="pull-right btn btn-primary"><i class="fa fa-spin fa-spinner"></i>&nbsp;Processing</button>
                                 </p>
                             </div>
@@ -69,6 +70,7 @@ export default {
       application_customer_status_onload: {},
       missing_fields: [],
       adjusted_application_fee: 0,
+      payment_method: null,
     }
   },
   components: {
@@ -83,6 +85,8 @@ export default {
         'selected_activity_tab_name',
         'isApplicationLoaded',
         'unfinishedActivities',
+        'current_user',
+        'application_pay_method',
     ]),
     csrf_token: function() {
       return helpers.getCookie('csrftoken')
@@ -100,6 +104,21 @@ export default {
       return (this.adjusted_application_fee > 0 && [
         'draft', 'awaiting_payment', 'amendment_required'
       ].includes(this.application_customer_status_onload.id))
+    },
+    showCardPayButton: function() {
+      return !this.isProcessing && this.requiresCheckout && ['card'].includes(this.application_pay_method);
+    },
+    showCashPayButton: function() {
+      return !this.isProcessing 
+          && !this.requiresCheckout 
+          && ['cash'].includes(this.application_pay_method)
+          && this.adjusted_application_fee > 0;
+    },
+    showNonePayButton: function() {
+      return !this.isProcessing 
+          && !this.showCardPayButton 
+          && !this.showCashPayButton 
+          && this.adjusted_application_fee < 1;
     },
     canDiscardActivity: function() {
       return this.application.activities.find(
@@ -345,7 +364,63 @@ export default {
                 this.isProcessing = false;
             })
         });
-    },    
+    },
+    
+    submit_and_record: function(){
+        let vm = this;
+        this.isProcessing = true;
+        let swal_title = 'Submit Application and Record Payment'
+        let swal_html = 'Are you sure you want to submit this application?'
+        let data = { pay_method: this.application_pay_method }
+        swal({
+            title: swal_title,
+            html: swal_html,
+            type: "question",
+            showCancelButton: true,
+            confirmButtonText: 'Submit'
+        }).then((result) => {
+            if (result.value) {
+                this.saveFormData({ url: this.application_form_data_url }).then(res=>{
+                    vm.$http.post(helpers.add_endpoint_json(api_endpoints.applications,vm.application.id+'/application_fee_reception'),JSON.stringify(data),{
+                      emulateJSON:true
+                    }).then(res=>{
+                      this.setApplication(res.body);
+                      this.isProcessing = false;
+                      vm.$router.push({
+                          name: 'submit_application',
+                          params: { application: vm.application }
+                      });
+                  },err=>{
+                      swal(
+                          'Submit Error',
+                          helpers.apiVueResourceError(err),
+                          'error'
+                      ).then((result) => {
+                          this.isProcessing = false;
+                      });
+                  });
+                }, err=>{
+                  console.log(err);
+                  if(err.body.missing) {
+                      this.missing_fields = err.body.missing;
+                      this.highlight_missing_fields();
+                      this.isProcessing = false;
+                    }
+                });
+            } else {
+                this.isProcessing = false;
+            }
+        },(error) => {
+            swal(
+                'Error',
+                'There was an error submitting your application',
+                'error'
+            ).then((result) => {
+                this.isProcessing = false;
+            })
+        });
+    }, 
+
   },
   mounted: function() {
     this.form = document.forms.new_application;

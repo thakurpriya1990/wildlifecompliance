@@ -158,6 +158,8 @@ export default {
             'selected_apply_proxy_id',
             'selected_apply_licence_select',
             'application_workflow_state',
+            'application_pay_method',
+            'current_user',
         ]),
         applicationTitle: function() {
             switch(this.selected_apply_licence_select) {
@@ -206,6 +208,7 @@ export default {
   methods: {
     ...mapActions([
         'setApplicationWorkflowState',
+        'setApplicationPayMethod',
     ]),
     submit: function() {
         let vm = this;
@@ -345,6 +348,7 @@ export default {
             data.application_type = vm.selected_apply_licence_select;
             vm.$http.post('/api/application.json',JSON.stringify(data),{emulateJSON:true}).then(res => {
                 vm.setApplicationWorkflowState({bool: false});
+                vm.setApplicationPayMethod({pay_method: customer_pay_method});
                 vm.application = res.body;
                 vm.$router.push({
                     name:"draft_application",
@@ -374,7 +378,7 @@ export default {
         }),
         this.selected_apply_org_id ? utils.fetchOrganisation(this.selected_apply_org_id) : '',
         this.selected_apply_proxy_id ? internal_utils.fetchUser(this.selected_apply_proxy_id) : '',
-        utils.fetchCurrentUser()
+        //utils.fetchCurrentUser()
     ];
 
     Promise.all(initialisers).then(data => {
@@ -386,6 +390,7 @@ export default {
   },
   beforeRouteEnter:function(to,from,next){
     next(vm => {
+        vm.loadCurrentUser({ url: `/api/my_user_details` });
         // Sends the user back to the first application workflow screen if licence_select is null
         // or workflow state was interrupted (e.g. lost from page refresh)
         if(vm.selected_apply_licence_select == null || !vm.application_workflow_state) {

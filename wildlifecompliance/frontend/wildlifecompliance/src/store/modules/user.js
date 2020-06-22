@@ -12,6 +12,7 @@ import {
     UPDATE_SELECTED_APPLY_PROXY_ID,
     UPDATE_SELECTED_APPLY_LICENCE_SELECT,
     UPDATE_APPLICATION_WORKFLOW_STATE,
+    UPDATE_APPLICATION_PAY_METHOD,
 } from '@/store/mutation-types';
 
 export const userStore = {
@@ -23,6 +24,7 @@ export const userStore = {
         selected_apply_licence_select: null,
         application_workflow_state: false,
         current_user: {},
+        application_pay_method: 'cash',
         
     },
     getters: {
@@ -34,6 +36,7 @@ export const userStore = {
         selected_apply_proxy_id: state => state.selected_apply_proxy_id,
         selected_apply_licence_select: state => state.selected_apply_licence_select,
         application_workflow_state: state => state.application_workflow_state,
+        application_pay_method: state => state.application_pay_method,
         hasRole: (state, getters, rootState, rootGetters) => (role, activity_id) => {
             if(rootGetters.application.user_roles == null) {
                 return false;
@@ -168,6 +171,9 @@ export const userStore = {
         [UPDATE_APPLICATION_WORKFLOW_STATE] (state, bool) {
             state.application_workflow_state = bool;
         },
+        [UPDATE_APPLICATION_PAY_METHOD] (state, pay_method) {
+            state.application_pay_method = pay_method;
+        },
     },
     actions: {
         setActivityTab({ commit }, { id, name }) {
@@ -185,6 +191,9 @@ export const userStore = {
         },
         setApplicationWorkflowState({ commit }, { bool }) {
             commit(UPDATE_APPLICATION_WORKFLOW_STATE, bool);
+        },
+        setApplicationPayMethod({ commit }, { pay_method }) {
+            commit(UPDATE_APPLICATION_PAY_METHOD, pay_method);
         },
         loadCurrentUser({ dispatch, commit }, { url }) {
             return new Promise((resolve, reject) => {
