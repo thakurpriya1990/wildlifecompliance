@@ -147,7 +147,6 @@ export default {
         selected_apply_org_id_details : {},
         selected_apply_proxy_id_details: {},
         customer_pay_method:null,
-        current_user: null,
     }
   },
   components: {
@@ -209,6 +208,7 @@ export default {
     ...mapActions([
         'setApplicationWorkflowState',
         'setApplicationPayMethod',
+        'loadCurrentUser',
     ]),
     submit: function() {
         let vm = this;
@@ -385,7 +385,6 @@ export default {
         this.licence_categories = data[0];
         this.selected_apply_org_id_details = data[1];
         this.selected_apply_proxy_id_details = data[2];
-        this.current_user = data[3];
     });
   },
   beforeRouteEnter:function(to,from,next){
