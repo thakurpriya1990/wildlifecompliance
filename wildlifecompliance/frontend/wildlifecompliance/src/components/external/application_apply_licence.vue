@@ -24,9 +24,9 @@
                                     </label>
 
                                     <div class="col-sm-6">
-                                        <input type="radio" name="customer_pay_method" value="card"> Credit Card &nbsp;&nbsp;</input>
-                                        <input type="radio" name="customer_pay_method" value="cash"> Cash &nbsp;&nbsp;</input>
-                                        <input type="radio" name="customer_pay_method" value="none"> No Payment &nbsp;&nbsp;</input>
+                                        <input type="radio" checked="checked" name="reception" value="card" v-model="customer_pay_method" > Credit Card &nbsp;&nbsp;</input>
+                                        <input type="radio" name="reception" id="cash" value="cash" v-model="customer_pay_method" > Cash &nbsp;&nbsp;</input>
+                                        <input type="radio" name="reception" id="none" value="none" v-model="customer_pay_method" > No Payment &nbsp;&nbsp;</input>
                                     </div>
                                 </div>
                             </div>
@@ -146,7 +146,7 @@ export default {
         licence_fee: 0,
         selected_apply_org_id_details : {},
         selected_apply_proxy_id_details: {},
-        customer_pay_method:null,
+        customer_pay_method: 'card',
     }
   },
   components: {
@@ -157,7 +157,7 @@ export default {
             'selected_apply_proxy_id',
             'selected_apply_licence_select',
             'application_workflow_state',
-            'application_pay_method',
+            'reception_method_id',
             'current_user',
         ]),
         applicationTitle: function() {
@@ -207,7 +207,7 @@ export default {
   methods: {
     ...mapActions([
         'setApplicationWorkflowState',
-        'setApplicationPayMethod',
+        'setReceptionMethodId',
         'loadCurrentUser',
     ]),
     submit: function() {
@@ -346,9 +346,10 @@ export default {
             data.licence_fee=vm.licence_fee;
             data.licence_purposes=licence_purposes;
             data.application_type = vm.selected_apply_licence_select;
+            data.customer_method_id = vm.customer_pay_method;
             vm.$http.post('/api/application.json',JSON.stringify(data),{emulateJSON:true}).then(res => {
                 vm.setApplicationWorkflowState({bool: false});
-                vm.setApplicationPayMethod({pay_method: customer_pay_method});
+                vm.setReceptionMethodId({pay_method: this.customer_pay_method});
                 vm.application = res.body;
                 vm.$router.push({
                     name:"draft_application",
@@ -378,7 +379,6 @@ export default {
         }),
         this.selected_apply_org_id ? utils.fetchOrganisation(this.selected_apply_org_id) : '',
         this.selected_apply_proxy_id ? internal_utils.fetchUser(this.selected_apply_proxy_id) : '',
-        //utils.fetchCurrentUser()
     ];
 
     Promise.all(initialisers).then(data => {

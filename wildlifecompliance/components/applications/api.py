@@ -38,6 +38,7 @@ from wildlifecompliance.components.applications.models import (
     AmendmentRequest,
     ApplicationUserAction,
     ApplicationFormDataRecord,
+    ApplicationInvoice,
 )
 from wildlifecompliance.components.applications.services import (
     ApplicationService
@@ -680,9 +681,6 @@ class ApplicationViewSet(viewsets.ModelViewSet):
         '''
         Process to pay application fee and record by licensing reception.
         '''
-        from wildlifecompliance.components.applications.payments import (
-            InvoiceClearable,
-        )
         try:
             instance = self.get_object()
 
@@ -692,29 +690,24 @@ class ApplicationViewSet(viewsets.ModelViewSet):
             session = request.session
             set_session_application(session, instance)
 
-            # establish payment method. (cash or no-payment)
-            payment_method = request.data.get('pay_method')
-
-            if payment_method == InvoiceClearable.TYPE_CASH:
+            if instance.submit_type == Application.SUBMIT_TYPE_PAPER:
                 invoice = ApplicationService.cash_payment_submission(
                     request)
+                invoice_url = request.build_absolute_uri(
+                    reverse(
+                        'payments:invoice-pdf',
+                        kwargs={'reference': invoice}))
 
-            elif payment_method == InvoiceClearable.TYPE_NONE:
+            elif instance.submit_type == Application.SUBMIT_TYPE_MIGRATE:
                 invoice = ApplicationService.none_payment_submission(
                     request)
+                invoice_url = None
 
             else:
                 raise Exception('Cannot make this type of payment.')
 
-            # create invoice for cash payment.
-            # or create invoice for zero amount (transfer licence)
-
             # return template application-success
             template_name = 'wildlifecompliance/application_success.html'
-            invoice_url = request.build_absolute_uri(
-                reverse(
-                    'payments:invoice-pdf',
-                    kwargs={'reference': invoice}))
             context = {
                 'application': instance,
                 'invoice_ref': invoice,
@@ -738,6 +731,9 @@ class ApplicationViewSet(viewsets.ModelViewSet):
     @detail_route(methods=['post'])
     @renderer_classes((JSONRenderer,))
     def licence_fee_checkout(self, request, *args, **kwargs):
+        from wildlifecompliance.components.applications.payments import (
+            LicenceFeeClearingInvoice
+        )
         PAY_STATUS = ApplicationSelectedActivity.PROCESSING_STATUS_AWAITING_LICENCE_FEE_PAYMENT
         try:
             instance = self.get_object()
@@ -803,6 +799,11 @@ class ApplicationViewSet(viewsets.ModelViewSet):
                             activity.additional_fee)),
                         'oracle_code': ''
                     })
+
+            # Check if refund is required from last invoice.
+            last_inv = LicenceFeeClearingInvoice(instance)
+            if last_inv.is_refundable_with_payment():
+                product_lines.append(last_inv.get_product_line_for_refund())
 
             checkout_result = checkout(
                 request, instance,
@@ -1345,18 +1346,35 @@ class ApplicationViewSet(viewsets.ModelViewSet):
 
     @renderer_classes((JSONRenderer,))
     def create(self, request, *args, **kwargs):
-        from wildlifecompliance.components.licences.models import WildlifeLicence, LicencePurpose
+        from wildlifecompliance.components.licences.models import (
+            WildlifeLicence, LicencePurpose
+        )
+
         try:
             org_applicant = request.data.get('organisation_id')
             proxy_applicant = request.data.get('proxy_id')
             licence_purposes = request.data.get('licence_purposes')
             application_type = request.data.get('application_type')
+            customer_pay_method = request.data.get('customer_method_id')
+
+            # establish the submit type from the payment method.
+            CASH = ApplicationInvoice.OTHER_PAYMENT_METHOD_CASH
+            NONE = ApplicationInvoice.OTHER_PAYMENT_METHOD_NONE
+
+            if customer_pay_method == CASH:
+                submit_type = Application.SUBMIT_TYPE_PAPER
+            elif customer_pay_method == NONE:
+                submit_type = Application.SUBMIT_TYPE_MIGRATE
+            else:
+                submit_type = Application.SUBMIT_TYPE_ONLINE
+
             data = {
                 'submitter': request.user.id,
                 'org_applicant': org_applicant,
                 'proxy_applicant': proxy_applicant,
                 'licence_purposes': licence_purposes,
                 'application_type': application_type,
+                'submit_type': submit_type,
             }
 
             if not licence_purposes:
