@@ -15,12 +15,11 @@ logger.setLevel(logging.DEBUG)
 
 class InvoiceClearable(object):
     '''
-    An interface for invoices which may applicable for Clearing accounts.
-
-    NOTE: Also provides utility to verify payment status.
+    An interface for invoices which may be applicable for Clearing accounts.
     '''
     TYPE_CASH = ApplicationInvoice.OTHER_PAYMENT_METHOD_CASH
     TYPE_NONE = ApplicationInvoice.OTHER_PAYMENT_METHOD_NONE
+    TYPE_CARD = 'card'
 
     __metaclass__ = abc.ABCMeta
 
@@ -30,60 +29,141 @@ class InvoiceClearable(object):
         Verifies the payment status.
         '''
 
-    @staticmethod
-    def create_clearing_invoice_for(application):
+    @abc.abstractmethod
+    def is_refundable(self):
         '''
-        Creates a clearing invoice for the application.
+        Check for refund amount.
         '''
-        return ApplicationClearingInvoice(application)
+
+    @abc.abstractmethod
+    def is_recordable(self):
+        '''
+        Check for amount requiring to be recorded in ledger.
+        '''
+
+    @abc.abstractmethod
+    def is_refundable_with_payment(self):
+        '''
+        Check for refund amount at invoicing.
+        '''
 
 
-class ApplicationClearingInvoice(InvoiceClearable):
+class LicenceFeeClearingInvoice(InvoiceClearable):
     '''
-    An application fee that is recorded on the ledger as being paid using other
-    method. (not credit card)
+    A representation of an invoice for a licence fee that has been recorded on
+    the ledger with an un-balanced amount. ie either under or over paid.
+
+    NOTE: Can occur where the licence fee consist of fees for adjustment to
+    application fee, additional fees and fefunds for declined licenses.
     '''
+    application = None                  # Composite application.
+    fee_policy = None                   # Policy applied to the fee update.
+    dynamic_attributes = None           # Container for fees.
+    invoice_balance = None              # balance attributes.
+    is_refreshing = False               # Flag indicating a page refresh.
 
     def __init__(self, application):
         super(InvoiceClearable, self).__init__()
         self.application = application
 
-    def __str__(self):
-        return 'Clearing Invoice for : {0}'.format(
-           'Application: {app} '.format(app=self.application.id),
-        )
-
     def verify_payment_status(self):
         '''
-        Vertifies the payment status on the application.
+        Verifies the payment status.
+
+        NOTE: concrete method.
+        '''
+        return self.application.payment_status
+
+    def is_refundable(self):
+        '''
+        Check for refund amount where the application requires a refund.
+        '''
+        requires_refund = self.application.requires_refund
+
+        return requires_refund
+
+    def is_refundable_with_payment(self):
+        '''
+        Check for a refund amount when a payment is required.
+        - additional or adjustment fees exists.
+        - application requires a refund.
+        - refundable amount does not exceed fees.
+        '''
+        requires_payment = self.application.has_adjusted_fees \
+            or self.application.has_additional_fees
+        requires_refund = requires_payment and self.application.requires_refund
+
+        amount = self.application.application_fee \
+            + self.application.additional_fees \
+            - self.application.get_refund_amount()
+
+        return requires_refund and amount > 0
+
+    def is_recordable(self):
+        '''
+        Check for amount requiring to be recorded in ledger.
+
+        NOTE: concrete method.
+        '''
+        return self.application.requires_record
+
+    def get_product_line_for_refund(self, description=None):
+        '''
+        Builds and returns a product line for the refund.
+
+        NOTE: display the last invoice number on line.
+        '''
+        from ledger.checkout.utils import calculate_excl_gst
+
+        if not self.is_refundable:
+            return None
+
+        desc = 'Licence fee refund' if not description else description
+        refund = self.application.get_refund_amount()
+        product_line = {
+                    'ledger_description': '{0}'.format(desc),
+                    'quantity': 1,
+                    'price_incl_tax': str(refund),
+                    'price_excl_tax': str(calculate_excl_gst(refund)),
+                    'oracle_code': ''
+                }
+
+        return product_line
+
+    def set_refunded_fees_for(self, activity):
+        '''
+        Sets the Refunded Fee amount on the licence activity applying the
+        relevant fee policy.
+        '''
+        if not self.is_refundable:
+            return
+        # apply fee policy to re-calculate total fees for application.
+        self.fee_policy.set_dynamic_attributes_for(activity)
+
+    def build_balance_amount(self):
+        '''
+        Calculate balance for invoices on the application.
         '''
         from ledger.payments.invoice.models import Invoice
 
-        if self.application_fee == 0 and self.invoices.count() == 0:
-            # when no application fee and no invoices.
-            return ApplicationInvoice.PAYMENT_STATUS_NOT_REQUIRED
+        inv_balance_amt = 0                 # total invoice amount owed.
+        inv_payment_amt = 0                 # total invoice amount paid.
 
-        elif self.requires_record:
-            # when the last invoice balance exceeds payment amount.
-            return 'under_paid'
+        for activity in self.application.activities:
 
-        elif self.requires_refund:
-            return ApplicationInvoice.PAYMENT_STATUS_OVERPAID
-
-        elif self.invoices.count() == 0:
-            return ApplicationInvoice.PAYMENT_STATUS_UNPAID
-
-        else:
-
-            try:
-                latest_invoice = Invoice.objects.get(
-                    reference=self.invoices.latest('id').invoice_reference
+            for activity_inv in activity.activity_invoices.distinct(
+                'invoice_reference',
+            ):
+                invoice = Invoice.objects.filter(
+                    reference=activity_inv.invoice_reference
                 )
+                inv_balance_amt += invoice[0].amount
+                inv_payment_amt += invoice[0].payment_amount
 
-            except Invoice.DoesNotExist:
-                return ApplicationInvoice.PAYMENT_STATUS_UNPAID
-
-            return latest_invoice.payment_status
+        self.invoice_balance = {
+            'balance_amt': inv_balance_amt,
+            'payment_amt': inv_payment_amt,
+        }
 
 
 class ApplicationFeePolicy(object):
@@ -230,6 +310,10 @@ class ApplicationFeePolicy(object):
         if has_purpose:
             self.dynamic_attributes['fees']['application'] = fees_app_tot
             self.dynamic_attributes['fees']['licence'] = fees_lic_tot
+
+        if self.has_fee_exemption:
+            self.dynamic_attributes['fees']['application'] = 0
+            self.dynamic_attributes['fees']['licence'] = 0
 
     def set_application_fee_on_purpose_for(self, activity):
         '''

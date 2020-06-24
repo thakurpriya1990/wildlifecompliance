@@ -543,8 +543,13 @@ class Application(RevisionedMixin):
 
     @property
     def payment_status(self):
-        # TODO: needs more work, underpaid/overpaid statuses to be added,
-        # refactor to key/name like processing_status
+        '''
+        Gets the payment status for this application.
+        '''
+        if self.submit_type == Application.SUBMIT_TYPE_MIGRATE:
+            # when application is migrated from paper version.
+            return ApplicationInvoice.PAYMENT_STATUS_NOT_REQUIRED
+
         if self.application_fee == 0 and self.invoices.count() == 0:
             # when no application fee and no invoices.
             return ApplicationInvoice.PAYMENT_STATUS_NOT_REQUIRED
@@ -3644,6 +3649,10 @@ class ApplicationSelectedActivity(models.Model):
                     _status = ActivityInvoice.PAYMENT_STATUS_PAID
 
             return _status
+
+        if self.application.submit_type == Application.SUBMIT_TYPE_MIGRATE:
+            # when application is migrated from paper version.
+            return ActivityInvoice.PAYMENT_STATUS_NOT_REQUIRED
 
         paid_status = [
             ActivityInvoice.PAYMENT_STATUS_NOT_REQUIRED,

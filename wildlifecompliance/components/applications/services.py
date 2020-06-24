@@ -56,6 +56,8 @@ class ApplicationService(object):
             application = get_session_application(request.session)
             delete_session_application(request.session)
 
+            application.submit_type = Application.SUBMIT_TYPE_PAPER
+            application.save()
             do_update_dynamic_attributes(application)
 
             set_session_other_pay_method(
@@ -65,8 +67,6 @@ class ApplicationService(object):
 
             # submit application if successful.
             application.submit(request)
-            # send_application_invoice_email_notification(
-            #     application, invoice_ref, request)
 
         except Exception as e:
             delete_session_application(request.session)
@@ -75,24 +75,25 @@ class ApplicationService(object):
 
         return invoice_ref
 
+    @staticmethod
     def none_payment_submission(request):
         '''
         Prepares licence application with no base fee payment. Supports the
-        transfer of previously paid licenses not in the system.
-
-        :return: invoice reference.
+        migration of previously paid licenses not in the system.
         '''
+        invoice_ref = None          # No invoice reference created.
         try:
             application = get_session_application(request.session)
             delete_session_application(request.session)
+
+            application.submit_type = Application.SUBMIT_TYPE_MIGRATE
+            application.application_fee = 0
             has_fee_exemption = True
             do_update_dynamic_attributes(application, has_fee_exemption)
 
-            set_session_other_pay_method(
-                request.session, InvoiceClearable.TYPE_NONE)
-            invoice = create_other_application_invoice(application)
-            invoice_ref = invoice.reference
-
+            logger.info(
+                'Zero amount payment submission for {0}'.format(application.id)
+            )
             # submit application if successful.
             application.submit(request)
 
@@ -166,6 +167,10 @@ class ApplicationService(object):
         checkbox = CheckboxAndRadioButtonVisitor(application, data_source)
         for_increase_fee_fields = IncreaseApplicationFeeFieldElement()
         for_increase_fee_fields.accept(checkbox)
+        # set fee exemption for migrations.
+        MIGRATE = Application.SUBMIT_TYPE_MIGRATE
+        fee_exempted = True if application.submit_type == MIGRATE else False
+        for_increase_fee_fields.set_has_fee_exemption(fee_exempted)
 
         return for_increase_fee_fields.get_adjusted_fees()
 
@@ -645,6 +650,7 @@ class IncreaseApplicationFeeFieldElement(SpecialFieldElement):
         for the adjusted amounts on the licence purpose.
         '''
         self.has_fee_exemption = is_exempt
+        self.fee_policy.set_has_fee_exemption(is_exempt)
 
     def reset(self, licence_activity):
         '''
