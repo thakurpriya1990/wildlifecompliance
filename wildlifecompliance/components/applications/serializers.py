@@ -499,6 +499,9 @@ class BaseApplicationSerializer(serializers.ModelSerializer):
     total_paid_amount = serializers.SerializerMethodField(read_only=True)
     all_payments_url = serializers.SerializerMethodField(read_only=True)
     adjusted_paid_amount = serializers.SerializerMethodField(read_only=True)
+    is_reception_paper = serializers.SerializerMethodField(read_only=True)
+    is_reception_migrate = serializers.SerializerMethodField(read_only=True)
+    is_online_submit = serializers.SerializerMethodField(read_only=True)
 
     class Meta:
         model = Application
@@ -549,6 +552,9 @@ class BaseApplicationSerializer(serializers.ModelSerializer):
             'requires_refund',
             'all_payments_url',
             'adjusted_paid_amount',
+            'is_reception_paper',
+            'is_reception_migrate',
+            'is_online_submit',
         )
         read_only_fields = ('documents',)
 
@@ -729,6 +735,27 @@ class BaseApplicationSerializer(serializers.ModelSerializer):
 
         return adjusted
 
+    def get_is_reception_paper(self, obj):
+        is_paper_submit = False
+        if obj.submit_type == Application.SUBMIT_TYPE_PAPER:
+            is_paper_submit = True
+
+        return is_paper_submit
+
+    def get_is_reception_migrate(self, obj):
+        is_migrate_submit = False
+        if obj.submit_type == Application.SUBMIT_TYPE_MIGRATE:
+            is_migrate_submit = True
+
+        return is_migrate_submit
+
+    def get_is_online_submit(self, obj):
+        is_online_submit = False
+        if obj.submit_type == Application.SUBMIT_TYPE_ONLINE:
+            is_online_submit = True
+
+        return is_online_submit
+
 
 class DTInternalApplicationSerializer(BaseApplicationSerializer):
     submitter = EmailUserSerializer()
@@ -899,6 +926,7 @@ class CreateExternalApplicationSerializer(serializers.ModelSerializer):
             'application_type',
             'previous_application',
             'licence',
+            'submit_type',
         )
 
 

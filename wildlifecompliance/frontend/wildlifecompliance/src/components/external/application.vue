@@ -27,9 +27,10 @@
                                     <input v-if="!isProcessing && canDiscardActivity" type="button" @click.prevent="discardActivity" class="btn btn-danger" value="Discard Activity"/>
                                     <input v-if="!isProcessing" type="button" @click.prevent="saveExit" class="btn btn-primary" value="Save and Exit"/>
                                     <input v-if="!isProcessing" type="button" @click.prevent="save" class="btn btn-primary" value="Save and Continue"/>
-                                    <input v-show="showNonePayButton" type="button" @click.prevent="submit" class="btn btn-primary" value="Submit"/>
+                                    <input v-show="showSubmitButton" type="button" @click.prevent="submit" class="btn btn-primary" value="Submit"/>
                                     <input v-show="showCardPayButton" type="button" @click.prevent="pay_and_submit" class="btn btn-primary" value="Pay and Submit"/>
-                                    <input v-show="showCashPayButton" type="button" @click.prevent="submit_and_record" class="btn btn-primary" value="Submit and Record"/>          
+                                    <input v-show="showCashPayButton" type="button" @click.prevent="submit_and_record" class="btn btn-primary" value="Submit and Record"/>
+                                    <input v-show="showNonePayButton" type="button" @click.prevent="submit_and_record" class="btn btn-primary" value="Migrate"/>                   
                                     <button v-if="isProcessing" disabled class="pull-right btn btn-primary"><i class="fa fa-spin fa-spinner"></i>&nbsp;Processing</button>
                                 </p>
                             </div>
@@ -86,7 +87,7 @@ export default {
         'isApplicationLoaded',
         'unfinishedActivities',
         'current_user',
-        'application_pay_method',
+        'reception_method_id',
     ]),
     csrf_token: function() {
       return helpers.getCookie('csrftoken')
@@ -106,19 +107,17 @@ export default {
       ].includes(this.application_customer_status_onload.id))
     },
     showCardPayButton: function() {
-      return !this.isProcessing && this.requiresCheckout && ['card'].includes(this.application_pay_method);
+      return !this.isProcessing && this.requiresCheckout && !this.showCashPayButton && !this.showNonePayButton;
     },
     showCashPayButton: function() {
-      return !this.isProcessing 
-          && !this.requiresCheckout 
-          && ['cash'].includes(this.application_pay_method)
-          && this.adjusted_application_fee > 0;
+      return !this.isProcessing && this.application.is_reception_paper;
     },
     showNonePayButton: function() {
-      return !this.isProcessing 
-          && !this.showCardPayButton 
-          && !this.showCashPayButton 
-          && this.adjusted_application_fee < 1;
+      return !this.isProcessing && this.application.is_reception_migrate;
+          
+    },
+    showSubmitButton: function() {
+      return !this.isProcessing && !this.requiresCheckout && !this.showCardPayButton && !this.showNonePayButton;
     },
     canDiscardActivity: function() {
       return this.application.activities.find(
@@ -371,7 +370,6 @@ export default {
         this.isProcessing = true;
         let swal_title = 'Submit Application and Record Payment'
         let swal_html = 'Are you sure you want to submit this application?'
-        let data = { pay_method: this.application_pay_method }
         swal({
             title: swal_title,
             html: swal_html,
@@ -381,7 +379,7 @@ export default {
         }).then((result) => {
             if (result.value) {
                 this.saveFormData({ url: this.application_form_data_url }).then(res=>{
-                    vm.$http.post(helpers.add_endpoint_json(api_endpoints.applications,vm.application.id+'/application_fee_reception'),JSON.stringify(data),{
+                    vm.$http.post(helpers.add_endpoint_json(api_endpoints.applications,vm.application.id+'/application_fee_reception'),{
                       emulateJSON:true
                     }).then(res=>{
                       this.setApplication(res.body);
