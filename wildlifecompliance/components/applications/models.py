@@ -306,6 +306,16 @@ class Application(RevisionedMixin):
         (APPLICATION_TYPE_REISSUE, 'Reissue'),
     )
 
+    # submission types for an application.
+    SUBMIT_TYPE_PAPER = 'paper'
+    SUBMIT_TYPE_ONLINE = 'online'
+    SUBMIT_TYPE_MIGRATE = 'migrate'
+    SUBMIT_TYPE_CHOICES = (
+        (SUBMIT_TYPE_PAPER, 'Paper'),
+        (SUBMIT_TYPE_ONLINE, 'Online'),
+        (SUBMIT_TYPE_MIGRATE, 'Migrate'),
+    )
+
     application_type = models.CharField(
         'Application Type',
         max_length=40,
@@ -371,6 +381,11 @@ class Application(RevisionedMixin):
         'self', on_delete=models.PROTECT, blank=True, null=True, related_name='parents')
     application_fee = models.DecimalField(
         max_digits=8, decimal_places=2, default='0')
+    submit_type = models.CharField(
+        'Submission Types',
+        max_length=30,
+        choices=SUBMIT_TYPE_CHOICES,
+        default=SUBMIT_TYPE_ONLINE)
 
     class Meta:
         app_label = 'wildlifecompliance'
