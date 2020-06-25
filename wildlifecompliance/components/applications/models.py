@@ -1011,7 +1011,8 @@ class Application(RevisionedMixin):
         from wildlifecompliance.components.licences.models import LicenceActivity
         with transaction.atomic():
             if self.can_user_edit:
-                if not self.application_fee_paid and not self.requires_refund:
+                if not self.application_fee_paid and not self.requires_refund \
+                  and self.submit_type == Application.SUBMIT_TYPE_ONLINE:
                     self.customer_status = Application.CUSTOMER_STATUS_AWAITING_PAYMENT
                     self.save()
                     return
