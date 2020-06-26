@@ -556,7 +556,7 @@
                             </h3>
                         </div>
                         <div class="panel-body panel-collapse collapse" :id="decisionBody">
-                            <div v-for="activity in application.activities.filter(activity => activity.decision_action==='issued')">
+                            <div v-for="activity in application.activities.filter(activity => ['issue_refund','issued'].includes(activity.decision_action))">
                                 <div class="col-sm-12">
                                     <strong>&nbsp;</strong><br/>
                                     <strong>Licence Activity: {{ activity.activity_name_str }}</strong><br/>
@@ -1374,6 +1374,7 @@ export default {
         }
     },
     mounted: function() {
+        console.log(this.application)
     },
     updated: function(){
         let vm = this;
