@@ -39,6 +39,7 @@ from wildlifecompliance.components.applications.models import (
     ApplicationUserAction,
     ApplicationFormDataRecord,
     ApplicationInvoice,
+    ApplicationSelectedActivityPurpose,
 )
 from wildlifecompliance.components.applications.services import (
     ApplicationService
@@ -1308,7 +1309,7 @@ class ApplicationViewSet(viewsets.ModelViewSet):
             ApplicationService.set_special_form_fields(
                 instance, request.data)
             # Send any relevant notifications.
-            instance.alert_for_refund(request)
+            # instance.alert_for_refund(request)
             # Log save action for internal officer.
             if request.user.is_staff:
                 instance.log_user_action(
