@@ -154,7 +154,7 @@
 
                 <ApplicationAssessments v-if="isSendingToAssessor || isOfficerConditions" />
 
-                <template v-if="applicationDetailsVisible">
+                <template v-if="applicationDetailsVisible && showingApplication">
                     <div>
                     <ul class="nav nav-pills mb-3" id="tabs-main">
                         <li class="nav-item"><a ref="applicantTab" class="nav-link" data-toggle="pill" :href="'#'+applicantTab">Applicant</a></li>
@@ -846,6 +846,7 @@ export default {
                 && !this.applicationIsDraft 
                 && (this.hasRole('licensing_officer') || this.hasRole('issuing_officer'))
                 && !this.requiresRefund
+                && this.application.can_be_processed
         },
         showFinalDecision: function() {
             if (['awaiting_payment'].includes(this.application.processing_status.id)) { // prevent processing for outstanding payments.
