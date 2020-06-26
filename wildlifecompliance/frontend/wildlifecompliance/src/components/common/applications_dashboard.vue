@@ -189,11 +189,13 @@ export default {
                     if (!vm.is_external && full.payment_status=='paid'){
                         links +=  `<a href='${full.all_payments_url}' target='_blank' >View Payment</a><br/>`;
                     }
-                    if (!vm.is_external && full.payment_status=='over_paid'){
-                        links +=  `<a href='${full.all_payments_url}' target='_blank' >Refund Payment</a><br/>`;
-                    }
                     if (!vm.is_external && full.payment_status=='under_paid'){
+                        links = ''
                         links +=  `<a href='${full.all_payments_url}' target='_blank' >Record Payment</a><br/>`;
+                    }
+                    if (!vm.is_external && full.payment_status=='over_paid'){
+                        links = ''
+                        links +=  `<a href='${full.all_payments_url}' target='_blank' >Refund Payment</a><br/>`;
                     }
                     if (vm.is_external){
                         if (full.can_current_user_edit) {
