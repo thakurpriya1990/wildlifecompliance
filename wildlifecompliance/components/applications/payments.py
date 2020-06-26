@@ -165,6 +165,22 @@ class LicenceFeeClearingInvoice(InvoiceClearable):
             'payment_amt': inv_payment_amt,
         }
 
+    def generate(self, request):
+        '''
+        Generates an invoice for a CASH payment with this clearing.
+        '''
+        from wildlifecompliance.components.main.utils import (
+            set_session_other_pay_method,
+            create_other_application_invoice,
+        )
+
+        set_session_other_pay_method(
+            request.session, self.TYPE_CASH)
+        invoice = create_other_application_invoice(self.application, request)
+        invoice_ref = invoice.reference
+
+        return invoice_ref
+
 
 class ApplicationFeePolicy(object):
     """
@@ -233,6 +249,31 @@ class ApplicationFeePolicy(object):
                         activity.licence_fee)),
                 'oracle_code': ''
             })
+
+        activities = application.selected_activities.all()
+        # Include additional fees by licence approvers.
+        if application.has_additional_fees:
+            # only fees which are greater than zero.
+            activities_with_fees = [
+                a for a in activities if a.additional_fee > 0
+            ]
+
+            # only fees awaiting payment
+            for activity in activities_with_fees:
+                product_lines.append({
+                    'ledger_description': '{}'.format(
+                        activity.additional_fee_text),
+                    'quantity': 1,
+                    'price_incl_tax': str(activity.additional_fee),
+                    'price_excl_tax': str(calculate_excl_gst(
+                        activity.additional_fee)),
+                    'oracle_code': ''
+                })
+
+        # Check if refund is required.
+        clear_inv = LicenceFeeClearingInvoice(application)
+        if clear_inv.is_refundable_with_payment():
+            product_lines.append(clear_inv.get_product_line_for_refund())
 
         return product_lines
 
