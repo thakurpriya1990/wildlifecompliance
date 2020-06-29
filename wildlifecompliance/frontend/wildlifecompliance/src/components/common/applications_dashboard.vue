@@ -186,7 +186,7 @@ export default {
                             `<a href='/internal/application/${full.id}'>Process</a><br/>` :
                             `<a href='/${!vm.is_external ? 'internal' : 'external'}/application/${full.id}'>View</a><br/>`;
                     }
-                    if (!vm.is_external && full.payment_status=='paid'){
+                    if (!vm.is_external && ['paid','partially_paid'].includes(full.payment_status)){
                         links +=  `<a href='${full.all_payments_url}' target='_blank' >View Payment</a><br/>`;
                     }
                     if (!vm.is_external && full.payment_status=='under_paid'){
