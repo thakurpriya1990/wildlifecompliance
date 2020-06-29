@@ -737,12 +737,15 @@ class IncreaseApplicationFeeFieldElement(SpecialFieldElement):
 
             if adjustments_performed and self.is_updating:
                 # update adjusted fee for the activity purpose.
-                p = ApplicationSelectedActivityPurpose.objects.get_or_create(
-                    purpose=purpose,
-                    selected_activity=activity,
-                )
-                p[0].adjusted_fee = self.adjusted_fee
-                p[0].save()
+                p, c = ApplicationSelectedActivityPurpose.objects.\
+                    get_or_create(purpose=purpose, selected_activity=activity)
+
+                if c:  # Only save base fees for those not created.
+                    p.application_fee = purpose.base_application_fee
+                    p.licence_fee = purpose.base_licence_fee
+
+                p.adjusted_fee = self.adjusted_fee
+                p.save()
 
     def get_adjusted_fees(self):
         '''
