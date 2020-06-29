@@ -852,6 +852,7 @@ class DTExternalApplicationSerializer(BaseApplicationSerializer):
             'activities',
             'invoice_url',
             'payment_url',
+            'is_online_submit',
         )
         # the serverSide functionality of datatables is such that only columns that have field 'data'
         # defined are requested from the serializer. Use datatables_always_serialize to force render
