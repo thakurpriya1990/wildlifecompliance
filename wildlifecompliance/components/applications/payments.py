@@ -84,14 +84,18 @@ class LicenceFeeClearingInvoice(InvoiceClearable):
 
     def is_refundable_with_payment(self):
         '''
-        Check for a refund amount when a payment is required.
+        Check for a refund amount when a payment is required for application
+        fee adjustments and/or additional fees.
         - additional or adjustment fees exists.
         - application requires a refund.
         - refundable amount does not exceed fees.
         '''
         requires_payment = self.application.has_adjusted_fees \
             or self.application.has_additional_fees
-        requires_refund = requires_payment and self.application.requires_refund
+
+        requires_refund = requires_payment and (
+            self.application.get_refund_amount() > 0
+        )
 
         amount = self.application.application_fee \
             + self.application.additional_fees \
@@ -120,6 +124,7 @@ class LicenceFeeClearingInvoice(InvoiceClearable):
 
         desc = 'Licence fee refund' if not description else description
         refund = self.application.get_refund_amount()
+        refund = refund * -1
         product_line = {
                     'ledger_description': '{0}'.format(desc),
                     'quantity': 1,
@@ -358,8 +363,7 @@ class ApplicationFeePolicy(object):
 
     def set_application_fee_on_purpose_for(self, activity):
         '''
-        Set the base fees for all purposes on the selected activity. 
-
+        Set the base fees for all purposes on the selected activity.
         '''
         for purpose in activity.purposes:
             p, c = ApplicationSelectedActivityPurpose.objects.get_or_create(

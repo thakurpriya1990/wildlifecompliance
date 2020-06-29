@@ -1123,7 +1123,7 @@ class Application(RevisionedMixin):
                                 self.id), request)
 
                     # notify linked officer groups of submission.
-                    if self.requires_refund:  
+                    if self.requires_refund:
                         self.alert_for_refund(request)
                     else:
                         send_application_submit_email_notification(
@@ -1613,11 +1613,16 @@ class Application(RevisionedMixin):
         method where an invoice is created for amount owed. (non credit card)
         '''
         ignore = [
-            Application.CUSTOMER_STATUS_ACCEPTED,
+            # excluded accepted for recording additional fee cash payment.
+            # Application.CUSTOMER_STATUS_ACCEPTED,
             Application.CUSTOMER_STATUS_AWAITING_PAYMENT,
             Application.CUSTOMER_STATUS_DRAFT,
             Application.CUSTOMER_STATUS_AMENDMENT_REQUIRED,
         ]
+
+        if self.submit_type == Application.SUBMIT_TYPE_ONLINE:
+            # Record link not shown for online credit card payments.
+            return False
 
         if self.customer_status in ignore or self.invoices.count() < 1:
             return False
@@ -1628,7 +1633,7 @@ class Application(RevisionedMixin):
 
     def get_owe_amount(self):
         '''
-        Get owing amount for this application where the last invoice has a 
+        Get owing amount for this application where the last invoice has a
         balance amount exceeding the payment amount.
         '''
         under_paid = \
@@ -1642,25 +1647,21 @@ class Application(RevisionedMixin):
         Check on the previously paid invoice amount against application fee.
         Refund is required when application fee is more than what has been
         paid. Application fee amount can be adjusted more or less than base.
-
-        FIXME: The previous paid amount now excludes the licence fee.
         """
-        ignore = [
-            Application.CUSTOMER_STATUS_ACCEPTED,
-            Application.CUSTOMER_STATUS_AWAITING_PAYMENT,
-            Application.CUSTOMER_STATUS_DRAFT,
-            Application.CUSTOMER_STATUS_AMENDMENT_REQUIRED,
+        approved = [
+            Application.PROCESSING_STATUS_APPROVED,
+            Application.PROCESSING_STATUS_PARTIALLY_APPROVED,
+            Application.PROCESSING_STATUS_AWAITING_PAYMENT,
         ]
 
-        if self.has_declined_refund():
-            return True
-
-        if self.customer_status in ignore or self.application_fee > -1:
+        if self.processing_status not in approved:
             return False
 
-        over_paid = self.get_refund_amount()
+        # check additional fee amount can cover refund so it can be adjusted
+        # at invoicing.
+        outstanding = self.additional_fees - self.get_refund_amount()
 
-        return True if over_paid > 0 else False
+        return True if outstanding < 0 else False
 
     def has_declined_refund(self):
         '''
@@ -1678,8 +1679,6 @@ class Application(RevisionedMixin):
     def get_refund_amount(self):
         '''
         Get refund amount for this application.
-
-        NOTE: now includes licence fee check.
         '''
         over_paid = 0
         for activity in self.activities:
@@ -1690,19 +1689,27 @@ class Application(RevisionedMixin):
 
     def alert_for_refund(self, request):
         """
-        Send notification if refund exists.
+        Send notification if refund exists after an amendment.
         """
-        if self.requires_refund:
-            officer_groups = ActivityPermissionGroup.objects.filter(
-                permissions__codename='licensing_officer',
-                licence_activities__purpose__licence_category__id=self.licence_type_data["id"]
-            )
-            group_users = EmailUser.objects.filter(
-                groups__id__in=officer_groups.values_list('id', flat=True)
-            ).distinct()
+        if not self.requires_refund:
+            return False
+
+        UNDER_REVIEW = self.PROCESSING_STATUS_UNDER_REVIEW
+        officer_groups = ActivityPermissionGroup.objects.filter(
+            permissions__codename='licensing_officer',
+            licence_activities__purpose__licence_category__id=self.licence_type_data["id"]
+        )
+        group_users = EmailUser.objects.filter(
+            groups__id__in=officer_groups.values_list('id', flat=True)
+        ).distinct()
+
+        if self.processing_status == UNDER_REVIEW:
             send_amendment_refund_email_notification(
                 group_users, self, request
             )
+        else:
+            send_activity_refund_issue_notification(
+                request, self, self.get_refund_amount)
 
     @property
     def previous_paid_amount(self):
@@ -2412,6 +2419,9 @@ class Application(RevisionedMixin):
         """
         Carry out the Final Issue/Decline decision for the Application (self)
         """
+        from wildlifecompliance.components.applications.payments import (
+            LicenceFeeClearingInvoice
+        )
         failed_payment_activities = []
 
         with transaction.atomic():
@@ -2546,10 +2556,6 @@ class Application(RevisionedMixin):
                                 p_selected_activity.decision_action = REFUND
                                 p_selected_activity.save()
 
-                                # Send out notification to officer of refund.
-                                send_activity_refund_issue_notification(
-                                    request, self, purpose.licence_fee)
-
                                 if not len(issue_ids):
                                     # if nothing to issue on activity.
                                     p_selected_activity.processing_status = \
@@ -2617,6 +2623,24 @@ class Application(RevisionedMixin):
                     self.licence_document = parent_licence.licence_document
                     self.licence = parent_licence
                     self.save()
+
+                    # outstanding payments for paper submission require cash 
+                    # payments and no email notifications. (refund checks)
+                    if self.submit_type == Application.SUBMIT_TYPE_PAPER:
+                        # 1. issue activities and re-generate licence.
+                        # 2. generate invoice. (include refund ?)
+                        # 3. provide record/refund link.
+                        generate_invoice = False
+                        for activity in issued_activities:
+                            if activity.additional_fee > 0 \
+                              or activity.has_adjusted_application_fee:
+                                generate_invoice = True
+                                break
+                   
+                        if generate_invoice:
+                            clear_inv = LicenceFeeClearingInvoice(self)
+                            an_inv = clear_inv.generate(request)
+
                 # If there are no issued_activities in this application and the parent_licence was
                 # created as part of this application (i.e. it was not a pre-existing one), delete it
                 elif not issued_activities and created:
@@ -2626,10 +2650,14 @@ class Application(RevisionedMixin):
                     send_application_decline_notification(
                         declined_activities, self, request)
 
+                # Send out any refund notifications.
+                self.alert_for_refund(request)
+
             except BaseException:
                 raise
 
-        if failed_payment_activities:
+        if self.submit_type == Application.SUBMIT_TYPE_ONLINE \
+          and failed_payment_activities:
             for activity in failed_payment_activities:
                 activity.processing_status = ApplicationSelectedActivity.PROCESSING_STATUS_AWAITING_LICENCE_FEE_PAYMENT
                 activity.save()
@@ -3590,6 +3618,7 @@ class ApplicationSelectedActivity(models.Model):
             ActivityInvoice.PAYMENT_STATUS_NOT_REQUIRED,
             ActivityInvoice.PAYMENT_STATUS_PAID,
             ActivityInvoice.PAYMENT_STATUS_OVERPAID,
+            ActivityInvoice.PAYMENT_STATUS_PARTIALLY_PAID,  # Record Payment
         ]
 
     @property
@@ -3635,6 +3664,13 @@ class ApplicationSelectedActivity(models.Model):
                     if self.processing_status == \
                         ApplicationSelectedActivity.PROCESSING_STATUS_ACCEPTED:
                         _status = ActivityInvoice.PAYMENT_STATUS_PAID
+
+            # paper-based submission allow Record link for additional payment.
+            if _status == ActivityInvoice.PAYMENT_STATUS_UNPAID \
+              and self.application.submit_type \
+              == Application.SUBMIT_TYPE_PAPER:
+
+                _status = ActivityInvoice.PAYMENT_STATUS_PARTIALLY_PAID
 
             return _status
 
@@ -3757,6 +3793,7 @@ class ApplicationSelectedActivity(models.Model):
                 detail = Invoice.objects.get(
                     reference=invoice.invoice_reference)
                 amount -= detail.refund_amount
+                # amount += detail.payment_amount
      
         return amount
 
@@ -3878,9 +3915,7 @@ class ApplicationSelectedActivity(models.Model):
 
     def get_refund_amount(self):
         '''
-        Get refund amount for this selected Licence Activity.
-
-        Can only refund the licence fee amount for selected Activity.
+        Get refundable licence amount for this selected Licence Activity.
         '''
         DECLINE = ApplicationSelectedActivityPurpose.PROCESSING_STATUS_DECLINED
         paid = self.total_paid_amount
@@ -3899,8 +3934,8 @@ class ApplicationSelectedActivity(models.Model):
                 fees_app += p.application_fee
 
         fees_app = fees_app + fees_adj
-        fees_app_tot += fees_app
-        fees_lic_tot += fees_lic
+        fees_app_tot = fees_app
+        fees_lic_tot = fees_lic
 
         over_paid = paid - fees_app_tot - fees_lic_tot
 
@@ -3978,7 +4013,7 @@ class ApplicationSelectedActivity(models.Model):
         Set the start date on all purposes on this activity.
         '''
         for p in self.proposed_purposes.all():
-            p.start_date = start_date if p.is_proposed else p.start_date
+            p.start_date = start_date if p.is_payable else p.start_date
             p.save()
 
     def get_start_date(self):
@@ -3998,7 +4033,7 @@ class ApplicationSelectedActivity(models.Model):
                 )
                 # p_stime = datetime.datetime.strptime(p.start_date, '%d/%m/%Y')
                 start_date = p.start_date \
-                    if p_stime < s_stime and p.is_proposed else start_date
+                    if p_stime < s_stime and p.is_payable else start_date
 
         except BaseException as e:
             logger.error('get_start_date(): {0}'.format(e))
@@ -4011,7 +4046,7 @@ class ApplicationSelectedActivity(models.Model):
         Set the expiry date on all purposes on this activity.
         '''
         for p in self.proposed_purposes.all():
-            p.expiry_date = expiry_date if p.is_proposed else p.expiry_date
+            p.expiry_date = expiry_date if p.is_payable else p.expiry_date
             p.save()
     
     def get_expiry_date(self):
