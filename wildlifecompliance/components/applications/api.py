@@ -806,6 +806,17 @@ class ApplicationViewSet(viewsets.ModelViewSet):
             if last_inv.is_refundable_with_payment():
                 product_lines.append(last_inv.get_product_line_for_refund())
 
+                # refund any application fee adjustments.
+                if instance.application_fee < 0:
+                    product_lines.append({
+                        'ledger_description': 'Adjusted fee refund',
+                        'quantity': 1,
+                        'price_incl_tax': str(instance.application_fee),
+                        'price_excl_tax': str(calculate_excl_gst(
+                                instance.application_fee)),
+                        'oracle_code': ''
+                    })
+
             checkout_result = checkout(
                 request, instance,
                 lines=product_lines,
