@@ -494,15 +494,15 @@ export default {
                 let activity = this.application.activities[a];
                 for(let p=0; p<activity.proposed_purposes.length; p++){
                     let purpose = activity.proposed_purposes[p]
+                    let picked = this.pickedPurposes.find(p => {return p.id===purpose.purpose.id})
+                    if (picked == null){
+                        picked = {id: purpose.purpose.id, isProposed: false}
+                        this.pickedPurposes.push(picked)
+                    }
                     if (['reissue','propose'].includes(purpose.processing_status)) {
-                        // let picked = {id: purpose.purpose.id, isProposed: true}
-                        // this.pickedPurposes.push(picked)
-                        let picked = this.pickedPurposes.find(p => {return p.id===purpose.purpose.id})
                         picked.isProposed = true
+
                     } else {
-                        // let picked = {id: purpose.purpose.id, isProposed: false}
-                        // this.pickedPurposes.push(picked)
-                        let picked = this.pickedPurposes.find(p => {return p.id===purpose.purpose.id})
                         picked.isProposed = false
                     }
                     if (purpose.proposed_start_date != null && purpose.proposed_start_date.charAt(2)==='/'){
