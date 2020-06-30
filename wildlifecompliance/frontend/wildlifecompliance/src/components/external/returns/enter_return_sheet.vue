@@ -14,7 +14,7 @@
                     <div class="form-group">
                         <label for="">Species Available:</label>
                         <select class="form-control" >
-                            <option class="change-species" v-for="(specie, s_idx) in returns.sheet_species_list" :value="returns.sheet_species" :species_id="specie" v-bind:key="`specie_${s_idx}`" >{{specie}}</option>
+                            <option class="change-species" v-for="(specie, s_idx) in returns.sheet_species_list" :value="returns.sheet_species" :species_id="s_idx" v-bind:key="`specie_${s_idx}`" >{{specie}}</option>
                         </select>
                     </div>
                 </div>

@@ -259,11 +259,13 @@ class ReturnService(object):
     @staticmethod
     def set_sheet_species_for(a_return, species_id):
 
+        sheet = None
+
         if a_return.has_sheet:
             sheet = ReturnSheet(a_return)
             sheet.set_species(species_id)
 
-        return None
+        return sheet
 
 
 class ReturnData(object):

@@ -252,9 +252,9 @@ class ReturnViewSet(viewsets.ReadOnlyModelViewSet):
         # instance = Return.objects.get(id=return_id).sheet
         # instance.set_species(species_id)
         instance = Return.objects.get(id=return_id)
-        ReturnService.set_sheet_species_for(instance, species_id)
+        sheet = ReturnService.set_sheet_species_for(instance, species_id)
         # return Response(instance.table)
-        return Response(ReturnService.get_details_for(instance))
+        return Response(sheet.table)
 
     @detail_route(methods=['POST', ])
     def sheet_check_transfer(self, request, *args, **kwargs):
