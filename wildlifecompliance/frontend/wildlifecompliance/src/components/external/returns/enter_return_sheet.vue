@@ -61,6 +61,7 @@ import {
   helpers
 }
 from '@/utils/hooks'
+import '@/scss/forms/return_sheet.scss';
 export default {
   name: 'externalReturnSheet',
   props: {
@@ -81,7 +82,7 @@ export default {
         sheetTitle: null,
         sheet_total: 0,
         sheet_activity_type: [],
-        sheet_headers:["order","Date","Activity","Qty","Total","Comments","Action"],
+        sheet_headers:["order","Date","Activity","Qty","Total","Action","Comments"],
         sheet_options:{
             language: {
                 processing: "<i class='fa fa-4x fa-spinner fa-spin'></i>"
@@ -98,11 +99,12 @@ export default {
                 },
             },
             columnDefs: [
-              { visible: false, targets: 0 } // hide order column.
+              { visible: false, targets: [0, 6] } // hide order column.
             ],
             columns: [
               { data: "date" },
               { data: "date",
+                className: "pay-row-icon",
                 mRender: function(data, type, full) {
                    let _date = new Date(parseInt(full.date));
                    return _date.toLocaleString("en-GB")
@@ -115,7 +117,6 @@ export default {
               },
               { data: "qty" },
               { data: "total" },
-              { data: "comment" },
               { data: "editable",
                 mRender: function(data, type, full) {
                    if (full.activity && vm.is_external
@@ -140,9 +141,17 @@ export default {
                       return "";
                    }
                 }
-              }
+              },
+              { data: "comment", 
+                mRender: function(data, type, full) {
+                   return full.comment
+                }
+              },
             ],
             order: [0, 'desc'],
+            rowCallback: function (row, data){
+                $(row).addClass('payRecordRow');
+            },
             drawCallback: function() {
               vm.sheetTitle = vm.species_list[vm.returns.sheet_species]
             },
@@ -311,6 +320,53 @@ export default {
           // If a link is clicked, ignore
           if($(e.target).is('a')){
               return;
+          }
+          // Generate child row for application
+          // Get licence row data
+          var tr = $(this);
+          var row = vm.$refs.return_datatable.vmDataTable.row(tr);
+          var row_data = row.data()
+          var return_id = row_data.id;
+          // var current_application = row_data.current_application
+          // var licence_category_id = current_application.category_id ? current_application.category_id : "";
+          // var proxy_id = current_application.proxy_applicant ? current_application.proxy_applicant.id : "";
+          // var org_id = current_application.org_applicant ? current_application.org_applicant.id : "";
+
+          if (row.child.isShown()) {
+              // This row is already open - close it
+              row.child.hide();
+              tr.removeClass('shown');
+          }
+          else {
+              // Open this row (the format() function would return the data to be shown)
+              var child_row = ''
+              // Generate rows for each activity
+              var activity_rows = ''
+              // Generate html for child row
+              child_row += `
+                  <table class="table table-bordered child-row-table">
+                      `;
+
+              child_row += `
+                      ${row.data()['comment'] ?
+                      `<tr>
+                          <td class="width_15pc"><strong>Comments:&nbsp;</strong></td>
+                          <td>${row.data()['comment']}</td>
+                      </tr>` : ' ' } `;
+
+              child_row += `</table>`
+              child_row += `
+                  <table class="table table-striped table-bordered child-row-table">
+                      <tr>
+                          <td class="width_15pc"><strong>Invoice:&nbsp;</strong></td>
+                          <td>1233412244</td>
+                      </tr>
+                  </table>`;
+              // Show child row, dark-row className CSS applied from application.scss
+              row.child(
+                  child_row
+                  , 'dark-row').show();
+              tr.addClass('shown');
           }
       });
 
