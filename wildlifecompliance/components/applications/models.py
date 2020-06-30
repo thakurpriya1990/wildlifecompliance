@@ -60,6 +60,7 @@ from wildlifecompliance.components.applications.email import (
     send_activity_invoice_issue_notification,
     send_amendment_refund_email_notification,
     send_activity_propose_issue_notification,
+    send_activity_refund_issue_notification,
 )
 from wildlifecompliance.components.main.utils import get_choice_value
 from wildlifecompliance.ordered_model import OrderedModel
@@ -305,6 +306,16 @@ class Application(RevisionedMixin):
         (APPLICATION_TYPE_REISSUE, 'Reissue'),
     )
 
+    # submission types for an application.
+    SUBMIT_TYPE_PAPER = 'paper'
+    SUBMIT_TYPE_ONLINE = 'online'
+    SUBMIT_TYPE_MIGRATE = 'migrate'
+    SUBMIT_TYPE_CHOICES = (
+        (SUBMIT_TYPE_PAPER, 'Paper'),
+        (SUBMIT_TYPE_ONLINE, 'Online'),
+        (SUBMIT_TYPE_MIGRATE, 'Migrate'),
+    )
+
     application_type = models.CharField(
         'Application Type',
         max_length=40,
@@ -370,6 +381,11 @@ class Application(RevisionedMixin):
         'self', on_delete=models.PROTECT, blank=True, null=True, related_name='parents')
     application_fee = models.DecimalField(
         max_digits=8, decimal_places=2, default='0')
+    submit_type = models.CharField(
+        'Submission Types',
+        max_length=30,
+        choices=SUBMIT_TYPE_CHOICES,
+        default=SUBMIT_TYPE_ONLINE)
 
     class Meta:
         app_label = 'wildlifecompliance'
@@ -527,22 +543,38 @@ class Application(RevisionedMixin):
 
     @property
     def payment_status(self):
-        # TODO: needs more work, underpaid/overpaid statuses to be added,
-        # refactor to key/name like processing_status
-        if self.application_fee == 0 and self.total_paid_amount < 1:
+        '''
+        Gets the payment status for this application.
+        '''
+        if self.submit_type == Application.SUBMIT_TYPE_MIGRATE:
+            # when application is migrated from paper version.
             return ApplicationInvoice.PAYMENT_STATUS_NOT_REQUIRED
+
+        if self.application_fee == 0 and self.invoices.count() == 0:
+            # when no application fee and no invoices.
+            return ApplicationInvoice.PAYMENT_STATUS_NOT_REQUIRED
+
+        elif self.requires_record:
+            # when the last invoice balance exceeds payment amount.
+            return 'under_paid'
+
+        elif self.requires_refund:
+            return ApplicationInvoice.PAYMENT_STATUS_OVERPAID
+
+        elif self.invoices.count() == 0:
+            return ApplicationInvoice.PAYMENT_STATUS_UNPAID
+
         else:
-            if self.requires_refund:
-                return ApplicationInvoice.PAYMENT_STATUS_OVERPAID
-            if self.invoices.count() == 0:
+
+            try:
+                latest_invoice = Invoice.objects.get(
+                    reference=self.invoices.latest('id').invoice_reference
+                )
+
+            except Invoice.DoesNotExist:
                 return ApplicationInvoice.PAYMENT_STATUS_UNPAID
-            else:
-                try:
-                    latest_invoice = Invoice.objects.get(
-                        reference=self.invoices.latest('id').invoice_reference)
-                except Invoice.DoesNotExist:
-                    return ApplicationInvoice.PAYMENT_STATUS_UNPAID
-                return latest_invoice.payment_status
+
+            return latest_invoice.payment_status
 
     @property
     def latest_invoice(self):
@@ -979,7 +1011,8 @@ class Application(RevisionedMixin):
         from wildlifecompliance.components.licences.models import LicenceActivity
         with transaction.atomic():
             if self.can_user_edit:
-                if not self.application_fee_paid and not self.requires_refund:
+                if not self.application_fee_paid and not self.requires_refund \
+                  and self.submit_type == Application.SUBMIT_TYPE_ONLINE:
                     self.customer_status = Application.CUSTOMER_STATUS_AWAITING_PAYMENT
                     self.save()
                     return
@@ -1090,7 +1123,7 @@ class Application(RevisionedMixin):
                                 self.id), request)
 
                     # notify linked officer groups of submission.
-                    if self.requires_refund:  
+                    if self.requires_refund:
                         self.alert_for_refund(request)
                     else:
                         send_application_submit_email_notification(
@@ -1253,6 +1286,15 @@ class Application(RevisionedMixin):
                 groups__id__in=officer_groups.values_list('id', flat=True)
             ).distinct()
             email_list = [user.email for user in group_users]
+
+        # Set all proposed purposes back to selected so they can be proposed.
+        STATUS = ApplicationSelectedActivityPurpose.PROCESSING_STATUS_SELECTED
+        p_ids = [
+            p.purpose.id for p in selected_activity.proposed_purposes.all()
+        ]
+        selected_activity.set_proposed_purposes_process_status_for(
+            p_ids, STATUS
+        )
 
         self.set_activity_processing_status(
             activity_id,
@@ -1532,22 +1574,6 @@ class Application(RevisionedMixin):
         return self.amendment_requests.filter(licence_activity_id__in=activity_ids)
 
     @property
-    def has_amended_fees(self):
-        """
-        Check on previous invoice amounts for difference in application fee.
-        (on serializer)
-        TODO: Redundant.
-        """
-        # fees_amended = False
-        # # Application amendments requires a new submission and applies the
-        # # previous paid for adjustments.
-        # paid = self.total_paid_amount + self.previous_paid_amount
-        # if paid > 0 and paid < self.application_fee:
-        #     fees_amended = True
-
-        return False
-
-    @property
     def has_adjusted_fees(self):
         '''
         Check for adjustments to the application form causing a change to the
@@ -1580,65 +1606,110 @@ class Application(RevisionedMixin):
         return Decimal(fees)
 
     @property
-    def requires_refund(self):
-        """
+    def requires_record(self):
+        '''
         Check on the previously paid invoice amount against application fee.
-        Refund is required when application fee is more than what has been
-        paid. Application fee amount can be adjusted more or less than base.
-
-        FIXME: The previous paid amount now excludes the licence fee.
-        """
+        A record is required when the application fee is paid using 'other'
+        method where an invoice is created for amount owed. (non credit card)
+        '''
         ignore = [
-            Application.CUSTOMER_STATUS_ACCEPTED,
+            # excluded accepted for recording additional fee cash payment.
+            # Application.CUSTOMER_STATUS_ACCEPTED,
             Application.CUSTOMER_STATUS_AWAITING_PAYMENT,
             Application.CUSTOMER_STATUS_DRAFT,
             Application.CUSTOMER_STATUS_AMENDMENT_REQUIRED,
         ]
 
-        if self.customer_status in ignore or self.application_fee > -1:
+        if self.submit_type == Application.SUBMIT_TYPE_ONLINE:
+            # Record link not shown for online credit card payments.
             return False
 
-        over_paid = self.get_refund_amount()
+        if self.customer_status in ignore or self.invoices.count() < 1:
+            return False
 
-        return True if over_paid > 0 else False
+        under_paid = self.get_owe_amount()
+
+        return True if under_paid > 0 else False
+
+    def get_owe_amount(self):
+        '''
+        Get owing amount for this application where the last invoice has a
+        balance amount exceeding the payment amount.
+        '''
+        under_paid = \
+            self.latest_invoice.amount - self.latest_invoice.payment_amount
+
+        return under_paid if under_paid > 0 else 0
+
+    @property
+    def requires_refund(self):
+        """
+        Check on the previously paid invoice amount against application fee.
+        Refund is required when application fee is more than what has been
+        paid. Application fee amount can be adjusted more or less than base.
+        """
+        approved = [
+            Application.PROCESSING_STATUS_APPROVED,
+            Application.PROCESSING_STATUS_PARTIALLY_APPROVED,
+            Application.PROCESSING_STATUS_AWAITING_PAYMENT,
+        ]
+
+        if self.processing_status not in approved:
+            return False
+
+        # check additional fee amount can cover refund so it can be adjusted
+        # at invoicing.
+        outstanding = self.additional_fees - self.get_refund_amount()
+
+        return True if outstanding < 0 else False
+
+    def has_declined_refund(self):
+        '''
+        Check whether any licence purposes have been decline with required fee
+        refund.
+        '''
+        declined = [a for a in self.activities if a.is_issued_with_refund]
+        for activity in declined:
+            over_paid = activity.get_refund_amount()
+            if over_paid > 0:
+                return True
+
+        return False
 
     def get_refund_amount(self):
-        """
+        '''
         Get refund amount for this application.
-        """
-        paid = self.total_paid_amount
-        fees_app_tot = 0
-        fees_lic_tot = 0
+        '''
+        over_paid = 0
         for activity in self.activities:
-            fees_app = 0
-            fees_adj = 0
-            fees_lic = 0
-            for p in activity.proposed_purposes.all():
-                fees_adj += p.adjusted_fee
-                fees_app += p.application_fee
-                fees_lic += p.licence_fee
-                has_purpose = True
-            fees_app = fees_app + fees_adj
-            fees_app_tot += fees_app
-            fees_lic_tot += fees_lic
 
-        over_paid = paid - fees_app_tot - fees_lic_tot
+            over_paid += activity.get_refund_amount()
 
         return over_paid if over_paid > 0 else 0
 
     def alert_for_refund(self, request):
         """
-        Send notification if refund exists.
+        Send notification if refund exists after an amendment.
         """
-        if self.requires_refund:           
-            officer_groups = ActivityPermissionGroup.objects.filter(
-                permissions__codename='licensing_officer',
-                licence_activities__purpose__licence_category__id=self.licence_type_data["id"]
+        if not self.requires_refund:
+            return False
+
+        UNDER_REVIEW = self.PROCESSING_STATUS_UNDER_REVIEW
+        officer_groups = ActivityPermissionGroup.objects.filter(
+            permissions__codename='licensing_officer',
+            licence_activities__purpose__licence_category__id=self.licence_type_data["id"]
+        )
+        group_users = EmailUser.objects.filter(
+            groups__id__in=officer_groups.values_list('id', flat=True)
+        ).distinct()
+
+        if self.processing_status == UNDER_REVIEW:
+            send_amendment_refund_email_notification(
+                group_users, self, request
             )
-            group_users = EmailUser.objects.filter(
-                groups__id__in=officer_groups.values_list('id', flat=True)
-            ).distinct()
-            send_amendment_refund_email_notification(group_users, self, request)
+        else:
+            send_activity_refund_issue_notification(
+                request, self, self.get_refund_amount)
 
     @property
     def previous_paid_amount(self):
@@ -1923,6 +1994,8 @@ class Application(RevisionedMixin):
         '''
         Propose licence purposes for issuing by Approver.
         '''
+        propose = ApplicationSelectedActivityPurpose.PROCESSING_STATUS_PROPOSED
+        select = ApplicationSelectedActivityPurpose.PROCESSING_STATUS_SELECTED
         with transaction.atomic():
             try:
                 activity_list = []
@@ -1970,7 +2043,8 @@ class Application(RevisionedMixin):
                             issued = latest_activity.proposed_purposes.filter(
                                 purpose=lp
                             ).first()
-                            status = 'issue' if p['isProposed'] else 'decline'
+                            # set status to propose for the selected.
+                            status = propose if p['isProposed'] else select
 
                             purpose, c = ApplicationSelectedActivityPurpose.objects.get_or_create(
                                 purpose=issued.purpose,
@@ -2038,7 +2112,7 @@ class Application(RevisionedMixin):
                                 p['isProposed'] for p in purpose_list \
                                     if p['id']==p_purpose['id']
                             ]
-                            status = 'issue' if is_proposed[0] else 'decline'
+                            status = propose if is_proposed[0] else select
                             proposed = activity.proposed_purposes.filter(
                                 id=p_proposed['id']
                             ).first()
@@ -2046,15 +2120,16 @@ class Application(RevisionedMixin):
                                 purpose_id=p_purpose['id'],
                                 selected_activity=activity,
                             )
-                            proposed.proposed_start_date = \
-                                datetime.datetime.strptime(
-                                    p_proposed[
-                                        'proposed_start_date'], '%d/%m/%Y')
+                            if status == propose:
+                                proposed.proposed_start_date = \
+                                    datetime.datetime.strptime(
+                                        p_proposed[
+                                            'proposed_start_date'], '%d/%m/%Y')
 
-                            proposed.proposed_end_date = \
-                                datetime.datetime.strptime(
-                                    p_proposed[
-                                        'proposed_end_date'], '%d/%m/%Y')
+                                proposed.proposed_end_date = \
+                                    datetime.datetime.strptime(
+                                        p_proposed[
+                                            'proposed_end_date'], '%d/%m/%Y')
 
                             proposed.processing_status = status
                             proposed.save()
@@ -2189,6 +2264,16 @@ class Application(RevisionedMixin):
                     ApplicationSelectedActivity.ACTIVITY_STATUS_CURRENT
                 selected_activity.decision_action = \
                     ApplicationSelectedActivity.DECISION_ACTION_REISSUE
+
+                # Set selected individual purposes on the activity.
+                purpose_ids_list = request.data.get('purpose_ids_list', None)
+                REISSUE = \
+                  ApplicationSelectedActivityPurpose.PROCESSING_STATUS_REISSUE
+                selected_activity.set_proposed_purposes_process_status_for(
+                    purpose_ids_list,
+                    REISSUE,
+                )
+
                 selected_activity.updated_by = request.user
                 # Log application action
                 self.log_user_action(
@@ -2334,6 +2419,9 @@ class Application(RevisionedMixin):
         """
         Carry out the Final Issue/Decline decision for the Application (self)
         """
+        from wildlifecompliance.components.applications.payments import (
+            LicenceFeeClearingInvoice
+        )
         failed_payment_activities = []
 
         with transaction.atomic():
@@ -2380,16 +2468,6 @@ class Application(RevisionedMixin):
                             if not latest_activity:
                                 raise Exception("Active licence not found for activity ID: %s" % licence_activity_id)
 
-                            # if self.application_type ==\
-                            #     Application.APPLICATION_TYPE_AMENDMENT:
-                                # Populate start and expiry dates from the
-                                # latest issued activity record.
-                                # TODO:AYN Set from the purpose dates
-                                # original_issue_date = \
-                                #     latest_activity.get_original_issue_date()
-                                # start_date = latest_activity.get_start_date()
-                                # expiry_date = latest_activity.get_expiry_date()
-
                         # Additional Fees need to be set before processing fee.
                         # Fee amount may change by the issuer making decision.
                         if item['additional_fee']:
@@ -2398,8 +2476,10 @@ class Application(RevisionedMixin):
                             selected_activity.additional_fee_text = item[
                                 'additional_fee_text']
 
-                        # If there is an outstanding licence fee payment - attempt to charge the stored card.
+                        # If there is an outstanding licence fee payment - 
+                        # attempt to charge the stored card.
                         payment_successful = selected_activity.process_licence_fee_payment(request, self)
+
                         if not payment_successful:
                             failed_payment_activities.append(selected_activity)
                         else:
@@ -2428,13 +2508,22 @@ class Application(RevisionedMixin):
 
                         # Set the start and expiry date from the proposed 
                         # dates.
-                        selected_ids = [
+                        decline_ids = set([
+                            p['id'] for p in request.data.get(
+                                'selected_purpose_ids') if not p['isProposed']
+                        ])
+                        issue_ids = list(set([
                             p['id'] for p in request.data.get(
                                 'selected_purpose_ids') if p['isProposed']
-                        ]
+                        ]) - decline_ids)
+                        decline_ids = list(decline_ids)
                         proposed_purposes = request.data.get('purposes')
                         ISSUE = ApplicationSelectedActivityPurpose.PROCESSING_STATUS_ISSUED
                         DECLINE = ApplicationSelectedActivityPurpose.PROCESSING_STATUS_DECLINED
+                        SELECT = ApplicationSelectedActivityPurpose.PROCESSING_STATUS_SELECTED
+                        DEFAULT = ApplicationSelectedActivityPurpose.PURPOSE_STATUS_DEFAULT
+                        CURRENT = ApplicationSelectedActivityPurpose.PURPOSE_STATUS_CURRENT
+                        REFUND = ApplicationSelectedActivity.DECISION_ACTION_ISSUED_WITH_REFUND
                         for proposed in proposed_purposes:
                             purpose =\
                                 ApplicationSelectedActivityPurpose.objects.get(
@@ -2442,11 +2531,36 @@ class Application(RevisionedMixin):
                                 )
                             # No need to check if purpose has been selected
                             # for issuing.
-                            if purpose.purpose_id in selected_ids:
+                            if purpose.purpose_id in issue_ids:
                                 purpose.processing_status = ISSUE
                                 purpose.issue_date = timezone.now()
-                            else:
+                                purpose.status = CURRENT
+
+                                # proposed dates are not set when the purpose 
+                                # was previously declined by proposal officer.
+                                if purpose.proposed_start_date == None:
+                                    purpose.proposed_start_date =\
+                                        proposed['proposed_start_date']
+                                    purpose.proposed_end_date =\
+                                        proposed['proposed_end_date']
+
+                                purpose.start_date =\
+                                    proposed['proposed_start_date']
+                                purpose.expiry_date =\
+                                    proposed['proposed_end_date']
+
+                            elif purpose.purpose_id in decline_ids:
                                 purpose.processing_status = DECLINE
+                                purpose.status = DEFAULT
+                                p_selected_activity = purpose.selected_activity
+                                p_selected_activity.decision_action = REFUND
+                                p_selected_activity.save()
+
+                                if not len(issue_ids):
+                                    # if nothing to issue on activity.
+                                    p_selected_activity.processing_status = \
+                                        ApplicationSelectedActivity.PROCESSING_STATUS_DECLINED
+                                    p_selected_activity.save()
 
                             if self.application_type not in [
                                 Application.APPLICATION_TYPE_AMENDMENT,
@@ -2454,9 +2568,6 @@ class Application(RevisionedMixin):
                             ]:
                                 purpose.original_issue_date = \
                                     original_issue_date
-
-                            purpose.start_date = proposed['proposed_start_date']
-                            purpose.expiry_date = proposed['proposed_end_date']
                             
                             purpose.save()
 
@@ -2512,6 +2623,24 @@ class Application(RevisionedMixin):
                     self.licence_document = parent_licence.licence_document
                     self.licence = parent_licence
                     self.save()
+
+                    # outstanding payments for paper submission require cash 
+                    # payments and no email notifications. (refund checks)
+                    if self.submit_type == Application.SUBMIT_TYPE_PAPER:
+                        # 1. issue activities and re-generate licence.
+                        # 2. generate invoice. (include refund ?)
+                        # 3. provide record/refund link.
+                        generate_invoice = False
+                        for activity in issued_activities:
+                            if activity.additional_fee > 0 \
+                              or activity.has_adjusted_application_fee:
+                                generate_invoice = True
+                                break
+                   
+                        if generate_invoice:
+                            clear_inv = LicenceFeeClearingInvoice(self)
+                            an_inv = clear_inv.generate(request)
+
                 # If there are no issued_activities in this application and the parent_licence was
                 # created as part of this application (i.e. it was not a pre-existing one), delete it
                 elif not issued_activities and created:
@@ -2521,17 +2650,21 @@ class Application(RevisionedMixin):
                     send_application_decline_notification(
                         declined_activities, self, request)
 
+                # Send out any refund notifications.
+                self.alert_for_refund(request)
+
             except BaseException:
                 raise
 
-        if failed_payment_activities:
+        if self.submit_type == Application.SUBMIT_TYPE_ONLINE \
+          and failed_payment_activities:
             for activity in failed_payment_activities:
                 activity.processing_status = ApplicationSelectedActivity.PROCESSING_STATUS_AWAITING_LICENCE_FEE_PAYMENT
                 activity.save()
                 # Notify customer of failed payment and set Application status for customer.
-                self.customer_status = Application.CUSTOMER_STATUS_AWAITING_PAYMENT
-                self.save()
                 send_activity_invoice_issue_notification(self, activity, request)
+            self.customer_status = Application.CUSTOMER_STATUS_AWAITING_PAYMENT
+            self.save()
 
         self.update_customer_approval_status()
 
@@ -2798,17 +2931,30 @@ class ApplicationInvoice(models.Model):
     PAYMENT_STATUS_PAID = 'paid'
     PAYMENT_STATUS_OVERPAID = 'over_paid'
 
+    OTHER_PAYMENT_METHOD = 'other'
+    OTHER_PAYMENT_METHOD_CASH = 'cash'
+    OTHER_PAYMENT_METHOD_NONE = 'none'
+    OTHER_PAYMENT_METHOD_CHOICES = (
+        (OTHER_PAYMENT_METHOD, 'Invoice for Other Payment'),
+        (OTHER_PAYMENT_METHOD_CASH, 'Invoice for Cash'),
+        (OTHER_PAYMENT_METHOD_NONE, 'Invoice for No Payment'),
+    )
+
     application = models.ForeignKey(Application, related_name='invoices')
     invoice_reference = models.CharField(
         max_length=50, null=True, blank=True, default='')
     invoice_datetime = models.DateTimeField(auto_now=True)
+    other_payment_method = models.CharField(
+        max_length=50,
+        choices=OTHER_PAYMENT_METHOD_CHOICES,
+        null=True,
+        blank=True)
 
     class Meta:
         app_label = 'wildlifecompliance'
 
     def __str__(self):
-        return 'Application {} : Invoice #{}'.format(
-            self.application_id, self.invoice_reference)
+        return 'ApplicationInvoiceID: {}'.format(self.id)
 
     # Properties
     # ==================
@@ -3146,7 +3292,7 @@ class AssessmentInspection(models.Model):
 
 
 class ApplicationSelectedActivity(models.Model):
-    # TODO:AYN PROPOSED_ACTION replaced in Activity Purposes.
+
     PROPOSED_ACTION_DEFAULT = 'default'
     PROPOSED_ACTION_DECLINE = 'propose_decline'
     PROPOSED_ACTION_ISSUE = 'propose_issue'
@@ -3155,16 +3301,18 @@ class ApplicationSelectedActivity(models.Model):
         (PROPOSED_ACTION_DECLINE, 'Propose Decline'),
         (PROPOSED_ACTION_ISSUE, 'Propose Issue')
     )
-    # TODO:AYN DECISION_ACTION replaced in Activity Purposes
+
     DECISION_ACTION_DEFAULT = 'default'
     DECISION_ACTION_DECLINED = 'declined'
     DECISION_ACTION_ISSUED = 'issued'
     DECISION_ACTION_REISSUE = 'reissue'
+    DECISION_ACTION_ISSUED_WITH_REFUND = 'issue_refund'
     DECISION_ACTION_CHOICES = (
         (DECISION_ACTION_DEFAULT, 'Default'),
         (DECISION_ACTION_DECLINED, 'Declined'),
         (DECISION_ACTION_ISSUED, 'Issued'),
         (DECISION_ACTION_REISSUE, 'Re-issue'),
+        (DECISION_ACTION_ISSUED_WITH_REFUND, 'Issued with refund'),
     )
 
     ACTIVITY_STATUS_DEFAULT = 'default'
@@ -3470,6 +3618,7 @@ class ApplicationSelectedActivity(models.Model):
             ActivityInvoice.PAYMENT_STATUS_NOT_REQUIRED,
             ActivityInvoice.PAYMENT_STATUS_PAID,
             ActivityInvoice.PAYMENT_STATUS_OVERPAID,
+            ActivityInvoice.PAYMENT_STATUS_PARTIALLY_PAID,  # Record Payment
         ]
 
     @property
@@ -3478,9 +3627,6 @@ class ApplicationSelectedActivity(models.Model):
         Activity payment consist of Licence and Additional Fee. Property 
         shows the status for both of these payments. Licence Fee is paid up
         front before additional fees.
-
-        FIXME: Need to check for adjustments to fees by officer which may need
-        to be paid at issuance.
         """
         def get_payment_status_for_licence(_status):
             if self.application_fee == 0 and self.total_paid_amount < 1:
@@ -3519,6 +3665,13 @@ class ApplicationSelectedActivity(models.Model):
                         ApplicationSelectedActivity.PROCESSING_STATUS_ACCEPTED:
                         _status = ActivityInvoice.PAYMENT_STATUS_PAID
 
+            # paper-based submission allow Record link for additional payment.
+            if _status == ActivityInvoice.PAYMENT_STATUS_UNPAID \
+              and self.application.submit_type \
+              == Application.SUBMIT_TYPE_PAPER:
+
+                _status = ActivityInvoice.PAYMENT_STATUS_PARTIALLY_PAID
+
             return _status
 
         def get_payment_status_for_adjustment(_status):
@@ -3533,6 +3686,10 @@ class ApplicationSelectedActivity(models.Model):
                     _status = ActivityInvoice.PAYMENT_STATUS_PAID
 
             return _status
+
+        if self.application.submit_type == Application.SUBMIT_TYPE_MIGRATE:
+            # when application is migrated from paper version.
+            return ActivityInvoice.PAYMENT_STATUS_NOT_REQUIRED
 
         paid_status = [
             ActivityInvoice.PAYMENT_STATUS_NOT_REQUIRED,
@@ -3636,6 +3793,7 @@ class ApplicationSelectedActivity(models.Model):
                 detail = Invoice.objects.get(
                     reference=invoice.invoice_reference)
                 amount -= detail.refund_amount
+                # amount += detail.payment_amount
      
         return amount
 
@@ -3666,17 +3824,25 @@ class ApplicationSelectedActivity(models.Model):
 
     @property
     def requires_refund(self):
-        """
+        '''
         Check on the previously paid invoice amount against Activity fee.
-        NOTE: there is no use-case for refunding licence activity fee.
-        """
-        if self.licence_fee < 1:
+        '''
+        if not self.licence_fee_paid:
             return False
 
-        if self.total_paid_amount - self.licence_fee > 0:
-            return True
+        over_paid = self.get_refund_amount()
 
-        return False
+        return True if over_paid > 0 else False
+
+    @property
+    def is_issued_with_refund(self):
+        '''
+        Property to indicate that this selected activity has been issued with 
+        a refund required for the decision to decline a licence purpose.
+        '''
+        action = [self.DECISION_ACTION_ISSUED_WITH_REFUND]    
+
+        return True if self.decision_action in action else False
 
     @property
     def previous_paid_amount(self):
@@ -3747,12 +3913,40 @@ class ApplicationSelectedActivity(models.Model):
 
         return previous_paid
 
+    def get_refund_amount(self):
+        '''
+        Get refundable licence amount for this selected Licence Activity.
+        '''
+        DECLINE = ApplicationSelectedActivityPurpose.PROCESSING_STATUS_DECLINED
+        paid = self.total_paid_amount
+        fees_app_tot = 0
+        fees_lic_tot = 0
+        fees_app = 0
+        fees_adj = 0
+        fees_lic = 0
+        for p in self.proposed_purposes.all():
+            fees_adj += p.adjusted_fee if p.is_payable else 0
+            fees_app += p.application_fee if p.is_payable else 0
+            fees_lic += p.licence_fee if p.is_payable else 0
+
+            if p.processing_status == DECLINE:
+                fees_adj += p.adjusted_fee
+                fees_app += p.application_fee
+
+        fees_app = fees_app + fees_adj
+        fees_app_tot = fees_app
+        fees_lic_tot = fees_lic
+
+        over_paid = paid - fees_app_tot - fees_lic_tot
+
+        return over_paid if over_paid > 0 else 0
+
     def set_original_issue_date(self, issue_date):
         '''
         Set the original issue date on all purposes on this activity.
         '''
         for p in self.proposed_purposes.all():
-            p.original_issue_date = issue_date if p.is_proposed \
+            p.original_issue_date = issue_date if p.is_issued \
                 else p.original_issue_date
             p.save()
 
@@ -3772,7 +3966,7 @@ class ApplicationSelectedActivity(models.Model):
                     '%Y-%m-%d'
                 )
                 o_date = p.original_issue_date \
-                    if p_otime < o_otime and p.is_proposed else o_date
+                    if p_otime < o_otime and p.is_issued else o_date
 
         except BaseException as e:
             logger.error('get_original_issue_date(): {0}'.format(e))
@@ -3785,7 +3979,7 @@ class ApplicationSelectedActivity(models.Model):
         Set the issue date on all purposes on this activity.
         '''
         for p in self.proposed_purposes.all():
-            p.issue_date = issue_date if p.is_proposed else p.issue_date
+            p.issue_date = issue_date if p.is_issued else p.issue_date
             p.save()
 
     def get_issue_date(self):
@@ -3805,7 +3999,7 @@ class ApplicationSelectedActivity(models.Model):
                 )
                 # p_itime = p.issue_date.strftime('%Y,%m,%d')
                 issue_date = p.issue_date \
-                    if p_itime < i_itime and p.is_proposed else issue_date
+                    if p_itime < i_itime and p.is_issued else issue_date
 
         except BaseException as e:
             logger.error('get_issue_date(): {0}'.format(e))
@@ -3819,7 +4013,7 @@ class ApplicationSelectedActivity(models.Model):
         Set the start date on all purposes on this activity.
         '''
         for p in self.proposed_purposes.all():
-            p.start_date = start_date if p.is_proposed else p.start_date
+            p.start_date = start_date if p.is_payable else p.start_date
             p.save()
 
     def get_start_date(self):
@@ -3839,7 +4033,7 @@ class ApplicationSelectedActivity(models.Model):
                 )
                 # p_stime = datetime.datetime.strptime(p.start_date, '%d/%m/%Y')
                 start_date = p.start_date \
-                    if p_stime < s_stime and p.is_proposed else start_date
+                    if p_stime < s_stime and p.is_payable else start_date
 
         except BaseException as e:
             logger.error('get_start_date(): {0}'.format(e))
@@ -3852,7 +4046,7 @@ class ApplicationSelectedActivity(models.Model):
         Set the expiry date on all purposes on this activity.
         '''
         for p in self.proposed_purposes.all():
-            p.expiry_date = expiry_date if p.is_proposed else p.expiry_date
+            p.expiry_date = expiry_date if p.is_payable else p.expiry_date
             p.save()
     
     def get_expiry_date(self):
@@ -3891,7 +4085,7 @@ class ApplicationSelectedActivity(models.Model):
             c_ctime = datetime.datetime.strptime(c_date, '%d/%m/%Y')
             for p in self.proposed_purposes.all():
                 p_etime = datetime.datetime.strptime(p.expiry_date, '%d/%m/%Y')
-                if c_ctime <= p_etime and p.is_proposed:
+                if c_ctime <= p_etime and p.is_issued:
                     is_current = True 
                     break
 
@@ -4023,7 +4217,7 @@ class ApplicationSelectedActivity(models.Model):
         purpose_ids_list = request.data.get('purpose_ids_list', None)
         purpose_ids_list = list(set(purpose_ids_list))
         purpose_ids_list.sort()
-        self.set_proposed_purposes_status_for(purpose_ids_list, SUSPEND)
+        self.set_proposed_purposes_status_for(purpose_ids_list, CANCEL)
 
         if not self.is_proposed_purposes_status(CANCEL):
             return
@@ -4125,6 +4319,23 @@ class ApplicationSelectedActivity(models.Model):
 
         for purpose in selected:
             purpose.purpose_status = status
+            purpose.save()
+            is_updated = True
+
+        return is_updated
+
+    @transaction.atomic
+    def set_proposed_purposes_process_status_for(self, ids, status):
+        '''
+        Set the processing status for the selected proposed purposes.
+        '''
+        is_updated = False
+        selected = [
+            p for p in self.proposed_purposes.all() if p.purpose.id in ids
+        ]
+
+        for purpose in selected:
+            purpose.processing_status = status
             purpose.save()
             is_updated = True
 
@@ -4276,11 +4487,36 @@ class ApplicationSelectedActivityPurpose(models.Model):
         '''
         proposed_status = [
             self.PROCESSING_STATUS_PROPOSED,
-            self.PROCESSING_STATUS_ISSUED,
-            self.PROCESSING_STATUS_SELECTED,
         ]
 
         return True if self.processing_status in proposed_status else False
+
+    @property
+    def is_issued(self):
+        '''
+        An attribute to indicate that this selected Activity Purpose has been 
+        issued.
+        '''
+        issue_status = [
+            self.PROCESSING_STATUS_ISSUED,
+        ]
+
+        return True if self.processing_status in issue_status else False
+
+    @property
+    def is_payable(self):
+        '''
+        An attribute to indicate that this selected Activity Purpose has been 
+        selected with a fee.
+        '''
+        payable_status = [
+            self.PROCESSING_STATUS_PROPOSED,
+            self.PROCESSING_STATUS_ISSUED,
+            self.PROCESSING_STATUS_SELECTED,
+            self.PROCESSING_STATUS_REISSUE,
+        ]
+
+        return True if self.processing_status in payable_status else False
 
     @property
     def total_paid_amount(self):

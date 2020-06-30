@@ -420,11 +420,18 @@ class Schema:
         result = {}
         # field validation
         for field_name, value in row.items():
-            error = self.field_validation_error(field_name, value)
-            result[field_name] = {
-                'value': value,
-                'error': error
-            }
+            if field_name.endswith('deficiency-field'):
+                # apply no validation for deficiency comment fields.
+                result[field_name] = {
+                    'deficiency_value': value,
+                    'error': None
+                }
+            else:
+                error = self.field_validation_error(field_name, value)
+                result[field_name] = {
+                    'value': value,
+                    'error': error
+                }
         # Special case for lat/long easting/northing
         if self.is_lat_long_easting_northing_schema():
             result = self.post_validate_lat_long_easting_northing(result)

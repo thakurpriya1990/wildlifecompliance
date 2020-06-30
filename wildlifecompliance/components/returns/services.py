@@ -238,7 +238,9 @@ class ReturnService(object):
 
     @staticmethod
     def get_sheet_species_list_for(a_return):
-
+        '''
+        Get list of species available for the return.
+        '''
         if a_return.has_sheet:
             sheet = ReturnSheet(a_return)
             return sheet.species_list
@@ -328,12 +330,13 @@ class ReturnData(object):
         :return:
         """
         for key in request.data.keys():
+            returns_tables = request.data.get('table_name')
+            table_deficiency = returns_tables + '-deficiency-field'
             if key == "nilYes":
                 self._return.nil_return = True
                 self._return.comments = request.data.get('nilReason')
                 self._return.save()
-            if key == "nilNo":
-                returns_tables = request.data.get('table_name')
+            elif key == "nilNo":
                 if self._is_post_data_valid(
                         returns_tables.encode('utf-8'), request.data):
                     table_info = returns_tables.encode('utf-8')
@@ -344,6 +347,13 @@ class ReturnData(object):
                             table_info, table_rows, request)
                 else:
                     raise FieldError('Enter data in correct format.')
+            elif key == table_deficiency:
+                table_info = returns_tables.encode('utf-8')
+                table_rows = self._get_table_rows(
+                    table_info, request.data)
+                if table_rows:
+                    self._return.save_return_table(
+                        table_info, table_rows, request)
 
     def build_table(self, rows):
         """
@@ -405,12 +415,9 @@ class ReturnData(object):
         :return:
         """
         table_namespace = table_name + '::'
-        # exclude fields defaulted from renderer. ie comment-field,
-        # deficiency-field (Application specific)
-        excluded_field = ('-field')
         by_column = dict([(key.replace(table_namespace, ''), post_data.getlist(
             key)) for key in post_data.keys() if key.startswith(
-                table_namespace) and not key.endswith(excluded_field)])
+                table_namespace)])
         # by_column is of format {'col_header':[row1_val, row2_val,...],...}
         num_rows = len(
             list(
@@ -428,6 +435,8 @@ class ReturnData(object):
                     is_empty = False
                     break
             if not is_empty:
+                deficiency_data = post_data['table_name'] + '-deficiency-field'
+                row_data[deficiency_data] = post_data[deficiency_data]
                 rows.append(row_data)
         return rows
 
@@ -883,8 +892,24 @@ class ReturnSheet(object):
         """
         List of Species available with Running Sheet of Activities.
         :return: List of Species.
+        {
+         'S000001': 'Western Grey Kangaroo', 'S000002': 'Western Red Kangaroo',
+         'S000003': 'Blue Banded Bee', 'S000004': 'Orange-Browed Resin Bee'
+        }
+        TODO:AYN temporary species list from return table.
         """
-        return self._species_list
+        new_list = {}
+        for _species in ReturnTable.objects.filter(ret=self._return):
+            _species_detail = ReturnRow.objects.filter(return_table=_species)
+            if _species_detail.exists():
+                row_data = _species_detail[0]
+                value = row_data.data['comment']
+                new_list[_species.name] = value
+                self._species = _species.name
+            # self._species_list.append(_species.name)
+            # self._species = _species.name
+        self._species_list.append(new_list)
+        return new_list
 
     @property
     def activity_list(self):

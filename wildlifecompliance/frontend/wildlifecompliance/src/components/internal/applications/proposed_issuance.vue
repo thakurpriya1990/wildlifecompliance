@@ -18,7 +18,7 @@
                                         <div v-show="checkedActivities.find(checked => checked===a.id)">    
                                             <div v-for="(p, p_idx) in a.proposed_purposes" v-bind:key="`p_${p_idx}`">
                                                 <div class="col-sm-3">
-                                                    &nbsp;<b>{{p.purpose.short_name}}</b>
+                                                    &nbsp;<b>{{p.purpose.short_name.substr(0,25)}}</b>
                                                 </div>
                                                 <div class="col-sm-3">
                                                     Issue <input type="radio" :value ="true" :id="p.purpose.id" v-model="getPickedPurpose(p.purpose.id).isProposed" />
@@ -26,7 +26,7 @@
                                                     &nbsp;&nbsp;&nbsp;&nbsp;<b>Period</b>
                                                 </div>
                                                 <div class="col-sm-3">
-                                                    <div class="input-group date" :ref="`start_date_${p.id}`" style="width: 100%;">
+                                                    <div class="input-group date" v-if="getPickedPurpose(p.purpose.id).isProposed" :ref="`start_date_${p.id}`" style="width: 100%;">
                                                         <input type="text" class="form-control" :name="`start_date_${p.id}`" placeholder="DD/MM/YYYY" v-model="p.proposed_start_date">
                                                         <span class="input-group-addon">
                                                             <span class="glyphicon glyphicon-calendar"></span>
@@ -34,12 +34,15 @@
                                                     </div>
                                                 </div>
                                                 <div class="col-sm-3">                                                        
-                                                    <div class="input-group date" :ref="`end_date_${p.id}`" style="width: 100%;">
+                                                    <div class="input-group date" v-if="getPickedPurpose(p.purpose.id).isProposed" :ref="`end_date_${p.id}`" style="width: 100%;">
                                                         <input type="text" class="form-control" :name="`end_date_${p.id}`" placeholder="DD/MM/YYYY" v-model="p.proposed_end_date">
                                                         <span class="input-group-addon">
                                                             <span class="glyphicon glyphicon-calendar"></span>
                                                         </span>
                                                     </div>
+                                                </div>
+                                                <div class="col-sm-12" v-if="!getPickedPurpose(p.purpose.id).isProposed">                                                        
+                                                    &nbsp;
                                                 </div>
                                             </div>
                                         </div>

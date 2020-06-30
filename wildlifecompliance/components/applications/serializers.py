@@ -185,8 +185,9 @@ class ApplicationSelectedActivitySerializer(serializers.ModelSerializer):
         return PurposeSerializer(purposes, many=True).data
 
     def get_activity_purpose_names(self, obj):
-        purposes = [p.purpose for p in obj.proposed_purposes.exclude(
-            processing_status='decline')]
+        purposes = [
+            p.purpose for p in obj.proposed_purposes.all()
+        ]
 
         if obj.proposed_action \
                 == ApplicationSelectedActivity.PROPOSED_ACTION_DEFAULT:
@@ -498,6 +499,9 @@ class BaseApplicationSerializer(serializers.ModelSerializer):
     total_paid_amount = serializers.SerializerMethodField(read_only=True)
     all_payments_url = serializers.SerializerMethodField(read_only=True)
     adjusted_paid_amount = serializers.SerializerMethodField(read_only=True)
+    is_reception_paper = serializers.SerializerMethodField(read_only=True)
+    is_reception_migrate = serializers.SerializerMethodField(read_only=True)
+    is_online_submit = serializers.SerializerMethodField(read_only=True)
 
     class Meta:
         model = Application
@@ -544,11 +548,13 @@ class BaseApplicationSerializer(serializers.ModelSerializer):
             'application_type',
             'invoice_url',
             'total_paid_amount',
-            'has_amended_fees',
             'payment_url',
             'requires_refund',
             'all_payments_url',
             'adjusted_paid_amount',
+            'is_reception_paper',
+            'is_reception_migrate',
+            'is_online_submit',
         )
         read_only_fields = ('documents',)
 
@@ -729,6 +735,27 @@ class BaseApplicationSerializer(serializers.ModelSerializer):
 
         return adjusted
 
+    def get_is_reception_paper(self, obj):
+        is_paper_submit = False
+        if obj.submit_type == Application.SUBMIT_TYPE_PAPER:
+            is_paper_submit = True
+
+        return is_paper_submit
+
+    def get_is_reception_migrate(self, obj):
+        is_migrate_submit = False
+        if obj.submit_type == Application.SUBMIT_TYPE_MIGRATE:
+            is_migrate_submit = True
+
+        return is_migrate_submit
+
+    def get_is_online_submit(self, obj):
+        is_online_submit = False
+        if obj.submit_type == Application.SUBMIT_TYPE_ONLINE:
+            is_online_submit = True
+
+        return is_online_submit
+
 
 class DTInternalApplicationSerializer(BaseApplicationSerializer):
     submitter = EmailUserSerializer()
@@ -825,6 +852,7 @@ class DTExternalApplicationSerializer(BaseApplicationSerializer):
             'activities',
             'invoice_url',
             'payment_url',
+            'is_online_submit',
         )
         # the serverSide functionality of datatables is such that only columns that have field 'data'
         # defined are requested from the serializer. Use datatables_always_serialize to force render
@@ -899,6 +927,7 @@ class CreateExternalApplicationSerializer(serializers.ModelSerializer):
             'application_type',
             'previous_application',
             'licence',
+            'submit_type',
         )
 
 

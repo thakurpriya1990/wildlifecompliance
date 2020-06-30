@@ -154,7 +154,7 @@
 
                 <ApplicationAssessments v-if="isSendingToAssessor || isOfficerConditions" />
 
-                <template v-if="applicationDetailsVisible">
+                <template v-if="applicationDetailsVisible && showingApplication">
                     <div>
                     <ul class="nav nav-pills mb-3" id="tabs-main">
                         <li class="nav-item"><a ref="applicantTab" class="nav-link" data-toggle="pill" :href="'#'+applicantTab">Applicant</a></li>
@@ -556,7 +556,7 @@
                             </h3>
                         </div>
                         <div class="panel-body panel-collapse collapse" :id="decisionBody">
-                            <div v-for="activity in application.activities.filter(activity => activity.decision_action==='issued')">
+                            <div v-for="activity in application.activities.filter(activity => ['issue_refund','issued'].includes(activity.decision_action))">
                                 <div class="col-sm-12">
                                     <strong>&nbsp;</strong><br/>
                                     <strong>Licence Activity: {{ activity.activity_name_str }}</strong><br/>
@@ -846,6 +846,7 @@ export default {
                 && !this.applicationIsDraft 
                 && (this.hasRole('licensing_officer') || this.hasRole('issuing_officer'))
                 && !this.requiresRefund
+                && this.application.can_be_processed
         },
         showFinalDecision: function() {
             if (['awaiting_payment'].includes(this.application.processing_status.id)) { // prevent processing for outstanding payments.
@@ -1373,6 +1374,7 @@ export default {
         }
     },
     mounted: function() {
+        console.log(this.application)
     },
     updated: function(){
         let vm = this;
@@ -1394,10 +1396,10 @@ export default {
         if ((this.application.application_type.id=='amend_activity') // licence activity amendments.
         || (this.application.customer_status.id=='amendment_required' || this.application.customer_status.id=='under_review')) { // requested amendments.
             // fees can be adjusted by officer from selected components for requested amendments.
-            this.adjusted_application_fee = this.application.application_fee - this.application.adjusted_paid_amount
+            // this.adjusted_application_fee = this.application.application_fee - this.application.adjusted_paid_amount
         } else {
             // no adjustments for new applications.
-            this.adjusted_application_fee = this.application.application_fee
+            // this.adjusted_application_fee = this.application.application_fee
         }
     },
     beforeRouteEnter: function(to, from, next) {

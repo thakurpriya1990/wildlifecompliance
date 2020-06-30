@@ -11,7 +11,7 @@ from wildlifecompliance.components.users.models import (
         ComplianceManagementUserPreferences
         )
 from wildlifecompliance.components.organisations.utils import can_admin_org, is_consultant
-from wildlifecompliance.helpers import is_customer, is_internal
+from wildlifecompliance.helpers import is_customer, is_internal, is_reception
 from rest_framework import serializers
 from django.core.exceptions import ValidationError
 from rest_framework.fields import CurrentUserDefault
@@ -328,6 +328,7 @@ class MyUserDetailsSerializer(serializers.ModelSerializer):
     is_customer = serializers.SerializerMethodField()
     is_internal = serializers.SerializerMethodField()
     prefer_compliance_management = serializers.SerializerMethodField()
+    is_reception = serializers.SerializerMethodField()
 
     class Meta:
         model = EmailUser
@@ -350,6 +351,7 @@ class MyUserDetailsSerializer(serializers.ModelSerializer):
             'is_customer',
             'is_internal',
             'prefer_compliance_management',
+            'is_reception',
         )
 
     def get_personal_details(self, obj):
@@ -386,6 +388,9 @@ class MyUserDetailsSerializer(serializers.ModelSerializer):
             return obj.compliancemanagementuserpreferences.prefer_compliance_management
         else:
             return False
+
+    def get_is_reception(self, obj):
+        return is_reception(self.context.get('request'))
 
 
 class ComplianceUserDetailsSerializer(serializers.ModelSerializer):

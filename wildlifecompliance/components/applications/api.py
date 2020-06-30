@@ -13,7 +13,7 @@ from rest_framework.renderers import JSONRenderer
 from ledger.accounts.models import EmailUser
 from ledger.checkout.utils import calculate_excl_gst
 from django.urls import reverse
-from django.shortcuts import redirect
+from django.shortcuts import redirect, render
 from wildlifecompliance.components.applications.utils import (
     SchemaParser,
     MissingFieldsException,
@@ -38,7 +38,8 @@ from wildlifecompliance.components.applications.models import (
     AmendmentRequest,
     ApplicationUserAction,
     ApplicationFormDataRecord,
-    ActivityInvoice,
+    ApplicationInvoice,
+    ApplicationSelectedActivityPurpose,
 )
 from wildlifecompliance.components.applications.services import (
     ApplicationService
@@ -675,10 +676,65 @@ class ApplicationViewSet(viewsets.ModelViewSet):
             print(traceback.print_exc())
             raise serializers.ValidationError(str(e))
 
+    @detail_route(methods=['post'])
+    @renderer_classes((JSONRenderer,))
+    def application_fee_reception(self, request, *args, **kwargs):
+        '''
+        Process to pay application fee and record by licensing reception.
+        '''
+        try:
+            instance = self.get_object()
+
+            if not request.user.is_staff:
+                raise Exception('Non staff member.')
+
+            session = request.session
+            set_session_application(session, instance)
+
+            if instance.submit_type == Application.SUBMIT_TYPE_PAPER:
+                invoice = ApplicationService.cash_payment_submission(
+                    request)
+                invoice_url = request.build_absolute_uri(
+                    reverse(
+                        'payments:invoice-pdf',
+                        kwargs={'reference': invoice}))
+
+            elif instance.submit_type == Application.SUBMIT_TYPE_MIGRATE:
+                invoice = ApplicationService.none_payment_submission(
+                    request)
+                invoice_url = None
+
+            else:
+                raise Exception('Cannot make this type of payment.')
+
+            # return template application-success
+            template_name = 'wildlifecompliance/application_success.html'
+            context = {
+                'application': instance,
+                'invoice_ref': invoice,
+                'invoice_url': invoice_url
+            }
+
+            return render(request, template_name, context)
+
+        except serializers.ValidationError:
+            print(traceback.print_exc())
+            raise
+        except ValidationError as e:
+            if hasattr(e, 'error_dict'):
+                raise serializers.ValidationError(repr(e.error_dict))
+            else:
+                raise serializers.ValidationError(repr(e[0].encode('utf-8')))
+        except Exception as e:
+            print(traceback.print_exc())
+            raise serializers.ValidationError(str(e))
 
     @detail_route(methods=['post'])
     @renderer_classes((JSONRenderer,))
     def licence_fee_checkout(self, request, *args, **kwargs):
+        from wildlifecompliance.components.applications.payments import (
+            LicenceFeeClearingInvoice
+        )
         PAY_STATUS = ApplicationSelectedActivity.PROCESSING_STATUS_AWAITING_LICENCE_FEE_PAYMENT
         try:
             instance = self.get_object()
@@ -742,6 +798,22 @@ class ApplicationViewSet(viewsets.ModelViewSet):
                         'price_incl_tax': str(activity.additional_fee),
                         'price_excl_tax': str(calculate_excl_gst(
                             activity.additional_fee)),
+                        'oracle_code': ''
+                    })
+
+            # Check if refund is required from last invoice.
+            last_inv = LicenceFeeClearingInvoice(instance)
+            if last_inv.is_refundable_with_payment():
+                product_lines.append(last_inv.get_product_line_for_refund())
+
+                # refund any application fee adjustments.
+                if instance.application_fee < 0:
+                    product_lines.append({
+                        'ledger_description': 'Adjusted fee refund',
+                        'quantity': 1,
+                        'price_incl_tax': str(instance.application_fee),
+                        'price_excl_tax': str(calculate_excl_gst(
+                                instance.application_fee)),
                         'oracle_code': ''
                     })
 
@@ -1248,7 +1320,7 @@ class ApplicationViewSet(viewsets.ModelViewSet):
             ApplicationService.set_special_form_fields(
                 instance, request.data)
             # Send any relevant notifications.
-            instance.alert_for_refund(request)
+            # instance.alert_for_refund(request)
             # Log save action for internal officer.
             if request.user.is_staff:
                 instance.log_user_action(
@@ -1286,18 +1358,35 @@ class ApplicationViewSet(viewsets.ModelViewSet):
 
     @renderer_classes((JSONRenderer,))
     def create(self, request, *args, **kwargs):
-        from wildlifecompliance.components.licences.models import WildlifeLicence, LicencePurpose
+        from wildlifecompliance.components.licences.models import (
+            WildlifeLicence, LicencePurpose
+        )
+
         try:
             org_applicant = request.data.get('organisation_id')
             proxy_applicant = request.data.get('proxy_id')
             licence_purposes = request.data.get('licence_purposes')
             application_type = request.data.get('application_type')
+            customer_pay_method = request.data.get('customer_method_id')
+
+            # establish the submit type from the payment method.
+            CASH = ApplicationInvoice.OTHER_PAYMENT_METHOD_CASH
+            NONE = ApplicationInvoice.OTHER_PAYMENT_METHOD_NONE
+
+            if customer_pay_method == CASH:
+                submit_type = Application.SUBMIT_TYPE_PAPER
+            elif customer_pay_method == NONE:
+                submit_type = Application.SUBMIT_TYPE_MIGRATE
+            else:
+                submit_type = Application.SUBMIT_TYPE_ONLINE
+
             data = {
                 'submitter': request.user.id,
                 'org_applicant': org_applicant,
                 'proxy_applicant': proxy_applicant,
                 'licence_purposes': licence_purposes,
                 'application_type': application_type,
+                'submit_type': submit_type,
             }
 
             if not licence_purposes:
@@ -1872,6 +1961,14 @@ class AmendmentRequestViewSet(viewsets.ModelViewSet):
                 instance = serializer.save()
                 instance.reason = reason
                 instance.generate_amendment(request)
+
+                # Set all proposed purposes back to selected.
+                STATUS = \
+                  ApplicationSelectedActivityPurpose.PROCESSING_STATUS_SELECTED
+                p_ids = [ p.purpose.id \
+                    for p in selected_activity.proposed_purposes.all() ]
+                selected_activity.set_proposed_purposes_process_status_for(
+                    p_ids, STATUS)
 
             # send email
             send_application_amendment_notification(

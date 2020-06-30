@@ -6,8 +6,8 @@
     <p><strong>Activities:
         {% for activity in activities %}
             <br>{{activity.licence_activity.name}}
-            <br>Start Date: {{activity.start_date}}
-            <br>Expiry Date: {{activity.expiry_date}}
+            <br>Start Date: {{activity.get_start_date}}
+            <br>Expiry Date: {{activity.get_expiry_date}}
             <br>
         {% endfor %}
     </strong></p>

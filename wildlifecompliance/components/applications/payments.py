@@ -5,11 +5,186 @@ from wildlifecompliance.components.applications.models import (
     Application,
     ApplicationSelectedActivityPurpose,
     ApplicationFormDataRecord,
+    ApplicationInvoice,
 )
 
 logger = logging.getLogger(__name__)
 logging.disable(logging.NOTSET)
 logger.setLevel(logging.DEBUG)
+
+
+class InvoiceClearable(object):
+    '''
+    An interface for invoices which may be applicable for Clearing accounts.
+    '''
+    TYPE_CASH = ApplicationInvoice.OTHER_PAYMENT_METHOD_CASH
+    TYPE_NONE = ApplicationInvoice.OTHER_PAYMENT_METHOD_NONE
+    TYPE_CARD = 'card'
+
+    __metaclass__ = abc.ABCMeta
+
+    @abc.abstractmethod
+    def verify_payment_status(self):
+        '''
+        Verifies the payment status.
+        '''
+
+    @abc.abstractmethod
+    def is_refundable(self):
+        '''
+        Check for refund amount.
+        '''
+
+    @abc.abstractmethod
+    def is_recordable(self):
+        '''
+        Check for amount requiring to be recorded in ledger.
+        '''
+
+    @abc.abstractmethod
+    def is_refundable_with_payment(self):
+        '''
+        Check for refund amount at invoicing.
+        '''
+
+
+class LicenceFeeClearingInvoice(InvoiceClearable):
+    '''
+    A representation of an invoice for a licence fee that has been recorded on
+    the ledger with an un-balanced amount. ie either under or over paid.
+
+    NOTE: Can occur where the licence fee consist of fees for adjustment to
+    application fee, additional fees and fefunds for declined licenses.
+    '''
+    application = None                  # Composite application.
+    fee_policy = None                   # Policy applied to the fee update.
+    dynamic_attributes = None           # Container for fees.
+    invoice_balance = None              # balance attributes.
+    is_refreshing = False               # Flag indicating a page refresh.
+
+    def __init__(self, application):
+        super(InvoiceClearable, self).__init__()
+        self.application = application
+
+    def verify_payment_status(self):
+        '''
+        Verifies the payment status.
+
+        NOTE: concrete method.
+        '''
+        return self.application.payment_status
+
+    def is_refundable(self):
+        '''
+        Check for refund amount where the application requires a refund.
+        '''
+        requires_refund = self.application.requires_refund
+
+        return requires_refund
+
+    def is_refundable_with_payment(self):
+        '''
+        Check for a refund amount when a payment is required for application
+        fee adjustments and/or additional fees.
+        - additional or adjustment fees exists.
+        - application requires a refund.
+        - refundable amount does not exceed fees.
+        '''
+        requires_payment = self.application.has_adjusted_fees \
+            or self.application.has_additional_fees
+
+        requires_refund = requires_payment and (
+            self.application.get_refund_amount() > 0
+        )
+
+        amount = self.application.application_fee \
+            + self.application.additional_fees \
+            - self.application.get_refund_amount()
+
+        return requires_refund and amount > 0
+
+    def is_recordable(self):
+        '''
+        Check for amount requiring to be recorded in ledger.
+
+        NOTE: concrete method.
+        '''
+        return self.application.requires_record
+
+    def get_product_line_for_refund(self, description=None):
+        '''
+        Builds and returns a product line for the refund.
+
+        NOTE: display the last invoice number on line.
+        '''
+        from ledger.checkout.utils import calculate_excl_gst
+
+        if not self.is_refundable:
+            return None
+
+        desc = 'Licence fee refund' if not description else description
+        refund = self.application.get_refund_amount()
+        refund = refund * -1
+        product_line = {
+                    'ledger_description': '{0}'.format(desc),
+                    'quantity': 1,
+                    'price_incl_tax': str(refund),
+                    'price_excl_tax': str(calculate_excl_gst(refund)),
+                    'oracle_code': ''
+                }
+
+        return product_line
+
+    def set_refunded_fees_for(self, activity):
+        '''
+        Sets the Refunded Fee amount on the licence activity applying the
+        relevant fee policy.
+        '''
+        if not self.is_refundable:
+            return
+        # apply fee policy to re-calculate total fees for application.
+        self.fee_policy.set_dynamic_attributes_for(activity)
+
+    def build_balance_amount(self):
+        '''
+        Calculate balance for invoices on the application.
+        '''
+        from ledger.payments.invoice.models import Invoice
+
+        inv_balance_amt = 0                 # total invoice amount owed.
+        inv_payment_amt = 0                 # total invoice amount paid.
+
+        for activity in self.application.activities:
+
+            for activity_inv in activity.activity_invoices.distinct(
+                'invoice_reference',
+            ):
+                invoice = Invoice.objects.filter(
+                    reference=activity_inv.invoice_reference
+                )
+                inv_balance_amt += invoice[0].amount
+                inv_payment_amt += invoice[0].payment_amount
+
+        self.invoice_balance = {
+            'balance_amt': inv_balance_amt,
+            'payment_amt': inv_payment_amt,
+        }
+
+    def generate(self, request):
+        '''
+        Generates an invoice for a CASH payment with this clearing.
+        '''
+        from wildlifecompliance.components.main.utils import (
+            set_session_other_pay_method,
+            create_other_application_invoice,
+        )
+
+        set_session_other_pay_method(
+            request.session, self.TYPE_CASH)
+        invoice = create_other_application_invoice(self.application, request)
+        invoice_ref = invoice.reference
+
+        return invoice_ref
 
 
 class ApplicationFeePolicy(object):
@@ -80,6 +255,31 @@ class ApplicationFeePolicy(object):
                 'oracle_code': ''
             })
 
+        activities = application.selected_activities.all()
+        # Include additional fees by licence approvers.
+        if application.has_additional_fees:
+            # only fees which are greater than zero.
+            activities_with_fees = [
+                a for a in activities if a.additional_fee > 0
+            ]
+
+            # only fees awaiting payment
+            for activity in activities_with_fees:
+                product_lines.append({
+                    'ledger_description': '{}'.format(
+                        activity.additional_fee_text),
+                    'quantity': 1,
+                    'price_incl_tax': str(activity.additional_fee),
+                    'price_excl_tax': str(calculate_excl_gst(
+                        activity.additional_fee)),
+                    'oracle_code': ''
+                })
+
+        # Check if refund is required.
+        clear_inv = LicenceFeeClearingInvoice(application)
+        if clear_inv.is_refundable_with_payment():
+            product_lines.append(clear_inv.get_product_line_for_refund())
+
         return product_lines
 
     @abc.abstractmethod
@@ -88,6 +288,13 @@ class ApplicationFeePolicy(object):
         Sets the application fee from what was previously saved on the model.
         """
         pass
+
+    def set_has_fee_exemption(self, exempt=False):
+        '''
+        Set this fee policy to calculate zero fee amounts for zero amount
+        invoices. A calculated fee is stored with the application.
+        '''
+        self.has_fee_exemption = exempt
 
     def set_dynamic_attributes(self, attributes):
         '''
@@ -134,9 +341,9 @@ class ApplicationFeePolicy(object):
             fees_adj = 0
             fees_lic = 0
             for p in activity.proposed_purposes.all():
-                fees_adj += p.adjusted_fee if p.is_proposed else 0
-                fees_app += p.application_fee if p.is_proposed else 0
-                fees_lic += p.licence_fee if p.is_proposed else 0
+                fees_adj += p.adjusted_fee if p.is_payable else 0
+                fees_app += p.application_fee if p.is_payable else 0
+                fees_lic += p.licence_fee if p.is_payable else 0
                 has_purpose = True
             paid_amt = activity.total_paid_amount
             fees_app = fees_app + fees_adj
@@ -150,10 +357,13 @@ class ApplicationFeePolicy(object):
             self.dynamic_attributes['fees']['application'] = fees_app_tot
             self.dynamic_attributes['fees']['licence'] = fees_lic_tot
 
+        if self.has_fee_exemption:
+            self.dynamic_attributes['fees']['application'] = 0
+            self.dynamic_attributes['fees']['licence'] = 0
+
     def set_application_fee_on_purpose_for(self, activity):
         '''
-        Set the base fees for all purposes on the selected activity. 
-
+        Set the base fees for all purposes on the selected activity.
         '''
         for purpose in activity.purposes:
             p, c = ApplicationSelectedActivityPurpose.objects.get_or_create(
@@ -179,6 +389,7 @@ class ApplicationFeePolicyForAmendment(ApplicationFeePolicy):
     application = None
     dynamic_attributes = None   # Container for Activity fees.
     is_refreshing = False       # Flag indicating a page refresh.
+    has_fee_exemption = False   # Allow exemption for zero amount invoice.
 
     def __init__(self, application):
         super(ApplicationFeePolicy, self).__init__()
@@ -246,7 +457,7 @@ class ApplicationFeePolicyForAmendment(ApplicationFeePolicy):
         for activity in licence.current_activities:
             purposes_ids = self.get_form_purpose_ids_for(activity)
             for p in activity.proposed_purposes.all():
-                if p.purpose_id in purposes_ids and p.is_proposed:
+                if p.purpose_id in purposes_ids and p.is_payable:
                     application_fees += p.application_fee
 
         self.dynamic_attributes = {
@@ -333,6 +544,11 @@ class ApplicationFeePolicyForAmendment(ApplicationFeePolicy):
             activity.application_fee = fees_new
         activity.licence_fee = policy_licence_fee
 
+        if self.has_fee_exemption:
+            activity.application_fee = 0
+            activity.licence_fee = 0
+            activity.additional_fee = 0
+
     def set_application_fee_from_attributes(self, attributes):
         '''
         Set the new application fee from updated attributes.
@@ -362,7 +578,7 @@ class ApplicationFeePolicyForAmendment(ApplicationFeePolicy):
                 # base fee is paid just pay the adjustments difference.
                 fees_lic = 0
                 for purpose in activity.proposed_purposes.all():
-                    fees_lic += purpose.licence_fee if purpose.is_proposed \
+                    fees_lic += purpose.licence_fee if purpose.is_payable \
                         else 0
                 fees_new = fees_adj + fees_lic - activity.total_paid_amount
                 policy_licence_fee = 0
@@ -374,6 +590,11 @@ class ApplicationFeePolicyForAmendment(ApplicationFeePolicy):
             self.dynamic_attributes['fees']['application'] = fees_new
         attributes['fees']['licence'] = policy_licence_fee
 
+        if self.has_fee_exemption:
+            attributes['fees']['application'] = 0
+            self.dynamic_attributes['fees']['application'] = 0
+            attributes['fees']['licence'] = 0
+
     def get_previous_adjusted_fee_for(self, activity):
         """
         Get the aggregated adjusted fee for all previous purposes on the
@@ -383,7 +604,7 @@ class ApplicationFeePolicyForAmendment(ApplicationFeePolicy):
         prev_activity = activity.get_activity_from_previous()
         purposes_ids = self.get_form_purpose_ids_for(activity)
         for p in prev_activity.proposed_purposes.all():
-            if p.purpose_id in purposes_ids and p.is_proposed:
+            if p.purpose_id in purposes_ids and p.is_payable:
                 prev_adjusted += p.adjusted_fee
 
         return prev_adjusted
@@ -397,7 +618,7 @@ class ApplicationFeePolicyForAmendment(ApplicationFeePolicy):
         prev_act = activity.get_activity_from_previous()
         purposes_ids = self.get_form_purpose_ids_for(activity)
         for p in prev_act.proposed_purposes.all():
-            if p.purpose_id in purposes_ids and p.is_proposed:
+            if p.purpose_id in purposes_ids and p.is_payable:
                 prev_fee += p.application_fee
 
         return prev_fee
@@ -415,6 +636,7 @@ class ApplicationFeePolicyForRenew(ApplicationFeePolicy):
     application = None
     dynamic_attributes = None   # Container for Activity fees.
     is_refreshing = False       # Flag indicating a page refresh.
+    has_fee_exemption = False   # Allow exemption for zero amount invoice.
 
     def __init__(self, application):
         super(ApplicationFeePolicy, self).__init__()
@@ -447,7 +669,7 @@ class ApplicationFeePolicyForRenew(ApplicationFeePolicy):
         for activity in licence.current_activities:
             purposes_ids = self.get_form_purpose_ids_for(activity)
             for p in activity.proposed_purposes.all():
-                if p.purpose_id in purposes_ids and p.is_proposed:
+                if p.purpose_id in purposes_ids and p.is_payable:
                     fees_adj += p.adjusted_fee
 
         self.dynamic_attributes['fees']['application'] += fees_adj
@@ -483,9 +705,9 @@ class ApplicationFeePolicyForRenew(ApplicationFeePolicy):
         fees_lic = 0
 
         for purpose in activity.proposed_purposes.all():
-            fees_adj += purpose.adjusted_fee if purpose.is_proposed else 0
-            fees_app += purpose.application_fee if purpose.is_proposed else 0
-            fees_lic += purpose.licence_fee if purpose.is_proposed else 0
+            fees_adj += purpose.adjusted_fee if purpose.is_payable else 0
+            fees_app += purpose.application_fee if purpose.is_payable else 0
+            fees_lic += purpose.licence_fee if purpose.is_payable else 0
 
         licence_paid = False if activity.total_paid_amount < 1 else True
         # self.set_purpose_fees_for(activity)         # update fees on purpose.
@@ -500,6 +722,11 @@ class ApplicationFeePolicyForRenew(ApplicationFeePolicy):
         if fees_new != 0:
             activity.application_fee = fees_new
         activity.licence_fee = fees_lic
+
+        if self.has_fee_exemption:
+            activity.application_fee = 0
+            activity.licence_fee = 0
+            activity.additional_fee = 0
 
     def set_application_fee_from_attributes(self, attributes):
         '''
@@ -526,7 +753,7 @@ class ApplicationFeePolicyForRenew(ApplicationFeePolicy):
                 # base fee is paid just pay the adjustments difference.
                 fees_lic = 0
                 for purpose in activity.proposed_purposes.all():
-                    fees_lic += purpose.licence_fee if purpose.is_proposed \
+                    fees_lic += purpose.licence_fee if purpose.is_payable \
                         else 0
                 fees_new = fees_adj + fees_lic - activity.total_paid_amount
                 policy_licence_fee = 0
@@ -537,6 +764,11 @@ class ApplicationFeePolicyForRenew(ApplicationFeePolicy):
             attributes['fees']['application'] = fees_new
             self.dynamic_attributes['fees']['application'] = fees_new
         attributes['fees']['licence'] = policy_licence_fee
+
+        if self.has_fee_exemption:
+            attributes['fees']['application'] = 0
+            self.dynamic_attributes['fees']['application'] = 0
+            attributes['fees']['licence'] = 0
 
     def set_application_fee_on_purpose_for(self, activity):
         """
@@ -585,7 +817,7 @@ class ApplicationFeePolicyForRenew(ApplicationFeePolicy):
         prev_activity = activity.get_activity_from_previous()
         purposes_ids = self.get_form_purpose_ids_for(activity)
         for p in prev_activity.proposed_purposes.all():
-            if p.purpose_id in purposes_ids and p.is_proposed:
+            if p.purpose_id in purposes_ids and p.is_payable:
                 prev_adjusted += p.adjusted_fee
 
         return prev_adjusted
@@ -636,6 +868,7 @@ class ApplicationFeePolicyForNew(ApplicationFeePolicy):
     application = None
     dynamic_attributes = None   # Container for Activity fees.
     is_refreshing = False       # Flag indicating a page refresh.
+    has_fee_exemption = False   # Allow exemption for zero amount invoice.
 
     def __init__(self, application):
         super(ApplicationFeePolicy, self).__init__()
@@ -690,9 +923,9 @@ class ApplicationFeePolicyForNew(ApplicationFeePolicy):
         licence_paid = False if activity.total_paid_amount < 1 else True
 
         for purpose in activity.proposed_purposes.all():
-            fees_adj += purpose.adjusted_fee if purpose.is_proposed else 0
-            fees_app += purpose.application_fee if purpose.is_proposed else 0
-            fees_lic += purpose.licence_fee if purpose.is_proposed else 0
+            fees_adj += purpose.adjusted_fee if purpose.is_payable else 0
+            fees_app += purpose.application_fee if purpose.is_payable else 0
+            fees_lic += purpose.licence_fee if purpose.is_payable else 0
 
         fees_new = fees_app + fees_adj
         if licence_paid:
@@ -704,6 +937,11 @@ class ApplicationFeePolicyForNew(ApplicationFeePolicy):
         if fees_new != 0:
             activity.application_fee = fees_new
         activity.licence_fee = fees_lic
+
+        if self.has_fee_exemption:
+            activity.application_fee = 0
+            activity.licence_fee = 0
+            activity.additional_fee = 0
 
     def set_application_fee_from_attributes(self, attributes):
         '''
@@ -730,7 +968,7 @@ class ApplicationFeePolicyForNew(ApplicationFeePolicy):
             if licence_paid:
                 fees_lic = 0
                 for purpose in activity.proposed_purposes.all():
-                    fees_lic += purpose.licence_fee if purpose.is_proposed \
+                    fees_lic += purpose.licence_fee if purpose.is_payable \
                         else 0
                 fees_new = fees_adj + fees_lic - activity.total_paid_amount
                 policy_licence_fee = 0
@@ -741,6 +979,11 @@ class ApplicationFeePolicyForNew(ApplicationFeePolicy):
             attributes['fees']['application'] = fees_new
             self.dynamic_attributes['fees']['application'] = fees_new
         attributes['fees']['licence'] = policy_licence_fee
+
+        if self.has_fee_exemption:
+            attributes['fees']['application'] = 0
+            self.dynamic_attributes['fees']['application'] = 0
+            attributes['fees']['licence'] = 0
 
     def get_form_purpose_ids_for(self, activity):
         '''

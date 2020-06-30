@@ -7,6 +7,7 @@
             </a>
         </h3>
     </div>
+    <AmendmentRequestDetails v-show="is_external"/>
     <div class="panel-body panel-collapse in" :id="pdBody">
         <div class="col-sm-12">
             <div class="row">
@@ -44,7 +45,7 @@
             <div v-if="nilReturn === 'no'" class="row">
                 <renderer-block v-for="(data, key) in returns.table"
                           :component="data"
-                          v-bind:key="returns-grid-data"
+                          v-bind:key="`returns-grid-data_${key}`"
                 />
             </div>
             <div class="margin-left-20"></div>
@@ -59,6 +60,7 @@
 import Vue from 'vue'
 import { mapActions, mapGetters } from 'vuex'
 import CommsLogs from '@common-components/comms_logs.vue'
+import AmendmentRequestDetails from './return_amendment.vue';
 import {
   api_endpoints,
   helpers
@@ -79,6 +81,9 @@ export default {
         replaceReturn: 'no',
         readonly: false,
     }
+  },
+  components: {
+    AmendmentRequestDetails,
   },
   computed: {
      ...mapGetters([
