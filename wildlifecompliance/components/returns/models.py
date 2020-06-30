@@ -476,6 +476,125 @@ class Return(models.Model):
         return ReturnUserAction.log_action(self, action, request.user)
 
 
+class ReturnActivity(models.Model):
+    '''
+    A model representation of a licensed stock movement activity that has
+    occured on a licence return.
+    '''
+    from wildlifecompliance.components.licences.models import (
+        WildlifeLicence,
+    )
+    # Activity Workflow.
+    PROCESSING_STATUS_CREATE = 'create'
+    PROCESSING_STATUS_TRANSFER = 'transfer'
+    PROCESSING_STATUS_PAYMENT = 'payment'
+    PROCESSING_STATUS_CHOICES = (
+        (PROCESSING_STATUS_CREATE, 'Created'),
+        (PROCESSING_STATUS_TRANSFER, 'Transferred'),
+        (PROCESSING_STATUS_PAYMENT, 'Pay Transfer'),
+    )
+    # Activity Status.
+    STATUS_COMPLETE = 'complete'
+    STATUS_DECLINED = 'decline'
+    STATUS_ACCEPTED = 'accept'
+    STATUS_NOTIFIED = 'notify'
+    STATUS_AWAITING = 'awaiting'
+    STATUS_CHOICES = (
+        (STATUS_COMPLETE, 'Completed'),
+        (STATUS_DECLINED, 'Transfer Declined'),
+        (STATUS_ACCEPTED, 'Transfer Accepted'),
+        (STATUS_NOTIFIED, 'Notified Licensee'),
+        (STATUS_AWAITING, 'Awaiting Payment'),
+    )
+    # Activity Type.
+    ACTIVITY_TYPE_IN_STOCK = 'stock'
+    ACTIVITY_TYPE_IN_IMPORT = 'in_import'
+    ACTIVITY_TYPE_IN_BIRTH = 'in_birth'
+    ACTIVITY_TYPE_IN_TRANSFER = 'in_transfer'
+    ACTIVITY_TYPE_OUT_EXPORT = 'out_export'
+    ACTIVITY_TYPE_OUT_DEATH = 'out_death'
+    ACTIVITY_TYPE_OUT_OTHER = 'out_other'
+    ACTIVITY_TYPE_OUT_DEALER = 'out_dealer'
+    ACTIVITY_TYPE_CHOICES = (
+        (ACTIVITY_TYPE_IN_STOCK, 'Stock'),
+        (ACTIVITY_TYPE_IN_IMPORT, 'In through Import'),
+        (ACTIVITY_TYPE_IN_BIRTH, 'In through Birth'),
+        (ACTIVITY_TYPE_IN_TRANSFER, 'In through Transfer'),
+        (ACTIVITY_TYPE_OUT_EXPORT, 'Out through Export'),
+        (ACTIVITY_TYPE_OUT_DEATH, 'Out through Death'),
+        (ACTIVITY_TYPE_OUT_OTHER, 'Out through Transfer'),
+        (ACTIVITY_TYPE_OUT_DEALER, 'Out through Dealer Transfer'),
+    )
+    # Activity Type requiring fee.
+    FEE_ACTIVITY_TYPE = [
+        ACTIVITY_TYPE_OUT_OTHER,
+    ]
+
+    licence_return = models.ForeignKey(
+        Return,
+        related_name='stock_activities'
+    )
+    processing_status = models.CharField(
+        choices=PROCESSING_STATUS_CHOICES,
+        max_length=20,
+        default=PROCESSING_STATUS_CREATE)
+    status = models.CharField(
+        choices=STATUS_CHOICES,
+        max_length=20,
+        default=STATUS_COMPLETE)
+    activity_type = models.CharField(
+        choices=ACTIVITY_TYPE_CHOICES,
+        max_length=20,
+        default=ACTIVITY_TYPE_IN_STOCK)
+    comment = models.TextField(blank=True, null=True)
+    licence = models.ForeignKey(
+        WildlifeLicence,
+        blank=True,
+        null=True,
+        related_name='receiving_licences'
+    )
+    stock_name = models.TextField(blank=True, null=True)
+    stock_quantity = models.IntegerField(default='0')
+    fee = models.DecimalField(max_digits=8, decimal_places=2, default='0')
+
+    class Meta:
+        app_label = 'wildlifecompliance'
+
+    def __str__(self):
+        return str('ReturnActivity {0}'.format(self.id))
+
+    @property
+    def payment_status(self):
+        '''
+        Property defining fee status for this return activity.
+        :return: Invoice payment status.
+        '''
+        if self.activity_type not in self.FEE_ACTIVITY_TYPE:
+            return ReturnInvoice.PAYMENT_STATUS_NOT_REQUIRED
+        else:
+            if self.invoices.count() == 0:
+                return ReturnInvoice.PAYMENT_STATUS_UNPAID
+            else:
+                try:
+                    latest_invoice = Invoice.objects.get(
+                        reference=self.invoices.latest('id').invoice_reference)
+                except ReturnInvoice.DoesNotExist:
+                    return ReturnInvoice.PAYMENT_STATUS_UNPAID
+                return latest_invoice.payment_status
+
+    @property
+    def activity_fee_paid(self):
+        '''
+        Property to indicate this activity fee has been paid.
+        :return: Boolean.
+        '''
+        return self.payment_status in [
+            ReturnInvoice.PAYMENT_STATUS_NOT_REQUIRED,
+            ReturnInvoice.PAYMENT_STATUS_PAID,
+            ReturnInvoice.PAYMENT_STATUS_OVERPAID,
+        ]
+
+
 class ReturnTable(RevisionedMixin):
     ret = models.ForeignKey(Return)
     name = models.CharField(max_length=50)
