@@ -451,21 +451,27 @@ class Return(models.Model):
         :return:
         """
         try:
-            # get the Return Table record and save immediately to check if it
-            # has been concurrently modified.
-            return_table, created = ReturnTable.objects.get_or_create(
-                name=table_name, ret=self)
-            return_table.save()
-            # delete any existing rows as they will all be recreated
-            return_table.returnrow_set.all().delete()
-            return_rows = [
-                ReturnRow(
-                    return_table=return_table,
-                    data=row) for row in table_rows]
-            ReturnRow.objects.bulk_create(return_rows)
-            # log transaction
-            self.log_user_action(
-                ReturnUserAction.ACTION_SAVE_REQUEST.format(self), request)
+            # wrap atomic context here to allow natural handling of a Record
+            # Modified concurrent error. (optimistic lock)
+            with transaction.atomic():
+                # get the Return Table record and save immediately to check if
+                # it has been concurrently modified.
+                return_table, created = ReturnTable.objects.get_or_create(
+                    name=table_name, ret=self)
+                return_table.save()
+                # delete any existing rows as they will all be recreated
+                return_table.returnrow_set.all().delete()
+                return_rows = [
+                    ReturnRow(
+                        return_table=return_table,
+                        data=row) for row in table_rows]
+
+                ReturnRow.objects.bulk_create(return_rows)
+
+                # log transaction
+                self.log_user_action(
+                    ReturnUserAction.ACTION_SAVE_REQUEST.format(self), request)
+
         except RecordModifiedError:
             raise IntegrityError(
                 'A concurrent save occurred please refresh page details.')
@@ -507,27 +513,39 @@ class ReturnActivity(models.Model):
         (STATUS_AWAITING, 'Awaiting Payment'),
     )
     # Activity Type.
-    ACTIVITY_TYPE_IN_STOCK = 'stock'
-    ACTIVITY_TYPE_IN_IMPORT = 'in_import'
-    ACTIVITY_TYPE_IN_BIRTH = 'in_birth'
-    ACTIVITY_TYPE_IN_TRANSFER = 'in_transfer'
-    ACTIVITY_TYPE_OUT_EXPORT = 'out_export'
-    ACTIVITY_TYPE_OUT_DEATH = 'out_death'
-    ACTIVITY_TYPE_OUT_OTHER = 'out_other'
-    ACTIVITY_TYPE_OUT_DEALER = 'out_dealer'
-    ACTIVITY_TYPE_CHOICES = (
-        (ACTIVITY_TYPE_IN_STOCK, 'Stock'),
-        (ACTIVITY_TYPE_IN_IMPORT, 'In through Import'),
-        (ACTIVITY_TYPE_IN_BIRTH, 'In through Birth'),
-        (ACTIVITY_TYPE_IN_TRANSFER, 'In through Transfer'),
-        (ACTIVITY_TYPE_OUT_EXPORT, 'Out through Export'),
-        (ACTIVITY_TYPE_OUT_DEATH, 'Out through Death'),
-        (ACTIVITY_TYPE_OUT_OTHER, 'Out through Transfer'),
-        (ACTIVITY_TYPE_OUT_DEALER, 'Out through Dealer Transfer'),
+    TYPE_IN_STOCK = 'stock'
+    TYPE_IN_IMPORT = 'in_import'
+    TYPE_IN_BIRTH = 'in_birth'
+    TYPE_IN_TRANSFER = 'in_transfer'
+    TYPE_OUT_EXPORT = 'out_export'
+    TYPE_OUT_DEATH = 'out_death'
+    TYPE_OUT_OTHER = 'out_other'
+    TYPE_OUT_DEALER = 'out_dealer'
+
+    TYPE_DESC = {
+        TYPE_IN_STOCK: 'Stock',
+        TYPE_IN_IMPORT: 'In through Import',
+        TYPE_IN_BIRTH: 'In through Birth',
+        TYPE_IN_TRANSFER: 'In through Transfer',
+        TYPE_OUT_EXPORT: 'Out through Export',
+        TYPE_OUT_DEATH: 'Out through Death',
+        TYPE_OUT_OTHER: 'Out through Transfer',
+        TYPE_OUT_DEALER: 'Out through Dealer Transfer',
+    }
+
+    TYPE_CHOICES = (
+        (TYPE_IN_STOCK, TYPE_DESC.get(TYPE_IN_STOCK)),
+        (TYPE_IN_IMPORT, TYPE_DESC.get(TYPE_IN_STOCK)),
+        (TYPE_IN_BIRTH, TYPE_DESC.get(TYPE_IN_BIRTH)),
+        (TYPE_IN_TRANSFER, TYPE_DESC.get(TYPE_IN_TRANSFER)),
+        (TYPE_OUT_EXPORT, TYPE_DESC.get(TYPE_OUT_EXPORT)),
+        (TYPE_OUT_DEATH, TYPE_DESC.get(TYPE_OUT_DEATH)),
+        (TYPE_OUT_OTHER, TYPE_DESC.get(TYPE_OUT_OTHER)),
+        (TYPE_OUT_DEALER, TYPE_DESC.get(TYPE_OUT_DEALER)),
     )
     # Activity Type requiring fee.
     FEE_ACTIVITY_TYPE = [
-        ACTIVITY_TYPE_OUT_OTHER,
+        TYPE_OUT_OTHER,
     ]
 
     licence_return = models.ForeignKey(
@@ -542,10 +560,11 @@ class ReturnActivity(models.Model):
         choices=STATUS_CHOICES,
         max_length=20,
         default=STATUS_COMPLETE)
+    activity_datetime = models.DateTimeField(auto_now=True)
     activity_type = models.CharField(
-        choices=ACTIVITY_TYPE_CHOICES,
+        choices=TYPE_CHOICES,
         max_length=20,
-        default=ACTIVITY_TYPE_IN_STOCK)
+        default=TYPE_IN_STOCK)
     comment = models.TextField(blank=True, null=True)
     licence = models.ForeignKey(
         WildlifeLicence,
@@ -553,6 +572,7 @@ class ReturnActivity(models.Model):
         null=True,
         related_name='receiving_licences'
     )
+    stock_id = models.IntegerField(default='0')
     stock_name = models.TextField(blank=True, null=True)
     stock_quantity = models.IntegerField(default='0')
     fee = models.DecimalField(max_digits=8, decimal_places=2, default='0')

@@ -142,11 +142,7 @@ export default {
                    }
                 }
               },
-              { data: "comment", 
-                mRender: function(data, type, full) {
-                   return full.comment
-                }
-              },
+              { data: "comment"},
             ],
             order: [0, 'desc'],
             rowCallback: function (row, data){

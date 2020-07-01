@@ -23,6 +23,7 @@ from wildlifecompliance.components.returns.models import (
     ReturnInvoice,
     ReturnRow,
     ReturnUserAction,
+    ReturnActivity,
 )
 from wildlifecompliance.components.returns.payments import ReturnFeePolicy
 from wildlifecompliance.components.returns.email import (
@@ -226,6 +227,18 @@ class ReturnService(object):
         fee = ReturnService.calculate_fees(a_return)
         a_return.set_return_fee(fee['fees']['return'])
         return []
+
+    @staticmethod
+    def validate_sheet_transfer_for(a_return, request):
+        '''
+        Validates the transfer details of stock on a Return running sheet.
+        '''
+        is_valid = False
+        if a_return.has_sheet:
+            sheet = ReturnSheet(a_return)
+            is_valid = sheet.is_valid_transfer(request)
+
+        return is_valid
 
     @staticmethod
     def get_sheet_activity_list_for(a_return):
@@ -446,7 +459,7 @@ class ReturnData(object):
         return self._return.lodgement_number
 
 
-class ReturnActivity(object):
+class ReturnActivityFacade(object):
     """
     An Activity relating to the Transfer of Stock.
     """
@@ -492,28 +505,28 @@ class ReturnActivity(object):
 
     @staticmethod
     def factory(transfer):
-        NOTIFY = ReturnActivity._TRANSFER_STATUS_NOTIFY
-        ACCEPT = ReturnActivity._TRANSFER_STATUS_ACCEPT
-        DECLINE = ReturnActivity._TRANSFER_STATUS_DECLINE
+        NOTIFY = ReturnActivityFacade._TRANSFER_STATUS_NOTIFY
+        ACCEPT = ReturnActivityFacade._TRANSFER_STATUS_ACCEPT
+        DECLINE = ReturnActivityFacade._TRANSFER_STATUS_DECLINE
 
-        if transfer[ReturnActivity._TRANSFER] == NOTIFY:
+        if transfer[ReturnActivityFacade._TRANSFER] == NOTIFY:
             return NotifyTransfer(transfer)
-        if transfer[ReturnActivity._TRANSFER] == ACCEPT:
+        if transfer[ReturnActivityFacade._TRANSFER] == ACCEPT:
             return AcceptTransfer(transfer)
-        if transfer[ReturnActivity._TRANSFER] == DECLINE:
+        if transfer[ReturnActivityFacade._TRANSFER] == DECLINE:
             return DeclineTransfer(transfer)
 
         return None
 
 
-class NotifyTransfer(ReturnActivity):
+class NotifyTransfer(ReturnActivityFacade):
     """
     Notification of a Transfer Activity.
     """
 
     def __init__(self, transfer):
         super(NotifyTransfer, self).__init__(transfer)
-        self.activity = ReturnSheet._ACTIVITY_TYPES[
+        self.activity = ReturnSheet.ACTIVITY_OPTIONS[
             transfer[self._ACTIVITY]]['outward']
 
     @transaction.atomic
@@ -575,9 +588,9 @@ class NotifyTransfer(ReturnActivity):
             raise
 
 
-class AcceptTransfer(ReturnActivity):
+class AcceptTransfer(ReturnActivityFacade):
     """
-    A ReturnActivity that is an Accepted Transfer.
+    A ReturnActivityFacade that is an Accepted Transfer.
     """
 
     def __init__(self, transfer):
@@ -604,7 +617,7 @@ class AcceptTransfer(ReturnActivity):
                 if row.data[self._ACTIVITY_DATE] == self.date:
                     row_exists = True
                     row.data[self._TRANSFER] = \
-                        ReturnActivity._TRANSFER_STATUS_ACCEPT
+                        ReturnActivityFacade._TRANSFER_STATUS_ACCEPT
                     row.data[
                         self._TOTAL] = int(row.data[
                             self._TOTAL]) - int(self.qty)
@@ -635,9 +648,9 @@ class AcceptTransfer(ReturnActivity):
             raise
 
 
-class DeclineTransfer(ReturnActivity):
+class DeclineTransfer(ReturnActivityFacade):
     """
-    A ReturnActivity that is an Declined Transfer.
+    A ReturnActivityFacade that is an Declined Transfer.
     """
 
     def __init__(self, transfer):
@@ -664,7 +677,7 @@ class DeclineTransfer(ReturnActivity):
                 if row.data[self._ACTIVITY_DATE] == self.date:
                     row_exists = True
                     row.data[self._TRANSFER] = \
-                        ReturnActivity._TRANSFER_STATUS_DECLINE
+                        ReturnActivityFacade._TRANSFER_STATUS_DECLINE
                 table_rows.append(row.data)
 
             # delete any existing rows as they will all be recreated
@@ -817,26 +830,45 @@ class ReturnSheet(object):
         "totalDisplayRecords": "0",
         "data": []}
 
-    # todo: change activity id to a meaningful name
-    _ACTIVITY_TYPES = {
-        "SA01": {"label": "Stock", "auto": "false", "licence": "false",
-                 "pay": "false", "initial": ""},
-        "SA02": {"label": "In through import", "auto": "false",
-                 "licence": "false", "pay": "false", "inward": ""},
-        "SA03": {"label": "In through birth", "auto": "false",
-                 "licence": "false", "pay": "false", "inward": ""},
-        "SA04": {"label": "In through transfer", "auto": "true",
-                 "licence": "false", "pay": "false", "inward": ""},
-        "SA05": {"label": "Out through export", "auto": "false",
-                 "licence": "false", "pay": "false", "outward": ""},
-        "SA06": {"label": "Out through death", "auto": "false",
-                 "licence": "false", "pay": "false", "outward": ""},
-        "SA07": {"label": "Out through transfer other", "auto": "false",
-                 "licence": "true", "pay": "true", "outward": "SA04"},
-        "SA08": {"label": "Out through transfer dealer", "auto": "false",
-                 "licence": "true", "pay": "false", "outward": "SA04"},
-        "0": {"label": "", "auto": "false", "licence": "false",
-              "pay": "false", "initial": ""}}
+    SA01 = ReturnActivity.TYPE_IN_STOCK
+    SA02 = ReturnActivity.TYPE_IN_IMPORT
+    SA03 = ReturnActivity.TYPE_IN_BIRTH
+    SA04 = ReturnActivity.TYPE_IN_TRANSFER
+    SA05 = ReturnActivity.TYPE_OUT_EXPORT
+    SA06 = ReturnActivity.TYPE_OUT_DEATH
+    SA07 = ReturnActivity.TYPE_OUT_OTHER
+    SA08 = ReturnActivity.TYPE_OUT_DEALER
+    NONE = "0"      # allow for blank row on default.
+
+    SA01_TEXT = ReturnActivity.TYPE_DESC.get(SA01)
+    SA02_TEXT = ReturnActivity.TYPE_DESC.get(SA02)
+    SA03_TEXT = ReturnActivity.TYPE_DESC.get(SA03)
+    SA04_TEXT = ReturnActivity.TYPE_DESC.get(SA04)
+    SA05_TEXT = ReturnActivity.TYPE_DESC.get(SA05)
+    SA06_TEXT = ReturnActivity.TYPE_DESC.get(SA06)
+    SA07_TEXT = ReturnActivity.TYPE_DESC.get(SA07)
+    SA08_TEXT = ReturnActivity.TYPE_DESC.get(SA08)
+
+    ACTIVITY_OPTIONS = {
+        SA01: {"label": SA01_TEXT, "auto": "false", "licence": "false",
+               "pay": "false", "initial": ""},
+        SA02: {"label": SA02_TEXT, "auto": "false",
+               "licence": "false", "pay": "false", "inward": ""},
+        SA03: {"label": SA03_TEXT, "auto": "false",
+               "licence": "false", "pay": "false", "inward": ""},
+        SA04: {"label": SA04_TEXT, "auto": "true",
+               "licence": "false", "pay": "false", "inward": ""},
+        SA05: {"label": SA05_TEXT, "auto": "false",
+               "licence": "false", "pay": "false", "outward": ""},
+        SA06: {"label": SA06_TEXT, "auto": "false",
+               "licence": "false", "pay": "false", "outward": ""},
+        SA07: {"label": SA07_TEXT, "auto": "false",
+               "licence": "true", "pay": "true", "outward": SA04},
+        SA08: {"label": SA08_TEXT, "auto": "false",
+               "licence": "true", "pay": "false", "outward": SA04},
+        NONE: {"label": "", "auto": "false", "licence": "false",
+               "pay": "false", "initial": ""}
+    }
 
     def __init__(self, a_return):
         self._return = a_return
@@ -936,11 +968,16 @@ class ReturnSheet(object):
         Inward/Outward: Transfer type with Activity Type for outward transfer.
         :return: List of Activities applicable for Running Sheet.
         """
-        return self._ACTIVITY_TYPES
+        return self.ACTIVITY_OPTIONS
 
     # todo: more generic method name for payment transfer
     @property
     def process_transfer_fee_payment(self, request):
+        '''
+        Process transfer fees.
+
+        NOTE: redundant.
+        '''
         from ledger.payments.models import BpointToken
         # if self.return_ee_paid:
         #    return True
@@ -1031,14 +1068,18 @@ class ReturnSheet(object):
         :param request:
         :return:
         """
-        is_valid = True
+        is_valid = True                             # applying fuzzy logic.
+
         if not req.data.get('transfer'):
             return False
+
         _data = req.data.get('transfer').encode('utf-8')
         _transfers = ast.literal_eval(_data)
         _lic = _transfers['licence']
+
         is_valid = \
             False if not is_valid else self._is_valid_transfer_licence(_lic)
+
         is_valid = \
             False if not is_valid else self._is_valid_transfer_quantity(req)
 

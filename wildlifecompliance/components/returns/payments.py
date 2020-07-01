@@ -164,7 +164,7 @@ class ReturnFeePolicyForData(ReturnFeePolicy):
 
 class ReturnFeePolicyForSheet(ReturnFeePolicy):
     '''
-    A fee policy that applies to a return submission for a Running Sheet.
+    A fee policy that applies to fees associated with a Return running sheet.
     - maintains a fee for transfer of stock.
     '''
     SHEET = ReturnType.FORMAT_SHEET
@@ -205,9 +205,20 @@ class ReturnFeePolicyForSheet(ReturnFeePolicy):
         '''
         Set Return fee from the saved model. Required when presentation is
         refreshed and no attributes are passed.
+
+        TODO: the return fee on running sheets is for stock transfers and unit
+        cost is not stored. Applying the admin fee amount as generic unit cost.
         '''
         self.is_refreshing = True
-        self.init_dynamic_attributes()
+
+        return_fees = self.the_return.return_type.fee_amount
+        is_required = True
+
+        self.dynamic_attributes = {
+            'fees': {
+                'return': return_fees if is_required else 0,
+            },
+        }
 
     def set_return_fee_from_attributes(self, attributes):
         '''
