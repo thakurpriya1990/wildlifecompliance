@@ -898,18 +898,24 @@ class ReturnSheet(object):
          'S000001': 'Western Grey Kangaroo', 'S000002': 'Western Red Kangaroo',
          'S000003': 'Blue Banded Bee', 'S000004': 'Orange-Browed Resin Bee'
         }
-        TODO:AYN temporary species list from return table.
+
         """
+        from wildlifecompliance.components.licences.models import (
+            LicenceSpecies
+        )
         new_list = {}
         for _species in ReturnTable.objects.filter(ret=self._return):
+
+            lic_specie = LicenceSpecies.objects.filter(
+                specie_id=int(_species.name)
+            )
+            lic_specie_data = lic_specie[0].data
+            lic_specie_name = lic_specie_data[0]['vernacular_names']
             _species_detail = ReturnRow.objects.filter(return_table=_species)
             if _species_detail.exists():
-                row_data = _species_detail[0]
-                value = row_data.data['comment']
+                value = lic_specie_name
                 new_list[_species.name] = value
                 self._species = _species.name
-            # self._species_list.append(_species.name)
-            # self._species = _species.name
         self._species_list.append(new_list)
         return new_list
 
