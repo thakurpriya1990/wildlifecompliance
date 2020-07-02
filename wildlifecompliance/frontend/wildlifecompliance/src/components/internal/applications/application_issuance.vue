@@ -35,7 +35,7 @@
                                                     <div class="col-sm-12">
                                                         <div v-for="(p, index) in applicationSelectedActivitiesForPurposes" v-bind:key="`p_${index}`">
                                                             <div class="col-sm-3">
-                                                            {{p.purpose['short_name']}}
+                                                            {{p.purpose['short_name'].substr(0,20)}}
                                                             </div>
                                                             <div class="col-sm-3">
                                                                 <input type="radio" :value ="true" :id="p.purpose.id" v-model="getPickedPurpose(p.purpose.id).isProposed" /> Issue
