@@ -1,5 +1,6 @@
 import traceback
 from datetime import datetime, timedelta
+from django.urls import reverse
 from django.db.models import Q
 from django.db import transaction
 from django.core.exceptions import ValidationError
@@ -14,6 +15,8 @@ from rest_framework.renderers import JSONRenderer
 from rest_framework_datatables.pagination import DatatablesPageNumberPagination
 from rest_framework_datatables.filters import DatatablesFilterBackend
 from rest_framework_datatables.renderers import DatatablesRenderer
+
+from ledger.checkout.utils import calculate_excl_gst
 
 from wildlifecompliance.helpers import is_customer, is_internal
 from wildlifecompliance.components.returns.utils import (
@@ -252,17 +255,20 @@ class ReturnViewSet(viewsets.ReadOnlyModelViewSet):
         # instance = Return.objects.get(id=return_id).sheet
         # instance.set_species(species_id)
         instance = Return.objects.get(id=return_id)
-        ReturnService.set_sheet_species_for(instance, species_id)
+        sheet = ReturnService.set_sheet_species_for(instance, species_id)
         # return Response(instance.table)
-        return Response(ReturnService.get_details_for(instance))
+        return Response(sheet.table)
 
     @detail_route(methods=['POST', ])
     def sheet_check_transfer(self, request, *args, **kwargs):
         try:
             instance = self.get_object()
 
-            if not instance.sheet.is_valid_transfer(request):
-                raise ValidationError({'err': 'Transfer not valid.'})
+            # if not instance.sheet.is_valid_transfer(request):
+            #     raise ValidationError({'err': 'Transfer not valid.'})
+
+            # if valid store updated table??
+            # ReturnService.store_request_details_for(instance, request)
 
             serializer = self.get_serializer(instance)
             return Response(serializer.data)
@@ -280,8 +286,39 @@ class ReturnViewSet(viewsets.ReadOnlyModelViewSet):
     def sheet_pay_transfer(self, request, *args, **kwargs):
         try:
             instance = self.get_object()
-            serializer = self.get_serializer(instance)
-            return Response(serializer.data)
+            product_lines = []
+
+            return_submission = u'Return submitted by {0} {1} confirmation {2}\
+                '.format(instance.submitter.first_name,
+                         instance.submitter.last_name,
+                         instance.lodgement_number)
+            # place return and its table in the session for storing.
+            set_session_return(request.session, instance)
+            qty = request.data['qty']
+            fees = ReturnService.calculate_fees(instance)['fees']['return']
+            price = int(qty) * fees
+            licence = request.data['licence']
+
+            product_lines.append({
+                'ledger_description': 'Transfer fee to licence {0}'.format(
+                    licence),
+                'quantity': 1,
+                'price_incl_tax': str(price),
+                'price_excl_tax': str(calculate_excl_gst(price)),
+                'oracle_code': ''
+            })
+
+            checkout_result = checkout(
+                request, instance,
+                lines=product_lines,
+                invoice_text=return_submission,
+                add_checkout_params={
+                    'return_url': request.build_absolute_uri(
+                        reverse('external-sheet-success-invoice'))
+                },
+            )
+
+            return checkout_result
         except serializers.ValidationError:
             print(traceback.print_exc())
             raise

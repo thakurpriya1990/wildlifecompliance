@@ -451,21 +451,27 @@ class Return(models.Model):
         :return:
         """
         try:
-            # get the Return Table record and save immediately to check if it
-            # has been concurrently modified.
-            return_table, created = ReturnTable.objects.get_or_create(
-                name=table_name, ret=self)
-            return_table.save()
-            # delete any existing rows as they will all be recreated
-            return_table.returnrow_set.all().delete()
-            return_rows = [
-                ReturnRow(
-                    return_table=return_table,
-                    data=row) for row in table_rows]
-            ReturnRow.objects.bulk_create(return_rows)
-            # log transaction
-            self.log_user_action(
-                ReturnUserAction.ACTION_SAVE_REQUEST.format(self), request)
+            # wrap atomic context here to allow natural handling of a Record
+            # Modified concurrent error. (optimistic lock)
+            with transaction.atomic():
+                # get the Return Table record and save immediately to check if
+                # it has been concurrently modified.
+                return_table, created = ReturnTable.objects.get_or_create(
+                    name=table_name, ret=self)
+                return_table.save()
+                # delete any existing rows as they will all be recreated
+                return_table.returnrow_set.all().delete()
+                return_rows = [
+                    ReturnRow(
+                        return_table=return_table,
+                        data=row) for row in table_rows]
+
+                ReturnRow.objects.bulk_create(return_rows)
+
+                # log transaction
+                self.log_user_action(
+                    ReturnUserAction.ACTION_SAVE_REQUEST.format(self), request)
+
         except RecordModifiedError:
             raise IntegrityError(
                 'A concurrent save occurred please refresh page details.')
@@ -474,6 +480,139 @@ class Return(models.Model):
 
     def log_user_action(self, action, request):
         return ReturnUserAction.log_action(self, action, request.user)
+
+
+class ReturnActivity(models.Model):
+    '''
+    A model representation of a licensed stock movement activity that has
+    occured on a licence return.
+    '''
+    from wildlifecompliance.components.licences.models import (
+        WildlifeLicence,
+    )
+    # Activity Workflow.
+    PROCESSING_STATUS_CREATE = 'create'
+    PROCESSING_STATUS_TRANSFER = 'transfer'
+    PROCESSING_STATUS_PAYMENT = 'payment'
+    PROCESSING_STATUS_CHOICES = (
+        (PROCESSING_STATUS_CREATE, 'Created'),
+        (PROCESSING_STATUS_TRANSFER, 'Transferred'),
+        (PROCESSING_STATUS_PAYMENT, 'Pay Transfer'),
+    )
+    # Activity Status.
+    STATUS_COMPLETE = 'complete'
+    STATUS_DECLINED = 'decline'
+    STATUS_ACCEPTED = 'accept'
+    STATUS_NOTIFIED = 'notify'
+    STATUS_AWAITING = 'awaiting'
+    STATUS_CHOICES = (
+        (STATUS_COMPLETE, 'Completed'),
+        (STATUS_DECLINED, 'Transfer Declined'),
+        (STATUS_ACCEPTED, 'Transfer Accepted'),
+        (STATUS_NOTIFIED, 'Notified Licensee'),
+        (STATUS_AWAITING, 'Awaiting Payment'),
+    )
+    # Activity Type.
+    TYPE_IN_STOCK = 'stock'
+    TYPE_IN_IMPORT = 'in_import'
+    TYPE_IN_BIRTH = 'in_birth'
+    TYPE_IN_TRANSFER = 'in_transfer'
+    TYPE_OUT_EXPORT = 'out_export'
+    TYPE_OUT_DEATH = 'out_death'
+    TYPE_OUT_OTHER = 'out_other'
+    TYPE_OUT_DEALER = 'out_dealer'
+
+    TYPE_DESC = {
+        TYPE_IN_STOCK: 'Stock',
+        TYPE_IN_IMPORT: 'In through Import',
+        TYPE_IN_BIRTH: 'In through Birth',
+        TYPE_IN_TRANSFER: 'In through Transfer',
+        TYPE_OUT_EXPORT: 'Out through Export',
+        TYPE_OUT_DEATH: 'Out through Death',
+        TYPE_OUT_OTHER: 'Out through Transfer',
+        TYPE_OUT_DEALER: 'Out through Dealer Transfer',
+    }
+
+    TYPE_CHOICES = (
+        (TYPE_IN_STOCK, TYPE_DESC.get(TYPE_IN_STOCK)),
+        (TYPE_IN_IMPORT, TYPE_DESC.get(TYPE_IN_STOCK)),
+        (TYPE_IN_BIRTH, TYPE_DESC.get(TYPE_IN_BIRTH)),
+        (TYPE_IN_TRANSFER, TYPE_DESC.get(TYPE_IN_TRANSFER)),
+        (TYPE_OUT_EXPORT, TYPE_DESC.get(TYPE_OUT_EXPORT)),
+        (TYPE_OUT_DEATH, TYPE_DESC.get(TYPE_OUT_DEATH)),
+        (TYPE_OUT_OTHER, TYPE_DESC.get(TYPE_OUT_OTHER)),
+        (TYPE_OUT_DEALER, TYPE_DESC.get(TYPE_OUT_DEALER)),
+    )
+    # Activity Type requiring fee.
+    FEE_ACTIVITY_TYPE = [
+        TYPE_OUT_OTHER,
+    ]
+
+    licence_return = models.ForeignKey(
+        Return,
+        related_name='stock_activities'
+    )
+    processing_status = models.CharField(
+        choices=PROCESSING_STATUS_CHOICES,
+        max_length=20,
+        default=PROCESSING_STATUS_CREATE)
+    status = models.CharField(
+        choices=STATUS_CHOICES,
+        max_length=20,
+        default=STATUS_COMPLETE)
+    activity_datetime = models.DateTimeField(auto_now=True)
+    activity_type = models.CharField(
+        choices=TYPE_CHOICES,
+        max_length=20,
+        default=TYPE_IN_STOCK)
+    comment = models.TextField(blank=True, null=True)
+    licence = models.ForeignKey(
+        WildlifeLicence,
+        blank=True,
+        null=True,
+        related_name='receiving_licences'
+    )
+    stock_id = models.IntegerField(default='0')
+    stock_name = models.TextField(blank=True, null=True)
+    stock_quantity = models.IntegerField(default='0')
+    fee = models.DecimalField(max_digits=8, decimal_places=2, default='0')
+
+    class Meta:
+        app_label = 'wildlifecompliance'
+
+    def __str__(self):
+        return str('ReturnActivity {0}'.format(self.id))
+
+    @property
+    def payment_status(self):
+        '''
+        Property defining fee status for this return activity.
+        :return: Invoice payment status.
+        '''
+        if self.activity_type not in self.FEE_ACTIVITY_TYPE:
+            return ReturnInvoice.PAYMENT_STATUS_NOT_REQUIRED
+        else:
+            if self.invoices.count() == 0:
+                return ReturnInvoice.PAYMENT_STATUS_UNPAID
+            else:
+                try:
+                    latest_invoice = Invoice.objects.get(
+                        reference=self.invoices.latest('id').invoice_reference)
+                except ReturnInvoice.DoesNotExist:
+                    return ReturnInvoice.PAYMENT_STATUS_UNPAID
+                return latest_invoice.payment_status
+
+    @property
+    def activity_fee_paid(self):
+        '''
+        Property to indicate this activity fee has been paid.
+        :return: Boolean.
+        '''
+        return self.payment_status in [
+            ReturnInvoice.PAYMENT_STATUS_NOT_REQUIRED,
+            ReturnInvoice.PAYMENT_STATUS_PAID,
+            ReturnInvoice.PAYMENT_STATUS_OVERPAID,
+        ]
 
 
 class ReturnTable(RevisionedMixin):
