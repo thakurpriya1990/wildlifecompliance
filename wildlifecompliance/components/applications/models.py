@@ -2370,7 +2370,9 @@ class Application(RevisionedMixin):
                 selected_activity.processing_status = ApplicationSelectedActivity.PROCESSING_STATUS_ACCEPTED
                 selected_activity.activity_status = ApplicationSelectedActivity.ACTIVITY_STATUS_CURRENT
 
-                self.generate_returns(parent_licence, selected_activity, request)
+                if not selected_activity.get_expiry_date() == None:
+                    self.generate_returns(parent_licence, selected_activity, request)
+
                 # Log application action
                 self.log_user_action(
                     ApplicationUserAction.ACTION_ISSUE_LICENCE_.format(
@@ -2468,46 +2470,10 @@ class Application(RevisionedMixin):
                             if not latest_activity:
                                 raise Exception("Active licence not found for activity ID: %s" % licence_activity_id)
 
-                        # Additional Fees need to be set before processing fee.
-                        # Fee amount may change by the issuer making decision.
-                        if item['additional_fee']:
-                            selected_activity.additional_fee = \
-                                Decimal(item['additional_fee'])
-                            selected_activity.additional_fee_text = item[
-                                'additional_fee_text']
-
-                        # If there is an outstanding licence fee payment - 
-                        # attempt to charge the stored card.
-                        payment_successful = selected_activity.process_licence_fee_payment(request, self)
-
-                        if not payment_successful:
-                            failed_payment_activities.append(selected_activity)
-                        else:
-                            issued_activities.append(selected_activity)
-                            self.issue_activity(
-                                request, selected_activity, 
-                                parent_licence, generate_licence=False)
-
-                        # Populate fields below even if the token payment has
-                        # failed. They will be reused after a successful
-                        # payment by the applicant.
-                        selected_activity.assigned_approver = None
-                        selected_activity.decision_action =\
-                            ApplicationSelectedActivity.DECISION_ACTION_ISSUED
-                        selected_activity.updated_by = request.user
-                        selected_activity.cc_email = item['cc_email']
-                        selected_activity.reason = item['reason']
-
-                        selected_activity.set_original_issue_date(
-                            original_issue_date)
-                        selected_activity.set_issue_date(timezone.now())
-                        selected_activity.set_start_date(start_date)
-                        selected_activity.set_expiry_date(expiry_date)
-
-                        selected_activity.save()
-
-                        # Set the start and expiry date from the proposed 
-                        # dates.
+                        '''
+                        Set the details for the selected Activity purposes to 
+                        ensure all dates have been provide for the activity.
+                        '''
                         decline_ids = set([
                             p['id'] for p in request.data.get(
                                 'selected_purpose_ids') if not p['isProposed']
@@ -2570,6 +2536,44 @@ class Application(RevisionedMixin):
                                     original_issue_date
                             
                             purpose.save()
+
+                        # Additional Fees need to be set before processing fee.
+                        # Fee amount may change by the issuer making decision.
+                        if item['additional_fee']:
+                            selected_activity.additional_fee = \
+                                Decimal(item['additional_fee'])
+                            selected_activity.additional_fee_text = item[
+                                'additional_fee_text']
+
+                        # If there is an outstanding licence fee payment - 
+                        # attempt to charge the stored card.
+                        payment_successful = selected_activity.process_licence_fee_payment(request, self)
+
+                        if not payment_successful:
+                            failed_payment_activities.append(selected_activity)
+                        else:
+                            issued_activities.append(selected_activity)
+                            self.issue_activity(
+                                request, selected_activity, 
+                                parent_licence, generate_licence=False)
+
+                        # Populate fields below even if the token payment has
+                        # failed. They will be reused after a successful
+                        # payment by the applicant.
+                        selected_activity.assigned_approver = None
+                        selected_activity.decision_action =\
+                            ApplicationSelectedActivity.DECISION_ACTION_ISSUED
+                        selected_activity.updated_by = request.user
+                        selected_activity.cc_email = item['cc_email']
+                        selected_activity.reason = item['reason']
+
+                        selected_activity.set_original_issue_date(
+                            original_issue_date)
+                        selected_activity.set_issue_date(timezone.now())
+                        selected_activity.set_start_date(start_date)
+                        selected_activity.set_expiry_date(expiry_date)
+
+                        selected_activity.save()
 
                     elif item['final_status'] == ApplicationSelectedActivity.DECISION_ACTION_DECLINED:
                         selected_activity.assigned_approver = None
@@ -2713,7 +2717,7 @@ class Application(RevisionedMixin):
         from wildlifecompliance.components.returns.models import Return
         # licence_expiry = selected_activity.expiry_date
         # Returns are generated at issuing; expiry_date may not be set yet.
-        licence_expiry = selected_activity.proposed_end_date
+        licence_expiry = selected_activity.get_expiry_date()
         licence_expiry = datetime.datetime.strptime(
             licence_expiry, "%Y-%m-%d"
         ).date() if isinstance(licence_expiry, six.string_types) else licence_expiry
@@ -3957,6 +3961,10 @@ class ApplicationSelectedActivity(models.Model):
         o_date = datetime.datetime.strptime('9999-12-31', '%Y-%m-%d')
         try:
             for p in self.proposed_purposes.all():
+
+                if p.original_issue_date == None:
+                    continue
+
                 o_otime = datetime.datetime.strptime(
                     o_date.strftime('%Y-%m-%d'),
                     '%Y-%m-%d'
@@ -3970,9 +3978,9 @@ class ApplicationSelectedActivity(models.Model):
 
         except BaseException as e:
             logger.error('get_original_issue_date(): {0}'.format(e))
-            o_date = None
+            o_date = datetime.datetime.strptime('9999-12-31', '%Y-%m-%d')
 
-        return o_date
+        return o_date if int(o_date.year) < 9999 else None
 
     def set_issue_date(self, issue_date):
         '''
@@ -3989,6 +3997,10 @@ class ApplicationSelectedActivity(models.Model):
         issue_date = datetime.datetime.strptime('9999-12-31', '%Y-%m-%d')
         try:
             for p in self.proposed_purposes.all():
+
+                if p.issue_date == None:
+                    continue
+
                 i_itime = datetime.datetime.strptime(
                     issue_date.strftime('%Y-%m-%d'), 
                     '%Y-%m-%d'
@@ -4003,10 +4015,9 @@ class ApplicationSelectedActivity(models.Model):
 
         except BaseException as e:
             logger.error('get_issue_date(): {0}'.format(e))
-            issue_date = None
+            issue_date = datetime.datetime.strptime('9999-12-31', '%Y-%m-%d')
 
-        #return issue_date.strftime('%d/%m/%Y') if issue_date else issue_date
-        return issue_date
+        return issue_date if int(issue_date.year) < 9999 else None
 
     def set_start_date(self, start_date):
         '''
@@ -4023,6 +4034,10 @@ class ApplicationSelectedActivity(models.Model):
         start_date = datetime.datetime.strptime('9999-12-31', '%Y-%m-%d')
         try:
             for p in self.proposed_purposes.all():
+
+                if p.start_date == None:
+                    continue
+
                 s_stime = datetime.datetime.strptime(
                     start_date.strftime('%Y-%m-%d'),
                     '%Y-%m-%d'
@@ -4037,9 +4052,9 @@ class ApplicationSelectedActivity(models.Model):
 
         except BaseException as e:
             logger.error('get_start_date(): {0}'.format(e))
-            start_date = None
+            start_date = datetime.datetime.strptime('9999-12-31', '%Y-%m-%d')
 
-        return start_date
+        return start_date if int(start_date.year) < 9999 else None
 
     def set_expiry_date(self, expiry_date):
         '''
@@ -4056,6 +4071,10 @@ class ApplicationSelectedActivity(models.Model):
         exp_date = datetime.datetime.strptime('1901-01-01', '%Y-%m-%d')
         try:
             for p in self.proposed_purposes.all():
+
+                if p.expiry_date == None:
+                    continue
+
                 e_etime = datetime.datetime.strptime(
                     exp_date.strftime('%Y-%m-%d'),
                     '%Y-%m-%d'
@@ -4064,14 +4083,14 @@ class ApplicationSelectedActivity(models.Model):
                     p.expiry_date.strftime('%Y-%m-%d'),
                     '%Y-%m-%d'
                 )
-                #p_etime = datetime.datetime.strptime(p.expiry_date, '%d/%m/%Y')
+
                 exp_date = p.expiry_date if p_etime > e_etime else exp_date
 
         except BaseException as e:
             logger.error('get_expiry_date(): {0}'.format(e))
-            exp_date = None
+            exp_date = datetime.datetime.strptime('1901-01-01', '%Y-%m-%d')
 
-        return exp_date
+        return exp_date if int(exp_date.year) > 1901 else None
 
     def is_current(self):
         '''
