@@ -39,6 +39,12 @@ class ActivityProposeIssueNotificationEmail(TemplateEmailBase):
     txt_template = 'wildlifecompliance/emails/send_activity_propose_issue_notification.txt'
 
 
+class ActivityRefundIssueNotificationEmail(TemplateEmailBase):
+    subject = 'Refund payment for a declined license activity is required.'
+    html_template = 'wildlifecompliance/emails/send_activity_refund_issue_notification.html'
+    txt_template = 'wildlifecompliance/emails/send_activity_refund_issue_notification.txt'
+
+
 class ActivityInvoiceIssueNotificationEmail(TemplateEmailBase):
     subject = 'Issuance of your licence activity is pending payment.'
     html_template = 'wildlifecompliance/emails/send_activity_invoice_issue_notification.html'
@@ -325,6 +331,44 @@ def send_activity_propose_issue_notification(
     msg = email.send(
         recipients,
         context=context, attachments=documents,
+        bcc=email_copy,
+    )
+
+    sender = request.user if request else settings.DEFAULT_FROM_EMAIL
+    _log_application_email(msg, application, sender=sender)
+
+
+def send_activity_refund_issue_notification(
+        request, application, amount):
+
+    application = application
+    email = ActivityRefundIssueNotificationEmail()
+    url = request.build_absolute_uri(
+        reverse(
+            'internal-application-detail',
+            kwargs={
+                'application_pk': application.id}))
+
+    if '-internal' not in url:
+        url = "{0}://{1}{2}.{3}{4}".format(request.scheme,
+                                           settings.SITE_PREFIX,
+                                           '-internal',
+                                           settings.SITE_DOMAIN,
+                                           url.split(request.get_host())[1])
+
+    context = {
+        'application': application,
+        'amount': amount,
+        'url': url
+    }
+
+    recipients = [a.email for a in application.licence_officers]
+    activity = application.activities[0]
+    email_copy = [activity.cc_email] if activity.cc_email else None
+
+    msg = email.send(
+        recipients,
+        context=context,
         bcc=email_copy,
     )
 

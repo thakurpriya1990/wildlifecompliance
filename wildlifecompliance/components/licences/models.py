@@ -529,7 +529,7 @@ class WildlifeLicence(models.Model):
         for activity in latest:
             for proposed in activity.proposed_purposes.all():
                 if proposed.purpose.id not in active_licence_purposes\
-                        and proposed.is_proposed:
+                        and proposed.is_issued:
                     can_action_purpose_list.append(proposed.id)
 
         ISSUED = ApplicationSelectedActivityPurpose.PROCESSING_STATUS_ISSUED
@@ -607,6 +607,13 @@ class WildlifeLicence(models.Model):
             # Check if a record for the licence_activity_id already exists, if
             # not, add.
             if not merged_activities.get(activity.licence_activity_id):
+
+                issued_list = [
+                    p for p in activity.proposed_purposes.all() if p.is_issued]
+
+                if not len(issued_list):
+                    continue
+
                 merged_activities[activity.licence_activity_id] = {
                     'licence_activity_id': activity.licence_activity_id,
                     'activity_name_str': activity.licence_activity.name,
@@ -614,10 +621,10 @@ class WildlifeLicence(models.Model):
                     'start_date': activity.get_start_date(),
                     'expiry_date': '\n'.join(['{}'.format(
                         p.expiry_date.strftime('%d/%m/%Y') if p.expiry_date else '')
-                        for p in activity.proposed_purposes.all() if p.is_proposed]),
+                        for p in activity.proposed_purposes.all() if p.is_issued]),
                     'activity_purpose_names_and_status': '\n'.join(['{} ({})'.format(
                         p.purpose.name, activity.get_activity_status_display())
-                        for p in activity.proposed_purposes.all() if p.is_proposed]),
+                        for p in activity.proposed_purposes.all() if p.is_issued]),
                     'can_action':
                         {
                             'licence_activity_id': activity.licence_activity_id,
@@ -634,13 +641,12 @@ class WildlifeLicence(models.Model):
                 activity_key = merged_activities[activity.licence_activity_id]
                 activity_key['activity_purpose_names_and_status'] += \
                     '\n' + '\n'.join(['{} ({})'.format(
-                        p.name, activity.get_activity_status_display())
-                        for p in activity.purposes])
-                exp_date = activity.get_expiry_date()
+                        p.purpose.name, activity.get_activity_status_display())
+                        for p in activity.proposed_purposes.all() if p.is_issued and p.purpose in activity.purposes])
                 activity_key['expiry_date'] += \
                     '\n' + '\n'.join(['{}'.format(
-                        exp_date.strftime('%d/%m/%Y'))
-                        for p in activity.proposed_purposes.all() if p.is_proposed and p.purpose in activity.purposes])
+                        p.expiry_date.strftime('%d/%m/%Y'))
+                        for p in activity.proposed_purposes.all() if p.is_issued and p.purpose in activity.purposes])
                 activity_key['can_action']['can_renew'] =\
                     activity_key['can_action']['can_renew'] or activity_can_action['can_renew']
                 activity_key['can_action']['can_amend'] =\
@@ -1168,6 +1174,20 @@ class LicenceUserAction(UserAction):
 # def delete_documents(sender, instance, *args, **kwargs):
 #     for document in instance.documents.all():
 #         document.delete()
+
+class WildlifeLicenceReceptionEmail(models.Model):
+    '''
+    An model representation of an Wildlife Licensing Reception email address
+    used for general purposes.
+    '''
+    name = models.CharField(max_length=64)
+    address = models.CharField(max_length=128)
+
+    class Meta:
+        app_label = 'wildlifecompliance'
+
+    def __str__(self):
+        return self.address
 
 
 '''

@@ -90,6 +90,7 @@ class ReturnSerializer(serializers.ModelSerializer):
         max_digits=8, decimal_places=2, coerce_to_string=False, read_only=True)
     invoice_url = serializers.SerializerMethodField(read_only=True)
     activity_curators = EmailUserSerializer(many=True)
+    amendment_requests = serializers.SerializerMethodField()
 
     class Meta:
         model = Return
@@ -118,6 +119,7 @@ class ReturnSerializer(serializers.ModelSerializer):
             'return_fee_paid',
             'invoice_url',
             'activity_curators',
+            'amendment_requests',
         )
 
         # the serverSide functionality of datatables is such that only columns
@@ -190,6 +192,19 @@ class ReturnSerializer(serializers.ModelSerializer):
                     kwargs={'reference': latest_invoice.reference})
 
         return url
+
+    def get_amendment_requests(self, _return):
+        '''
+        Get list of requested amendments for this return.
+        :param _return: Return instance.
+        :return: list of ReturnRequest.
+        '''
+        requests = None
+        requests = ReturnRequest.objects.filter(
+            application_id=_return.application_id
+        )
+
+        return ReturnRequestSerializer(requests, many=True).data
 
 
 class ReturnTypeSerializer(serializers.ModelSerializer):

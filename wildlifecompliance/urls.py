@@ -6,7 +6,10 @@ from django.conf.urls.static import static
 from rest_framework import routers
 
 from wildlifecompliance import views
-from wildlifecompliance.components.returns.views import ReturnSuccessView
+from wildlifecompliance.components.returns.views import (
+    ReturnSuccessView,
+    ReturnSheetSuccessView,
+)
 from wildlifecompliance.components.applications.views import (
     ApplicationSuccessView,
     LicenceFeeSuccessView,
@@ -231,17 +234,12 @@ urlpatterns = [
     url(r'^application/finish_licence_fee_payment/',
         LicenceFeeSuccessView.as_view(),
         name='external-licence-fee-success-invoice'),
-    url(r'^internal/application/(?P<application_pk>\d+)/$', views.ApplicationView.as_view(),
-        name='internal-application-detail'),
-    url(r'^application_submit/submit_with_invoice/',
-        ApplicationSuccessView.as_view(),
-        name='external-application-success-invoice'),
-    url(r'^application/finish_licence_fee_payment/',
-        LicenceFeeSuccessView.as_view(),
-        name='external-licence-fee-success-invoice'),
     url(r'^returns_submit/submit_with_invoice/',
         ReturnSuccessView.as_view(),
         name='external-returns-success-invoice'),
+    url(r'^returns/finish_sheet_fee_payment/',
+        ReturnSheetSuccessView.as_view(),
+        name='external-sheet-success-invoice'),
 
     # url(r'^export/xls/$', application_views.export_applications, name='export_applications'),
     url(r'^export/pdf/$', application_views.pdflatex, name='pdf_latex'),

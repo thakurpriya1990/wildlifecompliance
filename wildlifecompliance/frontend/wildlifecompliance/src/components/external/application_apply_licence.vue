@@ -17,6 +17,20 @@
                     <div class="panel-body collapse in" :id="pBody">
                         <form v-if="categoryCount" class="form-horizontal" name="personal_form" method="post">
                           
+                            <div class="col-sm-12" v-show='current_user.is_reception' >
+                                <div class="row">
+                                    <label class="col-sm-3">
+                                        Payment method for customer:
+                                    </label>
+
+                                    <div class="col-sm-6">
+                                        <input type="radio" checked="checked" name="reception" value="card" v-model="customer_pay_method" > Credit Card &nbsp;&nbsp;</input>
+                                        <input type="radio" name="reception" id="cash" value="cash" v-model="customer_pay_method" > Cash &nbsp;&nbsp;</input>
+                                        <input type="radio" name="reception" id="none" value="none" v-model="customer_pay_method" > No Payment &nbsp;&nbsp;</input>
+                                    </div>
+                                </div>
+                            </div>
+
                             <div class="col-sm-12">
                                 <div class="row">
                                     <label class="col-sm-6">
@@ -132,6 +146,7 @@ export default {
         licence_fee: 0,
         selected_apply_org_id_details : {},
         selected_apply_proxy_id_details: {},
+        customer_pay_method: 'card',
     }
   },
   components: {
@@ -142,6 +157,8 @@ export default {
             'selected_apply_proxy_id',
             'selected_apply_licence_select',
             'application_workflow_state',
+            'reception_method_id',
+            'current_user',
         ]),
         applicationTitle: function() {
             switch(this.selected_apply_licence_select) {
@@ -190,6 +207,8 @@ export default {
   methods: {
     ...mapActions([
         'setApplicationWorkflowState',
+        'setReceptionMethodId',
+        'loadCurrentUser',
     ]),
     submit: function() {
         let vm = this;
@@ -327,8 +346,10 @@ export default {
             data.licence_fee=vm.licence_fee;
             data.licence_purposes=licence_purposes;
             data.application_type = vm.selected_apply_licence_select;
+            data.customer_method_id = vm.customer_pay_method;
             vm.$http.post('/api/application.json',JSON.stringify(data),{emulateJSON:true}).then(res => {
                 vm.setApplicationWorkflowState({bool: false});
+                vm.setReceptionMethodId({pay_method: this.customer_pay_method});
                 vm.application = res.body;
                 vm.$router.push({
                     name:"draft_application",
@@ -368,6 +389,7 @@ export default {
   },
   beforeRouteEnter:function(to,from,next){
     next(vm => {
+        vm.loadCurrentUser({ url: `/api/my_user_details` });
         // Sends the user back to the first application workflow screen if licence_select is null
         // or workflow state was interrupted (e.g. lost from page refresh)
         if(vm.selected_apply_licence_select == null || !vm.application_workflow_state) {

@@ -101,7 +101,8 @@ class ApplicationSuccessView(TemplateView):
                     send_application_invoice_email_notification(
                         application, invoice_ref, request)
 
-                    # record invoice payment for licence activities.
+                    # record invoice payment for licence activities. Record the
+                    # licence and application fee for refunding purposes.
                     for activity in application.activities:
 
                         invoice = ActivityInvoice.objects.get_or_create(
@@ -155,6 +156,7 @@ class LicenceFeeSuccessView(TemplateView):
     template_name = 'wildlifecompliance/licence_fee_success.html'
 
     def get(self, request, *args, **kwargs):
+        ACCEPTED = ApplicationSelectedActivity.PROCESSING_STATUS_ACCEPTED
         try:
             session_activity = get_session_activity(request.session)
             invoice_ref = request.GET.get('invoice')
@@ -165,19 +167,13 @@ class LicenceFeeSuccessView(TemplateView):
 
             i = 1
             for activity in activities:
+                # For each activity record the invoice ref and application fee
+                # paid as this amount may need to be refunded.
 
                 invoice = ActivityInvoice.objects.get_or_create(
                     activity=activity,
                     invoice_reference=invoice_ref
                 )
-
-                # Licence Fee is paid upfront.
-                # if activity.licence_fee > 0:
-                #     ActivityInvoiceLine.objects.get_or_create(
-                #         invoice=invoice[0],
-                #         licence_activity=activity.licence_activity,
-                #         amount=activity.licence_fee
-                #     )
 
                 # There may be adjustments to application fee.
                 if activity.application_fee > 0:
@@ -186,7 +182,8 @@ class LicenceFeeSuccessView(TemplateView):
                         licence_activity=activity.licence_activity,
                         amount=activity.application_fee
                     )
-
+                # update the status from awaiting fee payment.
+                activity.processing_status = ACCEPTED
                 activity.application.issue_activity(
                    request, activity,
                    generate_licence=True if i == activities.count() else False)

@@ -1,12 +1,17 @@
 <template lang="html">
      <div>
           <label :id="id" :required="isRequired" > {{ label }} </label>
+
           <template v-if="help_text">
               <HelpText :help_text="help_text" />
           </template>
+
           <template v-if="help_text_url">
               <HelpTextUrl :help_text_url="help_text_url" />
           </template>
+
+          <CommentBlock :label="label" :name="name" :field_data="getDeficiencyField" />
+
           <div class="grid-container">
               <div>
                   <label v-if="headers" v-for="header in headers" >
@@ -63,6 +68,7 @@
 import datetimepicker from 'datetimepicker';
 import HelpText from './help_text.vue'
 import HelpTextUrl from './help_text_url.vue'
+import CommentBlock from './comment_block.vue';
 const GridBlock = {
   /* Example schema config
      Note: Each grid-item requires a unique name ie.'Table-Name::location'.
@@ -75,16 +81,21 @@ const GridBlock = {
      }
   */
   props: ['field_data','headers','name', 'label', 'id', 'help_text', 'help_text_url', 'readonly', 'isRequired'],
-  components: {HelpText, HelpTextUrl},
+  components: {HelpText, HelpTextUrl, CommentBlock},
   data: function() {
     var grid_item = [{'id': 0, 'name': '', 'value': ''}];
     return {
     }
   },
+  computed: {
+    getDeficiencyField: function(){
+      return this.field_data[0][this.name + '-deficiency-field']
+    }
+  },
   methods: {
     addRow: function(e) {
       const self = this;
-      self.grid_item = self._props['field_data'];
+      self.grid_item = self._props['field_data']; // field_data is an Array of grid items.
       let index = self.grid_item.length;
       let fieldObj = Object.assign({}, self.grid_item[0]);
       // schema data type on each field is validated - error value required.
