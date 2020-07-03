@@ -1287,6 +1287,7 @@ export default {
             });
         },
         updateActivityStatus: function(activity_id, status){
+            console.log('updateActivityStatus')
             let vm = this;
             let data = {
                 'activity_id' : activity_id,
@@ -1374,7 +1375,7 @@ export default {
         }
     },
     mounted: function() {
-        console.log(this.application)
+        // console.log(this.application)
     },
     updated: function(){
         let vm = this;
