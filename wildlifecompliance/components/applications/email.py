@@ -99,6 +99,12 @@ class ApplicationAssessmentReminderEmail(TemplateEmailBase):
     txt_template = 'wildlifecompliance/emails/send_application_assessment_remind_notification.txt'
 
 
+class ApplicationAssessmentRecallEmail(TemplateEmailBase):
+    subject = 'An application for your assessment has been recalled'
+    html_template = 'wildlifecompliance/emails/send_application_assessment_recall_notification.html'
+    txt_template = 'wildlifecompliance/emails/send_application_assessment_recall_notification.txt'
+
+
 class ApplicationAssessmentCompletedEmail(TemplateEmailBase):
     subject = 'An application assessment has been completed'
     html_template = 'wildlifecompliance/emails/send_application_assessment_complete_notification.html'
@@ -121,6 +127,20 @@ class ApplicationReturnedToOfficerEmail(TemplateEmailBase):
     subject = 'A licensed activity has been returned to officer for review'
     html_template = 'wildlifecompliance/emails/send_application_return_to_officer_conditions.html'
     txt_template = 'wildlifecompliance/emails/send_application_return_to_officer_conditions.txt'
+
+
+def send_assessment_recall_email(select_group, assessment, request=None):
+    # An email reminding assessors of a pending assessment request
+    application = assessment.application
+    email = ApplicationAssessmentRecallEmail()
+
+    context = {
+        'application_id': application.id
+    }
+    email_group = [item.email for item in select_group]
+    msg = email.send(email_group, context=context)
+    sender = request.user if request else settings.DEFAULT_FROM_EMAIL
+    _log_application_email(msg, application, sender=sender)
 
 
 def send_assessment_reminder_email(select_group, assessment, request=None):

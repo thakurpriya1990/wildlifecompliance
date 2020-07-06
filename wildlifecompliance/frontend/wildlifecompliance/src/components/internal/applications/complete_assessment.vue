@@ -410,7 +410,10 @@ export default {
                     // Only assessor groups associated with user.
                     && assessment.assessors.find(assessor => assessor.id === this.current_user.id);
             });
-        }
+        },
+        form_data_application_url: function() {
+            return (this.application) ? `/api/application/${this.application.id}/form_data.json` : '';
+        },
     },
     methods: {
         ...mapActions({
@@ -476,6 +479,37 @@ export default {
         close: function () {
             this.isModalOpen = false;
         },
+        save: function(props = { showNotification: true }) {
+            const { showNotification } = props;
+            this.saveFormData({ url: this.form_data_comments_url }).then(response => {
+
+                this.saveFormData({ url: this.form_data_application_url }).then(response => {   
+                    showNotification && swal(
+                        'Saved',
+                        'Your application has been saved',
+                        'success'
+                    )     
+                }, error => {
+                    console.log('Failed to save Application: ', error);
+                    swal(
+                        'Application Error',
+                        helpers.apiVueResourceError(error),
+                        'error'
+                    )
+                });
+
+            }, error => {
+                console.log('Failed to save comments: ', error);
+                swal(
+                    'Application Error',
+                    helpers.apiVueResourceError(error),
+                    'error'
+                )
+            });
+        },
+        save_wo: function() {
+            return this.save({ showNotification: false });
+        },
         canCompleteAssessment: function() {
             if(!this.userHasRole('assessor', this.selected_activity_tab_id)) {
                 return false;
@@ -486,6 +520,7 @@ export default {
             return this.selected_activity_tab_id && this.selectedActivity.processing_status.id == 'with_assessor' ? true : false;
         },
         toggleAssessments:function(){
+            this.save_wo();
             $('#tabs-main li').removeClass('active');
             this.isSendingToAssessor = !this.isSendingToAssessor;
             this.showingApplication = false;
