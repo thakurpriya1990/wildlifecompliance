@@ -207,17 +207,17 @@ class ApplicationService(object):
         text_area = TextAreaVisitor(application, form)
 
         # Set PromptInspection Fields for Checkbox and RadioButtons.
-        for_inspection_fields = PromptInpsectionFieldElement()
-        for_inspection_fields.accept(checkbox)
+        # for_inspection_fields = PromptInpsectionFieldElement()
+        # for_inspection_fields.accept(checkbox)
 
         # Set StandardCondition Fields for Checkbox and RadioButtons.
-        for_condition_fields = StandardConditionFieldElement()
-        for_condition_fields.accept(checkbox)
+        # for_condition_fields = StandardConditionFieldElement()
+        # for_condition_fields.accept(checkbox)
 
         # Set copy-to-licence Fields which allow for additional terminologies
         # to be dynamically added to the licence pdf.
-        for_copy_to_licence_fields = CopyToLicenceFieldElement()
-        for_copy_to_licence_fields.accept(text_area)
+        # for_copy_to_licence_fields = CopyToLicenceFieldElement()
+        # for_copy_to_licence_fields.accept(text_area)
 
     @staticmethod
     def update_dynamic_attributes(application):
