@@ -35,6 +35,7 @@
                                         <select class="form-control" name="type" v-model="comms.log_type">
                                             <option value="">Select Type</option>
                                             <option value="email">Email</option>
+                                            <option value="file_note">File Note</option>
                                             <option value="mail">Mail</option>
                                             <option value="phone">Phone</option>
                                             <option value="person">Person</option>
