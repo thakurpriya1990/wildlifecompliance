@@ -24,7 +24,6 @@ from smart_selects.db_fields import ChainedForeignKey
 
 from ledger.accounts.models import EmailUser, RevisionedMixin
 from ledger.payments.invoice.models import Invoice
-from ledger.checkout.utils import calculate_excl_gst
 from wildlifecompliance.components.main.utils import (
     checkout, set_session_application,
     delete_session_application,
@@ -1235,6 +1234,50 @@ class Application(RevisionedMixin):
         else:
             self.submitter.log_user_action(
                 ApplicationUserAction.ACTION_ACCEPT_CHARACTER.format(
+                    self.id), request)
+
+    def accept_return_check(self, request):
+        self.return_check_status = Application.RETURN_CHECK_STATUS_ACCEPTED
+        self.save()
+        # Create a log entry for the application
+        self.log_user_action(
+            ApplicationUserAction.ACTION_ACCEPT_RETURN.format(
+                self.id), request)
+        # Create a log entry for the applicant (submitter, organisation or
+        # proxy)
+        if self.org_applicant:
+            self.org_applicant.log_user_action(
+                ApplicationUserAction.ACTION_ACCEPT_RETURN.format(
+                    self.id), request)
+        elif self.proxy_applicant:
+            self.proxy_applicant.log_user_action(
+                ApplicationUserAction.ACTION_ACCEPT_RETURN.format(
+                    self.id), request)
+        else:
+            self.submitter.log_user_action(
+                ApplicationUserAction.ACTION_ACCEPT_RETURN.format(
+                    self.id), request)
+
+    def reset_return_check(self, request):
+        self.return_check_status = Application.RETURN_CHECK_STATUS_NOT_CHECKED
+        self.save()
+        # Create a log entry for the application
+        self.log_user_action(
+            ApplicationUserAction.ACTION_RESET_RETURN.format(
+                self.id), request)
+        # Create a log entry for the applicant (submitter, organisation or
+        # proxy)
+        if self.org_applicant:
+            self.org_applicant.log_user_action(
+                ApplicationUserAction.ACTION_RESET_RETURN.format(
+                    self.id), request)
+        elif self.proxy_applicant:
+            self.proxy_applicant.log_user_action(
+                ApplicationUserAction.ACTION_RESET_RETURN.format(
+                    self.id), request)
+        else:
+            self.submitter.log_user_action(
+                ApplicationUserAction.ACTION_RESET_ID.format(
                     self.id), request)
 
     def assign_officer(self, request, officer):
@@ -4177,7 +4220,7 @@ class ApplicationSelectedActivity(models.Model):
             'ledger_description': '{}'.format(self.licence_activity.name),
             'quantity': 1,
             'price_incl_tax': str(self.licence_fee),
-            'price_excl_tax': str(calculate_excl_gst(self.licence_fee)),
+            'price_excl_tax': 0,
             'oracle_code': ''
         })
         checkout(
@@ -4991,6 +5034,8 @@ class ApplicationUserAction(UserAction):
     ACTION_RESET_CHARACTER = "Reset character"
     ACTION_ACCEPT_REVIEW = 'Accept review'
     ACTION_RESET_REVIEW = "Reset review"
+    ACTION_ACCEPT_RETURN = 'Accept return check'
+    ACTION_RESET_RETURN = 'Reset return check'
     ACTION_ID_REQUEST_AMENDMENTS = "Request amendments"
     ACTION_ID_REQUEST_AMENDMENTS_SUBMIT = "Amendment submitted by {}"
     ACTION_SEND_FOR_ASSESSMENT_TO_ = "Sent for assessment to {}"

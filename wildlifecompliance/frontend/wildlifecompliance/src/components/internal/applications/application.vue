@@ -488,7 +488,11 @@
                                 <div class="row">
                                     <div class="col-sm-4">Returns Check</div>
                                     <div class="col-sm-4">
-                                        <button v-if="isCharacterCheckAccepted" class="btn btn-primary">Request Completion</button>
+                                        <button v-show="showReturnCheckButton" class="btn btn-primary" @click.prevent="acceptReturnRequest()">Accept</button>
+                                        <button v-show="!showReturnCheckButton" disabled class="btn btn-light">Accepted</button>
+                                    </div>
+                                    <div class="col-sm-4">
+                                        <button v-show="!showReturnCheckButton" @click.prevent="resetReturnRequest()" class="btn btn-primary">Reset</button>
                                     </div>
                                 </div>
                             </div>
@@ -859,6 +863,10 @@ export default {
         },
         showSpinner: function() {
             return this.spinner
+        },
+        showReturnCheckButton: function() {
+            console.log(this.application)
+            return this.application.is_return_check_accept ? false : true
         }
     },
     methods: {
@@ -1016,6 +1024,46 @@ export default {
             }).then((result) => {
                 if (result.value) {
                     vm.$http.post(helpers.add_endpoint_json(api_endpoints.applications,(vm.application.id+'/accept_character_check')))
+                    .then((response) => {
+                        vm.setApplication(response.body);
+                    }, (error) => {
+                        console.log(error);
+                    });
+                }
+            },(error) => {
+            });
+        },
+        acceptReturnRequest: function() {
+            let vm = this;
+            swal({
+                title: "Accept Return Check",
+                text: "Are you sure you want to accept this Return Check?",
+                type: "question",
+                showCancelButton: true,
+                confirmButtonText: 'Accept'
+            }).then((result) => {
+                if (result.value) {
+                    vm.$http.post(helpers.add_endpoint_json(api_endpoints.applications,(vm.application.id+'/accept_return_check')))
+                    .then((response) => {
+                        vm.setApplication(response.body);
+                    }, (error) => {
+                        console.log(error);
+                    });
+                }
+            },(error) => {
+            });
+        },
+        resetReturnRequest: function() {
+            let vm = this;
+            swal({
+                title: "Reset Return Check",
+                text: "Are you sure you want to reset this Return Check?",
+                type: "question",
+                showCancelButton: true,
+                confirmButtonText: 'Accept'
+            }).then((result) => {
+                if (result.value) {
+                    vm.$http.post(helpers.add_endpoint_json(api_endpoints.applications,(vm.application.id+'/reset_return_check')))
                     .then((response) => {
                         vm.setApplication(response.body);
                     }, (error) => {
