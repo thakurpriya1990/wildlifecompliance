@@ -865,7 +865,6 @@ export default {
             return this.spinner
         },
         showReturnCheckButton: function() {
-            console.log(this.application)
             return this.application.is_return_check_accept ? false : true
         }
     },
