@@ -1071,7 +1071,7 @@ class Application(RevisionedMixin):
 
                             conditions = DefaultCondition.objects.filter(
                                 licence_activity=activity["id"],
-                                licence_purpose=purpose.id
+                                licence_purpose=purpose.purpose_id
                                 )
 
                             for d in conditions:
