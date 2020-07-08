@@ -517,8 +517,9 @@
                                                         <span style="margin-right: 5px; font-size: 18px; display: block;" v-if="requiresRefund" >
                                                             <strong>Estimated application fee: {{adjusted_application_fee | toCurrency}}</strong>
                                                             <strong>Estimated licence fee: {{application.licence_fee | toCurrency}}</strong>
-                                                        </span>
-                                                        <button v-if="!applicationIsDraft && canSaveApplication" class="btn btn-primary" @click.prevent="save()">Save Changes</button>
+                                                        </span>   
+                                                        <button v-if="showSpinner" type="button" class="btn btn-primary" ><i class="fa fa-spinner fa-spin"/>Saving</button>                                                    
+                                                        <button v-else="!applicationIsDraft && canSaveApplication" class="btn btn-primary" @click.prevent="save()">Save Changes</button>
                                                     </p>
                                                 </div>
                                             </div>
@@ -627,6 +628,7 @@ export default {
             isofficerfinalisation:false,
             contacts_table_id: vm._uid+'contacts-table',
             application_assessor_datatable:vm._uid+'assessment-table',
+            spinner: false,
             contacts_options:{
                 language: {
                     processing: "<i class='fa fa-4x fa-spinner fa-spin'></i>"
@@ -854,6 +856,9 @@ export default {
                 this.isSendingToAssessor=false
             }
             return (!this.showingApplication || !this.unfinishedActivities.length) && !this.isSendingToAssessor && !this.canIssueDecline
+        },
+        showSpinner: function() {
+            return this.spinner
         }
     },
     methods: {
@@ -1034,10 +1039,12 @@ export default {
             this.showingApplication = false;
         },
         save: function(props = { showNotification: true }) {
+            this.spinner = true;
             const { showNotification } = props;
             this.saveFormData({ url: this.form_data_comments_url }).then(response => {
 
-                this.saveFormData({ url: this.form_data_application_url }).then(response => {   
+                this.saveFormData({ url: this.form_data_application_url }).then(response => {
+                    this.spinner = false;   
                     showNotification && swal(
                         'Saved',
                         'Your application has been saved',
@@ -1054,6 +1061,7 @@ export default {
 
             }, error => {
                 console.log('Failed to save comments: ', error);
+                this.spinner = false;
                 swal(
                     'Application Error',
                     helpers.apiVueResourceError(error),
@@ -1287,6 +1295,7 @@ export default {
             });
         },
         updateActivityStatus: function(activity_id, status){
+            console.log('updateActivityStatus')
             let vm = this;
             let data = {
                 'activity_id' : activity_id,
@@ -1374,7 +1383,7 @@ export default {
         }
     },
     mounted: function() {
-        console.log(this.application)
+        // console.log(this.application)
     },
     updated: function(){
         let vm = this;

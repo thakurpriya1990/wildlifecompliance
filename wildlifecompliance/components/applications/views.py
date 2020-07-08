@@ -110,13 +110,13 @@ class ApplicationSuccessView(TemplateView):
                             invoice_reference=invoice_ref
                         )
 
-                        ActivityInvoiceLine.objects.get_or_create(
+                        ActivityInvoiceLine.objects.create(
                             invoice=invoice[0],
                             licence_activity=activity.licence_activity,
                             amount=activity.licence_fee
                         )
 
-                        ActivityInvoiceLine.objects.get_or_create(
+                        ActivityInvoiceLine.objects.create(
                             invoice=invoice[0],
                             licence_activity=activity.licence_activity,
                             amount=activity.application_fee
@@ -161,6 +161,11 @@ class LicenceFeeSuccessView(TemplateView):
             session_activity = get_session_activity(request.session)
             invoice_ref = request.GET.get('invoice')
 
+            application = Application.objects.get(
+                id=session_activity.application_id
+            )
+
+            bind_application_to_invoice(request, application, invoice_ref)
             activities = ApplicationSelectedActivity.objects.filter(
                 application_id=session_activity.application_id,
                 processing_status=ApplicationSelectedActivity.PROCESSING_STATUS_AWAITING_LICENCE_FEE_PAYMENT)

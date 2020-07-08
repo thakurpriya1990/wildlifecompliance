@@ -1,0 +1,10 @@
+{%  extends 'wildlifecompliance/emails/base_email.html' %}
+
+{% block content %}
+    Recall: an assessment to an application has been recalled.
+    {% if application_id %}
+        <p><strong>Applciation: {{application_id}}</strong></p>
+    {% endif %}
+
+{% endblock %}
+

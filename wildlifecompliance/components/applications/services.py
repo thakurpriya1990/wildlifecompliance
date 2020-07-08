@@ -195,7 +195,7 @@ class ApplicationService(object):
             request,
             application,
             form_data,
-            action=ApplicationFormDataRecord.ACTION_TYPE_ASSIGN_VALUE)
+            action)
 
     @staticmethod
     def set_special_form_fields(application, form):
