@@ -502,6 +502,7 @@ class BaseApplicationSerializer(serializers.ModelSerializer):
     is_reception_paper = serializers.SerializerMethodField(read_only=True)
     is_reception_migrate = serializers.SerializerMethodField(read_only=True)
     is_online_submit = serializers.SerializerMethodField(read_only=True)
+    is_return_check_accept = serializers.SerializerMethodField(read_only=True)
 
     class Meta:
         model = Application
@@ -555,6 +556,7 @@ class BaseApplicationSerializer(serializers.ModelSerializer):
             'is_reception_paper',
             'is_reception_migrate',
             'is_online_submit',
+            'is_return_check_accept',
         )
         read_only_fields = ('documents',)
 
@@ -755,6 +757,13 @@ class BaseApplicationSerializer(serializers.ModelSerializer):
             is_online_submit = True
 
         return is_online_submit
+
+    def get_is_return_check_accept(self, obj):
+        is_accept = False
+        if obj.return_check_status == Application.RETURN_CHECK_STATUS_ACCEPTED:
+            is_accept = True
+
+        return is_accept
 
 
 class DTInternalApplicationSerializer(BaseApplicationSerializer):
@@ -999,7 +1008,7 @@ class InternalApplicationSerializer(BaseApplicationSerializer):
     permit = serializers.CharField(source='licence_document._file.url')
     total_paid_amount = serializers.SerializerMethodField()
     adjusted_paid_amount = serializers.SerializerMethodField()
-
+    is_return_check_accept = serializers.SerializerMethodField(read_only=True)
 
     class Meta:
         model = Application
@@ -1043,6 +1052,7 @@ class InternalApplicationSerializer(BaseApplicationSerializer):
             'licence_approvers',
             'total_paid_amount',
             'adjusted_paid_amount',
+            'is_return_check_accept',
         )
         read_only_fields = ('documents', 'conditions')
 

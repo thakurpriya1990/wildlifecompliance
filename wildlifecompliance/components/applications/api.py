@@ -7,11 +7,12 @@ from django.core.files.base import ContentFile
 from django.core.files.storage import default_storage
 from django.core.exceptions import ValidationError
 from rest_framework import viewsets, serializers, status, views
-from rest_framework.decorators import detail_route, list_route, renderer_classes
+from rest_framework.decorators import (
+    detail_route, list_route, renderer_classes
+)
 from rest_framework.response import Response
 from rest_framework.renderers import JSONRenderer
 from ledger.accounts.models import EmailUser
-from ledger.checkout.utils import calculate_excl_gst
 from django.urls import reverse
 from django.shortcuts import redirect, render
 from wildlifecompliance.components.applications.utils import (
@@ -773,8 +774,7 @@ class ApplicationViewSet(viewsets.ModelViewSet):
                             activity.licence_activity.name),
                         'quantity': 1,
                         'price_incl_tax': str(activity.application_fee),
-                        'price_excl_tax': str(calculate_excl_gst(
-                            activity.application_fee)),
+                        'price_excl_tax': 0,
                         'oracle_code': ''
                     })
 
@@ -796,8 +796,7 @@ class ApplicationViewSet(viewsets.ModelViewSet):
                             activity.additional_fee_text),
                         'quantity': 1,
                         'price_incl_tax': str(activity.additional_fee),
-                        'price_excl_tax': str(calculate_excl_gst(
-                            activity.additional_fee)),
+                        'price_excl_tax': 0,
                         'oracle_code': ''
                     })
 
@@ -812,8 +811,7 @@ class ApplicationViewSet(viewsets.ModelViewSet):
                         'ledger_description': 'Adjusted fee refund',
                         'quantity': 1,
                         'price_incl_tax': str(instance.application_fee),
-                        'price_excl_tax': str(calculate_excl_gst(
-                                instance.application_fee)),
+                        'price_excl_tax': 0,
                         'oracle_code': ''
                     })
 
@@ -898,6 +896,42 @@ class ApplicationViewSet(viewsets.ModelViewSet):
         try:
             instance = self.get_object()
             instance.accept_character_check(request)
+            serializer = InternalApplicationSerializer(
+                instance, context={'request': request})
+            return Response(serializer.data)
+        except serializers.ValidationError:
+            print(traceback.print_exc())
+            raise
+        except ValidationError as e:
+            print(traceback.print_exc())
+            raise serializers.ValidationError(repr(e.error_dict))
+        except Exception as e:
+            print(traceback.print_exc())
+            raise serializers.ValidationError(str(e))
+
+    @detail_route(methods=['POST', ])
+    def accept_return_check(self, request, *args, **kwargs):
+        try:
+            instance = self.get_object()
+            instance.accept_return_check(request)
+            serializer = InternalApplicationSerializer(
+                instance, context={'request': request})
+            return Response(serializer.data)
+        except serializers.ValidationError:
+            print(traceback.print_exc())
+            raise
+        except ValidationError as e:
+            print(traceback.print_exc())
+            raise serializers.ValidationError(repr(e.error_dict))
+        except Exception as e:
+            print(traceback.print_exc())
+            raise serializers.ValidationError(str(e))
+
+    @detail_route(methods=['POST', ])
+    def reset_return_check(self, request, *args, **kwargs):
+        try:
+            instance = self.get_object()
+            instance.reset_return_check(request)
             serializer = InternalApplicationSerializer(
                 instance, context={'request': request})
             return Response(serializer.data)

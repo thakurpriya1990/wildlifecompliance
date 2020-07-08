@@ -21,8 +21,8 @@
                                                     &nbsp;<b>{{p.purpose.short_name.substr(0,25)}}</b>
                                                 </div>
                                                 <div class="col-sm-3">
-                                                    Issue <input type="radio" :value ="true" :id="p.purpose.id" v-model="getPickedPurpose(p.purpose.id).isProposed" />
-                                                    &nbsp;Decline <input type="radio" :value ="false" :id="p.purpose.id" v-model="getPickedPurpose(p.purpose.id).isProposed" />
+                                                    <input type="radio" :value ="true" :id="p.purpose.id" v-model="getPickedPurpose(p.purpose.id).isProposed" /> Issue
+                                                    &nbsp;<input type="radio" :value ="false" :id="p.purpose.id" v-model="getPickedPurpose(p.purpose.id).isProposed" /> Decline
                                                     &nbsp;&nbsp;&nbsp;&nbsp;<b>Period</b>
                                                 </div>
                                                 <div class="col-sm-3">
@@ -361,6 +361,7 @@ export default {
        },
        eventListeners:function () {
             let vm = this;
+            console.log(vm)
             // Initialise Date Picker
             for (let i=0; i<vm.applicationSelectedActivitiesForPurposes.length; i++){
                 let act = vm.applicationSelectedActivitiesForPurposes[i]
@@ -406,6 +407,11 @@ export default {
                 }
             }
         },
+   },
+   updated:function () {
+        this.$nextTick(()=>{
+            this.eventListeners();
+        });
    },
    mounted:function () {
         this.form = document.forms.licenceForm;

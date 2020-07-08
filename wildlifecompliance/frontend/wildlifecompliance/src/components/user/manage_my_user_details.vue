@@ -288,7 +288,7 @@
                               </div>
                               <div class="form-group">
                                     <label class="col-sm-12" style="text-align:left;">
-                                      Please upload a letter on organisation letter head stating that you are a consultant for the organisation.
+                                      Please upload a letter with an organisation letterhead stating that you are a consultant for the organisation.
                                         <span class="btn btn-info btn-file">
                                             Atttach File <input type="file" ref="uploadedFile" @change="readFile()"/>
                                         </span>
@@ -347,7 +347,7 @@
                               </div>
                               <div class="form-group" v-else-if="!newOrg.exists && newOrg.detailsChecked">
                                   <label class="col-sm-12" style="text-align:left;">
-                                    This organisation has not yet been registered with this system. Please upload a letter on organisation head stating that you are an employee of this organisation.<br/>
+                                    This organisation has not yet been registered with this system. Please upload a letter with an organisation letterhead stating that you are an employee of this organisation.<br/>
                                   </label>
                                   <div class="col-sm-12">
                                     <span class="btn btn-info btn-file pull-left">
@@ -363,7 +363,7 @@
                               </div>
                               <div class="form-group" v-else-if="newOrg.exists && !newOrg.detailsChecked">
                                   <label class="col-sm-12" style="text-align:left;">
-                                    Please upload a letter on organisation head stating that you are an employee of this organisation.<br/>
+                                    Please upload a letter with an organisation letterhead stating that you are an employee of this organisation.<br/>
                                   </label>
                                   <div class="col-sm-12">
                                     <span class="btn btn-info btn-file pull-left">

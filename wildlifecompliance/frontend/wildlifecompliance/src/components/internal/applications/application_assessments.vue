@@ -580,11 +580,11 @@ export default {
                             mRender:function (data,type,full) {
                                 let links = '';
                                 const pending = full.status.id === 'awaiting_assessment';
-                                if(full.status.id == 'completed' && vm.canAssignOfficerFor(activity.id)){
+                                if(['completed','recalled'].includes(full.status.id) && vm.userHasRole('licensing_officer', vm.selected_activity_tab_id)){
                                     links +=  `
                                         <a data-assessmentid='${full.id}' class="assessment-action assessment_resend">Resend</a>
                                     `;
-                                } else if(pending && vm.canAssignOfficerFor(activity.id)){
+                                } else if(pending && vm.userHasRole('licensing_officer', vm.selected_activity_tab_id)){
                                     links +=  `
                                         <a data-assessmentid='${full.id}' class="assessment-action assessment_remind">Remind</a>
                                         <a data-assessmentid='${full.id}' class="assessment-action assessment_recall">Recall</a>
