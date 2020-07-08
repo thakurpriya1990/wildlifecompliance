@@ -5036,11 +5036,11 @@ class ApplicationUserAction(UserAction):
     ACTION_SAVE_APPLICATION = "Save changes to application {}"
     ACTION_ASSIGN_TO_OFFICER = "Assign application {} to officer {}"
     ACTION_UNASSIGN_OFFICER = "Unassign officer from application {}"
-    ACTION_ACCEPT_ID = "Accept ID"
-    ACTION_RESET_ID = "Reset ID"
+    ACTION_ACCEPT_ID = "Accept ID check"
+    ACTION_RESET_ID = "Reset ID check"
     ACTION_ID_REQUEST_UPDATE = 'Request ID update'
-    ACTION_ACCEPT_CHARACTER = 'Accept character'
-    ACTION_RESET_CHARACTER = "Reset character"
+    ACTION_ACCEPT_CHARACTER = 'Accept character check'
+    ACTION_RESET_CHARACTER = "Reset character check"
     ACTION_ACCEPT_REVIEW = 'Accept review'
     ACTION_RESET_REVIEW = "Reset review"
     ACTION_ACCEPT_RETURN = 'Accept return check'
