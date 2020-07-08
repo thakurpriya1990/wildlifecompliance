@@ -117,7 +117,7 @@ export default {
                     {
                         mRender:function (data,type,full) {
                             let links = '';
-                            if(full.source_group) {
+                            if(full.source_group && vm.activity.processing_status.id !== 'with_officer_finalisation') {
                                 links = `
                                     <a href='#' class="editCondition" data-id="${full.id}">Edit</a><br/>
                                     <a href='#' class="deleteCondition" data-id="${full.id}">Delete</a><br/>
@@ -195,7 +195,6 @@ export default {
             return required_role && this.hasRole(required_role, this.selected_activity_tab_id);
         },
         canEditConditions: function() {
-            console.log('canEditConditions')
             if(!this.selected_activity_tab_id || this.activity == null) {
                 return false;
             }

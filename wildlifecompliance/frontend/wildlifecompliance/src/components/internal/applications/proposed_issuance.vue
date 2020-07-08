@@ -361,7 +361,6 @@ export default {
        },
        eventListeners:function () {
             let vm = this;
-            console.log(vm)
             // Initialise Date Picker
             for (let i=0; i<vm.applicationSelectedActivitiesForPurposes.length; i++){
                 let act = vm.applicationSelectedActivitiesForPurposes[i]
