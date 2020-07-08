@@ -16,6 +16,8 @@ class ReturnFeePolicy(object):
     '''
     __metaclass__ = abc.ABCMeta
 
+    GST_FREE = True
+
     @staticmethod
     def get_fee_policy_for(a_return):
 

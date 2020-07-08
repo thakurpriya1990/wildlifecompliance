@@ -125,11 +125,14 @@ class LicenceFeeClearingInvoice(InvoiceClearable):
         desc = 'Licence fee refund' if not description else description
         refund = self.application.get_refund_amount()
         refund = refund * -1
+        refund_excl = refund \
+            if ApplicationFeePolicy.GST_FREE else calculate_excl_gst(refund)
+
         product_line = {
                     'ledger_description': '{0}'.format(desc),
                     'quantity': 1,
                     'price_incl_tax': str(refund),
-                    'price_excl_tax': str(calculate_excl_gst(refund)),
+                    'price_excl_tax': str(refund_excl),
                     'oracle_code': ''
                 }
 
@@ -191,6 +194,8 @@ class ApplicationFeePolicy(object):
     """
     A Payment Policy Interface for Licence Applications.
     """
+    GST_FREE = True
+
     __metaclass__ = abc.ABCMeta
 
     @staticmethod
@@ -230,13 +235,17 @@ class ApplicationFeePolicy(object):
             a for a in application.activities if a.application_fee > 0]
 
         for activity in activities_with_fees:
+
+            price_excl = calculate_excl_gst(activity.application_fee)
+            if ApplicationFeePolicy.GST_FREE:
+                price_excl = activity.application_fee
+
             product_lines.append({
                 'ledger_description': '{} (Application Fee)'.format(
                     activity.licence_activity.name),
                 'quantity': 1,
                 'price_incl_tax': str(activity.application_fee),
-                'price_excl_tax': str(calculate_excl_gst(
-                    activity.application_fee)),
+                'price_excl_tax': str(price_excl),
                 'oracle_code': ''
             })
 
@@ -245,13 +254,17 @@ class ApplicationFeePolicy(object):
             a for a in application.activities if a.licence_fee > 0]
 
         for activity in activities_with_fees:
+
+            price_excl = calculate_excl_gst(activity.licence_fee)
+            if ApplicationFeePolicy.GST_FREE:
+                price_excl = activity.licence_fee
+
             product_lines.append({
                 'ledger_description': '{} (Licence Fee)'.format(
                     activity.licence_activity.name),
                 'quantity': 1,
                 'price_incl_tax': str(activity.licence_fee),
-                'price_excl_tax': str(calculate_excl_gst(
-                        activity.licence_fee)),
+                'price_excl_tax': str(price_excl),
                 'oracle_code': ''
             })
 
@@ -265,13 +278,17 @@ class ApplicationFeePolicy(object):
 
             # only fees awaiting payment
             for activity in activities_with_fees:
+
+                price_excl = calculate_excl_gst(activity.additional_fee)
+                if ApplicationFeePolicy.GST_FREE:
+                    price_excl = activity.additional_fee
+
                 product_lines.append({
                     'ledger_description': '{}'.format(
                         activity.additional_fee_text),
                     'quantity': 1,
                     'price_incl_tax': str(activity.additional_fee),
-                    'price_excl_tax': str(calculate_excl_gst(
-                        activity.additional_fee)),
+                    'price_excl_tax': str(price_excl),
                     'oracle_code': ''
                 })
 

@@ -1277,7 +1277,7 @@ class Application(RevisionedMixin):
                     self.id), request)
         else:
             self.submitter.log_user_action(
-                ApplicationUserAction.ACTION_RESET_ID.format(
+                ApplicationUserAction.ACTION_RESET_RETURN.format(
                     self.id), request)
 
     def assign_officer(self, request, officer):
@@ -4202,6 +4202,10 @@ class ApplicationSelectedActivity(models.Model):
 
     def process_licence_fee_payment(self, request, application):
         from ledger.payments.models import BpointToken
+        from wildlifecompliance.components.applications.payments import (
+            ApplicationFeePolicy
+        )
+
         if self.licence_fee_paid:
             return True
 
@@ -4216,11 +4220,16 @@ class ApplicationSelectedActivity(models.Model):
         application_submission = u'Activity licence issued for {} application {}'.format(
             u'{} {}'.format(applicant.first_name, applicant.last_name), application.lodgement_number)
         set_session_application(request.session, application)
+
+        price_excl = calculate_excl_gst(self.licence_fee)
+        if ApplicationFeePolicy.GST_FREE:
+            price_excl = self.licence_fee
+
         product_lines.append({
             'ledger_description': '{}'.format(self.licence_activity.name),
             'quantity': 1,
             'price_incl_tax': str(self.licence_fee),
-            'price_excl_tax': 0,
+            'price_excl_tax': str(price_excl),
             'oracle_code': ''
         })
         checkout(

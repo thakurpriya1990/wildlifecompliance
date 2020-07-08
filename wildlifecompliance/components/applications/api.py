@@ -13,6 +13,7 @@ from rest_framework.decorators import (
 from rest_framework.response import Response
 from rest_framework.renderers import JSONRenderer
 from ledger.accounts.models import EmailUser
+from ledger.checkout.utils import calculate_excl_gst
 from django.urls import reverse
 from django.shortcuts import redirect, render
 from wildlifecompliance.components.applications.utils import (
@@ -734,7 +735,8 @@ class ApplicationViewSet(viewsets.ModelViewSet):
     @renderer_classes((JSONRenderer,))
     def licence_fee_checkout(self, request, *args, **kwargs):
         from wildlifecompliance.components.applications.payments import (
-            LicenceFeeClearingInvoice
+            LicenceFeeClearingInvoice,
+            ApplicationFeePolicy,
         )
         PAY_STATUS = ApplicationSelectedActivity.PROCESSING_STATUS_AWAITING_LICENCE_FEE_PAYMENT
         try:
@@ -769,12 +771,17 @@ class ApplicationViewSet(viewsets.ModelViewSet):
                 ]
 
                 for activity in activities_with_fees:
+
+                    price_excl = calculate_excl_gst(activity.application_fee)
+                    if ApplicationFeePolicy.GST_FREE:
+                        price_excl = activity.application_fee
+
                     product_lines.append({
                         'ledger_description': '{} (Application Fee)'.format(
                             activity.licence_activity.name),
                         'quantity': 1,
                         'price_incl_tax': str(activity.application_fee),
-                        'price_excl_tax': 0,
+                        'price_excl_tax': str(price_excl),
                         'oracle_code': ''
                     })
 
@@ -791,12 +798,17 @@ class ApplicationViewSet(viewsets.ModelViewSet):
                 ]
 
                 for activity in activities_with_fees:
+
+                    price_excl = calculate_excl_gst(activity.additional_fee)
+                    if ApplicationFeePolicy.GST_FREE:
+                        price_excl = activity.additional_fee
+
                     product_lines.append({
                         'ledger_description': '{}'.format(
                             activity.additional_fee_text),
                         'quantity': 1,
                         'price_incl_tax': str(activity.additional_fee),
-                        'price_excl_tax': 0,
+                        'price_excl_tax': str(price_excl),
                         'oracle_code': ''
                     })
 
@@ -807,11 +819,16 @@ class ApplicationViewSet(viewsets.ModelViewSet):
 
                 # refund any application fee adjustments.
                 if instance.application_fee < 0:
+
+                    price_excl = calculate_excl_gst(instance.application_fee)
+                    if ApplicationFeePolicy.GST_FREE:
+                        price_excl = instance.application_fee
+
                     product_lines.append({
                         'ledger_description': 'Adjusted fee refund',
                         'quantity': 1,
                         'price_incl_tax': str(instance.application_fee),
-                        'price_excl_tax': 0,
+                        'price_excl_tax': str(price_excl),
                         'oracle_code': ''
                     })
 
