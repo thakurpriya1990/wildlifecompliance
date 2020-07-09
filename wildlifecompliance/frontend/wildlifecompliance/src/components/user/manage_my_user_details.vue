@@ -552,18 +552,18 @@ export default {
             }
             if (vm.new_user == 'True') {
                 swal({
-                    title: "Update Personal Details",
-                    html: 'If you already have a Parks and Wildlife customer account under another email address, please ' +
-                        '<strong>log out and sign in again with that account</strong> and ' +
-                        'instead add <strong>' + vm.current_user.email + '</strong> as a new Profile.<br/><br/>If this is a new account, please proceed to update ' +
-                        'your details.',
-                    type: "question",
-                    allowOutsideClick: false,
-                    allowEscapeKey: false,
-                    confirmButtonText: 'Okay',
-                    showCancelButton: true,
-                    cancelButtonText: 'Logout',
-                    cancelButtonClass: 'btn btn-danger'
+                    // title: "Update Personal Details",
+                    // html: 'If you already have a Parks and Wildlife customer account under another email address, please ' +
+                    //     '<strong>log out and sign in with that account.</strong> ' +
+                    //     'instead add <strong>' + vm.current_user.email + '</strong> as a new Profile.<br/><br/>If this is a new account, please proceed to update ' +
+                    //     'your details.',
+                    // type: "question",
+                    // allowOutsideClick: false,
+                    // allowEscapeKey: false,
+                    // confirmButtonText: 'Okay',
+                    // showCancelButton: true,
+                    // cancelButtonText: 'Logout',
+                    // cancelButtonClass: 'btn btn-danger'
                 }).then((result) => {
                     if (result.value) {
                         vm.$http.post(helpers.add_endpoint_json(api_endpoints.users,(vm.current_user.id+'/update_personal')),JSON.stringify(vm.current_user),{

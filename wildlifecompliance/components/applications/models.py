@@ -2949,19 +2949,24 @@ class Application(RevisionedMixin):
             'organisation_id': organisation_id,
         }
 
-        if not proxy_id and not organisation_id:
-            return proxy_details
+        if organisation_id:
+            user = EmailUser.objects.get(pk=proxy_id) if proxy_details['proxy_id'] else request.user
+            if not user.wildlifecompliance_organisations.filter(pk=organisation_id):
+                proxy_details['organisation_id'] = None
+
+        #if not proxy_id and not organisation_id:
+        #    return proxy_details
 
         # Only licensing officers can apply as a proxy
-        if not Application.get_request_user_permission_group(
-            permission_codename='licensing_officer',
-            first=True
-        ):
-            proxy_details['proxy_id'] = None
+        # if not Application.get_request_user_permission_group(
+        #     permission_codename='licensing_officer',
+        #     first=True
+        # ):
+        #     proxy_details['proxy_id'] = None
 
-        user = EmailUser.objects.get(pk=proxy_id) if proxy_details['proxy_id'] else request.user
-        if organisation_id and not user.wildlifecompliance_organisations.filter(pk=organisation_id):
-            proxy_details['organisation_id'] = None
+        # user = EmailUser.objects.get(pk=proxy_id) if proxy_details['proxy_id'] else request.user
+        # if organisation_id and not user.wildlifecompliance_organisations.filter(pk=organisation_id):
+        #     proxy_details['organisation_id'] = None
 
         return proxy_details
 
