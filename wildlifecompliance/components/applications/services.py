@@ -205,6 +205,7 @@ class ApplicationService(object):
         # Set form components to be visited.
         checkbox = CheckboxAndRadioButtonVisitor(application, form)
         text_area = TextAreaVisitor(application, form)
+        text = TextVisitor(application, form)
 
         # Set PromptInspection Fields for Checkbox and RadioButtons.
         for_inspection_fields = PromptInpsectionFieldElement()
@@ -218,6 +219,7 @@ class ApplicationService(object):
         # to be dynamically added to the licence pdf.
         for_copy_to_licence_fields = CopyToLicenceFieldElement()
         for_copy_to_licence_fields.accept(text_area)
+        for_copy_to_licence_fields.accept(text)
 
     @staticmethod
     def update_dynamic_attributes(application):
@@ -367,6 +369,56 @@ class TextAreaCompositor(ApplicationFormCompositor):
                     )
 
 
+class TextCompositor(ApplicationFormCompositor):
+    """
+    A Class for objects which encapsulates an algorithm for formatting Text
+     on an Application Form.
+    """
+    def __init__(self, application, data_source):
+        self._application = application
+        self._data_source = data_source
+        self._children = set()
+
+    def do_algorithm(self, special_field_element):
+        self._field = special_field_element
+        self.render()
+
+    def render(self):
+        for selected_activity in self._application.activities:
+
+            self._field.reset(selected_activity)
+
+            schema_fields = self._application.get_schema_fields_for_purposes(
+                selected_activity.purposes.values_list('id', flat=True)
+            )
+
+            adjusted_by_fields = {}
+            for form_data_record in self._data_source:
+                try:
+                    # Retrieve dictionary of fields from a model instance
+                    data_record = form_data_record.__dict__
+                except AttributeError:
+                    # If a raw form data (POST) is supplied, form_data_record
+                    # is a key
+                    data_record = self._data_source[form_data_record]
+
+                schema_name = data_record['schema_name']
+                if schema_name not in schema_fields:
+                    continue
+                schema_data = schema_fields[schema_name]
+                licence_purpose = LicencePurpose.objects.get(
+                    id=schema_data['licence_purpose_id']
+                )
+                if schema_data['type'] == 'text':
+                    self._field.parse_component(
+                        component=schema_data,
+                        schema_name=schema_name,
+                        adjusted_by_fields=adjusted_by_fields,
+                        activity=selected_activity,
+                        purpose=licence_purpose
+                    )
+
+
 class ApplicationFormVisitor(object):
     """
     An Interface for Application Form component fields which can be visited.
@@ -417,6 +469,25 @@ class TextAreaVisitor(ApplicationFormVisitor):
         self._data_source = data_source
         # Apply a traversal strategy.
         self._compositor = TextAreaCompositor(application, data_source)
+
+    def visit_copy_to_licence_field(self, copy_to_licence_field):
+        self._copy_to_licence_field = copy_to_licence_field
+        self._compositor.do_algorithm(self._copy_to_licence_field)
+
+
+class TextVisitor(ApplicationFormVisitor):
+    """
+    An implementation of an operation declared by ApplicationFormVisitor to do
+    an algorithm specific to Text on a Form.
+
+    NOTE: Local state is stored and will accumulate during the traversal of the
+    Form.
+    """
+    def __init__(self, application, data_source):
+        self._application = application
+        self._data_source = data_source
+        # Apply a traversal strategy.
+        self._compositor = TextCompositor(application, data_source)
 
     def visit_copy_to_licence_field(self, copy_to_licence_field):
         self._copy_to_licence_field = copy_to_licence_field
