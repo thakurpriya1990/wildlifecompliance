@@ -22,7 +22,6 @@
                                     <label class="col-sm-3">
                                         Payment method for customer:
                                     </label>
-
                                     <div class="col-sm-6">
                                         <input type="radio" checked="checked" name="reception" value="card" v-model="customer_pay_method" > Credit Card &nbsp;&nbsp;</input>
                                         <input type="radio" name="reception" id="cash" value="cash" v-model="customer_pay_method" > Cash &nbsp;&nbsp;</input>
@@ -30,7 +29,7 @@
                                     </div>
                                 </div>
                             </div>
-
+                            <br /><br />
                             <div class="col-sm-12">
                                 <div class="row">
                                     <label class="col-sm-6">

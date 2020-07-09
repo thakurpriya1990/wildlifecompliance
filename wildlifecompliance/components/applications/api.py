@@ -687,8 +687,8 @@ class ApplicationViewSet(viewsets.ModelViewSet):
         try:
             instance = self.get_object()
 
-            if not request.user.is_staff:
-                raise Exception('Non staff member.')
+            # if not request.user.is_staff:
+            #     raise Exception('Non staff member.')
 
             session = request.session
             set_session_application(session, instance)
