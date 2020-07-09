@@ -89,6 +89,10 @@ const GridBlock = {
   },
   computed: {
     getDeficiencyField: function(){
+      var def = this.field_data[0][this.name + '-deficiency-field']
+      if (def==null){
+        return {'deficiency-value': null}
+      }
       return this.field_data[0][this.name + '-deficiency-field']
     }
   },
