@@ -396,7 +396,7 @@ class ApplicationFeePolicy(object):
 class ApplicationFeePolicyForAmendment(ApplicationFeePolicy):
     '''
     A fee policy that applies to an application for a licence amendment.
-    - maintains a base application fee from previous application.
+    - applies an admin amendment fee as the application fee.
     - applies no licence fee.
     - all adjustment fees from the previous application are excluded.
     - adjustment fees based on questions are added to the application fee.
@@ -426,6 +426,14 @@ class ApplicationFeePolicyForAmendment(ApplicationFeePolicy):
         No base licence fees are paid for Amended Activity Purposes.
         '''
         purpose.base_licence_fee = 0
+        purpose.base_application_fee = purpose.amendment_fee
+
+    @staticmethod
+    def set_base_application_fee_for(purpose):
+        '''
+        Set the application fee to the amendment fee.
+        '''
+        purpose.base_application_fee = purpose.amendment_fee
 
     def get_licence_for(self):
         '''
@@ -475,7 +483,7 @@ class ApplicationFeePolicyForAmendment(ApplicationFeePolicy):
             purposes_ids = self.get_form_purpose_ids_for(activity)
             for p in activity.proposed_purposes.all():
                 if p.purpose_id in purposes_ids and p.is_payable:
-                    application_fees += p.application_fee
+                    application_fees += p.purpose.amendment_fee
 
         self.dynamic_attributes = {
             'fees': {
@@ -501,8 +509,9 @@ class ApplicationFeePolicyForAmendment(ApplicationFeePolicy):
                 selected_activity_id=activity.id,
                 purpose_id=purpose[0].id
             )
-            previous = p.get_purpose_from_previous()
-            p.application_fee = previous.application_fee if previous else 0
+            # previous = p.get_purpose_from_previous()
+            # p.application_fee = previous.application_fee if previous else 0
+            p.application_fee = p.purpose.amendment_fee
             p.licence_fee = self.get_licence_fee()
             # NOTE: p.adjusted_fee not updated as this policy only updates the
             # licence and application fees.
@@ -521,6 +530,22 @@ class ApplicationFeePolicyForAmendment(ApplicationFeePolicy):
         from decimal import Decimal
 
         fee = 0
+
+        return Decimal(fee)
+
+    def get_amendment_fee_for(self, activity):
+        '''
+        Get the application amendment fee set for this policy.
+        '''
+        from decimal import Decimal
+
+        fee = 0
+        licence = self.get_licence_for()
+        for activity in licence.current_activities:
+            purposes_ids = self.get_form_purpose_ids_for(activity)
+            for p in activity.proposed_purposes.all():
+                if p.purpose_id in purposes_ids and p.is_payable:
+                    fee += p.purpose.amendment_fee
 
         return Decimal(fee)
 
@@ -549,8 +574,13 @@ class ApplicationFeePolicyForAmendment(ApplicationFeePolicy):
         policy_licence_fee = self.dynamic_attributes['fees']['licence']
         self.set_purpose_fees_for(activity)         # update fees on purpose.
         prev_adj = self.get_previous_adjusted_fee_for(activity)
+        prev_app = self.get_previous_application_fee_for(activity)
 
-        fees_new = activity.application_fee - prev_adj
+        fees_adj = activity.application_fee - (prev_app + prev_adj)
+
+        amend_fee = self.get_amendment_fee_for(activity)
+        fees_new = amend_fee + fees_adj
+
         if licence_paid:
             # application fee is paid just pay adjustments.
             # no licence fee is included.
@@ -586,10 +616,12 @@ class ApplicationFeePolicyForAmendment(ApplicationFeePolicy):
             licence_paid = False if activity.total_paid_amount < 1 else True
 
             old_adj = self.get_previous_adjusted_fee_for(activity)
+            old_app = self.get_previous_application_fee_for(activity)
             # aggregate new activity fees from calculated dynamic attributes.
             act_adj = attributes[
                 'activity_attributes'][activity]['fees']['application']
-            fees_adj = act_adj - old_adj
+            fees_adj = act_adj - old_adj - old_app
+            fees_adj += self.get_amendment_fee_for(activity)
 
             if licence_paid:
                 # base fee is paid just pay the adjustments difference.
@@ -644,7 +676,8 @@ class ApplicationFeePolicyForAmendment(ApplicationFeePolicy):
 class ApplicationFeePolicyForRenew(ApplicationFeePolicy):
     '''
     A fee policy that applies to an application to renew a licence.
-    - Sets the application fee and licence fee from administration.
+    - Applies a renewal fee from admin as the application fee amount.
+    - Sets the licence fee from administration.
     - adjustment fees from the previous application are included in fee.
     - adjustment fees based on questions are added to the application fee.
     '''
@@ -667,6 +700,13 @@ class ApplicationFeePolicyForRenew(ApplicationFeePolicy):
            'attributes : {att} '.format(att=self.dynamic_attributes),
         )
 
+    @staticmethod
+    def set_base_application_fee_for(purpose):
+        '''
+        Set the application fee to the renewal fee.
+        '''
+        purpose.base_application_fee = purpose.renewal_fee
+
     def init_dynamic_attributes(self):
         '''
         Initialise the dynamic attributes on this policy with the application
@@ -681,15 +721,16 @@ class ApplicationFeePolicyForRenew(ApplicationFeePolicy):
         }
 
         licence = self.get_licence_for()
-        # previous adjusted fees for purpose is included in the total fee.
+        # previous adjusted fees for purpose is included with the renewal fee.
         fees_adj = 0
         for activity in licence.current_activities:
             purposes_ids = self.get_form_purpose_ids_for(activity)
             for p in activity.proposed_purposes.all():
                 if p.purpose_id in purposes_ids and p.is_payable:
                     fees_adj += p.adjusted_fee
+                    fees_adj += p.purpose.renewal_fee
 
-        self.dynamic_attributes['fees']['application'] += fees_adj
+        self.dynamic_attributes['fees']['application'] = fees_adj
 
         if self.application.application_fee_paid:
             self.dynamic_attributes['fees'] = {'application': 0, 'licence': 0}
@@ -703,6 +744,22 @@ class ApplicationFeePolicyForRenew(ApplicationFeePolicy):
         '''
         self.is_refreshing = True
         self.set_dynamic_attributes_from_purpose_fees()
+
+    def get_renewal_fee_for(self, activity):
+        '''
+        Get the application renewal fee set for this policy.
+        '''
+        from decimal import Decimal
+
+        fee = 0
+        licence = self.get_licence_for()
+        for activity in licence.current_activities:
+            purposes_ids = self.get_form_purpose_ids_for(activity)
+            for p in activity.proposed_purposes.all():
+                if p.purpose_id in purposes_ids and p.is_payable:
+                    fee += p.purpose.renewal_fee
+
+        return Decimal(fee)
 
     def set_application_fee_from_activity(self, activity):
         '''
