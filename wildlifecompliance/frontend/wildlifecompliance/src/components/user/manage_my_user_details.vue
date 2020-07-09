@@ -551,68 +551,45 @@ export default {
                 return;
             }
             if (vm.new_user == 'True') {
-                swal({
-                    // title: "Update Personal Details",
-                    // html: 'If you already have a Parks and Wildlife customer account under another email address, please ' +
-                    //     '<strong>log out and sign in with that account.</strong> ' +
-                    //     'instead add <strong>' + vm.current_user.email + '</strong> as a new Profile.<br/><br/>If this is a new account, please proceed to update ' +
-                    //     'your details.',
-                    // type: "question",
-                    // allowOutsideClick: false,
-                    // allowEscapeKey: false,
-                    // confirmButtonText: 'Okay',
-                    // showCancelButton: true,
-                    // cancelButtonText: 'Logout',
-                    // cancelButtonClass: 'btn btn-danger'
-                }).then((result) => {
-                    if (result.value) {
-                        vm.$http.post(helpers.add_endpoint_json(api_endpoints.users,(vm.current_user.id+'/update_personal')),JSON.stringify(vm.current_user),{
-                            emulateJSON:true
-                        }).then((response) => {
-                            swal({
-                                title: 'Update Personal Details',
-                                html: 'Your personal details has been successfully updated.',
-                                type: 'success',
-                            }).then(() => {
-                                vm.updatingPersonal = false;
-                                vm.current_user.personal_details = true;
-                                if (vm.completedProfile) {
-                                    vm.$http.get(api_endpoints.user_profile_completed).then((response) => {
-                                    },(error) => {
-                                    })
-                                }
-                            });
-                        }, (error) => {
+                if (result.value) {
+                    vm.$http.post(helpers.add_endpoint_json(api_endpoints.users,(vm.current_user.id+'/update_personal')),JSON.stringify(vm.current_user),{
+                        emulateJSON:true
+                    }).then((response) => {
+                        swal({
+                            title: 'Update Personal Details',
+                            html: 'Your personal details has been successfully updated.',
+                            type: 'success',
+                        }).then(() => {
                             vm.updatingPersonal = false;
-                            vm.current_user.personal_details = false;
-                            let error_msg = '<br/>';
-                            for (var key in error.body) {
-                                if (key === 'dob') {
-                                    error_msg += 'dob: Please enter a valid date.<br/>';
-                                } else {
-                                    error_msg += key + ': ' + error.body[key] + '<br/>';
-                                }
+                            vm.current_user.personal_details = true;
+                            if (vm.completedProfile) {
+                                vm.$http.get(api_endpoints.user_profile_completed).then((response) => {
+                                },(error) => {
+                                })
                             }
-                            swal({
-                                title: 'Update Personal Details',
-                                html: 'There was an error updating your personal details.<br/>' + error_msg,
-                                type: 'error'
-                            })
                         });
-                    } else if (result.dismiss === swal.DismissReason.cancel) {
+                    }, (error) => {
                         vm.updatingPersonal = false;
-                        vm.deleteUserLogout();
-                        return;
-                    }
-                }, (error) => {
+                        vm.current_user.personal_details = false;
+                        let error_msg = '<br/>';
+                        for (var key in error.body) {
+                            if (key === 'dob') {
+                                error_msg += 'dob: Please enter a valid date.<br/>';
+                            } else {
+                                error_msg += key + ': ' + error.body[key] + '<br/>';
+                            }
+                        }
+                        swal({
+                            title: 'Update Personal Details',
+                            html: 'There was an error updating your personal details.<br/>' + error_msg,
+                            type: 'error'
+                        })
+                    });
+                } else if (result.dismiss === swal.DismissReason.cancel) {
                     vm.updatingPersonal = false;
-                    vm.current_user.personal_details = false;
-                    swal({
-                        title: 'Update Personal Details',
-                        html: 'There was an error updating your personal details.',
-                        type: 'error'
-                    })
-                });
+                    vm.deleteUserLogout();
+                    return;
+                }
             } else {
                 vm.$http.post(helpers.add_endpoint_json(api_endpoints.users,(vm.current_user.id+'/update_personal')),JSON.stringify(vm.current_user),{
                     emulateJSON:true
