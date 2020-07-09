@@ -551,45 +551,39 @@ export default {
                 return;
             }
             if (vm.new_user == 'True') {
-                if (result.value) {
-                    vm.$http.post(helpers.add_endpoint_json(api_endpoints.users,(vm.current_user.id+'/update_personal')),JSON.stringify(vm.current_user),{
-                        emulateJSON:true
-                    }).then((response) => {
-                        swal({
-                            title: 'Update Personal Details',
-                            html: 'Your personal details has been successfully updated.',
-                            type: 'success',
-                        }).then(() => {
-                            vm.updatingPersonal = false;
-                            vm.current_user.personal_details = true;
-                            if (vm.completedProfile) {
-                                vm.$http.get(api_endpoints.user_profile_completed).then((response) => {
-                                },(error) => {
-                                })
-                            }
-                        });
-                    }, (error) => {
+                vm.$http.post(helpers.add_endpoint_json(api_endpoints.users,(vm.current_user.id+'/update_personal')),JSON.stringify(vm.current_user),{
+                    emulateJSON:true
+                }).then((response) => {
+                    swal({
+                        title: 'Update Personal Details',
+                        html: 'Your personal details has been successfully updated.',
+                        type: 'success',
+                    }).then(() => {
                         vm.updatingPersonal = false;
-                        vm.current_user.personal_details = false;
-                        let error_msg = '<br/>';
-                        for (var key in error.body) {
-                            if (key === 'dob') {
-                                error_msg += 'dob: Please enter a valid date.<br/>';
-                            } else {
-                                error_msg += key + ': ' + error.body[key] + '<br/>';
-                            }
+                        vm.current_user.personal_details = true;
+                        if (vm.completedProfile) {
+                            vm.$http.get(api_endpoints.user_profile_completed).then((response) => {
+                            },(error) => {
+                            })
                         }
-                        swal({
-                            title: 'Update Personal Details',
-                            html: 'There was an error updating your personal details.<br/>' + error_msg,
-                            type: 'error'
-                        })
                     });
-                } else if (result.dismiss === swal.DismissReason.cancel) {
+                }, (error) => {
                     vm.updatingPersonal = false;
-                    vm.deleteUserLogout();
-                    return;
-                }
+                    vm.current_user.personal_details = false;
+                    let error_msg = '<br/>';
+                    for (var key in error.body) {
+                        if (key === 'dob') {
+                            error_msg += 'dob: Please enter a valid date.<br/>';
+                        } else {
+                            error_msg += key + ': ' + error.body[key] + '<br/>';
+                        }
+                    }
+                    swal({
+                        title: 'Update Personal Details',
+                        html: 'There was an error updating your personal details.<br/>' + error_msg,
+                        type: 'error'
+                    })
+                });
             } else {
                 vm.$http.post(helpers.add_endpoint_json(api_endpoints.users,(vm.current_user.id+'/update_personal')),JSON.stringify(vm.current_user),{
                     emulateJSON:true

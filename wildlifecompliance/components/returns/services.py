@@ -451,7 +451,8 @@ class ReturnData(object):
                     break
             if not is_empty:
                 deficiency_data = post_data['table_name'] + '-deficiency-field'
-                row_data[deficiency_data] = post_data[deficiency_data]
+                # row_data[deficiency_data] = post_data[deficiency_data]
+                row_data[deficiency_data] = ''
                 rows.append(row_data)
         return rows
 
