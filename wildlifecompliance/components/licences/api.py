@@ -880,6 +880,12 @@ class UserAvailableWildlifeLicencePurposesViewSet(viewsets.ModelViewSet):
             policy = ApplicationFeePolicyForAmendment
             for purpose in available_purpose_records:
                 policy.set_zero_licence_fee_for(purpose)
+                policy.set_base_application_fee_for(purpose)
+
+        if application_type == Application.APPLICATION_TYPE_RENEWAL:
+            policy = ApplicationFeePolicyForRenewal
+            for purpose in available_purpose_records:
+                policy.set_base_application_fee_for(purpose)
 
         serializer = LicenceCategorySerializer(queryset, many=True, context={
             'request': request,

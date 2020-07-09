@@ -41,6 +41,10 @@ class LicencePurpose(models.Model):
         max_digits=8, decimal_places=2, default='0')
     base_licence_fee = models.DecimalField(
         max_digits=8, decimal_places=2, default='0')
+    renewal_fee = models.DecimalField(
+        max_digits=8, decimal_places=2, default='0')
+    amendment_fee = models.DecimalField(
+        max_digits=8, decimal_places=2, default='0')
     fields = JSONField(default=list)
     licence_category = models.ForeignKey(
         'LicenceCategory',

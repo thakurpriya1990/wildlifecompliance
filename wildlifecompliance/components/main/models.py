@@ -67,11 +67,13 @@ class CommunicationsLogEntry(models.Model):
     COMMUNICATIONS_LOG_TYPE_PHONE = 'phone'
     COMMUNICATIONS_LOG_TYPE_MAIL = 'mail'
     COMMUNICATIONS_LOG_TYPE_PERSON = 'person'
+    COMMUNICATIONS_LOG_TYPE_FILE = 'file_note'
     TYPE_CHOICES = (
         (COMMUNICATIONS_LOG_TYPE_EMAIL, 'Email'),
         (COMMUNICATIONS_LOG_TYPE_PHONE, 'Phone Call'),
         (COMMUNICATIONS_LOG_TYPE_MAIL, 'Mail'),
-        (COMMUNICATIONS_LOG_TYPE_PERSON, 'In Person')
+        (COMMUNICATIONS_LOG_TYPE_PERSON, 'In Person'),
+        (COMMUNICATIONS_LOG_TYPE_FILE, 'File Note')
     )
 
     to = models.TextField(blank=True, verbose_name="To")
