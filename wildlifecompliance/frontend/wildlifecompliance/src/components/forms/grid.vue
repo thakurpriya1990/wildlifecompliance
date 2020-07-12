@@ -60,7 +60,7 @@
               </div>
           </div>
           <div >
-             <button v-if="!readonly" class="btn btn-link" @click.prevent="addRow()" >Add Row</button>
+             <button v-show="showAddRow" class="btn btn-link" @click.prevent="addRow()" >Add Row</button>
           </div>
      </div>
 </template>
@@ -85,6 +85,7 @@ const GridBlock = {
   data: function() {
     var grid_item = [{'id': 0, 'name': '', 'value': ''}];
     return {
+      show_add_row: false,
     }
   },
   computed: {
@@ -94,7 +95,10 @@ const GridBlock = {
         return {'deficiency-value': null}
       }
       return this.field_data[0][this.name + '-deficiency-field']
-    }
+    },
+    showAddRow: function(){
+      return this.show_add_row
+    },
   },
   methods: {
     addRow: function(e) {
@@ -118,7 +122,7 @@ const GridBlock = {
          self.field_data[row][name].value = value;
          self.value = value;
       }
-      this.readonly = readonly
+      self.show_add_row = !readonly
       return self.field_data[row][name].value;
     },
     setDatePicker: function() {
