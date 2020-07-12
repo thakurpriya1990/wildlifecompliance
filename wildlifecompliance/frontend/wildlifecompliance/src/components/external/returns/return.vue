@@ -53,6 +53,7 @@ export default {
   data() {
     return {
       pdBody: 'pdBody' + self._uid,
+      estimated_fee: 0,
     }
   },
   components: {
@@ -186,8 +187,14 @@ export default {
                     
                     });
 
-    }
-  },    
+    },
+  },
+  updated: function() {
+    // this.$nextTick(()=>{
+    //   this.estimate_price()
+    //   this.estimated_fee = this.returns.return_fee
+    // });
+  },   
   beforeRouteEnter: function(to, from, next) {
      next(vm => {
        vm.load({ url: `/api/returns/${to.params.return_id}.json` });

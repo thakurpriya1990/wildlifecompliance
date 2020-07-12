@@ -96,7 +96,7 @@ export default {
       return this.spreadsheet != null ? this.spreadsheet.name: '';
     },
     isReadOnly: function() {
-      return this.readonly;
+      return this.readonly || !this.is_external;
     },
     refreshGrid: function() {
       return this.refresh_grid;
@@ -147,11 +147,30 @@ export default {
 		        swal('Error Uploading', exception.body.error, 'error');
         });
     },
+    estimate_price: function() {
+      const self = this;
+      self.form=document.forms.external_returns_form;
+      self.$http.post(helpers.add_endpoint_json(api_endpoints.returns,self.returns.id+'/estimate_price'),{
+                      emulateJSON:true,
+                    }).then((response)=>{
+
+                        console.log(response)
+
+                    },(error)=>{
+                        console.log(error);
+                        swal('Error',
+                             'There was an error submitting your return details.<br/>' + error.body,
+                             'error'
+                        )
+                    });
+
+    }
   },
   updated: function(){
-    this.$nextTick(()=>{
-      this.readonly = this.returns.is_draft ? false : true
-    });
+    // this.$nextTick(()=>{
+    //   this.estimate_price()
+    //   this.readonly = this.returns.is_draft ? false : true
+    // });
   },
   mounted: function(){
     var vm = this;
