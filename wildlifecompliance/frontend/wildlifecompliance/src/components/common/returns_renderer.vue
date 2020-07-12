@@ -2,69 +2,9 @@
     <div>
         <h3>{{ displayable_number }}</h3>
         <div class="col-md-3">
-            <div v-if="!is_external">
-                <CommsLogs :comms_url="comms_url" :logs_url="logs_url" :comms_add_url="comms_add_url" :disable_add_entry="false"/>
-                <div class="row">
-                    <div class="panel panel-default">
-                        <div class="panel-heading">
-                          Submission
-                        </div>
-                        <div class="panel-body panel-collapse">
-                            <div class="row">
-                                <div class="col-sm-12">
-                                    <strong>Submitted by</strong><br/>
-                                    {{ returns.submitter.first_name}} {{ returns.submitter.last_name}}
-                                </div>
-                                <div class="col-sm-12 top-buffer-s">
-                                    <strong>Lodged on</strong><br/>
-                                    {{ returns.lodgement_date | formatDate}}
-                                </div>
-                                <div class="col-sm-12 top-buffer-s">
-                                    <table class="table small-table">
-                                    <tr>
-                                        <th>Lodgement</th>
-                                        <th>Date</th>
-                                        <th>Action</th>
-                                    </tr>
-                                    </table>
-                                </div>
-                            </div>
-                        </div>
-                    </div>
-                </div>
-                <div class="row">
-                    <div class="panel panel-default">
-                        <div class="panel-heading">Workflow</div>
-                        <div class="panel-body panel-collapse">
-                            <div class="row">
-                                <div class="col-sm-12">
-                                    <strong>Status</strong><br/>
-                                    {{ returns.processing_status }}
-                                </div>
-                                <div class="col-sm-12 top-buffer-s">
-                                    <strong>Currently assigned to</strong><br/>
-                                    <div class="form-group">
-                                        <select v-show="isLoading" class="form-control">
-                                            <option value="">Loading...</option>
-                                        </select>
-                                        <select @change="assignTo"  v-if="!isLoading" class="form-control">
-                                            <option value="null">Unassigned</option>
-                                        <!-- <option v-for="member in returns.return_curators" :value="member.id">{{member.first_name}} {{member.last_name}}</option> -->
-                                        </select>
-                                        <!-- <a v-if="!canViewonly" @click.prevent="assignMyself()" class="actionBtn pull-right">Assign to me</a> -->
-                                    </div>
-                                </div>
-                                <div class="col-sm-12 top-buffer-s">
-                                    <strong>Action</strong><br/><br/>
-                                    <button style="width:255px;" class="btn btn-primary btn-md" @click.prevent="acceptReturn()">Accept</button><br/><br/>
-                                    <button style="width:255px;" class="btn btn-primary btn-md" @click.prevent="amendmentRequest()">Request Amendment</button>
-                                    <br/><br/>
-                                </div>
-                            </div>
-                        </div>
-                    </div>
-                </div>
-            </div>
+
+            <MenuAccess ref="menu_access" v-show="!is_external"></MenuAccess>          
+
         </div>
 
         <!-- Tabs Layout -->
@@ -80,15 +20,13 @@
             </div>
         </div>
 
-        <AmendmentRequest ref="amendment_request" ></AmendmentRequest>
-
     </div>
 </template>
 
 
 <script>
 import Vue from 'vue';
-import AmendmentRequest from '../internal/returns/amendment_request.vue';
+import MenuAccess from '../internal/returns/access.vue';
 import { mapActions, mapGetters } from 'vuex';
 import CommsLogs from '@common-components/comms_logs.vue'
 import '@/scss/forms/form.scss';
@@ -111,7 +49,7 @@ export default {
   },
   components: {
     CommsLogs,
-    AmendmentRequest,
+    MenuAccess,
   },
   filters: {
     formatDate: function(data){
@@ -155,9 +93,9 @@ export default {
       return this.returns.lodgement_date != null ? true : false;
     },
     displayable_number: function() {
-      if (this.is_external && this.returns.lodgement_date != null) {
-          return '\u00A0'
-      }
+      // if (this.is_external && this.returns.lodgement_date != null) {
+      //     return '\u00A0'
+      // }
       return 'Return: ' + this.returns.lodgement_number
     },
     displayable_tabs: function() {
@@ -180,12 +118,6 @@ export default {
         this.returns_tab_id = id;
         this.setReturnsTabId({tab_id: id});
     },
-    amendmentRequest: function(){
-      let vm = this;
-
-      vm.$refs.amendment_request.amendment.text = '';
-      vm.$refs.amendment_request.isModalOpen = true;
-    },
     canAssignToOfficer: function(){
       if(!this.userHasRole('licensing_officer')) {
         return false;
@@ -194,27 +126,6 @@ export default {
     },
     userIsAssignedOfficer: function(){
       return this.current_user.id == this.returns.assigned_to;
-    },
-    acceptReturn: function(){
-      const self = this;
-      self.form=document.forms.external_returns_form;
-      self.$http.post(helpers.add_endpoint_json(api_endpoints.returns,self.returns.id+'/accept'),{
-                      emulateJSON:true,
-                    }).then((response)=>{
-                      //  let species_id = self.returns.sheet_species;
-                      //  self.setReturns(response.body);
-                      //  self.returns.sheet_species = species_id;
-                      //  swal('Save',
-                      //       'Return Submitted',
-                      //       'success'
-                      //  );
-                    },(error)=>{
-                        console.log(error);
-                        swal('Error',
-                             'There was an error accepting the return.<br/>' + error.body,
-                             'error'
-                        )
-                    });
     },
   },
   created: function() {
@@ -226,7 +137,6 @@ export default {
       }
       this.setReturns(this.returns);
     }
-    // TODO: Species list can be rendered here for internal/external Returns.
     this.setReturnsSpecies({species: this.returns.sheet_species_list});
   },
 }
