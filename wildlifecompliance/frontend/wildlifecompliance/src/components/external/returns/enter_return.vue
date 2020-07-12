@@ -1,5 +1,6 @@
 <template>
 <div class="panel panel-default">
+    <AmendmentRequestDetails v-show="is_external"/>
     <div class="panel-heading">
         <h3 class="panel-title">Return
             <a class="panelClicker" :href="'#'+pdBody" data-toggle="collapse"  data-parent="#userInfo" expanded="true" :aria-controls="pdBody">
@@ -7,7 +8,6 @@
             </a>
         </h3>
     </div>
-    <AmendmentRequestDetails v-show="is_external"/>
     <div class="panel-body panel-collapse in" :id="pdBody">
         <div class="col-sm-12">
             <div class="row">
@@ -42,7 +42,7 @@
                 <span class="pull-left" style="margin-left:10px;margin-top:10px;">{{uploadedFileName}}</span>
             </div>
             <div class="row"></div>
-            <div v-if="nilReturn === 'no'" class="row">
+            <div v-if="refreshGrid && nilReturn === 'no'" class="row">
                 <renderer-block v-for="(data, key) in returns.table"
                           :component="data"
                           v-bind:key="`returns-grid-data_${key}`"
@@ -80,6 +80,7 @@ export default {
         spreadsheetReturn: 'no',
         replaceReturn: 'no',
         readonly: false,
+        refresh_grid: true,
     }
   },
   components: {
@@ -97,6 +98,9 @@ export default {
     isReadOnly: function() {
       return this.readonly;
     },
+    refreshGrid: function() {
+      return this.refresh_grid;
+    }
   },
   methods: {
     ...mapActions({
@@ -120,6 +124,7 @@ export default {
       this.validate_upload()
     },
     validate_upload(e) {
+      this.refresh_grid = false
       let _data = new FormData(this.form);
       _data.append('spreadsheet', this.spreadsheet)
       this.$http.post(helpers.add_endpoint_json(api_endpoints.returns,this.returns.id+'/upload_details'),_data,{
@@ -136,11 +141,17 @@ export default {
               this.replaceReturn = 'no'
             }
             this.nilReturn = 'no'
-            this.spreadsheetReturn = 'no'
+            this.spreadsheetReturn = 'yes'
+            this.refresh_grid = true
         },exception=>{
 		        swal('Error Uploading', exception.body.error, 'error');
         });
     },
+  },
+  updated: function(){
+    this.$nextTick(()=>{
+      this.readonly = this.returns.is_draft ? false : true
+    });
   },
   mounted: function(){
     var vm = this;
