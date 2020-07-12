@@ -91,6 +91,7 @@ class ReturnSerializer(serializers.ModelSerializer):
     invoice_url = serializers.SerializerMethodField(read_only=True)
     activity_curators = EmailUserSerializer(many=True)
     amendment_requests = serializers.SerializerMethodField()
+    is_draft = serializers.SerializerMethodField(read_only=True)   
 
     class Meta:
         model = Return
@@ -120,6 +121,7 @@ class ReturnSerializer(serializers.ModelSerializer):
             'invoice_url',
             'activity_curators',
             'amendment_requests',
+            'is_draft',
         )
 
         # the serverSide functionality of datatables is such that only columns
@@ -205,6 +207,93 @@ class ReturnSerializer(serializers.ModelSerializer):
         )
 
         return ReturnRequestSerializer(requests, many=True).data
+
+    def get_is_draft(self, _return):
+        '''
+        Check for Draft processing status.
+        :param _return: Return instance.
+        '''
+        is_draft = False
+
+        if _return.processing_status == Return.RETURN_PROCESSING_STATUS_DRAFT:
+            is_draft = True
+
+        return is_draft
+
+
+class TableReturnSerializer(ReturnSerializer):
+    '''
+    Serialize returns information for data table presentation.
+    '''
+    class Meta:
+        model = Return
+        fields = (
+            'id',
+            'application',
+            'due_date',
+            'processing_status',
+            'customer_status',
+            'submitter',
+            'assigned_to',
+            'lodgement_number',
+            'lodgement_date',
+        )
+
+        # the serverSide functionality of datatables is such that only columns
+        # that have field 'data' defined are requested from the serializer. Use
+        # datatables_always_serialize to force render of fields that are not
+        # listed as 'data' in the datatable columns
+        datatables_always_serialize = fields
+
+
+class ExternalReturnSerializer(ReturnSerializer):
+    '''
+    Serialize returns information for external presentation.
+    '''
+    class Meta:
+        model = Return
+        fields = (
+            'id',
+            'application',
+            'due_date',
+            'processing_status',
+            'customer_status',
+            'submitter',
+            'assigned_to',
+            'lodgement_number',
+            'lodgement_date',
+        )
+
+        # the serverSide functionality of datatables is such that only columns
+        # that have field 'data' defined are requested from the serializer. Use
+        # datatables_always_serialize to force render of fields that are not
+        # listed as 'data' in the datatable columns
+        datatables_always_serialize = fields
+
+
+class InternalReturnSerializer(ReturnSerializer):
+    '''
+    Serialize returns information for internal presentation.
+    '''
+    class Meta:
+        model = Return
+        fields = (
+            'id',
+            'application',
+            'due_date',
+            'processing_status',
+            'customer_status',
+            'submitter',
+            'assigned_to',
+            'lodgement_number',
+            'lodgement_date',
+        )
+
+        # the serverSide functionality of datatables is such that only columns
+        # that have field 'data' defined are requested from the serializer. Use
+        # datatables_always_serialize to force render of fields that are not
+        # listed as 'data' in the datatable columns
+        datatables_always_serialize = fields
 
 
 class ReturnTypeSerializer(serializers.ModelSerializer):
