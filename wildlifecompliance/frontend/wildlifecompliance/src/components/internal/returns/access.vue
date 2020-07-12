@@ -39,7 +39,7 @@
                         <strong>Status</strong><br/>
                         {{ returns.processing_status }}
                     </div>
-                    <div class="col-sm-12 top-buffer-s">
+                    <div v-show="showActionButton" class="col-sm-12 top-buffer-s">
                         <strong>Assigned Officer</strong><br/>
                         <div class="form-group">
                             <template>
@@ -52,7 +52,7 @@
                     </div>
 
                     <!-- Workflow Actions -->
-                    <div class="col-sm-12 top-buffer-s">
+                    <div v-show="showActionButtons" class="col-sm-12 top-buffer-s">
                         <strong>Action</strong><br/><br/>
                         <button style="width:255px;" class="btn btn-primary btn-md" @click.prevent="acceptReturn()">Accept</button><br/><br/>
                         <button style="width:255px;" class="btn btn-primary btn-md" @click.prevent="amendmentRequest()">Request Amendment</button>
@@ -121,6 +121,9 @@ export default {
             'is_external',
             'current_user',
         ]),
+        showActionButtons: function(){
+            return !this.returns.is_draft
+        },
     },
     methods: {
         ...mapActions([

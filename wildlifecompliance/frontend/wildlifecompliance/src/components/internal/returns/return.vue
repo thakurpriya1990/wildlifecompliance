@@ -46,7 +46,7 @@
 
         <!-- End template for Return Tab -->
 
-        <div class="row" style="margin-bottom:50px;">
+        <div v-show="showSaveButton" class="row" style="margin-bottom:50px;">
             <div class="navbar navbar-fixed-bottom" style="background-color: #f5f5f5 ">
                 <div class="navbar-inner">
                     <div class="container">
@@ -120,6 +120,9 @@ export default {
     ]),
     showSpinner: function() {
         return this.spinner
+    },
+    showSaveButton: function() {
+        return !this.returns.is_draft
     },
   },
   methods: {
