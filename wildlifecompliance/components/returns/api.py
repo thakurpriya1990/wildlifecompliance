@@ -443,6 +443,120 @@ class ReturnViewSet(viewsets.ReadOnlyModelViewSet):
             print(traceback.print_exc())
             raise serializers.ValidationError(str(e))
 
+    @detail_route(methods=['POST', ])
+    def assign_to_me(self, request, *args, **kwargs):
+        try:
+            instance = self.get_object()
+            user = request.user
+
+            if user not in instance.activity_curators:
+                raise serializers.ValidationError(
+                    'You are not in any relevant officer groups.')
+
+            ReturnService.assign_officer_request(request, instance, user)
+
+            # serializer = InternalReturnSerializer(
+            #     instance, context={'request': request})
+            serializer = self.get_serializer(instance)
+
+            return Response(serializer.data)
+        except serializers.ValidationError:
+            print(traceback.print_exc())
+            raise
+        except ValidationError as e:
+            print(traceback.print_exc())
+            raise serializers.ValidationError(repr(e.error_dict))
+        except Exception as e:
+            print(traceback.print_exc())
+            raise serializers.ValidationError(str(e))
+
+    @detail_route(methods=['POST', ])
+    def assign_officer(self, request, *args, **kwargs):
+        from ledger.accounts.models import EmailUser
+        try:
+            instance = self.get_object()
+            user_id = request.data.get('officer_id', None)
+            user = None
+
+            if not user_id:
+                raise serializers.ValidationError('An officer id is required')
+
+            try:
+                user = EmailUser.objects.get(id=user_id)
+
+            except EmailUser.DoesNotExist:
+                raise serializers.ValidationError(
+                    'A user with the id passed in does not exist')
+
+            if not request.user.has_perm(
+              'wildlifecompliance.licensing_officer'):
+                raise serializers.ValidationError(
+                    'You are not authorised to assign officers')
+
+            if user not in instance.licence_officers:
+                raise serializers.ValidationError(
+                    'User is not in any relevant officer groups')
+
+            ReturnService.assign_officer_request(request, instance, user)
+
+            # serializer = InternalReturnSerializer(
+            #     instance, context={'request': request})
+            serializer = self.get_serializer(instance)
+
+            return Response(serializer.data)
+
+        except serializers.ValidationError:
+            print(traceback.print_exc())
+            raise
+
+        except ValidationError as e:
+            print(traceback.print_exc())
+            raise serializers.ValidationError(repr(e.error_dict))
+
+        except Exception as e:
+            print(traceback.print_exc())
+            raise serializers.ValidationError(str(e))
+
+    @detail_route(methods=['POST', ])
+    def unassign_officer(self, request, *args, **kwargs):
+        try:
+            instance = self.get_object()
+
+            ReturnService.unassign_officer_request(request, instance)
+
+            # serializer = InternalApplicationSerializer(
+            #     instance, context={'request': request})
+            serializer = self.get_serializer(instance)
+
+            return Response(serializer.data)
+
+        except serializers.ValidationError:
+            print(traceback.print_exc())
+            raise
+
+        except ValidationError as e:
+            print(traceback.print_exc())
+            raise serializers.ValidationError(repr(e.error_dict))
+
+        except Exception as e:
+            print(traceback.print_exc())
+            raise serializers.ValidationError(str(e))
+
+    @detail_route(methods=['post'])
+    @renderer_classes((JSONRenderer,))
+    def officer_comments(self, request, *args, **kwargs):
+        try:
+            instance = self.get_object()
+            ReturnService.record_deficiency_request(request, instance)
+            serializer = self.get_serializer(instance)
+
+            return Response(serializer.data)
+
+        except Exception as e:
+            print(traceback.print_exc())
+
+        raise serializers.ValidationError(str(e))
+
     @detail_route(methods=['GET', ])
     def comms_log(self, request, *args, **kwargs):
         try:
