@@ -27,7 +27,7 @@
                                          :name="name + '::' + header.name"
                                          class="form-control"
                                          placeholder="DD/MM/YYYY"
-                                         :v-model="setDateValue(title.value, row_no, header.name)"
+                                         :v-model="setDateValue(title.value, row_no, header.name, header.readonly)"
                                          :required="isRequired"
                                   />
                               </div>
@@ -60,7 +60,7 @@
               </div>
           </div>
           <div >
-             <button class="btn btn-link" @click.prevent="addRow()" >Add Row</button>
+             <button v-if="!readonly" class="btn btn-link" @click.prevent="addRow()" >Add Row</button>
           </div>
      </div>
 </template>
@@ -112,12 +112,13 @@ const GridBlock = {
     },
     addArea: function(e) {
     },
-    setDateValue: function(value, row, name) {
+    setDateValue: function(value, row, name, readonly) {
       const self = this;
       if (value !== '') {
          self.field_data[row][name].value = value;
          self.value = value;
       }
+      this.readonly = readonly
       return self.field_data[row][name].value;
     },
     setDatePicker: function() {
