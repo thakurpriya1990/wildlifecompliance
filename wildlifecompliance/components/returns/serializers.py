@@ -210,15 +210,16 @@ class ReturnSerializer(serializers.ModelSerializer):
 
     def get_is_draft(self, _return):
         '''
-        Check for Draft processing status.
+        Check for processing status is acceptable for submission by licensee.
         :param _return: Return instance.
         '''
-        is_draft = False
+        submission_list = [
+            Return.RETURN_PROCESSING_STATUS_DUE,
+            Return.RETURN_PROCESSING_STATUS_OVERDUE,
+            Return.RETURN_PROCESSING_STATUS_DRAFT,
+        ]
 
-        if _return.processing_status == Return.RETURN_PROCESSING_STATUS_DRAFT:
-            is_draft = True
-
-        return is_draft
+        return True if _return.processing_status in submission_list else False
 
 
 class TableReturnSerializer(ReturnSerializer):
