@@ -70,6 +70,7 @@ class ReturnType(models.Model):
     # fee_name is an optional field for fee and can be used to correspond to
     # JSON property.
     fee_name = models.CharField(null=True, blank=True, max_length=50)
+    oracle_account_code = models.CharField(max_length=100, default='')
     replaced_by = models.ForeignKey(
         'self',
         on_delete=models.PROTECT,

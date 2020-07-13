@@ -42,6 +42,7 @@ class ReturnFeePolicy(object):
         from ledger.checkout.utils import calculate_excl_gst
 
         product_lines = []
+        oracle_code = a_return.return_type.oracle_account_code
 
         product_lines.append({
             'ledger_description': 'submission fee for {0}'.format(
@@ -50,7 +51,7 @@ class ReturnFeePolicy(object):
             'price_incl_tax': str(a_return.return_fee),
             'price_excl_tax': str(calculate_excl_gst(
                 a_return.return_fee)),
-            'oracle_code': ''
+            'oracle_code': oracle_code
         })
 
         return product_lines

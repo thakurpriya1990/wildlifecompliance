@@ -4235,7 +4235,7 @@ class ApplicationSelectedActivity(models.Model):
             'quantity': 1,
             'price_incl_tax': str(self.licence_fee),
             'price_excl_tax': str(price_excl),
-            'oracle_code': ''
+            'oracle_code': self.licence_activity.oracle_account_code
         })
         checkout(
             request, application, lines=product_lines,

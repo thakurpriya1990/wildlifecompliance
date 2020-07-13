@@ -46,12 +46,13 @@
 
         <!-- End template for Return Tab -->
 
-        <div class="row" style="margin-bottom:50px;">
+        <div v-show="showSaveButton" class="row" style="margin-bottom:50px;">
             <div class="navbar navbar-fixed-bottom" style="background-color: #f5f5f5 ">
                 <div class="navbar-inner">
                     <div class="container">
                         <p class="pull-right" style="margin-top:5px;">
-                            <button style="width:150px;" class="btn btn-primary btn-md" @click.prevent="save()" name="save_exit">Save Changes</button>
+                            <button v-if="showSpinner" type="button" class="btn btn-primary" ><i class="fa fa-spinner fa-spin"/>Saving</button>                                                    
+                            <button v-else style="width:150px;" class="btn btn-primary btn-md" @click.prevent="save()" name="save_exit">Save Changes</button>
                         </p>
                     </div>
                 </div>
@@ -93,7 +94,7 @@ export default {
         // TODO: check if still required.
         assignTo: false,
         loading: [],
-        isLoading: false,
+        spinner: false,
         DATE_TIME_FORMAT: 'DD/MM/YYYY HH:mm:ss',
         members: [],
 
@@ -111,6 +112,19 @@ export default {
     ReturnSheet,
     ReturnData,
   },
+  computed: {
+     ...mapGetters([
+        'isReturnsLoaded',
+        'returns',
+        'is_external',
+    ]),
+    showSpinner: function() {
+        return this.spinner
+    },
+    showSaveButton: function() {
+        return !this.returns.is_draft
+    },
+  },
   methods: {
     ...mapActions({
       load: 'loadReturns',
@@ -118,56 +132,33 @@ export default {
     ...mapActions([
         'setReturns',
     ]),
-    save: function(e) {
-      const self = this;
-      self.form=document.forms.internal_returns_form;
-      var data = new FormData(self.form);
-      // cache only used in Returns sheets
-      for (const speciesID in self.species_cache) { // Running Sheet Cache
-        let speciesJSON = []
-        for (let i=0;i<self.species_cache[speciesID].length;i++){
-          speciesJSON[i] = JSON.stringify(self.species_cache[speciesID][i])
-        }
-        data.append(speciesID, speciesJSON)
-      };
-      var speciesJSON = []
-      let cnt = 0;
-      for (const speciesID in self.species_transfer) { // Running Sheet Transfers
-        Object.keys(self.species_transfer[speciesID]).forEach(function(key) {
-          speciesJSON[cnt] = JSON.stringify(self.species_transfer[speciesID][key])
-          cnt++;
-        });
-        data.append('transfer', speciesJSON)
-      }
-      self.$http.post(helpers.add_endpoint_json(api_endpoints.returns,self.returns.id+'/save'),data,{
+    save: function(props = { showNotification: true }) {
+        this.spinner = true;
+        const { showNotification } = props;
+        this.form=document.forms.internal_returns_form;
+        var data = new FormData(this.form);
+
+        this.$http.post(helpers.add_endpoint_json(api_endpoints.returns,this.returns.id+'/officer_comments'),data,{
                       emulateJSON:true,
-                    }).then((response)=>{
-                      let species_id = self.returns.sheet_species;
-                      self.setReturns(response.body);
-                      self.returns.sheet_species = species_id;
 
-                      swal( 'Save', 
-                            'Return Details Saved', 
-                            'success' )
-                    
-                    },(error)=>{
-                      console.log(error);
-                      swal('Error',
-                           'There was an error saving your return details.<br/>' + error.body,
-                           'error'
-                      )
-                    });
-    },
+        }).then((response)=>{
+            this.spinner = false;
+            let species_id = this.returns.sheet_species;
+            this.setReturns(response.body);
+            this.returns.sheet_species = species_id;
 
-  },
-  computed: {
-     ...mapGetters([
-        'isReturnsLoaded',
-        'returns',
-        'is_external',
-    ]),
-    isWithCurator: function() {
-        return true;
+            swal( 'Save', 
+                'Return Details Saved', 
+                'success' )
+        
+        },(error)=>{
+            this.spinner = false
+            console.log(error);
+            swal('Error',
+                'There was an error saving your return details.<br/>' + error.body,
+                'error'
+            )
+        });
     },
   },
   beforeRouteEnter: function(to, from, next){

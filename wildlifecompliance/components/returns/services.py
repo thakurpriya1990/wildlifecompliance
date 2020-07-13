@@ -48,6 +48,71 @@ class ReturnService(object):
         pass
 
     @staticmethod
+    def record_deficiency_request(request, a_return):
+        '''
+        '''
+        print('record-deficiency')
+        if a_return.has_data:
+            data = ReturnData(a_return)
+            data.store(request)
+
+        if a_return.has_question:
+            question = ReturnQuestion(a_return)
+            question.store(request)
+
+        return []
+
+    @staticmethod
+    def unassign_officer_request(request, a_return):
+        '''
+        Remove an officer from a reqested return.
+
+        :param request details from view.
+        :param a return for assignment.
+        '''
+        with transaction.atomic():
+            try:
+                if a_return.assigned_to:
+                    a_return.assigned_to = None
+                    a_return.save()
+                    # Create a log entry.
+                    a_return.log_user_action(
+                        ReturnUserAction.ACTION_UNASSIGN.format(
+                            a_return.id), request)
+
+            except BaseException as e:
+                logger.error('ERR: unassign_officer_request : {0}'.format(e))
+                raise
+
+    @staticmethod
+    def assign_officer_request(request, a_return, an_officer):
+        '''
+        Assign an officer to requested return.
+
+        :param request details from view.
+        :param a return for assignment.
+        :param an officer is EmailUser details.
+        '''
+        with transaction.atomic():
+            try:
+
+                if an_officer != a_return.assigned_to:
+                    a_return.assigned_to = an_officer
+                    a_return.save()
+
+                    # Create a log entry.
+                    a_return.log_user_action(
+                        ReturnUserAction.ACTION_ASSIGN_TO.format(
+                            a_return.id, '{}({})'.format(
+                                an_officer.get_full_name(),
+                                an_officer.email)
+                        ), request)
+
+            except BaseException as e:
+                logger.error('ERR: assign_officer_request : {0}'.format(e))
+                raise
+
+    @staticmethod
     def accept_return_request(request, a_return):
         '''
         Process an accepted requested return.
@@ -370,6 +435,38 @@ class ReturnData(object):
                     self._return.save_return_table(
                         table_info, table_rows, request)
 
+    def get_table_deficiency(self, deficiency_key):
+        '''
+        Get deficiency added for this return data.
+        '''
+        deficiency = None
+
+        try:
+            row = self.table[0]['data'].gi_frame.f_locals['rows'][0]
+            deficiency = row[deficiency_key]
+
+        except BaseException:
+            pass
+
+        return deficiency
+
+    def set_table_deficiency(self, rows):
+        '''
+        Set deficiency added for this return data.
+        '''
+        try:
+            table_name = self._return.return_type.resources[0]['name']
+            deficiency_key = table_name + '-deficiency-field'
+
+            table_deficiency = self.get_table_deficiency(deficiency_key)
+            for row in rows:
+                row[deficiency_key] = table_deficiency
+
+        except BaseException as e:
+            logger.error('ERR: set_table_deficiency : {0}'.format(e))
+
+        return True
+
     def build_table(self, rows):
         """
         Method to create and validate rows of data to the table schema without
@@ -378,6 +475,10 @@ class ReturnData(object):
         :return: Array of tables.
         """
         tables = []
+
+        # retain deficiencies when building.
+        self.set_table_deficiency(rows)
+
         for resource in self._return.return_type.resources:
             resource_name = resource.get('name')
             schema = Schema(resource.get('schema'))
@@ -451,8 +552,7 @@ class ReturnData(object):
                     break
             if not is_empty:
                 deficiency_data = post_data['table_name'] + '-deficiency-field'
-                # row_data[deficiency_data] = post_data[deficiency_data]
-                row_data[deficiency_data] = ''
+                row_data[deficiency_data] = post_data[deficiency_data]
                 rows.append(row_data)
         return rows
 
@@ -997,12 +1097,13 @@ class ReturnSheet(object):
         return_submission = u'Transfer of stock for {} Return {}'.format(
             u'{} {}'.format(applicant.first_name, applicant.last_name),
             application.lodgement_number)
+        oracle_code = self._return.return_type.oracle_account_code
         product_lines.append({
             'ledger_description': '{}'.format(self._return.id),
             'quantity': 1,
             'price_incl_tax': str(self._return.return_fee),
             'price_excl_tax': str(calculate_excl_gst(self.licence_fee)),
-            'oracle_code': ''
+            'oracle_code': oracle_code
         })
         checkout(
             request, application, lines=product_lines,

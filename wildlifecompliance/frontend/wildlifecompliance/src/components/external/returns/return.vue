@@ -12,7 +12,7 @@
 
             <!-- End template for Return Tab -->
 
-            <div class="row" style="margin-bottom:50px;" v-if="selected_returns_tab_id===0">
+            <div class="row" style="margin-bottom:50px;" v-show="showButtons" >
                 <div class="navbar navbar-fixed-bottom" style="background-color: #f5f5f5 ">
                     <div class="navbar-inner">
                         <div class="container">
@@ -53,6 +53,7 @@ export default {
   data() {
     return {
       pdBody: 'pdBody' + self._uid,
+      estimated_fee: 0,
     }
   },
   components: {
@@ -84,6 +85,9 @@ export default {
       return this.returns.return_fee > 0 && [
         'draft', 'awaiting_payment'
       ]
+    },
+    showButtons: function() {
+      return this.selected_returns_tab_id===0 && this.returns.is_draft
     },
   },
   methods: {
@@ -183,8 +187,14 @@ export default {
                     
                     });
 
-    }
-  },    
+    },
+  },
+  updated: function() {
+    // this.$nextTick(()=>{
+    //   this.estimate_price()
+    //   this.estimated_fee = this.returns.return_fee
+    // });
+  },   
   beforeRouteEnter: function(to, from, next) {
      next(vm => {
        vm.load({ url: `/api/returns/${to.params.return_id}.json` });
