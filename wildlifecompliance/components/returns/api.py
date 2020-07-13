@@ -583,6 +583,8 @@ class ReturnViewSet(viewsets.ReadOnlyModelViewSet):
                 instance = self.get_object()
                 request.data['compliance'] = u'{}'.format(instance.id)
                 request.data['staff'] = u'{}'.format(request.user.id)
+                request.data['return_obj'] = instance.id
+                request.data['log_type'] = request.data['type']
                 serializer = ReturnLogEntrySerializer(data=request.data)
                 serializer.is_valid(raise_exception=True)
                 comms = serializer.save()
