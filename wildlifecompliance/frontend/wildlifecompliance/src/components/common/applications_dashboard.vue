@@ -296,10 +296,10 @@ export default {
                         else if (full.can_user_view) {
                             links +=  `<a href='/external/application/${full.id}'>View</a><br/>`;
                         }
-                        if (full.is_online_submit && full.payment_status == 'unpaid'){
+                        if (full.can_pay_application){
                             links +=  `<a href='#${full.id}' data-pay-application-fee='${full.id}'>Pay Application Fee</a><br/>`;
                         }
-                        if (full.is_online_submit && ['awaiting_payment'].includes(full.customer_status.id) && ['paid','payment_not_required','partially_paid'].includes(full.payment_status)){
+                        if (full.can_pay_licence){
                             let activity = full.activities.find(activity => activity.can_pay_licence_fee=true)
                             links +=  `<a href='#${full.id}' data-pay-application-licence-fee='${full.id}' pay-licence-fee-for='${activity.id}'>Pay Licence Fee</a><br/>`;
                         }                        
