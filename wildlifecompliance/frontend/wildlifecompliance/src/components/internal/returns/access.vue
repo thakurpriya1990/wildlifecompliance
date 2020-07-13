@@ -39,7 +39,7 @@
                         <strong>Status</strong><br/>
                         {{ returns.processing_status }}
                     </div>
-                    <div v-show="showActionButton" class="col-sm-12 top-buffer-s">
+                    <div v-show="showActionButtons" class="col-sm-12 top-buffer-s">
                         <strong>Assigned Officer</strong><br/>
                         <div class="form-group">
                             <template>
