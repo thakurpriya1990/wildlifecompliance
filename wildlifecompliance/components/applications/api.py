@@ -775,6 +775,7 @@ class ApplicationViewSet(viewsets.ModelViewSet):
                     price_excl = calculate_excl_gst(activity.application_fee)
                     if ApplicationFeePolicy.GST_FREE:
                         price_excl = activity.application_fee
+                    oracle_code = activity.licence_activity.oracle_account_code
 
                     product_lines.append({
                         'ledger_description': '{} (Application Fee)'.format(
@@ -782,7 +783,7 @@ class ApplicationViewSet(viewsets.ModelViewSet):
                         'quantity': 1,
                         'price_incl_tax': str(activity.application_fee),
                         'price_excl_tax': str(price_excl),
-                        'oracle_code': ''
+                        'oracle_code': oracle_code
                     })
 
             activities = instance.selected_activities.all()
@@ -802,6 +803,7 @@ class ApplicationViewSet(viewsets.ModelViewSet):
                     price_excl = calculate_excl_gst(activity.additional_fee)
                     if ApplicationFeePolicy.GST_FREE:
                         price_excl = activity.additional_fee
+                    oracle_code = activity.licence_activity.oracle_account_code
 
                     product_lines.append({
                         'ledger_description': '{}'.format(
@@ -809,7 +811,7 @@ class ApplicationViewSet(viewsets.ModelViewSet):
                         'quantity': 1,
                         'price_incl_tax': str(activity.additional_fee),
                         'price_excl_tax': str(price_excl),
-                        'oracle_code': ''
+                        'oracle_code': oracle_code
                     })
 
             # Check if refund is required from last invoice.
@@ -823,13 +825,15 @@ class ApplicationViewSet(viewsets.ModelViewSet):
                     price_excl = calculate_excl_gst(instance.application_fee)
                     if ApplicationFeePolicy.GST_FREE:
                         price_excl = instance.application_fee
+                    # _code = activity.licence_activity.oracle_account_code
+                    oracle_code = ''
 
                     product_lines.append({
                         'ledger_description': 'Adjusted fee refund',
                         'quantity': 1,
                         'price_incl_tax': str(instance.application_fee),
                         'price_excl_tax': str(price_excl),
-                        'oracle_code': ''
+                        'oracle_code': oracle_code
                     })
 
             checkout_result = checkout(

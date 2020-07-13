@@ -127,13 +127,15 @@ class LicenceFeeClearingInvoice(InvoiceClearable):
         refund = refund * -1
         refund_excl = refund \
             if ApplicationFeePolicy.GST_FREE else calculate_excl_gst(refund)
+        # oracle_code = activity.licence_activity.oracle_account_code
+        oracle_code = ''
 
         product_line = {
                     'ledger_description': '{0}'.format(desc),
                     'quantity': 1,
                     'price_incl_tax': str(refund),
                     'price_excl_tax': str(refund_excl),
-                    'oracle_code': ''
+                    'oracle_code': oracle_code
                 }
 
         return product_line
@@ -239,6 +241,7 @@ class ApplicationFeePolicy(object):
             price_excl = calculate_excl_gst(activity.application_fee)
             if ApplicationFeePolicy.GST_FREE:
                 price_excl = activity.application_fee
+            oracle_code = activity.licence_activity.oracle_account_code
 
             product_lines.append({
                 'ledger_description': '{} (Application Fee)'.format(
@@ -246,7 +249,7 @@ class ApplicationFeePolicy(object):
                 'quantity': 1,
                 'price_incl_tax': str(activity.application_fee),
                 'price_excl_tax': str(price_excl),
-                'oracle_code': ''
+                'oracle_code': oracle_code
             })
 
         # licence activities.
@@ -258,6 +261,7 @@ class ApplicationFeePolicy(object):
             price_excl = calculate_excl_gst(activity.licence_fee)
             if ApplicationFeePolicy.GST_FREE:
                 price_excl = activity.licence_fee
+            oracle_code = activity.licence_activity.oracle_account_code
 
             product_lines.append({
                 'ledger_description': '{} (Licence Fee)'.format(
@@ -265,7 +269,7 @@ class ApplicationFeePolicy(object):
                 'quantity': 1,
                 'price_incl_tax': str(activity.licence_fee),
                 'price_excl_tax': str(price_excl),
-                'oracle_code': ''
+                'oracle_code': oracle_code
             })
 
         activities = application.selected_activities.all()
@@ -282,6 +286,7 @@ class ApplicationFeePolicy(object):
                 price_excl = calculate_excl_gst(activity.additional_fee)
                 if ApplicationFeePolicy.GST_FREE:
                     price_excl = activity.additional_fee
+                oracle_code = activity.licence_activity.oracle_account_code
 
                 product_lines.append({
                     'ledger_description': '{}'.format(
@@ -289,7 +294,7 @@ class ApplicationFeePolicy(object):
                     'quantity': 1,
                     'price_incl_tax': str(activity.additional_fee),
                     'price_excl_tax': str(price_excl),
-                    'oracle_code': ''
+                    'oracle_code': oracle_code
                 })
 
         # Check if refund is required.

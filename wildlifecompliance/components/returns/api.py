@@ -298,6 +298,7 @@ class ReturnViewSet(viewsets.ReadOnlyModelViewSet):
             fees = ReturnService.calculate_fees(instance)['fees']['return']
             price = int(qty) * fees
             licence = request.data['licence']
+            oracle_code = instance.return_type.oracle_account_code
 
             product_lines.append({
                 'ledger_description': 'Transfer fee to licence {0}'.format(
@@ -305,7 +306,7 @@ class ReturnViewSet(viewsets.ReadOnlyModelViewSet):
                 'quantity': 1,
                 'price_incl_tax': str(price),
                 'price_excl_tax': str(calculate_excl_gst(price)),
-                'oracle_code': ''
+                'oracle_code': oracle_code
             })
 
             checkout_result = checkout(

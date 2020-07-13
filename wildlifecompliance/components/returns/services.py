@@ -1097,12 +1097,13 @@ class ReturnSheet(object):
         return_submission = u'Transfer of stock for {} Return {}'.format(
             u'{} {}'.format(applicant.first_name, applicant.last_name),
             application.lodgement_number)
+        oracle_code = self._return.return_type.oracle_account_code
         product_lines.append({
             'ledger_description': '{}'.format(self._return.id),
             'quantity': 1,
             'price_incl_tax': str(self._return.return_fee),
             'price_excl_tax': str(calculate_excl_gst(self.licence_fee)),
-            'oracle_code': ''
+            'oracle_code': oracle_code
         })
         checkout(
             request, application, lines=product_lines,
