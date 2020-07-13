@@ -41,9 +41,9 @@ class LicencePurpose(models.Model):
         max_digits=8, decimal_places=2, default='0')
     base_licence_fee = models.DecimalField(
         max_digits=8, decimal_places=2, default='0')
-    renewal_fee = models.DecimalField(
+    renewal_application_fee = models.DecimalField(
         max_digits=8, decimal_places=2, default='0')
-    amendment_fee = models.DecimalField(
+    amendment_application_fee = models.DecimalField(
         max_digits=8, decimal_places=2, default='0')
     fields = JSONField(default=list)
     licence_category = models.ForeignKey(
@@ -56,8 +56,12 @@ class LicencePurpose(models.Model):
         blank=True,
         null=True
     )
-
-    # application_schema = JSONField(blank=True, null=True)
+    apply_multiple = models.BooleanField(
+        default=False,
+        help_text='If ticked, the licenced Purpose can have multiple periods.')
+    apply_for_org = models.BooleanField(
+        default=False,
+        help_text='If ticked, the licenced Purpose can be on behalf of Org.')
 
     class Meta:
         app_label = 'wildlifecompliance'
