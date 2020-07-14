@@ -2482,6 +2482,8 @@ class Application(RevisionedMixin):
                 issued_activities = []
                 declined_activities = []
 
+                purpose_sequence = parent_licence.get_next_purpose_sequence()
+
                 # perform issue for each licence activity id in request.data.get('activity')
                 for item in request.data.get('activity'):
                     licence_activity_id = item['id']
@@ -2551,6 +2553,11 @@ class Application(RevisionedMixin):
                                 purpose.processing_status = ISSUE
                                 purpose.issue_date = timezone.now()
                                 purpose.status = CURRENT
+
+                                # initialise the purpose sequencing at issue.
+                                if purpose.purpose_sequence < 1:
+                                    purpose.purpose_sequence = purpose_sequence
+                                    purpose_sequence += 1
 
                                 # proposed dates are not set when the purpose 
                                 # was previously declined by proposal officer.
@@ -4571,6 +4578,7 @@ class ApplicationSelectedActivityPurpose(models.Model):
     expiry_date = models.DateField(blank=True, null=True)
     proposed_start_date = models.DateField(null=True, blank=True)
     proposed_end_date = models.DateField(null=True, blank=True)
+    purpose_sequence = models.IntegerField(blank=True, default=0)
 
     @property
     def is_proposed(self):

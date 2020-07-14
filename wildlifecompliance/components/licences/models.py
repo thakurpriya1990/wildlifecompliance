@@ -1094,6 +1094,84 @@ class WildlifeLicence(models.Model):
 
         return has_info
 
+    def get_next_purpose_sequence(self):
+        '''
+        Returns the next sequence number for selected licence purposes.
+        '''
+        from wildlifecompliance.components.applications.models import (
+            ApplicationSelectedActivityPurpose,
+            ApplicationSelectedActivity,
+        )
+        next_sequence = 0
+        # activities for this licence in current or suspended.
+        activity_status = [
+                ApplicationSelectedActivity.ACTIVITY_STATUS_CURRENT,
+                ApplicationSelectedActivity.ACTIVITY_STATUS_SUSPENDED,
+        ]
+        # latest purposes on the activities which are issued or reissued.
+        purpose_process_status = [
+            ApplicationSelectedActivityPurpose.PROCESSING_STATUS_ISSUED,
+            ApplicationSelectedActivityPurpose.PROCESSING_STATUS_REISSUE,
+        ]
+
+        activities = self.current_application.get_current_activity_chain(
+            activity_status__in=activity_status
+        )
+        latest_purposes = [
+            p for p in [
+                a.proposed_purposes.filter(
+                    processing_status__in=purpose_process_status
+                ) for a in activities
+            ]
+        ]
+
+        # set the next sequence number from the latest proposed purposes from
+        # all the activities.
+        if latest_purposes:
+            last_sequence = 0
+            for a_purposes in latest_purposes:
+                for purpose in a_purposes:
+                    last_sequence = purpose.purpose_sequence \
+                        if purpose.purpose_sequence > last_sequence \
+                        else last_sequence
+            next_sequence = last_sequence
+
+        next_sequence += 1
+        return next_sequence
+
+    def get_purposes_in_sequence(self):
+        '''
+        Returns selected licence purposes for this licence in sequence order.
+        '''
+        from wildlifecompliance.components.applications.models import (
+            ApplicationSelectedActivityPurpose,
+            ApplicationSelectedActivity,
+        )
+        purposes = []
+        # activities for this licence in current or suspended.
+        activity_status = [
+                ApplicationSelectedActivity.ACTIVITY_STATUS_CURRENT,
+                ApplicationSelectedActivity.ACTIVITY_STATUS_SUSPENDED,
+        ]
+        # latest purposes on the activities which are issued or reissued.
+        purpose_process_status = [
+            ApplicationSelectedActivityPurpose.PROCESSING_STATUS_ISSUED,
+            ApplicationSelectedActivityPurpose.PROCESSING_STATUS_REISSUE,
+        ]
+
+        activity_ids = [
+            a.id for a in self.current_application.get_current_activity_chain(
+                activity_status__in=activity_status
+            )
+        ]
+
+        purposes = ApplicationSelectedActivityPurpose.objects.filter(
+            selected_activity__in=activity_ids,
+            processing_status__in=purpose_process_status
+        ).order_by('purpose_sequence')
+
+        return purposes
+
     def generate_doc(self):
         from wildlifecompliance.components.licences.pdf import create_licence_doc
         self.licence_document = create_licence_doc(

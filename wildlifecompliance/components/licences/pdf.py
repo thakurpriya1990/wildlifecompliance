@@ -244,13 +244,13 @@ def _create_licence(licence_buffer, licence, application):
     '''
 
     def _create_licence_purpose(
-            elements, selected_activity, issued_purpose, sequence):
+            elements, selected_activity, issued_purpose):
         '''
         Creates the licence purpose details per page available on the activity.
         '''
         # delegation holds the dates, licencee and issuer details.
         delegation = []
-
+        sequence = purpose.purpose_sequence
         licence_display = '{0}-{1}-{2}'.format(
             licence.licence_number, sequence, issued_purpose.purpose.code)
         licence_purpose = issued_purpose.purpose.name
@@ -500,17 +500,11 @@ def _create_licence(licence_buffer, licence, application):
     elements.append(purposeList)
     elements.append(PageBreak())
 
-    purpose_sequence = 0    # sequence ordering of purposes on the licence.
-    for selected_activity in licence.current_activities:
-        # create purpose details available for the activity.
-        for purpose in selected_activity.proposed_purposes.all(
-        ).order_by('id'):
-            purpose_sequence += 1
-            if not purpose.is_issued:
-                # Exclude purposes that are not issued.
-                continue
-            _create_licence_purpose(
-                elements, selected_activity, purpose, purpose_sequence)
+    for purpose in licence.get_purposes_in_sequence():
+        if not purpose.is_issued:
+            # Exclude purposes that are not issued.
+            continue
+        _create_licence_purpose(elements, purpose.selected_activity, purpose)
 
     doc.build(elements)
 
