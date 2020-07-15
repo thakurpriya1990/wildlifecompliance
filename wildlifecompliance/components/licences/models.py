@@ -55,9 +55,6 @@ class LicencePurpose(models.Model):
     apply_multiple = models.BooleanField(
         default=False,
         help_text='If ticked, the licenced Purpose can have multiple periods.')
-    apply_for_org = models.BooleanField(
-        default=False,
-        help_text='If ticked, the licenced Purpose can be on behalf of Org.')
 
     class Meta:
         app_label = 'wildlifecompliance'
