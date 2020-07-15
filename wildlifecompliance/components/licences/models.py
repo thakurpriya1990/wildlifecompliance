@@ -2,17 +2,13 @@ from __future__ import unicode_literals
 
 from django.core.exceptions import ValidationError
 from django.db import models, transaction
-from django.dispatch import receiver
-from django.db.models.signals import pre_delete
 from django.contrib.postgres.fields.jsonb import JSONField
 from django.db.models import Max
 from django.db.models import Q
-from ledger.accounts.models import EmailUser
 from ledger.licence.models import LicenceType
 
 from wildlifecompliance.components.inspection.models import Inspection
 
-from wildlifecompliance.ordered_model import OrderedModel
 from wildlifecompliance.components.main.models import (
     CommunicationsLogEntry,
     UserAction,
@@ -573,6 +569,41 @@ class WildlifeLicence(models.Model):
 
         return open_purposes
 
+    def get_proposed_purposes_in_applications(self):
+        '''
+        Return a list of ApplicationSelectedActivityPurpose records issued
+        through all applications for the licence.
+        '''
+        from wildlifecompliance.components.applications.models import (
+            ApplicationSelectedActivityPurpose,
+            ApplicationSelectedActivity,
+        )
+
+        # activities for this licence in current or suspended.
+        activity_status = [
+                ApplicationSelectedActivity.ACTIVITY_STATUS_CURRENT,
+                ApplicationSelectedActivity.ACTIVITY_STATUS_REPLACED,
+                ApplicationSelectedActivity.ACTIVITY_STATUS_SUSPENDED,
+        ]
+        # latest purposes on the activities which are issued or reissued.
+        purpose_process_status = [
+            ApplicationSelectedActivityPurpose.PROCESSING_STATUS_ISSUED,
+            ApplicationSelectedActivityPurpose.PROCESSING_STATUS_REISSUE,
+        ]
+
+        activity_ids = [
+            a.id for a in self.current_application.get_current_activity_chain(
+                activity_status__in=activity_status
+            )
+        ]
+
+        purposes = ApplicationSelectedActivityPurpose.objects.filter(
+            selected_activity__in=activity_ids,
+            processing_status__in=purpose_process_status
+        ).order_by('purpose_sequence')
+
+        return purposes
+
     @property
     def latest_activities_merged(self):
         """
@@ -1106,6 +1137,7 @@ class WildlifeLicence(models.Model):
         # activities for this licence in current or suspended.
         activity_status = [
                 ApplicationSelectedActivity.ACTIVITY_STATUS_CURRENT,
+                ApplicationSelectedActivity.ACTIVITY_STATUS_REPLACED,
                 ApplicationSelectedActivity.ACTIVITY_STATUS_SUSPENDED,
         ]
         # latest purposes on the activities which are issued or reissued.
@@ -1151,6 +1183,7 @@ class WildlifeLicence(models.Model):
         # activities for this licence in current or suspended.
         activity_status = [
                 ApplicationSelectedActivity.ACTIVITY_STATUS_CURRENT,
+                ApplicationSelectedActivity.ACTIVITY_STATUS_REPLACED,
                 ApplicationSelectedActivity.ACTIVITY_STATUS_SUSPENDED,
         ]
         # latest purposes on the activities which are issued or reissued.
@@ -1170,7 +1203,36 @@ class WildlifeLicence(models.Model):
             processing_status__in=purpose_process_status
         ).order_by('purpose_sequence')
 
+        purposes = self.get_proposed_purposes_in_applications()
+
         return purposes
+
+    def get_purposes_to_expire(self):
+        '''
+        Returns selected licence purposes will have expired today.
+        '''
+        from wildlifecompliance.components.applications.models import (
+            ApplicationSelectedActivityPurpose,
+        )
+        from datetime import date
+
+        today = date.today()
+
+        current_status = [
+            ApplicationSelectedActivityPurpose.PURPOSE_STATUS_DEFAULT,
+            ApplicationSelectedActivityPurpose.PURPOSE_STATUS_CURRENT,
+        ]
+
+        purposes = self.get_proposed_purposes_in_applications()
+
+        to_expire = [
+            p for p in purposes.filter(
+                expiry_date__lt=today,
+                purpose_status__in=current_status,
+            )
+        ]
+
+        return to_expire
 
     def get_document_history(self):
         '''
@@ -1184,6 +1246,7 @@ class WildlifeLicence(models.Model):
         # activities for this licence in current or suspended.
         activity_status = [
                 ApplicationSelectedActivity.ACTIVITY_STATUS_CURRENT,
+                ApplicationSelectedActivity.ACTIVITY_STATUS_REPLACED,
                 ApplicationSelectedActivity.ACTIVITY_STATUS_SUSPENDED,
         ]
 
