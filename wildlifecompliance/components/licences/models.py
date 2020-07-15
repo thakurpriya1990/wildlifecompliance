@@ -1172,6 +1172,34 @@ class WildlifeLicence(models.Model):
 
         return purposes
 
+    def get_document_history(self):
+        '''
+        Returns a query set of all licence documents for this licence by
+        applications with current or suspended activities.
+        '''
+        from wildlifecompliance.components.applications.models import (
+            ApplicationSelectedActivity,
+            Application,
+        )
+        # activities for this licence in current or suspended.
+        activity_status = [
+                ApplicationSelectedActivity.ACTIVITY_STATUS_CURRENT,
+                ApplicationSelectedActivity.ACTIVITY_STATUS_SUSPENDED,
+        ]
+
+        application_ids = [
+            a.application_id
+            for a in self.current_application.get_current_activity_chain(
+                activity_status__in=activity_status
+            )
+        ]
+
+        documents = Application.objects.values('licence_document').filter(
+            id__in=application_ids,
+        )
+
+        return documents
+
     def generate_doc(self):
         from wildlifecompliance.components.licences.pdf import create_licence_doc
         self.licence_document = create_licence_doc(

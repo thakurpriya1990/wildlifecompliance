@@ -3,12 +3,14 @@ from wildlifecompliance.components.licences.models import (
     WildlifeLicence,
     LicenceCategory,
     LicenceActivity,
-    LicencePurpose
+    LicencePurpose,
+    LicenceDocument,
 )
 from wildlifecompliance.components.applications.models import (
     ApplicationSelectedActivity,
     ApplicationSelectedActivityPurpose,
     ActivityInvoice,
+    ApplicationDocument,
 )
 from wildlifecompliance.components.applications.serializers import (
     WildlifeLicenceApplicationSerializer,
@@ -419,3 +421,22 @@ class LicenceCategorySerializer(serializers.ModelSerializer):
             }
         )
         return serializer.data
+
+
+class LicenceDocumentSerializer(serializers.ModelSerializer):
+    licence_document = serializers.SerializerMethodField()
+
+    class Meta:
+        model = LicenceDocument
+        fields = (
+            'licence_document',
+        )
+
+    def get_licence_document(self, obj):
+        doc_id = obj['licence_document']
+        lic_id = 409
+        pdf = 'licence-{0}.pdf'.format(lic_id)
+        url = '/media/wildlifecompliance/licences/{0}/documents/{1}'.format(
+            doc_id, pdf
+        )
+        return url
