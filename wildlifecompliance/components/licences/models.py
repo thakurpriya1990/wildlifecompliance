@@ -677,7 +677,7 @@ class WildlifeLicence(models.Model):
                         for p in activity.proposed_purposes.all() if p.is_issued and p.purpose in activity.purposes])
                 activity_key['expiry_date'] += \
                     '\n' + '\n'.join(['{}'.format(
-                        p.expiry_date.strftime('%d/%m/%Y'))
+                        p.expiry_date.strftime('%d/%m/%Y') if p.expiry_date else None)
                         for p in activity.proposed_purposes.all() if p.is_issued and p.purpose in activity.purposes])
                 activity_key['can_action']['can_renew'] =\
                     activity_key['can_action']['can_renew'] or activity_can_action['can_renew']

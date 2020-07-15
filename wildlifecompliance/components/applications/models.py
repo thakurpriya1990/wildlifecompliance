@@ -4196,6 +4196,10 @@ class ApplicationSelectedActivity(models.Model):
         try:
             i_date = self.get_issue_date()
             o_date = self.get_original_issue_date()
+
+            if i_date == None:  # Not issued yet
+                return False
+
             i_dtime = datetime.datetime.strptime(
                 i_date.strftime('%Y-%m-%d'),
                 '%Y-%m-%d'
