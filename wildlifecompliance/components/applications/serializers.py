@@ -313,6 +313,7 @@ class ExternalApplicationSelectedActivityMergedSerializer(serializers.Serializer
 class EmailUserAppViewSerializer(serializers.ModelSerializer):
     residential_address = UserAddressSerializer()
     identification = DocumentSerializer()
+    dob = serializers.SerializerMethodField(read_only=True)
 
     class Meta:
         model = EmailUser
@@ -328,6 +329,14 @@ class EmailUserAppViewSerializer(serializers.ModelSerializer):
                   'email',
                   'phone_number',
                   'mobile_number',)
+
+    def get_dob(self, obj):
+
+        formatted_date = obj.dob.strftime(
+            '%d/%m/%Y'
+        ) if obj.dob else None
+
+        return formatted_date
 
 
 class ActivitySerializer(serializers.ModelSerializer):
@@ -377,6 +386,7 @@ class AssessmentSerializer(serializers.ModelSerializer):
         ) if obj.date_last_reminded else None
 
         return formatted_date
+
 
 class SimpleSaveAssessmentSerializer(serializers.ModelSerializer):
 
