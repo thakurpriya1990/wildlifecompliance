@@ -815,7 +815,7 @@ class IncreaseApplicationFeeFieldElement(SpecialFieldElement):
                     p.application_fee = purpose.base_application_fee
                     p.licence_fee = purpose.base_licence_fee
 
-                p.adjusted_fee = self.adjusted_fee
+                p.adjusted_fee += self.adjusted_fee
                 p.save()
 
     def get_adjusted_fees(self):
