@@ -70,6 +70,7 @@
         </div>
         <LicenceActionPurposes ref="licence_action_purposes" :licence_activity_purposes="action_purpose_list" :licence_id="selected_licence_id" :action="licence_action" @refreshFromResponse="refreshFromResponse"></LicenceActionPurposes>
         <InspectionRequest ref="inspection" @inspection-created="requestedInspection"></InspectionRequest>
+        <LicenceHistory ref="licence_history" />
     </div>
 </template>
 <script>
@@ -77,6 +78,7 @@ import modal from '@vue-utils/bootstrap-modal.vue'
 import datatable from '@/utils/vue/datatable.vue'
 import LicenceActionPurposes from './licence_action_purposes.vue'
 import InspectionRequest from '../internal/inspection/create_inspection_modal'
+import LicenceHistory from './licence_history_modal.vue';
 import { mapActions, mapGetters } from 'vuex'
 import {
     api_endpoints,
@@ -103,39 +105,6 @@ export default {
         let vm = this;
         return {
             pBody: 'pBody' + vm._uid,
-            history_url: '',
-            history_licence_id: 409,
-            historyTable: null,
-            popoversInitialised: false,
-            historyDtOptions:{
-                language: {
-                    processing: "<i class='fa fa-4x fa-spinner fa-spin'></i>"
-                },
-                responsive: true,
-                deferRender: true, 
-                autowidth: true,
-                order: [[2, 'desc']],
-                dom:
-                    "<'row'<'col-sm-5'l><'col-sm-6'f>>" +
-                    "<'row'<'col-sm-12'tr>>" +
-                    "<'row'<'col-sm-5'i><'col-sm-7'p>>",
-                processing:true,
-                ajax: {
-                    "url": helpers.add_endpoint_json(api_endpoints.licences,'409'+'/licence_history'), 
-                    "dataSrc": '',
-                },
-                order: [],
-                columns:[
-                    {
-                        data:"licence_document",
-                        mRender:function(data,type,full){
-                            return `<a href="${data}" target="_blank">${data}</a>`;
-                        },
-                        orderable: false
-                    },
-                ]
-            },
-
             datatable_id: 'licence-datatable-'+vm._uid,
             filterLicenceType: 'All',
 //            filterLicenceStatus: 'All',
@@ -155,6 +124,10 @@ export default {
             },
             inspection:{
                 isModalOpen: false
+            },
+            licence_history: {
+                isModalOpen: false,
+                licence_history_id: '409',
             },
 //            licence_status:[],
             licence_holders: [],
@@ -255,9 +228,9 @@ export default {
                                 if (!vm.is_external && full.can_add_purpose && !full.has_inspection_open) {
                                     links += `<a inspection-licence='${full.id}'>Request Inspection</a><br/>`
                                 }
-                                // if (!vm.is_external) {
-                                //     links += `<a licence-history='${full.id}'>History</a><br/>`
-                                // }
+                                if (!vm.is_external) {
+                                    links += `<a licence-history='${full.id}'>History</a><br/>`
+                                }
                             }
                             return links;
                         },
@@ -308,6 +281,7 @@ export default {
         datatable,
         LicenceActionPurposes,
         InspectionRequest,
+        LicenceHistory,
     },
     watch:{
         filterLicenceType: function(){
@@ -329,11 +303,7 @@ export default {
     computed: {
         is_external: function(){
             return this.level == 'external';
-        },
-        history_url: function() {
-            return `/api/licence/${this.licence.id}/licence_history.json`;
-        },
-        
+        },        
     },
     methods:{
         ...mapActions([
@@ -822,8 +792,9 @@ export default {
             // Create Licence History Listener.
             vm.$refs.licence_datatable.vmDataTable.on('click', 'a[licence-history]', function(e) {
                 e.preventDefault();
-                vm.$refs.selected_licence_id = $(this).attr('licence-history');
-                vm.history_licence_id = $(this).attr('licence-history');
+                let licence_id = $(this).attr('licence-history');
+                vm.$refs.licence_history.licence_history_id = licence_id;
+                vm.$refs.licence_history.isModalOpen = true;                
             });
             // Create Inspection Listener.
             vm.$refs.licence_datatable.vmDataTable.on('click', 'a[inspection-licence]', function(e) {
@@ -1023,57 +994,6 @@ export default {
                 }
             });
         },
-        initialiseHistoryLink: function(vm_uid,ref,datatable_options,table){
-            let vm = this;
-            let licenceHistoryId = 'licence-history-table'+vm_uid;
-            let contentId = 'licence-history-content'+vm_uid;
-            let popover_name = 'popover-'+ vm._uid+'-logs';
-            $(ref).popover({
-                html: true,
-                title: 'Licence History',
-                container: 'body',
-                placement: 'left',
-                trigger: "click",
-                template: `<div class="popover ${popover_name}" role="tooltip"><div class="arrow"></div><h3 class="popover-title"></h3><div id="${contentId}" class="popover-content"></div></div>`,
-            }).on('inserted.bs.popover', function () {
-                $(`#${contentId}`).html(`
-                    <table id="${licenceHistoryId}" class="hover table table-striped table-bordered dt-responsive" cellspacing="0" width="100%">
-                        <thead>
-                            <tr>
-                                <th>Licence</th>
-                            </tr>
-                        </thead>
-                        <tbody>
-                        </tbody>
-                    </table>`);
-                table = $('#'+licenceHistoryId).DataTable(datatable_options);
-            }).on('shown.bs.popover', function () {
-                var el = ref;
-                var popoverheight = parseInt($('.'+popover_name).height());
-
-                var popover_bounding_top = parseInt($('.'+popover_name)[0].getBoundingClientRect().top);
-                var popover_bounding_bottom = parseInt($('.'+popover_name)[0].getBoundingClientRect().bottom);
-
-                var el_bounding_top = parseInt($(el)[0].getBoundingClientRect().top);
-                var el_bounding_bottom = parseInt($(el)[0].getBoundingClientRect().top);
-                
-                var diff = el_bounding_top - popover_bounding_top;
-
-                var position = parseInt($('.'+popover_name).position().top);
-                var pos2 = parseInt($(el).position().top) - 5;
-
-                var x = diff + 5;
-                $('.'+popover_name).children('.arrow').css('top', x + 'px');
-            });
-        },
-        initialisePopovers: function(){
-            this.initialiseHistoryLink(this._uid,'a[licence-history]',this.historyDtOptions,this.historyTable);
-        },
-    },
-    updated: function(){
-        this.$nextTick(() => {
-            this.initialisePopovers();
-        });
     },
     mounted: function(){
         let vm = this;
@@ -1086,7 +1006,6 @@ export default {
         this.$nextTick(() => {
             vm.addEventListeners();
             vm.initialiseSearch();
-            vm.initialisePopovers();
         });
     }
 }

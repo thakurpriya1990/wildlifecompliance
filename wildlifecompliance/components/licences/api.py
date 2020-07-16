@@ -20,7 +20,7 @@ from wildlifecompliance.components.licences.serializers import (
     DTInternalWildlifeLicenceSerializer,
     DTExternalWildlifeLicenceSerializer,
     ProposedPurposeSerializer,
-    LicenceDocumentSerializer,
+    LicenceDocumentHistorySerializer,
 )
 from wildlifecompliance.components.applications.models import (
     Application,
@@ -716,12 +716,18 @@ class LicenceViewSet(viewsets.ModelViewSet):
             print(traceback.print_exc())
             raise serializers.ValidationError(str(e))
 
-    @detail_route(methods=['GET', ])
+    @list_route(methods=['GET', ])
     def licence_history(self, request, *args, **kwargs):
         try:
-            instance = self.get_object()
-            qs = instance.get_document_history()
-            serializer = LicenceDocumentSerializer(qs, many=True)
+            qs = None
+            licence_history_id = request.query_params['licence_history_id']
+
+            if licence_history_id != '0':
+                instance = WildlifeLicence.objects.get(id=licence_history_id)
+                qs = instance.get_document_history()
+
+            serializer = LicenceDocumentHistorySerializer(qs, many=True)
+
             return Response(serializer.data)
         except serializers.ValidationError:
             print(traceback.print_exc())

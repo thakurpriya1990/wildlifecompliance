@@ -423,18 +423,27 @@ class LicenceCategorySerializer(serializers.ModelSerializer):
         return serializer.data
 
 
-class LicenceDocumentSerializer(serializers.ModelSerializer):
-    licence_document = serializers.SerializerMethodField()
+class LicenceDocumentHistorySerializer(serializers.ModelSerializer):
+    history_date = serializers.SerializerMethodField()
+    history_document_url = serializers.SerializerMethodField()
 
     class Meta:
         model = LicenceDocument
         fields = (
-            'licence_document',
+            'history_date',
+            'history_document_url',
         )
 
-    def get_licence_document(self, obj):
+    def get_history_date(self, obj):
+        history_date = obj['lodgement_date'].strftime(
+            '%d/%m/%Y %H:%M:%S.%f'
+        ) if obj['lodgement_date'] else None
+
+        return history_date
+
+    def get_history_document_url(self, obj):
         doc_id = obj['licence_document']
-        lic_id = 409
+        lic_id = obj['licence_id']
         pdf = 'licence-{0}.pdf'.format(lic_id)
         url = '/media/wildlifecompliance/licences/{0}/documents/{1}'.format(
             doc_id, pdf

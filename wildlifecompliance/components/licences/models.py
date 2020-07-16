@@ -1254,9 +1254,13 @@ class WildlifeLicence(models.Model):
             )
         ]
 
-        documents = Application.objects.values('licence_document').filter(
-            id__in=application_ids,
-        )
+        documents = Application.objects.values(
+                'licence_document',
+                'licence_id',
+                'lodgement_date',
+            ).filter(
+                id__in=application_ids,
+            )
 
         return documents
 
