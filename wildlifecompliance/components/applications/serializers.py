@@ -352,7 +352,8 @@ class AssessmentSerializer(serializers.ModelSerializer):
     assessor_group = ActivityPermissionGroupSerializer(read_only=True)
     status = CustomChoiceField(read_only=True)
     assessors = EmailUserAppViewSerializer(many=True)
-    assigned_assessor = EmailUserSerializer()  
+    assigned_assessor = EmailUserSerializer()
+    date_last_reminded = serializers.SerializerMethodField(read_only=True)
 
     class Meta:
         model = Assessment
@@ -369,6 +370,13 @@ class AssessmentSerializer(serializers.ModelSerializer):
             'assigned_assessor',
         )
 
+    def get_date_last_reminded(self, obj):
+
+        formatted_date = obj.date_last_reminded.strftime(
+            '%d/%m/%Y'
+        ) if obj.date_last_reminded else None
+
+        return formatted_date
 
 class SimpleSaveAssessmentSerializer(serializers.ModelSerializer):
 
