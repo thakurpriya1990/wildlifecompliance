@@ -205,39 +205,31 @@ export default {
         this.load({ url: '/api/application.json' });
       }
     },
-    saveExit: function(e) {
-      this.isProcessing = true;
-      this.saveFormData({ url: this.application_form_data_url, draft: true }).then(res=>{
+    saveExit: async function(e) {
+      let is_saved = await this.save_form();
+      if (is_saved) {
           swal(
             'Saved',
             'Your application has been saved',
             'success'
-          ).then((result) => {
-            this.isProcessing = false;
-            window.location.href = "/";
-          });
-      },err=>{
-        swal(
-            'Error',
-            'There was an error saving your application',
-            'error'
-        ).then((result) => {
-            this.isProcessing = false;
-        })
-      });
-    },
-    save: function(e) {
-      this.isProcessing = true;
-      this.saveFormData({ url: this.application_form_data_url, draft: true }).then(res=>{
-          swal(
-            'Saved',
-            'Your application has been saved',
-            'success'
+
           ).then((result) => {
             this.isProcessing = false;
             this.reloadApplication();
+            window.location.href = "/";
           });
+      }
+      this.isProcessing = true;
+    },
+    save_form: async function() {
+      this.isProcessing = true;
+      let is_saved = false;
+      await this.saveFormData({ url: this.application_form_data_url, draft: true }).then(res=>{
+        this.isProcessing = false;
+        is_saved = true;
+
       },err=>{
+        console.log(err)
         swal(
             'Error',
             'There was an error saving your application',
@@ -246,6 +238,22 @@ export default {
             this.isProcessing = false;
         })
       });
+      return is_saved
+    },
+    save: async function(e) {
+      let is_saved = await this.save_form();
+      if (is_saved) {
+          swal(
+            'Saved',
+            'Your application has been saved',
+            'success'
+
+          ).then((result) => {
+            this.isProcessing = false;
+            this.reloadApplication();
+
+          });
+      }
     },
     highlight_missing_fields: function(){
       $('.missing-field').removeClass('missing-field');
@@ -258,9 +266,8 @@ export default {
           scrollTop: top
       }, 1);
     },
-    submit: function(){
+    submit: async function(){
         let vm = this;
-        this.isProcessing = true;
         let swal_title = 'Submit Application'
         let swal_html = 'Are you sure you want to submit this application?'
         swal({
@@ -269,16 +276,21 @@ export default {
             type: "question",
             showCancelButton: true,
             confirmButtonText: 'Submit'
-        }).then((result) => {
+
+        }).then( async (result) => {
             if (result.value) {
-                this.saveFormData({ url: this.application_form_data_url }).then(res=>{
-                    vm.$http.post(helpers.add_endpoint_json(api_endpoints.applications,vm.application.id+'/submit'),{}).then(res=>{
+                let is_saved = await this.save_form();
+                if (is_saved) {
+                  this.isProcessing = true;
+                  vm.$http.post(helpers.add_endpoint_json(api_endpoints.applications,vm.application.id+'/submit'),{}).then(res=>{
+
                       this.setApplication(res.body);
                       this.isProcessing = false;
                       vm.$router.push({
                           name: 'submit_application',
                           params: { application: vm.application }
                       });
+
                   },err=>{
                       swal(
                           'Submit Error',
@@ -288,17 +300,15 @@ export default {
                           this.isProcessing = false;
                       });
                   });
-                }, err=>{
-                  console.log(err);
-                  if(err.body.missing) {
-                      this.missing_fields = err.body.missing;
-                      this.highlight_missing_fields();
-                      this.isProcessing = false;
-                    }
-                });
+
+                }
+
             } else {
-                this.isProcessing = false;
+
+              this.isProcessing = false;
+
             }
+
         },(error) => {
             swal(
                 'Error',
@@ -308,10 +318,10 @@ export default {
                 this.isProcessing = false;
             })
         });
+
     },
-    pay_and_submit: function(){
+    pay_and_submit: async function(){
         let vm = this;
-        this.isProcessing = true;
         let swal_title = 'Checkout and Submit Application'
         let swal_html = 'Are you sure you want to pay and submit this application?<br><br>'
         swal({
@@ -320,39 +330,41 @@ export default {
             type: "question",
             showCancelButton: true,
             confirmButtonText: 'Submit'
-        }).then((result) => {
-            if (result.value) {
-                this.saveFormData({ url: this.application_form_data_url }).then(res=>{
-                      if (this.adjusted_application_fee > 0) { //refund not required.
-                          vm.$http.post(helpers.add_endpoint_join(api_endpoints.applications,vm.application.id+'/application_fee_checkout/'), {}).then(res=>{
-                              window.location.href = "/ledger/checkout/checkout/payment-details/";
-                          },err=>{
-                              swal(
-                                  'Submit Error',
-                                  helpers.apiVueResourceError(err),
-                                  'error'
-                              ).then((result) => {
-                                  this.isProcessing = false;
-                              })
-                          });
-                      } else {
-                          this.isProcessing = false;
-                          vm.$router.push({
-                              name: 'submit_application',
-                              params: { application: vm.application }
-                          });
-                      }
 
-                }, err=>{
-                  console.log(err);
-                  if(err.body.missing) {
-                      this.missing_fields = err.body.missing;
-                      this.highlight_missing_fields();
-                      this.isProcessing = false;
-                    }
-                });
+        }).then(async (result) => {
+            if (result.value) {
+              let is_saved = await vm.save_form();
+
+              if (is_saved) {
+                vm.isProcessing = true;
+                if (vm.adjusted_application_fee > 0) { //refund not required.
+                    vm.isProcessing = false
+                    vm.$http.post(helpers.add_endpoint_join(api_endpoints.applications,vm.application.id+'/application_fee_checkout/'), {}).then(res=>{
+                        window.location.href = "/ledger/checkout/checkout/payment-details/";
+                    },err=>{
+                        swal(
+                            'Submit Error',
+                            helpers.apiVueResourceError(err),
+                            'error'
+                        ).then((result) => {
+                            this.isProcessing = false;
+                        })
+                    });
+
+                } else {
+                    vm.isProcessing = false;
+                    vm.$router.push({
+                        name: 'submit_application',
+                        params: { application: vm.application }
+                    });
+
+                }
+
+              }
+
             } else {
-                this.isProcessing = false;
+
+                vm.isProcessing = false;
             }
         },(error) => {
             swal(
@@ -360,14 +372,13 @@ export default {
                 'There was an error submitting your application',
                 'error'
             ).then((result) => {
-                this.isProcessing = false;
+                vm.isProcessing = false;
             })
         });
     },
     
-    submit_and_record: function(){
+    submit_and_record: async function(){
         let vm = this;
-        this.isProcessing = true;
         let swal_title = 'Submit Application and Record Payment'
         let swal_html = 'Are you sure you want to submit this application?'
         swal({
@@ -376,19 +387,24 @@ export default {
             type: "question",
             showCancelButton: true,
             confirmButtonText: 'Submit'
-        }).then((result) => {
+        }).then(async (result) => {
             if (result.value) {
-                this.saveFormData({ url: this.application_form_data_url }).then(res=>{
-                    vm.$http.post(helpers.add_endpoint_json(api_endpoints.applications,vm.application.id+'/application_fee_reception'),{
-                      emulateJSON:true
-                    }).then(res=>{
-                      this.setApplication(res.body);
-                      this.isProcessing = false;
-                      vm.$router.push({
-                          name: 'submit_application',
-                          params: { application: vm.application }
-                      });
-                  },err=>{
+
+              let is_saved = await this.save_form()
+              
+              if (is_saved) {
+                this.isProcessing = true;
+                vm.$http.post(helpers.add_endpoint_json(api_endpoints.applications,vm.application.id+'/application_fee_reception'),{
+                  emulateJSON:true
+                }).then(res=>{
+                  this.setApplication(res.body);
+                  this.isProcessing = false;
+                  vm.$router.push({
+                      name: 'submit_application',
+                      params: { application: vm.application }
+                  });
+
+                },err=>{
                       swal(
                           'Submit Error',
                           helpers.apiVueResourceError(err),
@@ -396,17 +412,14 @@ export default {
                       ).then((result) => {
                           this.isProcessing = false;
                       });
-                  });
-                }, err=>{
-                  console.log(err);
-                  if(err.body.missing) {
-                      this.missing_fields = err.body.missing;
-                      this.highlight_missing_fields();
-                      this.isProcessing = false;
-                    }
-                });
+                });           
+
+              }
+
             } else {
+
                 this.isProcessing = false;
+
             }
         },(error) => {
             swal(

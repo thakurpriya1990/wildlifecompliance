@@ -19,7 +19,8 @@ from wildlifecompliance.components.licences.serializers import (
     LicenceCategorySerializer,
     DTInternalWildlifeLicenceSerializer,
     DTExternalWildlifeLicenceSerializer,
-    ProposedPurposeSerializer
+    ProposedPurposeSerializer,
+    LicenceDocumentHistorySerializer,
 )
 from wildlifecompliance.components.applications.models import (
     Application,
@@ -711,6 +712,29 @@ class LicenceViewSet(viewsets.ModelViewSet):
                 raise serializers.ValidationError(repr(e.error_dict))
             else:
                 raise serializers.ValidationError(repr(e[0].encode('utf-8')))
+        except Exception as e:
+            print(traceback.print_exc())
+            raise serializers.ValidationError(str(e))
+
+    @list_route(methods=['GET', ])
+    def licence_history(self, request, *args, **kwargs):
+        try:
+            qs = None
+            licence_history_id = request.query_params['licence_history_id']
+
+            if licence_history_id != '0':
+                instance = WildlifeLicence.objects.get(id=licence_history_id)
+                qs = instance.get_document_history()
+
+            serializer = LicenceDocumentHistorySerializer(qs, many=True)
+
+            return Response(serializer.data)
+        except serializers.ValidationError:
+            print(traceback.print_exc())
+            raise
+        except ValidationError as e:
+            print(traceback.print_exc())
+            raise serializers.ValidationError(repr(e.error_dict))
         except Exception as e:
             print(traceback.print_exc())
             raise serializers.ValidationError(str(e))

@@ -13,7 +13,8 @@ from wildlifecompliance.components.applications.models import (
 )
 from wildlifecompliance.components.main.models import (
     CommunicationsLogEntry,
-    UserAction
+    UserAction,
+    Document
 )
 from wildlifecompliance.components.returns.email import (
     send_external_submit_email_notification,
@@ -34,6 +35,11 @@ def template_directory_path(instance, filename):
     :return: file path.
     """
     return 'wildlifecompliance/returns/template/{0}'.format(filename)
+
+
+def update_returns_comms_log_filename(instance, filename):
+    return 'wildlifecompliance/returns/{}/communications/{}/{}'.format(
+        instance.log_entry.return_obj.id, instance.id, filename)
 
 
 class ReturnType(models.Model):
@@ -670,11 +676,25 @@ class ReturnLogEntry(CommunicationsLogEntry):
     class Meta:
         app_label = 'wildlifecompliance'
 
+    def __str__(self):
+        return 'ReturnLogEntry.id: {0}'.format(self.id)
+
     def save(self, **kwargs):
         # save the application reference if the reference not provided
         if not self.reference:
             self.reference = self.return_obj.id
         super(ReturnLogEntry, self).save(**kwargs)
+
+
+class ReturnLogDocument(Document):
+    log_entry = models.ForeignKey('ReturnLogEntry', related_name='documents')
+    _file = models.FileField(upload_to=update_returns_comms_log_filename)
+
+    class Meta:
+        app_label = 'wildlifecompliance'
+
+    def __str__(self):
+        return 'ReturnLogDocument.id: {0}'.format(self.id)
 
 
 class ReturnInvoice(models.Model):

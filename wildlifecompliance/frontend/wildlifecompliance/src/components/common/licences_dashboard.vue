@@ -70,6 +70,7 @@
         </div>
         <LicenceActionPurposes ref="licence_action_purposes" :licence_activity_purposes="action_purpose_list" :licence_id="selected_licence_id" :action="licence_action" @refreshFromResponse="refreshFromResponse"></LicenceActionPurposes>
         <InspectionRequest ref="inspection" @inspection-created="requestedInspection"></InspectionRequest>
+        <LicenceHistory ref="licence_history" />
     </div>
 </template>
 <script>
@@ -77,6 +78,7 @@ import modal from '@vue-utils/bootstrap-modal.vue'
 import datatable from '@/utils/vue/datatable.vue'
 import LicenceActionPurposes from './licence_action_purposes.vue'
 import InspectionRequest from '../internal/inspection/create_inspection_modal'
+import LicenceHistory from './licence_history_modal.vue';
 import { mapActions, mapGetters } from 'vuex'
 import {
     api_endpoints,
@@ -122,6 +124,10 @@ export default {
             },
             inspection:{
                 isModalOpen: false
+            },
+            licence_history: {
+                isModalOpen: false,
+                licence_history_id: '409',
             },
 //            licence_status:[],
             licence_holders: [],
@@ -222,6 +228,9 @@ export default {
                                 if (!vm.is_external && full.can_add_purpose && !full.has_inspection_open) {
                                     links += `<a inspection-licence='${full.id}'>Request Inspection</a><br/>`
                                 }
+                                if (!vm.is_external) {
+                                    links += `<a licence-history='${full.id}'>History</a><br/>`
+                                }
                             }
                             return links;
                         },
@@ -272,6 +281,7 @@ export default {
         datatable,
         LicenceActionPurposes,
         InspectionRequest,
+        LicenceHistory,
     },
     watch:{
         filterLicenceType: function(){
@@ -293,8 +303,7 @@ export default {
     computed: {
         is_external: function(){
             return this.level == 'external';
-        },
-        
+        },        
     },
     methods:{
         ...mapActions([
@@ -779,6 +788,13 @@ export default {
                     }
                 },(error) => {
                 });
+            });
+            // Create Licence History Listener.
+            vm.$refs.licence_datatable.vmDataTable.on('click', 'a[licence-history]', function(e) {
+                e.preventDefault();
+                let licence_id = $(this).attr('licence-history');
+                vm.$refs.licence_history.licence_history_id = licence_id;
+                vm.$refs.licence_history.isModalOpen = true;                
             });
             // Create Inspection Listener.
             vm.$refs.licence_datatable.vmDataTable.on('click', 'a[inspection-licence]', function(e) {

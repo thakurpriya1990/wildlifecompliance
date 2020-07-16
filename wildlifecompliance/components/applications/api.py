@@ -444,6 +444,7 @@ class ApplicationViewSet(viewsets.ModelViewSet):
                 instance = self.get_object()
                 request.data['application'] = u'{}'.format(instance.id)
                 request.data['staff'] = u'{}'.format(request.user.id)
+                request.data['log_type'] = request.data['type']
                 serializer = ApplicationLogEntrySerializer(data=request.data)
                 serializer.is_valid(raise_exception=True)
                 comms = serializer.save()
