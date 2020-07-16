@@ -475,10 +475,8 @@ def _create_licence(licence_buffer, licence, application):
     elements.append(Spacer(1, SECTION_BUFFER_HEIGHT))
 
     activityList = ListFlowable(
-        [Paragraph("{name}: {start_date} - {expiry_date}".format(
-            name=selected_activity.licence_activity.name,
-            start_date=selected_activity.get_start_date(),
-            expiry_date=selected_activity.get_expiry_date()
+        [Paragraph("{name}".format(
+            name=selected_activity.licence_activity.name
         ),
             styles['Left'],
         ) for selected_activity in licence.current_activities],
