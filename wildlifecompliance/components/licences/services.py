@@ -28,7 +28,7 @@ class LicenceService(object):
         pass
 
     @staticmethod
-    def verify_renewal_licences(request=None):
+    def verify_expired_licences(request=None):
         '''
         Verifies licences requiring renewing by expiring licence purposes after
         their expiry date and sending out a renewal notification.
@@ -69,7 +69,7 @@ class LicenceService(object):
                 # for each licence id verify if renewal required.
                 if not licence_id['licence_id']:
                     continue
-                LicenceService.verify_renewal_licence_for(
+                LicenceService.verify_expired_licence_for(
                     licence_id['licence_id']
                 )
 
@@ -80,7 +80,7 @@ class LicenceService(object):
         return True
 
     @staticmethod
-    def verify_renewal_licence_for(licence_id, request=None):
+    def verify_expired_licence_for(licence_id, request=None):
         '''
         Verifies licences requiring renewing by expiring licence purposes after
         their expiry date and sending out a renewal notification.
