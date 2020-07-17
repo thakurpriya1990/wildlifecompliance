@@ -140,7 +140,7 @@
             </div>
         </form>
         -->
-            <div class="well well-sm">
+            <!-- <div class="well well-sm">
                 <div class="row">
                     <div class="col-lg-12">
                         <div class="row">
@@ -163,7 +163,7 @@
                                             </div>
                                         </form>
                                     </div>
-                                    <!--
+                                    
                                     <div class="col-sm-6">
                                         <form ref="bookings_form">
                                             <h3 style="margin-bottom:20px;">Bookings Report</h3>
@@ -181,13 +181,13 @@
                                             </div>
                                         </form>
                                     </div>
-                                    -->
+                                   
                                 </div>
                             </div>
                         </div>
                     </div>
                 </div>
-            </div>
+            </div> -->
         <form ref="oracle_form">
             <div class="well well-sm">
                 <div class="row">
