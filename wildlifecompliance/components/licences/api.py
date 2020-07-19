@@ -27,7 +27,8 @@ from wildlifecompliance.components.applications.models import (
     ApplicationSelectedActivity
 )
 from wildlifecompliance.components.applications.payments import (
-    ApplicationFeePolicyForAmendment
+    ApplicationFeePolicyForAmendment,
+    ApplicationFeePolicyForRenew,
 )
 from rest_framework_datatables.pagination import DatatablesPageNumberPagination
 from rest_framework_datatables.filters import DatatablesFilterBackend
@@ -907,7 +908,7 @@ class UserAvailableWildlifeLicencePurposesViewSet(viewsets.ModelViewSet):
                 policy.set_base_application_fee_for(purpose)
 
         if application_type == Application.APPLICATION_TYPE_RENEWAL:
-            policy = ApplicationFeePolicyForRenewal
+            policy = ApplicationFeePolicyForRenew
             for purpose in available_purpose_records:
                 policy.set_base_application_fee_for(purpose)
 

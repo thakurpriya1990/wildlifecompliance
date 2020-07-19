@@ -827,11 +827,8 @@ class Application(RevisionedMixin):
     def copy_application_purposes_for_status(
             self, purpose_ids_list, new_activity_status):
         '''
-        Creates a copy of the Application and associated records
-        for the specified purposes and activity status.
-
-        TODO:AYN Activity consist of proposed_purposes with effective dates and
-        status. These need to be copied and handled appropriately with Replace.
+        Creates a copy of the Application and associated records for the
+        specified purposes and activity status.
         '''
         # Get the ID of the original application
         original_app_id = self.id
@@ -878,10 +875,17 @@ class Application(RevisionedMixin):
                                   ' associated with a valid current licence')
 
         with transaction.atomic():
+            '''
+            Create new application as a clone of the original application.
+            NOTE: System Generated Applications cannot be processed by staff
+            and so processing status for activity needs to be accepted.
 
-            # Create new application as a clone of the original application.
-            # NOTE: System Generated Applications cannot be processed by staff
-            # and so processing status for activity needs to be accepted.
+            SYSTEM GENERATED can occur with renewal of licence purposes where
+            current licenses still exist. A copy of this application with the
+            renewed purpose is created with the current licence activities and
+            purposes, and set to accepted. This will the latest application for
+            the licence.
+            '''
             new_app = Application.objects.get(id=original_app_id)
             new_app.id = None
             new_app.application_type =\
@@ -903,11 +907,11 @@ class Application(RevisionedMixin):
             selected_activity = Application.objects.get(id=original_app_id)\
                 .selected_activities.get(
                     licence_activity_id=licence_activity_id)
-            # TODO:AYN Replace needs to be set at the purpose level.
-            # REP code below did NOT process.
+
             selected_activity.activity_status =\
                 ApplicationSelectedActivity.ACTIVITY_STATUS_REPLACED
             selected_activity.save()
+
             new_activity = selected_activity
             new_activity.id = None
             new_activity.licence_fee = Decimal('0.00')
@@ -924,28 +928,26 @@ class Application(RevisionedMixin):
 
                 self.copy_activity_purpose_to_target_for_status(
                     licence_purpose_id,
-                    selected_activity,
                     new_activity,
                 )
 
-            # REP = ApplicationSelectedActivityPurpose.PROCESSING_STATUS_REPLACED
-            # for purpose in selected_activity.proposed_purposes.all():
-            #     # FIXME: does not set correctly on a licence amendment.
-            #     purpose.processing_status = REP
-            #     purpose.save()
-
         return new_app
 
-    def copy_activity_purpose_to_target_for_status(self, p_id, old, new):
+    def copy_activity_purpose_to_target_for_status(self, p_id, new):
         '''
         Copies the Selected Activity Purposes from the selected to the target.
         To ensure effective dates are carried over to new (target) activity.
 
-        TODO:AYN copy status dates across and mark selected as being REPLACED.
         '''
         # update Application Selected Activity Purposes
-        SELECT = ApplicationSelectedActivityPurpose.PROCESSING_STATUS_SELECTED
         REPLACE = ApplicationSelectedActivityPurpose.PROCESSING_STATUS_REPLACED
+        ISSUED = ApplicationSelectedActivityPurpose.PROCESSING_STATUS_ISSUED
+        S_REPLACE = ApplicationSelectedActivityPurpose.PURPOSE_STATUS_REPLACED
+        S_CURRENT = ApplicationSelectedActivityPurpose.PURPOSE_STATUS_CURRENT
+
+        old = Application.objects.get(id=self.id)\
+            .selected_activities.get(
+                licence_activity_id=new.licence_activity_id)
 
         lp = LicencePurpose.objects.get(id=p_id)
         issued = old.proposed_purposes.filter(
@@ -956,14 +958,17 @@ class Application(RevisionedMixin):
             purpose=lp,
             selected_activity=new,
         )
-        purpose.processing_status = SELECT
+        purpose.processing_status = ISSUED
+        purpose.purpose_status = S_CURRENT
         purpose.start_date = issued.start_date
         purpose.expiry_date = issued.expiry_date
-        purpose.original_issue_date = issued.original_issue_date
+        purpose.original_issue_date = issued.original_issue_date \
+            if issued.original_issue_date else issued.issue_date
         purpose.issue_date = issued.issue_date
         purpose.save()
 
         issued.processing_status = REPLACE
+        issued.purpose_status = S_REPLACE
         issued.save()
 
     def copy_application_purpose_to_target_application(
@@ -972,8 +977,6 @@ class Application(RevisionedMixin):
         Copies the licence purpose identifier associated with this application
         to another application (renewal, admendment, reissue) and copies
         associated Form Data for the purpose to the target.
-
-        TODO:AYN copy activity purpose date to the target.
         '''
         if not target_application or not licence_purpose_id:
             raise ValidationError(
@@ -1841,23 +1844,42 @@ class Application(RevisionedMixin):
 
     def get_current_activity_chain(self, **activity_filters):
         '''
-        Get chain of current activities by the expiry date.
+        Get chain of current activities with activity filtering.
         '''
+        no_licence_id_apps = None
         a_chain = self.selected_activities.filter(**activity_filters)
-        # TODO:AYN may only want to chain active activities.
-        # if a_chain.count() > 0:
-        #     a_chain = [a for a in a_chain if a.is_current]
+
+        # Apply filtering with previous_application. This chaining solution
+        # does not guarantee full list of current activities.
         a_chain = a_chain | self.previous_application.get_activity_chain(
             **activity_filters
         ) if self.previous_application and self.previous_application != self\
             else a_chain
 
+        # Apply filtering with licence for list of current activities.
         if self.licence_id:
-            apps = Application.objects.filter(licence_id=self.licence_id)
-            a_chain = self.selected_activities.filter(**activity_filters)
+            a_chain_apps = set([a.application for a in a_chain])
+            _apps = set(Application.objects.filter(licence_id=self.licence_id))
+            apps = list(a_chain_apps.union(_apps))
             for app in apps:
                 a_chain = a_chain | app.selected_activities.filter(
-                    **activity_filters)
+                    **activity_filters
+                )
+
+            no_licence_id_apps = list(a_chain_apps - _apps)
+
+        '''
+        NOTE: Previous applications with current activities must have an
+        associated licence id. Log applications without licences for trouble
+        shooting. (possibly could occur with an incomplete atomic transaction)
+        '''
+        if no_licence_id_apps:
+            logger.info('get_current_activity_chain(): {0} {1} {2} {3}'.format(
+                'NO LicenceID:',
+                self.licence_id,
+                'set for ApplicationID:',
+                no_licence_id_apps,
+            ))
 
         return a_chain
 
@@ -2550,9 +2572,13 @@ class Application(RevisionedMixin):
                             # No need to check if purpose has been selected
                             # for issuing.
                             if purpose.purpose_id in issue_ids:
+                                today = timezone.now()
                                 purpose.processing_status = ISSUE
-                                purpose.issue_date = timezone.now()
-                                purpose.status = CURRENT
+                                purpose.issue_date = today
+                                purpose.original_issue_date = today \
+                                    if not purpose.original_issue_date else \
+                                        purpose.original_issue_date
+                                purpose.purpose_status = CURRENT
 
                                 # initialise the purpose sequencing at issue.
                                 if purpose.purpose_sequence < 1:
@@ -2588,12 +2614,12 @@ class Application(RevisionedMixin):
                                 
                                 # selected_activity.save()
 
-                            if self.application_type not in [
-                                Application.APPLICATION_TYPE_AMENDMENT,
-                                Application.APPLICATION_TYPE_REISSUE,
-                            ]:
-                                purpose.original_issue_date = \
-                                    original_issue_date
+                            # if self.application_type not in [
+                            #     Application.APPLICATION_TYPE_AMENDMENT,
+                            #     Application.APPLICATION_TYPE_REISSUE,
+                            # ]:
+                            #     purpose.original_issue_date = \
+                            #         original_issue_date
                             
                             purpose.save()
 
@@ -4543,7 +4569,6 @@ class ApplicationSelectedActivityPurpose(models.Model):
     PROCESSING_STATUS_PROPOSED = 'propose'
     PROCESSING_STATUS_ISSUED = 'issue'
     PROCESSING_STATUS_DECLINED = 'decline'
-    # TODO:AYN replace processing status is redundant.
     PROCESSING_STATUS_REPLACED = 'replace'
     PROCESSING_STATUS_REISSUE = 'reissue'
     PROCESSING_STATUS_CHOICES = (
@@ -4619,6 +4644,7 @@ class ApplicationSelectedActivityPurpose(models.Model):
             self.PROCESSING_STATUS_ISSUED,
             self.PROCESSING_STATUS_SELECTED,
             self.PROCESSING_STATUS_REISSUE,
+            self.PROCESSING_STATUS_REPLACED,
         ]
 
         return True if self.processing_status in payable_status else False
