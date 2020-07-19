@@ -3,6 +3,8 @@ import abc
 import requests
 import logging
 
+from django.db import transaction
+
 from wildlifecompliance import settings
 
 from wildlifecompliance.components.licences.models import (
@@ -723,6 +725,7 @@ class IncreaseApplicationFeeFieldElement(SpecialFieldElement):
         self.has_fee_exemption = is_exempt
         self.fee_policy.set_has_fee_exemption(is_exempt)
 
+    @transaction.atomic
     def reset(self, licence_activity):
         '''
         Reset the fees for the licence activity to it base fee amount.
@@ -748,6 +751,7 @@ class IncreaseApplicationFeeFieldElement(SpecialFieldElement):
 
                 licence_activity.save()
 
+    @transaction.atomic
     def parse_component(
             self,
             component,
@@ -758,6 +762,9 @@ class IncreaseApplicationFeeFieldElement(SpecialFieldElement):
         '''
         Aggregate adjusted fees for the Activity/Purpose.
         '''
+        from decimal import Decimal as D
+        from decimal import ROUND_DOWN
+
         if self.is_refreshing:
             # No user update with a page refesh.
             return
@@ -767,11 +774,13 @@ class IncreaseApplicationFeeFieldElement(SpecialFieldElement):
             def increase_fee(fees, field, amount):
                 if self.has_fee_exemption:
                     return True
+                amount = D(amount).quantize(D('0.01'), rounding=ROUND_DOWN)
                 fees[field] += amount
                 fees[field] = fees[field] if fees[field] >= 0 else 0
                 return True
 
             def adjusted_fee(amount):
+                amount = D(amount).quantize(D('0.01'), rounding=ROUND_DOWN)
                 self.adjusted_fee += amount
                 return True
 
@@ -815,7 +824,8 @@ class IncreaseApplicationFeeFieldElement(SpecialFieldElement):
                     p.application_fee = purpose.base_application_fee
                     p.licence_fee = purpose.base_licence_fee
 
-                p.adjusted_fee += self.adjusted_fee
+                self.adjusted_fee = D(p.adjusted_fee) + self.adjusted_fee
+                p.adjusted_fee = self.adjusted_fee
                 p.save()
 
     def get_adjusted_fees(self):
@@ -970,6 +980,7 @@ def do_process_form(
         )
 
 
+@transaction.atomic
 def do_update_dynamic_attributes(application, fee_exemption=False):
     '''
     Update application and activity attributes based on selected JSON schema
@@ -998,28 +1009,6 @@ def do_update_dynamic_attributes(application, fee_exemption=False):
         fees = field_data.pop('fees', {})
         selected_activity.licence_fee = fees['licence']
         selected_activity.application_fee = fees['application']
-
-        # Check when under review for changes in fee amount.
-        # Application fees can also be adjusted by internal officer.
-        # UNDER_REVIEW = Application.PROCESSING_STATUS_UNDER_REVIEW
-        # if application.processing_status == UNDER_REVIEW\
-        #     and fees['application']\
-        #         > selected_activity.base_fees['application']:
-        #     selected_activity.application_fee = fees['application'] \
-        #         - selected_activity.base_fees['application']
-
-        # Check for refunds to Application Amendment, Renewals and Requested
-        # Amendment Fees.
-        # REQUEST_AMEND = Application.CUSTOMER_STATUS_AMENDMENT_REQUIRED
-        # if application.application_type in [
-        #     Application.APPLICATION_TYPE_AMENDMENT,
-        #     Application.APPLICATION_TYPE_RENEWAL,
-        # ] or application.customer_status == REQUEST_AMEND:
-
-        #     # set fee to zero when refund exists.
-        #     if fees['application']\
-        #             < selected_activity.base_fees['application']:
-        #         selected_activity.application_fee = Decimal(0.0)
 
         # Adjust fees to include the Increase Fee updated form questions.
         for_increase_fee_fields.set_adjusted_fees_for(selected_activity)
