@@ -658,6 +658,17 @@ class BaseApplicationSerializer(serializers.ModelSerializer):
             # Outstanding amendment request - edit required.
             result = True
 
+        if obj.customer_status == Application.CUSTOMER_STATUS_AWAITING_PAYMENT\
+           and (is_submitter or is_proxy_applicant or is_in_org_applicant):
+            # Allow Payment to be paid by applicant with Continue link.
+            return True
+
+        # if result and (
+        #     is_app_licence_officer or is_submitter or is_proxy_applicant
+        #     or is_in_org_applicant
+        #    ):
+        #     result = True
+
         if result and (
             is_app_licence_officer 
             or is_submitter

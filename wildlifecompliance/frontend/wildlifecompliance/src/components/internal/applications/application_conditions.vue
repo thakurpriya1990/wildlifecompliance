@@ -254,9 +254,9 @@ export default {
             },(error) => {
             });
         },
-        fetchConditions(){
+        async fetchConditions(){
             let vm = this;
-            vm.$http.get(api_endpoints.application_standard_conditions).then((response) => {
+            await vm.$http.get(api_endpoints.application_standard_conditions).then((response) => {
                 vm.conditions = response.body
             },(error) => {
                 console.log(error);
@@ -269,9 +269,9 @@ export default {
             });
             this.purposes = selectedActivity.purposes;
         },
-        editCondition(_id){
+        async editCondition(_id){
             let vm = this;
-            vm.$http.get(helpers.add_endpoint_json(api_endpoints.application_conditions,_id)).then((response) => {
+            await vm.$http.get(helpers.add_endpoint_json(api_endpoints.application_conditions,_id)).then((response) => {
                 response.body.standard ? $(this.$refs.condition_detail.$refs.standard_req).val(response.body.standard_condition).trigger('change'): '';
                 this.addCondition(response.body);
             },(error) => {
@@ -307,33 +307,33 @@ export default {
                 vm.moveDown(e);
             });
         },
-        sendDirection(req,direction){
+        async sendDirection(req,direction){
             let movement = direction == 'down'? 'move_down': 'move_up';
-            this.$http.get(helpers.add_endpoint_json(api_endpoints.application_conditions,req+'/'+movement)).then((response) => {
+            await this.$http.get(helpers.add_endpoint_json(api_endpoints.application_conditions,req+'/'+movement)).then((response) => {
             },(error) => {
                 console.log(error);
                 
             })
         },
-        moveUp(e) {
+        async moveUp(e) {
             // Move the row up
             let vm = this;
             e.preventDefault();
             var tr = $(e.target).parents('tr');
-            if (vm.moveRow(tr, 'up')){
-                vm.sendDirection($(e.target).parent().data('id'),'up');
+            if (await vm.moveRow(tr, 'up')){
+                await vm.sendDirection($(e.target).parent().data('id'),'up');
             }
         },
-        moveDown(e) {
+        async moveDown(e) {
             // Move the row down
             e.preventDefault();
             let vm = this;
             var tr = $(e.target).parents('tr');
-            if (vm.moveRow(tr, 'down')){
-                vm.sendDirection($(e.target).parent().data('id'),'down');
+            if (await vm.moveRow(tr, 'down')){
+                await vm.sendDirection($(e.target).parent().data('id'),'down');
             }
         },
-        moveRow(row, direction) {
+        async moveRow(row, direction) {
             // Move up or down (depending...)
             const table = this.$refs.conditions_datatable.vmDataTable;
             let index = row[0].sectionRowIndex - 1;
