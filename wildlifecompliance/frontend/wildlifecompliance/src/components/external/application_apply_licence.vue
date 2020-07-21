@@ -275,10 +275,7 @@ export default {
             }).then(res => {
                 this.application_fee = res.body.fees.application;
                 this.licence_fee = res.body.fees.licence;
-                if (['amend_activity','renew_activity'].includes(this.selected_apply_licence_select)) {
-                    // this.application_fee = 0
-                    this.licence_fee = 0
-                }
+
         }, err => {
             console.log(err);
         });
