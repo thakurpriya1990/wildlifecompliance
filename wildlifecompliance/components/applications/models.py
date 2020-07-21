@@ -2935,7 +2935,6 @@ class Application(RevisionedMixin):
         for purpose in LicencePurpose.objects.filter(id__in=selected_purpose_ids):
 
             if application_type == Application.APPLICATION_TYPE_RENEWAL:
-                print(purpose.base_licence_fee)
                 base_fees['application'] += purpose.renewal_application_fee
                 base_fees['licence'] += purpose.base_licence_fee
 
