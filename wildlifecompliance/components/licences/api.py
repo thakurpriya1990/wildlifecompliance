@@ -845,16 +845,25 @@ class UserAvailableWildlifeLicencePurposesViewSet(viewsets.ModelViewSet):
             )
 
             active_purpose_ids = []
+            active_purpose_id2 = []
             for selected_activity in current_activities:
                 active_purpose_ids.extend([purpose.id for purpose in selected_activity.purposes])
+                active_purpose_id2 += [
+                    p.purpose_id for p in selected_activity.proposed_purposes.all() 
+                    if p.is_issued
+                ]
 
             # Exclude active purposes for New Activity/Purpose or New Licence application types
             if application_type in [
                 Application.APPLICATION_TYPE_ACTIVITY,
                 Application.APPLICATION_TYPE_NEW_LICENCE,
             ]:
+                # available_purpose_records = available_purpose_records.exclude(
+                #     id__in=active_purpose_ids
+                # )
+
                 available_purpose_records = available_purpose_records.exclude(
-                    id__in=active_purpose_ids
+                    id__in=active_purpose_id2
                 )
 
             # Exclude active licence categories for New Licence application type
@@ -878,6 +887,8 @@ class UserAvailableWildlifeLicencePurposesViewSet(viewsets.ModelViewSet):
                     'licence_purposes__id',
                     flat=True
                 )
+
+                amendable_purpose_ids = active_purpose_id2
 
                 queryset = queryset.filter(id__in=active_licence_activity_ids)
                 available_purpose_records = available_purpose_records.filter(

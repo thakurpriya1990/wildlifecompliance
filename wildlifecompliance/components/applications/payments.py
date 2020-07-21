@@ -584,7 +584,15 @@ class ApplicationFeePolicyForAmendment(ApplicationFeePolicy):
         refreshed and no attributes are passed.
         """
         self.is_refreshing = True
-        self.set_dynamic_attributes_from_purpose_fees()
+        REQ_NOPAY = ApplicationInvoice.PAYMENT_STATUS_NOT_REQUIRED
+        REQ_AMEND = Application.CUSTOMER_STATUS_AMENDMENT_REQUIRED
+
+        is_saved = True \
+            if not self.application.payment_status == REQ_NOPAY else False
+
+        if self.application.customer_status == REQ_AMEND or is_saved:
+            # self.set_dynamic_attributes_from_purpose_fees()
+            return
 
         # Override the parent setter as Licence amendments need to include
         # previous adjustments paid for licence purposes.
@@ -661,6 +669,13 @@ class ApplicationFeePolicyForAmendment(ApplicationFeePolicy):
             logger.info('{0}: REFUND {1} for licence ActivityID {2}'.format(
                 'ApplicationFeePolicyForAmendment',
                 fees_new,
+                activity.id
+            ))
+
+        if fees_new == 0:
+            # Zero amount paid for amendment activity
+            logger.info('{0}: ZERO FEE for licence ActivityID {1}'.format(
+                'ApplicationFeePolicyForAmendment',
                 activity.id
             ))
 
@@ -825,14 +840,17 @@ class ApplicationFeePolicyForRenew(ApplicationFeePolicy):
         licence = self.get_licence_for()
         # previous adjusted fees for purpose is included with the renewal fee.
         fees_adj = 0
+        fees_lic = 0
         for activity in licence.current_activities:
             purposes_ids = self.get_form_purpose_ids_for(activity)
             for p in activity.proposed_purposes.all():
                 if p.purpose_id in purposes_ids and p.is_payable:
                     fees_adj += p.adjusted_fee
                     fees_adj += p.purpose.renewal_application_fee
+                    fees_lic += p.purpose.base_licence_fee
 
         self.dynamic_attributes['fees']['application'] = fees_adj
+        self.dynamic_attributes['fees']['licence'] = fees_lic
 
         if self.application.application_fee_paid:
             self.dynamic_attributes['fees'] = {'application': 0, 'licence': 0}
@@ -865,11 +883,20 @@ class ApplicationFeePolicyForRenew(ApplicationFeePolicy):
         refreshed and no attributes are passed.
         '''
         self.is_refreshing = True
-        self.set_dynamic_attributes_from_purpose_fees()
+        REQ_NOPAY = ApplicationInvoice.PAYMENT_STATUS_NOT_REQUIRED
+        REQ_AMEND = Application.CUSTOMER_STATUS_AMENDMENT_REQUIRED
+
+        is_saved = True \
+            if not self.application.payment_status == REQ_NOPAY else False
+
+        if self.application.customer_status == REQ_AMEND or is_saved:
+            self.set_dynamic_attributes_from_purpose_fees()
+            return
 
         # Override the parent setter as Licence renewals need to include
         # previous adjustments paid for licence purpose.
         application_fees = 0
+        licence_fees = 0
         licence = self.get_licence_for()
 
         for activity in licence.current_activities:
@@ -878,25 +905,32 @@ class ApplicationFeePolicyForRenew(ApplicationFeePolicy):
             a_activity = self.application.activities.filter(
                 licence_activity_id=activity.licence_activity_id
             ).first()
-            # save_adj include both form adjustments and renewal fee.
-            save_app = a_activity.application_fee if a_activity else 0
-            prev_adj = 0
+
+            if not a_activity:
+                continue
+
+            # save_app include both form adjustments and renewal fee.
+            save_app = 0
+            save_lic = 0
             for p in activity.proposed_purposes.all():
 
                 if p.purpose_id in purposes_ids and p.is_payable:
                     # Only for purposes existing in copied form.
-                    prev_adj += p.adjusted_fee
+                    save_app += p.purpose.renewal_application_fee
+                    save_lic += p.purpose.base_licence_fee
                     is_selected = True
 
             if is_selected:
                 # adjustments and fees including previous adjustments paid.
-                application_fees += save_app + prev_adj
+                application_fees += save_app
+                licence_fees += save_lic
                 self.dynamic_attributes[
                     'activity_attributes'][a_activity] = {
                         'fees': application_fees
                     }
 
         self.dynamic_attributes['fees']['application'] = application_fees
+        self.dynamic_attributes['fees']['licence'] = licence_fees
 
     def get_renewal_fee_for(self, activity):
         '''
@@ -958,6 +992,13 @@ class ApplicationFeePolicyForRenew(ApplicationFeePolicy):
             logger.info('{0}: REFUND {1} for licence ActivityID {2}'.format(
                 'ApplicationFeePolicyForRenew',
                 fees_new,
+                activity.id
+            ))
+
+        if fees_new == 0:
+            # Zero amount paid for activity
+            logger.info('{0}: ZERO FEE for licence ActivityID {1}'.format(
+                'ApplicationFeePolicyForRenew',
                 activity.id
             ))
 
