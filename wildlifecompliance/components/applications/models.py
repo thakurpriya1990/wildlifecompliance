@@ -2924,7 +2924,7 @@ class Application(RevisionedMixin):
                 raise
 
     @staticmethod
-    def calculate_base_fees(selected_purpose_ids):
+    def calculate_base_fees(selected_purpose_ids, application_type=None):
         from wildlifecompliance.components.licences.models import LicencePurpose
 
         base_fees = {
@@ -2933,8 +2933,19 @@ class Application(RevisionedMixin):
         }
 
         for purpose in LicencePurpose.objects.filter(id__in=selected_purpose_ids):
-            base_fees['application'] += purpose.base_application_fee
-            base_fees['licence'] += purpose.base_licence_fee
+
+            if application_type == Application.APPLICATION_TYPE_RENEWAL:
+                print(purpose.base_licence_fee)
+                base_fees['application'] += purpose.renewal_application_fee
+                base_fees['licence'] += purpose.base_licence_fee
+
+            elif application_type == Application.APPLICATION_TYPE_AMENDMENT:
+                base_fees['application'] += purpose.amendment_application_fee
+                base_fees['licence'] += 0
+
+            else:
+                base_fees['application'] += purpose.base_application_fee
+                base_fees['licence'] += purpose.base_licence_fee
 
         return base_fees
 

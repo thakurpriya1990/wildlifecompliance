@@ -612,7 +612,8 @@ class ApplicationFeePolicyForAmendment(ApplicationFeePolicy):
 
                 if p.purpose_id in purposes_ids and p.is_payable:
                     # Only for purposes existing in copied form.
-                    save_app += p.application_fee
+                    # save_app += p.application_fee
+                    save_app += p.purpose.amendment_application_fee
                     prev_adj += p.adjusted_fee
                     is_selected = True
 
