@@ -276,6 +276,8 @@ class BasePurposeSerializer(serializers.ModelSerializer):
 
 class DefaultPurposeSerializer(BasePurposeSerializer):
     name = serializers.CharField()
+    amendment_application_fee = serializers.DecimalField(
+        max_digits=8, decimal_places=2, coerce_to_string=False, read_only=True)
 
     class Meta:
         model = LicencePurpose
@@ -284,7 +286,9 @@ class DefaultPurposeSerializer(BasePurposeSerializer):
             'name',
             'base_application_fee',
             'base_licence_fee',
-            'short_name'
+            'short_name',
+            'renewal_application_fee',
+            'amendment_application_fee',
         )
 
 
@@ -328,6 +332,10 @@ class DefaultActivitySerializer(serializers.ModelSerializer):
 
 class PurposeSerializer(BasePurposeSerializer):
     name = serializers.CharField()
+    amendment_application_fee = serializers.DecimalField(
+        max_digits=8, decimal_places=2, coerce_to_string=False, read_only=True)
+    renewal_application_fee = serializers.DecimalField(
+        max_digits=8, decimal_places=2, coerce_to_string=False, read_only=True)
 
     class Meta:
         model = LicencePurpose
@@ -337,6 +345,8 @@ class PurposeSerializer(BasePurposeSerializer):
             'base_application_fee',
             'base_licence_fee',
             'short_name',
+            'renewal_application_fee',
+            'amendment_application_fee',
         )
 
 
