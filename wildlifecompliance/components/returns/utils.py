@@ -297,6 +297,11 @@ class SpreadSheet(object):
                 row_data[key.lower()] = value[row_num] \
                     if value[row_num] is not None else ''
 
+            # create deficiency key as part of row data
+            table_name = self.ret.return_type.resources[0]['name']
+            table_deficiency = table_name + '-deficiency-field'
+            row_data[table_deficiency] = None
+
             self.rows_list.append(row_data)
 
         return self.rows_list
@@ -523,6 +528,11 @@ class ApplyFeeFieldElement(SpecialFieldElement):
     def accept(self, return_visitor):
         self._return = return_visitor._return
         self.data_source = return_visitor._data_source
+        self.dynamic_attributes = {
+            'fees': {
+                'return': 0,
+            },
+        }
         # Add this field element to the visitor.
         return_visitor.visit_apply_fee_field(self)
 

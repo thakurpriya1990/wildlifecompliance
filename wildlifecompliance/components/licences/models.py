@@ -2,17 +2,13 @@ from __future__ import unicode_literals
 
 from django.core.exceptions import ValidationError
 from django.db import models, transaction
-from django.dispatch import receiver
-from django.db.models.signals import pre_delete
 from django.contrib.postgres.fields.jsonb import JSONField
 from django.db.models import Max
 from django.db.models import Q
-from ledger.accounts.models import EmailUser
 from ledger.licence.models import LicenceType
 
 from wildlifecompliance.components.inspection.models import Inspection
 
-from wildlifecompliance.ordered_model import OrderedModel
 from wildlifecompliance.components.main.models import (
     CommunicationsLogEntry,
     UserAction,
@@ -41,6 +37,10 @@ class LicencePurpose(models.Model):
         max_digits=8, decimal_places=2, default='0')
     base_licence_fee = models.DecimalField(
         max_digits=8, decimal_places=2, default='0')
+    renewal_application_fee = models.DecimalField(
+        max_digits=8, decimal_places=2, default='0')
+    amendment_application_fee = models.DecimalField(
+        max_digits=8, decimal_places=2, default='0')
     fields = JSONField(default=list)
     licence_category = models.ForeignKey(
         'LicenceCategory',
@@ -52,8 +52,9 @@ class LicencePurpose(models.Model):
         blank=True,
         null=True
     )
-
-    # application_schema = JSONField(blank=True, null=True)
+    apply_multiple = models.BooleanField(
+        default=False,
+        help_text='If ticked, the licenced Purpose can have multiple periods.')
 
     class Meta:
         app_label = 'wildlifecompliance'
@@ -218,8 +219,7 @@ class LicenceActivity(models.Model):
         default=False,
         help_text='If ticked, this licenced activity will not be available for applications on behalf of an organisation.')
     schema = JSONField(default=list)
-    # default_condition = models.ManyToManyField(Condition, through='DefaultCondition',blank= True)
-    # default_period = models.PositiveIntegerField('Default Licence Period (days)', blank = True, null = True)
+    oracle_account_code = models.CharField(max_length=100, default='')
 
     class Meta:
         app_label = 'wildlifecompliance'
@@ -228,12 +228,6 @@ class LicenceActivity(models.Model):
 
     def __str__(self):
         return self.name
-
-
-# class DefaultCondition(models.Model):
-#     condition = models.ForeignKey(Condition)
-#     wildlife_licence_activity = models.ForeignKey(LicencePurpose)
-#     order = models.IntegerField()
 
 
 # #LicenceType
@@ -572,6 +566,41 @@ class WildlifeLicence(models.Model):
 
         return open_purposes
 
+    def get_proposed_purposes_in_applications(self):
+        '''
+        Return a list of ApplicationSelectedActivityPurpose records issued
+        through all applications for the licence.
+        '''
+        from wildlifecompliance.components.applications.models import (
+            ApplicationSelectedActivityPurpose,
+            ApplicationSelectedActivity,
+        )
+
+        # activities for this licence in current or suspended.
+        activity_status = [
+                ApplicationSelectedActivity.ACTIVITY_STATUS_CURRENT,
+                ApplicationSelectedActivity.ACTIVITY_STATUS_REPLACED,
+                ApplicationSelectedActivity.ACTIVITY_STATUS_SUSPENDED,
+        ]
+        # latest purposes on the activities which are issued or reissued.
+        purpose_process_status = [
+            ApplicationSelectedActivityPurpose.PROCESSING_STATUS_ISSUED,
+            ApplicationSelectedActivityPurpose.PROCESSING_STATUS_REISSUE,
+        ]
+
+        activity_ids = [
+            a.id for a in self.current_application.get_current_activity_chain(
+                activity_status__in=activity_status
+            )
+        ]
+
+        purposes = ApplicationSelectedActivityPurpose.objects.filter(
+            selected_activity__in=activity_ids,
+            processing_status__in=purpose_process_status
+        ).order_by('purpose_sequence')
+
+        return purposes
+
     @property
     def latest_activities_merged(self):
         """
@@ -645,7 +674,7 @@ class WildlifeLicence(models.Model):
                         for p in activity.proposed_purposes.all() if p.is_issued and p.purpose in activity.purposes])
                 activity_key['expiry_date'] += \
                     '\n' + '\n'.join(['{}'.format(
-                        p.expiry_date.strftime('%d/%m/%Y'))
+                        p.expiry_date.strftime('%d/%m/%Y') if p.expiry_date else None)
                         for p in activity.proposed_purposes.all() if p.is_issued and p.purpose in activity.purposes])
                 activity_key['can_action']['can_renew'] =\
                     activity_key['can_action']['can_renew'] or activity_can_action['can_renew']
@@ -1092,6 +1121,148 @@ class WildlifeLicence(models.Model):
                 return has_info 
 
         return has_info
+
+    def get_next_purpose_sequence(self):
+        '''
+        Returns the next sequence number for selected licence purposes.
+        '''
+        from wildlifecompliance.components.applications.models import (
+            ApplicationSelectedActivityPurpose,
+            ApplicationSelectedActivity,
+        )
+        next_sequence = 0
+        # activities for this licence in current or suspended.
+        activity_status = [
+                ApplicationSelectedActivity.ACTIVITY_STATUS_CURRENT,
+                ApplicationSelectedActivity.ACTIVITY_STATUS_REPLACED,
+                ApplicationSelectedActivity.ACTIVITY_STATUS_SUSPENDED,
+        ]
+        # latest purposes on the activities which are issued or reissued.
+        purpose_process_status = [
+            ApplicationSelectedActivityPurpose.PROCESSING_STATUS_ISSUED,
+            ApplicationSelectedActivityPurpose.PROCESSING_STATUS_REISSUE,
+        ]
+
+        activities = self.current_application.get_current_activity_chain(
+            activity_status__in=activity_status
+        )
+        latest_purposes = [
+            p for p in [
+                a.proposed_purposes.filter(
+                    processing_status__in=purpose_process_status
+                ) for a in activities
+            ]
+        ]
+
+        # set the next sequence number from the latest proposed purposes from
+        # all the activities.
+        if latest_purposes:
+            last_sequence = 0
+            for a_purposes in latest_purposes:
+                for purpose in a_purposes:
+                    last_sequence = purpose.purpose_sequence \
+                        if purpose.purpose_sequence > last_sequence \
+                        else last_sequence
+            next_sequence = last_sequence
+
+        next_sequence += 1
+        return next_sequence
+
+    def get_purposes_in_sequence(self):
+        '''
+        Returns selected licence purposes for this licence in sequence order.
+        '''
+        from wildlifecompliance.components.applications.models import (
+            ApplicationSelectedActivityPurpose,
+            ApplicationSelectedActivity,
+        )
+        purposes = []
+        # activities for this licence in current or suspended.
+        activity_status = [
+                ApplicationSelectedActivity.ACTIVITY_STATUS_CURRENT,
+                ApplicationSelectedActivity.ACTIVITY_STATUS_REPLACED,
+                ApplicationSelectedActivity.ACTIVITY_STATUS_SUSPENDED,
+        ]
+        # latest purposes on the activities which are issued or reissued.
+        purpose_process_status = [
+            ApplicationSelectedActivityPurpose.PROCESSING_STATUS_ISSUED,
+            ApplicationSelectedActivityPurpose.PROCESSING_STATUS_REISSUE,
+        ]
+
+        activity_ids = [
+            a.id for a in self.current_application.get_current_activity_chain(
+                activity_status__in=activity_status
+            )
+        ]
+
+        purposes = ApplicationSelectedActivityPurpose.objects.filter(
+            selected_activity__in=activity_ids,
+            processing_status__in=purpose_process_status
+        ).order_by('purpose_sequence')
+
+        purposes = self.get_proposed_purposes_in_applications()
+
+        return purposes
+
+    def get_purposes_to_expire(self):
+        '''
+        Returns selected licence purposes will have expired today.
+        '''
+        from wildlifecompliance.components.applications.models import (
+            ApplicationSelectedActivityPurpose,
+        )
+        from datetime import date
+
+        today = date.today()
+
+        current_status = [
+            ApplicationSelectedActivityPurpose.PURPOSE_STATUS_DEFAULT,
+            ApplicationSelectedActivityPurpose.PURPOSE_STATUS_CURRENT,
+        ]
+
+        purposes = self.get_proposed_purposes_in_applications()
+
+        to_expire = [
+            p for p in purposes.filter(
+                expiry_date__lt=today,
+                purpose_status__in=current_status,
+            )
+        ]
+
+        return to_expire
+
+    def get_document_history(self):
+        '''
+        Returns a query set of all licence documents for this licence by
+        applications with current or suspended activities.
+        '''
+        from wildlifecompliance.components.applications.models import (
+            ApplicationSelectedActivity,
+            Application,
+        )
+        # activities for this licence in current or suspended.
+        activity_status = [
+                ApplicationSelectedActivity.ACTIVITY_STATUS_CURRENT,
+                ApplicationSelectedActivity.ACTIVITY_STATUS_REPLACED,
+                ApplicationSelectedActivity.ACTIVITY_STATUS_SUSPENDED,
+        ]
+
+        application_ids = [
+            a.application_id
+            for a in self.current_application.get_current_activity_chain(
+                activity_status__in=activity_status
+            )
+        ]
+
+        documents = Application.objects.values(
+                'licence_document',
+                'licence_id',
+                'lodgement_date',
+            ).filter(
+                id__in=application_ids,
+            )
+
+        return documents
 
     def generate_doc(self):
         from wildlifecompliance.components.licences.pdf import create_licence_doc

@@ -13,6 +13,7 @@ from rest_framework.decorators import (
 from rest_framework.response import Response
 from rest_framework.renderers import JSONRenderer
 from ledger.accounts.models import EmailUser
+from ledger.checkout.utils import calculate_excl_gst
 from django.urls import reverse
 from django.shortcuts import redirect, render
 from wildlifecompliance.components.applications.utils import (
@@ -443,6 +444,7 @@ class ApplicationViewSet(viewsets.ModelViewSet):
                 instance = self.get_object()
                 request.data['application'] = u'{}'.format(instance.id)
                 request.data['staff'] = u'{}'.format(request.user.id)
+                request.data['log_type'] = request.data['type']
                 serializer = ApplicationLogEntrySerializer(data=request.data)
                 serializer.is_valid(raise_exception=True)
                 comms = serializer.save()
@@ -579,6 +581,7 @@ class ApplicationViewSet(viewsets.ModelViewSet):
     def estimate_price(self, request, *args, **kwargs):
         purpose_ids = request.data.get('purpose_ids', [])
         application_id = request.data.get('application_id')
+        licence_type = request.data.get('licence_type')
         if application_id is not None:
             application = Application.objects.get(id=application_id)
             return Response({
@@ -586,7 +589,7 @@ class ApplicationViewSet(viewsets.ModelViewSet):
                     application, request.data.get('field_data', {}))
             })
         return Response({
-            'fees': Application.calculate_base_fees(purpose_ids)
+            'fees': Application.calculate_base_fees(purpose_ids, licence_type)
         })
 
     @list_route(methods=['GET', ])
@@ -686,8 +689,8 @@ class ApplicationViewSet(viewsets.ModelViewSet):
         try:
             instance = self.get_object()
 
-            if not request.user.is_staff:
-                raise Exception('Non staff member.')
+            # if not request.user.is_staff:
+            #     raise Exception('Non staff member.')
 
             session = request.session
             set_session_application(session, instance)
@@ -734,7 +737,8 @@ class ApplicationViewSet(viewsets.ModelViewSet):
     @renderer_classes((JSONRenderer,))
     def licence_fee_checkout(self, request, *args, **kwargs):
         from wildlifecompliance.components.applications.payments import (
-            LicenceFeeClearingInvoice
+            LicenceFeeClearingInvoice,
+            ApplicationFeePolicy,
         )
         PAY_STATUS = ApplicationSelectedActivity.PROCESSING_STATUS_AWAITING_LICENCE_FEE_PAYMENT
         try:
@@ -769,13 +773,19 @@ class ApplicationViewSet(viewsets.ModelViewSet):
                 ]
 
                 for activity in activities_with_fees:
+
+                    price_excl = calculate_excl_gst(activity.application_fee)
+                    if ApplicationFeePolicy.GST_FREE:
+                        price_excl = activity.application_fee
+                    oracle_code = activity.licence_activity.oracle_account_code
+
                     product_lines.append({
                         'ledger_description': '{} (Application Fee)'.format(
                             activity.licence_activity.name),
                         'quantity': 1,
                         'price_incl_tax': str(activity.application_fee),
-                        'price_excl_tax': 0,
-                        'oracle_code': ''
+                        'price_excl_tax': str(price_excl),
+                        'oracle_code': oracle_code
                     })
 
             activities = instance.selected_activities.all()
@@ -791,13 +801,19 @@ class ApplicationViewSet(viewsets.ModelViewSet):
                 ]
 
                 for activity in activities_with_fees:
+
+                    price_excl = calculate_excl_gst(activity.additional_fee)
+                    if ApplicationFeePolicy.GST_FREE:
+                        price_excl = activity.additional_fee
+                    oracle_code = activity.licence_activity.oracle_account_code
+
                     product_lines.append({
                         'ledger_description': '{}'.format(
                             activity.additional_fee_text),
                         'quantity': 1,
                         'price_incl_tax': str(activity.additional_fee),
-                        'price_excl_tax': 0,
-                        'oracle_code': ''
+                        'price_excl_tax': str(price_excl),
+                        'oracle_code': oracle_code
                     })
 
             # Check if refund is required from last invoice.
@@ -807,12 +823,19 @@ class ApplicationViewSet(viewsets.ModelViewSet):
 
                 # refund any application fee adjustments.
                 if instance.application_fee < 0:
+
+                    price_excl = calculate_excl_gst(instance.application_fee)
+                    if ApplicationFeePolicy.GST_FREE:
+                        price_excl = instance.application_fee
+                    # _code = activity.licence_activity.oracle_account_code
+                    oracle_code = ''
+
                     product_lines.append({
                         'ledger_description': 'Adjusted fee refund',
                         'quantity': 1,
                         'price_incl_tax': str(instance.application_fee),
-                        'price_excl_tax': 0,
-                        'oracle_code': ''
+                        'price_excl_tax': str(price_excl),
+                        'oracle_code': oracle_code
                     })
 
             checkout_result = checkout(

@@ -22,7 +22,6 @@
                                     <label class="col-sm-3">
                                         Payment method for customer:
                                     </label>
-
                                     <div class="col-sm-6">
                                         <input type="radio" checked="checked" name="reception" value="card" v-model="customer_pay_method" > Credit Card &nbsp;&nbsp;</input>
                                         <input type="radio" name="reception" id="cash" value="cash" v-model="customer_pay_method" > Cash &nbsp;&nbsp;</input>
@@ -30,7 +29,7 @@
                                     </div>
                                 </div>
                             </div>
-
+                            <br /><br />
                             <div class="col-sm-12">
                                 <div class="row">
                                     <label class="col-sm-6">
@@ -248,12 +247,18 @@ export default {
     },
     handleActivityCheckboxChange:function(index,index1){
         let vm = this
+        this.application_fee = 0;
+        this.licence_fee = 0;
         var input = $(vm.$refs.selected_activity_type)[0];
         if(vm.licence_categories[index].activity[index1].selected){
             for(var activity_index=0, len2=vm.licence_categories[index].activity[index1].purpose.length; activity_index<len2; activity_index++){
                 vm.licence_categories[index].activity[index1].purpose[activity_index].selected = this.isAmendment || this.isRenewal;
                 if (this.isAmendment) {
-                    this.application_fee = this.application_fee + vm.licence_categories[index].activity[index1].purpose[activity_index].base_application_fee
+                    this.application_fee = this.application_fee + vm.licence_categories[index].activity[index1].purpose[activity_index].amendment_application_fee
+                    this.licence_fee = this.licence_fee + vm.licence_categories[index].activity[index1].purpose[activity_index].base_licence_fee
+                }
+                if (this.isRenewal) {
+                    this.application_fee = this.application_fee + vm.licence_categories[index].activity[index1].purpose[activity_index].renewal_application_fee
                     this.licence_fee = this.licence_fee + vm.licence_categories[index].activity[index1].purpose[activity_index].base_licence_fee
                 }
             }
@@ -265,15 +270,12 @@ export default {
                 purpose => purpose.selected || (purpose.id == event.target.id && event.target.checked)
             ))).map(purpose => purpose.id);
         this.$http.post('/api/application/estimate_price/', {
-                'purpose_ids': purpose_ids
+                'purpose_ids': purpose_ids,
+                'licence_type': this.selected_apply_licence_select,
             }).then(res => {
                 this.application_fee = res.body.fees.application;
                 this.licence_fee = res.body.fees.licence;
-                if (this.selected_apply_licence_select=='amend_activity') {
-                    // Ammendments to licence activity purposes do not incur fees.
-                    // this.application_fee = 0
-                    this.licence_fee = 0
-                }
+
         }, err => {
             console.log(err);
         });

@@ -3,12 +3,14 @@ from wildlifecompliance.components.licences.models import (
     WildlifeLicence,
     LicenceCategory,
     LicenceActivity,
-    LicencePurpose
+    LicencePurpose,
+    LicenceDocument,
 )
 from wildlifecompliance.components.applications.models import (
     ApplicationSelectedActivity,
     ApplicationSelectedActivityPurpose,
     ActivityInvoice,
+    ApplicationDocument,
 )
 from wildlifecompliance.components.applications.serializers import (
     WildlifeLicenceApplicationSerializer,
@@ -48,12 +50,12 @@ class WildlifeLicenceCanActionSerializer(serializers.Serializer):
         print(obj)
         return ''
 
+
 class WildlifeLicenceSerializer(serializers.ModelSerializer):
     licence_document = serializers.CharField(
         source='licence_document._file.url')
     current_application = WildlifeLicenceApplicationSerializer(read_only=True)
     last_issue_date = serializers.SerializerMethodField(read_only=True)
-    licence_number = serializers.SerializerMethodField(read_only=True)
 
     class Meta:
         model = WildlifeLicence
@@ -70,9 +72,6 @@ class WildlifeLicenceSerializer(serializers.ModelSerializer):
     def get_last_issue_date(self, obj):
         # return obj.latest_activities.first().issue_date if obj.latest_activities else ''
         return obj.latest_activities.first().get_issue_date() if obj.latest_activities else ''
-
-    def get_licence_number(self, obj):
-        return obj.reference
 
 
 class DTInternalWildlifeLicenceSerializer(WildlifeLicenceSerializer):
@@ -277,6 +276,8 @@ class BasePurposeSerializer(serializers.ModelSerializer):
 
 class DefaultPurposeSerializer(BasePurposeSerializer):
     name = serializers.CharField()
+    amendment_application_fee = serializers.DecimalField(
+        max_digits=8, decimal_places=2, coerce_to_string=False, read_only=True)
 
     class Meta:
         model = LicencePurpose
@@ -285,7 +286,9 @@ class DefaultPurposeSerializer(BasePurposeSerializer):
             'name',
             'base_application_fee',
             'base_licence_fee',
-            'short_name'
+            'short_name',
+            'renewal_application_fee',
+            'amendment_application_fee',
         )
 
 
@@ -329,6 +332,10 @@ class DefaultActivitySerializer(serializers.ModelSerializer):
 
 class PurposeSerializer(BasePurposeSerializer):
     name = serializers.CharField()
+    amendment_application_fee = serializers.DecimalField(
+        max_digits=8, decimal_places=2, coerce_to_string=False, read_only=True)
+    renewal_application_fee = serializers.DecimalField(
+        max_digits=8, decimal_places=2, coerce_to_string=False, read_only=True)
 
     class Meta:
         model = LicencePurpose
@@ -338,6 +345,8 @@ class PurposeSerializer(BasePurposeSerializer):
             'base_application_fee',
             'base_licence_fee',
             'short_name',
+            'renewal_application_fee',
+            'amendment_application_fee',
         )
 
 
@@ -422,3 +431,31 @@ class LicenceCategorySerializer(serializers.ModelSerializer):
             }
         )
         return serializer.data
+
+
+class LicenceDocumentHistorySerializer(serializers.ModelSerializer):
+    history_date = serializers.SerializerMethodField()
+    history_document_url = serializers.SerializerMethodField()
+
+    class Meta:
+        model = LicenceDocument
+        fields = (
+            'history_date',
+            'history_document_url',
+        )
+
+    def get_history_date(self, obj):
+        history_date = obj['lodgement_date'].strftime(
+            '%d/%m/%Y %H:%M:%S.%f'
+        ) if obj['lodgement_date'] else None
+
+        return history_date
+
+    def get_history_document_url(self, obj):
+        doc_id = obj['licence_document']
+        lic_id = obj['licence_id']
+        pdf = 'licence-{0}.pdf'.format(lic_id)
+        url = '/media/wildlifecompliance/licences/{0}/documents/{1}'.format(
+            doc_id, pdf
+        )
+        return url

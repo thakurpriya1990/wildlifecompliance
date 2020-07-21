@@ -203,7 +203,7 @@ export default {
                     return this.condition.due_date;
                 }
             }
-        }
+        }  
     },
     watch: {
         due_date: function(){
@@ -372,6 +372,17 @@ export default {
    },
    updated:function () {
        let vm = this;
+       if (vm.condition.free_condition){
+            vm.showDueDate=true;
+       } else {
+            let cond = vm.conditions.filter(c => {
+                return c.id === vm.condition.standard_condition
+            })
+            if ( cond[0] ) {
+                vm.showDueDate=cond[0].require_return  
+            }
+       }      
+     
        // Initialise Date Picker
        if (!vm.condition.standard || vm.showDueDate) {
             $(vm.$refs.due_date).datetimepicker(vm.datepickerOptions);
@@ -393,6 +404,9 @@ export default {
         this.$nextTick(()=>{
             vm.eventListeners();
         });
+
+        // this.showDueDate=vm.condition.require_return
+        //this.showDueDate=true
    }
 }
 </script>

@@ -19,14 +19,16 @@ from wildlifecompliance.components.licences.serializers import (
     LicenceCategorySerializer,
     DTInternalWildlifeLicenceSerializer,
     DTExternalWildlifeLicenceSerializer,
-    ProposedPurposeSerializer
+    ProposedPurposeSerializer,
+    LicenceDocumentHistorySerializer,
 )
 from wildlifecompliance.components.applications.models import (
     Application,
     ApplicationSelectedActivity
 )
 from wildlifecompliance.components.applications.payments import (
-    ApplicationFeePolicyForAmendment
+    ApplicationFeePolicyForAmendment,
+    ApplicationFeePolicyForRenew,
 )
 from rest_framework_datatables.pagination import DatatablesPageNumberPagination
 from rest_framework_datatables.filters import DatatablesFilterBackend
@@ -715,6 +717,29 @@ class LicenceViewSet(viewsets.ModelViewSet):
             print(traceback.print_exc())
             raise serializers.ValidationError(str(e))
 
+    @list_route(methods=['GET', ])
+    def licence_history(self, request, *args, **kwargs):
+        try:
+            qs = None
+            licence_history_id = request.query_params['licence_history_id']
+
+            if licence_history_id != '0':
+                instance = WildlifeLicence.objects.get(id=licence_history_id)
+                qs = instance.get_document_history()
+
+            serializer = LicenceDocumentHistorySerializer(qs, many=True)
+
+            return Response(serializer.data)
+        except serializers.ValidationError:
+            print(traceback.print_exc())
+            raise
+        except ValidationError as e:
+            print(traceback.print_exc())
+            raise serializers.ValidationError(repr(e.error_dict))
+        except Exception as e:
+            print(traceback.print_exc())
+            raise serializers.ValidationError(str(e))
+
 class LicenceCategoryViewSet(viewsets.ModelViewSet):
     queryset = LicenceCategory.objects.all()
     serializer_class = LicenceCategorySerializer
@@ -820,16 +845,25 @@ class UserAvailableWildlifeLicencePurposesViewSet(viewsets.ModelViewSet):
             )
 
             active_purpose_ids = []
+            active_purpose_id2 = []
             for selected_activity in current_activities:
                 active_purpose_ids.extend([purpose.id for purpose in selected_activity.purposes])
+                active_purpose_id2 += [
+                    p.purpose_id for p in selected_activity.proposed_purposes.all() 
+                    if p.is_issued
+                ]
 
             # Exclude active purposes for New Activity/Purpose or New Licence application types
             if application_type in [
                 Application.APPLICATION_TYPE_ACTIVITY,
                 Application.APPLICATION_TYPE_NEW_LICENCE,
             ]:
+                # available_purpose_records = available_purpose_records.exclude(
+                #     id__in=active_purpose_ids
+                # )
+
                 available_purpose_records = available_purpose_records.exclude(
-                    id__in=active_purpose_ids
+                    id__in=active_purpose_id2
                 )
 
             # Exclude active licence categories for New Licence application type
@@ -853,6 +887,8 @@ class UserAvailableWildlifeLicencePurposesViewSet(viewsets.ModelViewSet):
                     'licence_purposes__id',
                     flat=True
                 )
+
+                amendable_purpose_ids = active_purpose_id2
 
                 queryset = queryset.filter(id__in=active_licence_activity_ids)
                 available_purpose_records = available_purpose_records.filter(
@@ -880,6 +916,12 @@ class UserAvailableWildlifeLicencePurposesViewSet(viewsets.ModelViewSet):
             policy = ApplicationFeePolicyForAmendment
             for purpose in available_purpose_records:
                 policy.set_zero_licence_fee_for(purpose)
+                policy.set_base_application_fee_for(purpose)
+
+        if application_type == Application.APPLICATION_TYPE_RENEWAL:
+            policy = ApplicationFeePolicyForRenew
+            for purpose in available_purpose_records:
+                policy.set_base_application_fee_for(purpose)
 
         serializer = LicenceCategorySerializer(queryset, many=True, context={
             'request': request,

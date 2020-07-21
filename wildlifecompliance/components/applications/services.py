@@ -3,6 +3,8 @@ import abc
 import requests
 import logging
 
+from django.db import transaction
+
 from wildlifecompliance import settings
 
 from wildlifecompliance.components.licences.models import (
@@ -205,6 +207,7 @@ class ApplicationService(object):
         # Set form components to be visited.
         checkbox = CheckboxAndRadioButtonVisitor(application, form)
         text_area = TextAreaVisitor(application, form)
+        text = TextVisitor(application, form)
 
         # Set PromptInspection Fields for Checkbox and RadioButtons.
         for_inspection_fields = PromptInpsectionFieldElement()
@@ -218,6 +221,7 @@ class ApplicationService(object):
         # to be dynamically added to the licence pdf.
         for_copy_to_licence_fields = CopyToLicenceFieldElement()
         for_copy_to_licence_fields.accept(text_area)
+        for_copy_to_licence_fields.accept(text)
 
     @staticmethod
     def update_dynamic_attributes(application):
@@ -367,6 +371,56 @@ class TextAreaCompositor(ApplicationFormCompositor):
                     )
 
 
+class TextCompositor(ApplicationFormCompositor):
+    """
+    A Class for objects which encapsulates an algorithm for formatting Text
+     on an Application Form.
+    """
+    def __init__(self, application, data_source):
+        self._application = application
+        self._data_source = data_source
+        self._children = set()
+
+    def do_algorithm(self, special_field_element):
+        self._field = special_field_element
+        self.render()
+
+    def render(self):
+        for selected_activity in self._application.activities:
+
+            self._field.reset(selected_activity)
+
+            schema_fields = self._application.get_schema_fields_for_purposes(
+                selected_activity.purposes.values_list('id', flat=True)
+            )
+
+            adjusted_by_fields = {}
+            for form_data_record in self._data_source:
+                try:
+                    # Retrieve dictionary of fields from a model instance
+                    data_record = form_data_record.__dict__
+                except AttributeError:
+                    # If a raw form data (POST) is supplied, form_data_record
+                    # is a key
+                    data_record = self._data_source[form_data_record]
+
+                schema_name = data_record['schema_name']
+                if schema_name not in schema_fields:
+                    continue
+                schema_data = schema_fields[schema_name]
+                licence_purpose = LicencePurpose.objects.get(
+                    id=schema_data['licence_purpose_id']
+                )
+                if schema_data['type'] == 'text':
+                    self._field.parse_component(
+                        component=schema_data,
+                        schema_name=schema_name,
+                        adjusted_by_fields=adjusted_by_fields,
+                        activity=selected_activity,
+                        purpose=licence_purpose
+                    )
+
+
 class ApplicationFormVisitor(object):
     """
     An Interface for Application Form component fields which can be visited.
@@ -417,6 +471,25 @@ class TextAreaVisitor(ApplicationFormVisitor):
         self._data_source = data_source
         # Apply a traversal strategy.
         self._compositor = TextAreaCompositor(application, data_source)
+
+    def visit_copy_to_licence_field(self, copy_to_licence_field):
+        self._copy_to_licence_field = copy_to_licence_field
+        self._compositor.do_algorithm(self._copy_to_licence_field)
+
+
+class TextVisitor(ApplicationFormVisitor):
+    """
+    An implementation of an operation declared by ApplicationFormVisitor to do
+    an algorithm specific to Text on a Form.
+
+    NOTE: Local state is stored and will accumulate during the traversal of the
+    Form.
+    """
+    def __init__(self, application, data_source):
+        self._application = application
+        self._data_source = data_source
+        # Apply a traversal strategy.
+        self._compositor = TextCompositor(application, data_source)
 
     def visit_copy_to_licence_field(self, copy_to_licence_field):
         self._copy_to_licence_field = copy_to_licence_field
@@ -652,6 +725,7 @@ class IncreaseApplicationFeeFieldElement(SpecialFieldElement):
         self.has_fee_exemption = is_exempt
         self.fee_policy.set_has_fee_exemption(is_exempt)
 
+    @transaction.atomic
     def reset(self, licence_activity):
         '''
         Reset the fees for the licence activity to it base fee amount.
@@ -677,6 +751,7 @@ class IncreaseApplicationFeeFieldElement(SpecialFieldElement):
 
                 licence_activity.save()
 
+    @transaction.atomic
     def parse_component(
             self,
             component,
@@ -687,6 +762,9 @@ class IncreaseApplicationFeeFieldElement(SpecialFieldElement):
         '''
         Aggregate adjusted fees for the Activity/Purpose.
         '''
+        from decimal import Decimal as D
+        from decimal import ROUND_DOWN
+
         if self.is_refreshing:
             # No user update with a page refesh.
             return
@@ -696,11 +774,13 @@ class IncreaseApplicationFeeFieldElement(SpecialFieldElement):
             def increase_fee(fees, field, amount):
                 if self.has_fee_exemption:
                     return True
+                amount = D(amount).quantize(D('0.01'), rounding=ROUND_DOWN)
                 fees[field] += amount
                 fees[field] = fees[field] if fees[field] >= 0 else 0
                 return True
 
             def adjusted_fee(amount):
+                amount = D(amount).quantize(D('0.01'), rounding=ROUND_DOWN)
                 self.adjusted_fee += amount
                 return True
 
@@ -744,6 +824,7 @@ class IncreaseApplicationFeeFieldElement(SpecialFieldElement):
                     p.application_fee = purpose.base_application_fee
                     p.licence_fee = purpose.base_licence_fee
 
+                self.adjusted_fee = D(p.adjusted_fee) + self.adjusted_fee
                 p.adjusted_fee = self.adjusted_fee
                 p.save()
 
@@ -899,6 +980,7 @@ def do_process_form(
         )
 
 
+@transaction.atomic
 def do_update_dynamic_attributes(application, fee_exemption=False):
     '''
     Update application and activity attributes based on selected JSON schema
@@ -927,28 +1009,6 @@ def do_update_dynamic_attributes(application, fee_exemption=False):
         fees = field_data.pop('fees', {})
         selected_activity.licence_fee = fees['licence']
         selected_activity.application_fee = fees['application']
-
-        # Check when under review for changes in fee amount.
-        # Application fees can also be adjusted by internal officer.
-        # UNDER_REVIEW = Application.PROCESSING_STATUS_UNDER_REVIEW
-        # if application.processing_status == UNDER_REVIEW\
-        #     and fees['application']\
-        #         > selected_activity.base_fees['application']:
-        #     selected_activity.application_fee = fees['application'] \
-        #         - selected_activity.base_fees['application']
-
-        # Check for refunds to Application Amendment, Renewals and Requested
-        # Amendment Fees.
-        # REQUEST_AMEND = Application.CUSTOMER_STATUS_AMENDMENT_REQUIRED
-        # if application.application_type in [
-        #     Application.APPLICATION_TYPE_AMENDMENT,
-        #     Application.APPLICATION_TYPE_RENEWAL,
-        # ] or application.customer_status == REQUEST_AMEND:
-
-        #     # set fee to zero when refund exists.
-        #     if fees['application']\
-        #             < selected_activity.base_fees['application']:
-        #         selected_activity.application_fee = Decimal(0.0)
 
         # Adjust fees to include the Increase Fee updated form questions.
         for_increase_fee_fields.set_adjusted_fees_for(selected_activity)

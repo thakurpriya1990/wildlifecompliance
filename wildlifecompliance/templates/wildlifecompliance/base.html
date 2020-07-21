@@ -68,8 +68,8 @@
                                             <a class="navbar-brand" href="{% url 'wc_home' %}"><div style="inline"><img src="{% static 'wildlifecompliance/img/dpaw_small.png' %}">Home</div></a>
                                             <li><a href="/internal/licences">Licences</a></li>
                                             <li><a href="/internal/returns">Returns</a></li>
-                                            <li><a href="/internal/tag_purchases">Tag Purchases</a></li>
-                                            <li><a href="/internal/advices">Advices to CEO</a></li>
+                                            <!-- <li><a href="/internal/tag_purchases">Tag Purchases</a></li>
+                                            <li><a href="/internal/advices">Advices to CEO</a></li> -->
                                         {% elif is_compliance_internal_login and prefer_compliance_management %}
                                             <a class="navbar-brand" href="/internal/call_email"><div style="inline"><img src="{% static 'wildlifecompliance/img/dpaw_small.png' %}">Home</div></a>
                                             <li><a href="/internal/inspection">Inspections</a></li>
@@ -140,7 +140,7 @@
 
                                                 <li><a href="{% url 'manage-account' %}">Manage Account</a></li>
                                                 <!-- <li><a href="{% url 'pdf_latex' %}">Create PDF</a></li> -->
-                                                <li><a href="{% url 'manage-profiles' %}">Manage Profiles</a></li>
+                                                <!-- <li><a href="{% url 'manage-profiles' %}">Manage Profiles</a></li> -->
                                                 {% for org in request.user.wildlifecompliance_organisations.all %}
                                                     {% for org_contact in org.contacts.all%}
                                                         {% ifequal org_contact.email request.user.email %}

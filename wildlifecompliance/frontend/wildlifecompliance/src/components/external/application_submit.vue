@@ -19,7 +19,7 @@
                         <a href="/" style="margin-top:15px;" class="btn btn-primary">Back to dashboard</a>
                     </div>
                     <div v-else class="col-sm-offset-3 col-sm-6 borderDecoration">
-                        <strong>Sorry it looks like there isn't any application currently in your session.</strong>
+                        <strong>Proxy application has been successfully submitted.</strong>
                         <br /><a href="/" style="margin-top:15px;" class="btn btn-primary">Back to dashboard</a>
                     </div>
                 </div>

@@ -13,6 +13,7 @@ from wildlifecompliance.components.applications.models import (
     ApplicationSelectedActivity,
     ApplicationFormDataRecord,
     ApplicationSelectedActivityPurpose,
+    ApplicationInvoice,
 )
 from wildlifecompliance.components.organisations.models import (
     Organisation
@@ -144,7 +145,7 @@ class ApplicationSelectedActivitySerializer(serializers.ModelSerializer):
         required=False, allow_null=True)
     additional_fee = serializers.DecimalField(
         max_digits=7, decimal_places=2, required=False, allow_null=True)
-    previous_paid_amount = serializers.SerializerMethodField(read_only=True)
+    # previous_paid_amount = serializers.SerializerMethodField(read_only=True)
     has_inspection = serializers.SerializerMethodField(read_only=True)
 
     class Meta:
@@ -205,8 +206,8 @@ class ApplicationSelectedActivitySerializer(serializers.ModelSerializer):
         return True if obj.processing_status in [
             'with_officer', 'with_officer_conditions'] else False
 
-    def get_previous_paid_amount(self, obj):
-        return obj.previous_paid_amount if obj.previous_paid_amount else None
+    # def get_previous_paid_amount(self, obj):
+    #     return obj.previous_paid_amount if obj.previous_paid_amount else None
 
     def get_has_inspection(self, obj):
         return obj.has_inspection
@@ -312,6 +313,7 @@ class ExternalApplicationSelectedActivityMergedSerializer(serializers.Serializer
 class EmailUserAppViewSerializer(serializers.ModelSerializer):
     residential_address = UserAddressSerializer()
     identification = DocumentSerializer()
+    dob = serializers.SerializerMethodField(read_only=True)
 
     class Meta:
         model = EmailUser
@@ -327,6 +329,14 @@ class EmailUserAppViewSerializer(serializers.ModelSerializer):
                   'email',
                   'phone_number',
                   'mobile_number',)
+
+    def get_dob(self, obj):
+
+        formatted_date = obj.dob.strftime(
+            '%d/%m/%Y'
+        ) if obj.dob else None
+
+        return formatted_date
 
 
 class ActivitySerializer(serializers.ModelSerializer):
@@ -351,7 +361,8 @@ class AssessmentSerializer(serializers.ModelSerializer):
     assessor_group = ActivityPermissionGroupSerializer(read_only=True)
     status = CustomChoiceField(read_only=True)
     assessors = EmailUserAppViewSerializer(many=True)
-    assigned_assessor = EmailUserSerializer()  
+    assigned_assessor = EmailUserSerializer()
+    date_last_reminded = serializers.SerializerMethodField(read_only=True)
 
     class Meta:
         model = Assessment
@@ -367,6 +378,14 @@ class AssessmentSerializer(serializers.ModelSerializer):
             'assessors',
             'assigned_assessor',
         )
+
+    def get_date_last_reminded(self, obj):
+
+        formatted_date = obj.date_last_reminded.strftime(
+            '%d/%m/%Y'
+        ) if obj.date_last_reminded else None
+
+        return formatted_date
 
 
 class SimpleSaveAssessmentSerializer(serializers.ModelSerializer):
@@ -501,8 +520,9 @@ class BaseApplicationSerializer(serializers.ModelSerializer):
     adjusted_paid_amount = serializers.SerializerMethodField(read_only=True)
     is_reception_paper = serializers.SerializerMethodField(read_only=True)
     is_reception_migrate = serializers.SerializerMethodField(read_only=True)
-    is_online_submit = serializers.SerializerMethodField(read_only=True)
     is_return_check_accept = serializers.SerializerMethodField(read_only=True)
+    can_pay_application = serializers.SerializerMethodField(read_only=True)
+    can_pay_licence = serializers.SerializerMethodField(read_only=True)
 
     class Meta:
         model = Application
@@ -555,8 +575,9 @@ class BaseApplicationSerializer(serializers.ModelSerializer):
             'adjusted_paid_amount',
             'is_reception_paper',
             'is_reception_migrate',
-            'is_online_submit',
             'is_return_check_accept',
+            'can_pay_licence',
+            'can_pay_application',
         )
         read_only_fields = ('documents',)
 
@@ -636,6 +657,17 @@ class BaseApplicationSerializer(serializers.ModelSerializer):
                 Application.PROCESSING_STATUS_AWAITING_APPLICANT_RESPONSE:
             # Outstanding amendment request - edit required.
             result = True
+
+        if obj.customer_status == Application.CUSTOMER_STATUS_AWAITING_PAYMENT\
+           and (is_submitter or is_proxy_applicant or is_in_org_applicant):
+            # Allow Payment to be paid by applicant with Continue link.
+            return True
+
+        # if result and (
+        #     is_app_licence_officer or is_submitter or is_proxy_applicant
+        #     or is_in_org_applicant
+        #    ):
+        #     result = True
 
         if result and (
             is_app_licence_officer 
@@ -751,19 +783,45 @@ class BaseApplicationSerializer(serializers.ModelSerializer):
 
         return is_migrate_submit
 
-    def get_is_online_submit(self, obj):
-        is_online_submit = False
-        if obj.submit_type == Application.SUBMIT_TYPE_ONLINE:
-            is_online_submit = True
-
-        return is_online_submit
-
     def get_is_return_check_accept(self, obj):
         is_accept = False
         if obj.return_check_status == Application.RETURN_CHECK_STATUS_ACCEPTED:
             is_accept = True
 
         return is_accept
+
+    def get_can_pay_application(self, obj):
+        can_pay = False
+
+        pay_status = [
+            ApplicationInvoice.PAYMENT_STATUS_UNPAID,
+        ]
+
+        if obj.submit_type == Application.SUBMIT_TYPE_ONLINE \
+            and obj.payment_status in pay_status and \
+                obj.processing_status != Application.PROCESSING_STATUS_DRAFT:
+
+            can_pay = True
+
+        return can_pay
+
+    def get_can_pay_licence(self, obj):
+        can_pay = False
+
+        pay_status = [
+            ApplicationInvoice.PAYMENT_STATUS_NOT_REQUIRED,
+            ApplicationInvoice.PAYMENT_STATUS_PARTIALLY_PAID,
+            ApplicationInvoice.PAYMENT_STATUS_PAID,
+        ]
+        AWAITING = Application.CUSTOMER_STATUS_AWAITING_PAYMENT
+
+        if obj.submit_type == Application.SUBMIT_TYPE_ONLINE \
+            and obj.customer_status == AWAITING and \
+                obj.payment_status in pay_status:
+
+            can_pay = True
+
+        return can_pay
 
 
 class DTInternalApplicationSerializer(BaseApplicationSerializer):
@@ -823,6 +881,7 @@ class DTInternalApplicationSerializer(BaseApplicationSerializer):
 
         return False
 
+
 class DTExternalApplicationSerializer(BaseApplicationSerializer):
     submitter = EmailUserSerializer()
     applicant = serializers.CharField(read_only=True)
@@ -861,7 +920,9 @@ class DTExternalApplicationSerializer(BaseApplicationSerializer):
             'activities',
             'invoice_url',
             'payment_url',
-            'is_online_submit',
+            'can_pay_application',
+            'can_pay_licence',
+
         )
         # the serverSide functionality of datatables is such that only columns that have field 'data'
         # defined are requested from the serializer. Use datatables_always_serialize to force render
