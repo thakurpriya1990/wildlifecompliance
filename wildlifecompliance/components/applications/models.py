@@ -496,6 +496,24 @@ class Application(RevisionedMixin):
         return True if assigned else False
 
     @property
+    def assigned_officer(self):
+        """
+        A check for any licence activities on this application has been
+        allocated to an internal officer and returns the first selected.
+        """
+        officer = None
+
+        if self.is_assigned:
+
+            activity = ApplicationSelectedActivity.objects.filter(
+                application_id=self.id
+            ).exclude(assigned_officer__isnull=True).first()
+
+            officer = activity.assigned_officer if activity else officer
+
+        return officer
+
+    @property
     def can_user_edit(self):
         """
         :return: True if the application is in one of the editable status.
@@ -965,6 +983,7 @@ class Application(RevisionedMixin):
         purpose.original_issue_date = issued.original_issue_date \
             if issued.original_issue_date else issued.issue_date
         purpose.issue_date = issued.issue_date
+        purpose.purpose_sequence = issued.purpose_sequence
         purpose.save()
 
         issued.processing_status = REPLACE
@@ -2433,15 +2452,21 @@ class Application(RevisionedMixin):
                     if not common_purpose_ids:
                         pass
 
-                    # If there are no remaining purposes in the existing_activity
-                    # (i.e. this issued activity replaces them all),
-                    # mark activity and purposes as replaced.
+                    # If there are no remaining purposes in the 
+                    # existing_activity(i.e. this issued activity replaces them
+                    # all), mark activity and purposes as replaced.
                     elif not remaining_purpose_ids_list:
                         existing_activity.updated_by = request.user
                         for p_id in common_purpose_ids:
-                            existing_activity.mark_selected_purpose_as_replaced(
+
+                            sequence_no = existing_activity.mark_selected_purpose_as_replaced(
                                 p_id
                             )
+
+                            selected_activity.set_selected_purpose_sequence(
+                                p_id, sequence_no
+                            )
+
                         existing_activity.activity_status = ApplicationSelectedActivity.ACTIVITY_STATUS_REPLACED
                         existing_activity.save()
 
@@ -2464,9 +2489,15 @@ class Application(RevisionedMixin):
                         # Mark existing_activity as replaced
                         existing_activity.updated_by = request.user
                         for p_id in common_purpose_ids:
-                            existing_activity.mark_selected_purpose_as_replaced(
+
+                            sequence_no = existing_activity.mark_selected_purpose_as_replaced(
                                 p_id
                             )
+
+                            selected_activity.set_selected_purpose_sequence(
+                                p_id, sequence_no
+                            )
+
                         existing_activity.activity_status = ApplicationSelectedActivity.ACTIVITY_STATUS_REPLACED
                         existing_activity.save()
 
@@ -3785,7 +3816,8 @@ class ApplicationSelectedActivity(models.Model):
         return Application.calculate_base_fees(
             self.application.licence_purposes.filter(
                 licence_activity_id=self.licence_activity_id
-            ).values_list('id', flat=True)
+            ).values_list('id', flat=True),
+            self.application.application_type
         )
 
     @property
@@ -4488,15 +4520,35 @@ class ApplicationSelectedActivity(models.Model):
         '''
         Set all Selected Purposes for the activity to a processing status of
         replaced.
+
+        Returns the sequence number replaced.
         '''
         REPLACE = ApplicationSelectedActivityPurpose.PROCESSING_STATUS_REPLACED
+        S_REPLACE = ApplicationSelectedActivityPurpose.PURPOSE_STATUS_REPLACED
+        lp = LicencePurpose.objects.get(id=p_id)
+        selected_purposes = self.proposed_purposes.filter(
+            purpose=lp
+        )
+        sequence_no = 0
+        for selected in selected_purposes:
+            selected.processing_status = REPLACE
+            selected_purpose_status = S_REPLACE
+            selected.save()
+            sequence_no = selected.purpose_sequence
+
+        return sequence_no
+
+    def set_selected_purpose_sequence(self, p_id, sequence_no):
+        '''
+        Set all Selected Purposes for the activity to the same sequence number.
+        '''
         lp = LicencePurpose.objects.get(id=p_id)
         selected_purposes = self.proposed_purposes.filter(
             purpose=lp
         )
 
         for selected in selected_purposes:
-            selected.processing_status = REPLACE
+            selected.purpose_sequence = int(sequence_no)
             selected.save()
 
     def is_proposed_purposes_status(self, status):
