@@ -28,6 +28,98 @@ class LicenceService(object):
         pass
 
     @staticmethod
+    def get_activities_list_for(licence, request=None):
+        '''
+        Get a list of activities for the licence, merged by application per
+        licence_activity_id (1 per LicenceActivity).
+        '''
+        latest_activities = licence.latest_activities
+
+        # new_activities = [
+        #     a for a in latest_activities
+        #     if a.application.application_type in [
+        #         'new_activity', 'new_licence']
+        # ]
+
+        # merge_ids = [
+        #     a.id for a in latest_activities
+        #     if a.application.application_type in [
+        #         'amend_activity', 'renew_activity', 'system_generated'] and
+        #     a.licence_activity_id in [
+        #         n.licence_activity_id for n in new_activities
+        #     ]
+        # ]
+
+        new_ids = [
+            a.id for a in latest_activities
+        ]
+
+        merged_activities = {}
+
+        if licence.is_latest_in_category:
+            purposes_in_open_applications = list(
+                licence.get_purposes_in_open_applications())
+        else:
+            purposes_in_open_applications = None
+
+        for activity in latest_activities:
+
+            if purposes_in_open_applications or\
+                    purposes_in_open_applications == []:
+                activity_can_action = activity.can_action(
+                    purposes_in_open_applications)
+
+            else:
+                activity_can_action = {
+                    'licence_activity_id': activity.licence_activity_id,
+                    'can_renew': False,
+                    'can_amend': False,
+                    'can_surrender': False,
+                    'can_cancel': False,
+                    'can_suspend': False,
+                    'can_reissue': False,
+                    'can_reinstate': False,
+                }
+
+            # Check if a record for the licence_activity_id already exists, if
+            # not, add.
+            if activity.id in new_ids:
+                issued_list = [
+                    p for p in activity.proposed_purposes.all() if p.is_issued]
+
+                if not len(issued_list):
+                    continue
+
+                merged_activities[activity] = {
+                    'id': activity.id,
+                    'licence_activity_id': activity.licence_activity_id,
+                    'activity_name_str': activity.licence_activity.name,
+                    'issue_date': activity.get_issue_date(),
+                    'start_date': activity.get_start_date(),
+                    'expiry_date': '\n'.join(['{}'.format(
+                        p.expiry_date.strftime('%d/%m/%Y') if p.expiry_date else '')
+                        for p in activity.proposed_purposes.all() if p.is_issued]),
+                    'activity_purpose_names_and_status': '\n'.join(['{} ({})'.format(
+                        p.purpose.name, activity.get_activity_status_display())
+                        for p in activity.proposed_purposes.all() if p.is_issued]),
+                    'can_action':
+                        {
+                            'licence_activity_id': activity.licence_activity_id,
+                            'can_renew': activity_can_action['can_renew'],
+                            'can_amend': activity_can_action['can_amend'],
+                            'can_surrender': activity_can_action['can_surrender'],
+                            'can_cancel': activity_can_action['can_cancel'],
+                            'can_suspend': activity_can_action['can_suspend'],
+                            'can_reissue': activity_can_action['can_reissue'],
+                            'can_reinstate': activity_can_action['can_reinstate'],
+                        }
+                }
+
+        merged_activities_list = merged_activities.values()
+
+        return merged_activities_list
+
+    @staticmethod
     def verify_expired_licences(request=None):
         '''
         Verifies licences requiring renewing by expiring licence purposes after

@@ -56,6 +56,7 @@ class WildlifeLicenceSerializer(serializers.ModelSerializer):
         source='licence_document._file.url')
     current_application = WildlifeLicenceApplicationSerializer(read_only=True)
     last_issue_date = serializers.SerializerMethodField(read_only=True)
+    latest_activities_merged = serializers.SerializerMethodField(read_only=True)
 
     class Meta:
         model = WildlifeLicence
@@ -67,11 +68,18 @@ class WildlifeLicenceSerializer(serializers.ModelSerializer):
             'current_application',
             'extracted_fields',
             'last_issue_date',
+            'latest_activities_merged',
         )
 
     def get_last_issue_date(self, obj):
         # return obj.latest_activities.first().issue_date if obj.latest_activities else ''
         return obj.latest_activities.first().get_issue_date() if obj.latest_activities else ''
+
+    def get_latest_activities_merged(self, obj):
+        from wildlifecompliance.components.licences.services import (
+            LicenceService,
+        )
+        return LicenceService.get_activities_list_for(obj)
 
 
 class DTInternalWildlifeLicenceSerializer(WildlifeLicenceSerializer):
@@ -79,7 +87,7 @@ class DTInternalWildlifeLicenceSerializer(WildlifeLicenceSerializer):
         source='licence_document._file.url')
     current_application = WildlifeLicenceApplicationSerializer(read_only=True)
     last_issue_date = serializers.SerializerMethodField(read_only=True)
-    latest_activities_merged = ExternalApplicationSelectedActivityMergedSerializer(many=True, read_only=True)
+    #latest_activities_merged = ExternalApplicationSelectedActivityMergedSerializer(many=True, read_only=True)
     can_action = serializers.SerializerMethodField(read_only=True)
     invoice_url = serializers.SerializerMethodField(read_only=True)
 
@@ -168,12 +176,13 @@ class DTInternalWildlifeLicenceSerializer(WildlifeLicenceSerializer):
         except Exception:
             return None
 
+
 class DTExternalWildlifeLicenceSerializer(WildlifeLicenceSerializer):
     licence_document = serializers.CharField(
         source='licence_document._file.url')
     current_application = WildlifeLicenceApplicationSerializer(read_only=True)
     last_issue_date = serializers.SerializerMethodField(read_only=True)
-    latest_activities_merged = ExternalApplicationSelectedActivityMergedSerializer(many=True, read_only=True)
+    # latest_activities_merged = ExternalApplicationSelectedActivityMergedSerializer(many=True, read_only=True)
     can_action = serializers.SerializerMethodField(read_only=True)
     invoice_url = serializers.SerializerMethodField(read_only=True)
 
