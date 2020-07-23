@@ -772,6 +772,7 @@ class UserAvailableWildlifeLicencePurposesViewSet(viewsets.ModelViewSet):
         licence_category_id = request.GET.get('licence_category')
         licence_activity_id = request.GET.get('licence_activity')
         licence_no = request.GET.get('licence_no')
+        select_activity_id = request.GET.get('select_activity')
         # active_applications are applications linked with licences that have CURRENT or SUSPENDED activities
         active_applications = Application.get_active_licence_applications(request, application_type)
         active_current_applications = active_applications.exclude(
@@ -888,7 +889,15 @@ class UserAvailableWildlifeLicencePurposesViewSet(viewsets.ModelViewSet):
                     flat=True
                 )
 
-                amendable_purpose_ids = active_purpose_id2
+                select_activity_id = int(select_activity_id)
+                activitys = [
+                    a for a in current_activities if a.id == select_activity_id
+                ]
+                p_ids = [
+                    p.purpose_id for p in activitys[0].proposed_purposes.all()
+                ]
+                # amendable_purpose_ids = active_purpose_id2
+                amendable_purpose_ids = p_ids
 
                 queryset = queryset.filter(id__in=active_licence_activity_ids)
                 available_purpose_records = available_purpose_records.filter(
