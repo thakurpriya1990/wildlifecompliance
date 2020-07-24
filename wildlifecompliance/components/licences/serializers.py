@@ -1,4 +1,6 @@
 from django.urls import reverse
+from django.utils import timezone
+
 from wildlifecompliance.components.licences.models import (
     WildlifeLicence,
     LicenceCategory,
@@ -10,7 +12,6 @@ from wildlifecompliance.components.applications.models import (
     ApplicationSelectedActivity,
     ApplicationSelectedActivityPurpose,
     ActivityInvoice,
-    ApplicationDocument,
 )
 from wildlifecompliance.components.applications.serializers import (
     WildlifeLicenceApplicationSerializer,
@@ -454,9 +455,10 @@ class LicenceDocumentHistorySerializer(serializers.ModelSerializer):
         )
 
     def get_history_date(self, obj):
-        history_date = obj['lodgement_date'].strftime(
-            '%d/%m/%Y %H:%M:%S.%f'
-        ) if obj['lodgement_date'] else None
+        date_format_loc = timezone.localtime(
+            obj['licence_document__uploaded_date']
+        )
+        history_date = date_format_loc.strftime('%d/%m/%Y %H:%M:%S.%f')
 
         return history_date
 
