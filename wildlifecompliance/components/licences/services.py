@@ -1,10 +1,14 @@
 import logging
+import abc
 
 from datetime import date
+
+from django.core.exceptions import ValidationError
 from django.db import transaction
 
 from wildlifecompliance.components.licences.models import (
     WildlifeLicence,
+    LicencePurpose,
 )
 from wildlifecompliance.components.licences.email import (
     send_licence_renewal_notification,
@@ -26,6 +30,60 @@ class LicenceService(object):
 
     def __init__(self):
         pass
+
+    @staticmethod
+    def request_licence_purpose_list(licence, request):
+        '''
+        List of licence purposes issued.
+        '''
+        purposes = None                     # licence purpose list.
+
+        try:
+            on_licence_actioner = LicenceActioner(licence)
+            purposes = on_licence_actioner.get_latest_purposes_for_request(
+                request
+            )
+
+        except Exception as e:
+            logger.error('ERR request_licence_purpose_list: {0}'.format(e))
+            raise Exception('Failed requesting licence purpose list.')
+
+        return purposes
+
+    @staticmethod
+    def request_suspend_licence(licence, request):
+        '''
+        Suspend licence.
+        '''
+        SUSPEND = WildlifeLicence.ACTIVITY_PURPOSE_ACTION_SUSPEND
+        try:
+            on_licence_actioner = LicenceActioner(licence)
+            on_licence_actioner.apply_action(request, SUSPEND)
+
+        except Exception as e:
+            logger.error('ERR suspend_licence_for: {0}'.format(e))
+            raise Exception('Failed suspending licence.')
+
+        return licence
+
+    @staticmethod
+    def request_reinstate_licence(licence, request):
+        '''
+        Reinstate licence.
+        '''
+        REINSTATE = WildlifeLicence.ACTIVITY_PURPOSE_ACTION_REINSTATE
+
+        try:
+            # raise Exception('LicenceService not implemented')
+
+            on_licence_actioner = LicenceActioner(licence)
+            on_licence_actioner.apply_action(request, REINSTATE)
+
+        except Exception as e:
+            logger.error('ERR surrender_licence_for: {0}'.format(e))
+            raise Exception('Failed reinstating licence.')
+
+        return licence
 
     @staticmethod
     def get_activities_list_for(licence, request=None):
@@ -96,12 +154,15 @@ class LicenceService(object):
                     'activity_name_str': activity.licence_activity.name,
                     'issue_date': activity.get_issue_date(),
                     'start_date': activity.get_start_date(),
-                    'expiry_date': '\n'.join(['{}'.format(
-                        p.expiry_date.strftime('%d/%m/%Y') if p.expiry_date else '')
-                        for p in activity.proposed_purposes.all() if p.is_issued]),
-                    'activity_purpose_names_and_status': '\n'.join(['{} ({})'.format(
-                        p.purpose.name, activity.get_activity_status_display())
-                        for p in activity.proposed_purposes.all() if p.is_issued]),
+                    'expiry_date': '\n'.join([
+                        '{}'.format(p.expiry_date.strftime(
+                            '%d/%m/%Y') if p.expiry_date else '')
+                        for p in activity.proposed_purposes.all()
+                    ]),
+                    'activity_purpose_names_and_status': '\n'.join([
+                        '{} ({})'.format(p.purpose.name, p.purpose_status)
+                        for p in activity.proposed_purposes.all()
+                    ]),
                     'can_action':
                         {
                             'licence_activity_id': activity.licence_activity_id,
@@ -208,3 +269,123 @@ class LicenceService(object):
             raise Exception('Failed verifying licence renewal.')
 
         return True
+
+
+class LicenceActionable(object):
+    '''
+    An interface for LicenceActioner.
+    '''
+    __metaclass__ = abc.ABCMeta
+
+
+class LicenceActioner(LicenceActionable):
+    '''
+    A representation of a Licence that can be actioned.
+    '''
+    licence = None                  # Composite licence.
+
+    def __init__(self, licence):
+        super(LicenceActionable, self).__init__()
+        self.licence = licence
+
+    def __str__(self):
+        return 'LicenceActioner for {0}'.format(self.licence.id)
+
+    def get_latest_purposes_for_request(self, request):
+        '''
+        Gets a list of current selected licence purposes available on this
+        licence for an action request. The list excludes licence purposes under
+        review.
+
+        :param client request must include an 'action' to be performed and an
+        'selected_activity_id' to be actioned.
+
+        :return a list of current selected licence purposes for the activity.
+        '''
+        ISSUED = ApplicationSelectedActivityPurpose.PROCESSING_STATUS_ISSUED
+        RENEW = WildlifeLicence.ACTIVITY_PURPOSE_ACTION_REACTIVATE_RENEW
+        REINSTATE = WildlifeLicence.ACTIVITY_PURPOSE_ACTION_REINSTATE
+
+        purposes = None
+        action = request.GET.get('action', None)
+        activity_id = request.GET.get('selected_activity_id', None)
+
+        ACTIVE = ApplicationSelectedActivityPurpose.ACTIVE
+        actions = {
+            REINSTATE: ApplicationSelectedActivityPurpose.REINSTATABLE,
+            RENEW: ApplicationSelectedActivityPurpose.RENEWABLE,
+        }
+        filter_on_action = actions.get(action, ACTIVE)
+
+        purposes = ApplicationSelectedActivityPurpose.objects.filter(
+            selected_activity_id=activity_id,
+            processing_status=ISSUED,
+            purpose_status__in=filter_on_action
+        ).distinct()
+
+        return purposes
+
+    @transaction.atomic
+    def apply_action(self, request, action):
+        '''
+        Applies a specified action to a licence's purposes for a single licence
+        activity_id and selected purposes list If not all purposes for an
+        activity are to be actioned, create new SYSTEM_GENERATED Applications
+        and associated activities to apply the relevant statuses for each.
+        '''
+        CANCEL = WildlifeLicence.ACTIVITY_PURPOSE_ACTION_CANCEL
+        SUSPEND = WildlifeLicence.ACTIVITY_PURPOSE_ACTION_SUSPEND
+        SURRENDER = WildlifeLicence.ACTIVITY_PURPOSE_ACTION_SURRENDER
+        RENEW = WildlifeLicence.ACTIVITY_PURPOSE_ACTION_REACTIVATE_RENEW
+        REINSTATE = WildlifeLicence.ACTIVITY_PURPOSE_ACTION_REINSTATE
+        REISSUE = WildlifeLicence.ACTIVITY_PURPOSE_ACTION_REISSUE
+
+        if action not in [
+         RENEW, SURRENDER, CANCEL, SUSPEND, REINSTATE, REISSUE]:
+            raise ValidationError('Selected action is not valid')
+
+        selected_activity_id = request.data.get('selected_activity_id', None)
+
+        purpose_ids_list = request.data.get('purpose_ids_list', None)
+        purpose_ids_list = list(set(purpose_ids_list))
+        purpose_ids_list.sort()
+
+        if LicencePurpose.objects.filter(id__in=purpose_ids_list).\
+                values_list('licence_activity_id', flat=True).\
+                distinct().count() != 1:
+
+            raise ValidationError(
+                'Selected purposes must all be of the same licence activity')
+
+        selected_activities = [
+            a for a in self.licence.latest_activities
+            if a.id == int(selected_activity_id)
+        ]
+        selected_activity = selected_activities[0]
+        selected_activity.updated_by = request.user
+
+        if action == RENEW:
+            # selected_activity.reactivate_renew(request)
+            pass
+
+        elif action == SURRENDER:
+            selected_activity.surrender_purposes(purpose_ids_list)
+
+        elif action == CANCEL:
+            selected_activity.cancel_purposes(purpose_ids_list)
+
+        elif action == SUSPEND:
+            selected_activity.suspend_purposes(purpose_ids_list)
+
+        elif action == REINSTATE:
+            selected_activity.reinstate_purposes(purpose_ids_list)
+
+        elif action == REISSUE:
+            selected_activity.reissue_purposes(purpose_ids_list)
+
+        # generate new licence and save.
+        with transaction.atomic():
+            self.licence.generate_doc()
+            application = self.licence.current_application
+            application.licence_document = self.licence.licence_document
+            application.save()
