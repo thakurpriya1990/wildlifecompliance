@@ -117,6 +117,7 @@ export default {
         licence_category : this.$route.params.licence_category,
         licence_activity : this.$route.params.licence_activity,
         licence_no : this.$route.params.licence_no,
+        select_activity : this.$route.params.select_activity,
         application: null,
         agent: {},
         activity :{
@@ -378,6 +379,7 @@ export default {
             "proxy_id": this.selected_apply_proxy_id,
             "organisation_id": this.selected_apply_org_id,
             "licence_no": this.licence_no,
+            "select_activity": this.select_activity,
         }),
         this.selected_apply_org_id ? utils.fetchOrganisation(this.selected_apply_org_id) : '',
         this.selected_apply_proxy_id ? internal_utils.fetchUser(this.selected_apply_proxy_id) : '',

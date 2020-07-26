@@ -496,6 +496,24 @@ class Application(RevisionedMixin):
         return True if assigned else False
 
     @property
+    def assigned_officer(self):
+        """
+        A check for any licence activities on this application has been
+        allocated to an internal officer and returns the first selected.
+        """
+        officer = None
+
+        if self.is_assigned:
+
+            activity = ApplicationSelectedActivity.objects.filter(
+                application_id=self.id
+            ).exclude(assigned_officer__isnull=True).first()
+
+            officer = activity.assigned_officer if activity else officer
+
+        return officer
+
+    @property
     def can_user_edit(self):
         """
         :return: True if the application is in one of the editable status.
@@ -965,6 +983,7 @@ class Application(RevisionedMixin):
         purpose.original_issue_date = issued.original_issue_date \
             if issued.original_issue_date else issued.issue_date
         purpose.issue_date = issued.issue_date
+        purpose.purpose_sequence = issued.purpose_sequence
         purpose.save()
 
         issued.processing_status = REPLACE
@@ -2337,6 +2356,8 @@ class Application(RevisionedMixin):
         self, request, selected_activity, 
         parent_licence=None, generate_licence=False):
         """
+        TODO:AYN redundant use LicenceActioner.action(request)
+
         Process to allow a previously issued Activity to be updated and then
         Re-issued.
         1. Set Activity processing status to With Approver.
@@ -2370,12 +2391,7 @@ class Application(RevisionedMixin):
 
                 # Set selected individual purposes on the activity.
                 purpose_ids_list = request.data.get('purpose_ids_list', None)
-                REISSUE = \
-                  ApplicationSelectedActivityPurpose.PROCESSING_STATUS_REISSUE
-                selected_activity.set_proposed_purposes_process_status_for(
-                    purpose_ids_list,
-                    REISSUE,
-                )
+                selected_activity.reissue_purposes(purpose_ids_list)
 
                 selected_activity.updated_by = request.user
                 # Log application action
@@ -2429,26 +2445,41 @@ class Application(RevisionedMixin):
                     common_purpose_ids = list(set(existing_activity_purposes) & set(issued_activity_purposes))
                     remaining_purpose_ids_list = list(set(existing_activity_purposes) - set(issued_activity_purposes))
 
-                    # No relevant purposes were selected for action for this existing activity, do nothing
+                    # Ignore common purposes to allow addition of multiple
+                    # purposes when the application type is a new activity or
+                    # licence.
+                    if self.application_type in [
+                        Application.APPLICATION_TYPE_NEW_LICENCE,
+                        Application.APPLICATION_TYPE_ACTIVITY,
+                    ]:
+                        common_purpose_ids = None
+
+                    # No relevant purposes were selected for action for this
+                    # existing activity, do nothing
                     if not common_purpose_ids:
                         pass
 
-                    # If there are no remaining purposes in the existing_activity
-                    # (i.e. this issued activity replaces them all),
-                    # mark activity and purposes as replaced.
+                    # If there are no remaining purposes in the 
+                    # existing_activity(i.e. this issued activity replaces them
+                    # all), mark activity and purposes as replaced.
                     elif not remaining_purpose_ids_list:
                         existing_activity.updated_by = request.user
                         for p_id in common_purpose_ids:
-                            existing_activity.mark_selected_purpose_as_replaced(
+
+                            sequence_no = existing_activity.mark_selected_purpose_as_replaced(
                                 p_id
                             )
+
+                            selected_activity.set_selected_purpose_sequence(
+                                p_id, sequence_no
+                            )
+
                         existing_activity.activity_status = ApplicationSelectedActivity.ACTIVITY_STATUS_REPLACED
                         existing_activity.save()
 
                     # If only a subset of the existing_activity's purposes are 
                     # to be actioned, create new_activity for remaining 
                     # purposes. New system generated application is created.
-                    # TODO:AYN check system generated app created correctly.
                     elif remaining_purpose_ids_list:
                         existing_application = existing_activity.application
                         existing_activity_status = existing_activity.activity_status
@@ -2464,9 +2495,15 @@ class Application(RevisionedMixin):
                         # Mark existing_activity as replaced
                         existing_activity.updated_by = request.user
                         for p_id in common_purpose_ids:
-                            existing_activity.mark_selected_purpose_as_replaced(
+
+                            sequence_no = existing_activity.mark_selected_purpose_as_replaced(
                                 p_id
                             )
+
+                            selected_activity.set_selected_purpose_sequence(
+                                p_id, sequence_no
+                            )
+
                         existing_activity.activity_status = ApplicationSelectedActivity.ACTIVITY_STATUS_REPLACED
                         existing_activity.save()
 
@@ -2477,23 +2514,6 @@ class Application(RevisionedMixin):
                     self.generate_returns(parent_licence, selected_activity, request)
 
                 # Logging action completed for each purpose in final_decision.
-
-                # self.log_user_action(
-                #     ApplicationUserAction.ACTION_ISSUE_LICENCE_.format(
-                #         selected_activity.licence_activity.name), request)
-                # # Log entry for organisation
-                # if self.org_applicant:
-                #     self.org_applicant.log_user_action(
-                #         ApplicationUserAction.ACTION_ISSUE_LICENCE_.format(
-                #             selected_activity.licence_activity.name), request)
-                # elif self.proxy_applicant:
-                #     self.proxy_applicant.log_user_action(
-                #         ApplicationUserAction.ACTION_ISSUE_LICENCE_.format(
-                #             selected_activity.licence_activity.name), request)
-                # else:
-                #     self.submitter.log_user_action(
-                #         ApplicationUserAction.ACTION_ISSUE_LICENCE_.format(
-                #             selected_activity.licence_activity.name), request)
 
                 selected_activity.save()
 
@@ -3785,7 +3805,8 @@ class ApplicationSelectedActivity(models.Model):
         return Application.calculate_base_fees(
             self.application.licence_purposes.filter(
                 licence_activity_id=self.licence_activity_id
-            ).values_list('id', flat=True)
+            ).values_list('id', flat=True),
+            self.application.application_type
         )
 
     @property
@@ -4393,89 +4414,144 @@ class ApplicationSelectedActivity(models.Model):
             self.save()
 
     @transaction.atomic
-    def surrender(self, request):
+    def surrender_purposes(self, purpose_ids):
         '''
         Surrender the activity when all proposed purposes are surrendered.
         '''
-        SURRENDER = ApplicationSelectedActivity.ACTIVITY_STATUS_SURRENDERED
+        A_STATUS = ApplicationSelectedActivity.ACTIVITY_STATUS_SURRENDERED
+        P_STATUS = ApplicationSelectedActivity.PURPOSE_STATUS_SURRENDERED
 
-        purpose_ids_list = request.data.get('purpose_ids_list', None)
-        purpose_ids_list = list(set(purpose_ids_list))
-        purpose_ids_list.sort()
-        self.set_proposed_purposes_status_for(purpose_ids_list, SURRENDER)
+        self.set_proposed_purposes_status_for(purpose_ids, P_STATUS)
 
-        if not self.is_proposed_purposes_status(SURRENDER):
+        if not self.is_proposed_purposes_status(P_STATUS):
             return
 
-        self.activity_status = SURRENDER
-        self.updated_by = request.user
+        self.activity_status = A_STATUS
         self.save()
 
     @transaction.atomic
-    def cancel(self, request):
+    def cancel_purposes(self, purpose_ids):
         '''
         Cancel the activity when all proposed purposes are cancelled.
         '''
-        CANCEL = ApplicationSelectedActivity.ACTIVITY_STATUS_CANCELLED
+        A_STATUS = ApplicationSelectedActivity.ACTIVITY_STATUS_CANCELLED
+        P_STATUS = ApplicationSelectedActivityPurpose.PURPOSE_STATUS_CANCELLED
 
-        purpose_ids_list = request.data.get('purpose_ids_list', None)
-        purpose_ids_list = list(set(purpose_ids_list))
-        purpose_ids_list.sort()
-        self.set_proposed_purposes_status_for(purpose_ids_list, CANCEL)
+        self.set_proposed_purposes_status_for(purpose_ids, P_STATUS)
 
-        if not self.is_proposed_purposes_status(CANCEL):
+        if not self.is_proposed_purposes_status(P_STATUS):
             return
 
-        self.activity_status = CANCEL
-        self.updated_by = request.user
+        self.activity_status = A_STATUS
         self.save()
 
     @transaction.atomic
-    def suspend(self, request):
+    def suspend_purposes(self, purpose_ids):
         '''
         Suspend the activity when all proposed purposes are suspended.
         '''
-        SUSPEND = ApplicationSelectedActivity.ACTIVITY_STATUS_SUSPENDED
+        A_STATUS = ApplicationSelectedActivity.ACTIVITY_STATUS_SUSPENDED
+        P_STATUS = ApplicationSelectedActivityPurpose.PURPOSE_STATUS_SUSPENDED
 
-        purpose_ids_list = request.data.get('purpose_ids_list', None)
-        purpose_ids_list = list(set(purpose_ids_list))
-        purpose_ids_list.sort()
-        self.set_proposed_purposes_status_for(purpose_ids_list, SUSPEND)
+        self.set_proposed_purposes_status_for(purpose_ids, P_STATUS)
 
-        if not self.is_proposed_purposes_status(SUSPEND):
+        if not self.is_proposed_purposes_status(P_STATUS):
             return
 
-        self.activity_status = SUSPEND
-        self.updated_by = request.user
+        self.activity_status = A_STATUS
         self.save()
 
     @transaction.atomic
-    def reinstate(self, request):
+    def reinstate_purposes(self, purpose_ids):
         '''
-        Reinstate the activity when all proposed purposes are current.
+        Reinstate all licence purposes available on this selected activity.
         '''
-        CURRENT = ApplicationSelectedActivity.ACTIVITY_STATUS_CURRENT
+        A_STATUS = ApplicationSelectedActivity.ACTIVITY_STATUS_CURRENT
+        P_STATUS = ApplicationSelectedActivityPurpose.PURPOSE_STATUS_CURRENT
 
-        purpose_ids_list = request.data.get('purpose_ids_list', None)
-        purpose_ids_list = list(set(purpose_ids_list))
-        purpose_ids_list.sort()
-        self.set_proposed_purposes_status_for(purpose_ids_list, CURRENT)
+        self.set_proposed_purposes_status_for(purpose_ids, P_STATUS)
 
-        if not self.is_proposed_purposes_status(CURRENT):
+        if not self.is_proposed_purposes_status(P_STATUS) and\
+           self.activity_status == A_STATUS:
             return
 
-        self.activity_status = CURRENT
-        self.updated_by = request.user
+        self.activity_status = A_STATUS
         self.save()
 
-    def reissue(self, request):
+    @transaction.atomic
+    def reissue_purposes(self, purpose_ids):
+        '''
+        Reinstate all licence purposes available on this selected activity.
+        '''
+        A_STATUS = ApplicationSelectedActivity.ACTIVITY_STATUS_CURRENT
+        P_STATUS = ApplicationSelectedActivityPurpose.PURPOSE_STATUS_CURRENT
+        REISSUE = ApplicationSelectedActivityPurpose.PROCESSING_STATUS_REISSUE
+
+        self.set_proposed_purposes_status_for(purpose_ids, P_STATUS)
+
+        if not self.is_proposed_purposes_status(P_STATUS) and\
+           self.activity_status == A_STATUS:
+            return
+
+        # Update this activity status.
+        self.reissue()
+
+        # Update purposes processing status so they can be re-issued.
+        selected = [
+            p for p in self.proposed_purposes.all()
+            if p.purpose.id in purpose_ids
+        ]
+        for purpose in selected:
+            purpose.processing_status = REISSUE
+            purpose.save()
+
+        return True
+
+    @transaction.atomic
+    def reissue(self):
         '''
         Sets this Selected Activity to be a status that allows for re-issuing
         by an approving officer.
+
+        Process to allow a previously issued Activity to be updated and then
+        Re-issued.
+        1. Set Activity processing status to With Approver.
+        2. Set Activity status to Current.
+        3. Set Activity decision action to Re-issue.
+        4. Set Application process status to Under Review.
+
+        NOTE: Cannot reissue activity for a system generated application. These
+        application cannot be processed by staff.
         '''
-        # TODO:AYN clear previous generated returns to allow re-generation.
-        with transaction.atomic():
-            self.application.reissue_activity(request, self)
+        if not self.licence_fee_paid: # shouldn't occur if issued.
+            raise Exception(
+            "Cannot Reissue activity: licence fee has not been paid!")
+        FINALISE = self.PROCESSING_STATUS_OFFICER_FINALISATION
+
+        try:
+            self.processing_status = FINALISE
+
+            if self.application.application_type == \
+                Application.APPLICATION_TYPE_SYSTEM_GENERATED:
+                # System generated applications cannot be processed by staff
+                # therefore set as accepted.
+                self.processing_status = self.PROCESSING_STATUS_ACCEPTED            
+
+            self.activity_status = self.ACTIVITY_STATUS_CURRENT
+            self.decision_action = self.DECISION_ACTION_REISSUE
+
+            with transaction.atomic():
+                self.save()
+
+        except BaseException as e:
+            logger.error('ERR {0} ID: {1}: {2}'.format(
+                'ApplicationSelectedActivity.reissue()',
+                self.id,
+                e
+            ))
+            raise
+
+        return True
 
     def mark_as_replaced(self, request):
         with transaction.atomic():
@@ -4488,15 +4564,35 @@ class ApplicationSelectedActivity(models.Model):
         '''
         Set all Selected Purposes for the activity to a processing status of
         replaced.
+
+        Returns the sequence number replaced.
         '''
         REPLACE = ApplicationSelectedActivityPurpose.PROCESSING_STATUS_REPLACED
+        S_REPLACE = ApplicationSelectedActivityPurpose.PURPOSE_STATUS_REPLACED
+        lp = LicencePurpose.objects.get(id=p_id)
+        selected_purposes = self.proposed_purposes.filter(
+            purpose=lp
+        )
+        sequence_no = 0
+        for selected in selected_purposes:
+            selected.processing_status = REPLACE
+            selected_purpose_status = S_REPLACE
+            selected.save()
+            sequence_no = selected.purpose_sequence
+
+        return sequence_no
+
+    def set_selected_purpose_sequence(self, p_id, sequence_no):
+        '''
+        Set all Selected Purposes for the activity to the same sequence number.
+        '''
         lp = LicencePurpose.objects.get(id=p_id)
         selected_purposes = self.proposed_purposes.filter(
             purpose=lp
         )
 
         for selected in selected_purposes:
-            selected.processing_status = REPLACE
+            selected.purpose_sequence = int(sequence_no)
             selected.save()
 
     def is_proposed_purposes_status(self, status):
@@ -4653,6 +4749,27 @@ class ApplicationSelectedActivityPurpose(models.Model):
         (PROCESSING_STATUS_REPLACED, 'Replaced'),
         (PROCESSING_STATUS_REISSUE, 'Reissued'),
     )
+
+    # Licence purposes which are suspended, cancelled or surrendered can be
+    # reinstated.
+    REINSTATABLE = [
+        PURPOSE_STATUS_SUSPENDED,
+        PURPOSE_STATUS_CANCELLED,
+        PURPOSE_STATUS_SURRENDERED,
+    ]
+    # Selected licence purposes which are current or initialised (default).
+    ACTIVE = [
+        PURPOSE_STATUS_DEFAULT,
+        PURPOSE_STATUS_CURRENT,
+    ]
+    # Selected licence purposes which are about to expire or have been
+    # expired can be renewed.
+    RENEWABLE = [
+        PURPOSE_STATUS_DEFAULT,
+        PURPOSE_STATUS_CURRENT,
+        PURPOSE_STATUS_EXPIRED,
+    ]
+
     processing_status = models.CharField(
         'Processing Status',
         max_length=40,
@@ -4701,11 +4818,46 @@ class ApplicationSelectedActivityPurpose(models.Model):
         An attribute to indicate that this selected Activity Purpose has been 
         issued.
         '''
+        is_issued = False
+
         issue_status = [
             self.PROCESSING_STATUS_ISSUED,
         ]
 
-        return True if self.processing_status in issue_status else False
+        if self.processing_status in issue_status:
+           # and self.purpose_status in self.ACTIVE:
+           is_issued = True
+
+        return is_issued
+
+    @property
+    def is_reinstatable(self):
+        '''
+        Property to indicate that this purpose is suspended, cancelled or
+        surrendered and can be reinstated.
+        '''
+        is_ok = True if self.purpose_status in self.REINSTATABLE else False
+
+        return is_ok
+
+    @property
+    def is_renewable(self):
+        '''
+        Property to indicate that this purpose has expired or about to expire
+        and can be renewed.
+        '''
+        is_ok = True if self.purpose_status in self.RENEWABLE else False
+
+        return is_ok
+
+    @property
+    def is_active(self):
+        '''
+        Property to indicate that this purpose is current and active.
+        '''
+        is_ok = True if self.purpose_status in self.ACTIVE else False
+
+        return is_ok
 
     @property
     def is_payable(self):
@@ -4791,6 +4943,30 @@ class ApplicationSelectedActivityPurpose(models.Model):
     class Meta:
         app_label = 'wildlifecompliance'
         verbose_name = 'Application selected activity purpose'
+
+    def suspend(self):
+        '''
+        Suspend this selected activity licence purpose.
+        '''
+        self.purpose_status = self.PURPOSE_STATUS_SUSPENDED
+
+    def cancel(self):
+        '''
+        Cancel this selected activity licence purpose.
+        '''
+        self.purpose_status = self.PURPOSE_STATUS_CANCELLED
+
+    def surrender(self):
+        '''
+        Surrender this selected activity licence purpose.
+        '''
+        self.purpose_status = self.PURPOSE_STATUS_SURRENDERED
+
+    def reinstate(self):
+        '''
+        Reinstate this selected activity licence purpose.
+        '''
+        self.purpose_status = self.PURPOSE_STATUS_CURRENT
 
     def get_purpose_from_previous(self):
         '''
@@ -5181,6 +5357,10 @@ class ApplicationUserAction(UserAction):
     ACTION_ISSUE_LICENCE_ = "Issue Licence for activity purpose {}"
     ACTION_REISSUE_LICENCE_ = "Re-issuing Licence for activity purpose {}"
     ACTION_DECLINE_LICENCE_ = "Decline Licence for activity purpose {}"
+    ACTION_REINSTATE_LICENCE_ = "Reinstate Licence for activity purpose {}"
+    ACTION_SURRENDER_LICENCE_ = "Surrender Licence for activity purpose {}"
+    ACTION_CANCEL_LICENCE_ = "Cancel Licence for activity purpose {}"
+    ACTION_SUSPEND_LICENCE_ = "Cancel Licence for activity purpose {}"
     ACTION_REFUND_LICENCE_ = "Refund Licence Fee {0} for activity purpose {1}"
     ACTION_DISCARD_APPLICATION = "Discard application {}"
     # Assessors

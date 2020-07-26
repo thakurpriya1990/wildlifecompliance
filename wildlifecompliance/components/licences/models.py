@@ -481,6 +481,8 @@ class WildlifeLicence(models.Model):
         Return a list of LicencePurpose records for the licence Filter by
         licence_activity_id (optional) and/or specified action (optional)
         Exclude purposes that are currently in an application being processed.
+
+        TODO:AYN REDUNDANT replace with LicenceActioner.
         '''
         can_action_purpose_list = []
         active_licence_purposes = self.get_purposes_in_open_applications()
@@ -503,6 +505,8 @@ class WildlifeLicence(models.Model):
         '''
         Return a list of LicencePurpose records for the licence. Exclude
         purposes that are currently in an application being processed.
+
+        TODO:AYN REDUNDANT replace with LicenceActioner.
         '''
         from wildlifecompliance.components.applications.models import (
             ApplicationSelectedActivity,
@@ -866,7 +870,7 @@ class WildlifeLicence(models.Model):
         activity are to be actioned, create new SYSTEM_GENERATED Applications
         and associated activities to apply the relevant statuses for each.
 
-        TODO: Set dates on activity Purposes.
+        TODO: REDUNDANT is replaced with LicenceActioner.
         """
         from wildlifecompliance.components.applications.models import (
             Application, ApplicationSelectedActivity
@@ -1237,29 +1241,14 @@ class WildlifeLicence(models.Model):
         applications with current or suspended activities.
         '''
         from wildlifecompliance.components.applications.models import (
-            ApplicationSelectedActivity,
             Application,
         )
-        # activities for this licence in current or suspended.
-        activity_status = [
-                ApplicationSelectedActivity.ACTIVITY_STATUS_CURRENT,
-                ApplicationSelectedActivity.ACTIVITY_STATUS_REPLACED,
-                ApplicationSelectedActivity.ACTIVITY_STATUS_SUSPENDED,
-        ]
-
-        application_ids = [
-            a.application_id
-            for a in self.current_application.get_current_activity_chain(
-                activity_status__in=activity_status
-            )
-        ]
-
         documents = Application.objects.values(
                 'licence_document',
                 'licence_id',
-                'lodgement_date',
+                'licence_document__uploaded_date',
             ).filter(
-                id__in=application_ids,
+                licence_id=self.id,
             )
 
         return documents
