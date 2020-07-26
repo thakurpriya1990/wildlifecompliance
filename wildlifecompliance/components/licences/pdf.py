@@ -499,7 +499,7 @@ def _create_licence(licence_buffer, licence, application):
     elements.append(PageBreak())
 
     for purpose in licence.get_purposes_in_sequence():
-        if not purpose.is_issued:
+        if not (purpose.is_issued and purpose.is_active):
             # Exclude purposes that are not issued.
             continue
         _create_licence_purpose(elements, purpose.selected_activity, purpose)
