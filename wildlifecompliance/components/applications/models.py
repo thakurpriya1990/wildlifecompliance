@@ -2356,6 +2356,8 @@ class Application(RevisionedMixin):
         self, request, selected_activity, 
         parent_licence=None, generate_licence=False):
         """
+        TODO:AYN redundant use LicenceActioner.action(request)
+
         Process to allow a previously issued Activity to be updated and then
         Re-issued.
         1. Set Activity processing status to With Approver.
@@ -4469,7 +4471,8 @@ class ApplicationSelectedActivity(models.Model):
 
         self.set_proposed_purposes_status_for(purpose_ids, P_STATUS)
 
-        if not self.is_proposed_purposes_status(P_STATUS):
+        if not self.is_proposed_purposes_status(P_STATUS) and\
+           self.activity_status == A_STATUS:
             return
 
         self.activity_status = A_STATUS
@@ -4482,23 +4485,73 @@ class ApplicationSelectedActivity(models.Model):
         '''
         A_STATUS = ApplicationSelectedActivity.ACTIVITY_STATUS_CURRENT
         P_STATUS = ApplicationSelectedActivityPurpose.PURPOSE_STATUS_CURRENT
+        REISSUE = ApplicationSelectedActivityPurpose.PROCESSING_STATUS_REISSUE
 
         self.set_proposed_purposes_status_for(purpose_ids, P_STATUS)
 
-        if not self.is_proposed_purposes_status(P_STATUS):
+        if not self.is_proposed_purposes_status(P_STATUS) and\
+           self.activity_status == A_STATUS:
             return
 
-        self.activity_status = A_STATUS
-        self.save()
+        # Update this activity status.
+        self.reissue()
 
-    def reissue(self, request):
+        # Update purposes processing status so they can be re-issued.
+        selected = [
+            p for p in self.proposed_purposes.all()
+            if p.purpose.id in purpose_ids
+        ]
+        for purpose in selected:
+            purpose.processing_status = REISSUE
+            purpose.save()
+
+        return True
+
+    @transaction.atomic
+    def reissue(self):
         '''
         Sets this Selected Activity to be a status that allows for re-issuing
         by an approving officer.
+
+        Process to allow a previously issued Activity to be updated and then
+        Re-issued.
+        1. Set Activity processing status to With Approver.
+        2. Set Activity status to Current.
+        3. Set Activity decision action to Re-issue.
+        4. Set Application process status to Under Review.
+
+        NOTE: Cannot reissue activity for a system generated application. These
+        application cannot be processed by staff.
         '''
-        # TODO:AYN clear previous generated returns to allow re-generation.
-        with transaction.atomic():
-            self.application.reissue_activity(request, self)
+        if not self.licence_fee_paid: # shouldn't occur if issued.
+            raise Exception(
+            "Cannot Reissue activity: licence fee has not been paid!")
+        FINALISE = self.PROCESSING_STATUS_OFFICER_FINALISATION
+
+        try:
+            self.processing_status = FINALISE
+
+            if self.application.application_type == \
+                Application.APPLICATION_TYPE_SYSTEM_GENERATED:
+                # System generated applications cannot be processed by staff
+                # therefore set as accepted.
+                self.processing_status = self.PROCESSING_STATUS_ACCEPTED            
+
+            self.activity_status = self.ACTIVITY_STATUS_CURRENT
+            self.decision_action = self.DECISION_ACTION_REISSUE
+
+            with transaction.atomic():
+                self.save()
+
+        except BaseException as e:
+            logger.error('ERR {0} ID: {1}: {2}'.format(
+                'ApplicationSelectedActivity.reissue()',
+                self.id,
+                e
+            ))
+            raise
+
+        return True
 
     def mark_as_replaced(self, request):
         with transaction.atomic():
@@ -5304,6 +5357,10 @@ class ApplicationUserAction(UserAction):
     ACTION_ISSUE_LICENCE_ = "Issue Licence for activity purpose {}"
     ACTION_REISSUE_LICENCE_ = "Re-issuing Licence for activity purpose {}"
     ACTION_DECLINE_LICENCE_ = "Decline Licence for activity purpose {}"
+    ACTION_REINSTATE_LICENCE_ = "Reinstate Licence for activity purpose {}"
+    ACTION_SURRENDER_LICENCE_ = "Surrender Licence for activity purpose {}"
+    ACTION_CANCEL_LICENCE_ = "Cancel Licence for activity purpose {}"
+    ACTION_SUSPEND_LICENCE_ = "Cancel Licence for activity purpose {}"
     ACTION_REFUND_LICENCE_ = "Refund Licence Fee {0} for activity purpose {1}"
     ACTION_DISCARD_APPLICATION = "Discard application {}"
     # Assessors
