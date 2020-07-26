@@ -369,7 +369,6 @@ export default {
         },
         updateCheckboxList: function() {
             // TODO: filtered purpose checkbox list per application.
-            console.log('updateCheckboxList')
 
             let last_id = this.action_licence.purpose_ids_list.length-1
             let p1 = this.licence_activity_purposes.filter(pur => {
@@ -405,8 +404,6 @@ export default {
                 this.checkbox_list.application = 0;
                 this.checkbox_list.purpose_ids = [];
             }
-            console.log(this.checkbox_list.purpose_ids);
-            console.log(this.action_licence.purpose_ids_list)
             //this.action_licence.purpose_ids_list = []
 
         },

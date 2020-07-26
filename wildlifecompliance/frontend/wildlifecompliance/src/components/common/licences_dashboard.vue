@@ -372,10 +372,9 @@ export default {
                         var licence_no = $(this).attr('licence-id');
                         var licence_category_id = $(this).attr('licence-category-id');
                         var licence_activity_id = null;
-                        var select_activity_id = null;
                         vm.setApplyProxyId({id: $(this).attr('proxy-id')});
                         vm.setApplyOrgId({id: $(this).attr('org-id')});
-                        vm.routeApplyLicence(licence_no, licence_category_id, licence_activity_id, select_activity_id);
+                        vm.routeApplyLicence(licence_no, licence_category_id, licence_activity_id);
                     }
                 },(error) => {
                 });
@@ -418,10 +417,9 @@ export default {
                         var licence_no = $(this).attr('licence-id');
                         var licence_category_id = $(this).attr('licence-category-id');
                         var licence_activity_id = null;
-                        var select_activity_id = null;
                         vm.setApplyProxyId({id: $(this).attr('proxy-id')});
                         vm.setApplyOrgId({id: $(this).attr('org-id')});
-                        vm.routeApplyLicence(licence_no, licence_category_id, licence_activity_id, select_activity_id);
+                        vm.routeApplyLicence(licence_no, licence_category_id, licence_activity_id);
                     }
                 },(error) => {
                 });
@@ -528,10 +526,11 @@ export default {
                         var licence_id = $(this).attr('lic-id');
                         vm.licence_action = 'surrender';
                         vm.selected_licence_id = licence_id;
+                        var select_activity_id = $(this).attr('select-activity');
                         vm.$http.get(helpers.add_endpoint_join(
                             api_endpoints.licences,licence_id+
                             '/get_latest_purposes_for_licence_activity_and_action/?licence_activity_id='+
-                            licence_activity_id+'&action='+vm.licence_action)).then(res=>{
+                            licence_activity_id+'&action='+vm.licence_action+'&selected_activity_id='+select_activity_id)).then(res=>{
                                 if (res.body) {
                                     vm.action_purpose_list = res.body;
                                     vm.$refs.licence_action_purposes.isModalOpen = true;
@@ -592,10 +591,11 @@ export default {
                         var licence_id = $(this).attr('lic-id');
                         vm.licence_action = 'cancel';
                         vm.selected_licence_id = licence_id;
+                        var select_activity_id = $(this).attr('select-activity');
                         vm.$http.get(helpers.add_endpoint_join(
                             api_endpoints.licences,licence_id+
                             '/get_latest_purposes_for_licence_activity_and_action/?licence_activity_id='+
-                            licence_activity_id+'&action='+vm.licence_action)).then(res=>{
+                            licence_activity_id+'&action='+vm.licence_action+'&selected_activity_id='+select_activity_id)).then(res=>{
                                 if (res.body) {
                                     vm.action_purpose_list = res.body;
                                     vm.$refs.licence_action_purposes.isModalOpen = true;
@@ -691,10 +691,9 @@ export default {
                         vm.setApplyLicenceSelect({licence_select: 'reissue_activity'});
                         var licence_category_id = $(this).attr('licence-category-id');
                         var licence_activity_id = null;
-                        var select_activity_id = null;
                         vm.setApplyProxyId({id: $(this).attr('proxy-id')});
                         vm.setApplyOrgId({id: $(this).attr('org-id')});
-                        vm.routeApplyLicence(licence_category_id, licence_activity_id, select_activity_id);
+                        vm.routeApplyLicence(licence_category_id, licence_activity_id);
                     }
                 },(error) => {
                 });

@@ -377,8 +377,11 @@ class LicenceViewSet(viewsets.ModelViewSet):
         try:
             if pk:
                 instance = self.get_object()
-                instance.apply_action_to_licence(request, WildlifeLicence.ACTIVITY_PURPOSE_ACTION_SURRENDER)
-                serializer = DTExternalWildlifeLicenceSerializer(instance, context={'request': request})
+                LicenceService.request_surrender_licence(instance, request)
+                serializer = DTExternalWildlifeLicenceSerializer(
+                    instance, context={'request': request}
+                )
+
                 return Response(serializer.data)
             else:
                 raise serializers.ValidationError(
@@ -405,18 +408,14 @@ class LicenceViewSet(viewsets.ModelViewSet):
                     distinct().count() != 1:
                 raise serializers.ValidationError(
                     'Selected purposes must all be of the same licence activity')
+
             if purpose_ids_list and pk:
-                licence_activity_id = LicencePurpose.objects.filter(id__in=purpose_ids_list).\
-                                        first().licence_activity_id
                 instance = self.get_object()
-                can_surrender_purposes = instance.get_latest_purposes_for_licence_activity_and_action(
-                    licence_activity_id, WildlifeLicence.ACTIVITY_PURPOSE_ACTION_SURRENDER)
-                can_surrender_purposes_ids_list = [purpose.id for purpose in can_surrender_purposes.order_by('id')]
-                if not set(purpose_ids_list).issubset(can_surrender_purposes_ids_list):
-                    raise serializers.ValidationError(
-                        'Selected purposes cannot be surrendered')
-                instance.apply_action_to_purposes(request, WildlifeLicence.ACTIVITY_PURPOSE_ACTION_SURRENDER)
-                serializer = DTExternalWildlifeLicenceSerializer(instance, context={'request': request})
+                LicenceService.request_surrender_licence(instance, request)
+                serializer = DTExternalWildlifeLicenceSerializer(
+                    instance, context={'request': request}
+                )
+
                 return Response(serializer.data)
             else:
                 raise serializers.ValidationError(
@@ -439,8 +438,11 @@ class LicenceViewSet(viewsets.ModelViewSet):
                     'You are not authorised to cancel licences')
             if pk:
                 instance = self.get_object()
-                instance.apply_action_to_licence(request, WildlifeLicence.ACTIVITY_PURPOSE_ACTION_CANCEL)
-                serializer = DTExternalWildlifeLicenceSerializer(instance, context={'request': request})
+                LicenceService.request_cancel_licence(instance, request)
+                serializer = DTExternalWildlifeLicenceSerializer(
+                    instance, context={'request': request}
+                )
+
                 return Response(serializer.data)
             else:
                 raise serializers.ValidationError(
@@ -470,18 +472,14 @@ class LicenceViewSet(viewsets.ModelViewSet):
                     distinct().count() != 1:
                 raise serializers.ValidationError(
                     'Selected purposes must all be of the same licence activity')
+
             if purpose_ids_list and pk:
-                licence_activity_id = LicencePurpose.objects.filter(id__in=purpose_ids_list).\
-                                        first().licence_activity_id
                 instance = self.get_object()
-                can_cancel_purposes = instance.get_latest_purposes_for_licence_activity_and_action(
-                    licence_activity_id, WildlifeLicence.ACTIVITY_PURPOSE_ACTION_CANCEL)
-                can_cancel_purposes_ids_list = [purpose.id for purpose in can_cancel_purposes.order_by('id')]
-                if not set(purpose_ids_list).issubset(can_cancel_purposes_ids_list):
-                    raise serializers.ValidationError(
-                        'Selected purposes cannot be cancelled')
-                instance.apply_action_to_purposes(request, WildlifeLicence.ACTIVITY_PURPOSE_ACTION_CANCEL)
-                serializer = DTExternalWildlifeLicenceSerializer(instance, context={'request': request})
+                LicenceService.request_cancel_licence(instance, request)
+                serializer = DTExternalWildlifeLicenceSerializer(
+                    instance, context={'request': request}
+                )
+
                 return Response(serializer.data)
             else:
                 raise serializers.ValidationError(
@@ -504,8 +502,11 @@ class LicenceViewSet(viewsets.ModelViewSet):
                     'You are not authorised to suspend licences')
             if pk:
                 instance = self.get_object()
-                instance.apply_action_to_licence(request, WildlifeLicence.ACTIVITY_PURPOSE_ACTION_SUSPEND)
-                serializer = DTExternalWildlifeLicenceSerializer(instance, context={'request': request})
+                LicenceService.request_suspend_licence(instance, request)
+                serializer = DTExternalWildlifeLicenceSerializer(
+                    instance, context={'request': request}
+                )
+
                 return Response(serializer.data)
             else:
                 raise serializers.ValidationError(
@@ -540,31 +541,12 @@ class LicenceViewSet(viewsets.ModelViewSet):
                     distinct().count() != 1:
                 raise serializers.ValidationError(MSG_NOSAME)
 
-            instance = self.get_object()
-
             if purpose_ids_list and pk:
-
-                # licence_activity_id = LicencePurpose.objects.filter(id__in=purpose_ids_list).\
-                #                         first().licence_activity_id
-
-                # can_suspend_purposes = instance.get_latest_purposes_for_licence_activity_and_action(
-                #     licence_activity_id, WildlifeLicence.ACTIVITY_PURPOSE_ACTION_SUSPEND)
-
-                # can_suspend_purposes_ids_list = [purpose.id for purpose in can_suspend_purposes.order_by('id')]
-
-                # if not set(purpose_ids_list).issubset(can_suspend_purposes_ids_list):
-                #     raise serializers.ValidationError(
-                #         'Selected purposes cannot be suspended')
-
-                # instance.apply_action_to_purposes(request, WildlifeLicence.ACTIVITY_PURPOSE_ACTION_SUSPEND)
-
+                instance = self.get_object()
                 LicenceService.request_suspend_licence(instance, request)
-
                 serializer = DTExternalWildlifeLicenceSerializer(
                     instance, context={'request': request}
                 )
-
-                instance.generate_doc()
 
                 return Response(serializer.data)
             else:
@@ -588,8 +570,11 @@ class LicenceViewSet(viewsets.ModelViewSet):
                     'You are not authorised to reinstate licences')
             if pk:
                 instance = self.get_object()
-                instance.apply_action_to_licence(request, WildlifeLicence.ACTIVITY_PURPOSE_ACTION_REINSTATE)
-                serializer = DTExternalWildlifeLicenceSerializer(instance, context={'request': request})
+                LicenceService.request_reinstate_licence(instance, request)
+                serializer = DTExternalWildlifeLicenceSerializer(
+                    instance, context={'request': request}
+                )
+
                 return Response(serializer.data)
             else:
                 raise serializers.ValidationError(
@@ -621,23 +606,9 @@ class LicenceViewSet(viewsets.ModelViewSet):
                     distinct().count() != 1:
                 raise serializers.ValidationError(MSG_NOSAME)
 
-            instance = self.get_object()
             if purpose_ids_list and pk:
-
-                # licence_activity_id = LicencePurpose.objects.filter(id__in=purpose_ids_list).\
-                #                         first().licence_activity_id
-                # can_reinstate_purposes = instance.get_latest_purposes_for_licence_activity_and_action(
-                #     licence_activity_id, WildlifeLicence.ACTIVITY_PURPOSE_ACTION_REINSTATE)
-                # can_reinstate_purposes_ids_list = [purpose.id for purpose in can_reinstate_purposes.order_by('id')]
-                # if not set(purpose_ids_list).issubset(can_reinstate_purposes_ids_list):
-                #     raise serializers.ValidationError(
-                #         'Selected purposes cannot be reinstated')
-
+                instance = self.get_object()
                 LicenceService.request_reinstate_licence(instance, request)
-                instance.generate_doc()
-
-                # instance.apply_action_to_purposes(request, WildlifeLicence.ACTIVITY_PURPOSE_ACTION_REINSTATE)
-
                 serializer = DTExternalWildlifeLicenceSerializer(
                     instance, context={'request': request}
                 )
@@ -675,10 +646,7 @@ class LicenceViewSet(viewsets.ModelViewSet):
 
             if purpose_ids_list and pk:
                 instance = self.get_object()
-
-                instance.apply_action_to_purposes(
-                    request, WildlifeLicence.ACTIVITY_PURPOSE_ACTION_REISSUE)
-
+                LicenceService.request_reissue_licence(instance, request)
                 serializer = DTExternalWildlifeLicenceSerializer(
                     instance, context={'request': request})
 
@@ -722,7 +690,8 @@ class LicenceViewSet(viewsets.ModelViewSet):
 
     @detail_route(methods=['GET', ])
     def get_latest_purposes_for_licence_activity_and_action(
-        self, request, *args, **kwargs):
+            self, request, *args, **kwargs
+    ):
         try:
             instance = self.get_object()
             activity_id = request.GET.get('licence_activity_id', None)
@@ -730,14 +699,9 @@ class LicenceViewSet(viewsets.ModelViewSet):
             if not activity_id or not action:
                 raise serializers.ValidationError(
                     'A licence activity ID and action must be specified')
-            # queryset = instance.get_latest_purposes_for_licence_activity_and_action(licence_activity_id, action)
-            # TODO:AYN include associated application id.
-            # queryset = instance.get_latest_purposes_for_licence(activity_id)
-
             queryset = LicenceService.request_licence_purpose_list(
                 instance, request
             )
-
             serializer = ProposedPurposeSerializer(queryset, many=True)
 
             return Response(serializer.data)
