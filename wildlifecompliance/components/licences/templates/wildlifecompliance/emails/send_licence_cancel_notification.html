@@ -1,0 +1,17 @@
+{%  extends 'wildlifecompliance/emails/base_email.html' %}
+
+{%  block content %}
+        <p>The following licence purpose details have been cancelled:</p>
+        <p><strong>Licence : {{ licence.licence_number }}</strong></p>
+        <p><strong>Purposes:
+            {% for issued in purposes %}
+                <br>{{issued.purpose.name}}
+                <br>Start Date: {{issued.start_date}}
+                <br>Expiry Date: {{issued.expiry_date}}
+                <br>
+            {% endfor %}
+        </strong></p>
+        <p><strong>Submitter: {{licence.current_application.submitter}}</strong></p>
+        <p><strong>Link: <a href="{{url}}">{{url}}</a></strong></p>
+        <p>Note: If you haven't logged into the Wildlife Licensing System recently you may need to login first before using the provided link.</p>
+{%  endblock %}

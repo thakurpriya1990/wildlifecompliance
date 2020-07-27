@@ -1,4 +1,6 @@
 from django.urls import reverse
+from django.utils import timezone
+
 from wildlifecompliance.components.licences.models import (
     WildlifeLicence,
     LicenceCategory,
@@ -10,7 +12,6 @@ from wildlifecompliance.components.applications.models import (
     ApplicationSelectedActivity,
     ApplicationSelectedActivityPurpose,
     ActivityInvoice,
-    ApplicationDocument,
 )
 from wildlifecompliance.components.applications.serializers import (
     WildlifeLicenceApplicationSerializer,
@@ -56,6 +57,7 @@ class WildlifeLicenceSerializer(serializers.ModelSerializer):
         source='licence_document._file.url')
     current_application = WildlifeLicenceApplicationSerializer(read_only=True)
     last_issue_date = serializers.SerializerMethodField(read_only=True)
+    latest_activities_merged = serializers.SerializerMethodField(read_only=True)
 
     class Meta:
         model = WildlifeLicence
@@ -67,11 +69,18 @@ class WildlifeLicenceSerializer(serializers.ModelSerializer):
             'current_application',
             'extracted_fields',
             'last_issue_date',
+            'latest_activities_merged',
         )
 
     def get_last_issue_date(self, obj):
         # return obj.latest_activities.first().issue_date if obj.latest_activities else ''
         return obj.latest_activities.first().get_issue_date() if obj.latest_activities else ''
+
+    def get_latest_activities_merged(self, obj):
+        from wildlifecompliance.components.licences.services import (
+            LicenceService,
+        )
+        return LicenceService.get_activities_list_for(obj)
 
 
 class DTInternalWildlifeLicenceSerializer(WildlifeLicenceSerializer):
@@ -79,7 +88,7 @@ class DTInternalWildlifeLicenceSerializer(WildlifeLicenceSerializer):
         source='licence_document._file.url')
     current_application = WildlifeLicenceApplicationSerializer(read_only=True)
     last_issue_date = serializers.SerializerMethodField(read_only=True)
-    latest_activities_merged = ExternalApplicationSelectedActivityMergedSerializer(many=True, read_only=True)
+    #latest_activities_merged = ExternalApplicationSelectedActivityMergedSerializer(many=True, read_only=True)
     can_action = serializers.SerializerMethodField(read_only=True)
     invoice_url = serializers.SerializerMethodField(read_only=True)
 
@@ -168,12 +177,13 @@ class DTInternalWildlifeLicenceSerializer(WildlifeLicenceSerializer):
         except Exception:
             return None
 
+
 class DTExternalWildlifeLicenceSerializer(WildlifeLicenceSerializer):
     licence_document = serializers.CharField(
         source='licence_document._file.url')
     current_application = WildlifeLicenceApplicationSerializer(read_only=True)
     last_issue_date = serializers.SerializerMethodField(read_only=True)
-    latest_activities_merged = ExternalApplicationSelectedActivityMergedSerializer(many=True, read_only=True)
+    # latest_activities_merged = ExternalApplicationSelectedActivityMergedSerializer(many=True, read_only=True)
     can_action = serializers.SerializerMethodField(read_only=True)
     invoice_url = serializers.SerializerMethodField(read_only=True)
 
@@ -445,9 +455,10 @@ class LicenceDocumentHistorySerializer(serializers.ModelSerializer):
         )
 
     def get_history_date(self, obj):
-        history_date = obj['lodgement_date'].strftime(
-            '%d/%m/%Y %H:%M:%S.%f'
-        ) if obj['lodgement_date'] else None
+        date_format_loc = timezone.localtime(
+            obj['licence_document__uploaded_date']
+        )
+        history_date = date_format_loc.strftime('%d/%m/%Y %H:%M:%S.%f')
 
         return history_date
 

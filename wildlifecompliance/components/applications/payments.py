@@ -640,14 +640,15 @@ class ApplicationFeePolicyForAmendment(ApplicationFeePolicy):
         policy_licence_fee = self.dynamic_attributes['fees']['licence']
         self.set_purpose_fees_for(activity)         # update fees on purpose.
         prev_adj = self.get_previous_adjusted_fee_for(activity)
-        prev_app = self.get_previous_application_fee_for(activity)
+        # prev_app = self.get_previous_application_fee_for(activity)
 
         # Adjusted Fee is new adjusted fee excluding previously paid.
         # NOTE: Activity may include new adjusted amount with form changes.
-        fees_adj = activity.application_fee - (prev_app + prev_adj)
+        # fees_adj = activity.application_fee - (prev_app + prev_adj)
+        fees_adj = activity.application_fee - prev_adj
 
         # Impose amendment fee.
-        fees_adj += self.get_amendment_fee_for(activity)
+        # fees_adj += self.get_amendment_fee_for(activity)
 
         fees_new = fees_adj
         activity.application_fee = fees_new
@@ -696,7 +697,7 @@ class ApplicationFeePolicyForAmendment(ApplicationFeePolicy):
             licence_paid = False if activity.total_paid_amount < 1 else True
 
             prev_adj = self.get_previous_adjusted_fee_for(activity)
-            prev_app = self.get_previous_application_fee_for(activity)
+            # prev_app = self.get_previous_application_fee_for(activity)
 
             # act_adj is the new adjusted fee WITH adjustments and application
             # fees copied from previous application.
@@ -705,10 +706,11 @@ class ApplicationFeePolicyForAmendment(ApplicationFeePolicy):
 
             # Adjusted Fee is the new adjusted fee excluding the previous
             # adjustments and base application fees.
-            fees_adj = (act_adj - prev_adj) - prev_app
+            # fees_adj = (act_adj - prev_adj) - prev_app
+            fees_adj = act_adj - prev_adj
 
             # Include amendment fee.
-            fees_adj += self.get_amendment_fee_for(activity)
+            # fees_adj += self.get_amendment_fee_for(activity)
 
             if licence_paid:
                 # base fee is paid just pay the adjustments difference.
@@ -962,14 +964,15 @@ class ApplicationFeePolicyForRenew(ApplicationFeePolicy):
         policy_licence_fee = self.dynamic_attributes['fees']['licence']
         self.set_purpose_fees_for(activity)         # update fees on purpose.
         prev_adj = self.get_previous_adjusted_fee_for(activity)
-        prev_app = self.get_previous_application_fee_for(activity)
+        # prev_app = self.get_previous_application_fee_for(activity)
 
         # Adjusted Fee is new adjusted fee excluding previously app fee.
         # NOTE: Activity may include new adjusted amount with form changes.
-        fees_adj = activity.application_fee + prev_adj - prev_app
+        # fees_adj = activity.application_fee + prev_adj - prev_app
+        fees_adj = activity.application_fee + prev_adj
 
         # Impose renewal fee.
-        fees_adj += self.get_renewal_fee_for(activity)
+        # fees_adj += self.get_renewal_fee_for(activity)
 
         fees_new = fees_adj
         activity.application_fee = fees_new
@@ -1019,7 +1022,7 @@ class ApplicationFeePolicyForRenew(ApplicationFeePolicy):
             licence_paid = False if activity.total_paid_amount < 1 else True
 
             prev_adj = self.get_previous_adjusted_fee_for(activity)
-            prev_app = self.get_previous_application_fee_for(activity)
+            # prev_app = self.get_previous_application_fee_for(activity)
 
             # act_adj is the new adjusted fee WITH adjustments and application
             # fees copied from previous application.
@@ -1028,10 +1031,11 @@ class ApplicationFeePolicyForRenew(ApplicationFeePolicy):
 
             # Adjusted Fee is the new adjusted fee excluding the previous
             # adjustments and base application fees.
-            fees_adj = (act_adj + prev_adj) - prev_app
+            # fees_adj = (act_adj + prev_adj) - prev_app
+            fees_adj = act_adj + prev_adj
 
             # Include renewal fee.
-            fees_adj += self.get_renewal_fee_for(activity)
+            # fees_adj += self.get_renewal_fee_for(activity)
 
             if licence_paid:
                 # base fee is paid just pay the adjustments difference.

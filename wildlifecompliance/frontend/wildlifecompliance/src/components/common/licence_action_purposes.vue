@@ -68,6 +68,7 @@ export default {
                 application: 0,
                 purpose_ids: [],
             },
+            selectedActivityId: 0,
         }
     },
     computed: {
@@ -167,11 +168,14 @@ export default {
         },
         sendData:function(){
             let vm = this;
+            let data = new FormData()
             vm.errors = false;
             vm.actioningPurposes = true;
             if (vm.action == 'cancel'){
                 if (vm.action_licence.purpose_ids_list.length > 0){
-                    vm.$http.post(helpers.add_endpoint_json(api_endpoints.licences,vm.licence_id+'/cancel_purposes'),JSON.stringify(vm.action_licence),{
+                    data.purpose_ids_list = vm.action_licence.purpose_ids_list
+                    data.selected_activity_id = vm.selectedActivityId;
+                    vm.$http.post(helpers.add_endpoint_json(api_endpoints.licences,vm.licence_id+'/cancel_purposes'),JSON.stringify(data),{
                             emulateJSON:true,
                         }).then((response)=>{
                             swal(
@@ -197,7 +201,9 @@ export default {
                 }
             } else if (vm.action == 'suspend'){
                 if (vm.action_licence.purpose_ids_list.length > 0){
-                    vm.$http.post(helpers.add_endpoint_json(api_endpoints.licences,vm.licence_id+'/suspend_purposes'),JSON.stringify(vm.action_licence),{
+                    data.purpose_ids_list = vm.action_licence.purpose_ids_list
+                    data.selected_activity_id = vm.selectedActivityId;
+                    vm.$http.post(helpers.add_endpoint_json(api_endpoints.licences,vm.licence_id+'/suspend_purposes'),JSON.stringify(data),{
                             emulateJSON:true,
                         }).then((response)=>{
                             swal(
@@ -223,7 +229,9 @@ export default {
                 }
             } else if (vm.action == 'surrender'){
                 if (vm.action_licence.purpose_ids_list.length > 0){
-                    vm.$http.post(helpers.add_endpoint_json(api_endpoints.licences,vm.licence_id+'/surrender_purposes'),JSON.stringify(vm.action_licence),{
+                    data.purpose_ids_list = vm.action_licence.purpose_ids_list
+                    data.selected_activity_id = vm.selectedActivityId;
+                    vm.$http.post(helpers.add_endpoint_json(api_endpoints.licences,vm.licence_id+'/surrender_purposes'),JSON.stringify(data),{
                             emulateJSON:true,
                         }).then((response)=>{
                             swal(
@@ -249,7 +257,9 @@ export default {
                 }
             } else if (vm.action == 'reactivate-renew'){
                 if (vm.action_licence.purpose_ids_list.length > 0){
-                    vm.$http.post(helpers.add_endpoint_json(api_endpoints.licences,vm.licence_id+'/reactivat_renew_purposes'),JSON.stringify(vm.action_licence),{
+                    data.purpose_ids_list = vm.action_licence.purpose_ids_list
+                    data.selected_activity_id = vm.selectedActivityId;
+                    vm.$http.post(helpers.add_endpoint_json(api_endpoints.licences,vm.licence_id+'/reactivat_renew_purposes'),JSON.stringify(data),{
                             emulateJSON:true,
                         }).then((response)=>{
                             swal(
@@ -275,7 +285,9 @@ export default {
                 }
             } else if (vm.action == 'reissue'){
                 if (vm.action_licence.purpose_ids_list.length > 0){
-                    vm.$http.post(helpers.add_endpoint_json(api_endpoints.licences,vm.licence_id+'/reissue_purposes'),JSON.stringify(vm.action_licence),{
+                    data.purpose_ids_list = vm.action_licence.purpose_ids_list
+                    data.selected_activity_id = vm.selectedActivityId;
+                    vm.$http.post(helpers.add_endpoint_json(api_endpoints.licences,vm.licence_id+'/reissue_purposes'),JSON.stringify(data),{
                             emulateJSON:true,
                         }).then((response)=>{
                             vm.actioningPurposes = false;
@@ -299,7 +311,9 @@ export default {
                 }
             } else if (vm.action == 'reinstate'){
                 if (vm.action_licence.purpose_ids_list.length > 0){
-                    vm.$http.post(helpers.add_endpoint_json(api_endpoints.licences,vm.licence_id+'/reinstate_purposes'),JSON.stringify(vm.action_licence),{
+                    data.purpose_ids_list = vm.action_licence.purpose_ids_list
+                    data.selected_activity_id = vm.selectedActivityId;
+                    vm.$http.post(helpers.add_endpoint_json(api_endpoints.licences,vm.licence_id+'/reinstate_purposes'),JSON.stringify(data),{
                             emulateJSON:true,
                         }).then((response)=>{
                             swal(
@@ -355,7 +369,6 @@ export default {
         },
         updateCheckboxList: function() {
             // TODO: filtered purpose checkbox list per application.
-            console.log('updateCheckboxList')
 
             let last_id = this.action_licence.purpose_ids_list.length-1
             let p1 = this.licence_activity_purposes.filter(pur => {
@@ -391,8 +404,6 @@ export default {
                 this.checkbox_list.application = 0;
                 this.checkbox_list.purpose_ids = [];
             }
-            console.log(this.checkbox_list.purpose_ids);
-            console.log(this.action_licence.purpose_ids_list)
             //this.action_licence.purpose_ids_list = []
 
         },

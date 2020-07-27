@@ -1,13 +1,7 @@
 import logging
-import mimetypes
 
-from django.core.mail import EmailMultiAlternatives, EmailMessage
-from django.utils.encoding import smart_text
 from django.core.urlresolvers import reverse
-from django.conf import settings
-from ledger.payments.pdf import create_invoice_pdf_bytes
-from ledger.payments.models import Invoice
-from wildlifecompliance.components.main.utils import get_choice_value
+
 from wildlifecompliance.components.emails.emails import TemplateEmailBase
 
 logger = logging.getLogger(__name__)
@@ -31,6 +25,87 @@ def send_licence_renewal_notification(licence, purposes, request=None):
     Sender function for licence renewal notification.
     '''
     email = LicenceRenewalNotificationEmail()
+    url = request.build_absolute_uri(reverse('external'))
+
+    context = {
+        'licence': licence,
+        'purposes': purposes,
+        'url': url
+    }
+    recipients = [licence.current_application.submitter.email]
+    email.send(recipients, context=context)
+
+
+class LicenceCancelNotificationEmail(TemplateEmailBase):
+    '''
+    Email template for licence cancel notifications.
+    '''
+    subject = 'Your licence has been cancelled.'
+    html_template = \
+        'wildlifecompliance/emails/send_licence_cancel_notification.html'
+    txt_template = \
+        'wildlifecompliance/emails/send_licence_cancel_notification.txt'
+
+
+def send_licence_cancel_notification(licence, purposes, request=None):
+    '''
+    Sender function for licence cancel notification.
+    '''
+    email = LicenceCancelNotificationEmail()
+    url = request.build_absolute_uri(reverse('external'))
+
+    context = {
+        'licence': licence,
+        'purposes': purposes,
+        'url': url
+    }
+    recipients = [licence.current_application.submitter.email]
+    email.send(recipients, context=context)
+
+
+class LicenceSuspendNotificationEmail(TemplateEmailBase):
+    '''
+    Email template for licence suspend notifications.
+    '''
+    subject = 'Your licence has been suspended.'
+    html_template = \
+        'wildlifecompliance/emails/send_licence_suspend_notification.html'
+    txt_template = \
+        'wildlifecompliance/emails/send_licence_suspend_notification.txt'
+
+
+def send_licence_suspend_notification(licence, purposes, request=None):
+    '''
+    Sender function for licence suspend notification.
+    '''
+    email = LicenceSuspendNotificationEmail()
+    url = request.build_absolute_uri(reverse('external'))
+
+    context = {
+        'licence': licence,
+        'purposes': purposes,
+        'url': url
+    }
+    recipients = [licence.current_application.submitter.email]
+    email.send(recipients, context=context)
+
+
+class LicenceReinstateNotificationEmail(TemplateEmailBase):
+    '''
+    Email template for licence reinstate notifications.
+    '''
+    subject = 'Your licence has been reinstated.'
+    html_template = \
+        'wildlifecompliance/emails/send_licence_reinstate_notification.html'
+    txt_template = \
+        'wildlifecompliance/emails/send_licence_reinstate_notification.txt'
+
+
+def send_licence_reinstate_notification(licence, purposes, request=None):
+    '''
+    Sender function for licence reinstate notification.
+    '''
+    email = LicenceReinstateNotificationEmail()
     url = request.build_absolute_uri(reverse('external'))
 
     context = {
