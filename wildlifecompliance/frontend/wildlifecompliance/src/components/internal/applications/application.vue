@@ -765,6 +765,11 @@ export default {
             return this.canRequestAmendment;
         },
         canRequestAmendment: function(){
+            // check activity is not assigned to another officer.
+            if (this.selectedActivity.assigned_officer != null && this.selectedActivity.assigned_officer !== this.current_user.id) {
+                return false;
+            }
+
             // check authorisation
             return this.canRequestAmendmentFor(this.selected_activity_tab_id);
         },
@@ -848,6 +853,11 @@ export default {
             return this.showingApplication && this.canAssignApproverFor(this.selectedActivity.licence_activity)
         },
         showAssessmentConditionButton: function() {
+            // check activity is not assigned to another officer.
+            if (this.selectedActivity.assigned_officer != null && this.selectedActivity.assigned_officer !== this.current_user.id) {
+                return false;
+            }
+
             return this.showingApplication 
                 && !this.applicationIsDraft 
                 && (this.hasRole('licensing_officer') || this.hasRole('issuing_officer'))
@@ -952,7 +962,7 @@ export default {
 
             this.isofficerfinalisation=true;
         },
-        acceptIdRequest: function() {
+        acceptIdRequest: async function() {
             let vm = this;
             swal({
                 title: "Accept ID Check",
@@ -960,9 +970,9 @@ export default {
                 type: "question",
                 showCancelButton: true,
                 confirmButtonText: 'Accept'
-            }).then((result) => {
+            }).then(async (result) => {
                 if (result.value) {
-                    vm.$http.post(helpers.add_endpoint_json(api_endpoints.applications,(vm.application.id+'/accept_id_check')))
+                    await vm.$http.post(helpers.add_endpoint_json(api_endpoints.applications,(vm.application.id+'/accept_id_check')))
                     .then((response) => {
                         vm.setApplication(response.body);
                     }, (error) => {
@@ -972,7 +982,7 @@ export default {
             },(error) => {
             });
         },
-        resetIdRequest: function() {
+        resetIdRequest: async function() {
             let vm = this;
             swal({
                 title: "Reset ID Check",
@@ -980,9 +990,9 @@ export default {
                 type: "question",
                 showCancelButton: true,
                 confirmButtonText: 'Accept'
-            }).then((result) => {
+            }).then(async (result) => {
                 if (result.value) {
-                    vm.$http.post(helpers.add_endpoint_json(api_endpoints.applications,(vm.application.id+'/reset_id_check')))
+                    await vm.$http.post(helpers.add_endpoint_json(api_endpoints.applications,(vm.application.id+'/reset_id_check')))
                     .then((response) => {
                         vm.setApplication(response.body);
                     }, (error) => {
@@ -992,7 +1002,7 @@ export default {
             },(error) => {
             });
         },
-        updateIdRequest: function() {
+        updateIdRequest: async function() {
             let vm = this;
             swal({
                 title: "Request Update ID Check",
@@ -1000,9 +1010,9 @@ export default {
                 type: "question",
                 showCancelButton: true,
                 confirmButtonText: 'Accept'
-            }).then((result) => {
+            }).then(async (result) => {
                 if (result.value) {
-                    vm.$http.post(helpers.add_endpoint_json(api_endpoints.applications,(vm.application.id+'/request_id_check')))
+                    await vm.$http.post(helpers.add_endpoint_json(api_endpoints.applications,(vm.application.id+'/request_id_check')))
                     .then((response) => {
                         vm.setApplication(response.body);
                     }, (error) => {
@@ -1012,7 +1022,7 @@ export default {
             },(error) => {
             });
         },
-        acceptCharacterRequest: function() {
+        acceptCharacterRequest: async function() {
             let vm = this;
             swal({
                 title: "Accept Character Check",
@@ -1020,9 +1030,9 @@ export default {
                 type: "question",
                 showCancelButton: true,
                 confirmButtonText: 'Accept'
-            }).then((result) => {
+            }).then(async (result) => {
                 if (result.value) {
-                    vm.$http.post(helpers.add_endpoint_json(api_endpoints.applications,(vm.application.id+'/accept_character_check')))
+                    await vm.$http.post(helpers.add_endpoint_json(api_endpoints.applications,(vm.application.id+'/accept_character_check')))
                     .then((response) => {
                         vm.setApplication(response.body);
                     }, (error) => {
@@ -1032,7 +1042,7 @@ export default {
             },(error) => {
             });
         },
-        acceptReturnRequest: function() {
+        acceptReturnRequest: async function() {
             let vm = this;
             swal({
                 title: "Accept Return Check",
@@ -1040,9 +1050,9 @@ export default {
                 type: "question",
                 showCancelButton: true,
                 confirmButtonText: 'Accept'
-            }).then((result) => {
+            }).then(async (result) => {
                 if (result.value) {
-                    vm.$http.post(helpers.add_endpoint_json(api_endpoints.applications,(vm.application.id+'/accept_return_check')))
+                    await vm.$http.post(helpers.add_endpoint_json(api_endpoints.applications,(vm.application.id+'/accept_return_check')))
                     .then((response) => {
                         vm.setApplication(response.body);
                     }, (error) => {
@@ -1052,7 +1062,7 @@ export default {
             },(error) => {
             });
         },
-        resetReturnRequest: function() {
+        resetReturnRequest: async function() {
             let vm = this;
             swal({
                 title: "Reset Return Check",
@@ -1060,9 +1070,9 @@ export default {
                 type: "question",
                 showCancelButton: true,
                 confirmButtonText: 'Accept'
-            }).then((result) => {
+            }).then(async (result) => {
                 if (result.value) {
-                    vm.$http.post(helpers.add_endpoint_json(api_endpoints.applications,(vm.application.id+'/reset_return_check')))
+                    await vm.$http.post(helpers.add_endpoint_json(api_endpoints.applications,(vm.application.id+'/reset_return_check')))
                     .then((response) => {
                         vm.setApplication(response.body);
                     }, (error) => {
@@ -1146,7 +1156,7 @@ export default {
             this.isSendingToAssessor=false;
             this.isOfficerConditions=false;
         },
-        returnToOfficerConditions: function(){
+        returnToOfficerConditions: async function(){
 
             swal({
                 title: 'Return to Officer - Conditions',
@@ -1160,7 +1170,7 @@ export default {
                 },
                 showCancelButton: true,
                 confirmButtonText: 'Return',
-                }).then((result) => {
+                }).then(async (result) => {
                     if(!result.value) {
                         return;
                     }
@@ -1169,7 +1179,7 @@ export default {
                         "activity_id" : this.selectedActivity.licence_activity,
                         "text": text
                     }
-                    this.$http.post(helpers.add_endpoint_json(
+                    await this.$http.post(helpers.add_endpoint_json(
                             api_endpoints.applications, (this.application.id+'/return_to_officer')
                         ), JSON.stringify(data)).then((response) => {
                         swal(
@@ -1200,12 +1210,12 @@ export default {
             $(vm.$refs.assigned_officer).val(vm.selectedActivity.assigned_officer);
             $(vm.$refs.assigned_officer).trigger('change');
         },
-        assignToMe: function(){
+        assignToMe: async function(){
             let vm = this;
             const data = {
                 "activity_id" : this.selectedActivity.licence_activity,
             }
-            vm.$http.post(helpers.add_endpoint_json(api_endpoints.applications,(vm.application.id+'/assign_to_me')),JSON.stringify(data),{
+            await vm.$http.post(helpers.add_endpoint_json(api_endpoints.applications,(vm.application.id+'/assign_to_me')),JSON.stringify(data),{
                 emulateJSON:true
 
             }).then((response) => {
@@ -1234,7 +1244,7 @@ export default {
                 this.updateAssignedOfficerSelect();
             });
         },
-        assignOfficer: function(){
+        assignOfficer: async function(){
             let vm = this;
             let unassign = true;
             let data = {};
@@ -1244,7 +1254,7 @@ export default {
                 "activity_id" : this.selectedActivity.licence_activity,
             };
             if (!unassign){
-                vm.$http.post(helpers.add_endpoint_json(api_endpoints.applications,(vm.application.id+'/assign_officer')),JSON.stringify(data),{
+                await vm.$http.post(helpers.add_endpoint_json(api_endpoints.applications,(vm.application.id+'/assign_officer')),JSON.stringify(data),{
                     emulateJSON:true
                 }).then((response) => {
                     this.refreshFromResponse(response);
@@ -1260,7 +1270,7 @@ export default {
                 });
             }
             else{
-                vm.$http.post(helpers.add_endpoint_json(api_endpoints.applications,(vm.application.id+'/unassign_officer')),JSON.stringify(data),{
+                await vm.$http.post(helpers.add_endpoint_json(api_endpoints.applications,(vm.application.id+'/unassign_officer')),JSON.stringify(data),{
                     emulateJSON:true
                 }).then((response) => {
                     this.refreshFromResponse(response);
@@ -1276,7 +1286,7 @@ export default {
                 });
             }
         },
-        assignApprover: function(){
+        assignApprover: async function(){
             let vm = this;
             let unassign = true;
             unassign = vm.selectedActivity.assigned_approver == null ? true: false;
@@ -1287,7 +1297,7 @@ export default {
             }
 
             if (!unassign){
-                vm.$http.post(helpers.add_endpoint_json(api_endpoints.applications,(vm.application.id+'/assign_activity_approver')),JSON.stringify(data),{
+                await vm.$http.post(helpers.add_endpoint_json(api_endpoints.applications,(vm.application.id+'/assign_activity_approver')),JSON.stringify(data),{
                     emulateJSON:true
                 }).then((response) => {
                     this.refreshFromResponse(response);
@@ -1303,7 +1313,7 @@ export default {
                 });
             }
             else{
-                vm.$http.post(helpers.add_endpoint_json(api_endpoints.applications,(vm.application.id+'/unassign_activity_approver')),JSON.stringify(data),{
+                await vm.$http.post(helpers.add_endpoint_json(api_endpoints.applications,(vm.application.id+'/unassign_activity_approver')),JSON.stringify(data),{
                     emulateJSON:true
                 }).then((response) => {
                     this.refreshFromResponse(response);
@@ -1319,12 +1329,12 @@ export default {
                 });
             }
         },
-        makeMeApprover: function(){
+        makeMeApprover: async function(){
             let vm = this;
             const data = {
                 "activity_id" : this.selectedActivity.licence_activity,
             }
-            vm.$http.post(helpers.add_endpoint_json(api_endpoints.applications,(vm.application.id+'/make_me_activity_approver')),JSON.stringify(data),{
+            await vm.$http.post(helpers.add_endpoint_json(api_endpoints.applications,(vm.application.id+'/make_me_activity_approver')),JSON.stringify(data),{
                 emulateJSON:true
 
             }).then((response) => {
@@ -1341,14 +1351,13 @@ export default {
                 )
             });
         },
-        updateActivityStatus: function(activity_id, status){
-            console.log('updateActivityStatus')
+        updateActivityStatus: async function(activity_id, status){
             let vm = this;
             let data = {
                 'activity_id' : activity_id,
                 'status': status
             }
-            vm.$http.post(helpers.add_endpoint_json(api_endpoints.applications,(vm.application.id+'/update_activity_status')),JSON.stringify(data),{
+            await vm.$http.post(helpers.add_endpoint_json(api_endpoints.applications,(vm.application.id+'/update_activity_status')),JSON.stringify(data),{
                 emulateJSON:true,
             }).then((response) => {
                 this.refreshFromResponse(response);
