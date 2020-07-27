@@ -4413,7 +4413,6 @@ class ApplicationSelectedActivity(models.Model):
             self.updated_by = request.user
             self.save()
 
-    @transaction.atomic
     def surrender_purposes(self, purpose_ids):
         '''
         Surrender the activity when all proposed purposes are surrendered.
@@ -4430,7 +4429,6 @@ class ApplicationSelectedActivity(models.Model):
         self.activity_status = A_STATUS
         self.save()
 
-    @transaction.atomic
     def cancel_purposes(self, purpose_ids):
         '''
         Cancel the activity when all proposed purposes are cancelled.
@@ -4446,7 +4444,6 @@ class ApplicationSelectedActivity(models.Model):
         self.activity_status = A_STATUS
         self.save()
 
-    @transaction.atomic
     def suspend_purposes(self, purpose_ids):
         '''
         Suspend the activity when all proposed purposes are suspended.
@@ -4462,7 +4459,6 @@ class ApplicationSelectedActivity(models.Model):
         self.activity_status = A_STATUS
         self.save()
 
-    @transaction.atomic
     def reinstate_purposes(self, purpose_ids):
         '''
         Reinstate all licence purposes available on this selected activity.
@@ -4479,7 +4475,6 @@ class ApplicationSelectedActivity(models.Model):
         self.activity_status = A_STATUS
         self.save()
 
-    @transaction.atomic
     def reissue_purposes(self, purpose_ids):
         '''
         Reinstate all licence purposes available on this selected activity.
@@ -4508,7 +4503,6 @@ class ApplicationSelectedActivity(models.Model):
 
         return True
 
-    @transaction.atomic
     def reissue(self):
         '''
         Sets this Selected Activity to be a status that allows for re-issuing

@@ -36,6 +36,33 @@ def send_licence_renewal_notification(licence, purposes, request=None):
     email.send(recipients, context=context)
 
 
+class LicenceSurrenderNotificationEmail(TemplateEmailBase):
+    '''
+    Email template for licence surrender notifications.
+    '''
+    subject = 'Your licence has been surrendered.'
+    html_template = \
+        'wildlifecompliance/emails/send_licence_surrender_notification.html'
+    txt_template = \
+        'wildlifecompliance/emails/send_licence_surrender_notification.txt'
+
+
+def send_licence_surrender_notification(licence, purposes, request=None):
+    '''
+    Sender function for licence surrender notification.
+    '''
+    email = LicenceSurrenderNotificationEmail()
+    url = request.build_absolute_uri(reverse('external'))
+
+    context = {
+        'licence': licence,
+        'purposes': purposes,
+        'url': url
+    }
+    recipients = [licence.current_application.submitter.email]
+    email.send(recipients, context=context)
+
+
 class LicenceCancelNotificationEmail(TemplateEmailBase):
     '''
     Email template for licence cancel notifications.
