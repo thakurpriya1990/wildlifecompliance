@@ -72,6 +72,31 @@ class LicenceService(object):
         return licence
 
     @staticmethod
+    def request_surrender_licence(licence, request):
+        '''
+        Process request to surrender licence.
+        '''
+        SURRENDER = WildlifeLicence.ACTIVITY_PURPOSE_ACTION_SURRENDER
+
+        try:
+            on_licence_actioner = LicenceActioner(licence)
+            on_licence_actioner.apply_action(request, SURRENDER)
+
+            # Regenerate licence and save.
+            licence.generate_doc()
+            application = licence.current_application
+            application.licence_document = licence.licence_document
+            application.save()
+
+        except Exception as e:
+            logger.error('ERR request_surrender_licence() ID {0}: {1}'.format(
+                licence.id, e
+            ))
+            raise Exception('Failed surrendering licence.')
+
+        return licence
+
+    @staticmethod
     def request_cancel_licence(licence, request):
         '''
         Process request to cancel licence.

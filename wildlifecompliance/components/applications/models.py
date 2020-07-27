@@ -4419,7 +4419,8 @@ class ApplicationSelectedActivity(models.Model):
         Surrender the activity when all proposed purposes are surrendered.
         '''
         A_STATUS = ApplicationSelectedActivity.ACTIVITY_STATUS_SURRENDERED
-        P_STATUS = ApplicationSelectedActivity.PURPOSE_STATUS_SURRENDERED
+        P_STATUS =\
+            ApplicationSelectedActivityPurpose.PURPOSE_STATUS_SURRENDERED
 
         self.set_proposed_purposes_status_for(purpose_ids, P_STATUS)
 
