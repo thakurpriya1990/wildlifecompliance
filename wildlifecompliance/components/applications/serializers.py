@@ -200,7 +200,23 @@ class ApplicationSelectedActivitySerializer(serializers.ModelSerializer):
         return not obj.licence_fee_paid and obj.processing_status == ApplicationSelectedActivity.PROCESSING_STATUS_AWAITING_LICENCE_FEE_PAYMENT
 
     def get_officer_name(self, obj):
-        return '{0} {1}'.format(obj.assigned_officer.first_name, obj.assigned_officer.last_name) if obj.assigned_officer else ''
+
+        with_officer = ['with_officer', 'with_officer_conditions']
+        with_approver = ['with_officer_finalisation']
+        if obj.processing_status in with_officer and obj.assigned_officer:
+            name = '{0} {1}'.format(
+                obj.assigned_officer.first_name,
+                obj.assigned_officer.last_name
+            )
+        elif obj.processing_status in with_approver and obj.assigned_approver:
+            name = '{0} {1}'.format(
+                obj.assigned_approver.first_name,
+                obj.assigned_approver.last_name
+            )
+        else:
+            name = ''
+
+        return name
 
     def get_is_with_officer(self, obj):
         return True if obj.processing_status in [
