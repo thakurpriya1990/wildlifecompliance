@@ -270,12 +270,8 @@ class SpreadSheet(object):
         Simple Factory Method for spreadsheet types.
         :return: Specialised SpreadSheet.
         """
-        if self.filename.name == 'regulation15.xlsx':
-            return Regulation15Sheet(self.ret, self.filename)
-        else:
-            return ReturnDataSheet(self.ret, self.filename)
 
-        return self
+        return ReturnDataSheet(self.ret, self.filename)
 
     def get_table_rows(self):
         """
@@ -383,7 +379,7 @@ class ReturnDataSheet(SpreadSheet):
         super(ReturnDataSheet, self).__init__(_ret, _filename)
         self.schema = Schema(
             self.ret.return_type.get_schema_by_name(
-                self.RETURN_DATA))
+               self.ret.return_type.resources[0]['name']))
 
     def is_valid(self):
         '''
