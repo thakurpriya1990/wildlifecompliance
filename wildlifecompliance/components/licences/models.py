@@ -1341,13 +1341,13 @@ class WildlifeLicenceReceptionEmail(models.Model):
     used for general purposes.
     '''
     name = models.CharField(max_length=64)
-    address = models.CharField(max_length=128)
+    email = models.CharField(max_length=128)
 
     class Meta:
         app_label = 'wildlifecompliance'
 
     def __str__(self):
-        return self.address
+        return self.email
 
 
 '''
