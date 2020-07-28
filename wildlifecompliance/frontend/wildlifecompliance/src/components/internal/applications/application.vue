@@ -853,10 +853,6 @@ export default {
             return this.showingApplication && this.canAssignApproverFor(this.selectedActivity.licence_activity)
         },
         showAssessmentConditionButton: function() {
-            // check activity is not assigned to another officer.
-            if (this.selectedActivity.assigned_officer != null && this.selectedActivity.assigned_officer !== this.current_user.id) {
-                return false;
-            }
 
             return this.showingApplication 
                 && !this.applicationIsDraft 
