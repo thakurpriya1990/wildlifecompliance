@@ -1240,15 +1240,15 @@ class WildlifeLicence(models.Model):
         Returns a query set of all licence documents for this licence by
         applications with current or suspended activities.
         '''
-        from wildlifecompliance.components.applications.models import (
-            Application,
-        )
-        documents = Application.objects.values(
+        pdf_name = 'licence-{0}.pdf'.format(self.id)
+
+        documents = LicenceDocument.objects.values(
+                'uploaded_date',
+                'name',
                 'licence_document',
-                'licence_id',
-                'licence_document__uploaded_date',
+                'id',
             ).filter(
-                licence_id=self.id,
+                name=pdf_name,
             )
 
         return documents
@@ -1341,13 +1341,13 @@ class WildlifeLicenceReceptionEmail(models.Model):
     used for general purposes.
     '''
     name = models.CharField(max_length=64)
-    address = models.CharField(max_length=128)
+    email = models.CharField(max_length=128)
 
     class Meta:
         app_label = 'wildlifecompliance'
 
     def __str__(self):
-        return self.address
+        return self.email
 
 
 '''

@@ -84,7 +84,7 @@ def is_reception(request):
     )
 
     is_reception_email = WildlifeLicenceReceptionEmail.objects.filter(
-        address=request.user.email
+        email=request.user.email
     ).exists()
 
     return request.user.is_authenticated() and is_reception_email

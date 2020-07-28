@@ -853,10 +853,6 @@ export default {
             return this.showingApplication && this.canAssignApproverFor(this.selectedActivity.licence_activity)
         },
         showAssessmentConditionButton: function() {
-            // check activity is not assigned to another officer.
-            if (this.selectedActivity.assigned_officer != null && this.selectedActivity.assigned_officer !== this.current_user.id) {
-                return false;
-            }
 
             return this.showingApplication 
                 && !this.applicationIsDraft 
@@ -1182,12 +1178,9 @@ export default {
                     await this.$http.post(helpers.add_endpoint_json(
                             api_endpoints.applications, (this.application.id+'/return_to_officer')
                         ), JSON.stringify(data)).then((response) => {
-                        swal(
-                            'Return to Officer - Conditions',
-                            'The licenced activity has been returned to Officer - Conditions.',
-                            'success'
-                        );
-                        this.refreshFromResponse(response);
+
+                        this.$router.push({name:"internal-dash",});   
+
                     }, (error) => {
                         this.revert();
                         swal(

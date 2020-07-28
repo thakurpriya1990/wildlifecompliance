@@ -456,16 +456,15 @@ class LicenceDocumentHistorySerializer(serializers.ModelSerializer):
 
     def get_history_date(self, obj):
         date_format_loc = timezone.localtime(
-            obj['licence_document__uploaded_date']
+            obj['uploaded_date']
         )
         history_date = date_format_loc.strftime('%d/%m/%Y %H:%M:%S.%f')
 
         return history_date
 
     def get_history_document_url(self, obj):
-        doc_id = obj['licence_document']
-        lic_id = obj['licence_id']
-        pdf = 'licence-{0}.pdf'.format(lic_id)
+        doc_id = obj['id']
+        pdf = obj['name']
         url = '/media/wildlifecompliance/licences/{0}/documents/{1}'.format(
             doc_id, pdf
         )

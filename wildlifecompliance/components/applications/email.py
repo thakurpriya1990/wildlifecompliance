@@ -623,7 +623,8 @@ def send_id_updated_notification(user, applications, assigned_officers, request)
         'url': url,
         'applications': applications_list_string
     }
-    msg = email.send(assigned_officers, context=context)
+    email_list = [o.email for o in assigned_officers]
+    msg = email.send(email_list, context=context)
 
     sender = request.user if request else settings.DEFAULT_FROM_EMAIL
     for application in applications:
