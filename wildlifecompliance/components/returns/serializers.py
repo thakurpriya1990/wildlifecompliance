@@ -38,7 +38,8 @@ class StandardConditionSerializer(serializers.ModelSerializer):
 
 class ReturnConditionSerializer(serializers.ModelSerializer):
     standard_condition = StandardConditionSerializer(read_only=True)
-    licence_activity = ActivitySerializer(read_only=True)                 
+    licence_activity = ActivitySerializer(read_only=True)
+    due_date = serializers.SerializerMethodField(read_only=True)
 
     class Meta:
         model = ApplicationCondition
@@ -59,6 +60,9 @@ class ReturnConditionSerializer(serializers.ModelSerializer):
             'licence_activity',
             'return_type',)
         readonly_fields = ('order', 'condition')
+
+    def get_due_date(self, obj):
+        return obj.due_date.strftime('%d/%m/%Y') if obj.due_date else ''
 
 
 class EmailUserSerializer(serializers.ModelSerializer):

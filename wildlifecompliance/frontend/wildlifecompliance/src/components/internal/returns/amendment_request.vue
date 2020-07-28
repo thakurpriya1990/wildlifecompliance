@@ -41,7 +41,7 @@ import Vue from 'vue'
 import modal from '@vue-utils/bootstrap-modal.vue'
 import alert from '@vue-utils/alert.vue'
 import {helpers, api_endpoints} from "@/utils/hooks.js"
-import { mapGetters } from 'vuex'
+import { mapActions, mapGetters } from 'vuex'
 export default {
     name:'amendment-request',
     components:{
@@ -89,6 +89,9 @@ export default {
         }
     },
     methods:{
+        ...mapActions([
+            'setReturns',
+        ]),
         ok:function () {
             let vm =this;
             if($(vm.form).valid()){
@@ -140,9 +143,9 @@ export default {
             self.$http.post('/api/returns_amendment.json',JSON.stringify(amendment),{
                         emulateJSON:true,
                     }).then((response)=>{
-                       //let species_id = this.returns.sheet_species;
-                       //this.setReturns(response.body);
-                       //this.returns.sheet_species = species_id;
+                        let species_id = this.returns.sheet_species;
+                        this.setReturns(response.body);
+                        this.returns.sheet_species = species_id;
                         swal(
                              'Sent',
                              'An email has been sent to the Licensee with the request to amend this Return.',

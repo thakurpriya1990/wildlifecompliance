@@ -658,32 +658,41 @@ class ReturnAmendmentRequestViewSet(viewsets.ModelViewSet):
         return ReturnRequest.objects.none()
 
     def create(self, request, *args, **kwargs):
+        DRAFT = Return.RETURN_PROCESSING_STATUS_DRAFT
         try:
-            amend_data = self.request.data
-            reason = amend_data.pop('reason')
-            a_return = amend_data.pop('a_return')
-            text = amend_data.pop('text')
 
-            returns = Return.objects.get(id=a_return['id'])
-            returns.processing_status = Return.RETURN_PROCESSING_STATUS_DRAFT
-            returns.save()
-            application = a_return['application']
-            licence = a_return['licence']
-            assigned_to = a_return['assigned_to']
-            data = {
-                    'application': application,
-                    'reason': reason,
-                    'text': text,
-                    'officer': assigned_to
-            }
+            with transaction.atomic():
+                amend_data = self.request.data
+                reason = amend_data.pop('reason')
+                a_return = amend_data.pop('a_return')
+                text = amend_data.pop('text')
 
-            serializer = self.get_serializer(data=data)
-            serializer.is_valid(raise_exception=True)
-            instance = serializer.save()
+                returns = Return.objects.get(id=a_return['id'])
+                returns.processing_status = DRAFT
+                returns.save()
+                application = a_return['application']
+                licence = a_return['licence']
+                assigned_to = a_return['assigned_to']
+                data = {
+                        'application': application,
+                        'reason': reason,
+                        'text': text,
+                        'officer': assigned_to
+                }
+
+                serializer = self.get_serializer(data=data)
+                serializer.is_valid(raise_exception=True)
+                serializer.save()
+
             # send email
             send_return_amendment_email_notification(
                 request, data, returns, licence)
-            serializer = self.get_serializer(instance)
+
+            serializer = ReturnSerializer(
+                returns, context={'request': request}
+            )
+            # serializer = self.get_serializer(instance)
+            # returning amendment.
             return Response(serializer.data)
         except serializers.ValidationError:
             print(traceback.print_exc())

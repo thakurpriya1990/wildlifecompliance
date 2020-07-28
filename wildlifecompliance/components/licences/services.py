@@ -14,6 +14,7 @@ from wildlifecompliance.components.licences.email import (
     send_licence_cancel_notification,
     send_licence_suspend_notification,
     send_licence_reinstate_notification,
+    send_licence_surrender_notification,
 )
 from wildlifecompliance.components.applications.models import (
     Application,
@@ -60,8 +61,11 @@ class LicenceService(object):
         '''
         REISSUE = WildlifeLicence.ACTIVITY_PURPOSE_ACTION_REISSUE
         try:
-            on_licence_actioner = LicenceActioner(licence)
-            on_licence_actioner.apply_action(request, REISSUE)
+
+            with transaction.atomic():
+
+                on_licence_actioner = LicenceActioner(licence)
+                on_licence_actioner.apply_action(request, REISSUE)
 
         except Exception as e:
             logger.error('ERR request_reissue_licence() ID {0}: {1}'.format(
@@ -79,14 +83,20 @@ class LicenceService(object):
         SURRENDER = WildlifeLicence.ACTIVITY_PURPOSE_ACTION_SURRENDER
 
         try:
-            on_licence_actioner = LicenceActioner(licence)
-            on_licence_actioner.apply_action(request, SURRENDER)
 
-            # Regenerate licence and save.
-            licence.generate_doc()
-            application = licence.current_application
-            application.licence_document = licence.licence_document
-            application.save()
+            with transaction.atomic():
+
+                on_licence_actioner = LicenceActioner(licence)
+                on_licence_actioner.apply_action(request, SURRENDER)
+
+                purposes = on_licence_actioner.get_actioned_purposes()
+                send_licence_surrender_notification(licence, purposes, request)
+
+                # Regenerate licence and save.
+                licence.generate_doc()
+                application = licence.current_application
+                application.licence_document = licence.licence_document
+                application.save()
 
         except Exception as e:
             logger.error('ERR request_surrender_licence() ID {0}: {1}'.format(
@@ -104,17 +114,20 @@ class LicenceService(object):
         CANCEL = WildlifeLicence.ACTIVITY_PURPOSE_ACTION_CANCEL
 
         try:
-            on_licence_actioner = LicenceActioner(licence)
-            on_licence_actioner.apply_action(request, CANCEL)
 
-            purposes = on_licence_actioner.get_actioned_purposes()
-            send_licence_cancel_notification(licence, purposes, request)
+            with transaction.atomic():
 
-            # Regenerate licence and save.
-            licence.generate_doc()
-            application = licence.current_application
-            application.licence_document = licence.licence_document
-            application.save()
+                on_licence_actioner = LicenceActioner(licence)
+                on_licence_actioner.apply_action(request, CANCEL)
+
+                purposes = on_licence_actioner.get_actioned_purposes()
+                send_licence_cancel_notification(licence, purposes, request)
+
+                # Regenerate licence and save.
+                licence.generate_doc()
+                application = licence.current_application
+                application.licence_document = licence.licence_document
+                application.save()
 
         except Exception as e:
             logger.error('ERR request_cancel_licence() ID {0}: {1}'.format(
@@ -132,17 +145,20 @@ class LicenceService(object):
         SUSPEND = WildlifeLicence.ACTIVITY_PURPOSE_ACTION_SUSPEND
 
         try:
-            on_licence_actioner = LicenceActioner(licence)
-            on_licence_actioner.apply_action(request, SUSPEND)
 
-            purposes = on_licence_actioner.get_actioned_purposes()
-            send_licence_suspend_notification(licence, purposes, request)
+            with transaction.atomic():
 
-            # Regenerate licence and save.
-            licence.generate_doc()
-            application = licence.current_application
-            application.licence_document = licence.licence_document
-            application.save()
+                on_licence_actioner = LicenceActioner(licence)
+                on_licence_actioner.apply_action(request, SUSPEND)
+
+                purposes = on_licence_actioner.get_actioned_purposes()
+                send_licence_suspend_notification(licence, purposes, request)
+
+                # Regenerate licence and save.
+                licence.generate_doc()
+                application = licence.current_application
+                application.licence_document = licence.licence_document
+                application.save()
 
         except Exception as e:
             logger.error('ERR request_suspend_licence: {0}'.format(e))
@@ -158,16 +174,19 @@ class LicenceService(object):
         REINSTATE = WildlifeLicence.ACTIVITY_PURPOSE_ACTION_REINSTATE
 
         try:
-            on_licence_actioner = LicenceActioner(licence)
-            on_licence_actioner.apply_action(request, REINSTATE)
 
-            purposes = on_licence_actioner.get_actioned_purposes()
-            send_licence_reinstate_notification(licence, purposes, request)
+            with transaction.atomic():
 
-            licence.generate_doc()
-            application = licence.current_application
-            application.licence_document = licence.licence_document
-            application.save()
+                on_licence_actioner = LicenceActioner(licence)
+                on_licence_actioner.apply_action(request, REINSTATE)
+
+                purposes = on_licence_actioner.get_actioned_purposes()
+                send_licence_reinstate_notification(licence, purposes, request)
+
+                licence.generate_doc()
+                application = licence.current_application
+                application.licence_document = licence.licence_document
+                application.save()
 
         except Exception as e:
             logger.error('ERR request_reinstate_licence: {0}'.format(e))
@@ -453,7 +472,6 @@ class LicenceActioner(LicenceActionable):
 
         return purposes
 
-    @transaction.atomic
     def apply_action(self, request, action):
         '''
         Applies a specified action to all licence purposes. For a selected
