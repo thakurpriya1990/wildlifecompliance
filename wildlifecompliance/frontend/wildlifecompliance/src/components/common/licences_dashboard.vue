@@ -842,7 +842,6 @@ export default {
                     // Generate rows for each activity
                     var activity_rows = ''
                     row.data()['latest_activities_merged'].forEach(function(activity) {
-                        console.log(activity)
                         activity_rows += `
                             <tr>
                                 <td>${activity['activity_name_str']}</td>
