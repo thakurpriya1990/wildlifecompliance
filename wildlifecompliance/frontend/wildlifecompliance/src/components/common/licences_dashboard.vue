@@ -533,6 +533,7 @@ export default {
                             licence_activity_id+'&action='+vm.licence_action+'&selected_activity_id='+select_activity_id)).then(res=>{
                                 if (res.body) {
                                     vm.action_purpose_list = res.body;
+                                    vm.$refs.licence_action_purposes.selectedActivityId = select_activity_id;
                                     vm.$refs.licence_action_purposes.isModalOpen = true;
                                 }
                             }, (error) => {
@@ -598,6 +599,7 @@ export default {
                             licence_activity_id+'&action='+vm.licence_action+'&selected_activity_id='+select_activity_id)).then(res=>{
                                 if (res.body) {
                                     vm.action_purpose_list = res.body;
+                                    vm.$refs.licence_action_purposes.selectedActivityId = select_activity_id;
                                     vm.$refs.licence_action_purposes.isModalOpen = true;
                                 }
                             }, (error) => {
@@ -840,6 +842,7 @@ export default {
                     // Generate rows for each activity
                     var activity_rows = ''
                     row.data()['latest_activities_merged'].forEach(function(activity) {
+                        console.log(activity)
                         activity_rows += `
                             <tr>
                                 <td>${activity['activity_name_str']}</td>

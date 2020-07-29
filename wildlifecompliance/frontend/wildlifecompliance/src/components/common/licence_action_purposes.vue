@@ -259,7 +259,7 @@ export default {
                 if (vm.action_licence.purpose_ids_list.length > 0){
                     data.purpose_ids_list = vm.action_licence.purpose_ids_list
                     data.selected_activity_id = vm.selectedActivityId;
-                    vm.$http.post(helpers.add_endpoint_json(api_endpoints.licences,vm.licence_id+'/reactivat_renew_purposes'),JSON.stringify(data),{
+                    vm.$http.post(helpers.add_endpoint_json(api_endpoints.licences,vm.licence_id+'/reactivate_renew_purposes'),JSON.stringify(data),{
                             emulateJSON:true,
                         }).then((response)=>{
                             swal(
