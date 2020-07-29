@@ -870,7 +870,7 @@ class WildlifeLicence(models.Model):
         activity are to be actioned, create new SYSTEM_GENERATED Applications
         and associated activities to apply the relevant statuses for each.
 
-        TODO: REDUNDANT is replaced with LicenceActioner.
+        TODO: replaced with LicenceActioner - this is only used to renew.
         """
         from wildlifecompliance.components.applications.models import (
             Application, ApplicationSelectedActivity
@@ -1234,6 +1234,32 @@ class WildlifeLicence(models.Model):
         ]
 
         return to_expire
+
+    def get_purposes_to_renew(self, period_days=0):
+        '''
+        Returns selected licence purposes which are about to expire in relation
+        to period.
+
+        :param: period_days is number of days before expiration.
+        '''
+        from wildlifecompliance.components.applications.models import (
+            ApplicationSelectedActivityPurpose,
+        )
+        from datetime import date, timedelta
+
+        today = date.today()
+        today_plus_days = date.today() + timedelta(days=int(period_days))
+        purposes = self.get_proposed_purposes_in_applications()
+
+        to_renew = [
+            p for p in purposes.filter(
+                expiry_date__range=[today, today_plus_days],
+                sent_renewal=False,
+                purpose_status__in=ApplicationSelectedActivityPurpose.RENEWABLE
+            )
+        ]
+
+        return to_renew
 
     def get_document_history(self):
         '''

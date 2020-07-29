@@ -6,6 +6,10 @@ from datetime import date
 from django.core.exceptions import ValidationError
 from django.db import transaction
 
+from wildlifecompliance.components.main.models import (
+    GlobalSettings,
+)
+
 from wildlifecompliance.components.licences.models import (
     WildlifeLicence,
 )
@@ -233,8 +237,12 @@ class LicenceService(object):
 
             if purposes_in_open_applications or\
                     purposes_in_open_applications == []:
+
+                # TODO: can_action need to be done on purposes instead of
+                # activity.
                 activity_can_action = activity.can_action(
-                    purposes_in_open_applications)
+                    purposes_in_open_applications
+                )
 
             else:
                 activity_can_action = {
@@ -274,20 +282,106 @@ class LicenceService(object):
                     ]),
                     'can_action':
                         {
-                            'licence_activity_id': activity.licence_activity_id,
+                            'licence_activity_id':
+                                activity.licence_activity_id,
                             'can_renew': activity_can_action['can_renew'],
                             'can_amend': activity_can_action['can_amend'],
-                            'can_surrender': activity_can_action['can_surrender'],
+                            'can_surrender':
+                                activity_can_action['can_surrender'],
                             'can_cancel': activity_can_action['can_cancel'],
                             'can_suspend': activity_can_action['can_suspend'],
                             'can_reissue': activity_can_action['can_reissue'],
-                            'can_reinstate': activity_can_action['can_reinstate'],
+                            'can_reinstate':
+                                activity_can_action['can_reinstate'],
                         }
                 }
 
         merged_activities_list = merged_activities.values()
 
         return merged_activities_list
+
+    @staticmethod
+    def verify_licence_renewals(request=None):
+        '''
+        Verifies licences which have purposes about to expire and sends a
+        notification the applicant.
+        '''
+        try:
+            today = date.today()
+
+            issued_status = [
+                ApplicationSelectedActivityPurpose.PROCESSING_STATUS_ISSUED,
+            ]
+
+            # build application ids with renewable purposes.
+            apps = ApplicationSelectedActivityPurpose.objects.filter(
+                expiry_date__gte=today,
+                processing_status__in=issued_status,
+                purpose_status__in=ApplicationSelectedActivityPurpose.RENEWABLE
+            ).select_related(
+                'selected_activity__application_id'
+            ).distinct()
+
+            app_ids = apps.values('selected_activity__application_id')
+
+            # get unique licences for applications.
+            licence_ids = Application.objects.values(
+                'licence_id',
+                ).filter(
+                    id__in=app_ids,
+                ).distinct()
+
+            for licence_id in licence_ids:
+                # for each licence id verify if renewal required.
+                if not licence_id['licence_id']:
+                    continue
+                LicenceService.verify_licence_renewal_for(
+                    licence_id['licence_id']
+                )
+
+        except Exception as e:
+            logger.error('ERR verify_licence_renewals: {0}'.format(e))
+            raise Exception('Failed verifying licence renewal.')
+
+        return True
+
+    @staticmethod
+    def verify_licence_renewal_for(licence_id, request=None):
+        '''
+        Verifies a licence requiring renewal and send a notification to the
+        applicant.
+        '''
+        try:
+            period_days = GlobalSettings.objects.values('value').filter(
+                key=GlobalSettings.LICENCE_RENEW_DAYS
+            ).first()
+            period_days = int(period_days['value'])
+
+            licence = WildlifeLicence.objects.get(
+                id=licence_id
+            )
+            purposes_to_renew = licence.get_purposes_to_renew(period_days)
+
+            # Set selected licence purpose to renew.
+            with transaction.atomic():
+
+                for purpose in purposes_to_renew:
+                    purpose.sent_renewal = True
+                    purpose.save()
+
+            if purposes_to_renew:
+                # Send out renewal notice. (only with request)
+                send_licence_renewal_notification(
+                    licence, purposes_to_renew, request)
+
+        except Exception as e:
+            logger.error('ERR verify_licence_renewal_for {0}: {1}'.format(
+                licence_id,
+                e
+            ))
+            raise Exception('Failed verifying licence renewal.')
+
+        return True
 
     @staticmethod
     def verify_expired_licences(request=None):
@@ -362,17 +456,13 @@ class LicenceService(object):
                     purpose.save()
 
             if purposes_to_expire:
-                # Send out renewal notice. (only with request)
-                send_licence_renewal_notification(
-                    licence, purposes_to_expire, request)
-
                 # Re-generate licence.
                 licence.generate_doc()
                 application = licence.current_application
                 application.licence_document = licence.licence_document
                 application.save()
                 logger.info(
-                    'Licence {0} re-generate with expired purpose.'.format(
+                    'Licence {0} re-generated with expired purpose.'.format(
                         licence.licence_number,
                     ))
 
@@ -580,4 +670,3 @@ class LicenceActioner(LicenceActionable):
                 selected_activity,
                 selected_user_action,
             )
-

@@ -14,7 +14,10 @@ class LicenceActivityAdmin(admin.ModelAdmin):
 
 @admin.register(models.WildlifeLicence)
 class WildlifeLicence(admin.ModelAdmin):
-    actions = ['verify_expired_licence']
+    actions = [
+        'verify_expired_licence',
+        'verify_licence_renewal',
+    ]
 
     def verify_expired_licence(self, request, queryset):
         from wildlifecompliance.components.licences.services import (
@@ -24,6 +27,15 @@ class WildlifeLicence(admin.ModelAdmin):
             LicenceService.verify_expired_licence_for(selected.id, request)
         self.message_user(
             request, 'Selected licence expired have been verified.')
+
+    def verify_licence_renewal(self, request, queryset):
+        from wildlifecompliance.components.licences.services import (
+            LicenceService,
+        )
+        for selected in queryset:
+            LicenceService.verify_licence_renewal_for(selected.id, request)
+        self.message_user(
+            request, 'Selected licence renewals have been verified.')
 
 
 @admin.register(models.LicencePurpose)

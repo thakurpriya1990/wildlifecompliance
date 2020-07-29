@@ -25,7 +25,8 @@ def send_licence_renewal_notification(licence, purposes, request=None):
     Sender function for licence renewal notification.
     '''
     email = LicenceRenewalNotificationEmail()
-    url = request.build_absolute_uri(reverse('external'))
+    # url = request.build_absolute_uri(reverse('external'))
+    url = ''
 
     context = {
         'licence': licence,

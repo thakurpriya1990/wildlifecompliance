@@ -944,6 +944,9 @@ class Application(RevisionedMixin):
                 self.copy_application_purpose_to_target_application(
                     new_app, licence_purpose_id)
 
+                ## self.copy_application_conditions from
+                #  Copy all conditions from current applications.
+
                 self.copy_activity_purpose_to_target_for_status(
                     licence_purpose_id,
                     new_activity,
@@ -989,6 +992,23 @@ class Application(RevisionedMixin):
         issued.processing_status = REPLACE
         issued.purpose_status = S_REPLACE
         issued.save()
+
+    def copy_conditions_to_target(self, target_application=None):
+        '''
+        Copies the licence condition identifier associated with this
+        application to another application (renewal, admendment, reissue).
+        '''
+        if not target_application:
+            raise ValidationError('Target application must be specified')
+
+        conditions = ApplicationCondition.objects.filter(
+            application_id=self.id
+        )
+
+        for condition in conditions:
+            condition.id = None
+            condition.application_id = target_application.id
+            condition.save()
 
     def copy_application_purpose_to_target_application(
             self, target_application=None, licence_purpose_id=None):
@@ -4794,7 +4814,17 @@ class ApplicationSelectedActivityPurpose(models.Model):
     proposed_start_date = models.DateField(null=True, blank=True)
     proposed_end_date = models.DateField(null=True, blank=True)
     purpose_sequence = models.IntegerField(blank=True, default=0)
+    sent_renewal = models.BooleanField(
+        default=False,
+        help_text='If ticked, a renew reminder has been sent to applicant.')
 
+    def __str__(self):
+        return "SelectedActivityPurposeID {0}".format(self.id)
+
+    class Meta:
+        app_label = 'wildlifecompliance'
+        verbose_name = 'Application selected activity purpose'
+    
     @property
     def is_proposed(self):
         '''
@@ -4921,23 +4951,6 @@ class ApplicationSelectedActivityPurpose(models.Model):
             print(e)
 
         return is_reissued
-
-    def __str__(self):
-        application = self.selected_activity.application_id
-        activity = self.selected_activity.licence_activity.short_name
-        purpose = self.purpose.short_name
-        return "{0}{1}{2}{3}{4}{5}".format(
-            "Purpose: {purpose} ".format(purpose=purpose),
-            "App. Fee: {fee1} ".format(fee1=self.application_fee),
-            "Lic. Fee: {fee2} ".format(fee2=self.licence_fee),
-            "Adj. Fee: {fee3} ".format(fee3=self.adjusted_fee),
-            "(Act: {activity}".format(activity=activity),
-            " App: {application})".format(application=application),
-        )
-
-    class Meta:
-        app_label = 'wildlifecompliance'
-        verbose_name = 'Application selected activity purpose'
 
     def suspend(self):
         '''
