@@ -1523,9 +1523,10 @@ class ApplicationViewSet(viewsets.ModelViewSet):
                             activity.application.copy_application_purpose_to_target_application(
                                 target_application, purpose_id)
 
-                        activity.application.copy_conditions_to_target(
-                            target_application
-                        )
+                            activity.application.copy_conditions_to_target(
+                                target_application,
+                                purpose_id,
+                            )
 
                 # Set previous_application to the latest active application if
                 # exists

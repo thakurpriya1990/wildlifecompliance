@@ -948,9 +948,9 @@ class Application(RevisionedMixin):
                     licence_purpose_id,
                     new_activity,
                 )
-            
-            # Copy all conditions from current application to new_app.
-            self.copy_conditions_to_target(new_app)
+
+                # Copy all conditions from current application to new_app.
+                self.copy_conditions_to_target(new_app, licence_purpose_id)
 
         return new_app
 
@@ -993,7 +993,7 @@ class Application(RevisionedMixin):
         issued.purpose_status = S_REPLACE
         issued.save()
 
-    def copy_conditions_to_target(self, target_application=None):
+    def copy_conditions_to_target(self, target_application, purpose_id):
         '''
         Copies the licence condition identifier associated with this
         application to another application (renewal, admendment, reissue).
@@ -1002,7 +1002,8 @@ class Application(RevisionedMixin):
             raise ValidationError('Target application must be specified')
 
         conditions = ApplicationCondition.objects.filter(
-            application_id=self.id
+            application_id=self.id,
+            licence_purpose_id=purpose_id,
         )
 
         for condition in conditions:
@@ -1117,14 +1118,14 @@ class Application(RevisionedMixin):
                                     )
 
                                 ac, c = ApplicationCondition.objects.get_or_create(
-                                    is_default=True,
-                                    standard=True,
                                     standard_condition=sc,
-                                    application=self
+                                    application=self,
+                                    licence_purpose=d.licence_purpose,
+                                    licence_activity=d.licence_activity,
+                                    return_type=sc.return_type,
                                 )
-                                ac.licence_activity = d.licence_activity
-                                ac.licence_purpose = d.licence_purpose
-                                ac.return_type = sc.return_type
+                                ac.is_default = True
+                                ac.standard = True
                                 ac.save()
 
                         '''

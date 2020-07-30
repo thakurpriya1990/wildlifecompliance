@@ -1054,12 +1054,13 @@ class WildlifeLicence(models.Model):
                                     new_previous_status_applications[previous_status],
                                     licence_purpose_id)
 
-                            # Copy conditions to the new_actioned_application.
-                            application.copy_conditions_to_target(
-                                new_previous_status_applications[
-                                    previous_status
-                                ]
-                            )
+                                # Copy conditions to the new_actioned_application.
+                                application.copy_conditions_to_target(
+                                    new_previous_status_applications[
+                                        previous_status
+                                    ],
+                                    licence_purpose_id
+                                )
 
                         # create new actioned application from this application
                         # if not yet exists.
@@ -1078,10 +1079,12 @@ class WildlifeLicence(models.Model):
                                     new_actioned_application,
                                     licence_purpose_id)
 
-                            # Copy conditions to the new_actioned_application.
-                            application.copy_conditions_to_target(
-                                new_actioned_application
-                            )
+                                # Copy conditions to the
+                                # new_actioned_application.
+                                application.copy_conditions_to_target(
+                                    new_actioned_application,
+                                    licence_purpose_id,
+                                )
 
                 # Set original activities to REPLACED except for any that were
                 # ACTIONED completely.
