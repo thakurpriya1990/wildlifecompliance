@@ -944,13 +944,13 @@ class Application(RevisionedMixin):
                 self.copy_application_purpose_to_target_application(
                     new_app, licence_purpose_id)
 
-                ## self.copy_application_conditions from
-                #  Copy all conditions from current applications.
-
                 self.copy_activity_purpose_to_target_for_status(
                     licence_purpose_id,
                     new_activity,
                 )
+            
+            # Copy all conditions from current application to new_app.
+            self.copy_conditions_to_target(new_app)
 
         return new_app
 
@@ -3548,6 +3548,12 @@ class ApplicationSelectedActivity(models.Model):
         (ACTIVITY_STATUS_REPLACED, 'Replaced')
     )
 
+    # Selected licence activity which are current or initialised (default).
+    ACTIVE = [
+        ACTIVITY_STATUS_DEFAULT,
+        ACTIVITY_STATUS_CURRENT,
+    ]
+
     PROCESSING_STATUS_DRAFT = 'draft'
     PROCESSING_STATUS_WITH_OFFICER = 'with_officer'
     PROCESSING_STATUS_WITH_ASSESSOR = 'with_assessor'
@@ -4692,41 +4698,40 @@ class ApplicationSelectedActivity(models.Model):
         '''
         Gets this Application Selected Activity from the previous Application
         Selected Activity application licence.
-
-        TODO: Utilise Licence No to get previous instead of chain.
         '''
         previous = None
         prev_app = self.application.previous_application
-        # prev_id = prev_app.id if prev_app else 0
-        # current_id = self.application.licence_id
+
         status = {
             ApplicationSelectedActivity.ACTIVITY_STATUS_CURRENT,
             ApplicationSelectedActivity.ACTIVITY_STATUS_REPLACED,
         }
-        prev = prev_app.get_current_activity_chain(
+        prev_chain = prev_app.get_current_activity_chain(
             activity_status__in=status).order_by(
                 'licence_activity_id',
             )
-        if not prev:
+        if not prev_chain:
             return previous
 
         try:
-            # Retrieve licence rather than from previous application. Previous
-            # application may not have the same activity.
-            # licence = WildlifeLicence.objects.get(
-            #     id=current_id
-            # )
-
-            # prev = licence.current_activities
             act_id = self.licence_activity_id 
-            prev = [a for a in prev if a.licence_activity_id == act_id]
-            previous = prev[0]
+            prev_chain = [
+                a for a in prev_chain 
+                if a.licence_activity_id == act_id
+                and a.activity_status in self.ACTIVE
+            ]
+            previous = prev_chain[0]    # licence has one current activity. 
 
         except WildlifeLicence.DoesNotExist:
             pass
 
         except BaseException as e:
-            raise Exception('get_activity_from_previous(): {}'.format(e))
+            logger.error('ERR {0} ID {1}: {2}'.format(
+                'get_activity_from_previous()',
+                self.id,
+                e,
+            ))
+            raise Exception(e)
 
         return previous
 
@@ -4861,7 +4866,10 @@ class ApplicationSelectedActivityPurpose(models.Model):
         Property to indicate that this purpose is suspended, cancelled or
         surrendered and can be reinstated.
         '''
-        is_ok = True if self.purpose_status in self.REINSTATABLE else False
+        is_ok = False
+
+        if self.purpose_status in self.REINSTATABLE and not self.is_expired:
+            is_ok = True
 
         return is_ok
 
@@ -4871,7 +4879,10 @@ class ApplicationSelectedActivityPurpose(models.Model):
         Property to indicate that this purpose has expired or about to expire
         and can be renewed.
         '''
-        is_ok = True if self.purpose_status in self.RENEWABLE else False
+        is_ok = False
+        
+        if self.purpose_status in self.RENEWABLE and self.sent_renewal:
+            is_ok = True
 
         return is_ok
 
@@ -4881,6 +4892,23 @@ class ApplicationSelectedActivityPurpose(models.Model):
         Property to indicate that this purpose is current and active.
         '''
         is_ok = True if self.purpose_status in self.ACTIVE else False
+
+        return is_ok
+
+    @property
+    def is_expired(self):
+        '''
+        Property to indicate that this purpose has expired today.
+        '''
+        from datetime import date
+
+        is_ok = True
+        today = date.today()
+
+        if not self.expiry_date:
+            is_ok = False
+        elif self.expiry_date and self.expiry_date >= today:
+            is_ok = False
 
         return is_ok
 
@@ -4980,21 +5008,15 @@ class ApplicationSelectedActivityPurpose(models.Model):
         '''
         Gets this Application Selected Activity Purpose from the previous
         selected Activity.
-
-        TODO: Utilise Licence No to get previous instead of chain.
         '''
         previous = None
         prev_app = self.selected_activity.application.previous_application
-        # prev_id = prev_app.id if prev_app else 0
-        # current_id = self.selected_activity.application.licence_id
+
         status = {
             ApplicationSelectedActivity.ACTIVITY_STATUS_CURRENT,
             ApplicationSelectedActivity.ACTIVITY_STATUS_REPLACED,
         }
-        # activities = prev_app.get_current_activity_chain(
-        #     activity_status__in=status).order_by(
-        #         'licence_activity_id',
-        #     )
+
         activities = prev_app.get_current_activity_chain(
             activity_status__in=status)
 
@@ -5002,17 +5024,13 @@ class ApplicationSelectedActivityPurpose(models.Model):
             return previous
 
         try:
-            # Retrieve licence rather than from previous application. Previous
-            # application may not have the same purpose.
-            # licence = WildlifeLicence.objects.get(
-            #     id=current_id
-            # )
-            # activities = licence.current_activities
-
             act_id = self.selected_activity.licence_activity_id 
             self_id = self.purpose_id
-            prev = [a for a in activities if a.licence_activity_id == act_id
-                        and self.purpose in a.issued_purposes
+            prev = [
+                a for a in activities 
+                if a.licence_activity_id == act_id
+                and a.activity_status in ApplicationSelectedActivity.ACTIVE
+                and self.purpose in a.issued_purposes
             ]
 
             purposes = prev[0].proposed_purposes.all()
@@ -5023,8 +5041,12 @@ class ApplicationSelectedActivityPurpose(models.Model):
             pass
 
         except BaseException as e:
-            print('get_purpose_from_previous(): ({0}) {1}'.format(self, e))
-            raise Exception('get_purpose_from_previous(): {}'.format(e))
+            logger.error('ERR {0} ID {1}: {2}'.format(
+                'get_purpose_from_previous()',
+                self.id,
+                e,
+            ))
+            raise Exception(e)
 
         return previous
 
