@@ -2,6 +2,10 @@ import logging
 
 from django.core.urlresolvers import reverse
 
+from wildlifecompliance.components.main.utils import (
+    remove_url_internal_request,
+)
+
 from wildlifecompliance.components.emails.emails import TemplateEmailBase
 
 logger = logging.getLogger(__name__)
@@ -58,7 +62,7 @@ def send_licence_surrender_notification(licence, purposes, request=None):
     context = {
         'licence': licence,
         'purposes': purposes,
-        'url': url
+        'url': remove_url_internal_request(request, url)
     }
     recipients = [licence.current_application.submitter.email]
     email.send(recipients, context=context)
@@ -85,7 +89,7 @@ def send_licence_cancel_notification(licence, purposes, request=None):
     context = {
         'licence': licence,
         'purposes': purposes,
-        'url': url
+        'url': remove_url_internal_request(request, url)
     }
     recipients = [licence.current_application.submitter.email]
     email.send(recipients, context=context)
@@ -112,7 +116,7 @@ def send_licence_suspend_notification(licence, purposes, request=None):
     context = {
         'licence': licence,
         'purposes': purposes,
-        'url': url
+        'url': remove_url_internal_request(request, url)
     }
     recipients = [licence.current_application.submitter.email]
     email.send(recipients, context=context)
@@ -139,7 +143,7 @@ def send_licence_reinstate_notification(licence, purposes, request=None):
     context = {
         'licence': licence,
         'purposes': purposes,
-        'url': url
+        'url': remove_url_internal_request(request, url)
     }
     recipients = [licence.current_application.submitter.email]
     email.send(recipients, context=context)
