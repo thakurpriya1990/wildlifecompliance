@@ -88,7 +88,6 @@ class DTInternalWildlifeLicenceSerializer(WildlifeLicenceSerializer):
         source='licence_document._file.url')
     current_application = WildlifeLicenceApplicationSerializer(read_only=True)
     last_issue_date = serializers.SerializerMethodField(read_only=True)
-    #latest_activities_merged = ExternalApplicationSelectedActivityMergedSerializer(many=True, read_only=True)
     can_action = serializers.SerializerMethodField(read_only=True)
     invoice_url = serializers.SerializerMethodField(read_only=True)
 
@@ -117,7 +116,8 @@ class DTInternalWildlifeLicenceSerializer(WildlifeLicenceSerializer):
         return obj.latest_activities.first().get_issue_date() if obj.latest_activities else ''
 
     def get_can_action(self, obj):
-        # set default but use to_representation to calculate based on latest_activities_merged.can_action
+        # set default but use to_representation to calculate based on
+        # latest_activities_merged.can_action.
         can_action = {
             'can_amend': False,
             'can_renew': False,
@@ -183,7 +183,6 @@ class DTExternalWildlifeLicenceSerializer(WildlifeLicenceSerializer):
         source='licence_document._file.url')
     current_application = WildlifeLicenceApplicationSerializer(read_only=True)
     last_issue_date = serializers.SerializerMethodField(read_only=True)
-    # latest_activities_merged = ExternalApplicationSelectedActivityMergedSerializer(many=True, read_only=True)
     can_action = serializers.SerializerMethodField(read_only=True)
     invoice_url = serializers.SerializerMethodField(read_only=True)
 
@@ -211,7 +210,8 @@ class DTExternalWildlifeLicenceSerializer(WildlifeLicenceSerializer):
         return obj.latest_activities.first().get_issue_date() if obj.latest_activities else ''
 
     def get_can_action(self, obj):
-        # set default but use to_representation to calculate based on latest_activities_merged.can_action
+        # set default but use to_representation to calculate based on
+        # latest_activities_merged.can_action.
         can_action = {
             'can_amend': False,
             'can_renew': False,

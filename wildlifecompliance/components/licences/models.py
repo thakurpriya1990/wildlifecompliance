@@ -753,44 +753,45 @@ class WildlifeLicence(models.Model):
             )
         ).filter(licence_category_id=self.licence_category.id).latest('id') == self
 
-    @property
-    def can_action(self):
-        # Returns DICT of can_<action> if any of the licence's latest_activities can be actioned
-        can_action = {
-            'can_amend': False,
-            'can_renew': False,
-            'can_reactivate_renew': False,
-            'can_surrender': False,
-            'can_cancel': False,
-            'can_suspend': False,
-            'can_reissue': False,
-            'can_reinstate': False,
-        }
+    # @property
+    # def can_action(self):
+    #     # Returns DICT of can_<action> if any of the licence's
+    #     # latest_activities can be actioned
+    #     can_action = {
+    #         'can_amend': False,
+    #         'can_renew': False,
+    #         'can_reactivate_renew': False,
+    #         'can_surrender': False,
+    #         'can_cancel': False,
+    #         'can_suspend': False,
+    #         'can_reissue': False,
+    #         'can_reinstate': False,
+    #     }
 
-        # only check if licence is the latest in its category for the applicant
-        if self.is_latest_in_category:
-            # set True if any activities can be actioned
-            purposes_in_open_applications = self.get_purposes_in_open_applications()
-            for activity in self.latest_activities:
-                activity_can_action = activity.can_action(purposes_in_open_applications)
-                if activity_can_action.get('can_amend'):
-                    can_action['can_amend'] = True
-                if activity_can_action.get('can_renew'):
-                    can_action['can_renew'] = True
-                if activity_can_action.get('can_reactivate_renew'):
-                    can_action['can_reactivate_renew'] = True
-                if activity_can_action.get('can_surrender'):
-                    can_action['can_surrender'] = True
-                if activity_can_action.get('can_cancel'):
-                    can_action['can_cancel'] = True
-                if activity_can_action.get('can_suspend'):
-                    can_action['can_suspend'] = True
-                if activity_can_action.get('can_reissue'):
-                    can_action['can_reissue'] = True
-                if activity_can_action.get('can_reinstate'):
-                    can_action['can_reinstate'] = True
+    #     # only check if licence is the latest in its category for the applicant
+    #     if self.is_latest_in_category:
+    #         # set True if any activities can be actioned
+    #         purposes_in_open_applications = self.get_purposes_in_open_applications()
+    #         for activity in self.latest_activities:
+    #             activity_can_action = activity.can_action(purposes_in_open_applications)
+    #             if activity_can_action.get('can_amend'):
+    #                 can_action['can_amend'] = True
+    #             if activity_can_action.get('can_renew'):
+    #                 can_action['can_renew'] = True
+    #             if activity_can_action.get('can_reactivate_renew'):
+    #                 can_action['can_reactivate_renew'] = True
+    #             if activity_can_action.get('can_surrender'):
+    #                 can_action['can_surrender'] = True
+    #             if activity_can_action.get('can_cancel'):
+    #                 can_action['can_cancel'] = True
+    #             if activity_can_action.get('can_suspend'):
+    #                 can_action['can_suspend'] = True
+    #             if activity_can_action.get('can_reissue'):
+    #                 can_action['can_reissue'] = True
+    #             if activity_can_action.get('can_reinstate'):
+    #                 can_action['can_reinstate'] = True
 
-        return can_action
+    #     return can_action
 
     @property
     def has_inspection_open(self):
@@ -1033,6 +1034,7 @@ class WildlifeLicence(models.Model):
                     # actioning selected purposes.
                     elif set(application_licence_purpose_ids_list) \
                             - set(purpose_ids_list):
+
                         common_actioned_purpose_ids = set(application_licence_purpose_ids_list) & set(purpose_ids_list)
                         remaining_previous_status_purpose_ids = set(application_licence_purpose_ids_list) - set(purpose_ids_list)
 
@@ -1041,21 +1043,28 @@ class WildlifeLicence(models.Model):
                         if not new_previous_status_applications[previous_status]:
                             new_previous_status_applications[previous_status] = application.copy_application_purposes_for_status(
                                 remaining_previous_status_purpose_ids, previous_status)
+
                         # else, if new previous_status application exists, link
                         # the target LicencePurpose IDs to it.
                         else:
-                            # Link the target LicencePurpose IDs to the application
-                            # TODO:AYN copy activity purpose status dates across
+                            # Link the target LicencePurpose IDs to the
+                            # application.
                             for licence_purpose_id in remaining_previous_status_purpose_ids:
                                 application.copy_application_purpose_to_target_application(
                                     new_previous_status_applications[previous_status],
                                     licence_purpose_id)
 
+                                # Copy conditions to the new_actioned_application.
+                                application.copy_conditions_to_target(
+                                    new_previous_status_applications[
+                                        previous_status
+                                    ],
+                                    licence_purpose_id
+                                )
+
                         # create new actioned application from this application
                         # if not yet exists.
                         if not new_actioned_application:
-                            # TODO:AYN copy activity purpose status dates
-                            # across.
                             new_actioned_application = application.copy_application_purposes_for_status(
                                 common_actioned_purpose_ids,
                                 post_actioned_status
@@ -1069,6 +1078,13 @@ class WildlifeLicence(models.Model):
                                 application.copy_application_purpose_to_target_application(
                                     new_actioned_application,
                                     licence_purpose_id)
+
+                                # Copy conditions to the
+                                # new_actioned_application.
+                                application.copy_conditions_to_target(
+                                    new_actioned_application,
+                                    licence_purpose_id,
+                                )
 
                 # Set original activities to REPLACED except for any that were
                 # ACTIONED completely.

@@ -1510,19 +1510,29 @@ class ApplicationViewSet(viewsets.ModelViewSet):
                 if application_type in [
                     Application.APPLICATION_TYPE_AMENDMENT,
                     Application.APPLICATION_TYPE_RENEWAL,
-                    Application.APPLICATION_TYPE_REISSUE,
                 ]:
                     target_application = serializer.instance
                     for activity in licence_activities:
-                        activity_purpose_ids = activity.purposes.values_list('id', flat=True)
-                        purposes_to_copy = set(cleaned_purpose_ids) & set(activity_purpose_ids)
+                        activity_purpose_ids = \
+                            activity.purposes.values_list('id', flat=True)
+                        purposes_to_copy = set(
+                            cleaned_purpose_ids) & set(activity_purpose_ids)
+
                         for purpose_id in purposes_to_copy:
+
                             activity.application.copy_application_purpose_to_target_application(
                                 target_application, purpose_id)
 
-                # Set previous_application to the latest active application if exists
+                            activity.application.copy_conditions_to_target(
+                                target_application,
+                                purpose_id,
+                            )
+
+                # Set previous_application to the latest active application if
+                # exists
                 if latest_active_licence:
-                    serializer.instance.previous_application_id = latest_active_licence.current_application.id
+                    serializer.instance.previous_application_id =\
+                        latest_active_licence.current_application.id
                     serializer.instance.save()
 
                 # serializer.instance.update_dynamic_attributes()
