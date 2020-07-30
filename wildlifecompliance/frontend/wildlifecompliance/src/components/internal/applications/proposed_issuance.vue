@@ -14,16 +14,15 @@
                                 </div>
                                 <div class="row">
                                     <div class="col-sm-12" v-for="(a, index) in applicationSelectedActivitiesForPurposes" v-bind:key="`a_${index}`">
-                                        <input type="checkbox" name="licence_activity" :value ="a.id" :id="a.id" v-model="checkedActivities" > {{a.activity_name_str}}
+                                        <input type="checkbox" name="licence_activity" :value ="a.id" :id="a.id" v-model="checkedActivities" > <b>{{a.activity_name_str}}</b>
                                         <div v-show="checkedActivities.find(checked => checked===a.id)">    
                                             <div v-for="(p, p_idx) in a.proposed_purposes" v-bind:key="`p_${p_idx}`">
-                                                <div class="col-sm-3">
-                                                    &nbsp;<b>{{p.purpose.short_name.substr(0,25)}}</b>
+                                                <div class="col-sm-12">
+                                                    &nbsp;{{p.purpose.short_name}}
                                                 </div>
-                                                <div class="col-sm-3">
-                                                    <input type="radio" :value ="true" :id="p.purpose.id" v-model="getPickedPurpose(p.purpose.id).isProposed" /> Issue
-                                                    &nbsp;<input type="radio" :value ="false" :id="p.purpose.id" v-model="getPickedPurpose(p.purpose.id).isProposed" /> Decline
-                                                    &nbsp;&nbsp;&nbsp;&nbsp;<b>Period</b>
+                                                <div class="col-sm-3">&nbsp;
+                                                    Issue <input type="radio" :value ="true" :id="p.purpose.id" v-model="getPickedPurpose(p.purpose.id).isProposed" />&nbsp;
+                                                    Decline <input type="radio" :value ="false" :id="p.purpose.id" v-model="getPickedPurpose(p.purpose.id).isProposed" />&nbsp;&nbsp;
                                                 </div>
                                                 <div class="col-sm-3">
                                                     <div class="input-group date" v-if="getPickedPurpose(p.purpose.id).isProposed" :ref="`start_date_${p.id}`" style="width: 100%;">

@@ -34,12 +34,12 @@
                                                     </div>
                                                     <div class="col-sm-12">
                                                         <div v-for="(p, index) in applicationSelectedActivitiesForPurposes" v-bind:key="`p_${index}`">
-                                                            <div class="col-sm-3">
-                                                            {{p.purpose['short_name'].substr(0,20)}}
+                                                            <div class="col-sm-12">
+                                                            {{p.purpose['short_name']}}
                                                             </div>
                                                             <div class="col-sm-3">
-                                                                <input type="radio" :value ="true" :id="p.purpose.id" v-model="getPickedPurpose(p.purpose.id).isProposed" /> Issue
-                                                                <input type="radio" :value ="false" :id="p.purpose.id" v-model="getPickedPurpose(p.purpose.id).isProposed" /> Decline
+                                                                Issue <input type="radio" :value ="true" :id="p.purpose.id" v-model="getPickedPurpose(p.purpose.id).isProposed" /> &nbsp;&nbsp;
+                                                                Decline <input type="radio" :value ="false" :id="p.purpose.id" v-model="getPickedPurpose(p.purpose.id).isProposed" />
                                                             </div>
                                                             <div class="col-sm-3">
                                                                 <div class="input-group date" v-if="getPickedPurpose(p.purpose.id).isProposed" :ref="`start_date_${p.id}`" style="width: 100%;">
@@ -62,7 +62,10 @@
                                                             </div>
                                                         </div>
                                                     </div>
-                                                </div>                                                
+                                                </div>
+                                                <div class="row">
+                                                    <div class="col-sm-12" />
+                                                </div><br/>                                          
                                                 <div class="row">
                                                     <div class="col-sm-3">
                                                         <label class="control-label pull-left">Additional Fee Details</label>

@@ -248,8 +248,6 @@ export default {
     },
     handleActivityCheckboxChange:function(index,index1){
         let vm = this
-        this.application_fee = 0;
-        this.licence_fee = 0;
         var input = $(vm.$refs.selected_activity_type)[0];
         if(vm.licence_categories[index].activity[index1].selected){
             for(var activity_index=0, len2=vm.licence_categories[index].activity[index1].purpose.length; activity_index<len2; activity_index++){
