@@ -961,14 +961,12 @@ class ApplicationFeePolicyForRenew(ApplicationFeePolicy):
         NOTE: Same calculation for set_application_fee_from_attributes.
         '''
         licence_paid = False if activity.total_paid_amount < 1 else True
-        policy_licence_fee = self.dynamic_attributes['fees']['licence']
+        # policy_licence_fee = self.dynamic_attributes['fees']['licence']
         self.set_purpose_fees_for(activity)         # update fees on purpose.
         prev_adj = self.get_previous_adjusted_fee_for(activity)
-        # prev_app = self.get_previous_application_fee_for(activity)
 
         # Adjusted Fee is new adjusted fee excluding previously app fee.
         # NOTE: Activity may include new adjusted amount with form changes.
-        # fees_adj = activity.application_fee + prev_adj - prev_app
         fees_adj = activity.application_fee + prev_adj
 
         # Impose renewal fee.
@@ -976,7 +974,8 @@ class ApplicationFeePolicyForRenew(ApplicationFeePolicy):
 
         fees_new = fees_adj
         activity.application_fee = fees_new
-        activity.licence_fee = policy_licence_fee
+        # NOTE: Activity will have licence fee set from admin.
+        fees_new = fees_new + activity.licence_fee
 
         if licence_paid:
             # application fee is paid just pay the adjustments.
