@@ -639,12 +639,41 @@ class BaseApplicationSerializer(serializers.ModelSerializer):
         return amendment_request_data
 
     def get_can_be_processed(self, obj):
-        return obj.activities.exclude(processing_status__in=[
+        '''
+        A check that the application is in the correct processing status and
+        current user is authorised (assigned) for the processing status.
+        '''
+        with_approver = [
+            ApplicationSelectedActivity.PROCESSING_STATUS_OFFICER_FINALISATION
+        ]
+        with_officer = [
+            ApplicationSelectedActivity.PROCESSING_STATUS_WITH_OFFICER,
+            ApplicationSelectedActivity.PROCESSING_STATUS_OFFICER_CONDITIONS,
+        ]
+        exclude = [
             ApplicationSelectedActivity.PROCESSING_STATUS_DRAFT,
             ApplicationSelectedActivity.PROCESSING_STATUS_DECLINED,
             ApplicationSelectedActivity.PROCESSING_STATUS_ACCEPTED,
             ApplicationSelectedActivity.PROCESSING_STATUS_AWAITING_LICENCE_FEE_PAYMENT,
-        ]).exists()
+        ]
+
+        assigned_officer = [
+            a for a in obj.activities
+            if a.processing_status in with_officer and a.assigned_officer
+            and not a.assigned_officer == self.context['request'].user
+        ]
+        assigned_approver = [
+            a for a in obj.activities
+            if a.processing_status in with_approver and a.assigned_approver
+            and not a.assigned_approver == self.context['request'].user
+        ]
+        is_assigned = len(assigned_officer) or len(assigned_approver)
+
+        can_be_processed = obj.activities.exclude(
+            processing_status__in=exclude,
+        ).exists()
+
+        return can_be_processed and not is_assigned
 
     def get_processed(self, obj):
         """ check if any activities have been processed (i.e. licence issued)"""

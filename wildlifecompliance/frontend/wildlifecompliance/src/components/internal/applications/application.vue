@@ -858,7 +858,7 @@ export default {
                 && !this.applicationIsDraft 
                 && (this.hasRole('licensing_officer') || this.hasRole('issuing_officer'))
                 && !this.requiresRefund
-                && this.application.can_be_processed
+                // && this.application.can_be_processed
         },
         showFinalDecision: function() {
             if (['awaiting_payment'].includes(this.application.processing_status.id)) { // prevent processing for outstanding payments.
@@ -1401,6 +1401,8 @@ export default {
                 placeholder: "Select Approver"
             }).
             on("select2:select",function (e) {
+                e.stopImmediatePropagation();
+                e.preventDefault();
                 var selected = $(e.currentTarget);
                 vm.selectedActivity.assigned_approver = selected.val();
                 vm.assignApprover();
@@ -1410,6 +1412,8 @@ export default {
                     self.select2('close');
                 }, 0);
             }).on("select2:unselect",function (e) {
+                e.stopImmediatePropagation();
+                e.preventDefault();
                 var selected = $(e.currentTarget);
                 vm.selectedActivity.assigned_approver = null;
                 vm.assignApprover();
