@@ -4622,12 +4622,12 @@ class ApplicationSelectedActivity(models.Model):
         Check all purposes on this activity have the same status. Used to check
         if this activity is still current.
         '''
-        is_same = False
+        not_same = [
+            p for p in self.proposed_purposes.all()
+            if not p.purpose_status == status
+        ]
 
-        for purpose in self.proposed_purposes.all():
-            is_same = True if purpose.purpose_status == status else False
-
-        return is_same
+        return not len(not_same)
 
     @transaction.atomic
     def set_proposed_purposes_status_for(self, ids, status):

@@ -25,6 +25,9 @@ from wildlifecompliance.components.applications.utils import ActivitySchemaUtil
 
 from wildlifecompliance.components.licences.models import LicenceDocument
 from wildlifecompliance.components.licences.models import LicenceSpecies
+from wildlifecompliance.components.applications.models import (
+    ApplicationSelectedActivityPurpose,
+)
 
 BW_DPAW_HEADER_LOGO = os.path.join(
     settings.BASE_DIR,
@@ -487,19 +490,29 @@ def _create_licence(licence_buffer, licence, application):
     elements.append(Paragraph('Purposes', styles['BoldLeft']))
     elements.append(Spacer(1, SECTION_BUFFER_HEIGHT))
 
+    include = [
+        ApplicationSelectedActivityPurpose.PURPOSE_STATUS_SUSPENDED,
+        ApplicationSelectedActivityPurpose.PURPOSE_STATUS_CURRENT,
+        ApplicationSelectedActivityPurpose.PURPOSE_STATUS_DEFAULT,
+    ]
+
     purposeList = ListFlowable(
-        [[Paragraph("{name}".format(
-            name=purpose.name,
+        [[Paragraph("{name} {start} - {end} ({status})".format(
+            name=p.purpose.name,
+            status=p.purpose_status,
+            start=p.start_date.strftime('%d/%m/%Y'),
+            end=p.expiry_date.strftime('%d/%m/%Y'),
         ),
             styles['Left'],
-        ) for purpose in selected_activity.issued_purposes
+        ) for p in selected_activity.proposed_purposes.all()
+          if p.purpose_status in include
         ] for selected_activity in licence.current_activities],
         bulletFontName=BOLD_FONTNAME, bulletFontSize=MEDIUM_FONTSIZE)
     elements.append(purposeList)
     elements.append(PageBreak())
 
     for purpose in licence.get_purposes_in_sequence():
-        if not (purpose.is_issued and purpose.is_active):
+        if not purpose.is_issued and purpose.purpose_status not in include:
             # Exclude purposes that are not issued.
             continue
         _create_licence_purpose(elements, purpose.selected_activity, purpose)
