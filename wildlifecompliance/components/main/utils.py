@@ -520,10 +520,12 @@ def remove_url_internal_request(request, url):
     '''
     Remove '-internal' from url link.
     '''
+    from django.conf import settings
     if '-internal' in url:
-        url = request.build_absolute_uri(
-            '/external/#'
-        )
+        url = "{0}://{1}.{2}{3}".format(request.scheme,
+                                        settings.SITE_PREFIX,
+                                        settings.SITE_DOMAIN,
+                                        url.split(request.get_host())[1])
 
     return url
 
