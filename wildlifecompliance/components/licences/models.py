@@ -610,6 +610,8 @@ class WildlifeLicence(models.Model):
         """
         Return a list of activities for the licence, merged by
         licence_activity_id (1 per LicenceActivity)
+
+        NOTE:AYN redundant replaced with LicenceActioner.
         """
         latest_activities = self.latest_activities
         merged_activities = {}
@@ -1119,15 +1121,15 @@ class WildlifeLicence(models.Model):
 
         return available_purpose_records
 
-    @property
-    def can_add_purpose(self):
-        return self.is_latest_in_category and\
-               self.purposes_available_to_add.count() > 0 and\
-               self.can_action.get('can_amend')
+    # @property
+    # def can_add_purpose(self):
+    #     return self.is_latest_in_category and\
+    #            self.purposes_available_to_add.count() > 0 and\
+    #            self.can_action.get('can_amend')
 
     def has_additional_information_for(self, selected_activity):
         """
-        Check for additional information exist for selected activity on this 
+        Check for additional information exist for selected activity on this
         licence.
         """
         has_info = False
