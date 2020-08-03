@@ -97,6 +97,10 @@ class ReturnSerializer(serializers.ModelSerializer):
     amendment_requests = serializers.SerializerMethodField()
     is_draft = serializers.SerializerMethodField(read_only=True)
     base_fee = serializers.SerializerMethodField(read_only=True)
+    all_payments_url = serializers.SerializerMethodField(read_only=True)
+    can_be_processed = serializers.SerializerMethodField(read_only=True)
+    user_in_officers = serializers.SerializerMethodField(read_only=True)
+    can_current_user_edit = serializers.SerializerMethodField(read_only=True)
 
     class Meta:
         model = Return
@@ -129,6 +133,11 @@ class ReturnSerializer(serializers.ModelSerializer):
             'is_draft',
             'total_paid_amount',
             'base_fee',
+            'all_payments_url',
+            'payment_status',
+            'user_in_officers',
+            'can_be_processed',
+            'can_current_user_edit',
         )
 
         # the serverSide functionality of datatables is such that only columns
@@ -202,6 +211,26 @@ class ReturnSerializer(serializers.ModelSerializer):
 
         return url
 
+    def get_all_payments_url(self, _return):
+        '''
+        Builds a url link to ledger for all invoices associated with this
+        return.
+        '''
+        url = None
+
+        if _return.invoices.count() > 0:    # url for all invoices on return.
+            invoices = _return.invoices.all()
+            latest_invoice = _return.get_latest_invoice()
+            invoice_str = latest_invoice.reference
+            for invoice in invoices:
+                invoice_str += '&invoice={}'.format(invoice.invoice_reference)
+
+            url = '{}?invoice={}'.format(
+                reverse('payments:invoice-payment'),
+                invoice_str)
+
+        return url
+
     def get_amendment_requests(self, _return):
         '''
         Get list of requested amendments for this return.
@@ -234,6 +263,54 @@ class ReturnSerializer(serializers.ModelSerializer):
         '''
 
         return _return.return_type.fee_amount
+
+    def get_user_in_officers(self, _return):
+        '''
+        Check for current user is a returns curator.
+        '''
+        is_in_officers = False
+        if self.context['request'].user in _return.activity_curators:
+            is_in_officers = True
+
+        return is_in_officers
+
+    def get_can_be_processed(self, _return):
+        '''
+        A check that the return is in the correct processing status and
+        current user is authorised (assigned) for the processing status.
+        '''
+        with_curator = [
+            Return.RETURN_PROCESSING_STATUS_WITH_CURATOR,
+        ]
+
+        is_assigned = False
+        if _return.assigned_to \
+                and not _return.assigned_to == self.context['request'].user:
+            is_assigned = True
+
+        can_be_processed = False
+        if _return.processing_status in with_curator:
+            can_be_processed = True
+
+        return can_be_processed and not is_assigned
+
+    def get_can_current_user_edit(self, _return):
+        '''
+        A check for correct processing status for customer.
+        '''
+        with_customer = [
+            Return.RETURN_PROCESSING_STATUS_DUE,
+            Return.RETURN_PROCESSING_STATUS_OVERDUE,
+            Return.RETURN_PROCESSING_STATUS_DRAFT,
+            Return.RETURN_PROCESSING_STATUS_PAYMENT,
+        ]
+        can_user_edit = False
+        is_submitter = _return.submitter == self.context['request'].user
+
+        if _return.processing_status in with_customer and is_submitter:
+            can_user_edit = True
+
+        return can_user_edit
 
 
 class TableReturnSerializer(ReturnSerializer):
