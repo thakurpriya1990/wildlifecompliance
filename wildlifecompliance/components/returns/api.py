@@ -455,9 +455,6 @@ class ReturnViewSet(viewsets.ReadOnlyModelViewSet):
                     'You are not in any relevant officer groups.')
 
             ReturnService.assign_officer_request(request, instance, user)
-
-            # serializer = InternalReturnSerializer(
-            #     instance, context={'request': request})
             serializer = self.get_serializer(instance)
 
             return Response(serializer.data)
@@ -490,18 +487,15 @@ class ReturnViewSet(viewsets.ReadOnlyModelViewSet):
                     'A user with the id passed in does not exist')
 
             if not request.user.has_perm(
-              'wildlifecompliance.licensing_officer'):
+              'wildlifecompliance.return_curator'):
                 raise serializers.ValidationError(
                     'You are not authorised to assign officers')
 
-            if user not in instance.licence_officers:
+            if user not in instance.activity_curators:
                 raise serializers.ValidationError(
                     'User is not in any relevant officer groups')
 
             ReturnService.assign_officer_request(request, instance, user)
-
-            # serializer = InternalReturnSerializer(
-            #     instance, context={'request': request})
             serializer = self.get_serializer(instance)
 
             return Response(serializer.data)
@@ -524,9 +518,6 @@ class ReturnViewSet(viewsets.ReadOnlyModelViewSet):
             instance = self.get_object()
 
             ReturnService.unassign_officer_request(request, instance)
-
-            # serializer = InternalApplicationSerializer(
-            #     instance, context={'request': request})
             serializer = self.get_serializer(instance)
 
             return Response(serializer.data)
