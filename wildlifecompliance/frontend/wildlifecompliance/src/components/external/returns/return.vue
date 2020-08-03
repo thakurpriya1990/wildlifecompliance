@@ -17,7 +17,7 @@
                     <div class="navbar-inner">
                         <div class="container">
                             <p class="pull-right" style="margin-top:5px;">
-                                <strong style="font-size: 18px;" v-if="isPayable">Return submission fee: {{returns.return_fee | toCurrency}}</strong><br>
+                                <strong style="font-size: 18px;" v-if="isPayable">Return submission fee: {{returns_estimate_fee | toCurrency}}</strong><br>
                                 <button style="width:150px;" class="btn btn-primary btn-md" @click.prevent="save(false)" name="save_exit">Save and Exit</button>
                                 <button style="width:150px;" class="btn btn-primary btn-md" @click.prevent="save(true)" name="save_continue">Save and Continue</button>
                                 <button style="width:150px;" class="btn btn-primary btn-md" v-if="isSubmittable" @click.prevent="submit()" name="submit">Submit</button>
@@ -71,6 +71,7 @@ export default {
         'species_cache',
         'species_transfer',
         'selected_returns_tab_id',
+        'returns_estimate_fee',
     ]),
     isSubmittable() {
       let submittable = ['Draft','Due','Overdue'];
@@ -79,7 +80,8 @@ export default {
       return can_submit && this.returns.format !== 'sheet' && !this.isPayable
     },
     isPayable() {
-      return this.returns.return_fee > 0 && !this.returns.return_fee_paid ? true : false
+      this.setReturnsEstimateFee()
+      return this.returns_estimate_fee > 0
     },
     requiresCheckout: function() {
       return this.returns.return_fee > 0 && [
@@ -97,6 +99,7 @@ export default {
     ...mapActions([
         'setReturns',
         'setReturnsExternal',
+        'setReturnsEstimateFee',
     ]),
     save: function(andContinue) {
       const self = this;
@@ -189,12 +192,6 @@ export default {
 
     },
   },
-  updated: function() {
-    // this.$nextTick(()=>{
-    //   this.estimate_price()
-    //   this.estimated_fee = this.returns.return_fee
-    // });
-  },   
   beforeRouteEnter: function(to, from, next) {
      next(vm => {
        vm.load({ url: `/api/returns/${to.params.return_id}.json` });

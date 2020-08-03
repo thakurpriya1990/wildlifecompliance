@@ -95,7 +95,8 @@ class ReturnSerializer(serializers.ModelSerializer):
     invoice_url = serializers.SerializerMethodField(read_only=True)
     activity_curators = EmailUserSerializer(many=True)
     amendment_requests = serializers.SerializerMethodField()
-    is_draft = serializers.SerializerMethodField(read_only=True)   
+    is_draft = serializers.SerializerMethodField(read_only=True)
+    base_fee = serializers.SerializerMethodField(read_only=True)
 
     class Meta:
         model = Return
@@ -126,6 +127,8 @@ class ReturnSerializer(serializers.ModelSerializer):
             'activity_curators',
             'amendment_requests',
             'is_draft',
+            'total_paid_amount',
+            'base_fee',
         )
 
         # the serverSide functionality of datatables is such that only columns
@@ -224,6 +227,13 @@ class ReturnSerializer(serializers.ModelSerializer):
         ]
 
         return True if _return.processing_status in submission_list else False
+
+    def get_base_fee(self, _return):
+        '''
+        Get the base admin fee on the return type for this return.
+        '''
+
+        return _return.return_type.fee_amount
 
 
 class TableReturnSerializer(ReturnSerializer):

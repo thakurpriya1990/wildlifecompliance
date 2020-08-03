@@ -283,7 +283,7 @@ export default {
             await this.save_wo();
             this.form=document.forms.internal_returns_form;
 
-            this.$http.post(helpers.add_endpoint_json(api_endpoints.returns,self.returns.id+'/accept'),{
+            this.$http.post(helpers.add_endpoint_json(api_endpoints.returns,this.returns.id+'/accept'),{
                             emulateJSON:true,
 
             }).then((response)=>{

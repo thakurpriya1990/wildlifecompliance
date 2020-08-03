@@ -1,6 +1,7 @@
 import Vue from 'vue';
 import {
     UPDATE_RETURNS,
+    UPDATE_RETURNS_ESTIMATE,
 } from '@/store/mutation-types';
 
 export const returnsStore = {
@@ -9,15 +10,20 @@ export const returnsStore = {
             submitter: '',
             processing_status: '',
         },
+        returns_estimate_fee: 0,
     },
     getters: {
         return_id: state => state.returns.id,
         returns: state => state.returns,
         isReturnsLoaded: state => Object.keys(state.returns).length && state.returns.table != null,
+        returns_estimate_fee: state => state.returns_estimate_fee,
     },
     mutations: {
         [UPDATE_RETURNS] (state, returns) {
             Vue.set(state, 'returns', {...returns});
+        },
+        [UPDATE_RETURNS_ESTIMATE] (state, estimate) {
+            Vue.set(state, 'returns_estimate_fee', estimate);
         },
     },
     actions: {
@@ -52,18 +58,15 @@ export const returnsStore = {
         setReturns({ dispatch, commit }, returns) {
             commit(UPDATE_RETURNS, returns);
         },
-        refreshReturnFees({ dispatch, state, getters, rootGetters }) {
-            Vue.http.post('/api/returns/' + getters.return_id + '/estimate_price/', {
-                    'return_id': getters.return_id,
-            }).then(res => {
-                var obj = Object.values(res.body.fees)
-                // dispatch('setReturns', {
-                //     ...state.returns,
-                //     return_fee: res.body.fees.return,
-                // });
-            }, err => {
-                console.log(err);
-            });
+        setReturnsEstimateFee({ dispatch, getters, commit }) {
+            let rows = getters.returns.table[0]['data']
+            let qty = 0
+            for (let i=0; i<rows.length; i++){
+                qty += parseInt(getters.returns.table[0]['data'][i]['taken-qty']['value'])
+            }
+            let estimate = qty * getters.returns.base_fee
+            estimate = (estimate - getters.returns.total_paid_amount) > 0 ? estimate - getters.returns.total_paid_amount : 0
+            commit(UPDATE_RETURNS_ESTIMATE, estimate);
         },
     }
 }
