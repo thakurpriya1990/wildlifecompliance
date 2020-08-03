@@ -1375,6 +1375,8 @@ export default {
                 placeholder:"Select Officer"
             }).
             on("select2:select",function (e) {
+                e.stopImmediatePropagation();
+                e.preventDefault();
                 var selected = $(e.currentTarget);
                 vm.selectedActivity.assigned_officer = selected.val();
                 vm.assignOfficer();
@@ -1384,6 +1386,8 @@ export default {
                     self.select2('close');
                 }, 0);
             }).on("select2:unselect",function (e) {
+                e.stopImmediatePropagation();
+                e.preventDefault();
                 var selected = $(e.currentTarget);
                 vm.selectedActivity.assigned_officer = null;
                 vm.assignOfficer();
