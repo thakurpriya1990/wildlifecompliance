@@ -59,13 +59,14 @@ export const returnsStore = {
             commit(UPDATE_RETURNS, returns);
         },
         setReturnsEstimateFee({ dispatch, getters, commit }) {
-            console.log('setReturnsEstimateFee')
             let rows = getters.returns.table[0]['data']
             let qty = 0
-            for (let i=0; i<rows.length; i++){
-                qty += parseInt(getters.returns.table[0]['data'][i]['taken-qty']['value'])
+            if (getters.returns.apply_fee_field) {
+
+                for (let i=0; i<rows.length; i++){
+                    qty += parseInt(rows[i][getters.returns.apply_fee_field]['value'])
+                }
             }
-            console.log(qty)
             let estimate = qty * getters.returns.base_fee
             estimate = (estimate - getters.returns.total_paid_amount) > 0 ? estimate - getters.returns.total_paid_amount : 0
             commit(UPDATE_RETURNS_ESTIMATE, estimate);
