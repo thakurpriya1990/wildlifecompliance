@@ -38,6 +38,7 @@ from wildlifecompliance.components.returns.serializers import (
     ReturnLogEntrySerializer,
     ReturnTypeSerializer,
     ReturnRequestSerializer,
+    TableReturnSerializer,
 )
 from wildlifecompliance.components.applications.models import (
     Application,
@@ -106,7 +107,7 @@ class ReturnPaginatedViewSet(viewsets.ModelViewSet):
     pagination_class = DatatablesPageNumberPagination
     renderer_classes = (ReturnRenderer,)
     queryset = Return.objects.none()
-    serializer_class = ReturnSerializer
+    serializer_class = TableReturnSerializer
     page_size = 10
 
     def get_queryset(self):
@@ -149,7 +150,7 @@ class ReturnPaginatedViewSet(viewsets.ModelViewSet):
         queryset = self.filter_queryset(queryset)
         self.paginator.page_size = queryset.count()
         result_page = self.paginator.paginate_queryset(queryset, request)
-        serializer = ReturnSerializer(
+        serializer = TableReturnSerializer(
             result_page, context={'request': request}, many=True)
         return self.paginator.get_paginated_response(serializer.data)
 

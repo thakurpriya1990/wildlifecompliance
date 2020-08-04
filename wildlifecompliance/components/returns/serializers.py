@@ -101,6 +101,7 @@ class ReturnSerializer(serializers.ModelSerializer):
     can_be_processed = serializers.SerializerMethodField(read_only=True)
     user_in_officers = serializers.SerializerMethodField(read_only=True)
     can_current_user_edit = serializers.SerializerMethodField(read_only=True)
+    apply_fee_field = serializers.SerializerMethodField(read_only=True)
 
     class Meta:
         model = Return
@@ -138,6 +139,7 @@ class ReturnSerializer(serializers.ModelSerializer):
             'user_in_officers',
             'can_be_processed',
             'can_current_user_edit',
+            'apply_fee_field',
         )
 
         # the serverSide functionality of datatables is such that only columns
@@ -312,6 +314,21 @@ class ReturnSerializer(serializers.ModelSerializer):
 
         return can_user_edit
 
+    def get_apply_fee_field(self, _return):
+        '''
+        Get the field name of the first instance the Apply Fee attribute is set
+        on the return type schema.
+        '''
+        from wildlifecompliance.components.returns.utils import (
+            NumberFieldVisitor,
+            ApplyFeeFieldElement,
+        )
+        schema_field = NumberFieldVisitor(_return, _return.format)
+        for_apply_fee_fields = ApplyFeeFieldElement()
+        for_apply_fee_fields.accept(schema_field)
+
+        return for_apply_fee_fields.get_field_name()
+
 
 class TableReturnSerializer(ReturnSerializer):
     '''
@@ -321,7 +338,6 @@ class TableReturnSerializer(ReturnSerializer):
         model = Return
         fields = (
             'id',
-            'application',
             'due_date',
             'processing_status',
             'customer_status',
@@ -329,6 +345,26 @@ class TableReturnSerializer(ReturnSerializer):
             'assigned_to',
             'lodgement_number',
             'lodgement_date',
+            'licence',
+            'resources',
+            'table',
+            'condition',
+            'format',
+            'template',
+            'has_payment',
+            'return_fee',
+            'return_fee_paid',
+            'invoice_url',
+            'activity_curators',
+            'amendment_requests',
+            'is_draft',
+            'total_paid_amount',
+            'base_fee',
+            'all_payments_url',
+            'payment_status',
+            'user_in_officers',
+            'can_be_processed',
+            'can_current_user_edit',
         )
 
         # the serverSide functionality of datatables is such that only columns
