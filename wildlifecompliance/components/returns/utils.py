@@ -17,6 +17,8 @@ from ledger.checkout.utils import (
 )
 from ledger.payments.models import Invoice
 
+logger = logging.getLogger(__name__)
+
 
 def checkout(
         request,
@@ -473,23 +475,39 @@ class NumberFieldCompositor(SchemaFieldCompositor):
         from wildlifecompliance.components.returns.services import (
             ReturnService,
         )
-        # 1. loop through table.
-        table = ReturnService.get_details_for(self._return)
-        fields = self._return.resources[0]['schema']['fields']
-        schema_fields = [f for f in fields if self._field.NAME in f]
 
-        for schema_data in schema_fields:
-            self._field.reset()
-            data = table[0]['data']
-            for row in data.gi_frame.f_locals['rows']:
+        try:
+            # 1. loop through table.
+            table = ReturnService.get_details_for(self._return)
+            fields = self._return.resources[0]['schema']['fields']
+            schema_fields = [f for f in fields if self._field.NAME in f]
 
-                if schema_data[self._field.NAME] \
-                        and schema_data['name'] in row:
+            for schema_data in schema_fields:
+                self._field.reset()
+                data = table[0]['data']
+                for row in data['gi_frame'].f_locals['rows']:
 
-                    self._field.parse_component(
-                        component=row,
-                        schema_name=schema_data['name']
-                    )
+                    if schema_data[self._field.NAME] \
+                            and schema_data['name'] in row:
+
+                        self._field.parse_component(
+                            component=row,
+                            schema_name=schema_data['name']
+                        )
+
+        except TypeError:
+            '''
+            A TypeError will be thrown if no rows exist in the table. We just
+            catch the exception and continue.
+            '''
+            pass
+
+        except Exception as e:
+            logger.error('ERR {0} ReturnID {1} : {2}'.format(
+                'NumberFieldCompositor.render()',
+                self._return.id,
+                e
+            ))
 
 
 class SpecialFieldElement(object):
