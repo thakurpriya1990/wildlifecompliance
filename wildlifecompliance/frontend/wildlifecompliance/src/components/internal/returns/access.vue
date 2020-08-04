@@ -41,7 +41,7 @@
                         {{ returns.processing_status }}
                     </div>
                     <div class="col-sm-12"><br/></div>
-                    <div class="col-sm-12 top-buffer-s">
+                    <div v-show="showAssignToList" class="col-sm-12 top-buffer-s">
                         <strong>Assigned Officer</strong><br/>
                         <div class="form-group">
                             <template>
@@ -51,6 +51,10 @@
                                 <a @click.prevent="assignToMe()" class="actionBtn pull-right">Assign to me</a>
                             </template>
                         </div>
+                    </div>
+                    <div v-show="!showAssignToList" class="col-sm-12 top-buffer-s">
+                        <strong>Assigned Officer</strong><br/>
+                        <div class="form-group"> {{ returns.assigned_to }} </div>
                     </div>
 
                     <!-- Workflow Actions -->
@@ -125,6 +129,9 @@ export default {
             'canAssignOfficerFor',
         ]),
         showActionButtons: function(){
+            return this.returns.can_be_processed
+        },
+        showAssignToList: function(){
             return this.canAssignOfficerFor(this.returns.condition.licence_activity_id)
         },
     },

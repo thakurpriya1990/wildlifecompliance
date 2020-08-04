@@ -138,11 +138,8 @@ export const userStore = {
             if (getters.isReturnsLoaded){
 
                 return getters.returns.activity_curators.find(curator => {
-
-                    return getters.returns.can_be_processed
-                        // verify current user is associated.
-                        && getters.returns.activity_curators.find(officer => officer.id === getters.current_user.id);
-
+                    // verify current user is associated.
+                    return getters.returns.activity_curators.find(officer => officer.id === getters.current_user.id);
                 });
             }
                   
