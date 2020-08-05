@@ -338,7 +338,7 @@ export default {
               if (is_saved) {
                 vm.isProcessing = true;
                 if (vm.adjusted_application_fee > 0) { //refund not required.
-                    vm.isProcessing = false
+
                     vm.$http.post(helpers.add_endpoint_join(api_endpoints.applications,vm.application.id+'/application_fee_checkout/'), {}).then(res=>{
                         window.location.href = "/ledger/checkout/checkout/payment-details/";
                     },err=>{
