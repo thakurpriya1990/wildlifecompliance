@@ -654,20 +654,35 @@ class ApplicationViewSet(viewsets.ModelViewSet):
     @detail_route(methods=['post'])
     @renderer_classes((JSONRenderer,))
     def application_fee_checkout(self, request, *args, **kwargs):
+        from wildlifecompliance.components.applications.services import (
+            do_update_dynamic_attributes
+        )
         try:
+            checkout_result = None
             instance = self.get_object()
-            product_lines = []
-            if instance.application_fee < 1:
-                raise Exception('Checkout request for zero amount.')
 
-            application_submission = u'Application No: {}'.format(
-                instance.lodgement_number)
+            with transaction.atomic():
 
-            set_session_application(request.session, instance)
-            product_lines = ApplicationService.get_product_lines(instance)
-            checkout_result = checkout(request, instance, lines=product_lines,
-                                       invoice_text=application_submission)
+                do_update_dynamic_attributes(instance)
+
+                product_lines = []
+                if instance.application_fee < 1:
+                    raise Exception('Checkout request for zero amount.')
+
+                application_submission = u'Application No: {}'.format(
+                    instance.lodgement_number
+                )
+
+                set_session_application(request.session, instance)
+                product_lines = ApplicationService.get_product_lines(instance)
+
+                checkout_result = checkout(
+                    request, instance, lines=product_lines,
+                    invoice_text=application_submission
+                )
+
             return checkout_result
+
         except serializers.ValidationError:
             print(traceback.print_exc())
             raise

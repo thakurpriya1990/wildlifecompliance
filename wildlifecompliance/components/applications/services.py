@@ -55,20 +55,24 @@ class ApplicationService(object):
         :return: invoice reference.
         '''
         try:
-            application = get_session_application(request.session)
-            delete_session_application(request.session)
+            with transaction.atomic():
+                application = get_session_application(request.session)
+                delete_session_application(request.session)
 
-            application.submit_type = Application.SUBMIT_TYPE_PAPER
-            application.save()
-            do_update_dynamic_attributes(application)
+                application.submit_type = Application.SUBMIT_TYPE_PAPER
+                application.save()
+                do_update_dynamic_attributes(application)
 
-            set_session_other_pay_method(
-                request.session, InvoiceClearable.TYPE_CASH)
-            invoice = create_other_application_invoice(application, request)
-            invoice_ref = invoice.reference
+                set_session_other_pay_method(
+                    request.session, InvoiceClearable.TYPE_CASH
+                )
+                invoice = create_other_application_invoice(
+                    application, request
+                )
+                invoice_ref = invoice.reference
 
-            # submit application if successful.
-            application.submit(request)
+                # submit application if successful.
+                application.submit(request)
 
         except Exception as e:
             delete_session_application(request.session)
@@ -85,19 +89,21 @@ class ApplicationService(object):
         '''
         invoice_ref = None          # No invoice reference created.
         try:
-            application = get_session_application(request.session)
-            delete_session_application(request.session)
+            with transaction.atomic():
+                application = get_session_application(request.session)
+                delete_session_application(request.session)
 
-            application.submit_type = Application.SUBMIT_TYPE_MIGRATE
-            application.application_fee = 0
-            has_fee_exemption = True
-            do_update_dynamic_attributes(application, has_fee_exemption)
+                application.submit_type = Application.SUBMIT_TYPE_MIGRATE
+                application.application_fee = 0
+                has_fee_exemption = True
+                do_update_dynamic_attributes(application, has_fee_exemption)
 
-            logger.info(
-                'Zero amount payment submission for {0}'.format(application.id)
-            )
-            # submit application if successful.
-            application.submit(request)
+                logger.info(
+                    'Zero amount payment submission for {0}'.format(
+                        application.id))
+
+                # submit application if successful.
+                application.submit(request)
 
         except Exception as e:
             delete_session_application(request.session)
@@ -209,26 +215,28 @@ class ApplicationService(object):
         text_area = TextAreaVisitor(application, form)
         text = TextVisitor(application, form)
 
-        # Set PromptInspection Fields for Checkbox and RadioButtons.
-        for_inspection_fields = PromptInpsectionFieldElement()
-        for_inspection_fields.accept(checkbox)
+        if application.processing_status == 'with_officer':
+            # Set StandardCondition Fields for Checkbox and RadioButtons.
+            for_condition_fields = StandardConditionFieldElement()
+            for_condition_fields.accept(checkbox)
+            # Set PromptInspection Fields for Checkbox and RadioButtons.
+            for_inspection_fields = PromptInpsectionFieldElement()
+            for_inspection_fields.accept(checkbox)
 
-        # Set StandardCondition Fields for Checkbox and RadioButtons.
-        for_condition_fields = StandardConditionFieldElement()
-        for_condition_fields.accept(checkbox)
-
-        # Set copy-to-licence Fields which allow for additional terminologies
-        # to be dynamically added to the licence pdf.
-        for_copy_to_licence_fields = CopyToLicenceFieldElement()
-        for_copy_to_licence_fields.accept(text_area)
-        for_copy_to_licence_fields.accept(text)
+        if application.processing_status == 'with_approver':
+            # Set copy-to-licence Fields which allow for additional
+            # terminologies to be dynamically added to the licence pdf.
+            for_copy_to_licence_fields = CopyToLicenceFieldElement()
+            for_copy_to_licence_fields.accept(text_area)
+            for_copy_to_licence_fields.accept(text)
 
     @staticmethod
     def update_dynamic_attributes(application):
         """
         Updates application attributes based on admin schema definition.
         """
-        do_update_dynamic_attributes(application)
+        with transaction.atomic():
+            do_update_dynamic_attributes(application)
 
     def __str__(self):
         return 'ApplicationService'
@@ -272,7 +280,6 @@ class CheckboxAndRadioButtonCompositor(ApplicationFormCompositor):
     def render(self):
 
         for selected_activity in self._application.activities:
-
             self._field.reset(selected_activity)
 
             schema_fields = self._application.get_schema_fields_for_purposes(
@@ -294,9 +301,7 @@ class CheckboxAndRadioButtonCompositor(ApplicationFormCompositor):
                 if schema_name not in schema_fields:
                     continue
                 schema_data = schema_fields[schema_name]
-                licence_purpose = LicencePurpose.objects.get(
-                    id=schema_data['licence_purpose_id']
-                )
+
                 if 'options' in schema_data:
                     for option in schema_data['options']:
                         # Only modifications if the current option is selected
@@ -307,7 +312,7 @@ class CheckboxAndRadioButtonCompositor(ApplicationFormCompositor):
                             schema_name=schema_name,
                             adjusted_by_fields=adjusted_by_fields,
                             activity=selected_activity,
-                            purpose=licence_purpose
+                            purpose_id=schema_data['licence_purpose_id']
                         )
 
                 # If this is a checkbox - skip unchecked ones
@@ -317,7 +322,7 @@ class CheckboxAndRadioButtonCompositor(ApplicationFormCompositor):
                         schema_name=schema_name,
                         adjusted_by_fields=adjusted_by_fields,
                         activity=selected_activity,
-                        purpose=licence_purpose
+                        purpose_id=schema_data['licence_purpose_id']
                     )
 
 
@@ -725,7 +730,6 @@ class IncreaseApplicationFeeFieldElement(SpecialFieldElement):
         self.has_fee_exemption = is_exempt
         self.fee_policy.set_has_fee_exemption(is_exempt)
 
-    @transaction.atomic
     def reset(self, licence_activity):
         '''
         Reset the fees for the licence activity to it base fee amount.
@@ -751,14 +755,13 @@ class IncreaseApplicationFeeFieldElement(SpecialFieldElement):
 
                 licence_activity.save()
 
-    @transaction.atomic
     def parse_component(
             self,
             component,
             schema_name,
             adjusted_by_fields,
             activity,
-            purpose):
+            purpose_id):
         '''
         Aggregate adjusted fees for the Activity/Purpose.
         '''
@@ -816,6 +819,9 @@ class IncreaseApplicationFeeFieldElement(SpecialFieldElement):
                 adjusted_by_fields[schema_name] += 1
 
             if adjustments_performed and self.is_updating:
+                purpose = LicencePurpose.objects.get(
+                       id=purpose_id
+                )
                 # update adjusted fee for the activity purpose.
                 p, c = ApplicationSelectedActivityPurpose.objects.\
                     get_or_create(purpose=purpose, selected_activity=activity)
@@ -966,7 +972,7 @@ def do_process_form(
         form_data_record.save()
 
     if action == ApplicationFormDataRecord.ACTION_TYPE_ASSIGN_VALUE:
-        do_update_dynamic_attributes(application)
+
         for existing_field in ApplicationFormDataRecord.objects.filter(
                 application_id=application.id):
             if existing_field.field_name not in form_data.keys():
@@ -980,7 +986,6 @@ def do_process_form(
         )
 
 
-@transaction.atomic
 def do_update_dynamic_attributes(application, fee_exemption=False):
     '''
     Update application and activity attributes based on selected JSON schema

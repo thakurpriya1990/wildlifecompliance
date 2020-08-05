@@ -521,18 +521,26 @@ class ActivitySchemaUtil(object):
         """
         schema_group = []
         try:
-            purposes = LicencePurpose.objects.filter(
-                id__in=activity_ids
-            )
+            # purposes = LicencePurpose.objects.filter(
+            #     id__in=activity_ids
+            # )
+            selected_purposes = [
+                a.proposed_purposes.all() for a in self._activities
+            ]
+            purposes = [
+                p.purpose for p in selected_purposes[0]
+                if p.purpose.id in activity_ids
+            ]
         except ValueError:
             return schema_group
-        unique_type_purposes = purposes.distinct('licence_activity')
-
+        # unique_type_purposes = purposes.distinct('licence_activity')
+        unique_type_purposes = purposes
         for index, activity in enumerate(unique_type_purposes):
             activity = activity.licence_activity
             schema_purpose = []
 
-            for purpose in purposes.filter(licence_activity__id=activity.id):
+            # for purpose in purposes.filter(licence_activity__id=activity.id):
+            for purpose in purposes:
                 purpose_schema = purpose.schema
                 for item in purpose_schema:
                     item['purpose_id'] = purpose.id
