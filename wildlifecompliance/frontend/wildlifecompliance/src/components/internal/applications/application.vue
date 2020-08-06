@@ -931,9 +931,11 @@ export default {
         commaToNewline(s){
             return s.replace(/[,;]/g, '\n');
         },
-        proposedDecline: function(){
-            this.save_wo();
-            this.$refs.proposed_decline.isModalOpen = true;
+        proposedDecline: async function(){
+            let is_saved = await this.save_wo();
+            if (is_saved) {
+                this.$refs.proposed_decline.isModalOpen = true;
+            }
         },
         isActivityVisible: function(activity_id) {
             return this.isApplicationActivityVisible({activity_id: activity_id});
@@ -941,17 +943,20 @@ export default {
         hasActivityStatus: function(status_list, status_count=1, required_role=null) {
             return this.checkActivityStatus(status_list, status_count, required_role);
         },
-        proposedLicence: function(){
+        proposedLicence: async function(){
             var activity_name=[]
             var selectedTabTitle = $("#tabs-section li.active");
-            this.save_wo();
-            this.$refs.proposed_licence.propose_issue.licence_activity_id=this.selected_activity_tab_id;
-            this.$refs.proposed_licence.propose_issue.licence_activity_name=selectedTabTitle.text();
-            this.$refs.proposed_licence.isModalOpen = true;
-            this.$refs.proposed_licence.preloadLastActivity();
+            let is_saved = await this.save_wo();
+            if (is_saved){
+                this.$refs.proposed_licence.propose_issue.licence_activity_id=this.selected_activity_tab_id;
+                this.$refs.proposed_licence.propose_issue.licence_activity_name=selectedTabTitle.text();
+                this.$refs.proposed_licence.isModalOpen = true;
+                this.$refs.proposed_licence.preloadLastActivity();
+            }
+
         },
-        toggleIssue:function(){
-            this.save_wo();
+        toggleIssue: async function(){
+            let is_saved = await this.save_wo();
             this.showingApplication = false;
             this.isSendingToAssessor=false;
             this.isOfficerConditions=false;
@@ -1078,23 +1083,29 @@ export default {
             },(error) => {
             });
         },
-        amendmentRequest: function(){
+        amendmentRequest: async function(){
             let vm = this;
-            vm.save_wo();
+            let is_saved = await vm.save_wo();
 
-            vm.$refs.amendment_request.amendment.text = '';
-            vm.$refs.amendment_request.isModalOpen = true;
+            if (is_saved){
+                vm.$refs.amendment_request.amendment.text = '';
+                vm.$refs.amendment_request.isModalOpen = true;
+            }
+
         },
-        togglesendtoAssessor:function(){
-            this.save_wo();
-            $('#tabs-main li').removeClass('active');
-            this.isSendingToAssessor = !this.isSendingToAssessor;
-            this.showingApplication = false;
+        togglesendtoAssessor: async function(){
+            let is_saved = await this.save_wo();
+            
+            if (is_saved) {
+                $('#tabs-main li').removeClass('active');
+                this.isSendingToAssessor = !this.isSendingToAssessor;
+                this.showingApplication = false;
+            }
         },
-        save: function(props = { showNotification: true }) {
+        save: async function(props = { showNotification: true }) {
             this.spinner = true;
             const { showNotification } = props;
-            this.saveFormData({ url: this.form_data_comments_url }).then(response => {
+            await this.saveFormData({ url: this.form_data_comments_url }).then(response => {
 
                 this.saveFormData({ url: this.form_data_application_url }).then(response => {
                     this.spinner = false;   
@@ -1122,8 +1133,9 @@ export default {
                 )
             });
         },
-        save_wo: function() {
-            return this.save({ showNotification: false });
+        save_wo: async function() {
+            await this.save({ showNotification: false });
+            return true
         },
         toggleApplication: function({show=false, showFinalised=false}){
 
@@ -1191,8 +1203,8 @@ export default {
                     });
                 })
         },
-        toggleOfficerConditions:function(){
-            this.save_wo();
+        toggleOfficerConditions: async function(){
+            let is_saved = await this.save_wo();
             this.showingApplication = false;
             this.isSendingToAssessor=false;
 

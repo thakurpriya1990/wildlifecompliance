@@ -205,30 +205,40 @@ class ApplicationService(object):
             form_data,
             action)
 
+        do_update_dynamic_attributes(application)
+
     @staticmethod
     def set_special_form_fields(application, form):
         """
         Set Special Form Field Attributes on an Application Form.
         """
-        # Set form components to be visited.
-        checkbox = CheckboxAndRadioButtonVisitor(application, form)
-        text_area = TextAreaVisitor(application, form)
-        text = TextVisitor(application, form)
+        with_officer = [
+            'with_officer',
+            'with_officer_condition',
+            'under_review',
+        ]
 
-        if application.processing_status == 'with_officer':
-            # Set StandardCondition Fields for Checkbox and RadioButtons.
-            for_condition_fields = StandardConditionFieldElement()
-            for_condition_fields.accept(checkbox)
-            # Set PromptInspection Fields for Checkbox and RadioButtons.
-            for_inspection_fields = PromptInpsectionFieldElement()
-            for_inspection_fields.accept(checkbox)
+        with transaction.atomic():
+            # Set form components to be visited.
+            checkbox = CheckboxAndRadioButtonVisitor(application, form)
+            text_area = TextAreaVisitor(application, form)
+            text = TextVisitor(application, form)
 
-        if application.processing_status == 'with_approver':
-            # Set copy-to-licence Fields which allow for additional
-            # terminologies to be dynamically added to the licence pdf.
-            for_copy_to_licence_fields = CopyToLicenceFieldElement()
-            for_copy_to_licence_fields.accept(text_area)
-            for_copy_to_licence_fields.accept(text)
+            if application.processing_status in with_officer:
+
+                # Set StandardCondition Fields for Checkbox and RadioButtons.
+                for_condition_fields = StandardConditionFieldElement()
+                for_condition_fields.accept(checkbox)
+
+                # Set PromptInspection Fields for Checkbox and RadioButtons.
+                for_inspection_fields = PromptInpsectionFieldElement()
+                for_inspection_fields.accept(checkbox)
+
+                # Set copy-to-licence Fields which allow for additional
+                # terminologies to be dynamically added to the licence pdf.
+                for_copy_to_licence_fields = CopyToLicenceFieldElement()
+                for_copy_to_licence_fields.accept(text_area)
+                for_copy_to_licence_fields.accept(text)
 
     @staticmethod
     def update_dynamic_attributes(application):
@@ -245,6 +255,54 @@ class ApplicationService(object):
 """
 NOTE: This section for objects relate to Application Form rendering.
 """
+
+
+class BulkCreateManager(object):
+    '''
+    This helper class keeps track of ORM objects to be created for multiple
+    model classess, automatically creates those objects with `bulk_create`
+    when the number of objects accumulated for a given model class exceeds
+    `chunk_size`.
+
+    https://www.caktusgroup.com/blog/2019/01/09/django-bulk-inserts/
+    '''
+    def __init__(self, obj, chunk_size=100):
+        from collections import defaultdict
+
+        self._create_queues = defaultdict(list)
+        self.chunk_size = chunk_size
+        self.model_class = type(obj)
+        objs = self.model_class.objects.filter(
+            application_id=obj.application_id
+        ).all()
+        objs.delete()
+
+    def _commit(self, model_class):
+        model_key = model_class._meta.label
+        model_class.objects.bulk_create(self._create_queues[model_key])
+        self._create_queues[model_key] = []
+
+    def add(self, obj):
+        '''
+        Add an object to the queue to be created, and call bulk_create if we
+        have enough objects.
+        '''
+        model_class = type(obj)
+        model_key = model_class._meta.label
+        self._create_queues[model_key].append(obj)
+        if len(self._create_queues[model_key]) >= self.chunk_size:
+            self._commit(model_class)
+
+    def done(self):
+        '''
+        Always call this upon completion to make sure the final partial chunk
+        is saved.
+        '''
+        from django.apps import apps
+
+        for model_name, objs in self._create_queues.items():
+            if len(objs) > 0:
+                self._commit(apps.get_model(model_name))
 
 
 class ApplicationFormCompositor(object):
@@ -363,16 +421,14 @@ class TextAreaCompositor(ApplicationFormCompositor):
                 if schema_name not in schema_fields:
                     continue
                 schema_data = schema_fields[schema_name]
-                licence_purpose = LicencePurpose.objects.get(
-                    id=schema_data['licence_purpose_id']
-                )
+
                 if schema_data['type'] == 'text_area':
                     self._field.parse_component(
                         component=schema_data,
                         schema_name=schema_name,
                         adjusted_by_fields=adjusted_by_fields,
                         activity=selected_activity,
-                        purpose=licence_purpose
+                        purpose_id=schema_data['licence_purpose_id']
                     )
 
 
@@ -413,16 +469,14 @@ class TextCompositor(ApplicationFormCompositor):
                 if schema_name not in schema_fields:
                     continue
                 schema_data = schema_fields[schema_name]
-                licence_purpose = LicencePurpose.objects.get(
-                    id=schema_data['licence_purpose_id']
-                )
+
                 if schema_data['type'] == 'text':
                     self._field.parse_component(
                         component=schema_data,
                         schema_name=schema_name,
                         adjusted_by_fields=adjusted_by_fields,
                         activity=selected_activity,
-                        purpose=licence_purpose
+                        purpose_id=schema_data['licence_purpose_id']
                     )
 
 
@@ -548,7 +602,7 @@ class CopyToLicenceFieldElement(SpecialFieldElement):
             schema_name,
             adjusted_by_fields,
             activity,
-            purpose):
+            purpose_id):
 
         if self.is_refreshing:
             # No user update with a page refesh.
@@ -602,7 +656,7 @@ class PromptInpsectionFieldElement(SpecialFieldElement):
             schema_name,
             adjusted_by_fields,
             activity,
-            purpose):
+            purpose_id):
 
         if self.is_refreshing:
             # No user update with a page refesh.
@@ -653,7 +707,7 @@ class StandardConditionFieldElement(SpecialFieldElement):
             schema_name,
             adjusted_by_fields,
             activity,
-            purpose):
+            purpose_id):
 
         if self.is_refreshing:
             # No user update with a page refesh.
@@ -667,6 +721,9 @@ class StandardConditionFieldElement(SpecialFieldElement):
                 code=component[self._NAME],
                 obsolete=False).first()
             if condition:
+                purpose = LicencePurpose.objects.get(
+                       id=purpose_id
+                )
                 ac, created = ApplicationCondition.objects.get_or_create(
                     standard_condition=condition,
                     is_rendered=True,
@@ -879,6 +936,7 @@ def do_process_form(
         action=ApplicationFormDataRecord.ACTION_TYPE_ASSIGN_VALUE):
     from wildlifecompliance.components.applications.utils import \
             MissingFieldsException
+
     can_edit_officer_comments = request.user.has_perm(
         'wildlifecompliance.licensing_officer'
     )
@@ -902,6 +960,9 @@ def do_process_form(
     required_fields = application.required_fields
     missing_fields = []
 
+    bulk_mgr = BulkCreateManager(
+        ApplicationFormDataRecord(application_id=application.id)
+    )
     for field_name, field_data in form_data.items():
         schema_name = field_data.get('schema_name', '')
         instance_name = field_data.get('instance_name', '')
@@ -928,28 +989,21 @@ def do_process_form(
         except KeyError:
             continue
 
-        form_data_record = ApplicationFormDataRecord.objects.filter(
+        SPECIES = ApplicationFormDataRecord.COMPONENT_TYPE_SELECT_SPECIES
+        form_data_record = ApplicationFormDataRecord(
             application_id=application.id,
             field_name=field_name,
             licence_activity_id=activity_id,
             licence_purpose_id=purpose_id,
-        ).first()
+            schema_name=schema_name,
+            instance_name=instance_name,
+            component_type=component_type,
+            component_attribute=component_attribute
+        )
 
-        SPECIES = ApplicationFormDataRecord.COMPONENT_TYPE_SELECT_SPECIES
-        if not form_data_record:
-            form_data_record = ApplicationFormDataRecord.objects.create(
-                application_id=application.id,
-                field_name=field_name,
-                schema_name=schema_name,
-                instance_name=instance_name,
-                component_type=component_type,
-                licence_activity_id=activity_id,
-                licence_purpose_id=purpose_id,
-                component_attribute=component_attribute,
-            )
         # Species list may not exist in last save because the component has
         # been copied from an amendment. Save new list for species component.
-        elif form_data_record.component_type == SPECIES\
+        if component_type == SPECIES\
                 and not form_data_record.component_attribute:
             form_data_record.component_attribute = component_attribute
 
@@ -961,6 +1015,7 @@ def do_process_form(
                 missing_fields.append(missing_item)
                 continue
             form_data_record.value = value
+
         elif action == \
                 ApplicationFormDataRecord.ACTION_TYPE_ASSIGN_COMMENT:
             if can_edit_officer_comments:
@@ -969,8 +1024,10 @@ def do_process_form(
                 form_data_record.assessor_comment = assessor_comment
             if can_edit_deficiencies:
                 form_data_record.deficiency = deficiency
-        form_data_record.save()
 
+        bulk_mgr.add(form_data_record)
+
+    bulk_mgr.done()
     if action == ApplicationFormDataRecord.ACTION_TYPE_ASSIGN_VALUE:
 
         for existing_field in ApplicationFormDataRecord.objects.filter(

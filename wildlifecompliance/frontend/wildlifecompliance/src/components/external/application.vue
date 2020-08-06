@@ -446,13 +446,14 @@ export default {
     this.$nextTick(() => {
         vm.eventListeners();
     });
-    if (this.application.customer_status.id=='amendment_required') { // requested amendments.
-       // fees can be adjusted from selected components for requested amendments.
-      this.adjusted_application_fee = this.application.application_fee - this.application.adjusted_paid_amount
-    } else {
-      // no adjustments for new applications.
-      this.adjusted_application_fee = this.application.application_fee
-    }
+    // if (this.application.customer_status.id=='amendment_required') { // requested amendments.
+    //    // fees can be adjusted from selected components for requested amendments.
+    //   this.adjusted_application_fee = this.application.application_fee - this.application.adjusted_paid_amount
+    // } else {
+    //   // no adjustments for new applications.
+    //   this.adjusted_application_fee = this.application.application_fee
+    // }
+    this.adjusted_application_fee = this.application.application_fee
   }
 }
 </script>

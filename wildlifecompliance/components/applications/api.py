@@ -654,16 +654,11 @@ class ApplicationViewSet(viewsets.ModelViewSet):
     @detail_route(methods=['post'])
     @renderer_classes((JSONRenderer,))
     def application_fee_checkout(self, request, *args, **kwargs):
-        from wildlifecompliance.components.applications.services import (
-            do_update_dynamic_attributes
-        )
         try:
             checkout_result = None
             instance = self.get_object()
 
             with transaction.atomic():
-
-                do_update_dynamic_attributes(instance)
 
                 product_lines = []
                 if instance.application_fee < 1:
@@ -1382,22 +1377,23 @@ class ApplicationViewSet(viewsets.ModelViewSet):
     def form_data(self, request, *args, **kwargs):
         try:
             instance = self.get_object()
-            ApplicationService.process_form(
-                request,
-                instance,
-                request.data,
-                action=ApplicationFormDataRecord.ACTION_TYPE_ASSIGN_VALUE
-            )
-            # Set any special form fields on the Application schema.
-            ApplicationService.set_special_form_fields(
-                instance, request.data)
-            # Send any relevant notifications.
-            # instance.alert_for_refund(request)
-            # Log save action for internal officer.
-            if request.user.is_staff:
-                instance.log_user_action(
-                    ApplicationUserAction.ACTION_SAVE_APPLICATION.format(
-                        instance.id), request)
+            with transaction.atomic():
+                ApplicationService.process_form(
+                    request,
+                    instance,
+                    request.data,
+                    action=ApplicationFormDataRecord.ACTION_TYPE_ASSIGN_VALUE
+                )
+                # Set any special form fields on the Application schema.
+                ApplicationService.set_special_form_fields(
+                    instance, request.data)
+                # Send any relevant notifications.
+                # instance.alert_for_refund(request)
+                # Log save action for internal officer.
+                if request.user.is_staff:
+                    instance.log_user_action(
+                        ApplicationUserAction.ACTION_SAVE_APPLICATION.format(
+                            instance.id), request)
 
             return Response({'success': True})
         except MissingFieldsException as e:
