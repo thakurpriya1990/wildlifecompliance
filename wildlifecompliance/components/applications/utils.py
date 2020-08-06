@@ -395,83 +395,83 @@ class SpecialFieldsSearch(object):
         return item_data
 
 
-def get_activity_schema(activity_ids):
-    """
-    NOTE: Redundant has been replaced with a function from the class
-    ActivitySchemaUtil.get_activity_schema(activity_ids).
-    """
-    schema_group = []
-    try:
-        purposes = LicencePurpose.objects.filter(
-            id__in=activity_ids
-        )
-    except ValueError:
-        return schema_group
-    unique_type_purposes = purposes.distinct('licence_activity')
+# def get_activity_schema(activity_ids):
+#     """
+#     NOTE: Redundant has been replaced with a function from the class
+#     ActivitySchemaUtil.get_activity_schema(activity_ids).
+#     """
+#     schema_group = []
+#     try:
+#         purposes = LicencePurpose.objects.filter(
+#             id__in=activity_ids
+#         )
+#     except ValueError:
+#         return schema_group
+#     unique_type_purposes = purposes.distinct('licence_activity')
 
-    for index, activity in enumerate(unique_type_purposes):
-        activity = activity.licence_activity
-        schema_purpose = []
+#     for index, activity in enumerate(unique_type_purposes):
+#         activity = activity.licence_activity
+#         schema_purpose = []
 
-        for purpose in purposes.filter(licence_activity__id=activity.id):
-            purpose_schema = purpose.schema
-            for item in purpose_schema:
-                item['purpose_id'] = purpose.id
-            schema_purpose += purpose_schema
-            # set special species lookup option
-            purpose.get_species_list
+#         for purpose in purposes.filter(licence_activity__id=activity.id):
+#             purpose_schema = purpose.schema
+#             for item in purpose_schema:
+#                 item['purpose_id'] = purpose.id
+#             schema_purpose += purpose_schema
+#             # set special species lookup option
+#             purpose.get_species_list
 
-        schema_group.append({"type": "tab",
-                             "id": activity.id,
-                             "label": activity.name,
-                             "name": activity.name,
-                             "status": ApplicationSelectedActivity.PROCESSING_STATUS_DRAFT,
-                             "children": schema_purpose
-                           })
+#         schema_group.append({"type": "tab",
+#                              "id": activity.id,
+#                              "label": activity.name,
+#                              "name": activity.name,
+#                              "status": ApplicationSelectedActivity.PROCESSING_STATUS_DRAFT,
+#                              "children": schema_purpose
+#                            })
 
-    # Iterate through the schema to add licence_activity_id to all form fields for storing in database
+#     # Iterate through the schema to add licence_activity_id to all form fields for storing in database
 
-    def iterate_children(schema_group, parent={}, parent_type='', condition={}, activity_id=None, purpose_id=None):
-        children_keys = [
-            'children',
-            'header',
-            'expander',
-            'conditions',
-        ]
-        container = {
-            i: schema_group[i] for i in range(len(schema_group))
-        } if isinstance(schema_group, list) else schema_group
+#     def iterate_children(schema_group, parent={}, parent_type='', condition={}, activity_id=None, purpose_id=None):
+#         children_keys = [
+#             'children',
+#             'header',
+#             'expander',
+#             'conditions',
+#         ]
+#         container = {
+#             i: schema_group[i] for i in range(len(schema_group))
+#         } if isinstance(schema_group, list) else schema_group
 
-        for key, item in container.items():
+#         for key, item in container.items():
 
-            try:
-                activity_id = item['id']
-            except BaseException:
-                pass
+#             try:
+#                 activity_id = item['id']
+#             except BaseException:
+#                 pass
 
-            try:
-                purpose_id = item['purpose_id']
-            except BaseException:
-                pass
+#             try:
+#                 purpose_id = item['purpose_id']
+#             except BaseException:
+#                 pass
 
-            if isinstance(item, list):
-                if parent_type == 'conditions':
-                    condition[parent['name']] = key
-                iterate_children(item, parent, parent_type, condition, activity_id, purpose_id)
-                continue
+#             if isinstance(item, list):
+#                 if parent_type == 'conditions':
+#                     condition[parent['name']] = key
+#                 iterate_children(item, parent, parent_type, condition, activity_id, purpose_id)
+#                 continue
 
-            item['licence_activity_id'] = activity_id
-            item['licence_purpose_id'] = purpose_id
+#             item['licence_activity_id'] = activity_id
+#             item['licence_purpose_id'] = purpose_id
 
-            for children_key in children_keys:
-                if children_key in item:
-                    iterate_children(item[children_key], item, children_key, condition, activity_id, purpose_id)
+#             for children_key in children_keys:
+#                 if children_key in item:
+#                     iterate_children(item[children_key], item, children_key, condition, activity_id, purpose_id)
 
-            condition = {}
+#             condition = {}
 
-    iterate_children(schema_group)
+#     iterate_children(schema_group)
 
-    return schema_group
+#     return schema_group
 
 
 class ActivitySchemaUtil(object):
@@ -524,15 +524,23 @@ class ActivitySchemaUtil(object):
             purposes = LicencePurpose.objects.filter(
                 id__in=activity_ids
             )
+            # selected_purposes = [
+            #     a.proposed_purposes.all() for a in self._activities
+            # ]
+            # purposes = [
+            #     p.purpose for p in selected_purposes[0]
+            #     if p.purpose.id in activity_ids
+            # ]
         except ValueError:
             return schema_group
         unique_type_purposes = purposes.distinct('licence_activity')
-
+        # unique_type_purposes = purposes
         for index, activity in enumerate(unique_type_purposes):
             activity = activity.licence_activity
             schema_purpose = []
 
             for purpose in purposes.filter(licence_activity__id=activity.id):
+            # for purpose in purposes:
                 purpose_schema = purpose.schema
                 for item in purpose_schema:
                     item['purpose_id'] = purpose.id

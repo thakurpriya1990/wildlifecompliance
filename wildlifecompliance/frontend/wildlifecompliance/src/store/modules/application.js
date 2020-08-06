@@ -153,7 +153,7 @@ export const applicationStore = {
                 Vue.http.get(url).then(res => {
                     dispatch('setOriginalApplication', res.body);
                     dispatch('setApplication', res.body);
-                    dispatch('refreshApplicationFees');
+                    //dispatch('refreshApplicationFees');
                     for(let form_data_record of res.body.data) {
                         dispatch('setFormValue', {
                             key: form_data_record.field_name,

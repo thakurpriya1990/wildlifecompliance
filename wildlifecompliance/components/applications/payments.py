@@ -668,18 +668,20 @@ class ApplicationFeePolicyForAmendment(ApplicationFeePolicy):
         if fees_new < 0:
             # Refund amounts can be calculated from changes to the application
             # form which are then saved against the activity.
-            logger.info('{0}: REFUND {1} for licence ActivityID {2}'.format(
-                'ApplicationFeePolicyForAmendment',
-                fees_new,
-                activity.id
-            ))
+            # logger.info('{0}: REFUND {1} for licence ActivityID {2}'.format(
+            #     'ApplicationFeePolicyForAmendment',
+            #     fees_new,
+            #     activity.id
+            # ))
+            pass
 
         if fees_new == 0:
             # Zero amount paid for amendment activity
-            logger.info('{0}: ZERO FEE for licence ActivityID {1}'.format(
-                'ApplicationFeePolicyForAmendment',
-                activity.id
-            ))
+            # logger.info('{0}: ZERO FEE for licence ActivityID {1}'.format(
+            #     'ApplicationFeePolicyForAmendment',
+            #     activity.id
+            # ))
+            pass
 
     def set_application_fee_from_attributes(self, attributes):
         '''
@@ -992,18 +994,20 @@ class ApplicationFeePolicyForRenew(ApplicationFeePolicy):
         if fees_new < 0:
             # Refund for application fees can occur when paid activity
             # adjustment amounts are reduced and recovered from app fees.
-            logger.info('{0}: REFUND {1} for licence ActivityID {2}'.format(
-                'ApplicationFeePolicyForRenew',
-                fees_new,
-                activity.id
-            ))
+            # logger.info('{0}: REFUND {1} for licence ActivityID {2}'.format(
+            #     'ApplicationFeePolicyForRenew',
+            #     fees_new,
+            #     activity.id
+            # ))
+            pass
 
         if fees_new == 0:
             # Zero amount paid for activity
-            logger.info('{0}: ZERO FEE for licence ActivityID {1}'.format(
-                'ApplicationFeePolicyForRenew',
-                activity.id
-            ))
+            # logger.info('{0}: ZERO FEE for licence ActivityID {1}'.format(
+            #     'ApplicationFeePolicyForRenew',
+            #     activity.id
+            # ))
+            pass
 
     def set_application_fee_from_attributes(self, attributes):
         '''
@@ -1189,11 +1193,12 @@ class ApplicationFeePolicyForNew(ApplicationFeePolicy):
             # Refund amounts can be calculated from changes to the application
             # form which are then saved against the activity. Will occur for
             # requested amendments.
-            logger.info('{0}: REFUND {1} for licence ActivityID {2}'.format(
-                'ApplicationFeePolicyForNew',
-                fees_new,
-                activity.id
-            ))
+            # logger.info('{0}: REFUND {1} for licence ActivityID {2}'.format(
+            #     'ApplicationFeePolicyForNew',
+            #     fees_new,
+            #     activity.id
+            # ))
+            pass
 
     def set_application_fee_from_attributes(self, attributes):
         '''

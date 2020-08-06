@@ -17,6 +17,8 @@ from ledger.checkout.utils import (
 )
 from ledger.payments.models import Invoice
 
+logger = logging.getLogger(__name__)
+
 
 def checkout(
         request,
@@ -473,20 +475,39 @@ class NumberFieldCompositor(SchemaFieldCompositor):
         from wildlifecompliance.components.returns.services import (
             ReturnService,
         )
-        # 1. loop through table.
-        table = ReturnService.get_details_for(self._return)
-        fields = self._return.resources[0]['schema']['fields']
-        schema_fields = [f for f in fields if 'applyFee' in f]
 
-        for schema_data in schema_fields:
-            self._field.reset()
-            data = table[0]['data']
-            for row in data.gi_frame.f_locals['rows']:
-                if schema_data['applyFee'] and schema_data['name'] in row:
-                    self._field.parse_component(
-                        component=row,
-                        schema_name=schema_data['name']
-                    )
+        try:
+            # 1. loop through table.
+            table = ReturnService.get_details_for(self._return)
+            fields = self._return.resources[0]['schema']['fields']
+            schema_fields = [f for f in fields if self._field.NAME in f]
+
+            for schema_data in schema_fields:
+                self._field.reset()
+                data = table[0]['data']
+                for row in data['gi_frame'].f_locals['rows']:
+
+                    if schema_data[self._field.NAME] \
+                            and schema_data['name'] in row:
+
+                        self._field.parse_component(
+                            component=row,
+                            schema_name=schema_data['name']
+                        )
+
+        except TypeError:
+            '''
+            A TypeError will be thrown if no rows exist in the table. We just
+            catch the exception and continue.
+            '''
+            pass
+
+        except Exception as e:
+            logger.error('ERR {0} ReturnID {1} : {2}'.format(
+                'NumberFieldCompositor.render()',
+                self._return.id,
+                e
+            ))
 
 
 class SpecialFieldElement(object):
@@ -517,6 +538,7 @@ class ApplyFeeFieldElement(SpecialFieldElement):
     data_source = None          # a data source to replace Return schema.
     is_refreshing = False       # Flag indicating a page refresh.
     is_updating = False         # Flag indicating if update or retrieval.
+    field_name = None           # Name of schema field with ApplyFee.
 
     def __str__(self):
         return 'Field Element: {0}'.format(self._NAME)
@@ -564,6 +586,8 @@ class ApplyFeeFieldElement(SpecialFieldElement):
         '''
         from decimal import Decimal
 
+        self.field_name = schema_name
+
         if self.is_refreshing:
             # No user update with a page refesh.
             return
@@ -580,10 +604,15 @@ class ApplyFeeFieldElement(SpecialFieldElement):
                     'return': self.fee,
                 },
             }
-            print(self.dynamic_attributes)
 
     def get_dynamic_attributes(self):
         '''
         Gets the current dynamic attributes created by this Field Element.
         '''
         return self.dynamic_attributes
+
+    def get_field_name(self):
+        '''
+        Get the name of the field element with Apply Fee.
+        '''
+        return self.field_name

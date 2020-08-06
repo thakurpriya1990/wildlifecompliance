@@ -328,6 +328,22 @@ class Return(models.Model):
         return has_payment
 
     @property
+    def total_paid_amount(self):
+        '''
+        Property defining the total fees already paid for this licence Return.
+        '''
+        amount = 0
+        if self.invoices.count() > 0:
+            for invoice in self.invoices.all():
+                detail = Invoice.objects.get(
+                    reference=invoice.invoice_reference
+                )
+                amount += detail.payment_amount
+                amount -= detail.refund_amount
+
+        return amount
+
+    @property
     def activity_curators(self):
         '''
         QuerySet of authorised licence activity curators for this return.

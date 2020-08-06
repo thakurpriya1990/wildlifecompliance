@@ -655,19 +655,29 @@ class ApplicationViewSet(viewsets.ModelViewSet):
     @renderer_classes((JSONRenderer,))
     def application_fee_checkout(self, request, *args, **kwargs):
         try:
+            checkout_result = None
             instance = self.get_object()
-            product_lines = []
-            if instance.application_fee < 1:
-                raise Exception('Checkout request for zero amount.')
 
-            application_submission = u'Application No: {}'.format(
-                instance.lodgement_number)
+            with transaction.atomic():
 
-            set_session_application(request.session, instance)
-            product_lines = ApplicationService.get_product_lines(instance)
-            checkout_result = checkout(request, instance, lines=product_lines,
-                                       invoice_text=application_submission)
+                product_lines = []
+                if instance.application_fee < 1:
+                    raise Exception('Checkout request for zero amount.')
+
+                application_submission = u'Application No: {}'.format(
+                    instance.lodgement_number
+                )
+
+                set_session_application(request.session, instance)
+                product_lines = ApplicationService.get_product_lines(instance)
+
+                checkout_result = checkout(
+                    request, instance, lines=product_lines,
+                    invoice_text=application_submission
+                )
+
             return checkout_result
+
         except serializers.ValidationError:
             print(traceback.print_exc())
             raise
@@ -1367,22 +1377,23 @@ class ApplicationViewSet(viewsets.ModelViewSet):
     def form_data(self, request, *args, **kwargs):
         try:
             instance = self.get_object()
-            ApplicationService.process_form(
-                request,
-                instance,
-                request.data,
-                action=ApplicationFormDataRecord.ACTION_TYPE_ASSIGN_VALUE
-            )
-            # Set any special form fields on the Application schema.
-            ApplicationService.set_special_form_fields(
-                instance, request.data)
-            # Send any relevant notifications.
-            # instance.alert_for_refund(request)
-            # Log save action for internal officer.
-            if request.user.is_staff:
-                instance.log_user_action(
-                    ApplicationUserAction.ACTION_SAVE_APPLICATION.format(
-                        instance.id), request)
+            with transaction.atomic():
+                ApplicationService.process_form(
+                    request,
+                    instance,
+                    request.data,
+                    action=ApplicationFormDataRecord.ACTION_TYPE_ASSIGN_VALUE
+                )
+                # Set any special form fields on the Application schema.
+                ApplicationService.set_special_form_fields(
+                    instance, request.data)
+                # Send any relevant notifications.
+                # instance.alert_for_refund(request)
+                # Log save action for internal officer.
+                if request.user.is_staff:
+                    instance.log_user_action(
+                        ApplicationUserAction.ACTION_SAVE_APPLICATION.format(
+                            instance.id), request)
 
             return Response({'success': True})
         except MissingFieldsException as e:

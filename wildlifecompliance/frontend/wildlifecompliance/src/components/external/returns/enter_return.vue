@@ -99,6 +99,7 @@ export default {
       return this.readonly || !this.is_external;
     },
     refreshGrid: function() {
+      this.setReturnsEstimateFee()
       return this.refresh_grid;
     }
   },
@@ -108,6 +109,7 @@ export default {
     }),
     ...mapActions([
         'setReturns',
+        'setReturnsEstimateFee',
     ]),
     uploadFile: function(e) {
       let _file = null;
@@ -165,12 +167,6 @@ export default {
                     });
 
     }
-  },
-  updated: function(){
-    // this.$nextTick(()=>{
-    //   this.estimate_price()
-    //   this.readonly = this.returns.is_draft ? false : true
-    // });
   },
   mounted: function(){
     var vm = this;
