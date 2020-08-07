@@ -2723,13 +2723,19 @@ class Application(RevisionedMixin):
                                     request
                                 )
 
-                        # Additional Fees need to be set before processing fee.
-                        # Fee amount may change by the issuer making decision.
-                        if item['additional_fee']:
-                            selected_activity.additional_fee = \
-                                Decimal(item['additional_fee'])
-                            selected_activity.additional_fee_text = item[
-                                'additional_fee_text']
+                        if not selected_activity.processing_status == \
+                            ApplicationSelectedActivity.PROCESSING_STATUS_DECLINED:
+
+                            # Additional Fees need to be set before processing fee.
+                            # Fee amount may change by the issuer making decision.
+                            if item['additional_fee']:
+                                selected_activity.additional_fee = \
+                                    Decimal(item['additional_fee'])
+                                selected_activity.additional_fee_text = item[
+                                    'additional_fee_text']
+
+                        else :
+                             declined_activities.append(selected_activity)
 
                         # If there is an outstanding licence fee payment - 
                         # attempt to charge the stored card.
