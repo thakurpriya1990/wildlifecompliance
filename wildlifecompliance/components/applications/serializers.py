@@ -695,14 +695,15 @@ class BaseApplicationSerializer(serializers.ModelSerializer):
         #         org.id for org in self.context['request'].user.wildlifecompliance_organisations.all()]
         #     is_in_org_applicant = obj.org_applicant_id in user_orgs
 
-        result = False if obj.customer_status == \
-            Application.CUSTOMER_STATUS_AWAITING_PAYMENT else obj.can_user_edit
-
-        if obj.processing_status == \
-            Application.PROCESSING_STATUS_AWAITING_APPLICANT_RESPONSE and \
-                not obj.customer_status == Application.CUSTOMER_STATUS_AWAITING_PAYMENT:
+        if obj.customer_status == \
+                Application.CUSTOMER_STATUS_AWAITING_PAYMENT:
+            result = False
+        elif obj.processing_status == \
+                Application.PROCESSING_STATUS_AWAITING_APPLICANT_RESPONSE:
             # Outstanding amendment request - edit required.
             result = True
+        else:
+            result = obj.can_user_edit
 
         # if obj.customer_status == Application.CUSTOMER_STATUS_AWAITING_PAYMENT\
         #    and (is_submitter or is_proxy_applicant or is_in_org_applicant):
