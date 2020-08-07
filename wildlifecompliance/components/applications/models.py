@@ -2736,6 +2736,9 @@ class Application(RevisionedMixin):
 
                         else :
                              declined_activities.append(selected_activity)
+                             if item['additional_fee']:
+                                selected_activity.additional_fee = 0
+                                selected_activity.additional_fee_text = ''
 
                         # If there is an outstanding licence fee payment - 
                         # attempt to charge the stored card.

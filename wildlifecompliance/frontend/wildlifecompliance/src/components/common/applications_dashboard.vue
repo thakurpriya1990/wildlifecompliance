@@ -300,7 +300,7 @@ export default {
                         }
                         if (full.can_pay_licence){
                             let activity = full.activities.find(activity => activity.can_pay_licence_fee=true)
-                            links +=  `<a href='#${full.id}' data-pay-application-licence-fee='${full.id}' pay-licence-fee-for='${activity.id}'>Pay Licence Fee</a><br/>`;
+                            links +=  `<a href='#${full.id}' data-pay-application-licence-fee='${full.id}' pay-licence-fee-for='${activity.id}'>Pay Additional Fee</a><br/>`;
                         }                        
                     }
                     return links;
