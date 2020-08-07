@@ -267,7 +267,7 @@ def send_activity_invoice_email_notification(
         activity.licence_activity.name.replace(" ", ""),
         application.lodgement_date.date()
     )
-    references = [a.invoice_reference for a in activity.invoices.all()]
+    references = [a.invoice_reference for a in activity.activity_invoices.all()]
     invoice = Invoice.objects.filter(
         reference__in=references).order_by('-created')[0]
     invoice_pdf = create_invoice_pdf_bytes(filename, invoice)
