@@ -1478,9 +1478,14 @@ class ApplicationViewSet(viewsets.ModelViewSet):
                 active_current_applications = active_applications.exclude(
                     selected_activities__activity_status=ApplicationSelectedActivity.ACTIVITY_STATUS_SUSPENDED
                 )
+                # latest_active_licence = WildlifeLicence.objects.filter(
+                #     licence_category_id=licence_category.id,
+                #     current_application__in=active_applications.values_list('id', flat=True)
+                # ).order_by('-id').first()
+
                 latest_active_licence = WildlifeLicence.objects.filter(
                     licence_category_id=licence_category.id,
-                    current_application__in=active_applications.values_list('id', flat=True)
+                    id=active_applications.values_list('licence_id', flat=True)
                 ).order_by('-id').first()
 
                 # Initial validation
