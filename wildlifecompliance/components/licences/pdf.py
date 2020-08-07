@@ -505,7 +505,7 @@ def _create_licence(licence_buffer, licence, application):
         ),
             styles['Left'],
         ) for p in selected_activity.proposed_purposes.all()
-          if p.purpose_status in include
+          if p.purpose_status in include and p.is_issued
         ] for selected_activity in licence.current_activities],
         bulletFontName=BOLD_FONTNAME, bulletFontSize=MEDIUM_FONTSIZE)
     elements.append(purposeList)
