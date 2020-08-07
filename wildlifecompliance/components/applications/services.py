@@ -998,7 +998,10 @@ def do_process_form(
             schema_name=schema_name,
             instance_name=instance_name,
             component_type=component_type,
-            component_attribute=component_attribute
+            component_attribute=component_attribute,
+            officer_comment=officer_comment,
+            assessor_comment=assessor_comment,
+            deficiency=deficiency
         )
 
         # Species list may not exist in last save because the component has
@@ -1016,14 +1019,14 @@ def do_process_form(
                 continue
             form_data_record.value = value
 
-        elif action == \
-                ApplicationFormDataRecord.ACTION_TYPE_ASSIGN_COMMENT:
-            if can_edit_officer_comments:
-                form_data_record.officer_comment = officer_comment
-            if can_edit_assessor_comments:
-                form_data_record.assessor_comment = assessor_comment
-            if can_edit_deficiencies:
-                form_data_record.deficiency = deficiency
+        # elif action == \
+        #         ApplicationFormDataRecord.ACTION_TYPE_ASSIGN_COMMENT:
+        #     if can_edit_officer_comments:
+        #         form_data_record.officer_comment = officer_comment
+        #     if can_edit_assessor_comments:
+        #         form_data_record.assessor_comment = assessor_comment
+        #     if can_edit_deficiencies:
+        #         form_data_record.deficiency = deficiency
 
         bulk_mgr.add(form_data_record)
 
