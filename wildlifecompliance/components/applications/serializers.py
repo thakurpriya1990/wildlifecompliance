@@ -684,22 +684,23 @@ class BaseApplicationSerializer(serializers.ModelSerializer):
 
     def get_can_current_user_edit(self, obj):
         result = False
-        is_proxy_applicant = False
-        is_in_org_applicant = False
-        is_app_licence_officer = self.context['request'].user in obj.licence_officers
-        is_submitter = obj.submitter == self.context['request'].user
-        if obj.proxy_applicant:
-            is_proxy_applicant = obj.proxy_applicant == self.context['request'].user
-        if obj.org_applicant:
-            user_orgs = [
-                org.id for org in self.context['request'].user.wildlifecompliance_organisations.all()]
-            is_in_org_applicant = obj.org_applicant_id in user_orgs
+        # is_proxy_applicant = False
+        # is_in_org_applicant = False
+        # is_app_licence_officer = self.context['request'].user in obj.licence_officers
+        # is_submitter = obj.submitter == self.context['request'].user
+        # if obj.proxy_applicant:
+        #     is_proxy_applicant = obj.proxy_applicant == self.context['request'].user
+        # if obj.org_applicant:
+        #     user_orgs = [
+        #         org.id for org in self.context['request'].user.wildlifecompliance_organisations.all()]
+        #     is_in_org_applicant = obj.org_applicant_id in user_orgs
 
         result = False if obj.customer_status == \
             Application.CUSTOMER_STATUS_AWAITING_PAYMENT else obj.can_user_edit
 
         if obj.processing_status == \
-                Application.PROCESSING_STATUS_AWAITING_APPLICANT_RESPONSE:
+            Application.PROCESSING_STATUS_AWAITING_APPLICANT_RESPONSE and \
+                not obj.customer_status == Application.CUSTOMER_STATUS_AWAITING_PAYMENT:
             # Outstanding amendment request - edit required.
             result = True
 
@@ -714,12 +715,12 @@ class BaseApplicationSerializer(serializers.ModelSerializer):
         #    ):
         #     result = True
 
-        if result and (
-            is_app_licence_officer 
-            or is_submitter
-            or is_proxy_applicant
-            or is_in_org_applicant):
-                result = True
+        # if result and (
+        #     is_app_licence_officer 
+        #     or is_submitter
+        #     or is_proxy_applicant
+        #     or is_in_org_applicant):
+        #         result = True
         return result
 
     def get_can_user_view(self, obj):
