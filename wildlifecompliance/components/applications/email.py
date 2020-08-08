@@ -295,7 +295,7 @@ def send_activity_invoice_issue_notification(
 
     context = {
         'application': application,
-        'url': url
+        'url': remove_url_internal_request(request, url),
     }
     recipients = [application.submitter.email]
     msg = email.send(recipients, context=context)
