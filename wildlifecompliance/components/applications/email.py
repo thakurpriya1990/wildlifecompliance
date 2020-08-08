@@ -194,7 +194,7 @@ def send_assessment_completed_email(select_group, assessment, request):
     Notification for completed application assessments.
     """
     application = assessment.application
-    text = assessment.text
+    text = assessment.final_comment
     email = ApplicationAssessmentCompletedEmail()
     url = request.build_absolute_uri(
         reverse(
