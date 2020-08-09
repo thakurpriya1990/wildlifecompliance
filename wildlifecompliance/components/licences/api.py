@@ -898,6 +898,7 @@ class UserAvailableWildlifeLicencePurposesViewSet(viewsets.ModelViewSet):
                 ]
                 p_ids = [
                     p.purpose_id for p in activitys[0].proposed_purposes.all()
+                    if p.is_issued
                 ]
                 # amendable_purpose_ids = active_purpose_id2
                 amendable_purpose_ids = p_ids
