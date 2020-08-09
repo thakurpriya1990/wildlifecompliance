@@ -270,88 +270,6 @@ export default {
         close: function () {
             this.isModalOpen = false;
         },
-        eventListeners: function(){
-            let vm = this;
-            this.initFirstTab();
-            // Listeners for Send to Assessor datatable actions
-            if (!this.$refs.assessorDatatable) {
-                return false;
-            }
-
-            this.$refs.assessorDatatable.vmDataTable.on('click','.assessment_remind',(e) => {
-                e.preventDefault();
-
-                let assessment_id = $(e.target).data('assessmentid');
-                vm.$http.post(helpers.add_endpoint_json(api_endpoints.assessment,(assessment_id+'/remind_assessment'))).then((response)=>{
-                    swal(
-                            'Sent',
-                            'An email has been sent to assessor with the request to assess this Application',
-                            'success'
-                    )
-                    vm.refreshAssessorDatatables();
-                },(error)=>{
-                    console.log(error);
-                    vm.errors = true;
-                    vm.errorString = helpers.apiVueResourceError(error);
-
-
-                });
-            });
-
-            this.$refs.assessorDatatable.vmDataTable.on('click','.assessment_resend',(e) => {
-                e.preventDefault();
-
-                let assessment_id = $(e.target).data('assessmentid');
-                vm.$http.post(helpers.add_endpoint_json(api_endpoints.assessment,(assessment_id+'/resend_assessment'))).then((response)=>{
-                    swal(
-                            'Sent',
-                            'An email has been sent to assessor with the request to re-assess this Application',
-                            'success'
-                    )
-                    vm.refreshAssessorDatatables();
-                    vm.$http.get(helpers.add_endpoint_json(api_endpoints.applications,vm.application.id+'/internal_application')).then((res) => {
-                        vm.refreshFromResponse(res);
-                    });
-
-                },(error)=>{
-                    console.log(error);
-                    vm.errors = true;
-                    vm.errorString = helpers.apiVueResourceError(error);
-
-
-                });
-            });
-
-            this.$refs.assessorDatatable.vmDataTable.on('click','.assessment_recall',(e) => {
-                e.preventDefault();
-
-                let assessment_id = $(e.target).data('assessmentid');
-                vm.$http.post(helpers.add_endpoint_json(api_endpoints.assessment,(assessment_id+'/recall_assessment'))).then((response)=>{
-                    //vm.$parent.loading.splice('processing contact',1);
-                    swal(
-                            'Success',
-                            'An assessment for this Application has been recalled',
-                            'success'
-                    )
-                    vm.refreshAssessorDatatables();
-                    vm.$http.get(helpers.add_endpoint_json(api_endpoints.applications,vm.application.id+'/internal_application')).then((res) => {
-                        vm.refreshFromResponse(res);
-                    });
-                },(error)=>{
-                    console.log(error);
-                    vm.errors = true;
-                    vm.errorString = helpers.apiVueResourceError(error);
-
-
-                });
-            });
-
-            this.$refs.assessorDatatable.vmDataTable.on('click','.assessment_view',(e) => {
-                const assessment_id = $(e.target).data('assessmentid');
-                this.openAssessmentModal(assessment_id);
-                e.preventDefault();
-            });
-        },
         openAssessmentModal: function(assessment_id) {
             this.isModalOpen = true;
             this.viewingAssessmentId = assessment_id;
@@ -580,11 +498,11 @@ export default {
                             mRender:function (data,type,full) {
                                 let links = '';
                                 const pending = full.status.id === 'awaiting_assessment';
-                                if(full.status.id == 'completed' && vm.canAssignOfficerFor(activity.id)){
+                                if(['completed','recalled'].includes(full.status.id) && vm.userHasRole('licensing_officer', vm.selected_activity_tab_id)){
                                     links +=  `
                                         <a data-assessmentid='${full.id}' class="assessment-action assessment_resend">Resend</a>
                                     `;
-                                } else if(pending && vm.canAssignOfficerFor(activity.id)){
+                                } else if(pending && vm.userHasRole('licensing_officer', vm.selected_activity_tab_id)){
                                     links +=  `
                                         <a data-assessmentid='${full.id}' class="assessment-action assessment_remind">Remind</a>
                                         <a data-assessmentid='${full.id}' class="assessment-action assessment_recall">Recall</a>
@@ -621,12 +539,95 @@ export default {
             }
             this.assessment.inspection_report = _file;
         },
+        eventListeners: function(){
+            let vm = this;
+            this.initFirstTab();
+            // Listeners for Send to Assessor datatable actions
+            if (!this.$refs.assessorDatatable) {
+                return false;
+            }
+
+            this.$refs.assessorDatatable.vmDataTable.on('click','.assessment_remind',(e) => {
+                e.stopImmediatePropagation();
+                e.preventDefault();
+
+                let assessment_id = $(e.target).data('assessmentid');
+                vm.$http.post(helpers.add_endpoint_json(api_endpoints.assessment,(assessment_id+'/remind_assessment'))).then((response)=>{
+                    swal(
+                            'Sent',
+                            'An email has been sent to assessor with the request to assess this Application',
+                            'success'
+                    )
+                    vm.refreshAssessorDatatables();
+                },(error)=>{
+                    console.log(error);
+                    vm.errors = true;
+                    vm.errorString = helpers.apiVueResourceError(error);
+
+
+                });
+            });
+
+            this.$refs.assessorDatatable.vmDataTable.on('click','.assessment_resend',(e) => {
+                e.stopImmediatePropagation();
+                e.preventDefault();
+
+                let assessment_id = $(e.target).data('assessmentid');
+                vm.$http.post(helpers.add_endpoint_json(api_endpoints.assessment,(assessment_id+'/resend_assessment'))).then((response)=>{
+                    swal(
+                            'Sent',
+                            'An email has been sent to assessor with the request to re-assess this Application',
+                            'success'
+                    )
+                    vm.refreshAssessorDatatables();
+                    vm.$http.get(helpers.add_endpoint_json(api_endpoints.applications,vm.application.id+'/internal_application')).then((res) => {
+                        vm.refreshFromResponse(res);
+                    });
+
+                },(error)=>{
+                    console.log(error);
+                    vm.errors = true;
+                    vm.errorString = helpers.apiVueResourceError(error);
+
+
+                });
+            });
+
+            this.$refs.assessorDatatable.vmDataTable.on('click','.assessment_recall',(e) => {
+                e.stopImmediatePropagation();
+                e.preventDefault();
+
+                let assessment_id = $(e.target).data('assessmentid');
+                vm.$http.post(helpers.add_endpoint_json(api_endpoints.assessment,(assessment_id+'/recall_assessment'))).then((response)=>{
+                    //vm.$parent.loading.splice('processing contact',1);
+                    swal(
+                            'Success',
+                            'An assessment for this Application has been recalled',
+                            'success'
+                    )
+                    vm.refreshAssessorDatatables();
+                    vm.$http.get(helpers.add_endpoint_json(api_endpoints.applications,vm.application.id+'/internal_application')).then((res) => {
+                        vm.refreshFromResponse(res);
+                    });
+                },(error)=>{
+                    console.log(error);
+                    vm.errors = true;
+                    vm.errorString = helpers.apiVueResourceError(error);
+
+
+                });
+            });
+
+            this.$refs.assessorDatatable.vmDataTable.on('click','.assessment_view',(e) => {
+                const assessment_id = $(e.target).data('assessmentid');
+                this.openAssessmentModal(assessment_id);
+                e.preventDefault();
+            });
+        },
     },
     mounted: function() {
         this.fetchAssessorGroup();
         this.initFirstTab(true);
-    },
-    updated: function(){
         this.$nextTick(() => {
             this.eventListeners();
         });

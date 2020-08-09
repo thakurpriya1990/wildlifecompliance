@@ -1,5 +1,6 @@
 <template>
 <div class="panel panel-default">
+    <AmendmentRequestDetails v-show="is_external"/>
     <div class="panel-heading">
         <h3 class="panel-title">Return
             <a class="panelClicker" :href="'#'+pdBody" data-toggle="collapse"  data-parent="#userInfo" expanded="true" :aria-controls="pdBody">
@@ -41,10 +42,10 @@
                 <span class="pull-left" style="margin-left:10px;margin-top:10px;">{{uploadedFileName}}</span>
             </div>
             <div class="row"></div>
-            <div v-if="nilReturn === 'no'" class="row">
+            <div v-if="refreshGrid && nilReturn === 'no'" class="row">
                 <renderer-block v-for="(data, key) in returns.table"
                           :component="data"
-                          v-bind:key="returns-grid-data"
+                          v-bind:key="`returns-grid-data_${key}`"
                 />
             </div>
             <div class="margin-left-20"></div>
@@ -59,6 +60,7 @@
 import Vue from 'vue'
 import { mapActions, mapGetters } from 'vuex'
 import CommsLogs from '@common-components/comms_logs.vue'
+import AmendmentRequestDetails from './return_amendment.vue';
 import {
   api_endpoints,
   helpers
@@ -78,7 +80,11 @@ export default {
         spreadsheetReturn: 'no',
         replaceReturn: 'no',
         readonly: false,
+        refresh_grid: true,
     }
+  },
+  components: {
+    AmendmentRequestDetails,
   },
   computed: {
      ...mapGetters([
@@ -90,8 +96,12 @@ export default {
       return this.spreadsheet != null ? this.spreadsheet.name: '';
     },
     isReadOnly: function() {
-      return this.readonly;
+      return this.readonly || !this.is_external;
     },
+    refreshGrid: function() {
+      this.setReturnsEstimateFee()
+      return this.refresh_grid;
+    }
   },
   methods: {
     ...mapActions({
@@ -99,6 +109,7 @@ export default {
     }),
     ...mapActions([
         'setReturns',
+        'setReturnsEstimateFee',
     ]),
     uploadFile: function(e) {
       let _file = null;
@@ -115,6 +126,7 @@ export default {
       this.validate_upload()
     },
     validate_upload(e) {
+      this.refresh_grid = false
       let _data = new FormData(this.form);
       _data.append('spreadsheet', this.spreadsheet)
       this.$http.post(helpers.add_endpoint_json(api_endpoints.returns,this.returns.id+'/upload_details'),_data,{
@@ -131,11 +143,30 @@ export default {
               this.replaceReturn = 'no'
             }
             this.nilReturn = 'no'
-            this.spreadsheetReturn = 'no'
+            this.spreadsheetReturn = 'yes'
+            this.refresh_grid = true
         },exception=>{
 		        swal('Error Uploading', exception.body.error, 'error');
         });
     },
+    estimate_price: function() {
+      const self = this;
+      self.form=document.forms.external_returns_form;
+      self.$http.post(helpers.add_endpoint_json(api_endpoints.returns,self.returns.id+'/estimate_price'),{
+                      emulateJSON:true,
+                    }).then((response)=>{
+
+                        console.log(response)
+
+                    },(error)=>{
+                        console.log(error);
+                        swal('Error',
+                             'There was an error submitting your return details.<br/>' + error.body,
+                             'error'
+                        )
+                    });
+
+    }
   },
   mounted: function(){
     var vm = this;

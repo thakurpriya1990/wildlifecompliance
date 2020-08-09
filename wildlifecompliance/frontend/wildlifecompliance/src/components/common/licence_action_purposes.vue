@@ -9,9 +9,9 @@
                             <div class="form-group">
                                 <div class="row">
                                     <div v-if=hasActionableLicencePurposes class="col-sm-12">
-                                        <div v-for="purpose in actionableLicencePurposes">
+                                        <div v-for="(purpose, index) in actionableLicencePurposes" v-bind:key="`purpose_${index}`">
                                             <div>
-                                                <input type="checkbox" :value ="purpose.id" :id="purpose.id" v-model="action_licence.purpose_ids_list"> {{purpose.name}}
+                                                <input type="checkbox" :value ="purpose.purpose.id" :id="purpose.purpose.id" v-model="action_licence.purpose_ids_list"> {{purpose.name}}
                                             </div>
                                         </div>
                                     </div>
@@ -64,6 +64,11 @@ export default {
             errorString: '',
             successString: '',
             success:false,
+            checkbox_list: {
+                application: 0,
+                purpose_ids: [],
+            },
+            selectedActivityId: 0,
         }
     },
     computed: {
@@ -83,6 +88,8 @@ export default {
                 return 'Select purpose(s) to surrender';
             } else if (this.action == 'reactivate-renew'){
                 return 'Select purpose(s) to reactivate renew';
+            } else if (this.action == 'reissue'){
+                return 'Select purpose(s) to reissue';
             } else if (this.action == 'reinstate'){
                 return 'Select purpose(s) to reinstate';
             }
@@ -96,6 +103,8 @@ export default {
                 return 'Surrender';
             } else if (this.action == 'reactivate-renew'){
                 return 'Reactivate Renew';
+            } else if (this.action == 'reissue'){
+                return 'Reissue';
             } else if (this.action == 'reinstate'){
                 return 'Reinstate';
             }
@@ -109,9 +118,16 @@ export default {
                 return 'Surrendering';
             } else if (this.action == 'reactivate-renew'){
                 return 'Reactivating Renew';
+            } else if (this.action == 'reissue'){
+                return 'Reissue';
             } else if (this.action == 'reinstate'){
                 return 'Reinstating';
             }
+        },
+        actionableLicencePurposesByAppId: function(appId) {
+            return this.licence_activity_purposes.filter(activity => {
+                return activity.application===appId;
+            });
         },
         actionableLicencePurposes: function() {
             return this.licence_activity_purposes;
@@ -139,13 +155,27 @@ export default {
             $('.has-error').removeClass('has-error');
             this.validation_form.resetForm();
         },
+        close_back_to_application:function (app_id) {
+            this.isModalOpen = false;
+            this.action_licence = {
+                purpose_ids_list:[]
+            };
+            this.errors = false;
+            $('.has-error').removeClass('has-error');
+            this.validation_form.resetForm();
+            // route back to application for reissue.
+            this.$router.push({name:"internal-application", params:{application_id: app_id}});
+        },
         sendData:function(){
             let vm = this;
+            let data = new FormData()
             vm.errors = false;
             vm.actioningPurposes = true;
             if (vm.action == 'cancel'){
                 if (vm.action_licence.purpose_ids_list.length > 0){
-                    vm.$http.post(helpers.add_endpoint_json(api_endpoints.licences,vm.licence_id+'/cancel_purposes'),JSON.stringify(vm.action_licence),{
+                    data.purpose_ids_list = vm.action_licence.purpose_ids_list
+                    data.selected_activity_id = vm.selectedActivityId;
+                    vm.$http.post(helpers.add_endpoint_json(api_endpoints.licences,vm.licence_id+'/cancel_purposes'),JSON.stringify(data),{
                             emulateJSON:true,
                         }).then((response)=>{
                             swal(
@@ -171,7 +201,9 @@ export default {
                 }
             } else if (vm.action == 'suspend'){
                 if (vm.action_licence.purpose_ids_list.length > 0){
-                    vm.$http.post(helpers.add_endpoint_json(api_endpoints.licences,vm.licence_id+'/suspend_purposes'),JSON.stringify(vm.action_licence),{
+                    data.purpose_ids_list = vm.action_licence.purpose_ids_list
+                    data.selected_activity_id = vm.selectedActivityId;
+                    vm.$http.post(helpers.add_endpoint_json(api_endpoints.licences,vm.licence_id+'/suspend_purposes'),JSON.stringify(data),{
                             emulateJSON:true,
                         }).then((response)=>{
                             swal(
@@ -197,7 +229,9 @@ export default {
                 }
             } else if (vm.action == 'surrender'){
                 if (vm.action_licence.purpose_ids_list.length > 0){
-                    vm.$http.post(helpers.add_endpoint_json(api_endpoints.licences,vm.licence_id+'/surrender_purposes'),JSON.stringify(vm.action_licence),{
+                    data.purpose_ids_list = vm.action_licence.purpose_ids_list
+                    data.selected_activity_id = vm.selectedActivityId;
+                    vm.$http.post(helpers.add_endpoint_json(api_endpoints.licences,vm.licence_id+'/surrender_purposes'),JSON.stringify(data),{
                             emulateJSON:true,
                         }).then((response)=>{
                             swal(
@@ -223,7 +257,9 @@ export default {
                 }
             } else if (vm.action == 'reactivate-renew'){
                 if (vm.action_licence.purpose_ids_list.length > 0){
-                    vm.$http.post(helpers.add_endpoint_json(api_endpoints.licences,vm.licence_id+'/reactivat_renew_purposes'),JSON.stringify(vm.action_licence),{
+                    data.purpose_ids_list = vm.action_licence.purpose_ids_list
+                    data.selected_activity_id = vm.selectedActivityId;
+                    vm.$http.post(helpers.add_endpoint_json(api_endpoints.licences,vm.licence_id+'/reactivate_renew_purposes'),JSON.stringify(data),{
                             emulateJSON:true,
                         }).then((response)=>{
                             swal(
@@ -247,9 +283,37 @@ export default {
                          'error'
                     )
                 }
+            } else if (vm.action == 'reissue'){
+                if (vm.action_licence.purpose_ids_list.length > 0){
+                    data.purpose_ids_list = vm.action_licence.purpose_ids_list
+                    data.selected_activity_id = vm.selectedActivityId;
+                    vm.$http.post(helpers.add_endpoint_json(api_endpoints.licences,vm.licence_id+'/reissue_purposes'),JSON.stringify(data),{
+                            emulateJSON:true,
+                        }).then((response)=>{
+                            vm.actioningPurposes = false;
+                            let p1 = this.licence_activity_purposes.filter(pur => {
+                                return pur.purpose.id===this.action_licence.purpose_ids_list[0];
+                            })
+                            vm.close_back_to_application(p1[0].application);
+                            vm.$emit('refreshFromResponse',response);
+                        },(error)=>{
+                            vm.errors = true;
+                            vm.actioningPurposes = false;
+                            vm.errorString = helpers.apiVueResourceError(error);
+                        });
+                } else {
+                    vm.actioningPurposes = false;
+                    swal(
+                         'Reissue Purpose',
+                         'Please select at least once licenced purpose to Reissue.',
+                         'error'
+                    )
+                }
             } else if (vm.action == 'reinstate'){
                 if (vm.action_licence.purpose_ids_list.length > 0){
-                    vm.$http.post(helpers.add_endpoint_json(api_endpoints.licences,vm.licence_id+'/reinstate_purposes'),JSON.stringify(vm.action_licence),{
+                    data.purpose_ids_list = vm.action_licence.purpose_ids_list
+                    data.selected_activity_id = vm.selectedActivityId;
+                    vm.$http.post(helpers.add_endpoint_json(api_endpoints.licences,vm.licence_id+'/reinstate_purposes'),JSON.stringify(data),{
                             emulateJSON:true,
                         }).then((response)=>{
                             swal(
@@ -302,6 +366,46 @@ export default {
                     }
                 }
             });
+        },
+        updateCheckboxList: function() {
+            // TODO: filtered purpose checkbox list per application.
+
+            let last_id = this.action_licence.purpose_ids_list.length-1
+            let p1 = this.licence_activity_purposes.filter(pur => {
+                return pur.purpose.id===this.action_licence.purpose_ids_list[last_id];
+            })
+
+            //var p1 = this.action_licence.purpose_ids_list[0];
+            if (p1[0] && this.checkbox_list.application!==p1[0].application){
+                // not the same application
+                this.checkbox_list.application = p1[0].application;
+                this.checkbox_list.purpose_ids = [];
+                for (let i=0; i<this.licence_activity_purposes.length; i++){
+                    // go through all purposes available
+                    let p = this.licence_activity_purposes[i]
+
+                    if (p.application===p1[0].application && this.action_licence.purpose_ids_list.find(id => id === p.purpose.id)){
+                        // match on application and selected
+                        this.checkbox_list.purpose_ids.push(p.purpose.id);
+                    }
+                }
+            } else if (p1[0] && this.checkbox_list.application===p1[0].application){
+                // same application
+                this.checkbox_list.purpose_ids = [];
+                for (let i=0; i<this.licence_activity_purposes.length; i++){
+                    let p = this.licence_activity_purposes[i]
+                    if (p.application===p1[0].application && this.action_licence.purpose_ids_list.find(id => id === p.purpose.id)){
+                        // match on application and selected
+                        this.checkbox_list.purpose_ids.push(p.purpose.id)
+                    }
+                }
+            }
+            if (!p1[0]){
+                this.checkbox_list.application = 0;
+                this.checkbox_list.purpose_ids = [];
+            }
+            //this.action_licence.purpose_ids_list = []
+
         },
    },
    mounted:function () {

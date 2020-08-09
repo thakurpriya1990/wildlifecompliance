@@ -22,57 +22,50 @@
                                             <div class="form-group">
                                                 <div class="row">
                                                     <div class="col-sm-3">
-                                                        <input type="radio"  id="issue" name="licence_category" v-model="getActivity(item.id).final_status"  value="issued" > Issue
-                                                    </div>
-                                                    <div class="col-sm-3">
-                                                        <input type="radio"  id="decline" name="licence_category" v-model="getActivity(item.id).final_status"  value="declined" > Decline
-                                                    </div>
-                                                </div>
-                                                <div class="row">
-                                                    <div class="col-sm-3">
-                                                        <label class="control-label pull-left">Proposed Purposes</label>
-                                                    </div>
-                                                    <div class="col-sm-9">
-                                                        <div v-for="(purpose, index) in applicationSelectedActivitiesForPurposes" v-bind:key="`purpose_${index}`">
-                                                            <input type="checkbox" :value ="purpose.id" :id="purpose.id" v-model="getActivity(item.id).purposes">{{purpose.short_name}}
-                                                        </div>
-                                                    </div>
-                                                </div>                                                
-                                                <div class="row">
-                                                    <div class="col-sm-3">
                                                         <label class="control-label pull-left">Ready for issuing?</label>
                                                     </div>
                                                     <div class="col-sm-9">
                                                         <input type="checkbox" class="confirmation-checkbox" v-model="getActivity(item.id).confirmed">
                                                     </div>
                                                 </div>
-                                                <div class="row" v-if="finalStatus(item.id) === 'issued' && canEditLicenceDates">
+                                                <div class="row">
                                                     <div class="col-sm-3">
-                                                        <label class="control-label pull-left">Proposed Start Date</label>
+                                                        <label class="control-label pull-left">Proposed Purposes</label>
                                                     </div>
-                                                    <div class="col-sm-9">
-                                                        <div class="input-group date" ref="start_date" style="width: 70%;" :data-init="false" :data-activity="item.id">
-                                                            <input type="text" class="form-control" name="start_date" placeholder="DD/MM/YYYY">
-                                                            <span class="input-group-addon">
-                                                                <span class="glyphicon glyphicon-calendar"></span>
-                                                            </span>
+                                                    <div class="col-sm-12">
+                                                        <div v-for="(p, index) in applicationSelectedActivitiesForPurposes" v-bind:key="`p_${index}`">
+                                                            <div class="col-sm-12">
+                                                            {{p.purpose['short_name']}}
+                                                            </div>
+                                                            <div class="col-sm-3">
+                                                                Issue <input type="radio" :value ="true" :id="p.purpose.id" v-model="getPickedPurpose(p.purpose.id).isProposed" /> &nbsp;&nbsp;
+                                                                Decline <input type="radio" :value ="false" :id="p.purpose.id" v-model="getPickedPurpose(p.purpose.id).isProposed" />
+                                                            </div>
+                                                            <div class="col-sm-3">
+                                                                <div class="input-group date" v-if="getPickedPurpose(p.purpose.id).isProposed" :ref="`start_date_${p.id}`" style="width: 100%;">
+                                                                    <input :readonly="!canEditLicenceDates && p.proposed_start_date" type="text" class="form-control" :name="`start_date_${p.id}`" placeholder="DD/MM/YYYY" v-model="p.proposed_start_date">
+                                                                    <span class="input-group-addon">
+                                                                        <span class="glyphicon glyphicon-calendar"></span>
+                                                                    </span>
+                                                                </div>
+                                                            </div>                                                
+                                                            <div class="col-sm-3">                                                        
+                                                                <div class="input-group date" v-if="getPickedPurpose(p.purpose.id).isProposed" :ref="`end_date_${p.id}`" style="width: 100%;">
+                                                                    <input :readonly="!canEditLicenceDates && p.proposed_end_date" type="text" class="form-control" :name="`end_date_${p.id}`" placeholder="DD/MM/YYYY" v-model="p.proposed_end_date">
+                                                                    <span class="input-group-addon">
+                                                                        <span class="glyphicon glyphicon-calendar"></span>
+                                                                    </span>
+                                                                </div>
+                                                            </div>
+                                                            <div class="col-sm-12" v-if="!getPickedPurpose(p.purpose.id).isProposed">                                                        
+                                                                &nbsp;
+                                                            </div>
                                                         </div>
                                                     </div>
-
                                                 </div>
-                                                <div class="row" v-if="finalStatus(item.id) === 'issued' && canEditLicenceDates">
-                                                    <div class="col-sm-3">
-                                                        <label class="control-label pull-left">Proposed Expiry Date</label>
-                                                    </div>
-                                                    <div class="col-sm-9">
-                                                        <div class="input-group date" ref="end_date" style="width: 70%;" :data-activity="item.id">
-                                                            <input type="text" class="form-control" name="end_date" placeholder="DD/MM/YYYY">
-                                                            <span class="input-group-addon">
-                                                                <span class="glyphicon glyphicon-calendar"></span>
-                                                            </span>
-                                                        </div>
-                                                    </div>
-                                                </div>
+                                                <div class="row">
+                                                    <div class="col-sm-12" />
+                                                </div><br/>                                          
                                                 <div class="row">
                                                     <div class="col-sm-3">
                                                         <label class="control-label pull-left">Additional Fee Details</label>
@@ -80,7 +73,7 @@
                                                     <div class="col-sm-9">
                                                         <input type="text" class="form-control" name="cc_email" style="width: 70%;"  v-model="getActivity(item.id).additional_fee_text">
                                                     </div>
-                                                </div>
+                                                </div><br/>
                                                 <div class="row">
                                                     <div class="col-sm-3">
                                                         <label class="control-label pull-left">Additional Fee</label>
@@ -240,12 +233,16 @@ export default {
                 return_check:false,
                 current_application: vm.application.id,
                 purposes: [],
+                selected_purpose_ids: [],
                 },
             datepickerOptions:{
                 format: 'DD/MM/YYYY',
                 showClear:true,
+                useCurrent:false,
+                keepInvalid:true,
                 allowInputToggle:true
             },
+            pickedPurposes: [],
         }
     },
     watch:{
@@ -267,7 +264,10 @@ export default {
             return url;
         },
         applicationSelectedActivitiesForPurposes: function() {
-            return this.selectedApplicationActivity.proposed_purposes
+            var proposed = this.selectedApplicationActivity.proposed_purposes.filter(purpose => {
+                return ['selected','reissue','propose'].includes(purpose.processing_status)
+            });
+            return proposed;
         },
         canIssueOrDecline: function() {
             return (this.allActivitiesDeclined || (
@@ -350,13 +350,6 @@ export default {
             ).length;
             return confirmations === required_confirmations;
         },
-        selectedActivityPurpose: function() {
-            const required_confirmations = this.visibleLicenceActivities.length
-            const confirmations = this.licence.activity.filter(
-                activity => activity.purposes.length>0 && activity.confirmed
-            ).length;
-            return confirmations === required_confirmations;
-        },
         canEditLicenceDates: function() {
             return this.application.application_type && this.application.application_type.id !== 'amend_activity';
         },
@@ -391,14 +384,6 @@ export default {
                 );
             }
 
-            if(!this.selectedActivityPurpose) {
-                return swal(
-                    'Cannot issue/decline',
-                    "One or more purposes hasn't been selected!",
-                    'error'
-                );
-            }
-
             swal({
                 title: "Issue/Decline Activities",
                 text: "Payment for issued licences will be charged from the applicant's last used card.",
@@ -407,29 +392,36 @@ export default {
                 confirmButtonText: 'Finalise'
             }).then((result) => {
                 if (result.value) {
+                    let selected = []
+                    for (let a=0; a<this.application.activities.length; a++){
+                        let activity = this.application.activities[a]
+                        let proposed = activity.proposed_purposes
+                        for (let p=0; p<proposed.length; p++){
+                            let purpose = proposed[p]
+                            if (['reissue','propose','selected'].includes(purpose.processing_status)){
+                                selected.push(purpose)
+                            }
+                        }
+                    }
+                    vm.licence.purposes = selected
+                    vm.licence.selected_purpose_ids = this.pickedPurposes
                     let licence = JSON.parse(JSON.stringify(vm.licence));
-                    licence.activity = this.licence.activity.map(activity => {
+                    licence.purposes = vm.licence.purposes.map(purpose => {
                         const date_formats = ["DD/MM/YYYY", "YYYY-MM-DD"];
                         return {
-                            ...activity,
-                            start_date: activity.start_date ?
-                                moment(activity.start_date, date_formats).format('YYYY-MM-DD') : null,
-                            end_date: activity.end_date ?
-                                moment(activity.end_date, date_formats).format('YYYY-MM-DD') : null,
+                            ...purpose,
+                            proposed_start_date: purpose.proposed_start_date ?
+                                moment(purpose.proposed_start_date, date_formats).format('YYYY-MM-DD') : null,
+                            proposed_end_date: purpose.proposed_end_date ?
+                                moment(purpose.proposed_end_date, date_formats).format('YYYY-MM-DD') : null,
                         }
                     });
                     vm.$http.post(helpers.add_endpoint_json(api_endpoints.applications,vm.application.id+'/final_decision'),JSON.stringify(licence),{
                                 emulateJSON:true,
+
                             }).then((response)=>{
-                                //swal(
-                                //    'Activities Finalised',
-                                //    'The selected activities have been successfully finalised!',
-                                //    'success'
-                                //);
-                                //vm.$parent.refreshFromResponse(response);
-                                vm.$router.push({
-                                    name:"internal-dash",
-                                });     
+                                vm.$router.push({ name:"internal-dash", });
+
                             },(error)=>{
                                 swal(
                                     'Application Error',
@@ -445,6 +437,14 @@ export default {
         getActivity: function(id) {
             const activity = this.licence.activity.find(activity => activity.id == id);
             return activity ? activity : {};
+        },
+        getPickedPurpose: function(_id){
+            let picked = this.pickedPurposes.find(p => {return p.id===_id})
+            if (!picked) {
+                picked = {id: _id, isProposed: true}
+                this.pickedPurposes.push(picked)
+            }
+            return picked
         },
         initialiseLicenceDetails() {
             var final_status = null;
@@ -492,6 +492,35 @@ export default {
             if(this.application.return_check_status.id == 'not_checked'){
                 this.licence.return_check=false;
             }
+
+            for (let a=0; a<this.application.activities.length; a++){
+                let activity = this.application.activities[a];
+                for(let p=0; p<activity.proposed_purposes.length; p++){
+                    let purpose = activity.proposed_purposes[p]
+                    let picked = this.pickedPurposes.find(p => {return p.id===purpose.purpose.id})
+                    if (picked == null){
+                        picked = {id: purpose.purpose.id, isProposed: false}
+                        this.pickedPurposes.push(picked)
+                    }
+                    if (['reissue','propose'].includes(purpose.processing_status)) {
+                        picked.isProposed = true
+
+                    } else {
+                        picked.isProposed = false
+                    }
+                    if (purpose.proposed_start_date != null && purpose.proposed_start_date.charAt(2)==='/'){
+                        continue
+                    }
+                    let date1 = moment(purpose.proposed_start_date, 'YYYY-MM-DD').format('DD/MM/YYYY')
+                    let date2 = moment(purpose.proposed_end_date, 'YYYY-MM-DD').format('DD/MM/YYYY')
+                    if (purpose.proposed_start_date == null){
+                        date1 = '';
+                        date2 = ''
+                    }
+                    purpose.proposed_start_date = date1
+                    purpose.proposed_end_date = date2
+                }
+            }
         },
         
         fetchProposeIssue(){
@@ -513,6 +542,7 @@ export default {
         },
        
         eventListeners(){
+            this.initDatePicker();
         },
 
         initFirstTab: function(force){
@@ -544,43 +574,42 @@ export default {
 
         //Initialise Date Picker
         initDatePicker: function() {
-            if(this.$refs === undefined || this.$refs.end_date === undefined) {
-                return;
-            }
-
-            for (let i=0; i < this.$refs.end_date.length; i++) {
-                const start_date = this.$refs.start_date[i];
-                const end_date = this.$refs.end_date[i];
-                const activity_id = end_date.dataset.activity;
-                if(end_date.dataset.init) {
-                    continue;
+            for (let a=0; a<this.application.activities.length; a++){
+                let activity = this.application.activities[a];
+                for (let p=0; p<activity.proposed_purposes.length; p++){
+                    let purpose = activity.proposed_purposes[p]
+                    let start_date = 'start_date_' + purpose.id
+                    $(`[name='${start_date}']`).datetimepicker(this.datepickerOptions);
+                    $(`[name='${start_date}']`).on('dp.change', function(e){
+                        if ($(`[name='${start_date}']`).data('DateTimePicker').date()) {
+                            purpose.proposed_start_date =  e.date.format('DD/MM/YYYY');
+                        }
+                        else if ($(`[name='${start_date}']`).data('date') === "") {
+                            purpose.proposed_start_date = "";
+                        }
+                        else {
+                            purpose.proposed_start_date = "";
+                        }
+                    });
+                    let end_date = 'end_date_' + purpose.id
+                    $(`[name='${end_date}']`).datetimepicker(this.datepickerOptions);
+                    $(`[name='${end_date}']`).on('dp.change', function(e){
+                        if ($(`[name='${end_date}']`).data('DateTimePicker').date()) {
+                            purpose.proposed_end_date =  e.date.format('DD/MM/YYYY');
+                        }
+                        else if ($(`[name='${end_date}']`).data('date') === "") {
+                            purpose.proposed_end_date = "";
+                        }
+                        else {
+                            purpose.proposed_end_date = "";
+                        }
+                    });
                 }
-
-                const activity = this.getActivity(activity_id);
-                const proposedStartDate = new Date(activity.start_date);
-                const proposedEndDate = new Date(activity.end_date);
-
-                end_date.dataset.init = true;
-                start_date.dataset.init = true;
-                $(end_date).datetimepicker(this.datepickerOptions);
-                $(end_date).data('DateTimePicker').date(proposedEndDate);
-                $(end_date).off('dp.change').on('dp.change', (e) => {
-                    const selected_end_date = $(end_date).data('DateTimePicker').date().format('DD/MM/YYYY');
-                    if (selected_end_date && selected_end_date != activity.end_date) {
-                        activity.end_date = selected_end_date;
-                    }
-                });
-
-                $(start_date).datetimepicker(this.datepickerOptions);
-                $(start_date).data('DateTimePicker').date(proposedStartDate);
-                $(start_date).off('dp.change').on('dp.change', (e) => {
-                    const selected_start_date = $(start_date).data('DateTimePicker').date().format('DD/MM/YYYY');
-                    if (selected_start_date && selected_start_date != activity.start_date) {
-                        activity.start_date = selected_start_date;
-                    }
-                });
             }
         }
+    },
+    updated: function(){
+        this.eventListeners();
     },
     mounted: function(){
         let vm = this;
@@ -592,11 +621,6 @@ export default {
         });
 
     },
-    updated: function() {
-        this.$nextTick(() => {
-            this.initDatePicker();
-        });
-    }
     
 }
 </script>

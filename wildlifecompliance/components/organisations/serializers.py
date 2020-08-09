@@ -327,8 +327,8 @@ class OrgRequestRequesterSerializer(serializers.ModelSerializer):
 
 
 class OrganisationRequestSerializer(serializers.ModelSerializer):
-    assigned_officer = serializers.CharField(
-        source='assigned_officer.get_full_name')
+    # assigned_officer = serializers.CharField(
+    #     source='assigned_officer.get_full_name')
     identification = serializers.FileField()
     requester = OrgRequestRequesterSerializer(read_only=True)
     status = CustomChoiceField(read_only=True)
@@ -351,7 +351,7 @@ class OrganisationRequestSerializer(serializers.ModelSerializer):
             'can_be_processed',
             'user_can_process_org_access_requests'
         )
-        read_only_fields = ('requester', 'lodgement_date', 'assigned_officer')
+        read_only_fields = ('requester', 'lodgement_date')
 
     def get_can_be_processed(self, obj):
         return obj.status == OrganisationRequest.ORG_REQUEST_STATUS_WITH_ASSESSOR

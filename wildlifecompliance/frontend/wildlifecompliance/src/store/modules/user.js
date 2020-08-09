@@ -12,6 +12,7 @@ import {
     UPDATE_SELECTED_APPLY_PROXY_ID,
     UPDATE_SELECTED_APPLY_LICENCE_SELECT,
     UPDATE_APPLICATION_WORKFLOW_STATE,
+    UPDATE_RECEPTION_METHOD_ID,
 } from '@/store/mutation-types';
 
 export const userStore = {
@@ -23,6 +24,7 @@ export const userStore = {
         selected_apply_licence_select: null,
         application_workflow_state: false,
         current_user: {},
+        reception_method_id: null,
         
     },
     getters: {
@@ -34,6 +36,7 @@ export const userStore = {
         selected_apply_proxy_id: state => state.selected_apply_proxy_id,
         selected_apply_licence_select: state => state.selected_apply_licence_select,
         application_workflow_state: state => state.application_workflow_state,
+        reception_method_id: state => state.reception_method_id,
         hasRole: (state, getters, rootState, rootGetters) => (role, activity_id) => {
             if(rootGetters.application.user_roles == null) {
                 return false;
@@ -51,19 +54,35 @@ export const userStore = {
             );
         },
         canViewDeficiencies: (state, getters) => {
-            return getters.hasRole('licensing_officer') || getters.application.can_current_user_edit;
+            if (getters.isApplicationLoaded){
+
+                return getters.hasRole('licensing_officer') || getters.application.can_current_user_edit;
+            }
+            if (getters.isReturnsLoaded){
+
+                return getters.returns.activity_curators.find(curator => curator.id === getters.current_user.id);
+            }
+            return false
         },
         canEditDeficiencies: (state, getters) => {
-            return getters.application.activities.find(activity => {
+            if (getters.isApplicationLoaded){
 
-                return activity.licence_activity === getters.selected_activity_tab_id
-                    // verify role exist for selected activity.
-                    && getters.hasRole('licensing_officer', activity.licence_activity)
-                    // verify activity status.
-                    && ['with_officer', 'with_officer_conditions'].includes(activity.processing_status.id)
-                    // verify current user is associated.
-                    && activity.licensing_officers.find(officer => officer.id === getters.current_user.id);
-            });                    
+                return getters.application.activities.find(activity => {
+
+                    return activity.licence_activity === getters.selected_activity_tab_id
+                        // verify role exist for selected activity.
+                        && getters.hasRole('licensing_officer', activity.licence_activity)
+                        // verify activity status.
+                        && ['with_officer', 'with_officer_conditions'].includes(activity.processing_status.id)
+                        // verify current user is associated.
+                        && activity.licensing_officers.find(officer => officer.id === getters.current_user.id);
+                });   
+            }
+            if (getters.isReturnsLoaded){
+
+                return getters.returns.activity_curators.find(curator => curator.id === getters.current_user.id);
+            }
+            return false
         },
         canViewComments: (state, getters) => {
             return getters.hasRole('licensing_officer') || getters.hasRole('assessor');
@@ -102,16 +121,28 @@ export const userStore = {
             });          
         },
         canAssignOfficerFor: (state, getters, rootState, rootGetters) => (activity_id) => {
-            return rootGetters.application.activities.find(activity => {
+            if (getters.isApplicationLoaded){
 
-                return activity.licence_activity === activity_id
-                    // verify role exist for activity.
-                    && getters.hasRole('licensing_officer', activity_id)
-                    // verify activity status.
-                    && ['with_officer', 'with_officer_conditions'].includes(activity.processing_status.id)
+                return rootGetters.application.activities.find(activity => {
+
+                    return activity.licence_activity === activity_id
+                        // verify role exist for activity.
+                        && getters.hasRole('licensing_officer', activity_id)
+                        // verify activity status.
+                        && ['with_officer', 'with_officer_conditions'].includes(activity.processing_status.id)
+                        // verify current user is associated.
+                        && activity.licensing_officers.find(officer => officer.id === getters.current_user.id);
+                });  
+
+            }
+            if (getters.isReturnsLoaded){
+
+                return getters.returns.activity_curators.find(curator => {
                     // verify current user is associated.
-                    && activity.licensing_officers.find(officer => officer.id === getters.current_user.id);
-            });                    
+                    return getters.returns.activity_curators.find(officer => officer.id === getters.current_user.id);
+                });
+            }
+                  
         },
         canAssignAssessorFor: (state, getters, rootState, rootGetters) => (activity_id) => {
             return rootGetters.application.activities.find(activity => {
@@ -152,6 +183,9 @@ export const userStore = {
         [UPDATE_APPLICATION_WORKFLOW_STATE] (state, bool) {
             state.application_workflow_state = bool;
         },
+        [UPDATE_RECEPTION_METHOD_ID] (state, pay_method) {
+            state.reception_method_id = pay_method;
+        },
     },
     actions: {
         setActivityTab({ commit }, { id, name }) {
@@ -169,6 +203,9 @@ export const userStore = {
         },
         setApplicationWorkflowState({ commit }, { bool }) {
             commit(UPDATE_APPLICATION_WORKFLOW_STATE, bool);
+        },
+        setReceptionMethodId({ commit }, { pay_method }) {
+            commit(UPDATE_RECEPTION_METHOD_ID, pay_method);
         },
         loadCurrentUser({ dispatch, commit }, { url }) {
             return new Promise((resolve, reject) => {

@@ -26,17 +26,17 @@
                                 </div>
                                 <div class="radio">
                                     <label>
-                                      <input type="radio" name="select_licence" v-model="licence_select" value="new_activity"> apply for a new licensed activity on your licence?
+                                      <input type="radio" name="select_licence" v-model="licence_select" value="new_activity"> apply for a new licensed activity or new licensed purpose on your existing licence?
                                     </label>
                                 </div>
                                 <div class="radio">
                                      <label>
-                                      <input type="radio" name="select_licence" v-model="licence_select" value="amend_activity"> amend one or more licensed activities on your licence?
+                                      <input type="radio" name="select_licence" v-model="licence_select" value="amend_activity"> amend one or more licensed purposes on your existing licence?
                                     </label>
                                 </div>
                                 <div class="radio">
                                     <label>
-                                      <input type="radio" name="select_licence" v-model="licence_select" value="renew_activity"> renew one or more licensed activities on your licence?
+                                      <input type="radio" name="select_licence" v-model="licence_select" value="renew_activity"> renew one or more licensed purposes on your existing licence?
                                     </label>
                                 </div>
                             </div>

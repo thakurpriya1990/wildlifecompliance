@@ -75,6 +75,21 @@ def is_departmentUser(request):
         request) or settings.ALLOW_EMAIL_ADMINS) and in_dbca_domain(request)
 
 
+def is_reception(request):
+    '''
+    A check whether request is performed by Wildlife Licensing Reception.
+    '''
+    from wildlifecompliance.components.licences.models import (
+            WildlifeLicenceReceptionEmail,
+    )
+
+    is_reception_email = WildlifeLicenceReceptionEmail.objects.filter(
+        email=request.user.email
+    ).exists()
+
+    return request.user.is_authenticated() and is_reception_email
+
+
 def is_customer(request):
     return request.user.is_authenticated() and is_email_auth_backend(request)
 

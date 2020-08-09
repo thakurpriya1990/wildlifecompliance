@@ -34,7 +34,7 @@
                                     <div class="col-sm-9" v-if="condition.standard">
                                         <div style="width:70% !important">
                                             <select class="form-control" ref="standard_req" name="standard_condition" v-model="condition.standard_condition" v-on:change="setShowDueDate($event.target.value)">
-                                                <option v-for="r in conditions" :value="r.id" >{{r.code}}</option>
+                                                <option v-for="r in conditions" :value="r.id" >{{r.text.substr(0,60)}}</option>
                                             </select>
                                         </div>
                                     </div>
@@ -58,7 +58,7 @@
                                     </div>
                                 </div>
                             </div>
-                            <div class="form-group" v-if="validDate">
+                            <div class="form-group" v-if="!condition.standard && validDate">
                                 <div class="row">
                                     <div class="col-sm-3">
                                         <label class="control-label pull-left"  for="Name">Return Type</label>
@@ -203,7 +203,7 @@ export default {
                     return this.condition.due_date;
                 }
             }
-        }
+        }  
     },
     watch: {
         due_date: function(){
@@ -372,6 +372,17 @@ export default {
    },
    updated:function () {
        let vm = this;
+       if (vm.condition.free_condition){
+            vm.showDueDate=true;
+       } else {
+            let cond = vm.conditions.filter(c => {
+                return c.id === vm.condition.standard_condition
+            })
+            if ( cond[0] ) {
+                vm.showDueDate=cond[0].require_return  
+            }
+       }      
+     
        // Initialise Date Picker
        if (!vm.condition.standard || vm.showDueDate) {
             $(vm.$refs.due_date).datetimepicker(vm.datepickerOptions);
@@ -393,6 +404,9 @@ export default {
         this.$nextTick(()=>{
             vm.eventListeners();
         });
+
+        // this.showDueDate=vm.condition.require_return
+        //this.showDueDate=true
    }
 }
 </script>

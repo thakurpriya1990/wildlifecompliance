@@ -1,58 +1,33 @@
 from django.urls import reverse
+from django.utils import timezone
+
 from wildlifecompliance.components.licences.models import (
     WildlifeLicence,
     LicenceCategory,
     LicenceActivity,
-    LicencePurpose
+    LicencePurpose,
+    LicenceDocument,
 )
 from wildlifecompliance.components.applications.models import (
     ApplicationSelectedActivity,
+    ApplicationSelectedActivityPurpose,
     ActivityInvoice,
 )
 from wildlifecompliance.components.applications.serializers import (
     WildlifeLicenceApplicationSerializer,
-    ExternalApplicationSelectedActivityMergedSerializer
 )
 from ledger.payments.invoice.models import Invoice
 from rest_framework import serializers
 
-
-class WildlifeLicenceCanActionSerializer(serializers.Serializer):
-    """
-    Custom serializer for WildlifeLicence.can_action DICT object for each action
-    """
-    # can_renew = serializers.BooleanField(read_only=True)
-    # can_amend = serializers.BooleanField(read_only=True)
-    # can_surrender = serializers.BooleanField(read_only=True)
-    # can_cancel = serializers.BooleanField(read_only=True)
-    # can_suspend = serializers.BooleanField(read_only=True)
-    # can_reissue = serializers.BooleanField(read_only=True)
-    # can_reinstate = serializers.BooleanField(read_only=True)
-    #
-    # class Meta:
-    #     fields = (
-    #         'can_renew',
-    #         'can_amend',
-    #         'can_surrender',
-    #         'can_cancel',
-    #         'can_suspend',
-    #         'can_reissue',
-    #         'can_reinstate',
-    #     )
-    #     # the serverSide functionality of datatables is such that only columns that have field 'data'
-    #     # defined are requested from the serializer. Use datatables_always_serialize to force render
-    #     # of fields that are not listed as 'data' in the datatable columns
-    #     datatables_always_serialize = fields
-    def to_representation(self, obj):
-        print(obj)
-        return ''
 
 class WildlifeLicenceSerializer(serializers.ModelSerializer):
     licence_document = serializers.CharField(
         source='licence_document._file.url')
     current_application = WildlifeLicenceApplicationSerializer(read_only=True)
     last_issue_date = serializers.SerializerMethodField(read_only=True)
-    licence_number = serializers.SerializerMethodField(read_only=True)
+    latest_activities_merged = serializers.SerializerMethodField(
+        read_only=True)
+    can_add_purpose = serializers.SerializerMethodField(read_only=True)
 
     class Meta:
         model = WildlifeLicence
@@ -64,21 +39,37 @@ class WildlifeLicenceSerializer(serializers.ModelSerializer):
             'current_application',
             'extracted_fields',
             'last_issue_date',
+            'latest_activities_merged',
+            'can_add_purpose',
         )
 
     def get_last_issue_date(self, obj):
-        return obj.latest_activities.first().issue_date if obj.latest_activities else ''
+        issue_date = ''
+        if obj.latest_activities:
+            issue_date = obj.latest_activities.first().get_issue_date()
 
-    def get_licence_number(self, obj):
-        return obj.reference
+        return issue_date
+
+    def get_latest_activities_merged(self, obj):
+        from wildlifecompliance.components.licences.services import (
+            LicenceService,
+        )
+        return LicenceService.get_activities_list_for(obj)
+
+    def get_can_add_purpose(self, obj):
+        '''
+        Check if there are purposes left in the category to add on licence.
+        '''
+        can_add = obj.is_latest_in_category and\
+            obj.purposes_available_to_add.count() > 0
+
+        return can_add
 
 
 class DTInternalWildlifeLicenceSerializer(WildlifeLicenceSerializer):
     licence_document = serializers.CharField(
         source='licence_document._file.url')
     current_application = WildlifeLicenceApplicationSerializer(read_only=True)
-    last_issue_date = serializers.SerializerMethodField(read_only=True)
-    latest_activities_merged = ExternalApplicationSelectedActivityMergedSerializer(many=True, read_only=True)
     can_action = serializers.SerializerMethodField(read_only=True)
     invoice_url = serializers.SerializerMethodField(read_only=True)
 
@@ -97,16 +88,15 @@ class DTInternalWildlifeLicenceSerializer(WildlifeLicenceSerializer):
             'invoice_url',
             'has_inspection_open',
         )
-        # the serverSide functionality of datatables is such that only columns that have field 'data'
-        # defined are requested from the serializer. Use datatables_always_serialize to force render
-        # of fields that are not listed as 'data' in the datatable columns
+        # the serverSide functionality of datatables is such that only columns
+        # that have field 'data' defined are requested from the serializer. Use
+        # datatables_always_serialize to force render of fields that are not
+        # listed as 'data' in the datatable columns.
         datatables_always_serialize = fields
 
-    def get_last_issue_date(self, obj):
-        return obj.latest_activities.first().issue_date if obj.latest_activities else ''
-
     def get_can_action(self, obj):
-        # set default but use to_representation to calculate based on latest_activities_merged.can_action
+        # set default but use to_representation to calculate based on
+        # latest_activities_merged.can_action.
         can_action = {
             'can_amend': False,
             'can_renew': False,
@@ -120,7 +110,9 @@ class DTInternalWildlifeLicenceSerializer(WildlifeLicenceSerializer):
         return can_action
 
     def to_representation(self, obj):
-        data = super(DTInternalWildlifeLicenceSerializer, self).to_representation(obj)
+        data = super(
+            DTInternalWildlifeLicenceSerializer, self).to_representation(obj)
+
         latest_activities_merged = data['latest_activities_merged']
 
         # only check if licence is the latest in its category for the applicant
@@ -166,12 +158,12 @@ class DTInternalWildlifeLicenceSerializer(WildlifeLicenceSerializer):
         except Exception:
             return None
 
+
 class DTExternalWildlifeLicenceSerializer(WildlifeLicenceSerializer):
     licence_document = serializers.CharField(
         source='licence_document._file.url')
     current_application = WildlifeLicenceApplicationSerializer(read_only=True)
     last_issue_date = serializers.SerializerMethodField(read_only=True)
-    latest_activities_merged = ExternalApplicationSelectedActivityMergedSerializer(many=True, read_only=True)
     can_action = serializers.SerializerMethodField(read_only=True)
     invoice_url = serializers.SerializerMethodField(read_only=True)
 
@@ -189,16 +181,15 @@ class DTExternalWildlifeLicenceSerializer(WildlifeLicenceSerializer):
             'can_add_purpose',
             'invoice_url',
         )
-        # the serverSide functionality of datatables is such that only columns that have field 'data'
-        # defined are requested from the serializer. Use datatables_always_serialize to force render
-        # of fields that are not listed as 'data' in the datatable columns
+        # the serverSide functionality of datatables is such that only columns
+        # that have field 'data' defined are requested from the serializer. Use
+        # datatables_always_serialize to force render of fields that are not
+        # listed as 'data' in the datatable columns.
         datatables_always_serialize = fields
 
-    def get_last_issue_date(self, obj):
-        return obj.latest_activities.first().issue_date if obj.latest_activities else ''
-
     def get_can_action(self, obj):
-        # set default but use to_representation to calculate based on latest_activities_merged.can_action
+        # set default but use to_representation to calculate based on
+        # latest_activities_merged.can_action.
         can_action = {
             'can_amend': False,
             'can_renew': False,
@@ -212,7 +203,9 @@ class DTExternalWildlifeLicenceSerializer(WildlifeLicenceSerializer):
         return can_action
 
     def to_representation(self, obj):
-        data = super(DTExternalWildlifeLicenceSerializer, self).to_representation(obj)
+        data = super(
+            DTExternalWildlifeLicenceSerializer, self).to_representation(obj)
+
         latest_activities_merged = data['latest_activities_merged']
 
         # only check if licence is the latest in its category for the applicant
@@ -273,6 +266,8 @@ class BasePurposeSerializer(serializers.ModelSerializer):
 
 class DefaultPurposeSerializer(BasePurposeSerializer):
     name = serializers.CharField()
+    amendment_application_fee = serializers.DecimalField(
+        max_digits=8, decimal_places=2, coerce_to_string=False, read_only=True)
 
     class Meta:
         model = LicencePurpose
@@ -281,8 +276,32 @@ class DefaultPurposeSerializer(BasePurposeSerializer):
             'name',
             'base_application_fee',
             'base_licence_fee',
-            'short_name'
+            'short_name',
+            'renewal_application_fee',
+            'amendment_application_fee',
         )
+
+
+class ProposedPurposeSerializer(serializers.ModelSerializer):
+    purpose = DefaultPurposeSerializer(read_only=True)
+    name = serializers.SerializerMethodField()
+    application = serializers.SerializerMethodField()
+
+    class Meta:
+        model = ApplicationSelectedActivityPurpose
+        fields = (
+            'id',
+            'selected_activity',
+            'purpose',
+            'name',
+            'application',
+        )
+
+    def get_name(self, obj):
+        return obj.purpose.name if obj.purpose else ''
+
+    def get_application(self, obj):
+        return obj.selected_activity.application_id
 
 
 class DefaultActivitySerializer(serializers.ModelSerializer):
@@ -303,6 +322,10 @@ class DefaultActivitySerializer(serializers.ModelSerializer):
 
 class PurposeSerializer(BasePurposeSerializer):
     name = serializers.CharField()
+    amendment_application_fee = serializers.DecimalField(
+        max_digits=8, decimal_places=2, coerce_to_string=False, read_only=True)
+    renewal_application_fee = serializers.DecimalField(
+        max_digits=8, decimal_places=2, coerce_to_string=False, read_only=True)
 
     class Meta:
         model = LicencePurpose
@@ -312,6 +335,8 @@ class PurposeSerializer(BasePurposeSerializer):
             'base_application_fee',
             'base_licence_fee',
             'short_name',
+            'renewal_application_fee',
+            'amendment_application_fee',
         )
 
 
@@ -377,8 +402,9 @@ class LicenceCategorySerializer(serializers.ModelSerializer):
             'licence_activity_id', flat=True
         )) if purposes else []
 
-        # If purpose_records context is set but is empty, force display of zero activities
-        # otherwise, assume we want to retrieve all activities for the Licence Category
+        # If purpose_records context is set but is empty, force display of zero
+        # activities otherwise, assume we want to retrieve all activities for
+        # the Licence Category.
         if self.context.has_key('purpose_records'):
             activities = obj.activity.filter(
                 id__in=activity_ids
@@ -396,3 +422,31 @@ class LicenceCategorySerializer(serializers.ModelSerializer):
             }
         )
         return serializer.data
+
+
+class LicenceDocumentHistorySerializer(serializers.ModelSerializer):
+    history_date = serializers.SerializerMethodField()
+    history_document_url = serializers.SerializerMethodField()
+
+    class Meta:
+        model = LicenceDocument
+        fields = (
+            'history_date',
+            'history_document_url',
+        )
+
+    def get_history_date(self, obj):
+        date_format_loc = timezone.localtime(
+            obj['uploaded_date']
+        )
+        history_date = date_format_loc.strftime('%d/%m/%Y %H:%M:%S.%f')
+
+        return history_date
+
+    def get_history_document_url(self, obj):
+        doc_id = obj['id']
+        pdf = obj['name']
+        url = '/media/wildlifecompliance/licences/{0}/documents/{1}'.format(
+            doc_id, pdf
+        )
+        return url

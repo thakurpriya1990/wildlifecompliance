@@ -1,4 +1,6 @@
+import abc
 import logging
+
 from datetime import datetime
 from django.conf import settings
 from django.core.urlresolvers import reverse
@@ -14,6 +16,8 @@ from ledger.checkout.utils import (
     create_checkout_session,
 )
 from ledger.payments.models import Invoice
+
+logger = logging.getLogger(__name__)
 
 
 def checkout(
@@ -120,7 +124,7 @@ def bind_return_to_invoice(request, returns, invoice_ref):
 
         raise Exception
 
-    if inv.system not in ['0999']:
+    if inv.system not in [settings.WC_PAYMENT_SYSTEM_PREFIX]:
 
         logger.error(
             u'{} tried making an return with an invoice from another system \
@@ -154,13 +158,15 @@ def bind_return_to_invoice(request, returns, invoice_ref):
                 reference {}'.format(
                 u'User {} with id {}'.format(
                     returns.submitter.get_full_name(),
-                    returns.submitter.id) 
+                    returns.submitter.id)
                 if returns.submitter else u'An anonymous user',
                 returns.id,
                 invoice_ref))
 
         app_inv, created = ReturnInvoice.objects.get_or_create(
-            returns=returns, invoice_reference=invoice_ref)
+            invoice_return=returns,
+            invoice_reference=invoice_ref
+        )
         returns.save()
 
         request.session['wc_last_return'] = returns.id
@@ -182,13 +188,14 @@ def bind_return_to_invoice(request, returns, invoice_ref):
 
 #     for table in tables_info:
 #         print(table)
-#         # print(table['name'])
-#         # table_rows = _get_table_rows_from_post(table.get('name'), post_data)
-#         # if len(table_rows) == 0:
-#         #     return False
-#         # schema = Schema(ret.return_type.get_schema_by_name(table.get('name')))
-#         # if not schema.is_all_valid(table_rows):
-#         #     return False
+#         print(table['name'])
+#         table_rows = _get_table_rows_from_post(table.get('name'), post_data)
+#         if len(table_rows) == 0:
+#             return False
+#         schema = Schema(
+#             ret.return_type.get_schema_by_name(table.get('name')))
+#         if not schema.is_all_valid(table_rows):
+#             return False
 #     return True
 def _is_post_data_valid(ret, tables_info, post_data):
     print(type(tables_info))
@@ -265,10 +272,8 @@ class SpreadSheet(object):
         Simple Factory Method for spreadsheet types.
         :return: Specialised SpreadSheet.
         """
-        if self.filename.name == 'regulation15.xlsx':
-            return Regulation15Sheet(self.ret, self.filename)
 
-        return self
+        return ReturnDataSheet(self.ret, self.filename)
 
     def get_table_rows(self):
         """
@@ -287,7 +292,14 @@ class SpreadSheet(object):
                 if type(value[row_num]) is datetime:
                     row_data[key.lower()] = value[row_num].strftime("%d/%m/%Y")
                     continue
-                row_data[key.lower()] = value[row_num] if value[row_num] is not None else ''
+                row_data[key.lower()] = value[row_num] \
+                    if value[row_num] is not None else ''
+
+            # create deficiency key as part of row data
+            table_name = self.ret.return_type.resources[0]['name']
+            table_deficiency = table_name + '-deficiency-field'
+            row_data[table_deficiency] = None
+
             self.rows_list.append(row_data)
 
         return self.rows_list
@@ -357,3 +369,250 @@ class Regulation15Sheet(SpreadSheet):
             ReturnRow.objects.bulk_create(return_rows)
 
         return True
+
+
+class ReturnDataSheet(SpreadSheet):
+    '''
+    Specialised utility object for Return Data Spreadsheet.
+    '''
+    RETURN_DATA = 'return-data'
+
+    def __init__(self, _ret, _filename):
+        super(ReturnDataSheet, self).__init__(_ret, _filename)
+        self.schema = Schema(
+            self.ret.return_type.get_schema_by_name(
+               self.ret.return_type.resources[0]['name']))
+
+    def is_valid(self):
+        '''
+        Validates against schema.
+        :return: Boolean
+        '''
+        table_rows = self.get_table_rows()
+        if len(table_rows) == 0:
+            return False
+        for row in table_rows:
+            self.errors.append(self.schema.get_error_fields(row))
+
+        return self.errors[1].__len__() == 0
+
+    def create_return_data(self):
+        '''
+        Method to persist Return record.
+        :return:
+        '''
+        if self.rows_list:
+            return_table = ReturnTable.objects.get_or_create(
+                name=self.RETURN_DATA, ret=self.ret)[0]
+            # delete any existing rows as they will all be recreated
+            return_table.returnrow_set.all().delete()
+            return_rows = [
+                ReturnRow(
+                    return_table=return_table,
+                    data=row) for row in self.rows_list]
+            ReturnRow.objects.bulk_create(return_rows)
+
+        return True
+
+
+class SchemaFieldVisitor(object):
+    '''
+    An Interface for Return Data schema field types which can be visited.
+    '''
+    __metaclass__ = abc.ABCMeta
+
+
+class NumberFieldVisitor(SchemaFieldVisitor):
+    '''
+    An implementation of an operation declared by ReturnFieldVisitor to do an
+    algorithm specific to Number types on the schema fields.
+    '''
+    def __init__(self, a_return, data_source):
+        self._return = a_return
+        self._data_source = data_source
+        # Apply a traversal strategy.
+        self._compositor = NumberFieldCompositor(a_return, data_source)
+
+    def visit_apply_fee_field(self, apply_fee_field):
+        self._apply_fee_field = apply_fee_field
+        self._compositor.do_algorithm(self._apply_fee_field)
+
+
+class SchemaFieldCompositor(object):
+    '''
+    Declares an interface common to all supported Schema Field algorithms.
+    A context can use this interface to call a specific algorithm to act on
+    a Special Field Element on a Return Schema.
+    '''
+    __metaclass__ = abc.ABCMeta
+
+    @abc.abstractmethod
+    def do_algorithm(self, special_field_element):
+        '''
+        Performs an algorithm applicable to a Special Field Element.
+        '''
+        pass
+
+
+class NumberFieldCompositor(SchemaFieldCompositor):
+    '''
+    A Class for objects which encapsulates an algorithm for inspecting a Number
+    field on the Return schema.
+    '''
+    def __init__(self, a_return, data_source):
+        self._return = a_return
+        self._data_source = data_source
+        self._children = set()
+
+    def do_algorithm(self, special_field_element):
+        self._field = special_field_element
+        self.render()
+
+    def render(self):
+        '''
+        Rendering algorithm to obtain field element from return schema.
+        '''
+        from wildlifecompliance.components.returns.services import (
+            ReturnService,
+        )
+
+        try:
+            # 1. loop through table.
+            table = ReturnService.get_details_for(self._return)
+            fields = self._return.resources[0]['schema']['fields']
+            schema_fields = [f for f in fields if self._field.NAME in f]
+
+            for schema_data in schema_fields:
+                self._field.reset()
+                data = table[0]['data']
+                for row in data['gi_frame'].f_locals['rows']:
+
+                    if schema_data[self._field.NAME] \
+                            and schema_data['name'] in row:
+
+                        self._field.parse_component(
+                            component=row,
+                            schema_name=schema_data['name']
+                        )
+
+        except TypeError:
+            '''
+            A TypeError will be thrown if no rows exist in the table. We just
+            catch the exception and continue.
+            '''
+            pass
+
+        except Exception as e:
+            logger.error('ERR {0} ReturnID {1} : {2}'.format(
+                'NumberFieldCompositor.render()',
+                self._return.id,
+                e
+            ))
+
+
+class SpecialFieldElement(object):
+    '''
+    Special Field that defines an Accept operation that takes a
+    ReturnVisitor as an argument.
+    '''
+    __metaclass__ = abc.ABCMeta
+
+    @abc.abstractmethod
+    def accept(self, visitor):
+        pass
+
+
+class ApplyFeeFieldElement(SpecialFieldElement):
+    '''
+    An implementation of an SpecialFieldElement operation that takes a
+    ReturnVisitor as an argument.
+
+    The Applicable Fee field element value is aggregated for each Return
+    schema item.
+    '''
+    NAME = 'ApplyFee'           # Field Element name.
+
+    fee = 0
+    dynamic_attributes = None   # Attributes collected from this field visit.
+    _return = None              # the Return this field visit is applied to.
+    data_source = None          # a data source to replace Return schema.
+    is_refreshing = False       # Flag indicating a page refresh.
+    is_updating = False         # Flag indicating if update or retrieval.
+    field_name = None           # Name of schema field with ApplyFee.
+
+    def __str__(self):
+        return 'Field Element: {0}'.format(self._NAME)
+
+    def accept(self, return_visitor):
+        self._return = return_visitor._return
+        self.data_source = return_visitor._data_source
+        self.dynamic_attributes = {
+            'fees': {
+                'return': 0,
+            },
+        }
+        # Add this field element to the visitor.
+        return_visitor.visit_apply_fee_field(self)
+
+        # Add relevant Fee policy to impact any Applicable Fees on this field.
+        # NOTE: FeePolicy applies utilty.
+        # self.fee_policy = ReturnFeePolicy.get_fee_policy_for(self.a_return)
+        # if not self._data_source:  # No form data set.
+        #     self.fee_policy.set_return_fee()
+        #     self.is_refreshing = True
+
+        # self.dynamic_attributes = self.fee_policy.get_dynamic_attributes()
+
+    def set_updating(self, is_update):
+        '''
+        Sets the flag indicating that this visit is an update and not retrieve.
+        (ie. for estimate calculation etc)
+        '''
+        self.is_updating = is_update
+
+    def reset(self):
+        '''
+        Reset any field updates.
+        '''
+        if self.is_refreshing:
+            # No user update with a page refesh.
+            return
+
+        self.fee = 0
+
+    def parse_component(self, component, schema_name):
+        '''
+        Parse component to be visited.
+        '''
+        from decimal import Decimal
+
+        self.field_name = schema_name
+
+        if self.is_refreshing:
+            # No user update with a page refesh.
+            return
+
+        if schema_name in component:
+            '''
+            Set the selected fields.
+            '''
+            amount = Decimal(
+                component[schema_name]) * self._return.return_type.fee_amount
+            self.fee += amount
+            self.dynamic_attributes = {
+                'fees': {
+                    'return': self.fee,
+                },
+            }
+
+    def get_dynamic_attributes(self):
+        '''
+        Gets the current dynamic attributes created by this Field Element.
+        '''
+        return self.dynamic_attributes
+
+    def get_field_name(self):
+        '''
+        Get the name of the field element with Apply Fee.
+        '''
+        return self.field_name

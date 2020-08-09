@@ -66,7 +66,10 @@ export default {
         },
         "options": {
             type: Array,
-            required: true
+            required: true,
+            default:function () {
+                return [];
+            }
         },
         "readonly": {
             type: Boolean,

@@ -7,13 +7,15 @@ from django.core.files.base import ContentFile
 from django.core.files.storage import default_storage
 from django.core.exceptions import ValidationError
 from rest_framework import viewsets, serializers, status, views
-from rest_framework.decorators import detail_route, list_route, renderer_classes
+from rest_framework.decorators import (
+    detail_route, list_route, renderer_classes
+)
 from rest_framework.response import Response
 from rest_framework.renderers import JSONRenderer
 from ledger.accounts.models import EmailUser
 from ledger.checkout.utils import calculate_excl_gst
 from django.urls import reverse
-from django.shortcuts import redirect
+from django.shortcuts import redirect, render
 from wildlifecompliance.components.applications.utils import (
     SchemaParser,
     MissingFieldsException,
@@ -38,7 +40,8 @@ from wildlifecompliance.components.applications.models import (
     AmendmentRequest,
     ApplicationUserAction,
     ApplicationFormDataRecord,
-    ActivityInvoice,
+    ApplicationInvoice,
+    ApplicationSelectedActivityPurpose,
 )
 from wildlifecompliance.components.applications.services import (
     ApplicationService
@@ -441,6 +444,7 @@ class ApplicationViewSet(viewsets.ModelViewSet):
                 instance = self.get_object()
                 request.data['application'] = u'{}'.format(instance.id)
                 request.data['staff'] = u'{}'.format(request.user.id)
+                request.data['log_type'] = request.data['type']
                 serializer = ApplicationLogEntrySerializer(data=request.data)
                 serializer.is_valid(raise_exception=True)
                 comms = serializer.save()
@@ -577,6 +581,7 @@ class ApplicationViewSet(viewsets.ModelViewSet):
     def estimate_price(self, request, *args, **kwargs):
         purpose_ids = request.data.get('purpose_ids', [])
         application_id = request.data.get('application_id')
+        licence_type = request.data.get('licence_type')
         if application_id is not None:
             application = Application.objects.get(id=application_id)
             return Response({
@@ -584,7 +589,7 @@ class ApplicationViewSet(viewsets.ModelViewSet):
                     application, request.data.get('field_data', {}))
             })
         return Response({
-            'fees': Application.calculate_base_fees(purpose_ids)
+            'fees': Application.calculate_base_fees(purpose_ids, licence_type)
         })
 
     @list_route(methods=['GET', ])
@@ -650,19 +655,29 @@ class ApplicationViewSet(viewsets.ModelViewSet):
     @renderer_classes((JSONRenderer,))
     def application_fee_checkout(self, request, *args, **kwargs):
         try:
+            checkout_result = None
             instance = self.get_object()
-            product_lines = []
-            if instance.application_fee < 1:
-                raise Exception('Checkout request for zero amount.')
 
-            application_submission = u'Application No: {}'.format(
-                instance.lodgement_number)
+            with transaction.atomic():
 
-            set_session_application(request.session, instance)
-            product_lines = ApplicationService.get_product_lines(instance)
-            checkout_result = checkout(request, instance, lines=product_lines,
-                                       invoice_text=application_submission)
+                product_lines = []
+                if instance.application_fee < 1:
+                    raise Exception('Checkout request for zero amount.')
+
+                application_submission = u'Application No: {}'.format(
+                    instance.lodgement_number
+                )
+
+                set_session_application(request.session, instance)
+                product_lines = ApplicationService.get_product_lines(instance)
+
+                checkout_result = checkout(
+                    request, instance, lines=product_lines,
+                    invoice_text=application_submission
+                )
+
             return checkout_result
+
         except serializers.ValidationError:
             print(traceback.print_exc())
             raise
@@ -675,10 +690,66 @@ class ApplicationViewSet(viewsets.ModelViewSet):
             print(traceback.print_exc())
             raise serializers.ValidationError(str(e))
 
+    @detail_route(methods=['post'])
+    @renderer_classes((JSONRenderer,))
+    def application_fee_reception(self, request, *args, **kwargs):
+        '''
+        Process to pay application fee and record by licensing reception.
+        '''
+        try:
+            instance = self.get_object()
+
+            # if not request.user.is_staff:
+            #     raise Exception('Non staff member.')
+
+            session = request.session
+            set_session_application(session, instance)
+
+            if instance.submit_type == Application.SUBMIT_TYPE_PAPER:
+                invoice = ApplicationService.cash_payment_submission(
+                    request)
+                invoice_url = request.build_absolute_uri(
+                    reverse(
+                        'payments:invoice-pdf',
+                        kwargs={'reference': invoice}))
+
+            elif instance.submit_type == Application.SUBMIT_TYPE_MIGRATE:
+                invoice = ApplicationService.none_payment_submission(
+                    request)
+                invoice_url = None
+
+            else:
+                raise Exception('Cannot make this type of payment.')
+
+            # return template application-success
+            template_name = 'wildlifecompliance/application_success.html'
+            context = {
+                'application': instance,
+                'invoice_ref': invoice,
+                'invoice_url': invoice_url
+            }
+
+            return render(request, template_name, context)
+
+        except serializers.ValidationError:
+            print(traceback.print_exc())
+            raise
+        except ValidationError as e:
+            if hasattr(e, 'error_dict'):
+                raise serializers.ValidationError(repr(e.error_dict))
+            else:
+                raise serializers.ValidationError(repr(e[0].encode('utf-8')))
+        except Exception as e:
+            print(traceback.print_exc())
+            raise serializers.ValidationError(str(e))
 
     @detail_route(methods=['post'])
     @renderer_classes((JSONRenderer,))
     def licence_fee_checkout(self, request, *args, **kwargs):
+        from wildlifecompliance.components.applications.payments import (
+            LicenceFeeClearingInvoice,
+            ApplicationFeePolicy,
+        )
         PAY_STATUS = ApplicationSelectedActivity.PROCESSING_STATUS_AWAITING_LICENCE_FEE_PAYMENT
         try:
             instance = self.get_object()
@@ -696,26 +767,35 @@ class ApplicationViewSet(viewsets.ModelViewSet):
 
             # Adjustments occuring only to the application fee.
             activities = instance.selected_activities.all()
-            if instance.has_amended_fees:
-                activities = instance.amended_activities
+            if instance.has_adjusted_fees:
+                # activities = instance.amended_activities
                 # only fees awaiting payment
-                activities_with_payments = [
+                activities_pay = [
                     a for a in activities if a.processing_status == PAY_STATUS
+                ]
+                # only fees with adjustments.
+                activities_adj = [
+                   a for a in activities_pay if a.has_adjusted_application_fee
                 ]
                 # only fees which are greater than zero.
                 activities_with_fees = [
-                   a for a in activities_with_payments if a.application_fee > 0
+                   a for a in activities_adj if a.application_fee > 0
                 ]
 
                 for activity in activities_with_fees:
+
+                    price_excl = calculate_excl_gst(activity.application_fee)
+                    if ApplicationFeePolicy.GST_FREE:
+                        price_excl = activity.application_fee
+                    oracle_code = activity.licence_activity.oracle_account_code
+
                     product_lines.append({
                         'ledger_description': '{} (Application Fee)'.format(
                             activity.licence_activity.name),
                         'quantity': 1,
                         'price_incl_tax': str(activity.application_fee),
-                        'price_excl_tax': str(calculate_excl_gst(
-                            activity.application_fee)),
-                        'oracle_code': ''
+                        'price_excl_tax': str(price_excl),
+                        'oracle_code': oracle_code
                     })
 
             activities = instance.selected_activities.all()
@@ -731,14 +811,41 @@ class ApplicationViewSet(viewsets.ModelViewSet):
                 ]
 
                 for activity in activities_with_fees:
+
+                    price_excl = calculate_excl_gst(activity.additional_fee)
+                    if ApplicationFeePolicy.GST_FREE:
+                        price_excl = activity.additional_fee
+                    oracle_code = activity.licence_activity.oracle_account_code
+
                     product_lines.append({
                         'ledger_description': '{}'.format(
                             activity.additional_fee_text),
                         'quantity': 1,
                         'price_incl_tax': str(activity.additional_fee),
-                        'price_excl_tax': str(calculate_excl_gst(
-                            activity.additional_fee)),
-                        'oracle_code': ''
+                        'price_excl_tax': str(price_excl),
+                        'oracle_code': oracle_code
+                    })
+
+            # Check if refund is required from last invoice.
+            last_inv = LicenceFeeClearingInvoice(instance)
+            if last_inv.is_refundable_with_payment():
+                product_lines.append(last_inv.get_product_line_for_refund())
+
+                # refund any application fee adjustments.
+                if instance.application_fee < 0:
+
+                    price_excl = calculate_excl_gst(instance.application_fee)
+                    if ApplicationFeePolicy.GST_FREE:
+                        price_excl = instance.application_fee
+                    # _code = activity.licence_activity.oracle_account_code
+                    oracle_code = ''
+
+                    product_lines.append({
+                        'ledger_description': 'Adjusted fee refund',
+                        'quantity': 1,
+                        'price_incl_tax': str(instance.application_fee),
+                        'price_excl_tax': str(price_excl),
+                        'oracle_code': oracle_code
                     })
 
             checkout_result = checkout(
@@ -835,21 +942,61 @@ class ApplicationViewSet(viewsets.ModelViewSet):
             print(traceback.print_exc())
             raise serializers.ValidationError(str(e))
 
+    @detail_route(methods=['POST', ])
+    def accept_return_check(self, request, *args, **kwargs):
+        try:
+            instance = self.get_object()
+            instance.accept_return_check(request)
+            serializer = InternalApplicationSerializer(
+                instance, context={'request': request})
+            return Response(serializer.data)
+        except serializers.ValidationError:
+            print(traceback.print_exc())
+            raise
+        except ValidationError as e:
+            print(traceback.print_exc())
+            raise serializers.ValidationError(repr(e.error_dict))
+        except Exception as e:
+            print(traceback.print_exc())
+            raise serializers.ValidationError(str(e))
+
+    @detail_route(methods=['POST', ])
+    def reset_return_check(self, request, *args, **kwargs):
+        try:
+            instance = self.get_object()
+            instance.reset_return_check(request)
+            serializer = InternalApplicationSerializer(
+                instance, context={'request': request})
+            return Response(serializer.data)
+        except serializers.ValidationError:
+            print(traceback.print_exc())
+            raise
+        except ValidationError as e:
+            print(traceback.print_exc())
+            raise serializers.ValidationError(repr(e.error_dict))
+        except Exception as e:
+            print(traceback.print_exc())
+            raise serializers.ValidationError(str(e))
+
     @detail_route(methods=['GET', ])
     def last_current_activity(self, request, *args, **kwargs):
+        '''
+        NOTE: retrieval of last current activity is only utilised in the
+        Reissuing process. Filtered on this action.
+        '''
         instance = self.get_object()
         user = request.user
         if user not in instance.licence_officers:
             raise serializers.ValidationError(
-                'You are not in any relevant licence officer groups for this application.')
+                'You are not authorised for this application.')
 
         if not instance:
             return Response({'activity': None})
 
-        last_activity = instance.get_activity_chain(
-            activity_status=ApplicationSelectedActivity.ACTIVITY_STATUS_CURRENT
-        ).order_by(
-            '-issue_date'
+        current = ApplicationSelectedActivity.ACTIVITY_STATUS_CURRENT
+        last_activity = instance.get_current_activity_chain(
+            activity_status=current,
+            decision_action='reissue'
         ).first()
 
         if not last_activity:
@@ -1230,22 +1377,23 @@ class ApplicationViewSet(viewsets.ModelViewSet):
     def form_data(self, request, *args, **kwargs):
         try:
             instance = self.get_object()
-            ApplicationService.process_form(
-                request,
-                instance,
-                request.data,
-                action=ApplicationFormDataRecord.ACTION_TYPE_ASSIGN_VALUE
-            )
-            # Set any special form fields on the Application schema.
-            ApplicationService.set_special_form_fields(
-                instance, request.data)
-            # Send any relevant notifications.
-            instance.alert_for_refund(request)
-            # Log save action for internal officer.
-            if request.user.is_staff:
-                instance.log_user_action(
-                    ApplicationUserAction.ACTION_SAVE_APPLICATION.format(
-                        instance.id), request)
+            with transaction.atomic():
+                ApplicationService.process_form(
+                    request,
+                    instance,
+                    request.data,
+                    action=ApplicationFormDataRecord.ACTION_TYPE_ASSIGN_VALUE
+                )
+                # Set any special form fields on the Application schema.
+                ApplicationService.set_special_form_fields(
+                    instance, request.data)
+                # Send any relevant notifications.
+                # instance.alert_for_refund(request)
+                # Log save action for internal officer.
+                if request.user.is_staff:
+                    instance.log_user_action(
+                        ApplicationUserAction.ACTION_SAVE_APPLICATION.format(
+                            instance.id), request)
 
             return Response({'success': True})
         except MissingFieldsException as e:
@@ -1278,18 +1426,35 @@ class ApplicationViewSet(viewsets.ModelViewSet):
 
     @renderer_classes((JSONRenderer,))
     def create(self, request, *args, **kwargs):
-        from wildlifecompliance.components.licences.models import WildlifeLicence, LicencePurpose
+        from wildlifecompliance.components.licences.models import (
+            WildlifeLicence, LicencePurpose
+        )
+
         try:
             org_applicant = request.data.get('organisation_id')
             proxy_applicant = request.data.get('proxy_id')
             licence_purposes = request.data.get('licence_purposes')
             application_type = request.data.get('application_type')
+            customer_pay_method = request.data.get('customer_method_id')
+
+            # establish the submit type from the payment method.
+            CASH = ApplicationInvoice.OTHER_PAYMENT_METHOD_CASH
+            NONE = ApplicationInvoice.OTHER_PAYMENT_METHOD_NONE
+
+            if customer_pay_method == CASH:
+                submit_type = Application.SUBMIT_TYPE_PAPER
+            elif customer_pay_method == NONE:
+                submit_type = Application.SUBMIT_TYPE_MIGRATE
+            else:
+                submit_type = Application.SUBMIT_TYPE_ONLINE
+
             data = {
                 'submitter': request.user.id,
                 'org_applicant': org_applicant,
                 'proxy_applicant': proxy_applicant,
                 'licence_purposes': licence_purposes,
                 'application_type': application_type,
+                'submit_type': submit_type,
             }
 
             if not licence_purposes:
@@ -1340,29 +1505,45 @@ class ApplicationViewSet(viewsets.ModelViewSet):
                     cleaned_purpose_ids = set(active_current_purposes) & set(licence_purposes)
                     data['licence_purposes'] = cleaned_purpose_ids
 
-                # Use serializer for external application creation - do not expose unneeded fields
+                if latest_active_licence:
+                    # Store currently active licence against application.
+                    data['licence'] = latest_active_licence.id
+
+                # Use serializer for external application creation - do not
+                # expose unneeded fields.
                 serializer = CreateExternalApplicationSerializer(data=data)
                 serializer.is_valid(raise_exception=True)
                 serializer.save()
 
-                # Pre-fill the ApplicationFormDataRecord table with data from latest current applications
+                # Pre-fill the ApplicationFormDataRecord table with data from
+                # latest current applications.
                 # for selected purpose ids
                 if application_type in [
                     Application.APPLICATION_TYPE_AMENDMENT,
                     Application.APPLICATION_TYPE_RENEWAL,
-                    Application.APPLICATION_TYPE_REISSUE,
                 ]:
                     target_application = serializer.instance
                     for activity in licence_activities:
-                        activity_purpose_ids = activity.purposes.values_list('id', flat=True)
-                        purposes_to_copy = set(cleaned_purpose_ids) & set(activity_purpose_ids)
+                        activity_purpose_ids = \
+                            activity.purposes.values_list('id', flat=True)
+                        purposes_to_copy = set(
+                            cleaned_purpose_ids) & set(activity_purpose_ids)
+
                         for purpose_id in purposes_to_copy:
+
                             activity.application.copy_application_purpose_to_target_application(
                                 target_application, purpose_id)
 
-                # Set previous_application to the latest active application if exists
+                            activity.application.copy_conditions_to_target(
+                                target_application,
+                                purpose_id,
+                            )
+
+                # Set previous_application to the latest active application if
+                # exists
                 if latest_active_licence:
-                    serializer.instance.previous_application_id = latest_active_licence.current_application.id
+                    serializer.instance.previous_application_id =\
+                        latest_active_licence.current_application.id
                     serializer.instance.save()
 
                 # serializer.instance.update_dynamic_attributes()
@@ -1858,6 +2039,14 @@ class AmendmentRequestViewSet(viewsets.ModelViewSet):
                 instance = serializer.save()
                 instance.reason = reason
                 instance.generate_amendment(request)
+
+                # Set all proposed purposes back to selected.
+                STATUS = \
+                  ApplicationSelectedActivityPurpose.PROCESSING_STATUS_SELECTED
+                p_ids = [ p.purpose.id \
+                    for p in selected_activity.proposed_purposes.all() ]
+                selected_activity.set_proposed_purposes_process_status_for(
+                    p_ids, STATUS)
 
             # send email
             send_application_amendment_notification(

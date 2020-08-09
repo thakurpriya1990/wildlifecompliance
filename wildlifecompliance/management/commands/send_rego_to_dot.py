@@ -75,11 +75,11 @@ class Command(BaseCommand):
 
                     # Determine the bcc
                     members = get_infringement_notice_coordinators()
-                    cc_list = [member.email for member in members] if members else [settings.NOTIFICATION_EMAIL]
+                    recipients = [member.email for member in members] if members else [settings.NOTIFICATION_EMAIL]
 
                     # Email
-                    to_address = [DOT_EMAIL_ADDRESS, ]
-                    cc = cc_list
+                    to_address = recipients
+                    cc = None
                     bcc = None
                     attachments = [(file_for_dot.filename, file_for_dot.contents, 'text/plain'), ]
                     email_data = email_detais_to_department_of_transport(to_address, attachments, cc, bcc)

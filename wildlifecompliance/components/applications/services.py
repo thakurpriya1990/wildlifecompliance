@@ -3,15 +3,25 @@ import abc
 import requests
 import logging
 
-from decimal import Decimal
+from django.db import transaction
 
 from wildlifecompliance import settings
-
-from ledger.checkout.utils import calculate_excl_gst
 
 from wildlifecompliance.components.licences.models import (
     LicencePurpose,
     LicenceSpecies,
+)
+
+from wildlifecompliance.components.applications.payments import (
+    ApplicationFeePolicy,
+    InvoiceClearable,
+)
+
+from wildlifecompliance.components.main.utils import (
+    get_session_application,
+    delete_session_application,
+    set_session_other_pay_method,
+    create_other_application_invoice,
 )
 
 from wildlifecompliance.components.applications.models import (
@@ -36,6 +46,71 @@ class ApplicationService(object):
 
     def __init__(self):
         pass
+
+    @staticmethod
+    def cash_payment_submission(request):
+        '''
+        Prepares licence application with cash payments.
+
+        :return: invoice reference.
+        '''
+        try:
+            with transaction.atomic():
+                application = get_session_application(request.session)
+                delete_session_application(request.session)
+
+                application.submit_type = Application.SUBMIT_TYPE_PAPER
+                application.save()
+                do_update_dynamic_attributes(application)
+
+                set_session_other_pay_method(
+                    request.session, InvoiceClearable.TYPE_CASH
+                )
+                invoice = create_other_application_invoice(
+                    application, request
+                )
+                invoice_ref = invoice.reference
+
+                # submit application if successful.
+                application.submit(request)
+
+        except Exception as e:
+            delete_session_application(request.session)
+            logger.error('Fail cash_payment_submission: {0}'.format(e))
+            raise Exception('Failed cash payment application submission.')
+
+        return invoice_ref
+
+    @staticmethod
+    def none_payment_submission(request):
+        '''
+        Prepares licence application with no base fee payment. Supports the
+        migration of previously paid licenses not in the system.
+        '''
+        invoice_ref = None          # No invoice reference created.
+        try:
+            with transaction.atomic():
+                application = get_session_application(request.session)
+                delete_session_application(request.session)
+
+                application.submit_type = Application.SUBMIT_TYPE_MIGRATE
+                application.application_fee = 0
+                has_fee_exemption = True
+                do_update_dynamic_attributes(application, has_fee_exemption)
+
+                logger.info(
+                    'Zero amount payment submission for {0}'.format(
+                        application.id))
+
+                # submit application if successful.
+                application.submit(request)
+
+        except Exception as e:
+            delete_session_application(request.session)
+            logger.error('Fail none_payment_submission: {0}'.format(e))
+            raise Exception('Failed none payment application submission.')
+
+        return invoice_ref
 
     @staticmethod
     def get_licence_species(species_list):
@@ -100,6 +175,10 @@ class ApplicationService(object):
         checkbox = CheckboxAndRadioButtonVisitor(application, data_source)
         for_increase_fee_fields = IncreaseApplicationFeeFieldElement()
         for_increase_fee_fields.accept(checkbox)
+        # set fee exemption for migrations.
+        MIGRATE = Application.SUBMIT_TYPE_MIGRATE
+        fee_exempted = True if application.submit_type == MIGRATE else False
+        for_increase_fee_fields.set_has_fee_exemption(fee_exempted)
 
         return for_increase_fee_fields.get_adjusted_fees()
 
@@ -124,36 +203,50 @@ class ApplicationService(object):
             request,
             application,
             form_data,
-            action=ApplicationFormDataRecord.ACTION_TYPE_ASSIGN_VALUE)
+            action)
+
+        do_update_dynamic_attributes(application)
 
     @staticmethod
     def set_special_form_fields(application, form):
         """
         Set Special Form Field Attributes on an Application Form.
         """
-        # Set form components to be visited.
-        checkbox = CheckboxAndRadioButtonVisitor(application, form)
-        text_area = TextAreaVisitor(application, form)
+        with_officer = [
+            'with_officer',
+            'with_officer_condition',
+            'under_review',
+        ]
 
-        # Set PromptInspection Fields for Checkbox and RadioButtons.
-        for_inspection_fields = PromptInpsectionFieldElement()
-        for_inspection_fields.accept(checkbox)
+        with transaction.atomic():
+            # Set form components to be visited.
+            checkbox = CheckboxAndRadioButtonVisitor(application, form)
+            text_area = TextAreaVisitor(application, form)
+            text = TextVisitor(application, form)
 
-        # Set StandardCondition Fields for Checkbox and RadioButtons.
-        for_condition_fields = StandardConditionFieldElement()
-        for_condition_fields.accept(checkbox)
+            if application.processing_status in with_officer:
 
-        # Set copy-to-licence Fields which allow for additional terminologies
-        # to be dynamically added to the licence pdf.
-        for_copy_to_licence_fields = CopyToLicenceFieldElement()
-        for_copy_to_licence_fields.accept(text_area)
+                # Set StandardCondition Fields for Checkbox and RadioButtons.
+                for_condition_fields = StandardConditionFieldElement()
+                for_condition_fields.accept(checkbox)
+
+                # Set PromptInspection Fields for Checkbox and RadioButtons.
+                for_inspection_fields = PromptInpsectionFieldElement()
+                for_inspection_fields.accept(checkbox)
+
+                # Set copy-to-licence Fields which allow for additional
+                # terminologies to be dynamically added to the licence pdf.
+                for_copy_to_licence_fields = CopyToLicenceFieldElement()
+                for_copy_to_licence_fields.accept(text_area)
+                for_copy_to_licence_fields.accept(text)
 
     @staticmethod
     def update_dynamic_attributes(application):
         """
         Updates application attributes based on admin schema definition.
         """
-        do_update_dynamic_attributes(application)
+        with transaction.atomic():
+            do_update_dynamic_attributes(application)
 
     def __str__(self):
         return 'ApplicationService'
@@ -162,6 +255,54 @@ class ApplicationService(object):
 """
 NOTE: This section for objects relate to Application Form rendering.
 """
+
+
+class BulkCreateManager(object):
+    '''
+    This helper class keeps track of ORM objects to be created for multiple
+    model classess, automatically creates those objects with `bulk_create`
+    when the number of objects accumulated for a given model class exceeds
+    `chunk_size`.
+
+    https://www.caktusgroup.com/blog/2019/01/09/django-bulk-inserts/
+    '''
+    def __init__(self, obj, chunk_size=100):
+        from collections import defaultdict
+
+        self._create_queues = defaultdict(list)
+        self.chunk_size = chunk_size
+        self.model_class = type(obj)
+        objs = self.model_class.objects.filter(
+            application_id=obj.application_id
+        ).all()
+        objs.delete()
+
+    def _commit(self, model_class):
+        model_key = model_class._meta.label
+        model_class.objects.bulk_create(self._create_queues[model_key])
+        self._create_queues[model_key] = []
+
+    def add(self, obj):
+        '''
+        Add an object to the queue to be created, and call bulk_create if we
+        have enough objects.
+        '''
+        model_class = type(obj)
+        model_key = model_class._meta.label
+        self._create_queues[model_key].append(obj)
+        if len(self._create_queues[model_key]) >= self.chunk_size:
+            self._commit(model_class)
+
+    def done(self):
+        '''
+        Always call this upon completion to make sure the final partial chunk
+        is saved.
+        '''
+        from django.apps import apps
+
+        for model_name, objs in self._create_queues.items():
+            if len(objs) > 0:
+                self._commit(apps.get_model(model_name))
 
 
 class ApplicationFormCompositor(object):
@@ -197,7 +338,6 @@ class CheckboxAndRadioButtonCompositor(ApplicationFormCompositor):
     def render(self):
 
         for selected_activity in self._application.activities:
-
             self._field.reset(selected_activity)
 
             schema_fields = self._application.get_schema_fields_for_purposes(
@@ -219,9 +359,7 @@ class CheckboxAndRadioButtonCompositor(ApplicationFormCompositor):
                 if schema_name not in schema_fields:
                     continue
                 schema_data = schema_fields[schema_name]
-                licence_purpose = LicencePurpose.objects.get(
-                    id=schema_data['licence_purpose_id']
-                )
+
                 if 'options' in schema_data:
                     for option in schema_data['options']:
                         # Only modifications if the current option is selected
@@ -232,7 +370,7 @@ class CheckboxAndRadioButtonCompositor(ApplicationFormCompositor):
                             schema_name=schema_name,
                             adjusted_by_fields=adjusted_by_fields,
                             activity=selected_activity,
-                            purpose=licence_purpose
+                            purpose_id=schema_data['licence_purpose_id']
                         )
 
                 # If this is a checkbox - skip unchecked ones
@@ -242,7 +380,7 @@ class CheckboxAndRadioButtonCompositor(ApplicationFormCompositor):
                         schema_name=schema_name,
                         adjusted_by_fields=adjusted_by_fields,
                         activity=selected_activity,
-                        purpose=licence_purpose
+                        purpose_id=schema_data['licence_purpose_id']
                     )
 
 
@@ -283,16 +421,62 @@ class TextAreaCompositor(ApplicationFormCompositor):
                 if schema_name not in schema_fields:
                     continue
                 schema_data = schema_fields[schema_name]
-                licence_purpose = LicencePurpose.objects.get(
-                    id=schema_data['licence_purpose_id']
-                )
+
                 if schema_data['type'] == 'text_area':
                     self._field.parse_component(
                         component=schema_data,
                         schema_name=schema_name,
                         adjusted_by_fields=adjusted_by_fields,
                         activity=selected_activity,
-                        purpose=licence_purpose
+                        purpose_id=schema_data['licence_purpose_id']
+                    )
+
+
+class TextCompositor(ApplicationFormCompositor):
+    """
+    A Class for objects which encapsulates an algorithm for formatting Text
+     on an Application Form.
+    """
+    def __init__(self, application, data_source):
+        self._application = application
+        self._data_source = data_source
+        self._children = set()
+
+    def do_algorithm(self, special_field_element):
+        self._field = special_field_element
+        self.render()
+
+    def render(self):
+        for selected_activity in self._application.activities:
+
+            self._field.reset(selected_activity)
+
+            schema_fields = self._application.get_schema_fields_for_purposes(
+                selected_activity.purposes.values_list('id', flat=True)
+            )
+
+            adjusted_by_fields = {}
+            for form_data_record in self._data_source:
+                try:
+                    # Retrieve dictionary of fields from a model instance
+                    data_record = form_data_record.__dict__
+                except AttributeError:
+                    # If a raw form data (POST) is supplied, form_data_record
+                    # is a key
+                    data_record = self._data_source[form_data_record]
+
+                schema_name = data_record['schema_name']
+                if schema_name not in schema_fields:
+                    continue
+                schema_data = schema_fields[schema_name]
+
+                if schema_data['type'] == 'text':
+                    self._field.parse_component(
+                        component=schema_data,
+                        schema_name=schema_name,
+                        adjusted_by_fields=adjusted_by_fields,
+                        activity=selected_activity,
+                        purpose_id=schema_data['licence_purpose_id']
                     )
 
 
@@ -352,6 +536,25 @@ class TextAreaVisitor(ApplicationFormVisitor):
         self._compositor.do_algorithm(self._copy_to_licence_field)
 
 
+class TextVisitor(ApplicationFormVisitor):
+    """
+    An implementation of an operation declared by ApplicationFormVisitor to do
+    an algorithm specific to Text on a Form.
+
+    NOTE: Local state is stored and will accumulate during the traversal of the
+    Form.
+    """
+    def __init__(self, application, data_source):
+        self._application = application
+        self._data_source = data_source
+        # Apply a traversal strategy.
+        self._compositor = TextCompositor(application, data_source)
+
+    def visit_copy_to_licence_field(self, copy_to_licence_field):
+        self._copy_to_licence_field = copy_to_licence_field
+        self._compositor.do_algorithm(self._copy_to_licence_field)
+
+
 class SpecialFieldElement(object):
     """
     Special Field that defines an Accept operation that takes a
@@ -399,7 +602,7 @@ class CopyToLicenceFieldElement(SpecialFieldElement):
             schema_name,
             adjusted_by_fields,
             activity,
-            purpose):
+            purpose_id):
 
         if self.is_refreshing:
             # No user update with a page refesh.
@@ -453,7 +656,7 @@ class PromptInpsectionFieldElement(SpecialFieldElement):
             schema_name,
             adjusted_by_fields,
             activity,
-            purpose):
+            purpose_id):
 
         if self.is_refreshing:
             # No user update with a page refesh.
@@ -504,7 +707,7 @@ class StandardConditionFieldElement(SpecialFieldElement):
             schema_name,
             adjusted_by_fields,
             activity,
-            purpose):
+            purpose_id):
 
         if self.is_refreshing:
             # No user update with a page refesh.
@@ -518,6 +721,9 @@ class StandardConditionFieldElement(SpecialFieldElement):
                 code=component[self._NAME],
                 obsolete=False).first()
             if condition:
+                purpose = LicencePurpose.objects.get(
+                       id=purpose_id
+                )
                 ac, created = ApplicationCondition.objects.get_or_create(
                     standard_condition=condition,
                     is_rendered=True,
@@ -543,9 +749,15 @@ class IncreaseApplicationFeeFieldElement(SpecialFieldElement):
 
     fee_policy = None           # Policy applied to the fee update.
     dynamic_attributes = None   # Attributes on the Activity Purpose.
-    additional_fee = 0          # Amount the Application Fee is increased by.
     is_updating = False         # Flag indicating if update or retrieval.
     is_refreshing = False       # Flag indicating a page refresh.
+    has_fee_exemption = False   # Allow exemption for zero amount invoice.
+
+    def __init__(self):
+        pass
+
+    def __str__(self):
+        return 'Field Element: {0}'.format(self._NAME)
 
     def accept(self, application_form_visitor):
         self._app = application_form_visitor._application
@@ -566,6 +778,15 @@ class IncreaseApplicationFeeFieldElement(SpecialFieldElement):
         '''
         self.is_updating = is_update
 
+    def set_has_fee_exemption(self, is_exempt):
+        '''
+        Sets the flag indicating that this visit will force a zero amount to be
+        calculated for invoicing (zero amount invoice). The fee stored is only
+        for the adjusted amounts on the licence purpose.
+        '''
+        self.has_fee_exemption = is_exempt
+        self.fee_policy.set_has_fee_exemption(is_exempt)
+
     def reset(self, licence_activity):
         '''
         Reset the fees for the licence activity to it base fee amount.
@@ -579,8 +800,9 @@ class IncreaseApplicationFeeFieldElement(SpecialFieldElement):
                 'activity_attributes'][licence_activity] = {
                     'fees': licence_activity.base_fees
                 }
-            # reset purpose adjusted fee amount.
+
             if self.is_updating:
+                # reset purpose adjusted fee amount.
                 purposes = ApplicationSelectedActivityPurpose.objects.filter(
                     selected_activity=licence_activity,
                 )
@@ -596,10 +818,13 @@ class IncreaseApplicationFeeFieldElement(SpecialFieldElement):
             schema_name,
             adjusted_by_fields,
             activity,
-            purpose):
+            purpose_id):
         '''
         Aggregate adjusted fees for the Activity/Purpose.
         '''
+        from decimal import Decimal as D
+        from decimal import ROUND_DOWN
+
         if self.is_refreshing:
             # No user update with a page refesh.
             return
@@ -607,11 +832,15 @@ class IncreaseApplicationFeeFieldElement(SpecialFieldElement):
         self.adjusted_fee = 0
         if set([self.NAME]).issubset(component):
             def increase_fee(fees, field, amount):
+                if self.has_fee_exemption:
+                    return True
+                amount = D(amount).quantize(D('0.01'), rounding=ROUND_DOWN)
                 fees[field] += amount
                 fees[field] = fees[field] if fees[field] >= 0 else 0
                 return True
 
             def adjusted_fee(amount):
+                amount = D(amount).quantize(D('0.01'), rounding=ROUND_DOWN)
                 self.adjusted_fee += amount
                 return True
 
@@ -646,14 +875,21 @@ class IncreaseApplicationFeeFieldElement(SpecialFieldElement):
             if adjustments_performed:
                 adjusted_by_fields[schema_name] += 1
 
-            if self.is_updating and adjustments_performed:
-                # update adjusted fee for the activity purpose.
-                p = ApplicationSelectedActivityPurpose.objects.get_or_create(
-                    purpose=purpose,
-                    selected_activity=activity,
+            if adjustments_performed and self.is_updating:
+                purpose = LicencePurpose.objects.get(
+                       id=purpose_id
                 )
-                p[0].adjusted_fee = self.adjusted_fee
-                p[0].save()
+                # update adjusted fee for the activity purpose.
+                p, c = ApplicationSelectedActivityPurpose.objects.\
+                    get_or_create(purpose=purpose, selected_activity=activity)
+
+                if c:  # Only save base fees for those not created.
+                    p.application_fee = purpose.base_application_fee
+                    p.licence_fee = purpose.base_licence_fee
+
+                self.adjusted_fee = D(p.adjusted_fee) + self.adjusted_fee
+                p.adjusted_fee = self.adjusted_fee
+                p.save()
 
     def get_adjusted_fees(self):
         '''
@@ -663,7 +899,7 @@ class IncreaseApplicationFeeFieldElement(SpecialFieldElement):
         if self.is_refreshing:
             # don't calculate new fees for attributes.
             return self.dynamic_attributes['fees']
-
+        # apply fee policy to re-calculate total fees for application.
         self.fee_policy.set_dynamic_attributes(self.dynamic_attributes)
 
         return self.dynamic_attributes['fees']
@@ -676,17 +912,21 @@ class IncreaseApplicationFeeFieldElement(SpecialFieldElement):
         if self.is_refreshing:
             # don't calculate new fees for attributes.
             return
-
+        # apply fee policy to re-calculate total fees for application.
         self.fee_policy.set_dynamic_attributes_for(activity)
 
     def get_dynamic_attributes(self):
         '''
         Gets the current dynamic attributes created by this Field Element.
         '''
-        return self.dynamic_attributes
+        if self.is_refreshing:
+            # don't calculate new fees for attributes.
+            return self.dynamic_attributes
+        # apply fee policy to re-calculate total fees for application.
+        self.fee_policy.set_has_fee_exemption(self.has_fee_exemption)
+        self.fee_policy.set_dynamic_attributes(self.dynamic_attributes)
 
-    def __str__(self):
-        return 'Field Element: {0}'.format(self._NAME)
+        return self.dynamic_attributes
 
 
 def do_process_form(
@@ -696,6 +936,7 @@ def do_process_form(
         action=ApplicationFormDataRecord.ACTION_TYPE_ASSIGN_VALUE):
     from wildlifecompliance.components.applications.utils import \
             MissingFieldsException
+
     can_edit_officer_comments = request.user.has_perm(
         'wildlifecompliance.licensing_officer'
     )
@@ -719,6 +960,9 @@ def do_process_form(
     required_fields = application.required_fields
     missing_fields = []
 
+    bulk_mgr = BulkCreateManager(
+        ApplicationFormDataRecord(application_id=application.id)
+    )
     for field_name, field_data in form_data.items():
         schema_name = field_data.get('schema_name', '')
         instance_name = field_data.get('instance_name', '')
@@ -745,28 +989,24 @@ def do_process_form(
         except KeyError:
             continue
 
-        form_data_record = ApplicationFormDataRecord.objects.filter(
+        SPECIES = ApplicationFormDataRecord.COMPONENT_TYPE_SELECT_SPECIES
+        form_data_record = ApplicationFormDataRecord(
             application_id=application.id,
             field_name=field_name,
             licence_activity_id=activity_id,
             licence_purpose_id=purpose_id,
-        ).first()
+            schema_name=schema_name,
+            instance_name=instance_name,
+            component_type=component_type,
+            component_attribute=component_attribute,
+            officer_comment=officer_comment,
+            assessor_comment=assessor_comment,
+            deficiency=deficiency
+        )
 
-        SPECIES = ApplicationFormDataRecord.COMPONENT_TYPE_SELECT_SPECIES
-        if not form_data_record:
-            form_data_record = ApplicationFormDataRecord.objects.create(
-                application_id=application.id,
-                field_name=field_name,
-                schema_name=schema_name,
-                instance_name=instance_name,
-                component_type=component_type,
-                licence_activity_id=activity_id,
-                licence_purpose_id=purpose_id,
-                component_attribute=component_attribute,
-            )
         # Species list may not exist in last save because the component has
         # been copied from an amendment. Save new list for species component.
-        elif form_data_record.component_type == SPECIES\
+        if component_type == SPECIES\
                 and not form_data_record.component_attribute:
             form_data_record.component_attribute = component_attribute
 
@@ -778,18 +1018,21 @@ def do_process_form(
                 missing_fields.append(missing_item)
                 continue
             form_data_record.value = value
-        elif action == \
-                ApplicationFormDataRecord.ACTION_TYPE_ASSIGN_COMMENT:
-            if can_edit_officer_comments:
-                form_data_record.officer_comment = officer_comment
-            if can_edit_assessor_comments:
-                form_data_record.assessor_comment = assessor_comment
-            if can_edit_deficiencies:
-                form_data_record.deficiency = deficiency
-        form_data_record.save()
 
+        # elif action == \
+        #         ApplicationFormDataRecord.ACTION_TYPE_ASSIGN_COMMENT:
+        #     if can_edit_officer_comments:
+        #         form_data_record.officer_comment = officer_comment
+        #     if can_edit_assessor_comments:
+        #         form_data_record.assessor_comment = assessor_comment
+        #     if can_edit_deficiencies:
+        #         form_data_record.deficiency = deficiency
+
+        bulk_mgr.add(form_data_record)
+
+    bulk_mgr.done()
     if action == ApplicationFormDataRecord.ACTION_TYPE_ASSIGN_VALUE:
-        do_update_dynamic_attributes(application)
+
         for existing_field in ApplicationFormDataRecord.objects.filter(
                 application_id=application.id):
             if existing_field.field_name not in form_data.keys():
@@ -803,10 +1046,12 @@ def do_process_form(
         )
 
 
-def do_update_dynamic_attributes(application):
-    """ Update application and activity attributes based on selected JSON
-        schema options.
-    """
+def do_update_dynamic_attributes(application, fee_exemption=False):
+    '''
+    Update application and activity attributes based on selected JSON schema
+    options. Any attributes which impact the fee for the application can be
+    exempted.
+    '''
     if application.processing_status not in [
             Application.PROCESSING_STATUS_DRAFT,
             Application.PROCESSING_STATUS_AWAITING_APPLICANT_RESPONSE,
@@ -819,12 +1064,8 @@ def do_update_dynamic_attributes(application):
     for_increase_fee_fields = IncreaseApplicationFeeFieldElement()
     for_increase_fee_fields.set_updating(True)
     for_increase_fee_fields.accept(checkbox)
+    for_increase_fee_fields.set_has_fee_exemption(fee_exemption)
     dynamic_attributes = for_increase_fee_fields.get_dynamic_attributes()
-
-    # Update application and licence fees
-    fees = dynamic_attributes['fees']
-    application.application_fee = fees['application']
-    application.save()
 
     # Save any parsed per-activity modifiers
     for selected_activity, field_data in \
@@ -834,28 +1075,6 @@ def do_update_dynamic_attributes(application):
         selected_activity.licence_fee = fees['licence']
         selected_activity.application_fee = fees['application']
 
-        # Check when under review for changes in fee amount.
-        # Application fees can also be adjusted by internal officer.
-        UNDER_REVIEW = Application.PROCESSING_STATUS_UNDER_REVIEW
-        if application.processing_status == UNDER_REVIEW\
-            and fees['application']\
-                > selected_activity.base_fees['application']:
-            selected_activity.application_fee = fees['application'] \
-                - selected_activity.base_fees['application']
-
-        # Check for refunds to Application Amendment, Renewals and Requested
-        # Amendment Fees.
-        REQUEST_AMEND = Application.CUSTOMER_STATUS_AMENDMENT_REQUIRED
-        if application.application_type in [
-            Application.APPLICATION_TYPE_AMENDMENT,
-            Application.APPLICATION_TYPE_RENEWAL,
-        ] or application.customer_status == REQUEST_AMEND:
-
-            # set fee to zero when refund exists.
-            if fees['application']\
-                    < selected_activity.base_fees['application']:
-                selected_activity.application_fee = Decimal(0.0)
-
         # Adjust fees to include the Increase Fee updated form questions.
         for_increase_fee_fields.set_adjusted_fees_for(selected_activity)
 
@@ -864,501 +1083,10 @@ def do_update_dynamic_attributes(application):
 
         selected_activity.save()
 
-
-"""
-NOTE: Section for objects relating to the calculation of Application Fees.
-"""
-
-
-class ApplicationFeePolicy(object):
-    """
-    A Payment Policy Interface for Licence Applications.
-    """
-    __metaclass__ = abc.ABCMeta
-
-    @staticmethod
-    def get_fee_policy_for(application):
-
-        AMEND = Application.APPLICATION_TYPE_AMENDMENT
-        RENEW = Application.APPLICATION_TYPE_RENEWAL
-        NEW = Application.APPLICATION_TYPE_NEW_LICENCE
-        # New Activity is set for multiple activities on application.
-        NEW_ACTIVITY = Application.APPLICATION_TYPE_ACTIVITY
-
-        get_policy = {
-            AMEND: ApplicationFeePolicyForAmendment(application),
-            RENEW: ApplicationFeePolicyForRenew(application),
-            NEW: ApplicationFeePolicyForNew(application),
-            NEW_ACTIVITY: ApplicationFeePolicyForNew(application),
-        }
-        policy = get_policy.get(
-            application.application_type,
-            ApplicationFeePolicyForNew(application)
-        )
-
-        return policy
-
-    @staticmethod
-    def get_fee_product_lines_for(application):
-        """
-        Gets the checkout product lines for this application which inlcudes
-        fee for both the application and licence activities.
-        """
-        product_lines = []
-
-        # application.
-        activities_with_fees = [
-            a for a in application.activities if a.application_fee > 0]
-
-        for activity in activities_with_fees:
-            product_lines.append({
-                'ledger_description': '{} (Application Fee)'.format(
-                    activity.licence_activity.name),
-                'quantity': 1,
-                'price_incl_tax': str(activity.application_fee),
-                'price_excl_tax': str(calculate_excl_gst(
-                    activity.application_fee)),
-                'oracle_code': ''
-            })
-
-        # licence activities.
-        activities_with_fees = [
-            a for a in application.activities if a.licence_fee > 0]
-
-        for activity in activities_with_fees:
-            product_lines.append({
-                'ledger_description': '{} (Licence Fee)'.format(
-                    activity.licence_activity.name),
-                'quantity': 1,
-                'price_incl_tax': str(activity.licence_fee),
-                'price_excl_tax': str(calculate_excl_gst(
-                        activity.licence_fee)),
-                'oracle_code': ''
-            })
-
-        return product_lines
-
-    @abc.abstractmethod
-    def get_dynamic_attributes(self):
-        """
-        Gets dynamic attributes with adjustments to fees made by applying this
-        policy.
-        """
-        pass
-
-    @abc.abstractmethod
-    def set_dynamic_attributes(self):
-        """
-        Sets dynamic attributes with any adjustments to fees applying this
-        policy.
-        """
-        pass
-
-    @abc.abstractmethod
-    def set_dynamic_attributes_for(self, activity):
-        '''
-        Sets dynamic attributes for a Licence Activity/Purpose with any
-        adjustments to fees applying this policy.
-        '''
-        pass
-
-    @abc.abstractmethod
-    def set_application_fee(self):
-        """
-        Sets the application fee from what was previously saved on the model.
-        """
-        pass
-
-
-class ApplicationFeePolicyForAmendment(ApplicationFeePolicy):
-    '''
-    A fee policy that applies to an application for a licence amendment.
-    - maintains a base application fee from previous application.
-    - applies no licence fee.
-    - all adjustment fees from the previous application are excluded.
-    - adjustment fees based on questions are added to the application fee.
-    '''
-    AMEND = Application.APPLICATION_TYPE_AMENDMENT
-
-    application = None
-    dynamic_attributes = None   # Container for Activity fees.
-    is_refreshing = False       # Flag indicating a page refresh.
-
-    def __init__(self, application):
-        self.application = application
-        if self.application.application_type == self.AMEND:
-            self.init_dynamic_attributes()
-
-    def __str__(self):
-        return 'Amend fee policy for {0}{1}'.format(
-           'Application: {app} '.format(app=self.application.id),
-           'attributes : {att} '.format(att=self.dynamic_attributes),
-        )
-
-    @staticmethod
-    def set_zero_licence_fee_for(purpose):
-        '''
-        No base licence fees are paid for Amended Activity Purposes.
-        '''
-        if isinstance(purpose, ApplicationSelectedActivityPurpose):
-            purpose.base_licence_fee = 0
-
-    @staticmethod
-    def set_previous_application_fee_for(purpose):
-        '''
-        The application fee is the same as the previous fee for Purpose.
-        '''
-        if isinstance(purpose, ApplicationSelectedActivityPurpose):
-            previous = purpose.get_purpose_from_previous()
-            prev_fee = previous.application_fee if previous else 0
-            purpose.application_fee = prev_fee
-
-    def init_dynamic_attributes(self):
-        '''
-        Initialise the dynamic attributes.
-        '''
-        self.is_refreshing = False
-        application_fees = Application.calculate_base_fees(
-                self.application.licence_purposes.values_list('id', flat=True)
-            )['application']
-
-        if self.application.application_fee > 0:
-            # Apply previous application fee amount instead of base.
-            prev_fees = self.application.previous_application.application_fee
-            prev_fees = 0
-            for activity in self.application.activities:
-                prev = activity.get_activity_from_previous()
-                purposes = prev.proposed_purposes.all() if prev else None
-                for purpose in purposes:
-                    prev_fees += purpose.application_fee
-
-            application_fees = prev_fees
-
-        self.dynamic_attributes = {
-            'fees': {
-                'application': application_fees,
-                'licence': self.set_licence_fee(),
-            },
-            'activity_attributes': {},
-        }
-
-    def set_purpose_fees_for(self, activity):
-        """
-        Set all fees for the selected activity/purpose.
-        """
-        # get purposes from the application form.
-        purpose_ids = ApplicationFormDataRecord.objects.filter(
-            application_id=activity.application_id,
-            licence_activity_id=activity.licence_activity_id,
-        ).values_list('licence_purpose_id', flat=True).distinct()
-        # set the selected activity purpose base fees.
-        for p_id in purpose_ids:
-            purpose = [p for p in activity.purposes if p.id == p_id]
-            p, c = ApplicationSelectedActivityPurpose.objects.get_or_create(
-                selected_activity_id=activity.id,
-                purpose_id=purpose[0].id
-            )
-            previous = p.get_purpose_from_previous()
-            prev_fee = previous.application_fee if previous else 0
-            p.application_fee = prev_fee
-            p.licence_fee = self.set_licence_fee()
-            p.additional_fee = 0
-            p.save()
-
-    def set_licence_fee_to_zero_for(self, activity):
-        """
-        No licence fee is paid for amended Activity/Purpose
-        """
-        activity.licence_fee = 0
-
-    def set_application_fee_to_previous_base_for(self, activity):
-        """
-        Application base fee is the same as previous application fee.
-
-        NOTE: Same as amend_adjusted_fee(self, attributes)
-
-        """
-        self.set_purpose_fees_for(activity)
-        prev_total = self.get_previous_paid_total_for(activity)
-        prev_act = self.get_previous_paid_actual_for(activity)
-
-        fees_adj = activity.application_fee         # Adjusted Fees.
-        prev_adj = prev_total - prev_act            # Previous Adjustments.
-        fees = prev_act + prev_adj                  # Total Fees.
-        new_adj = fees_adj - fees                   # New Adjusments.
-        activity.application_fee = prev_act
-        if new_adj < 0:
-            # No over-payments are reimbursed for Amendment applications - just
-            # pay new calculated fee.
-            activity.application_fee = fees_adj
-        else:
-            activity.application_fee += new_adj
-
-    def get_previous_paid_total_for(self, activity):
-        """
-        Set Licence fee as an aggregated amount of all new Activity/Purposes
-        which have been added as part of this Licence Amendment.
-        """
-        prev_total = 0
-        for purpose in activity.proposed_purposes.all():
-            prev = purpose.get_purpose_from_previous()
-            prev_app_fee = prev.application_fee if prev else 0
-            prev_adj_fee = prev.adjusted_fee if prev else 0
-            prev_total += prev_app_fee
-            prev_total += prev_adj_fee    # Fee from questions.
-
-        prev_activity = activity.get_activity_from_previous()
-        if prev_activity and prev_activity.has_adjusted_application_fee:
-            prev_total += prev_activity.additional_fee
-
-        return prev_total
-
-    def get_previous_paid_actual_for(self, activity):
-        """
-        Set Licence fee as an aggregated amount of all new Activity/Purposes
-        which have been added as part of this Licence Amendment.
-        """
-        prev_actual = 0
-        for purpose in activity.proposed_purposes.all():
-            prev_purpose = purpose.get_purpose_from_previous()
-            prev_fee = prev_purpose.application_fee if prev_purpose else 0
-            prev_actual += prev_fee
-
-        return prev_actual
-
-    def set_licence_fee(self):
-        """
-        Set Licence fee as an aggregated amount of all new Activity/Purposes
-        which have been added as part of this Licence Amendment.
-        """
-        fee = 0
-
-        return Decimal(fee)
-
-    def set_application_fee(self):
-        """
-        Set Application fee from the saved model. Required when presentation is
-        refreshed and no attributes are passed.
-        """
-        self.init_dynamic_attributes()
-        self.is_refreshing = True
-
-    def set_dynamic_attributes(self, attributes):
-        '''
-        Apply Licence Amendment Fee policy to dynamic attributes.
-        '''
-        if self.is_refreshing:
-            return
-        attributes = self.amend_adjusted_fee(attributes)
-
-        self.dynamic_attrubutes = attributes
-
-    def set_dynamic_attributes_for(self, activity):
-        '''
-        Apply Licence Amendment Fee policy to Activity fees.
-        '''
-        if self.is_refreshing:
-            return
-        self.set_licence_fee_to_zero_for(activity)
-        self.set_application_fee_to_previous_base_for(activity)
-
-    def amend_adjusted_fee(self, attributes):
-        '''
-        Amend only Application Fees for dynamic attributes.
-
-        NOTE: Same as set_application_fee_to_previous_base_for(self, activity)
-
-        '''
-        prev_total = 0
-        prev_act = 0
-        new_act = 0
-        fees_adj = 0
-
-        for activity in self.application.activities:
-            prev_total += self.get_previous_paid_total_for(activity)
-            prev_act += self.get_previous_paid_actual_for(activity)
-            # aggregate adjusted fees from calculated dynamic attributes.
-            fees_adj += attributes[
-                'activity_attributes'][activity]['fees']['application']
-
-        prev_adj = prev_total - prev_act        # previous adjustments
-        fees = prev_act + prev_adj + new_act    # total fees
-        new_adj = fees_adj - fees               # new adjustments
-        attributes['fees']['application'] = prev_act + new_act
-        if new_adj < 0:
-            # No over-payments are reimbursed for Amendment applications - just
-            # pay new calculated fee.
-            attributes['fees']['application'] = fees_adj
-        else:
-            attributes['fees']['application'] += new_adj
-
-        return attributes
-
-    def get_dynamic_attributes(self):
-        return self.dynamic_attributes
-
-
-class ApplicationFeePolicyForRenew(ApplicationFeePolicy):
-    '''
-    A fee policy that applies to an application to renew a licence.
-    - maintains the application fee and licence fee from previous licence.
-    - adjustment fees from the previous application are excluded.
-    - adjustment fees based on questions are added to the application fee.
-    '''
-    RENEW = Application.APPLICATION_TYPE_RENEWAL
-
-    is_refreshing = False       # Flag indicating a page refresh.
-
-    def __init__(self, application):
-        self._application = application
-        if self._application.application_type == self.RENEW:
-            self.init_dynamic_attributes()
-
-    def __str__(self):
-        return 'Renew fee policy for {0}{1}'.format(
-           'Application: {app} '.format(app=self.application.id),
-           'attributes : {att} '.format(att=self.dynamic_attributes),
-        )
-
-    def init_dynamic_attributes(self):
-        self.is_refreshing = False
-        self._dynamic_attributes = {
-            'fees': Application.calculate_base_fees(
-                self._application.licence_purposes.values_list('id', flat=True)
-            ),
-            'activity_attributes': {},
-        }
-
-    def set_application_fee(self):
-        """
-        Set Application fee from the saved model.
-        """
-        self.is_refreshing = True
-        application_fees = Application.calculate_base_fees(
-                self._application.licence_purposes.values_list('id', flat=True)
-            )['application']
-        licence_fees = Application.calculate_base_fees(
-                self._application.licence_purposes.values_list('id', flat=True)
-            )['licence']
-
-        if self._application.application_fee > 0:
-            application_fees = self._application.application_fee
-
-        self._dynamic_attributes = {
-            'fees': {
-                'application': application_fees,
-                'licence': licence_fees,
-                },
-            'activity_attributes': {},
-        }
-
-    def set_dynamic_attributes(self, attributes):
-        if self.is_refreshing:
-            return
-        self._dynamic_attributes = attributes
-
-    def get_dynamic_attributes(self):
-        return self._dynamic_attributes
-
-    def set_dynamic_attributes_for(self, activity):
-        if self.is_refreshing:
-            return
-
-
-class ApplicationFeePolicyForNew(ApplicationFeePolicy):
-    '''
-    A fee policy that applies to an application for a new licence.
-    - applies base purpose fees for both application and licence.
-    - adjustment fees based on questions is added to the application fee.
-    '''
-    NEW = [
-        Application.APPLICATION_TYPE_ACTIVITY,
-        Application.APPLICATION_TYPE_NEW_LICENCE
-    ]
-
-    application = None
-    dynamic_attributes = None   # Container for Activity fees.
-    is_refreshing = False       # Flag indicating a page refresh.
-
-    def __init__(self, application):
-        self.application = application
-        if self.application.application_type in self.NEW:
-            self.init_dynamic_attributes()
-
-    def __str__(self):
-        return 'New fee policy for {0}{1}'.format(
-           'Application: {app} '.format(app=self.application.id),
-           'attributes : {att} '.format(att=self.dynamic_attributes),
-        )
-
-    def init_dynamic_attributes(self):
-        self.is_refreshing = False
-        self.dynamic_attributes = {
-            'fees': Application.calculate_base_fees(
-                self.application.licence_purposes.values_list('id', flat=True)
-            ),
-            'activity_attributes': {},
-        }
-
-    def set_purpose_fees_for(self, activity):
-        """
-        Set all fees for the selected activity/purpose.
-
-        """
-        # get purposes from the application form.
-        purpose_ids = ApplicationFormDataRecord.objects.filter(
-            application_id=activity.application_id,
-            licence_activity_id=activity.licence_activity_id,
-        ).values_list('licence_purpose_id', flat=True).distinct()
-        # set the selected activity purpose base fees.
-        for p_id in purpose_ids:
-            purpose = [p for p in activity.purposes if p.id == p_id]
-            p, c = ApplicationSelectedActivityPurpose.objects.get_or_create(
-                selected_activity_id=activity.id,
-                purpose_id=purpose[0].id
-            )
-            p.application_fee = purpose[0].base_application_fee
-            p.licence_fee = purpose[0].base_licence_fee
-            p.save()
-
-    def set_application_fee(self):
-        """
-        Set Application fee from the saved model.
-        """
-        self.is_refreshing = True
-        application_fees = Application.calculate_base_fees(
-                self.application.licence_purposes.values_list('id', flat=True)
-            )['application']
-        licence_fees = Application.calculate_base_fees(
-                self.application.licence_purposes.values_list('id', flat=True)
-            )['licence']
-
-        if self.application.application_fee > 0:
-            application_fees = self.application.application_fee
-
-        self.dynamic_attributes = {
-            'fees': {
-                'application': application_fees,
-                'licence': licence_fees,
-                },
-            'activity_attributes': {},
-        }
-
-    def set_dynamic_attributes(self, attributes):
-        if self.is_refreshing:
-            return
-        self.dynamic_attributes = attributes
-
-    def get_dynamic_attributes(self):
-        return self.dynamic_attributes
-
-    def set_dynamic_attributes_for(self, activity):
-        '''
-        Sets any updated attribute fees associated with the Activity.
-        '''
-        if self.is_refreshing:
-            return
-        self.set_purpose_fees_for(activity)
+    # Update application and licence fees
+    fees = dynamic_attributes['fees']
+    application.application_fee = fees['application']
+    application.save()
 
 
 """

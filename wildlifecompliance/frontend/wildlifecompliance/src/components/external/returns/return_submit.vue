@@ -22,7 +22,7 @@
                     </tr>
                     <tr>
                         <td><strong>Invoice:</strong></td>
-                        <td>PDF</td>
+                        <td><a :href="returns.invoice_url" target="_blank"><i style="color:red" class="fa fa-file-pdf-o"></i></a></td>
                     </tr>
                 </table>
                 <a href="/" style="margin-top:15px;" class="btn btn-primary">Back to dashboard</a>
@@ -46,7 +46,7 @@ import {
 }
 from '@/utils/hooks'
 export default {
-  name: 'externalReturnQuestion',
+  name: 'ReturnConfirmation',
   data() {
     let vm = this;
     return {

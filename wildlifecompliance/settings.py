@@ -6,6 +6,8 @@ os.environ.setdefault("BASE_DIR", BASE_DIR)
 from django.core.exceptions import ImproperlyConfigured
 from ledger.settings_base import *
 
+os.environ['LEDGER_PRODUCT_CUSTOM_FIELDS'] = "('ledger_description','quantity','price_incl_tax','price_excl_tax','oracle_code')"
+
 ROOT_URLCONF = 'wildlifecompliance.urls'
 SITE_ID = 1
 
@@ -187,3 +189,4 @@ CRON_RUN_AT_TIMES = '03:05'
 
 # if DEBUG:
 #     EMAIL_BACKEND = 'django.core.mail.backends.console.EmailBackend'
+#

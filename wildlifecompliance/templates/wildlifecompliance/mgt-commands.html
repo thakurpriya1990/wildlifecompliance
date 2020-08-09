@@ -5,16 +5,24 @@
         <H4>Hover over button to see help text.</H4>
         <form action="" method="POST">
             {% csrf_token %}
+            <br/>
+            <H2>Wildlife Compliance</H2>
+            &nbsp;<button style="width:300px;" type="submit" name="script" value="verify_due_returns" title="Run command to verify returns which are due.">Run Script 'verify_due_returns'</button>&nbsp;
+            &nbsp;<button style="width:300px;" type="submit" name="script" value="verify_species" title="Run command to verify species against WACensus.">Run Script 'verify_species'</button>&nbsp;
+            &nbsp;<button style="width:300px;" type="submit" name="script" value="verify_expired_licences" title="Run command to verify expired licence purposes.">Run Script 'verify_expired_licences'</button>&nbsp;
+            &nbsp;<button style="width:300px;" type="submit" name="script" value="verify_licence_renewals" title="Run command to verify licence renewals.">Run Script 'verify_licence_renewals'</button>&nbsp;
+            <br /><br />
+
             <!--
             <button type="submit" name="script" value="update_workbooks" {% if update_workbooks == 'true' %}style="color:green" {% endif %} title="Run command to update Excel workbooks from the system">Run Script 'update_workbooks'</button><br><br>
             -->
-            <button type="submit" name="script" value="extend_due_date_from_1st_to_2nd" title="Run command to pick up all the overdue (1st period) infringement notices and process them.">Run Script 'extend_due_date_from_1st_to_2nd'</button><br><br>
+            <!-- <button type="submit" name="script" value="extend_due_date_from_1st_to_2nd" title="Run command to pick up all the overdue (1st period) infringement notices and process them.">Run Script 'extend_due_date_from_1st_to_2nd'</button><br><br>
             <button type="submit" name="script" value="send_unpaid_infringements_file" title="Run command to pick up all the overdue (2nd period) infringement notices and process them.">Run Script 'send_unpaid_infringements_file'</button><br><br>
             <button type="submit" name="script" value="send_rego_to_dot" title="Run command to pick up all the parking infringements and process them.">Run Script 'send_rego_to_dot'</button><br><br>
             <button type="submit" name="script" value="close_document_and_physical_artifacts" title="Run command to pick up all the stale objects and close them.">Run Script 'close_objects'</button><br><br>
             <button type="submit" name="script" value="notification_close_to_due_remediation_action" title="Run command to pick up all the remediation actions close to their due dates and notify the offenders.">Run Script 'notification_close_to_due_remediation_action'</button><br><br>
             <button type="submit" name="script" value="notification_overdue_remediation_action" title="Run command to pick up all the overdue remediation actions and notify the offenders.">Run Script 'notification_overdue_remediation_action'</button><br><br>
-            <button type="submit" name="script" value="send_notification_for_inspection" title="Run command to notify the parties to be inspected.">Run Script 'send_notification_for_inspection'</button><br><br>
+            <button type="submit" name="script" value="send_notification_for_inspection" title="Run command to notify the parties to be inspected.">Run Script 'send_notification_for_inspection'</button><br><br> -->
         </form>
         <br>
     </div>
