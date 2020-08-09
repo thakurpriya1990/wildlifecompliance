@@ -1027,28 +1027,30 @@ class Application(RevisionedMixin):
             raise ValidationError(
                 'The licence purpose ID is not valid for this application')
 
-        with transaction.atomic():
-            # Link the target LicencePurpose ID to the target_application
-            target_application.licence_purposes.add(licence_purpose_id)
+        # Link the target LicencePurpose ID to the target_application
+        target_application.licence_purposes.add(licence_purpose_id)
 
-            # Copy ApplicationFormDataRecord rows from application (self) for
-            # selected licence_activity and licence_purpose to
-            # target_application.
-            licence_activity_id = LicencePurpose.objects.get(
-                    id=licence_purpose_id).licence_activity_id
-            for data_row in ApplicationFormDataRecord.objects.filter(
-                    application_id=self,
-                    licence_activity_id=licence_activity_id,
-                    licence_purpose_id=licence_purpose_id):
-                data_row.id = None
-                data_row.application_id = target_application.id
+        # Copy ApplicationFormDataRecord rows from application (self) for
+        # selected licence_activity and licence_purpose to
+        # target_application.
+        licence_activity_id = LicencePurpose.objects.get(
+                id=licence_purpose_id).licence_activity_id
 
-                # species list is saved and needs to be rebuilt.
-                TYPE = ApplicationFormDataRecord.COMPONENT_TYPE_SELECT_SPECIES
-                if data_row.component_type == TYPE:
-                    data_row.component_attribute = None
+        form_data_rows = ApplicationFormDataRecord.objects.filter(
+                application_id=self,
+                licence_activity_id=licence_activity_id,
+                licence_purpose_id=licence_purpose_id)
 
-                data_row.save()
+        for data_row in form_data_rows:
+            data_row.id = None
+            data_row.application_id = target_application.id
+
+            # species list is saved and needs to be rebuilt.
+            TYPE = ApplicationFormDataRecord.COMPONENT_TYPE_SELECT_SPECIES
+            if data_row.component_type == TYPE:
+                data_row.component_attribute = None
+
+            data_row.save()
 
     def submit(self, request):
         from wildlifecompliance.components.licences.models import LicenceActivity

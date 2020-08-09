@@ -1529,8 +1529,12 @@ class ApplicationViewSet(viewsets.ModelViewSet):
                 ]:
                     target_application = serializer.instance
                     for activity in licence_activities:
-                        activity_purpose_ids = \
-                            activity.purposes.values_list('id', flat=True)
+                        activity_purpose_ids = [
+                            p.purpose.id
+                            for p in activity.proposed_purposes.all()
+                            if p.is_issued
+                        ]
+
                         purposes_to_copy = set(
                             cleaned_purpose_ids) & set(activity_purpose_ids)
 
