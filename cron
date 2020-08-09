@@ -1,0 +1,2 @@
+0 2 * * * root eval $(grep -v '^#' /etc/.cronenv | xargs -d "\n" -I {} echo export \"{}\" ) && cd /app && python manage_wc.py cron_tasks > logs/cron_tasks.log 2>&1
+10 2 * * * root eval $(grep -v '^#' /etc/.cronenv | xargs -d "\n" -I {} echo export \"{}\" ) && cd /app && python manage_wc.py runcrons > logs/runcrons.log 2>&1

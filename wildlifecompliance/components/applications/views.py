@@ -22,6 +22,7 @@ from wildlifecompliance.components.main.utils import (
     delete_session_activity,
     bind_application_to_invoice,
 )
+from reversion_compare.views import HistoryCompareDetailView
 import json
 from wildlifecompliance.exceptions import BindApplicationException
 import xlwt
@@ -34,6 +35,15 @@ import traceback
 
 import logging
 logger = logging.getLogger(__name__)
+
+
+class ApplicationHistoryCompareView(HistoryCompareDetailView):
+    """
+    View for reversion_compare
+    """
+    model = Application
+    template_name = 'wildlifecompliance/reversion_history.html'
+
 
 class ApplicationView(TemplateView):
     template_name = 'wildlifecompliance/application.html'
@@ -85,12 +95,14 @@ class ApplicationSuccessView(TemplateView):
                         kwargs={'reference': invoice_ref}))
 
                 if application.application_fee_paid:
-
-                    application.submit(request)
+                    # can only submit again if application is in Draft.
+                    if application.can_user_edit:
+                        application.submit(request)
                     send_application_invoice_email_notification(
                         application, invoice_ref, request)
 
-                    # record invoice payment for licence activities.
+                    # record invoice payment for licence activities. Record the
+                    # licence and application fee for refunding purposes.
                     for activity in application.activities:
 
                         invoice = ActivityInvoice.objects.get_or_create(
@@ -98,10 +110,16 @@ class ApplicationSuccessView(TemplateView):
                             invoice_reference=invoice_ref
                         )
 
-                        ActivityInvoiceLine.objects.get_or_create(
+                        ActivityInvoiceLine.objects.create(
                             invoice=invoice[0],
                             licence_activity=activity.licence_activity,
                             amount=activity.licence_fee
+                        )
+
+                        ActivityInvoiceLine.objects.create(
+                            invoice=invoice[0],
+                            licence_activity=activity.licence_activity,
+                            amount=activity.application_fee
                         )
 
                 else:
@@ -138,36 +156,39 @@ class LicenceFeeSuccessView(TemplateView):
     template_name = 'wildlifecompliance/licence_fee_success.html'
 
     def get(self, request, *args, **kwargs):
+        ACCEPTED = ApplicationSelectedActivity.PROCESSING_STATUS_ACCEPTED
         try:
             session_activity = get_session_activity(request.session)
             invoice_ref = request.GET.get('invoice')
 
+            application = Application.objects.get(
+                id=session_activity.application_id
+            )
+
+            bind_application_to_invoice(request, application, invoice_ref)
             activities = ApplicationSelectedActivity.objects.filter(
                 application_id=session_activity.application_id,
                 processing_status=ApplicationSelectedActivity.PROCESSING_STATUS_AWAITING_LICENCE_FEE_PAYMENT)
 
             i = 1
             for activity in activities:
+                # For each activity record the invoice ref and application fee
+                # paid as this amount may need to be refunded.
 
                 invoice = ActivityInvoice.objects.get_or_create(
                     activity=activity,
                     invoice_reference=invoice_ref
                 )
 
-                if activity.licence_fee > 0:
-                    ActivityInvoiceLine.objects.get_or_create(
-                        invoice=invoice[0],
-                        licence_activity=activity.licence_activity,
-                        amount=activity.licence_fee
-                    )
-
+                # There may be adjustments to application fee.
                 if activity.application_fee > 0:
                     ActivityInvoiceLine.objects.get_or_create(
                         invoice=invoice[0],
                         licence_activity=activity.licence_activity,
                         amount=activity.application_fee
                     )
-
+                # update the status from awaiting fee payment.
+                activity.processing_status = ACCEPTED
                 activity.application.issue_activity(
                    request, activity,
                    generate_licence=True if i == activities.count() else False)

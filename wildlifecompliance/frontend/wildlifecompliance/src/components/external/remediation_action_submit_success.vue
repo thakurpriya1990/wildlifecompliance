@@ -1,11 +1,11 @@
 <template lang="html">
     <div class="container">
-        <div class="row">
+        <div class="row panel panel-default confirmation-box">
             <div class="col-md-12">
                 <h3>Your Remediation Action has been submitted successfully.</h3>
                 <div class="row">
                     <div class="col-md-2" >
-                        Referenece number: 
+                        Reference number:
                     </div>
                     <div class="col-md-4" >
                         {{ remediation_action.remediation_action_id }}
@@ -13,7 +13,7 @@
                 </div>
                 <div class="row">
                     <div class="col-md-2" >
-                        Lodgement date: 
+                        Lodgement date:
                     </div>
                     <div class="col-md-4" >
                         {{ lodgement_date }}
@@ -92,6 +92,9 @@ export default {
 <style>
 .button-gap {
     margin: 0 0 0 1em;
+}
+.confirmation-box {
+    padding: 0 0 1.5em 0;
 }
 
 </style>

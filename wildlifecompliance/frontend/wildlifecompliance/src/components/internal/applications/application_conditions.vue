@@ -117,7 +117,7 @@ export default {
                     {
                         mRender:function (data,type,full) {
                             let links = '';
-                            if(full.source_group) {
+                            if(full.source_group && vm.activity.processing_status.id !== 'with_officer_finalisation') {
                                 links = `
                                     <a href='#' class="editCondition" data-id="${full.id}">Edit</a><br/>
                                     <a href='#' class="deleteCondition" data-id="${full.id}">Delete</a><br/>
@@ -136,9 +136,10 @@ export default {
                     {
                         mRender:function (data,type,full) {
                             let links = '';
-                            // TODO check permission to change the order
-                            links +=  `<a class="dtMoveUp" data-id="${full.id}" href='#'><i class="fa fa-angle-up"></i></a><br/>`;
-                            links +=  `<a class="dtMoveDown" data-id="${full.id}" href='#'><i class="fa fa-angle-down"></i></a><br/>`;
+                            if(vm.canEditConditions) {
+                                links +=  `<a class="dtMoveUp" data-id="${full.id}" href='#'><i class="fa fa-angle-up"></i></a><br/>`;
+                                links +=  `<a class="dtMoveDown" data-id="${full.id}" href='#'><i class="fa fa-angle-down"></i></a><br/>`;
+                            }
                             return links;
                         },
                         orderable: false
@@ -253,9 +254,9 @@ export default {
             },(error) => {
             });
         },
-        fetchConditions(){
+        async fetchConditions(){
             let vm = this;
-            vm.$http.get(api_endpoints.application_standard_conditions).then((response) => {
+            await vm.$http.get(api_endpoints.application_standard_conditions).then((response) => {
                 vm.conditions = response.body
             },(error) => {
                 console.log(error);
@@ -268,9 +269,9 @@ export default {
             });
             this.purposes = selectedActivity.purposes;
         },
-        editCondition(_id){
+        async editCondition(_id){
             let vm = this;
-            vm.$http.get(helpers.add_endpoint_json(api_endpoints.application_conditions,_id)).then((response) => {
+            await vm.$http.get(helpers.add_endpoint_json(api_endpoints.application_conditions,_id)).then((response) => {
                 response.body.standard ? $(this.$refs.condition_detail.$refs.standard_req).val(response.body.standard_condition).trigger('change'): '';
                 this.addCondition(response.body);
             },(error) => {
@@ -295,46 +296,80 @@ export default {
                 var id = $(this).attr('data-id');
                 vm.editCondition(id);
             });
+            vm.$refs.conditions_datatable.vmDataTable.on('click', '.dtMoveUp', function(e) {
+                e.preventDefault();
+                var id = $(this).attr('data-id');
+                vm.moveUp(e);
+            });
+            vm.$refs.conditions_datatable.vmDataTable.on('click', '.dtMoveDown', function(e) {
+                e.preventDefault();
+                var id = $(this).attr('data-id');
+                vm.moveDown(e);
+            });
         },
-        sendDirection(req,direction){
+        async sendDirection(req,direction){
             let movement = direction == 'down'? 'move_down': 'move_up';
-            this.$http.get(helpers.add_endpoint_json(api_endpoints.application_conditions,req+'/'+movement)).then((response) => {
+            await this.$http.get(helpers.add_endpoint_json(api_endpoints.application_conditions,req+'/'+movement)).then((response) => {
             },(error) => {
                 console.log(error);
                 
             })
         },
-        moveUp(e) {
+        async moveUp(e) {
             // Move the row up
             let vm = this;
             e.preventDefault();
             var tr = $(e.target).parents('tr');
-            vm.moveRow(tr, 'up');
-            vm.sendDirection($(e.target).parent().data('id'),'up');
+            if (await vm.moveRow(tr, 'up')){
+                await vm.sendDirection($(e.target).parent().data('id'),'up');
+            }
         },
-        moveDown(e) {
+        async moveDown(e) {
             // Move the row down
             e.preventDefault();
             let vm = this;
             var tr = $(e.target).parents('tr');
-            vm.moveRow(tr, 'down');
-            vm.sendDirection($(e.target).parent().data('id'),'down');
+            if (await vm.moveRow(tr, 'down')){
+                await vm.sendDirection($(e.target).parent().data('id'),'down');
+            }
         },
-        moveRow(row, direction) {
+        async moveRow(row, direction) {
             // Move up or down (depending...)
-            var table = this.$refs.conditions_datatable.vmDataTable;
-            var index = table.row(row).index();
-            var order = -1;
+            const table = this.$refs.conditions_datatable.vmDataTable;
+            let index = row[0].sectionRowIndex - 1;
+            let order = -1;
             if (direction === 'down') {
               order = 1;
             }
-            var data1 = table.row(index).data();
-            data1.order += order;
-            var data2 = table.row(index + order).data();
-            data2.order += -order;
-            table.row(index).data(data2);
-            table.row(index + order).data(data1);
-            table.page(0).draw(false);
+            let new_index = index + order
+            if (new_index<0){
+                new_index = 1
+            }
+            if (new_index>table.data().length-1){
+                new_index = table.data().length-2
+            }
+            let selected = table.rows(index).data();
+            let replaced = table.rows(new_index).data();
+            order = selected.order
+            selected.order = replaced.order;
+            replaced.order = order;
+            let old_data = table.data()
+            let new_data = table.data()
+            for (let i=0; i<old_data.length; i++){
+                if (i===new_index){
+                    new_data[i] = selected[0]
+                    continue
+                }
+                if (i===index){
+                    new_data[i] = replaced[0]
+                    continue
+                }
+                new_data[i] = old_data[i]
+            }
+            table.clear()
+            table.rows.add(new_data)
+            table.draw();
+            return true
         },
     },
     mounted: function(){

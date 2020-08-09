@@ -131,7 +131,7 @@
                                 </a>
                           </div>
                         </div>
-                        <div v-if="statusId !=='closed' && canUserAction" class="row action-button">
+                        <div v-if="closeButtonVisibility && canUserAction" class="row action-button">
                           <div class="col-sm-12">
                                 <a ref="close" @click="addWorkflow('close')" class="btn btn-primary btn-block">
                                   Close
@@ -199,7 +199,9 @@
             
                           <FormSection :formCollapse="false" label="Location" Index="1">
                               <div v-if="call_email.location">
-                                <MapLocation v-bind:key="call_email.location.id"/>
+                                <MapLocation 
+                                :isReadonly="readonlyForm"
+                                v-bind:key="call_email.location.id"/>
                               </div>
                           </FormSection>
             
@@ -291,7 +293,7 @@
                             <div class="col-sm-12 form-group"><div class="row">
                               <label class="col-sm-4">Classification</label>
                               <select :disabled="readonlyForm" class="form-control" v-model="call_email.classification_id">
-                                    <option v-for="option in classification_types" :value="option.display" v-bind:key="option.id">
+                                    <option v-for="option in classification_types" :value="option.id" v-bind:key="option.id">
                                       {{ option.display }} 
                                     </option>
                                 </select>
@@ -544,6 +546,13 @@ export default {
             visible = true;
         }
         return visible;
+    },
+    closeButtonVisibility: function() {
+        let visibility = true;
+        if (['closed', 'pending_closure'].includes(this.statusId)) {
+            visibility = false;
+        }
+        return visibility;
     },
     updateSearchPersonOrganisationBindId: function() {
         let bindId = 'individual';

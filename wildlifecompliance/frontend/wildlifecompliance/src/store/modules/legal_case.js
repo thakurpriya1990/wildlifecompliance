@@ -35,6 +35,18 @@ export const legalCaseStore = {
                 state.legal_case.id + "/process_default_document/"
                 )
             Vue.set(state.legal_case, 'defaultDocumentUrl', defaultDocumentUrl); 
+            // prosecution notice
+            let prosecutionNoticeDocumentUrl = helpers.add_endpoint_join(
+                api_endpoints.legal_case,
+                state.legal_case.id + "/process_prosecution_notice_document/"
+            )
+            Vue.set(state.legal_case, 'prosecutionNoticeDocumentUrl', prosecutionNoticeDocumentUrl); 
+            // court hearing notice
+            let courtHearingNoticeDocumentUrl = helpers.add_endpoint_join(
+                api_endpoints.legal_case,
+                state.legal_case.id + "/process_court_hearing_notice_document/"
+            )
+            Vue.set(state.legal_case, 'courtHearingNoticeDocumentUrl', courtHearingNoticeDocumentUrl); 
             // Brief of evidence
             let briefOfEvidenceDocumentUrl = helpers.add_endpoint_join(
                 api_endpoints.legal_case,
@@ -71,6 +83,11 @@ export const legalCaseStore = {
                 )
             Vue.set(state.legal_case, 'generatedDocumentsUrl', generatedDocumentsUrl);
             */
+        },
+        updateLegalCaseNoRunningSheet(state, legal_case) {
+            // 20200416: current requirement is to only update statement artifacts and related items
+            Vue.set(state.legal_case, 'related_items', legal_case.related_items);
+            Vue.set(state.legal_case, 'statement_artifacts', legal_case.statement_artifacts);
         },
         updateRelatedItems(state, related_items) {
             Vue.set(state.legal_case, 'related_items', related_items);
@@ -117,6 +134,8 @@ export const legalCaseStore = {
             state.legal_case.court_proceedings.journal_entries_transform[journal_entry_transform.number] = journal_entry_transform;
         },
         updateCourtProceedingsDate(state, date_entry) {
+            console.log('*** in updateCourtProceedingsDate() ***')
+            console.log(date_entry);
             if (!state.legal_case.court_proceedings.hasOwnProperty('date_entries_updated')){
                 state.legal_case.court_proceedings.date_entries_updated = {};
             }
@@ -239,9 +258,25 @@ export const legalCaseStore = {
                         api_endpoints.legal_case, 
                         legal_case_id)
                     );
-
-                console.log(returnedLegalCase)
+                console.log('*** in loadLegalCase ***');
+                console.log(returnedLegalCase);
                 commit("updateLegalCase", returnedLegalCase.body);
+
+            } catch (err) {
+                console.log(err);
+            }
+        },
+        async loadLegalCaseNoRunningSheet({ dispatch, commit }, { legal_case_id }) {
+            try {
+                const returnedLegalCase = await Vue.http.get(
+                    helpers.add_endpoint_json(
+                        api_endpoints.legal_case,
+                        legal_case_id + '/no_running_sheet'
+                    )
+                );
+                console.log('*** in loadLegalCase ***');
+                console.log(returnedLegalCase);
+                commit("updateLegalCaseNoRunningSheet", returnedLegalCase.body);
 
             } catch (err) {
                 console.log(err);
@@ -254,6 +289,7 @@ export const legalCaseStore = {
             createBriefOfEvidence, 
             createProsecutionBrief,
             fullHttpResponse,
+            //noRunningSheet,
         }) {
             let legalCaseId = null;
             let savedLegalCase = null;
@@ -299,6 +335,11 @@ export const legalCaseStore = {
                     if (fullHttpResponse) {
                         payload.full_http_response = true;
                     }
+                    /*
+                    if (noRunningSheet) {
+                        payload.no_running_sheet = true;
+                    }
+                    */
                     fetchUrl = helpers.add_endpoint_join(
                         api_endpoints.legal_case,
                         state.legal_case.id + '/'
@@ -310,6 +351,12 @@ export const legalCaseStore = {
                     console.log(savedLegalCase)
                     await dispatch("setLegalCase", savedLegalCase.body);
                 }
+                /*
+                if (noRunningSheet && savedLegalCase.ok) {
+                    console.log(savedLegalCase)
+                    await dispatch("setLegalCaseNoRunningSheet", savedLegalCase.body);
+                }
+                */
                 legalCaseId = savedLegalCase.body.id;
 
                 delete state.legal_case.court_proceedings.date_entries_updated
@@ -336,6 +383,9 @@ export const legalCaseStore = {
         setLegalCase({ commit, }, legal_case) {
             commit("updateLegalCase", legal_case);
         },
+        setLegalCaseNoRunningSheet({ commit, }, legal_case) {
+            commit("updateLegalCaseNoRunningSheet", legal_case);
+        },
         setRelatedItems({ commit }, related_items ) {
             commit("updateRelatedItems", related_items);
         },
@@ -361,6 +411,7 @@ export const legalCaseStore = {
             commit("updateCourtProceedingsTransform", journal_entry_transform);
         },
         setCourtProceedingsDate({ commit }, date_entry ) {
+            console.log('*** in setCourtProceedingsDate() ***');
             commit("updateCourtProceedingsDate", date_entry);
         },
         //setBriefOfEvidence({ commit }, {brief_of_evidence, physical_artifacts} ) {

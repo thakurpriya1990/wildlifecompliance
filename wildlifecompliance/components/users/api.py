@@ -417,14 +417,25 @@ class UserViewSet(viewsets.ModelViewSet):
                     Application.CUSTOMER_STATUS_ACCEPTED,
                     Application.CUSTOMER_STATUS_DECLINED)
                 ).order_by('id')
-                assigned_officers = [application.assigned_officer.email
-                                     for application
-                                     in applications
-                                     if application.assigned_officer]
+
+                if applications:
+
+                    officers = applications[0].licence_officers
+                    if applications[0].is_assigned:
+                        officers = applications[0].assigned_officer
+
+                    send_id_updated_notification(
+                        instance, applications, officers, request
+                    )
+
+                # assigned_officers = [application.assigned_officer.email
+                #                      for application
+                #                      in applications
+                #                      if application.assigned_officer]
                 # remove duplicate email addresses from assigned_officers list
-                assigned_officers = list(dict.fromkeys(assigned_officers))
-                if len(assigned_officers) > 0:
-                    send_id_updated_notification(instance, applications, assigned_officers, request)
+                # assigned_officers = list(dict.fromkeys(assigned_officers))
+                # if len(assigned_officers) > 0:
+                #     send_id_updated_notification(instance, applications, assigned_officers, request)
             serializer = UserSerializer(instance, partial=True)
             return Response(serializer.data)
         except serializers.ValidationError:

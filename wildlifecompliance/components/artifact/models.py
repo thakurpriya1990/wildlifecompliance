@@ -21,7 +21,11 @@ from wildlifecompliance.components.legal_case.models import (
         BriefOfEvidence,
         ProsecutionBrief
         )
+from wildlifecompliance.components.artifact.email import (
+    send_mail)
+from wildlifecompliance.components.main.email import prepare_mail
 from django.core.exceptions import ValidationError
+from wildlifecompliance.components.main.utils import FakeRequest
 
 logger = logging.getLogger(__name__)
 
@@ -321,6 +325,14 @@ class DocumentArtifact(Artifact):
                 primary_case = legal_case
         return primary_case
 
+    @property
+    def primary_legal_case_id(self):
+        primary_case = None
+        for legal_case in self.documentartifactlegalcases_set.all():
+            if legal_case.primary:
+                primary_case = legal_case
+        return primary_case.legal_case_id
+
     def close(self, request=None):
         # NOTE: close_record logic moved to can_close_legal_case
         self.status = self.STATUS_CLOSED
@@ -397,6 +409,11 @@ class BriefOfEvidenceDocumentArtifacts(models.Model):
             label_text = self.document_artifact.number
         return label_text
 
+    @property
+    def hyperlink(self):
+        hyperlink = '/internal/object/' + str(self.document_artifact.id)
+        return hyperlink
+
 
 class ProsecutionBriefDocumentArtifacts(models.Model):
     legal_case = models.ForeignKey(
@@ -424,6 +441,11 @@ class ProsecutionBriefDocumentArtifacts(models.Model):
         else:
             label_text = self.document_artifact.number
         return label_text
+
+    @property
+    def hyperlink(self):
+        hyperlink = '/internal/object/' + str(self.document_artifact.id)
+        return hyperlink
 
 
 class PhysicalArtifact(Artifact):
@@ -537,13 +559,48 @@ class PhysicalArtifact(Artifact):
         self.disposal_method_id = disposal_method_id
         self.disposal_details = disposal_details
         #self.save()
-        self.close()
+        self.close(request)
 
-    def close(self, request=None):
+    #def close(self, request=None):
+    def close(self, request):
         # TODO: add logic to check for disposal date
         # NOTE: close_record logic moved to can_close_legal_case
         if not self.disposal_date:
             self.status = self.STATUS_WAITING_FOR_DISPOSAL
+            # send mail
+            #request_data = None
+            #if not request:
+             #   request_data = FakeRequest(data={
+              #          'assigned_to_id': self.custodian_email
+               #         })
+            #else:
+
+            #if self.custodian_email:
+             #   request.data['recipient_address'] = self.custodian_email
+            email_data = prepare_mail(request=request, instance=self, workflow_entry=None, send_mail=send_mail, recipient_address=self.custodian_email)
+            #prepare_mail(request=request, instance=self, workflow_entry=None, send_mail=send_mail)
+            # write comms log based on email_data
+            print("email_data")
+            print(email_data)
+            to = email_data.get('to', '')
+            fromm = email_data.get('fromm', '')
+            cc = email_data.get('cc', '')
+            #log_type = email_data.get('log_type')
+            log_type = 'email'
+            reference = email_data.get('reference', '')
+            subject = email_data.get('subject', '')
+            text = email_data.get('text', '')
+            ArtifactCommsLogEntry.objects.create(
+                    artifact=self,
+                    to=to,
+                    fromm=fromm,
+                    cc=cc,
+                    log_type=log_type,
+                    reference=reference,
+                    subject=subject,
+                    text=text
+                    )
+            # action log
             self.log_user_action(
                     ArtifactUserAction.ACTION_WAITING_FOR_DISPOSAL.format(self.number),
                     request)
@@ -644,6 +701,11 @@ class BriefOfEvidencePhysicalArtifacts(models.Model):
             label_text = self.physical_artifact.number
         return label_text
 
+    @property
+    def hyperlink(self):
+        hyperlink = '/internal/object/' + str(self.physical_artifact.id)
+        return hyperlink
+
 
 class ProsecutionBriefPhysicalArtifacts(models.Model):
     legal_case = models.ForeignKey(
@@ -671,9 +733,15 @@ class ProsecutionBriefPhysicalArtifacts(models.Model):
             label_text = self.physical_artifact.identifier
         else:
             label_text = self.physical_artifact.number
+            #label_text = '<a href=/internal/object/' + self.physical_artifact.number + ' target="_blank">Open</a>'
         return label_text
 
+    @property
+    def hyperlink(self):
+        hyperlink = '/internal/object/' + str(self.physical_artifact.id)
+        return hyperlink
 
+    
 @python_2_unicode_compatible
 class PhysicalArtifactFormDataRecord(models.Model):
 
@@ -809,13 +877,13 @@ class ArtifactCommsLogDocument(Document):
 
 
 class ArtifactUserAction(models.Model):
-    ACTION_CREATE_ARTIFACT = "Create artifact {}"
-    ACTION_SAVE_ARTIFACT = "Save artifact {}"
+    ACTION_CREATE_ARTIFACT = "Create object {}"
+    ACTION_SAVE_ARTIFACT = "Save object {}"
     #ACTION_OFFENCE = "Create Offence {}"
     #ACTION_SANCTION_OUTCOME = "Create Sanction Outcome {}"
     #ACTION_SEND_TO_MANAGER = "Send Inspection {} to Manager"
-    ACTION_CLOSE = "Close Artifact {}"
-    ACTION_WAITING_FOR_DISPOSAL = "Mark Artifact {} as waiting for disposal"
+    ACTION_CLOSE = "Close object {}"
+    ACTION_WAITING_FOR_DISPOSAL = "Mark object {} as waiting for disposal"
     #ACTION_PENDING_CLOSURE = "Mark Inspection {} as pending closure"
     #ACTION_REQUEST_AMENDMENT = "Request amendment for {}"
     #ACTION_ENDORSEMENT = "Inspection {} has been endorsed by {}"
@@ -915,15 +983,51 @@ class BriefOfEvidenceOtherStatements(models.Model):
     def label(self):
         return self.__str__()
 
+    @property
+    def hyperlink(self):
+        if self.associated_doc_artifact:
+            hyperlink = '/internal/object/' + str(self.associated_doc_artifact.id)
+        elif self.statement:
+            hyperlink = '/internal/object/' + str(self.statement.id)
+        else:
+            hyperlink = '/internal/users/' + str(self.person.id)
+        return hyperlink
+
+    @property
+    def show(self):
+        show = False
+        # person
+        if self.children.count():
+            # statement
+            for child in self.children.all():
+                if child.children.count():
+                    # associated_doc_artifact
+                    for grandchild in child.children.all():
+                        if grandchild.ticked:
+                            show = True
+                else:
+                    if child.ticked:
+                        show = True
+        else:
+            show = self.ticked
+        return show
+
     def __str__(self):
         label_text = ''
         if not self.statement and not self.associated_doc_artifact:
             full_name = self.person.get_full_name()
             label_text = 'Person: ' + full_name
         elif not self.associated_doc_artifact:
-            label_text = self.statement.document_type + ': ' + self.statement.number
+            # label_text = self.statement.document_type + ': ' + self.statement.number
+            if self.statement.identifier:
+                label_text = self.statement.artifact_type + ': ' + self.statement.identifier
+            else:
+                label_text = self.statement.artifact_type + ': ' + self.statement.number
         else:
-            label_text = 'Associated Document Object: ' + self.associated_doc_artifact.number
+            if self.associated_doc_artifact.identifier:
+                label_text = 'Associated Document Object: ' + self.associated_doc_artifact.identifier
+            else:
+                label_text = 'Associated Document Object: ' + self.associated_doc_artifact.number
         return label_text
 
 
@@ -959,19 +1063,67 @@ class BriefOfEvidenceRecordOfInterview(models.Model):
         app_label = 'wildlifecompliance'
 
     @property
+    def show(self):
+        show = False
+        # offence
+        if self.children.count():
+            # offender
+            for child in self.children.all():
+                if child.children.count():
+                    # record_of_interview
+                    for grandchild in child.children.all():
+                        if grandchild.children.count():
+                            # associated_doc_artifact
+                            for greatgrandchild in grandchild.children.all():
+                                if greatgrandchild.ticked:
+                                    show = True
+                        else:
+                            if grandchild.ticked:
+                                show = True
+                else:
+                    if child.ticked:
+                        show = True
+        else:
+            show = self.ticked
+        return show
+
+    @property
+    def hyperlink(self):
+        hyperlink = ''
+        if not self.offender and not self.record_of_interview and not self.associated_doc_artifact:
+            hyperlink = '/internal/offence/' + str(self.offence.id)
+        elif not self.record_of_interview and not self.associated_doc_artifact:
+            if self.offender.person:
+                hyperlink = '/internal/users/' + str(self.offender.person.id)
+        elif not self.associated_doc_artifact:
+            hyperlink = '/internal/object/' + str(self.record_of_interview.id)
+        else:
+            hyperlink = '/internal/object/' + str(self.associated_doc_artifact.id)
+        return hyperlink
+
+    @property
     def label(self):
         return self.__str__()
 
     def __str__(self):
         label_text = ''
         if not self.offender and not self.record_of_interview and not self.associated_doc_artifact:
-            label_text = 'Offence: ' + self.offence.lodgement_number
+            if self.offence.identifier:
+                label_text = 'Offence: ' + self.offence.identifier
+            else:
+                label_text = 'Offence: ' + self.offence.lodgement_number
         elif not self.record_of_interview and not self.associated_doc_artifact:
-            label_text = 'Offender: ' + str(self.offender.id)
+            label_text = 'Offender: ' + str(self.offender)
         elif not self.associated_doc_artifact:
-            label_text = 'Record of Interview: ' + self.record_of_interview.number
+            if self.record_of_interview.identifier:
+                label_text = 'Record of Interview: ' + self.record_of_interview.identifier
+            else:
+                label_text = 'Record of Interview: ' + self.record_of_interview.number
         else:
-            label_text = 'Associated Document Object: ' + self.associated_doc_artifact.number
+            if self.associated_doc_artifact.identifier:
+                label_text = 'Associated Document Object: ' + self.associated_doc_artifact.identifier
+            else:
+                label_text = 'Associated Document Object: ' + self.associated_doc_artifact.number
         return label_text
 
 class ProsecutionBriefOtherStatements(models.Model):
@@ -1005,6 +1157,35 @@ class ProsecutionBriefOtherStatements(models.Model):
         app_label = 'wildlifecompliance'
 
     @property
+    def show(self):
+        show = False
+        # person
+        if self.children.count():
+            # statement
+            for child in self.children.all():
+                if child.children.count():
+                    # associated_doc_artifact
+                    for grandchild in child.children.all():
+                        if grandchild.ticked:
+                            show = True
+                else:
+                    if child.ticked:
+                        show = True
+        else:
+            show = self.ticked
+        return show
+
+    @property
+    def hyperlink(self):
+        if self.associated_doc_artifact:
+            hyperlink = '/internal/object/' + str(self.associated_doc_artifact.id)
+        elif self.statement:
+            hyperlink = '/internal/object/' + str(self.statement.id)
+        else:
+            hyperlink = '/internal/users/' + str(self.person.id)
+        return hyperlink
+
+    @property
     def label(self):
         return self.__str__()
 
@@ -1014,9 +1195,15 @@ class ProsecutionBriefOtherStatements(models.Model):
             full_name = self.person.get_full_name()
             label_text = 'Person: ' + full_name
         elif not self.associated_doc_artifact:
-            label_text = self.statement.document_type + ': ' + self.statement.number
+            if self.statement.identifier:
+                label_text = self.statement.artifact_type + ': ' + self.statement.identifier
+            else:
+                label_text = self.statement.artifact_type + ': ' + self.statement.number
         else:
-            label_text = 'Associated Document Object: ' + self.associated_doc_artifact.number
+            if self.associated_doc_artifact.identifier:
+                label_text = 'Associated Document Object: ' + self.associated_doc_artifact.identifier
+            else:
+                label_text = 'Associated Document Object: ' + self.associated_doc_artifact.number
         return label_text
 
 
@@ -1055,16 +1242,66 @@ class ProsecutionBriefRecordOfInterview(models.Model):
     def label(self):
         return self.__str__()
 
+    @property
+    def show(self):
+        show = False
+        # offence
+        if self.children.count():
+            # offender
+            for child in self.children.all():
+                if child.children.count():
+                    # record_of_interview
+                    for grandchild in child.children.all():
+                        if grandchild.children.count():
+                            # associated_doc_artifact
+                            for greatgrandchild in grandchild.children.all():
+                                if greatgrandchild.ticked:
+                                    show = True
+                        else:
+                            if grandchild.ticked:
+                                show = True
+                else:
+                    if child.ticked:
+                        show = True
+        else:
+            show = self.ticked
+        return show
+
+    @property
+    def hyperlink(self):
+        hyperlink = ''
+        if not self.offender and not self.record_of_interview and not self.associated_doc_artifact:
+            hyperlink = '/internal/offence/' + str(self.offence.id)
+        elif not self.record_of_interview and not self.associated_doc_artifact:
+            if self.offender.person:
+                hyperlink = '/internal/users/' + str(self.offender.person.id)
+        elif not self.associated_doc_artifact:
+            hyperlink = '/internal/object/' + str(self.record_of_interview.id)
+        else:
+            hyperlink = '/internal/object/' + str(self.associated_doc_artifact.id)
+        return hyperlink
+
     def __str__(self):
         label_text = ''
         if not self.offender and not self.record_of_interview and not self.associated_doc_artifact:
-            label_text = 'Offence: ' + self.offence.lodgement_number
+            #label_text = 'Offence: ' + self.offence.lodgement_number
+            if self.offence.identifier:
+                label_text = 'Offence: ' + self.offence.identifier
+            else:
+                label_text = 'Offence: ' + self.offence.lodgement_number
         elif not self.record_of_interview and not self.associated_doc_artifact:
-            label_text = 'Offender: ' + str(self.offender.id)
+            label_text = 'Offender: ' + str(self.offender)
+            #label_text = 'Offender: ' + self.offender.__str__()
         elif not self.associated_doc_artifact:
-            label_text = 'Record of Interview: ' + self.record_of_interview.number
+            if self.record_of_interview.identifier:
+                label_text = 'Record of Interview: ' + self.record_of_interview.identifier
+            else:
+                label_text = 'Record of Interview: ' + self.record_of_interview.number
         else:
-            label_text = 'Associated Document Object: ' + self.associated_doc_artifact.number
+            if self.associated_doc_artifact.identifier:
+                label_text = 'Associated Document Object: ' + self.associated_doc_artifact.identifier
+            else:
+                label_text = 'Associated Document Object: ' + self.associated_doc_artifact.number
         return label_text
 
 #import reversion

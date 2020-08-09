@@ -68,7 +68,7 @@ def _extract_email_headers(email_message, sender=None):
 
 # Each component will implement a send_mail method to pass to this function.
 # Eg. SanctionOutcome will have send_sanction_outcome_email api method
-def prepare_mail(request, instance, workflow_entry, send_mail, recipient_id=None):
+def prepare_mail(request, instance, workflow_entry, send_mail, recipient_id=None, email_type=None, recipient_address=None):
     try:
         email_group = []
         if recipient_id:
@@ -87,15 +87,44 @@ def prepare_mail(request, instance, workflow_entry, send_mail, recipient_id=None
         elif request.data.get('allocated_group_id'):
             compliance_group = CompliancePermissionGroup.objects.get(id=request.data.get('allocated_group_id'))
             email_group.extend(compliance_group.members.all())
+        #elif request.data.get('recipient_address'):
+        #elif recipient_address:
+            # retain original value
+            #email_group = []
         else:
-            email_group.append(request.user)
+            request_user = getattr(request, 'user')
+            if request_user:
+                email_group.append(request.user)
 
         # send email
-        email_data = send_mail(
-            email_group,
-            instance,
-            workflow_entry,
-            request)
+        email_data = None
+        if email_type:
+            email_data = send_mail(
+                email_group,
+                instance,
+                workflow_entry,
+                request,
+                email_type)
+        #elif not workflow_entry:
+         #   email_data = send_mail(
+          #      email_group,
+           #     instance,
+            #    request)
+        # added for artifact email
+        #elif request.data.get('recipient_address') and instance._meta.model_name == 'physicalartifact':
+        #elif recipient_address and instance._meta.model_name == 'physicalartifact':
+        elif instance._meta.model_name == 'physicalartifact':
+            email_data = send_mail(
+                    email_group,
+                    instance,
+                    request,
+                    recipient_address=recipient_address)
+        else:
+            email_data = send_mail(
+                email_group,
+                instance,
+                workflow_entry,
+                request)
 
         return email_data
 

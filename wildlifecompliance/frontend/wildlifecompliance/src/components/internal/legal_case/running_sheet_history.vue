@@ -132,6 +132,57 @@ export default {
       }
     },
     methods: {
+        tokenToHtml: function(description) {
+            let parsedText = description;
+            // Person transform
+            const personTokenRegex = /\{\{ \"person\_id\"\: \"\d+\"\, \"full\_name\"\: \"\w+(\s\w+)*\" \}\}/g;
+            const personIdRegex = /\{\{ \"person\_id\"\: \"\d+/g;
+            // const personNameRegex = /\"full\_name\"\: \"\w+ \w+/g;
+            const personNameRegex = /\"full\_name\"\: \"\w+(\s\w+)*/g;
+            let personTokenArray = [...description.matchAll(personTokenRegex)];
+            for (let personToken of personTokenArray) {
+                let personIdArray = [...personToken[0].matchAll(personIdRegex)];
+                let personIdStr = personIdArray[0][0]
+                let personId = personIdStr.substring(17)
+                let nameArray = [...personToken[0].matchAll(personNameRegex)];
+                if (nameArray && nameArray.length > 0) {
+                    let nameStr = nameArray[0][0]
+                    let fullName = nameStr.substring(14)
+                    parsedText = parsedText.replace(
+                        personToken[0],
+                        //`<a contenteditable="false" target="_blank" href="/internal/users/${id}">${fullName}</a>`
+                        `<span contenteditable="false" id="individual-${personId}" class="entity_edit">${fullName}</span>`
+                    );
+                }
+            }
+            // Artifact transform
+            //const artifactTokenRegex = /\{\{ \"artifact\_id\"\: \"\d+\"\, \"identifier\"\: \"\w+(\s\w+)*\" \}\}/g;
+            const artifactTokenRegex = /\{\{ \"\w+\_artifact\_id\"\: \"\d+\"\, \"identifier\"\: \"\w+(\s\w+)*\" \}\}/g;
+            const artifactIdRegex = /\w+\_artifact\_id\"\: \"\d+/g;
+            //const artifactIdRegex = /artifact\_id\"\: \"\d+/g;
+            const artifactIdentifierRegex = /\"identifier\"\: \"\w+(\s\w+)*/g
+            let artifactTokenArray = [...description.matchAll(artifactTokenRegex)];
+            for (let artifactToken of artifactTokenArray) {
+                let artifactIdArray = [...artifactToken[0].matchAll(artifactIdRegex)];
+                let artifactIdStr = artifactIdArray[0][0]
+                let artifactType = artifactIdStr.split("_")[0] + "_artifact";
+                let artifactIdStrTrunc = artifactIdStr.split("_")[2];
+                let artifactId = artifactIdStrTrunc.substring(6)
+                let identifierArray = [...artifactToken[0].matchAll(artifactIdentifierRegex)];
+                if (identifierArray && identifierArray.length > 0) {
+                    let identifierStr = identifierArray[0][0]
+                    let identifier = identifierStr.substr(15)
+                    let elemId = artifactType + "-" + artifactId;
+                    parsedText = parsedText.replace(
+                        artifactToken[0],
+                        `<span contenteditable="false" id="${elemId}" class="entity_edit">${identifier}</span>`
+                        );
+                }
+            }
+            return parsedText
+        },
+        /*
+
         tokenToUrl: function(description) {
             console.log("tokenToUrl")
             let parsedText = description;
@@ -159,6 +210,7 @@ export default {
             }
             return parsedText
         },
+        */
         constructRunningSheetTable: function(){
             console.log("constructInstanceRunningSheetTable")
             this.$refs.running_sheet_hist_instance.vmDataTable.clear().draw();
@@ -203,7 +255,8 @@ export default {
         if (returnedRunningSheetHist && returnedRunningSheetHist.body) {
             for (let v of returnedRunningSheetHist.body.versions) {
                 let entryVersion = _.cloneDeep(v.entry_fields);
-                entryVersion.description = this.tokenToUrl(entryVersion.description)
+                //entryVersion.description = this.tokenToUrl(entryVersion.description)
+                entryVersion.description = this.tokenToHtml(entryVersion.description)
                 this.runningSheetHist.push(entryVersion);
             }
         }

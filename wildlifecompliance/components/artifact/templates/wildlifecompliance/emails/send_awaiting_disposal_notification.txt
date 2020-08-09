@@ -1,0 +1,12 @@
+{%  extends 'wildlifecompliance/emails/base_email.txt' %}
+
+{%  block content %}
+        This Object is awaiting disposal:
+
+        Object : <a href="{{url}}">{{ artifact.number }}</a> 
+
+        Message:  {{ details }}
+
+        Note: If you haven't logged into the Wildlife Licensing System recently you may need to login first before using the provided link.
+
+{%  endblock %}

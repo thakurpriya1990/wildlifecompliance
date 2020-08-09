@@ -174,13 +174,17 @@ export default {
           vm.addMarker([vm.offence.location.geometry.coordinates[1], vm.offence.location.geometry.coordinates[0]]);
           vm.refreshMarkerLocation();
       }
-      vm.showHideAddressDetailsFields(false, false);
+      //vm.showHideAddressDetailsFields(false, false);
+            if (this.offence.location.properties.country){
+                this.showHideAddressDetailsFields(true, false);
+            } else {
+                this.showHideAddressDetailsFields(false, true);
+            }
     });
   },
     created: async function(){
-        await this.MapboxAccessToken.then(data => {
-            this.mapboxAccessToken = data
-        });
+        let temp_token = await this.retrieveMapboxAccessToken();
+        this.mapboxAccessToken = temp_token.access_token;
     },
   methods: {
     ...mapActions("offenceStore", {

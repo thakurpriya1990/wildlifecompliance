@@ -1,0 +1,21 @@
+{%  extends 'wildlifecompliance/emails/base_email.txt' %}
+
+{%  block content %}
+        The following licence purpose details have been suspended:
+
+        Licence : {{ licence.licence_number }}
+
+        Licence Purposes:
+        {% for issued in purposes %}
+            {{issued.purpose.name}}
+            Start Date: {{issued.start_date}}
+            Expiry Date: {{issued.expiry_date}}
+        {% endfor %}        
+
+        Submitter: {{licence.current_application.submitter}}
+
+        Link: {{url}}
+
+        Note: If you haven't logged into the Wildlife Licensing System recently you may need to login first before using the provided link.
+
+{%  endblock %}

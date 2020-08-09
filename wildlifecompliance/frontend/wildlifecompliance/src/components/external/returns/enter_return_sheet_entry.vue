@@ -57,7 +57,7 @@
             </div>
             <div slot="footer">
                 <button v-show="!isPayable" style="width:150px;" class="btn btn-primary" @click.prevent="update()">Update</button>
-                <button v-show="isPayable" style="width:150px;" class="btn btn-primary" >Pay</button>
+                <button v-show="isPayable" style="width:150px;" class="btn btn-primary" @click.prevent="check_and_pay()">Pay</button>
                 <button style="width:150px;" class="btn btn-primary" @click.prevent="cancel()">Cancel</button>
             </div>
         </modal>
@@ -184,7 +184,9 @@ export default {
 
           if (self.isLicenceRequired) { // licence only required for transfers.
 
-              self.validateTransfer(_data)
+              if (self.validateTransfer(_data)){
+                self.close();
+              }
 
           } else {
 
@@ -208,7 +210,9 @@ export default {
 
           if (self.isLicenceRequired) { // licence only required for transfers.
 
-              self.validateTransfer(_data);
+              if (self.validateTransfer(_data)){
+                self.close();
+              }
 
           } else {
 
@@ -222,28 +226,63 @@ export default {
         };
 
       },
-      pay: function() {
+      check_and_pay: async function() {
         const self = this;
         self.form=document.forms.external_returns_form;
         var data = new FormData(self.form);
+        let is_valid_transfer = false
 
-        //  data.append(speciesID, speciesJSON)
+        if (self.isAddEntry) {
 
-        self.$http.post(helpers.add_endpoint_json(api_endpoints.returns,self.returns.id+'/pay'),data,{
+          let _currentDateTime = new Date();
+          self.entryDateTime = Date.parse(new Date());
+          let newRowId = (self.row_of_data.data().count()) + '';
+
+          var _data = { rowId: newRowId,
+                        date: self.entryDateTime,
+                        activity: self.entryActivity,
+                        qty: self.entryQty,
+                        total: self.entryTotal,
+                        comment: self.entryComment,
+                        licence: self.entryLicence,
+                        transfer: self.entryTransfer,
+                      };
+
+
+          if (self.isLicenceRequired) { // licence only required for transfers.
+
+              is_valid_transfer = await self.validateTransfer(_data)
+              is_paid = await self.payTransfer(_data)
+
+          } else {
+
+              self.row_of_data.row.add(_data).node().id = newRowId;
+              self.row_of_data.draw();
+              self.species_cache[self.returns.sheet_species] = self.return_table.data();
+              self.close();
+          }
+
+        };
+      },
+      payTransfer: async function(_data) {
+        this.$http.post(helpers.add_endpoint_json(api_endpoints.returns,this.returns.id+'/sheet_pay_transfer'),_data,{
                       emulateJSON:true,
                     }).then((response)=>{
-                       //let species_id = this.returns.sheet_species;
-                       //this.setReturns(response.body);
-                       //this.returns.sheet_species = species_id;
-                       swal('Save',
-                            'Return Details Paid',
-                            'success'
-                       );
+                            window.location.href = "/ledger/checkout/checkout/payment-details/";
+                      //let species_id = this.returns.sheet_species;
+                      //this.setReturns(response.body);
+                      //this.returns.sheet_species = species_id;
                     },(error)=>{
-                        console.log(error);
+                      console.log(error);
+                      swal('Error',
+                            'There was an error with transferring.<br/>' + error.body,
+                            'error'
+                      )
         });
+
+        return true
       },
-      validateTransfer: function(row_data) {
+      validateTransfer: async function(row_data) {
         const self = this;
         self.form=document.forms.external_returns_form;
         self.errors = false;
@@ -280,7 +319,8 @@ export default {
                         }
                         transfer[self.entryDateTime] = row_data;
                         self.species_transfer[self.returns.sheet_species] = transfer
-                        self.close()
+                        //self.close()
+                        is_valid = true;
 
                     },(error)=>{
                         console.log(error)
@@ -288,7 +328,7 @@ export default {
                         //self.errorString = helpers.apiVueResourceError('Licence is not Valid.');
                         self.errorString = 'Error with Validation'
         });
-        return true;
+        return is_valid;
       },
       cancel: function() {
         const self = this;

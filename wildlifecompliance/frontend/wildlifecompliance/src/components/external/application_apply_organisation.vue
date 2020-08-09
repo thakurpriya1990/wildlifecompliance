@@ -5,8 +5,6 @@
                 <div class="panel panel-default">
                     <div class="panel-heading">
                         <h3 class="panel-title">Apply on behalf of
-                            <span v-if="org">{{ org }}</span>
-                            <span v-else>yourself</span>
                             <a :href="'#'+pBody" data-toggle="collapse"  data-parent="#userInfo" expanded="true" :aria-controls="pBody">
                                 <span class="glyphicon glyphicon-chevron-up pull-right "></span>
                             </a>
@@ -15,7 +13,7 @@
                     <div class="panel-body collapse in" :id="pBody">
                         <form class="form-horizontal" name="personal_form" method="post">
                             <div class="col-sm-12">
-                                    <p><strong>Note: If you are applying for a Taking licence, it cannot be applied for on behalf of an organisation.</strong></p>
+                                    <!-- <p><strong>Note: If you are applying for a Taking licence, it cannot be applied for on behalf of an organisation.</strong></p> -->
                                     <div class="radio">
                                         <label>
                                         <input type="radio"  name="behalf_of_org" v-model="org_applicant" value=""> On behalf of yourself

@@ -17,6 +17,19 @@
                     <div class="panel-body collapse in" :id="pBody">
                         <form v-if="categoryCount" class="form-horizontal" name="personal_form" method="post">
                           
+                            <div class="col-sm-12" v-show='current_user.is_reception' >
+                                <div class="row">
+                                    <label class="col-sm-3">
+                                        Payment method for customer:
+                                    </label>
+                                    <div class="col-sm-6">
+                                        <input type="radio" checked="checked" name="reception" value="card" v-model="customer_pay_method" > Credit Card &nbsp;&nbsp;</input>
+                                        <input type="radio" name="reception" id="cash" value="cash" v-model="customer_pay_method" > Cash &nbsp;&nbsp;</input>
+                                        <input type="radio" name="reception" id="none" value="none" v-model="customer_pay_method" > No Payment &nbsp;&nbsp;</input>
+                                    </div>
+                                </div>
+                            </div>
+                            <br /><br />
                             <div class="col-sm-12">
                                 <div class="row">
                                     <label class="col-sm-6">
@@ -103,6 +116,8 @@ export default {
     return {
         licence_category : this.$route.params.licence_category,
         licence_activity : this.$route.params.licence_activity,
+        licence_no : this.$route.params.licence_no,
+        select_activity : this.$route.params.select_activity,
         application: null,
         agent: {},
         activity :{
@@ -131,6 +146,7 @@ export default {
         licence_fee: 0,
         selected_apply_org_id_details : {},
         selected_apply_proxy_id_details: {},
+        customer_pay_method: 'card',
     }
   },
   components: {
@@ -141,6 +157,8 @@ export default {
             'selected_apply_proxy_id',
             'selected_apply_licence_select',
             'application_workflow_state',
+            'reception_method_id',
+            'current_user',
         ]),
         applicationTitle: function() {
             switch(this.selected_apply_licence_select) {
@@ -189,6 +207,8 @@ export default {
   methods: {
     ...mapActions([
         'setApplicationWorkflowState',
+        'setReceptionMethodId',
+        'loadCurrentUser',
     ]),
     submit: function() {
         let vm = this;
@@ -232,25 +252,29 @@ export default {
         if(vm.licence_categories[index].activity[index1].selected){
             for(var activity_index=0, len2=vm.licence_categories[index].activity[index1].purpose.length; activity_index<len2; activity_index++){
                 vm.licence_categories[index].activity[index1].purpose[activity_index].selected = this.isAmendment || this.isRenewal;
+                if (this.isAmendment) {
+                    this.application_fee = this.application_fee + vm.licence_categories[index].activity[index1].purpose[activity_index].amendment_application_fee
+                    this.licence_fee = this.licence_fee + vm.licence_categories[index].activity[index1].purpose[activity_index].base_licence_fee
+                }
+                if (this.isRenewal) {
+                    this.application_fee = this.application_fee + vm.licence_categories[index].activity[index1].purpose[activity_index].renewal_application_fee
+                    this.licence_fee = this.licence_fee + vm.licence_categories[index].activity[index1].purpose[activity_index].base_licence_fee
+                }
             }
         }
     },
     handlePurposeCheckboxChange:function(index, event){
-        if (this.selected_apply_licence_select=='amend_activity') {
-            // Ammendments to licence activity purposes do not incur fees.
-            this.application_fee = 0
-            this.licence_fee = 0
-            return
-        }
         const purpose_ids = [].concat.apply([], this.licence_categories[index].activity.map(
             activity => activity.purpose.filter(
                 purpose => purpose.selected || (purpose.id == event.target.id && event.target.checked)
             ))).map(purpose => purpose.id);
         this.$http.post('/api/application/estimate_price/', {
-                'purpose_ids': purpose_ids
+                'purpose_ids': purpose_ids,
+                'licence_type': this.selected_apply_licence_select,
             }).then(res => {
                 this.application_fee = res.body.fees.application;
                 this.licence_fee = res.body.fees.licence;
+
         }, err => {
             console.log(err);
         });
@@ -323,8 +347,10 @@ export default {
             data.licence_fee=vm.licence_fee;
             data.licence_purposes=licence_purposes;
             data.application_type = vm.selected_apply_licence_select;
+            data.customer_method_id = vm.customer_pay_method;
             vm.$http.post('/api/application.json',JSON.stringify(data),{emulateJSON:true}).then(res => {
                 vm.setApplicationWorkflowState({bool: false});
+                vm.setReceptionMethodId({pay_method: this.customer_pay_method});
                 vm.application = res.body;
                 vm.$router.push({
                     name:"draft_application",
@@ -350,6 +376,8 @@ export default {
             "licence_activity": this.licence_activity,
             "proxy_id": this.selected_apply_proxy_id,
             "organisation_id": this.selected_apply_org_id,
+            "licence_no": this.licence_no,
+            "select_activity": this.select_activity,
         }),
         this.selected_apply_org_id ? utils.fetchOrganisation(this.selected_apply_org_id) : '',
         this.selected_apply_proxy_id ? internal_utils.fetchUser(this.selected_apply_proxy_id) : '',
@@ -363,6 +391,7 @@ export default {
   },
   beforeRouteEnter:function(to,from,next){
     next(vm => {
+        vm.loadCurrentUser({ url: `/api/my_user_details` });
         // Sends the user back to the first application workflow screen if licence_select is null
         // or workflow state was interrupted (e.g. lost from page refresh)
         if(vm.selected_apply_licence_select == null || !vm.application_workflow_state) {

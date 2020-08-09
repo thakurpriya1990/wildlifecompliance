@@ -709,7 +709,10 @@ class CallEmailViewSet(viewsets.ModelViewSet):
 
                 instance.save()
 
-                email_data = prepare_mail(request, instance, workflow_entry, send_mail)
+                if workflow_type == 'close':
+                    email_data = prepare_mail(request, instance, workflow_entry, send_mail, email_type="close")
+                else:
+                    email_data = prepare_mail(request, instance, workflow_entry, send_mail)
 
                 serializer = CallEmailLogEntrySerializer(instance=workflow_entry, data=email_data, partial=True)
                 serializer.is_valid(raise_exception=True)
@@ -794,8 +797,10 @@ class ClassificationViewSet(viewsets.ModelViewSet):
     @list_route(methods=['GET', ])    
     def classification_choices(self, request, *args, **kwargs):
         res_obj = [] 
-        for choice in Classification.NAME_CHOICES:
-            res_obj.append({'id': choice[0], 'display': choice[1]});
+        #for choice in Classification.NAME_CHOICES:
+            # res_obj.append({'id': choice[0], 'display': choice[1]});
+        for choice in Classification.objects.all():
+            res_obj.append({'id': choice.id, 'display': choice.get_name_display()})
         res_json = json.dumps(res_obj)
         return HttpResponse(res_json, content_type='application/json')
 

@@ -21,8 +21,17 @@ class CallEmailForwardNotificationEmail(TemplateEmailBase):
     html_template = 'wildlifecompliance/emails/send_call_email_forward_notification.html'
     txt_template = 'wildlifecompliance/emails/send_call_email_forward_notification.txt'
 
-def send_mail(select_group, call_email, workflow_entry, request=None):
-    email = CallEmailForwardNotificationEmail()
+class CallEmailCloseNotificationEmail(TemplateEmailBase):
+    subject = 'Closed Call/Email'
+    html_template = 'wildlifecompliance/emails/send_call_email_close_notification.html'
+    txt_template = 'wildlifecompliance/emails/send_call_email_close_notification.txt'
+
+def send_mail(select_group, call_email, workflow_entry, request=None, email_type=None):
+    if email_type == 'close':
+        email = CallEmailCloseNotificationEmail()
+    else:
+        # default is CallEmail forward notification
+        email = CallEmailForwardNotificationEmail()
     if request.data.get('email_subject'):
         email.subject = request.data.get('email_subject')
     url = request.build_absolute_uri(

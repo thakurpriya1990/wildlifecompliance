@@ -604,36 +604,25 @@ class ArtifactFilterBackend(DatatablesFilterBackend):
         ids = []
 
         if search_text:
-            if object_type == 'physical_artifact':
-                ids_p = PhysicalArtifact.objects.filter(Q(physical_artifact_type__artifact_type__icontains=search_text)).values_list('artifact_ptr_id', flat=True).distinct()
-                # Q object for filtering Artifact
-                q_objects &= Q(identifier__icontains=search_text) | \
-                             Q(number__icontains=search_text) | \
-                             Q(id__in=ids_p)
-            elif object_type == 'document_artifact':
-                ids_d = DocumentArtifact.objects.filter(Q(document_type__icontains=search_text)).values_list('artifact_ptr_id', flat=True).distinct()
-                # Q object for filtering Artifact
-                q_objects &= Q(identifier__icontains=search_text) | \
-                             Q(number__icontains=search_text) | \
-                             Q(id__in=ids_d)
-            else:
-                ids_p = PhysicalArtifact.objects.filter(Q(physical_artifact_type__artifact_type__icontains=search_text)).values_list('artifact_ptr_id', flat=True).distinct()
-                ids_d = DocumentArtifact.objects.filter(Q(document_type__icontains=search_text)).values_list('artifact_ptr_id', flat=True).distinct()
-                # Q object for filtering Artifact
-                q_objects &= Q(identifier__icontains=search_text) | \
-                             Q(number__icontains=search_text) | \
-                             Q(id__in=ids_p) | \
-                             Q(id__in=ids_d)
+            ids_p = PhysicalArtifact.objects.filter(Q(physical_artifact_type__artifact_type__icontains=search_text)).values_list('artifact_ptr_id', flat=True).distinct()
+            ids_d = DocumentArtifact.objects.filter(Q(document_type__icontains=search_text)).values_list('artifact_ptr_id', flat=True).distinct()
+            # Q object for filtering Artifact
+            q_objects &= Q(identifier__icontains=search_text) | \
+                         Q(number__icontains=search_text) | \
+                         Q(id__in=ids_p) | \
+                         Q(id__in=ids_d)
 
-        # TODO: implement filtering by the dropdown filters
-        # type = request.GET.get('type', '').lower()
-        # if type and type != 'all':
-        #     q_objects &= Q(type=type)
-        #
-        # status = request.GET.get('status', '').lower()
-        # if status and status != 'all':
-        #     q_objects &= Q(status=status)
-        #
+        artifact_type = request.GET.get('type', '').lower()
+        if artifact_type and artifact_type != 'all':
+            ids_pa = PhysicalArtifact.objects.filter(Q(physical_artifact_type__artifact_type=artifact_type)).values_list('artifact_ptr_id', flat=True).distinct()
+            ids_da = DocumentArtifact.objects.filter(Q(document_type=artifact_type)).values_list('artifact_ptr_id', flat=True).distinct()
+            q_objects &= Q(id__in=ids_pa) | \
+                         Q(id__in=ids_da)
+        
+        status = request.GET.get('artifact_status', '').lower()
+        if status and status != 'all':
+            q_objects &= Q(status=status)
+        
         date_from = request.GET.get('date_from', '').lower()
         if date_from:
             date_from = datetime.strptime(date_from, '%d/%m/%Y')
@@ -814,14 +803,16 @@ class ArtifactViewSet(viewsets.ModelViewSet):
     @list_route(methods=['GET', ])
     def types(self, request, *args, **kwargs):
         #### TODO: This is just for now
-        res_obj = [{'id': 'type_1', 'display': 'Type 1'}, {'id': 'type_2', 'display': 'Type 2'}]
-        res_json = json.dumps(res_obj)
-        return HttpResponse(res_json, content_type='application/json')
+        #es_obj = [{'id': 'type_1', 'display': 'Type 1'}, {'id': 'type_2', 'display': 'Type 2'}]
+        #es_json = json.dumps(res_obj)
+        #eturn HttpResponse(res_json, content_type='application/json')
         #########################
 
         res_obj = []
-        for choice in Artifact.TYPE_CHOICES:
-            res_obj.append({'id': choice[0], 'display': choice[1]});
+        for choice in PhysicalArtifactType.TYPE_CHOICES:
+            res_obj.append({'id': choice[0], 'display': choice[1]})
+        for choice in DocumentArtifact.DOCUMENT_TYPE_CHOICES:
+            res_obj.append({'id': choice[0], 'display': choice[1]})
         res_json = json.dumps(res_obj)
 
         return HttpResponse(res_json, content_type='application/json')
@@ -829,9 +820,9 @@ class ArtifactViewSet(viewsets.ModelViewSet):
     @list_route(methods=['GET', ])
     def statuses(self, request, *args, **kwargs):
         #### TODO: This is just for now
-        res_obj = [{'id': 'status_1', 'display': 'Status 1'}, {'id': 'status_2', 'display': 'Status 2'}]
-        res_json = json.dumps(res_obj)
-        return HttpResponse(res_json, content_type='application/json')
+        #es_obj = [{'id': 'status_1', 'display': 'Status 1'}, {'id': 'status_2', 'display': 'Status 2'}]
+        #es_json = json.dumps(res_obj)
+        #eturn HttpResponse(res_json, content_type='application/json')
         #########################
 
         res_obj = []

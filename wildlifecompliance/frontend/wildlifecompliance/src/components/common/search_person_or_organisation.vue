@@ -1,7 +1,8 @@
 <template lang="html">
     <div class="">
         <div class="col-sm-12 form-group"><div class="row">
-                <label v-if="displayTitle" class="col-sm-4">{{ labelTitle }}</label>
+                <label v-if="componentTitle" class="col-sm-4">{{ componentTitle }}</label>
+                <label v-else-if="displayTitle" class="col-sm-4">{{ labelTitle }}</label>
                 <div v-if="!personOnly">
                     <input :disabled="!isEditable" class="col-sm-1" id="individual" type="radio" v-model="searchType" v-bind:value="`individual`">
                     <label class="col-sm-1" for="individual">Person</label>
@@ -11,11 +12,14 @@
         </div></div>
         <div class="form-group"><div class="row">
             <div class="col-sm-12">
-                <div class="col-sm-8">
+                <div class="col-sm-9">
                     <input :id="elemId" :class="classNames" :readonly="!isEditable" ref="search_person_org"/>
                 </div>
                 <div v-if="showCreateNewPerson" class="col-sm-2">
                     <input :disabled="!isEditable" type="button" class="btn btn-primary" value="Create New Person" @click.prevent="createNewPerson()" />
+                </div>
+                <div v-if="showClearPerson" class="col-sm-2">
+                    <input :disabled="!isEditable" type="button" class="btn btn-primary" value="Clear Person" @click.prevent="clearPerson()" />
                 </div>
                 <div v-else-if="showCreateNewOrganisation" class="col-sm-2">
                     <input :disabled="!isEditable" type="button" class="btn btn-primary" value="Create New Organisation" @click.prevent="createNewOrganisation" />
@@ -160,6 +164,10 @@ export default {
         },
     },
     props: {
+        showClearPerson: {
+            required: false,
+            default: false,
+        },
         classNames: {
             required: false,
             default: 'form-control',
@@ -200,6 +208,10 @@ export default {
             type: String,
             required: false,
         },
+        componentTitle: {
+            type: String,
+            required: false,
+        },
         personOnly: {
             type: Boolean,
             required: false,
@@ -232,7 +244,18 @@ export default {
             console.log(savedEntity)
             return savedEntity;
         },
-
+        clearPerson: function() {
+            this.$emit('clear-person');
+            this.entity = {
+                'id': 0, 
+                'data_type': 'individual',
+                'full_name': '',
+            };
+            let element_search = $('#' + this.elemId);
+            console.log(element_search);
+            element_search.val('');
+            this.displayUpdateCreatePerson = false;
+        },
         createNewPerson: function() {
             this.creatingPerson = true;
             this.entity = {

@@ -7,6 +7,10 @@ from django.core.urlresolvers import reverse
 from ledger.payments.pdf import create_invoice_pdf_bytes
 from ledger.payments.models import Invoice
 
+from wildlifecompliance.components.main.utils import (
+    remove_url_internal_request,
+)
+
 from wildlifecompliance.components.emails.emails import TemplateEmailBase
 
 logger = logging.getLogger(__name__)
@@ -54,15 +58,17 @@ def send_return_accept_email_notification(return_obj, request):
 
     context = {
         'Return': return_obj,
-        'url': url
+        'url': remove_url_internal_request(request, url)
     }
     msg = email.send(return_obj.submitter.email, context=context)
     sender = request.user if request else settings.DEFAULT_FROM_EMAIL
     _log_return_email(msg, return_obj, sender=sender)
-    # _log_org_email(msg, compliance.proposal.applicant, compliance.submitter, sender=sender)
 
 
 def send_external_submit_email_notification(request, return_obj):
+    '''
+    Sends a notification email to submitter confirming return submission.
+    '''
     email = ReturnExternalSubmitSendNotificationEmail()
     url = request.build_absolute_uri(
         '/external/return/{}'.format(return_obj.id)
@@ -71,13 +77,12 @@ def send_external_submit_email_notification(request, return_obj):
     context = {
         'Return': return_obj,
         'submitter': return_obj.submitter.get_full_name(),
-        'url': url
+        'url': remove_url_internal_request(request, url)
     }
 
     msg = email.send(return_obj.submitter.email, context=context)
     sender = request.user if request else settings.DEFAULT_FROM_EMAIL
-    _log_return_email(msg, return_obj._return, sender=sender)
-    # _log_org_email(msg, return_obj.proposal.applicant, return_obj.submitter, sender=sender)
+    _log_return_email(msg, return_obj, sender=sender)
 
 
 def send_sheet_transfer_email_notification(request, return_obj, licence):
@@ -90,7 +95,7 @@ def send_sheet_transfer_email_notification(request, return_obj, licence):
         'return_no': return_obj.id,
         'licence_no': licence.id,
         'submitter': request.user.email,
-        'url': url
+        'url': remove_url_internal_request(request, url)
     }
 
     msg = email.send(request.user.email, context=context)
@@ -108,12 +113,13 @@ def send_return_amendment_email_notification(request, data, return_obj, licence)
         'lodgement_number': return_obj.lodgement_number,
         'reason': data['reason'],
         'text': data['text'],
-        'url': url
+        'url': remove_url_internal_request(request, url)
     }
 
     msg = email.send(return_obj.submitter.email, context=context)
     sender = request.user if request else settings.DEFAULT_FROM_EMAIL
     _log_return_email(msg, return_obj, sender=sender)
+
 
 def send_return_invoice_notification(returns, invoice_ref, request):
     # An email with return invoice to submitter
@@ -138,7 +144,7 @@ def send_return_invoice_notification(returns, invoice_ref, request):
 
     context = {
         'return': returns,
-        'url': url,
+        'url': remove_url_internal_request(request, url),
         'invoice_url': invoice_url
     }
     recipients = [returns.submitter.email]
@@ -146,6 +152,7 @@ def send_return_invoice_notification(returns, invoice_ref, request):
                      (filename, invoice_pdf, 'returns/pdf')])
     sender = request.user if request else settings.DEFAULT_FROM_EMAIL
     _log_return_email(msg, returns, sender=sender)
+
 
 def _log_return_email(email_message, return_obj, sender=None):
     from wildlifecompliance.components.returns.models import ReturnLogEntry

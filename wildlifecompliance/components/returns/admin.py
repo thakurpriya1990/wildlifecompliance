@@ -1,7 +1,6 @@
 from django.contrib import admin
-from ledger.accounts.models import EmailUser
 from wildlifecompliance.components.returns import models
-from reversion.admin import VersionAdmin
+from wildlifecompliance.components.returns.services import ReturnService
 # Register your models here.
 
 
@@ -12,7 +11,15 @@ class ReturnTypeAdmin(admin.ModelAdmin):
 
 @admin.register(models.Return)
 class ReturnAdmin(admin.ModelAdmin):
-    pass
+    actions = ['verify_due_returns']
+
+    def verify_due_returns(self, request, queryset):
+        '''
+        Updates the processing status for selected returns.
+        '''
+        for selected in queryset:
+            ReturnService.verify_due_return_id(selected.id)
+        self.message_user(request, 'Selected returns have been verified.')
 
 
 @admin.register(models.ReturnTable)

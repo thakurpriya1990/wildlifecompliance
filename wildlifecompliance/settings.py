@@ -6,12 +6,15 @@ os.environ.setdefault("BASE_DIR", BASE_DIR)
 from django.core.exceptions import ImproperlyConfigured
 from ledger.settings_base import *
 
+os.environ['LEDGER_PRODUCT_CUSTOM_FIELDS'] = "('ledger_description','quantity','price_incl_tax','price_excl_tax','oracle_code')"
+
 ROOT_URLCONF = 'wildlifecompliance.urls'
 SITE_ID = 1
 
 STATIC_ROOT = os.path.join(BASE_DIR, 'staticfiles_wc')
 
 INSTALLED_APPS += [
+    'reversion_compare',
     'django.contrib.humanize',
     'bootstrap3',
     'wildlifecompliance',
@@ -32,7 +35,10 @@ INSTALLED_APPS += [
     'rest_framework',
     'rest_framework_gis',
     'rest_framework_datatables',
+    'smart_selects',
 ]
+
+ADD_REVERSION_ADMIN = True
 
 # maximum number of days allowed for a booking
 WSGI_APPLICATION = 'wildlifecompliance.wsgi.application'
@@ -48,6 +54,8 @@ REST_FRAMEWORK = {
     'DEFAULT_PAGINATION_CLASS': 'rest_framework_datatables.pagination.DatatablesPageNumberPagination',
     'PAGE_SIZE': 50,
 }
+
+USE_DJANGO_JQUERY=True
 
 if env('EMAIL_INSTANCE') is not None and env('EMAIL_INSTANCE','') != 'PROD':
     REST_FRAMEWORK['DEFAULT_RENDERER_CLASSES'] += ('rest_framework.renderers.BrowsableAPIRenderer',)
@@ -177,3 +185,8 @@ DOT_EMAIL_ADDRESS = env('DOT_EMAIL_ADDRESS')
 # Details for Threathened Species and Communities server.
 TSC_URL = env('TSC_URL', 'https://tsc.dbca.wa.gov.au')
 TSC_AUTH = env('TSC_AUTH', 'NO_AUTH')
+CRON_RUN_AT_TIMES = '03:05'
+
+# if DEBUG:
+#     EMAIL_BACKEND = 'django.core.mail.backends.console.EmailBackend'
+#

@@ -195,9 +195,8 @@ module.exports = {
         }
     },
     created: async function() {
-        await this.MapboxAccessToken.then(data => {
-            this.mapboxAccessToken = data
-        });
+        let temp_token = await this.retrieveMapboxAccessToken();
+        this.mapboxAccessToken = temp_token.access_token;
 
         let returned_status_choices = await cache_helper.getSetCacheList('Offence_StatusChoices', '/api/offence/status_choices');
         Object.assign(this.status_choices, returned_status_choices);

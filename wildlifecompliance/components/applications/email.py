@@ -1,5 +1,4 @@
 import logging
-import mimetypes
 
 from django.core.mail import EmailMultiAlternatives, EmailMessage
 from django.utils.encoding import smart_text
@@ -7,7 +6,13 @@ from django.core.urlresolvers import reverse
 from django.conf import settings
 from ledger.payments.pdf import create_invoice_pdf_bytes
 from ledger.payments.models import Invoice
-from wildlifecompliance.components.main.utils import get_choice_value
+
+from wildlifecompliance.components.main.utils import (
+    get_choice_value,
+    add_url_internal_request,
+    remove_url_internal_request,
+)
+
 from wildlifecompliance.components.emails.emails import TemplateEmailBase
 
 logger = logging.getLogger(__name__)
@@ -37,6 +42,12 @@ class ActivityProposeIssueNotificationEmail(TemplateEmailBase):
     subject = 'Your approval for a licensed activity is required.'
     html_template = 'wildlifecompliance/emails/send_activity_propose_issue_notification.html'
     txt_template = 'wildlifecompliance/emails/send_activity_propose_issue_notification.txt'
+
+
+class ActivityRefundIssueNotificationEmail(TemplateEmailBase):
+    subject = 'Refund payment for a declined license activity is required.'
+    html_template = 'wildlifecompliance/emails/send_activity_refund_issue_notification.html'
+    txt_template = 'wildlifecompliance/emails/send_activity_refund_issue_notification.txt'
 
 
 class ActivityInvoiceIssueNotificationEmail(TemplateEmailBase):
@@ -93,6 +104,18 @@ class ApplicationAssessmentReminderEmail(TemplateEmailBase):
     txt_template = 'wildlifecompliance/emails/send_application_assessment_remind_notification.txt'
 
 
+class ApplicationAssessmentRecallEmail(TemplateEmailBase):
+    subject = 'An application for your assessment has been recalled'
+    html_template = 'wildlifecompliance/emails/send_application_assessment_recall_notification.html'
+    txt_template = 'wildlifecompliance/emails/send_application_assessment_recall_notification.txt'
+
+
+class ApplicationAssessmentCompletedEmail(TemplateEmailBase):
+    subject = 'An application assessment has been completed'
+    html_template = 'wildlifecompliance/emails/send_application_assessment_complete_notification.html'
+    txt_template = 'wildlifecompliance/emails/send_application_assessment_complete_notification.txt'
+
+
 class ApplicationIdUpdateRequestEmail(TemplateEmailBase):
     subject = 'An update for your user identification has been requested'
     html_template = 'wildlifecompliance/emails/send_id_update_request_notification.html'
@@ -111,6 +134,20 @@ class ApplicationReturnedToOfficerEmail(TemplateEmailBase):
     txt_template = 'wildlifecompliance/emails/send_application_return_to_officer_conditions.txt'
 
 
+def send_assessment_recall_email(select_group, assessment, request=None):
+    # An email reminding assessors of a pending assessment request
+    application = assessment.application
+    email = ApplicationAssessmentRecallEmail()
+
+    context = {
+        'application_id': application.id
+    }
+    email_group = [item.email for item in select_group]
+    msg = email.send(email_group, context=context)
+    sender = request.user if request else settings.DEFAULT_FROM_EMAIL
+    _log_application_email(msg, application, sender=sender)
+
+
 def send_assessment_reminder_email(select_group, assessment, request=None):
     # An email reminding assessors of a pending assessment request
     application = assessment.application
@@ -121,15 +158,8 @@ def send_assessment_reminder_email(select_group, assessment, request=None):
             kwargs={
                 'application_pk': application.id}))
 
-    if '-internal' not in url:
-        url = "{0}://{1}{2}.{3}{4}".format(request.scheme,
-                                           settings.SITE_PREFIX,
-                                           '-internal',
-                                           settings.SITE_DOMAIN,
-                                           url.split(request.get_host())[1])
-
     context = {
-        'url': url
+        'url': add_url_internal_request(request, url)
     }
     email_group = [item.email for item in select_group]
     msg = email.send(email_group, context=context)
@@ -148,16 +178,33 @@ def send_assessment_email_notification(select_group, assessment, request):
             kwargs={
                 'application_pk': application.id}))
 
-    if '-internal' not in url:
-        url = "{0}://{1}{2}.{3}{4}".format(request.scheme,
-                                           settings.SITE_PREFIX,
-                                           '-internal',
-                                           settings.SITE_DOMAIN,
-                                           url.split(request.get_host())[1])
+    context = {
+        'text': text,
+        'url': add_url_internal_request(request, url)
+    }
+
+    email_group = [item.email for item in select_group]
+    msg = email.send(email_group, context=context)
+    sender = request.user if request else settings.DEFAULT_FROM_EMAIL
+    _log_application_email(msg, application, sender=sender)
+
+
+def send_assessment_completed_email(select_group, assessment, request):
+    """
+    Notification for completed application assessments.
+    """
+    application = assessment.application
+    text = assessment.text
+    email = ApplicationAssessmentCompletedEmail()
+    url = request.build_absolute_uri(
+        reverse(
+            'internal-application-detail',
+            kwargs={
+                'application_pk': application.id}))
 
     context = {
         'text': text,
-        'url': url
+        'url': add_url_internal_request(request, url)
     }
 
     email_group = [item.email for item in select_group]
@@ -191,7 +238,7 @@ def send_application_invoice_email_notification(
 
     context = {
         'application': application,
-        'url': url,
+        'url': remove_url_internal_request(request, url),
         'invoice_url': invoice_url
     }
     recipients = [application.submitter.email]
@@ -220,14 +267,14 @@ def send_activity_invoice_email_notification(
         activity.licence_activity.name.replace(" ", ""),
         application.lodgement_date.date()
     )
-    references = [a.invoice_reference for a in activity.invoices.all()]
+    references = [a.invoice_reference for a in activity.activity_invoices.all()]
     invoice = Invoice.objects.filter(
         reference__in=references).order_by('-created')[0]
     invoice_pdf = create_invoice_pdf_bytes(filename, invoice)
 
     context = {
         'application': application,
-        'url': url,
+        'url': remove_url_internal_request(request, url),
         'invoice_url': invoice_url
     }
     recipients = [application.submitter.email]
@@ -268,17 +315,10 @@ def send_activity_propose_issue_notification(
             kwargs={
                 'application_pk': application.id}))
 
-    if '-internal' not in url:
-        url = "{0}://{1}{2}.{3}{4}".format(request.scheme,
-                                           settings.SITE_PREFIX,
-                                           '-internal',
-                                           settings.SITE_DOMAIN,
-                                           url.split(request.get_host())[1])
-
     context = {
         'application': application,
         'detail': text,
-        'url': url
+        'url': add_url_internal_request(request, url)
     }
 
     recipients = [a.email for a in application.licence_approvers]
@@ -288,6 +328,37 @@ def send_activity_propose_issue_notification(
     msg = email.send(
         recipients,
         context=context, attachments=documents,
+        bcc=email_copy,
+    )
+
+    sender = request.user if request else settings.DEFAULT_FROM_EMAIL
+    _log_application_email(msg, application, sender=sender)
+
+
+def send_activity_refund_issue_notification(
+        request, application, amount):
+
+    application = application
+    email = ActivityRefundIssueNotificationEmail()
+    url = request.build_absolute_uri(
+        reverse(
+            'internal-application-detail',
+            kwargs={
+                'application_pk': application.id}))
+
+    context = {
+        'application': application,
+        'amount': amount,
+        'url': add_url_internal_request(request, url)
+    }
+
+    recipients = [a.email for a in application.licence_officers]
+    activity = application.activities[0]
+    email_copy = [activity.cc_email] if activity.cc_email else None
+
+    msg = email.send(
+        recipients,
+        context=context,
         bcc=email_copy,
     )
 
@@ -306,7 +377,7 @@ def send_application_submitter_email_notification(application, request):
 
     context = {
         'application': application,
-        'url': url
+        'url': remove_url_internal_request(request, url)
     }
     recipients = [application.submitter.email]
     msg = email.send(recipients, context=context)
@@ -317,8 +388,7 @@ def send_application_submitter_email_notification(application, request):
 def send_amendment_refund_email_notification(
         group_email, application, request):
     # An email to internal users notifying about required refund.
-    paid = application.total_paid_amount + application.previous_paid_amount
-    over_paid = paid - int(application.application_fee)
+    over_paid = application.get_refund_amount()
 
     email = ApplicationRefundNotificationEmail()
     url = request.build_absolute_uri(
@@ -327,17 +397,10 @@ def send_amendment_refund_email_notification(
             kwargs={
                 'application_pk': application.id}))
 
-    if '-internal' not in url:
-        url = "{0}://{1}{2}.{3}{4}".format(request.scheme,
-                                           settings.SITE_PREFIX,
-                                           '-internal',
-                                           settings.SITE_DOMAIN,
-                                           url.split(request.get_host())[1])
-
     context = {
         'application': application,
         'amount': '${:0,.2f}'.format(over_paid).replace('$-', '-$'),
-        'url': url
+        'url': add_url_internal_request(request, url)
     }
     email_group = [item.email for item in group_email]
     msg = email.send(email_group, context=context)
@@ -355,16 +418,9 @@ def send_application_submit_email_notification(
             kwargs={
                 'application_pk': application.id}))
 
-    if '-internal' not in url:
-        url = "{0}://{1}{2}.{3}{4}".format(request.scheme,
-                                           settings.SITE_PREFIX,
-                                           '-internal',
-                                           settings.SITE_DOMAIN,
-                                           url.split(request.get_host())[1])
-
     context = {
         'application': application,
-        'url': url
+        'url': add_url_internal_request(request, url)
     }
     email_group = [item.email for item in group_email]
     msg = email.send(email_group, context=context)
@@ -382,16 +438,9 @@ def send_amendment_submit_email_notification(
             kwargs={
                 'application_pk': application.id}))
 
-    if '-internal' not in url:
-        url = "{0}://{1}{2}.{3}{4}".format(request.scheme,
-                                           settings.SITE_PREFIX,
-                                           '-internal',
-                                           settings.SITE_DOMAIN,
-                                           url.split(request.get_host())[1])
-
     context = {
         'application': application,
-        'url': url
+        'url': add_url_internal_request(request, url)
     }
     email_group = [item.email for item in group_email]
     msg = email.send(email_group, context=context)
@@ -417,7 +466,7 @@ def send_application_amendment_notification(amendment_data, application, request
         'application': application,
         'reason': reason,
         'amendment_details': amendment_data['text'],
-        'url': url
+        'url': remove_url_internal_request(request, url)
     }
 
     msg = email.send(application.submitter.email, context=context)
@@ -430,7 +479,7 @@ def send_application_issue_notification(
         application,
         request,
         licence):
-    # An email to internal users notifying about an application activity being issued
+
     email = ApplicationIssueNotificationEmail()
 
     url = request.build_absolute_uri(
@@ -442,7 +491,7 @@ def send_application_issue_notification(
     context = {
         'application': application,
         'activities': activities,
-        'url': url
+        'url': remove_url_internal_request(request, url)
     }
 
     msg = email.send(
@@ -469,7 +518,7 @@ def send_application_decline_notification(
     context = {
         'application': application,
         'activities': activities,
-        'url': url
+        'url': remove_url_internal_request(request, url)
     }
 
     msg = email.send(
@@ -492,7 +541,7 @@ def send_id_update_request_notification(application, request):
     )
     context = {
         'application': application,
-        'url': url
+        'url': remove_url_internal_request(request, url)
     }
 
     msg = email.send(application.submitter.email, context=context)
@@ -508,22 +557,16 @@ def send_id_updated_notification(user, applications, assigned_officers, request)
         '/internal/users/{}'.format(user.id)
     )
 
-    if '-internal' not in url:
-        url = "{0}://{1}{2}.{3}{4}".format(request.scheme,
-                                           settings.SITE_PREFIX,
-                                           '-internal',
-                                           settings.SITE_DOMAIN,
-                                           url.split(request.get_host())[1])
-
     applications_list_string = ', '.join([str(application.id) for application in applications])
     context = {
         'user': '{first_name} {last_name}'.format(
             first_name=user.first_name,
             last_name=user.last_name),
-        'url': url,
+        'url': add_url_internal_request(request, url),
         'applications': applications_list_string
     }
-    msg = email.send(assigned_officers, context=context)
+    email_list = [o.email for o in assigned_officers]
+    msg = email.send(email_list, context=context)
 
     sender = request.user if request else settings.DEFAULT_FROM_EMAIL
     for application in applications:
@@ -540,17 +583,10 @@ def send_application_return_to_officer_conditions_notification(
             kwargs={
                 'application_pk': application.id}))
 
-    if '-internal' not in url:
-        url = "{0}://{1}{2}.{3}{4}".format(request.scheme,
-                                           settings.SITE_PREFIX,
-                                           '-internal',
-                                           settings.SITE_DOMAIN,
-                                           url.split(request.get_host())[1])
-
     context = {
         'application': application,
         'text': text,
-        'url': url
+        'url': add_url_internal_request(request, url)
     }
     msg = email.send(email_list, context=context)
     sender = request.user if request else settings.DEFAULT_FROM_EMAIL

@@ -58,7 +58,7 @@
         <div :id="idLocationFieldsDetails">
             <div class="col-sm-12 form-group"><div class="row">
                 <label class="col-sm-4">Details</label>
-                <textarea class="form-control location_address_field" v-model="call_email.location.properties.details" />
+                <textarea :readonly="isReadonly" class="form-control location_address_field" v-model="call_email.location.properties.details" />
             </div></div>
         </div>
     
@@ -119,6 +119,7 @@ export default {
             call_latitude: 'call_latitude',
             call_longitude: 'call_longitude',
         }),
+        /*
         isReadonly: function() {
             if (this.call_email.status && this.call_email.status.id === 'draft') {
                 return false;
@@ -126,6 +127,13 @@ export default {
                 return true;
             }
         },
+        */
+    },
+    props:{
+          isReadonly: {
+              type: Boolean,
+              default: true,
+          },
     },
     watch: {
         call_email: {
@@ -145,7 +153,7 @@ export default {
             }
         }
     },
-    mounted: function(){
+    mounted: async function(){
         this.$nextTick(function() {
             console.debug('Start loading map');
             this.initMap();
@@ -159,15 +167,19 @@ export default {
                 // this.addMarker([this.call_latitude, this.call_longitude]);
                 this.addMarker([this.call_email.location.geometry.coordinates[1], this.call_email.location.geometry.coordinates[0]]);
                 this.refreshMarkerLocation();
+                //this.reverseGeocoding(this.call_email.location.geometry.coordinates);
             }        
-            this.showHideAddressDetailsFields(false, false);
+            if (this.call_email.location.properties.country){
+                this.showHideAddressDetailsFields(true, false);
+            } else {
+                this.showHideAddressDetailsFields(false, true);
+            }
             console.debug('End loading map');
         });
     },
     created: async function() {
-        await this.MapboxAccessToken.then(data => {
-            this.mapboxAccessToken = data
-        });
+        let temp_token = await this.retrieveMapboxAccessToken();
+        this.mapboxAccessToken = temp_token.access_token;
     },
     methods: {
         ...mapActions('callemailStore', {
@@ -234,6 +246,9 @@ export default {
         //     // this.saveLocation();
         // },
         reverseGeocoding: async function(coordinates_4326){
+            console.log('reverseGeocoding');
+            console.log('access token:');
+            console.log(this.mapboxAccessToken);
             var self = this;
             $.ajax({
                 url: api_endpoints.geocoding_address_search + coordinates_4326[0] + ',' + coordinates_4326[1] + '.json?' + $.param({
@@ -256,6 +271,8 @@ export default {
                             }
                         }
                     }
+                    console.log('address found:');
+                    console.log(address_found);
                     if(address_found){
                         console.log("address found");
                         self.showHideAddressDetailsFields(true, false);

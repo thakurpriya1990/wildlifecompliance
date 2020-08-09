@@ -136,8 +136,10 @@ class Location(models.Model):
         verbose_name_plural = 'CM_Locations'
 
     def __str__(self):
-        return '{}, {}, {}, {}' \
-            .format(self.street, self.town_suburb, self.state, self.country)
+        if self.country or self.state or self.town_suburb:
+            return '{}, {}, {}, {}'.format(self.street, self.town_suburb, self.state, self.country)
+        else:
+            return self.details
 
 
 class MapLayer(models.Model):
@@ -315,20 +317,18 @@ class CallEmail(RevisionedMixin):
         self.save()
 
     def allocate_for_inspection(self, request):
-        #self.status = self.STATUS_OPEN_INSPECTION
+        self.status = self.STATUS_OPEN_INSPECTION
         self.log_user_action(
                 CallEmailUserAction.ACTION_ALLOCATE_FOR_INSPECTION.format(self.number), 
                 request)
-        #self.save()
-        self.close(request)
+        self.save()
 
     def allocate_for_case(self, request):
-        #self.status = self.STATUS_OPEN_CASE
+        self.status = self.STATUS_OPEN_CASE
         self.log_user_action(
                 CallEmailUserAction.ACTION_ALLOCATE_FOR_CASE.format(self.number),
                 request)
-        #self.save()
-        self.close(request)
+        self.save()
 
     def close(self, request=None):
         close_record, parents = can_close_record(self, request)

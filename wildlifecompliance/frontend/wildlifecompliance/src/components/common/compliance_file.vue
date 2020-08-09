@@ -1,38 +1,35 @@
 <template lang="html">
     <div>
-        <div class="form-group">
-            <label :id="id" :num_files="num_documents()">{{label}}</label>
-            <!--template v-if="help_text">
-                <HelpText :help_text="help_text" />
-            </template-->
+        <label :id="id" :num_files="num_documents()" style="display: none;">{{label}}</label>
+        <!--template v-if="help_text">
+            <HelpText :help_text="help_text" />
+        </template-->
 
-            <!--template v-if="help_text_url">
-                <HelpTextUrl :help_text_url="help_text_url" />
-            </template-->
+        <!--template v-if="help_text_url">
+            <HelpTextUrl :help_text_url="help_text_url" />
+        </template-->
 
-            <!--CommentBlock 
-                :label="label"
-                :name="name"
-                :field_data="field_data"
-                /-->
+        <!--CommentBlock 
+            :label="label"
+            :name="name"
+            :field_data="field_data"
+            /-->
 
-            <div v-if="files">
-                <div v-for="v in documents">
-                    <p>
-                        File: <a :href="v.file" target="_blank">{{v.name}}</a> &nbsp;
-                        <span v-if="!readonly">
-                            <a @click="delete_document(v)" class="fa fa-trash-o" title="Remove file" :filename="v.name" style="cursor: pointer; color:red;"></a>
-                        </span>
-                    </p>
-                </div>
-                <div v-if="show_spinner"><i class='fa fa-2x fa-spinner fa-spin'></i></div>
+        <div v-if="files">
+            <div v-for="v in documents">
+                <p>
+                    File: <a :href="v.file" target="_blank">{{v.name}}</a> &nbsp;
+                    <span v-if="!readonly">
+                        <a @click="delete_document(v)" class="fa fa-trash-o" title="Remove file" :filename="v.name" style="cursor: pointer; color:red;"></a>
+                    </span>
+                </p>
             </div>
-            <div v-if="!readonly" v-for="n in repeat">
-                <div v-if="isRepeatable || (!isRepeatable && num_documents()==0)">
-                    <input :name="name" type="file" :data-que="n" :accept="fileTypes" @change="handleChangeWrapper"/>
-                </div>
+            <div v-if="show_spinner"><i class='fa fa-2x fa-spinner fa-spin'></i></div>
+        </div>
+        <div v-if="!readonly" v-for="n in repeat">
+            <div v-if="isRepeatable || (!isRepeatable && num_documents()==0)">
+                <input :name="name" type="file" :data-que="n" :accept="fileTypes" @change="handleChangeWrapper"/>
             </div>
-
         </div>
     </div>
 </template>
@@ -103,6 +100,7 @@ export default {
                     url = api_endpoints.temporary_document + this.temporary_document_collection_id + '/process_temp_comms_log_document/'
                 }
             } else {
+                console.log(this.documentActionUrl);
                 url = this.documentActionUrl
             }
             return url;

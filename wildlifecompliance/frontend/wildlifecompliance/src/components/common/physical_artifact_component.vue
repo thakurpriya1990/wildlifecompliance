@@ -1,9 +1,9 @@
 <template lang="html">
     <div class="container-fluid">
-        <div class="col-sm-12 child-artifact-component">
+        <div :class="componentClass">
             <div class="form-group">
                 <div class="row">
-                    <div v-if="!parentModal">
+                    <div v-if="!legalCaseExists">
                         <ul class="nav nav-pills">
                         </ul>
                     </div>
@@ -34,7 +34,7 @@
                                                   <label>Physical Type</label>
                                                 </div>
                                                 <div class="col-sm-6">
-                                                  <select class="form-control" v-model="physical_artifact.physical_artifact_type_id" @change="loadSchema">
+                                                  <select :disabled="readonlyForm" class="form-control" v-model="physical_artifact.physical_artifact_type_id" @change="loadSchema">
                                                     <option  v-for="option in physicalArtifactTypes" :value="option.id" v-bind:key="option.id">
                                                       {{ option.artifact_type_display }}
                                                     </option>
@@ -74,7 +74,7 @@
                                                         <label>Officer</label>
                                                     </div>
                                                     <div class="col-sm-9">
-                                                        <select ref="physical_artifact_department_users" class="form-control" v-model="physical_artifact.officer_email">
+                                                        <select :disabled="readonlyForm" ref="physical_artifact_department_users" class="form-control" v-model="physical_artifact.officer_email">
                                                             <option  v-for="option in departmentStaffList" :value="option.email" v-bind:key="option.pk">
                                                             {{ option.name }}
                                                             </option>
@@ -88,14 +88,14 @@
                                                   <label>Statement</label>
                                                 </div>
                                                 <div v-if="parentModal" class="col-sm-6">
-                                                  <select class="form-control" v-model="physical_artifact.statement_id" ref="setStatement">
+                                                  <select :disabled="readonlyForm" class="form-control" v-model="physical_artifact.statement_id" ref="setStatement">
                                                     <option  v-for="option in legal_case.statement_artifacts" :value="option.id" v-bind:key="option.id">
                                                     {{ option.document_type_display }}: {{ option.identifier }}
                                                     </option>
                                                   </select>
                                                 </div>
                                                 <div v-else class="col-sm-6">
-                                                  <select class="form-control" v-model="physical_artifact.statement_id" ref="setStatement">
+                                                  <select :disabled="readonlyForm" class="form-control" v-model="physical_artifact.statement_id" ref="setStatement">
                                                     <option  v-for="option in physical_artifact.available_statement_artifacts" :value="option.id" v-bind:key="option.id">
                                                     {{ option.document_type_display }}: {{ option.identifier }}
                                                     </option>
@@ -119,7 +119,7 @@
                                                         <label>Custodian</label>
                                                     </div>
                                                     <div class="col-sm-9">
-                                                        <select ref="physical_artifact_department_users_custodian" class="form-control" v-model="physical_artifact.custodian_email">
+                                                        <select :disabled="readonlyForm" ref="physical_artifact_department_users_custodian" class="form-control" v-model="physical_artifact.custodian_email">
                                                             <option  v-for="option in departmentStaffList" :value="option.email" v-bind:key="option.pk">
                                                             {{ option.name }}
                                                             </option>
@@ -159,7 +159,7 @@
                                                 </div>
                                               </div>
                                             </div>
-                                            <div class="form-group">
+                                            <div v-if="siezureNoticeVisibility" class="form-group">
                                                 <div class="row">
                                                     <div class="col-sm-3">
                                                         <label class="control-label pull-left" for="Name">Seizure Notice</label>
@@ -170,6 +170,7 @@
                                                         name="default_document"
                                                         :isRepeatable="true"
                                                         documentActionUrl="temporary_document"
+                                                        :readonly="readonlyForm"
                                                         @update-temp-doc-coll-id="addToTemporaryDocumentCollectionList"/>
                                                     </div>
                                                     <div v-else class="col-sm-9">
@@ -195,8 +196,8 @@
                                 <div :id="disposalTab" class="tab-pane fade in li-top-buffer">
                                     disposal
                                 </div-->
-                                <div :id="detailsTab" :class="detailsTabClass">
-                                    <FormSection :formCollapse="false" label="Checklist">
+                                <div :id="detailsTab" :class="detailsTabClass" v-bind:key="artifactType">
+                                    <FormSection :formCollapse="false" label="Details">
                                         <div class="col-sm-12 form-group"><div class="row">
                                             <div v-if="detailsSchemaVisibility" v-for="(item, index) in detailsSchema">
                                               <compliance-renderer-block
@@ -210,7 +211,7 @@
                                     </FormSection>
                                 </div>
                                 <div :id="storageTab" :class="storageTabClass">
-                                    <FormSection :formCollapse="false" label="Checklist">
+                                    <FormSection :formCollapse="false" label="Storage" v-bind:key="artifactType">
                                         <div class="col-sm-12 form-group"><div class="row">
                                             <div v-if="storageSchemaVisibility" v-for="(item, index) in storageSchema">
                                               <compliance-renderer-block
@@ -230,7 +231,7 @@
                                               <label>Disposal Method</label>
                                             </div>
                                             <div class="col-sm-6">
-                                              <select class="form-control" v-model="physical_artifact.disposal_method">
+                                              <select :disabled="readonlyForm" class="form-control" v-model="physical_artifact.disposal_method">
                                                 <option  v-for="option in disposalMethods" :value="option" v-bind:key="option.id">
                                                   {{ option.disposal_method }}
                                                 </option>
@@ -263,7 +264,7 @@
                                                 <RelatedItems
                                                 :parent_update_related_items="setRelatedItems" 
                                                 v-bind:key="relatedItemsBindId" 
-                                                :readonlyForm="!canUserAction"
+                                                :readonlyForm="readonlyForm"
                                                 parentComponentName="physical_artifact"
                                                 />
                                             </div>
@@ -378,28 +379,6 @@ export default {
                         searchable: true,
                         orderable: true
                     },
-                    /*
-                    {
-                        data: 'artifact_date',
-                        searchable: false,
-                        orderable: true,
-                        mRender: function (data, type, full) {
-                            return data != '' && data != null ? moment(data).format('DD/MM/YYYY') : '';
-                        }
-                    },
-                    {
-                        searchable: false,
-                        orderable: false,
-                        mRender: function (data, type,full){
-                            return '---';
-                        }
-                    },
-                    {
-                        searchable: false,
-                        orderable: false,
-                        data: 'status'
-                    },
-                    */
                     {
                         searchable: false,
                         orderable: false,
@@ -452,10 +431,15 @@ export default {
             type: Object,
             required: false,
         },
+        readonlyForm: {
+            type: Boolean,
+            required: false,
+            default: false,
+        },
     },
     watch: {
         artifactType: {
-            handler: function (){
+            handler: function (newVal, oldVal){
                 if (this.artifactType === 'found_object') {
                     this.setStatementId(null);
                 }
@@ -467,7 +451,7 @@ export default {
                 }
                 */
             },
-            deep: true,
+            //deep: true,
         },
         selectedStatementArtifact: {
             handler: function() {
@@ -485,6 +469,28 @@ export default {
         ...mapGetters({
             renderer_form_data: 'renderer_form_data'
         }),
+        siezureNoticeVisibility: function() {
+            let visibility = false;
+            //console.log(this.artifactType)
+            if (this.artifactType === 'seized_object') {
+                visibility = true;
+            }
+            return visibility;
+        },
+        legalCaseExists: function() {
+            let exists = false;
+            if (this.legal_case && this.legal_case.id) {
+                exists = true;
+            }
+            return exists;
+        },
+        componentClass: function() {
+            let componentClass = '';
+            if (this.parentModal) {
+                componentClass = 'col-sm-11 child-artifact-component';
+            }
+            return componentClass;
+        },
         selectedStatementArtifact: function() {
             let statementArtifact = {}
             if (this.physical_artifact && this.physical_artifact.statement_id) {
@@ -513,7 +519,7 @@ export default {
         },
         detailsSchemaVisibility: function() {
             console.log("detailsSchemaVisibility")
-            if (this.detailsSchema && this.detailsSchema.length > 0) {
+            if (this.artifactType && this.detailsSchema && this.detailsSchema.length > 0) {
                 return true;
             } else {
                 return false
@@ -521,7 +527,7 @@ export default {
         },
         storageSchemaVisibility: function() {
             console.log("storageSchemaVisibility")
-            if (this.storageSchema && this.storageSchema.length > 0) {
+            if (this.artifactType && this.storageSchema && this.storageSchema.length > 0) {
                 return true;
             } else {
                 return false
@@ -534,6 +540,7 @@ export default {
           }
           return ret_val;
         },
+        /*
         legalCaseExists: function() {
           let caseExists = false;
           if (this.legal_case && this.legal_case.id) {
@@ -541,6 +548,7 @@ export default {
           }
           return caseExists;
         },
+        */
         linkedLegalCase: function() {
             let caseExists = false;
             if (this.physical_artifact && this.physical_artifact.legal_case_id_list && this.physical_artifact.legal_case_id_list.length > 0) {
@@ -605,9 +613,15 @@ export default {
             }
             return display;
         },
+        /*
         readonlyForm: function() {
-            return false;
+            let retValue = true;
+            if (!this.readonly) {
+                retValue = false;
+            }
+            return retValue;
         },
+        */
         updateSearchPersonOrganisationBindId: function() {
             this.uuid += 1
             return "PhysicalArtifact_SearchPerson_" + this.uuid.toString();
@@ -773,23 +787,18 @@ export default {
                 (this.physical_artifact && this.physical_artifact.statement)
                 )
             {
-                console.log("statementVisibility true")
+                //console.log("statementVisibility true")
                 this.statementVisibility = true;
             } else {
-                console.log("statementVisibility false")
+                //console.log("statementVisibility false")
                 this.statementVisibility = false;
             }
         },
         updateTabSelected: function(tabValue) {
             this.tabSelected = tabValue;
         },
-        /*
-        setTemporaryDocumentCollectionId: function(val) {
-            this.temporary_document_collection_id = val;
-        },
-        */
         entitySelected: function(entity) {
-            console.log(entity);
+            //console.log(entity);
             Object.assign(this.entity, entity)
         },
         save: async function() {
@@ -808,45 +817,13 @@ export default {
                 });
             }
         },
-        /*
-        create: async function() {
-                        await this.savePhysicalArtifact({ create: true, internal: true, legal_case_id: this.legalCaseId });
-            //this.entity.id = 
-            this.$nextTick(() => {
-                this.$emit('entity-selected', {
-                    id: this.physical_artifact.id,
-                    data_type: 'physical_artifact',
-                    identifier: this.physical_artifact.identifier,
-                    artifact_type: this.artifactType,
-                    display: this.artifactType,
-                });
-            });
-            //return physicalArtifactEntity;
-        },
-    */
-        /*
-        emitDocumentArtifact: async function(e) {
-            console.log(e)
-            let physicalArtifactId = e.target.dataset.id;
-            let physicalArtifactType = e.target.dataset.artifactType.replace(/~/g, ' ');
-            let physicalArtifactIdentifier = e.target.dataset.identifier.replace(/~/g, ' ');
-            this.$nextTick(() => {
-                this.$emit('existing-entity-selected', {
-                        id: physicalArtifactId,
-                        data_type: 'physical_artifact',
-                        identifier: physicalArtifactIdentifier,
-                        artifact_type: physicalArtifactType,
-                        display: physicalArtifactType,
-                    });
-            });
-            //this.$parent.$parent.ok();
-        },
-        */
         cancel: async function() {
-            await this.$refs.default_document.cancel();
+            if (this.$refs.default_document) {
+                await this.$refs.default_document.cancel();
+            }
         },
         emitPhysicalArtifact: async function(e) {
-            console.log(e)
+            //console.log(e)
             let physicalArtifactId = e.target.dataset.id;
             // update existing DocumentArtifact with legal_case_id
             let fetchUrl = helpers.add_endpoint_join(
@@ -856,7 +833,7 @@ export default {
             let payload = {
                 "legal_case_id": this.legalCaseId
             }
-            console.log(payload);
+            //console.log(payload);
             await Vue.http.put(fetchUrl, payload);
             let physicalArtifactType = e.target.dataset.artifactType.replace(/~/g, ' ');
             let physicalArtifactIdentifier = e.target.dataset.identifier.replace(/~/g, ' ').replace('null', '');
@@ -883,7 +860,7 @@ export default {
             showClear: true
             });
             el_fr_date.on("dp.change", function(e) {
-                console.log(e)
+                //console.log(e)
                 if (el_fr_date.data("DateTimePicker").date()) {
                   vm.physical_artifact.artifact_date = e.date.format("DD/MM/YYYY");
                 } else if (el_fr_date.data("date") === "") {
@@ -892,7 +869,7 @@ export default {
             });
             el_fr_time.datetimepicker({ format: "LT", showClear: true });
             el_fr_time.on("dp.change", function(e) {
-                console.log(e)
+                //console.log(e)
                 if (el_fr_time.data("DateTimePicker").date()) {
                   vm.physical_artifact.artifact_time = e.date.format("LT");
                 } else if (el_fr_time.data("date") === "") {
@@ -947,27 +924,15 @@ export default {
             showClear: true
             });
             disposal_date_control.on("dp.change", function(e) {
-                console.log(e)
+                //console.log(e)
                 if (disposal_date_control.data("DateTimePicker").date()) {
                   vm.physical_artifact.disposal_date = e.date.format("DD/MM/YYYY");
                 } else if (disposal_date_control.data("date") === "") {
                   vm.physical_artifact.disposal_date = "";
                 }
             });
-            
         },
-        /*
-        setSelectedCustodian: function(pk) {
-            for (let record of this.departmentStaffList) {
-                if (record.pk.toString() === pk) {
-                    console.log(record)
-                    Object.assign(this.selectedCustodian, record);
-                }
-            }
-        },
-        */
         compare: function(a, b) {
-            console.log("compare")
             const nameA = a.name.toLowerCase();
             const nameB = b.name.toLowerCase();
 
@@ -980,7 +945,6 @@ export default {
             return comparison;
         },
         loadSchema: async function() {
-            console.log("load schema")
             this.$nextTick(async () => {
                 if (this.artifactTypeId) {
                     console.log("really load schema")
@@ -992,19 +956,10 @@ export default {
                     'PhysicalArtifactTypeSchema',
                     this.artifactTypeId.toString(),
                     url);
-                    //let returnedSchema = await Vue.http.get(url);
-                    //console.log(returnedSchema)
                     if (returnedSchema) {
                         Object.assign(this.detailsSchema, returnedSchema.details_schema);
                         Object.assign(this.storageSchema, returnedSchema.storage_schema);
-                        /*
-                        Object.assign(this.detailsSchema, returnedSchema.body.details_schema);
-                        Object.assign(this.storageSchema, returnedSchema.body.storage_schema);
-                        */
-                        /*
-                        this.detailsSchema = returnedSchema.details_schema;
-                        this.storageSchema = returnedSchema.storage_schema;
-                        */
+
                     }
                 } else {
                     console.log(" no artifactTypeId")
@@ -1012,37 +967,14 @@ export default {
             });
         },
 
-      //createPhysicalActionUrl: async function(done) {
-      //  if (!this.inspection.id) {
-      //      // create inspection and update vuex
-      //      let returned_inspection = await this.saveInspection({ create: true, internal: true })
-      //      await this.loadInspection({inspection_id: returned_inspection.body.id});
-      //  }
-      //  // populate filefield physical_action_url
-      //  this.$refs.comms_log_file.physical_action_url = this.inspection.createInspectionProcessCommsLogsPhysicalUrl;
-      //  return done(true);
-      //},
-
     },
     mounted: function() {
       this.$nextTick(async () => {
           this.addEventListeners();
-          /*
-          // special processing for PhysicalArtifactLegalCases link
-          if (this.legalCaseId && this.physical_artifact.legal_case_links && this.physical_artifact.legal_case_links.length > 0) {
-              console.log("mounted links")
-              for (let link of this.physical_artifact.legal_case_links) {
-                  if (link.legal_case_id === this.legalCaseId) {
-                      this.setUsedWithinCase(link.used_within_case);
-                      this.setSensitiveNonDisclosable(link.sensitive_non_disclosable);
-                  }
-              }
-          }
-          */
       });
     },
     beforeDestroy: async function() {
-        console.log("beforeDestroy")
+        //console.log("beforeDestroy")
         await this.setPhysicalArtifact({});
     },
     /*
@@ -1058,16 +990,9 @@ export default {
             await this.loadPhysicalArtifact({ physical_artifact_id: this.entityEdit.id });
             console.log("artifact loaded");
         }
-
-        /*
-        // if main obj page, call loadLegalCase if document_artifact.legal_case_id exists
-        if (this.$route.name === 'view-artifact' && this.physical_artifact && this.physical_artifact.legal_case_id) {
-            await this.loadLegalCase({ legal_case_id: this.physical_artifact.legal_case_id });
-        }
-        */
+        // load detailsSchema and storageSchema
+        await this.loadSchema();
         this.setStatementVisibility();
-        //await this.loadPhysicalArtifact({ physical_artifact_id: 1 });
-        //console.log(this)
         // physical artifact types
         let returned_physical_artifact_types = await cache_helper.getSetCacheList(
           'PhysicalArtifactTypes',
@@ -1101,11 +1026,7 @@ export default {
             pk: "",
             name: "",
           });
-      this.$nextTick(async () => {
-          //this.addEventListeners();
-          await this.loadSchema();
-      });
-      this.$nextTick(() => {
+        this.$nextTick(async() => {
           // special processing for PhysicalArtifactLegalCases link
           if (this.legalCaseId && this.physical_artifact.legal_case_links && this.physical_artifact.legal_case_links.length > 0) {
               console.log("created links")
@@ -1116,33 +1037,7 @@ export default {
                   }
               }
           }
-      });
-        /*
-        if (this.physical_artifact && this.physical_artifact.officer_email) {
-            this.$refs.physical_artifact_department_users = this.physical_artifact.officer_email;
-        }
-        */
-        /*
-        let returned_department_staff = await cache_helper.getSetCacheList(
-          'DepartmentStaff',
-          //'https://itassets.dbca.wa.gov.au/api/users/fast/?minimal=true'
-          api_endpoints.department_users
-          );
-        //const sorted_department_staff = returned_department_staff.sort(this.compare);
-        this.$nextTick(() => {
-            //Object.assign(this.departmentStaffList, sorted_department_staff);
-            Object.assign(this.departmentStaffList, returned_department_staff);
-            // blank entry allows user to clear selection
-            this.departmentStaffList.splice(0, 0,
-              {
-                pk: "",
-                name: "",
-                //artifact_type: "",
-                //description: "",
-              });
         });
-        */
-
     },
 };
 </script>
@@ -1150,6 +1045,7 @@ export default {
 <style lang="css">
 .child-artifact-component {
     margin-top: 20px;
+    margin-left: 20px;
 }
 .li-top-buffer {
     margin-top: 20px;

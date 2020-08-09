@@ -1,9 +1,5 @@
 from django.contrib import admin
 from wildlifecompliance.components.licences import models
-from wildlifecompliance.components.applications.services import (
-    ApplicationService
-)
-# Register your models here.
 
 
 @admin.register(models.LicenceCategory)
@@ -18,7 +14,28 @@ class LicenceActivityAdmin(admin.ModelAdmin):
 
 @admin.register(models.WildlifeLicence)
 class WildlifeLicence(admin.ModelAdmin):
-    pass
+    actions = [
+        'verify_expired_licence',
+        'verify_licence_renewal',
+    ]
+
+    def verify_expired_licence(self, request, queryset):
+        from wildlifecompliance.components.licences.services import (
+            LicenceService,
+        )
+        for selected in queryset:
+            LicenceService.verify_expired_licence_for(selected.id, request)
+        self.message_user(
+            request, 'Selected licence expired have been verified.')
+
+    def verify_licence_renewal(self, request, queryset):
+        from wildlifecompliance.components.licences.services import (
+            LicenceService,
+        )
+        for selected in queryset:
+            LicenceService.verify_licence_renewal_for(selected.id, request)
+        self.message_user(
+            request, 'Selected licence renewals have been verified.')
 
 
 @admin.register(models.LicencePurpose)
@@ -39,6 +56,14 @@ class LicenceSpeciesAdmin(admin.ModelAdmin):
     actions = ['verify_species']
 
     def verify_species(self, request, queryset):
+        from wildlifecompliance.components.applications.services import (
+            ApplicationService,
+        )
         for selected in queryset:
             ApplicationService.verify_licence_specie_id(selected.specie_id)
         self.message_user(request, 'Selected species have been verified.')
+
+
+@admin.register(models.WildlifeLicenceReceptionEmail)
+class WildlifeLicenceReceptionEmailAdmin(admin.ModelAdmin):
+    pass

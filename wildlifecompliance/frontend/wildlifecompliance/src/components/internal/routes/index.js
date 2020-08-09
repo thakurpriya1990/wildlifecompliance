@@ -23,6 +23,7 @@ import SanctionOutcome from '../sanction_outcome/sanction_outcome.vue'
 import OffenceDashTable from '../offence/offence_dashboard.vue'
 import Offence from '../offence/offence.vue'
 import DashboardSwitcher from '../dashboard_switcher.vue'
+import Reports from '@/components/reports/reports.vue'
 
 export default
 {
@@ -137,6 +138,11 @@ export default
                     name:"view-offence"
                 },
             ]
+        },
+        {
+            path:'reports',
+            name:'reports',
+            component:Reports
         },
         {
             path: 'sanction_outcome',

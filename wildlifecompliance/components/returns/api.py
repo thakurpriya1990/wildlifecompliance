@@ -1,9 +1,9 @@
 import traceback
 from datetime import datetime, timedelta
+from django.urls import reverse
 from django.db.models import Q
 from django.db import transaction
 from django.core.exceptions import ValidationError
-from ledger.checkout.utils import calculate_excl_gst
 from rest_framework import viewsets, serializers, status, views
 from rest_framework.decorators import (
     detail_route,
@@ -12,6 +12,12 @@ from rest_framework.decorators import (
 )
 from rest_framework.response import Response
 from rest_framework.renderers import JSONRenderer
+from rest_framework_datatables.pagination import DatatablesPageNumberPagination
+from rest_framework_datatables.filters import DatatablesFilterBackend
+from rest_framework_datatables.renderers import DatatablesRenderer
+
+from ledger.checkout.utils import calculate_excl_gst
+
 from wildlifecompliance.helpers import is_customer, is_internal
 from wildlifecompliance.components.returns.utils import (
     SpreadSheet,
@@ -32,6 +38,7 @@ from wildlifecompliance.components.returns.serializers import (
     ReturnLogEntrySerializer,
     ReturnTypeSerializer,
     ReturnRequestSerializer,
+    TableReturnSerializer,
 )
 from wildlifecompliance.components.applications.models import (
     Application,
@@ -41,10 +48,10 @@ from wildlifecompliance.components.applications.models import (
 from wildlifecompliance.components.returns.email import (
     send_return_amendment_email_notification,
 )
-
-from rest_framework_datatables.pagination import DatatablesPageNumberPagination
-from rest_framework_datatables.filters import DatatablesFilterBackend
-from rest_framework_datatables.renderers import DatatablesRenderer
+from wildlifecompliance.components.returns.services import (
+    ReturnService,
+    ReturnData,
+)
 
 
 class ReturnFilterBackend(DatatablesFilterBackend):
@@ -53,8 +60,10 @@ class ReturnFilterBackend(DatatablesFilterBackend):
     """
     def filter_queryset(self, request, queryset, view):
 
-        # Get built-in DRF datatables queryset first to join with search text, then apply additional filters
-        super_queryset = super(ReturnFilterBackend, self).filter_queryset(request, queryset, view).distinct()
+        # Get built-in DRF datatables queryset first to join with search text,
+        # then apply additional filters.
+        super_queryset = super(ReturnFilterBackend, self).filter_queryset(
+            request, queryset, view).distinct().order_by('-id')
 
         date_from = request.GET.get('date_from')
         date_to = request.GET.get('date_to')
@@ -72,10 +81,12 @@ class ReturnFilterBackend(DatatablesFilterBackend):
                         status_ids.append(returns.id)
                 queryset = queryset.filter(id__in=status_ids).distinct()
             if date_from:
-                date_from = datetime.strptime(date_from, '%Y-%m-%d') + timedelta(days=1)
+                date_from = datetime.strptime(
+                    date_from, '%Y-%m-%d') + timedelta(days=1)
                 queryset = queryset.filter(lodgement_date__gte=date_from)
             if date_to:
-                date_to = datetime.strptime(date_to, '%Y-%m-%d') + timedelta(days=1)
+                date_to = datetime.strptime(
+                    date_to, '%Y-%m-%d') + timedelta(days=1)
                 queryset = queryset.filter(lodgement_date__lte=date_to)
 
         return queryset
@@ -83,9 +94,12 @@ class ReturnFilterBackend(DatatablesFilterBackend):
 
 class ReturnRenderer(DatatablesRenderer):
     def render(self, data, accepted_media_type=None, renderer_context=None):
-        if 'view' in renderer_context and hasattr(renderer_context['view'], '_datatables_total_count'):
-            data['recordsTotal'] = renderer_context['view']._datatables_total_count
-        return super(ReturnRenderer, self).render(data, accepted_media_type, renderer_context)
+        if 'view' in renderer_context and \
+                hasattr(renderer_context['view'], '_datatables_total_count'):
+            data['recordsTotal'] = \
+                renderer_context['view']._datatables_total_count
+        return super(ReturnRenderer, self).render(
+            data, accepted_media_type, renderer_context)
 
 
 class ReturnPaginatedViewSet(viewsets.ModelViewSet):
@@ -93,7 +107,7 @@ class ReturnPaginatedViewSet(viewsets.ModelViewSet):
     pagination_class = DatatablesPageNumberPagination
     renderer_classes = (ReturnRenderer,)
     queryset = Return.objects.none()
-    serializer_class = ReturnSerializer
+    serializer_class = TableReturnSerializer
     page_size = 10
 
     def get_queryset(self):
@@ -136,7 +150,8 @@ class ReturnPaginatedViewSet(viewsets.ModelViewSet):
         queryset = self.filter_queryset(queryset)
         self.paginator.page_size = queryset.count()
         result_page = self.paginator.paginate_queryset(queryset, request)
-        serializer = ReturnSerializer(result_page, context={'request': request}, many=True)
+        serializer = TableReturnSerializer(
+            result_page, context={'request': request}, many=True)
         return self.paginator.get_paginated_response(serializer.data)
 
 
@@ -167,7 +182,8 @@ class ReturnViewSet(viewsets.ReadOnlyModelViewSet):
         # Filter by proxy_applicant
         proxy_applicant_id = request.GET.get('proxy_applicant_id', None)
         if proxy_applicant_id:
-            queryset = queryset.filter(application__proxy_applicant_id=proxy_applicant_id)
+            queryset = queryset.filter(
+                application__proxy_applicant_id=proxy_applicant_id)
         # Filter by submitter
         submitter_id = request.GET.get('submitter_id', None)
         if submitter_id:
@@ -177,16 +193,19 @@ class ReturnViewSet(viewsets.ReadOnlyModelViewSet):
 
     @list_route(methods=['GET', ])
     def user_list(self, request, *args, **kwargs):
-        qs = self.get_queryset().exclude(processing_status=Return.RETURN_PROCESSING_STATUS_FUTURE)
+        qs = self.get_queryset().exclude(
+            processing_status=Return.RETURN_PROCESSING_STATUS_FUTURE
+        )
 
         serializer = ReturnSerializer(qs, many=True)
         return Response(serializer.data)
 
-    @detail_route(methods=['GET', ])
+    @detail_route(methods=['POST', ])
     def accept(self, request, *args, **kwargs):
         try:
             instance = self.get_object()
-            instance.accept(request)
+            # instance.accept(request)
+            ReturnService.accept_return_request(request, instance)
             serializer = self.get_serializer(instance)
             return Response(serializer.data)
         except serializers.ValidationError:
@@ -205,12 +224,19 @@ class ReturnViewSet(viewsets.ReadOnlyModelViewSet):
             instance = self.get_object()
             if not instance.has_data:
                 return Response(
-                    {'error': 'Upload not applicable for Return Type.'}, status=status.HTTP_406_NOT_ACCEPTABLE)
-            spreadsheet = SpreadSheet(instance, request.FILES['spreadsheet']).factory()
+                    {'error': 'Upload not applicable for Return Type.'},
+                    status=status.HTTP_406_NOT_ACCEPTABLE
+                )
+            spreadsheet = SpreadSheet(
+                instance, request.FILES['spreadsheet']).factory()
+
             if not spreadsheet.is_valid():
                 return Response(
-                    {'error': 'Enter data in correct format.'}, status=status.HTTP_404_NOT_FOUND)
-            table = instance.data.build_table(spreadsheet.rows_list)
+                    {'error': 'Enter data in correct format.'},
+                    status=status.HTTP_404_NOT_FOUND
+                )
+            data = ReturnData(instance)
+            table = data.build_table(spreadsheet.rows_list)
 
             return Response(table)
         except serializers.ValidationError:
@@ -227,17 +253,23 @@ class ReturnViewSet(viewsets.ReadOnlyModelViewSet):
     def sheet_details(self, request, *args, **kwargs):
         return_id = self.request.query_params.get('return_id')
         species_id = self.request.query_params.get('species_id')
-        instance = Return.objects.get(id=return_id).sheet
-        instance.set_species(species_id)
-        return Response(instance.table)
+        # instance = Return.objects.get(id=return_id).sheet
+        # instance.set_species(species_id)
+        instance = Return.objects.get(id=return_id)
+        sheet = ReturnService.set_sheet_species_for(instance, species_id)
+        # return Response(instance.table)
+        return Response(sheet.table)
 
     @detail_route(methods=['POST', ])
     def sheet_check_transfer(self, request, *args, **kwargs):
         try:
             instance = self.get_object()
 
-            if not instance.sheet.is_valid_transfer(request):
-                raise ValidationError({'err': 'Transfer not valid.'})
+            # if not instance.sheet.is_valid_transfer(request):
+            #     raise ValidationError({'err': 'Transfer not valid.'})
+
+            # if valid store updated table??
+            # ReturnService.store_request_details_for(instance, request)
 
             serializer = self.get_serializer(instance)
             return Response(serializer.data)
@@ -255,8 +287,40 @@ class ReturnViewSet(viewsets.ReadOnlyModelViewSet):
     def sheet_pay_transfer(self, request, *args, **kwargs):
         try:
             instance = self.get_object()
-            serializer = self.get_serializer(instance)
-            return Response(serializer.data)
+            product_lines = []
+
+            return_submission = u'Return submitted by {0} {1} confirmation {2}\
+                '.format(instance.submitter.first_name,
+                         instance.submitter.last_name,
+                         instance.lodgement_number)
+            # place return and its table in the session for storing.
+            set_session_return(request.session, instance)
+            qty = request.data['qty']
+            fees = ReturnService.calculate_fees(instance)['fees']['return']
+            price = int(qty) * fees
+            licence = request.data['licence']
+            oracle_code = instance.return_type.oracle_account_code
+
+            product_lines.append({
+                'ledger_description': 'Transfer fee to licence {0}'.format(
+                    licence),
+                'quantity': 1,
+                'price_incl_tax': str(price),
+                'price_excl_tax': str(calculate_excl_gst(price)),
+                'oracle_code': oracle_code
+            })
+
+            checkout_result = checkout(
+                request, instance,
+                lines=product_lines,
+                invoice_text=return_submission,
+                add_checkout_params={
+                    'return_url': request.build_absolute_uri(
+                        reverse('external-sheet-success-invoice'))
+                },
+            )
+
+            return checkout_result
         except serializers.ValidationError:
             print(traceback.print_exc())
             raise
@@ -274,19 +338,12 @@ class ReturnViewSet(viewsets.ReadOnlyModelViewSet):
             instance = self.get_object()
             product_lines = []
 
-            return_submission = u'Return submitted by {} {} confirmation {}\
+            return_submission = u'Return submitted by {0} {1} confirmation {2}\
                 '.format(instance.submitter.first_name,
                          instance.submitter.last_name,
                          instance.lodgement_number)
             set_session_return(request.session, instance)
-            product_lines.append({
-                'ledger_description': '{}'.format("Return Description"),
-                'quantity': 1,
-                'price_incl_tax': str(instance.return_fee),
-                'price_excl_tax': str(calculate_excl_gst(instance.return_fee)),
-                'oracle_code': ''
-            })
-
+            product_lines = ReturnService.get_product_lines(instance)
             checkout_result = checkout(request,
                                        instance, lines=product_lines,
                                        invoice_text=return_submission)
@@ -308,14 +365,15 @@ class ReturnViewSet(viewsets.ReadOnlyModelViewSet):
         try:
             instance = self.get_object()
 
-            if instance.has_data:
-                instance.data.store(request)
+            ReturnService.store_request_details_for(instance, request)
+            # if instance.has_data:
+            #     instance.data.store(request)
 
-            if instance.has_sheet:
-                instance.sheet.store(request)
+            # if instance.has_sheet:
+            #     instance.sheet.store(request)
 
-            if instance.has_question:
-                instance.question.store(request)
+            # if instance.has_question:
+            #     instance.question.store(request)
 
             instance.save()
             serializer = self.get_serializer(instance)
@@ -369,6 +427,129 @@ class ReturnViewSet(viewsets.ReadOnlyModelViewSet):
             print(traceback.print_exc())
             raise serializers.ValidationError(str(e))
 
+    @detail_route(methods=['POST', ])
+    def estimate_price(self, request, *args, **kwargs):
+        try:
+            instance = self.get_object()
+            # return_id = request.data.get('return_id')
+
+            return Response({'fees': ReturnService.calculate_fees(instance)})
+
+        except serializers.ValidationError:
+            print(traceback.print_exc())
+            raise
+        except ValidationError as e:
+            print(traceback.print_exc())
+            raise serializers.ValidationError(repr(e.error_dict))
+        except Exception as e:
+            print(traceback.print_exc())
+            raise serializers.ValidationError(str(e))
+
+    @detail_route(methods=['POST', ])
+    def assign_to_me(self, request, *args, **kwargs):
+        try:
+            instance = self.get_object()
+            user = request.user
+
+            if user not in instance.activity_curators:
+                raise serializers.ValidationError(
+                    'You are not in any relevant officer groups.')
+
+            ReturnService.assign_officer_request(request, instance, user)
+            serializer = self.get_serializer(instance)
+
+            return Response(serializer.data)
+        except serializers.ValidationError:
+            print(traceback.print_exc())
+            raise
+        except ValidationError as e:
+            print(traceback.print_exc())
+            raise serializers.ValidationError(repr(e.error_dict))
+        except Exception as e:
+            print(traceback.print_exc())
+            raise serializers.ValidationError(str(e))
+
+    @detail_route(methods=['POST', ])
+    def assign_officer(self, request, *args, **kwargs):
+        from ledger.accounts.models import EmailUser
+        try:
+            instance = self.get_object()
+            user_id = request.data.get('officer_id', None)
+            user = None
+
+            if not user_id:
+                raise serializers.ValidationError('An officer id is required')
+
+            try:
+                user = EmailUser.objects.get(id=user_id)
+
+            except EmailUser.DoesNotExist:
+                raise serializers.ValidationError(
+                    'A user with the id passed in does not exist')
+
+            if not request.user.has_perm(
+              'wildlifecompliance.return_curator'):
+                raise serializers.ValidationError(
+                    'You are not authorised to assign officers')
+
+            if user not in instance.activity_curators:
+                raise serializers.ValidationError(
+                    'User is not in any relevant officer groups')
+
+            ReturnService.assign_officer_request(request, instance, user)
+            serializer = self.get_serializer(instance)
+
+            return Response(serializer.data)
+
+        except serializers.ValidationError:
+            print(traceback.print_exc())
+            raise
+
+        except ValidationError as e:
+            print(traceback.print_exc())
+            raise serializers.ValidationError(repr(e.error_dict))
+
+        except Exception as e:
+            print(traceback.print_exc())
+            raise serializers.ValidationError(str(e))
+
+    @detail_route(methods=['POST', ])
+    def unassign_officer(self, request, *args, **kwargs):
+        try:
+            instance = self.get_object()
+
+            ReturnService.unassign_officer_request(request, instance)
+            serializer = self.get_serializer(instance)
+
+            return Response(serializer.data)
+
+        except serializers.ValidationError:
+            print(traceback.print_exc())
+            raise
+
+        except ValidationError as e:
+            print(traceback.print_exc())
+            raise serializers.ValidationError(repr(e.error_dict))
+
+        except Exception as e:
+            print(traceback.print_exc())
+            raise serializers.ValidationError(str(e))
+
+    @detail_route(methods=['post'])
+    @renderer_classes((JSONRenderer,))
+    def officer_comments(self, request, *args, **kwargs):
+        try:
+            instance = self.get_object()
+            ReturnService.record_deficiency_request(request, instance)
+            serializer = self.get_serializer(instance)
+
+            return Response(serializer.data)
+
+        except Exception as e:
+            print(traceback.print_exc())
+
+        raise serializers.ValidationError(str(e))
+
     @detail_route(methods=['GET', ])
     def comms_log(self, request, *args, **kwargs):
         try:
@@ -394,6 +575,8 @@ class ReturnViewSet(viewsets.ReadOnlyModelViewSet):
                 instance = self.get_object()
                 request.data['compliance'] = u'{}'.format(instance.id)
                 request.data['staff'] = u'{}'.format(request.user.id)
+                request.data['return_obj'] = instance.id
+                request.data['log_type'] = request.data['type']
                 serializer = ReturnLogEntrySerializer(data=request.data)
                 serializer.is_valid(raise_exception=True)
                 comms = serializer.save()
@@ -467,30 +650,41 @@ class ReturnAmendmentRequestViewSet(viewsets.ModelViewSet):
         return ReturnRequest.objects.none()
 
     def create(self, request, *args, **kwargs):
+        DRAFT = Return.RETURN_PROCESSING_STATUS_DRAFT
         try:
-            amend_data = self.request.data
-            reason = amend_data.pop('reason')
-            a_return = amend_data.pop('a_return')
-            text = amend_data.pop('text')
 
-            returns = Return.objects.get(id=a_return['id'])
-            application = a_return['application']
-            licence = a_return['licence']
-            assigned_to = a_return['assigned_to']
-            data = {
-                    'application': application,
-                    'reason': reason,
-                    'text': text,
-                    'officer': assigned_to
-            }
+            with transaction.atomic():
+                amend_data = self.request.data
+                reason = amend_data.pop('reason')
+                a_return = amend_data.pop('a_return')
+                text = amend_data.pop('text')
 
-            serializer = self.get_serializer(data=data)
-            serializer.is_valid(raise_exception=True)
-            instance = serializer.save()
+                returns = Return.objects.get(id=a_return['id'])
+                returns.processing_status = DRAFT
+                returns.save()
+                application = a_return['application']
+                licence = a_return['licence']
+                assigned_to = a_return['assigned_to']
+                data = {
+                        'application': application,
+                        'reason': reason,
+                        'text': text,
+                        'officer': assigned_to
+                }
+
+                serializer = self.get_serializer(data=data)
+                serializer.is_valid(raise_exception=True)
+                serializer.save()
+
             # send email
             send_return_amendment_email_notification(
                 request, data, returns, licence)
-            serializer = self.get_serializer(instance)
+
+            serializer = ReturnSerializer(
+                returns, context={'request': request}
+            )
+            # serializer = self.get_serializer(instance)
+            # returning amendment.
             return Response(serializer.data)
         except serializers.ValidationError:
             print(traceback.print_exc())

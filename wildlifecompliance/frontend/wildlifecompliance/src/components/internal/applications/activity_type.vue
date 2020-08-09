@@ -1,3 +1,4 @@
+<!-- redundant template -->
 <template lang="html">
     <div>
       <h3>Activity Name: {{ activity.activity_name }} - {{ activity.code  }}</h3>

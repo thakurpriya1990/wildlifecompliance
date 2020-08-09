@@ -143,7 +143,7 @@
                             <div class="form-group">
                               <div class="row">
                                 <div class="col-sm-3">
-                                  <label>Inspection Type</label>
+                                  <label>Inspection type</label>
                                 </div>
                                 <div class="col-sm-6">
                                   <select :disabled="readonlyForm" class="form-control" v-model="inspection.inspection_type_id" @change="loadSchema">
@@ -205,16 +205,17 @@
                             </div></div-->
 
                             <div class="form-group"><div class="row">
-                                    <SearchPersonOrganisation
-                                    :parentEntity="inspectedEntity"
-                                    :excludeStaff="true"
-                                    :isEditable="!readonlyForm"
-                                    classNames="form-control"
-                                    :initialSearchType="inspection.party_inspected"
-                                    @entity-selected="entitySelected"
-                                    showCreateUpdate
-                                    ref="search_person_organisation"
-                                    v-bind:key="updateSearchPersonOrganisationBindId"/>
+                                <SearchPersonOrganisation
+                                componentTitle="Party to be inspected"
+                                :parentEntity="inspectedEntity"
+                                :excludeStaff="true"
+                                :isEditable="!readonlyForm"
+                                classNames="form-control"
+                                :initialSearchType="inspection.party_inspected"
+                                @entity-selected="entitySelected"
+                                showCreateUpdate
+                                ref="search_person_organisation"
+                                v-bind:key="updateSearchPersonOrganisationBindId"/>
                                 <!--div class="col-sm-1">
                                     <input type="button" class="btn btn-primary" value="Add" @click.prevent="addOffenderClicked()" />
                                 </div-->
@@ -231,7 +232,7 @@
                                 </div>
                             </div></div-->
                             <div class="form-group"><div class="row">
-                              <label class="col-sm-4" for="inspection_inform">Inform party being inspected</label>
+                              <label class="col-sm-4" for="inspection_inform">Inform party to be inspected</label>
                               <input :disabled="readonlyForm" type="checkbox" id="inspection_inform" v-model="inspection.inform_party_being_inspected">
 
                             </div></div>
@@ -269,7 +270,15 @@
 
                         <div :id="lTab" class="tab-pane fade in">
                             <FormSection :formCollapse="false" label="Location">
-                                    <MapLocation v-if="inspection.location" v-bind:key="lTab" ref="mapLocationComponent" :readonly="readonlyForm" :marker_longitude="inspection.location.geometry.coordinates[0]" :marker_latitude="inspection.location.geometry.coordinates[1]" @location-updated="locationUpdated"/>
+                                    <MapLocation 
+                                        v-if="inspection.location" 
+                                        :key="lTab" 
+                                        ref="mapLocationComponent" 
+                                        :readonly="readonlyForm" 
+                                        :marker_longitude="inspection.location.geometry.coordinates[0]" 
+                                        :marker_latitude="inspection.location.geometry.coordinates[1]" 
+                                        @location-updated="locationUpdated"
+                                    />
                                     <div :id="idLocationFieldsAddress" v-if="inspection.location">
                                         <div class="col-sm-12 form-group"><div class="row">
                                             <label class="col-sm-4">Street</label>
@@ -319,8 +328,8 @@
                             <FormSection :formCollapse="false" label="Inspection report">
                                 <div class="form-group">
                                     <div class="row">
-                                        <div class="col-sm-3">
-                                            <label class="control-label pull-left"  for="Name">Inspection Report</label>
+                                        <div class="col-sm-6">
+                                            <label class="control-label pull-left"  for="Name">Inspection report</label>
                                         </div>
                                         <div class="col-sm-9" v-if="inspection.inspectionReportDocumentUrl">
                                             <filefield
@@ -408,6 +417,7 @@ export default {
   name: "ViewInspection",
   data: function() {
     return {
+        mapboxAccessToken: null,
       uuid: 0,
       objectHash: null,
       iTab: 'iTab'+this._uid,
@@ -671,8 +681,13 @@ export default {
             }
         },
         locationUpdated: function(latlng){
-            console.log('locationUpdated');
-            console.log(latlng);
+           // console.log('locationUpdated');
+           // console.log(latlng);
+           // // Update coordinate
+           // this.inspection.location.geometry.coordinates[1] = latlng.lat;
+           // this.inspection.location.geometry.coordinates[0] = latlng.lng;
+           // // Update Address/Details
+           // this.reverseGeocoding(latlng);
             // Update coordinate
             this.inspection.location.geometry.coordinates[1] = latlng.lat;
             this.inspection.location.geometry.coordinates[0] = latlng.lng;
@@ -683,9 +698,10 @@ export default {
           var self = this;
 
           $.ajax({
-            url: api_endpoints.geocoding_address_search + coordinates_4326.lng + "," + coordinates_4326.lat + ".json?" +
+            url:
+              api_endpoints.geocoding_address_search + coordinates_4326.lng + "," + coordinates_4326.lat + ".json?" +
               $.param({
-                    access_token: self.mapboxAccessToken,
+                access_token: self.mapboxAccessToken,
                 limit: 1,
                 types: "address"
               }),
@@ -1051,6 +1067,9 @@ export default {
     },
   },
   created: async function() {
+      let temp_token = await this.retrieveMapboxAccessToken();
+      this.mapboxAccessToken = temp_token.access_token;
+
       if (this.$route.params.inspection_id) {
           await this.loadInspection({ inspection_id: this.$route.params.inspection_id });
       }

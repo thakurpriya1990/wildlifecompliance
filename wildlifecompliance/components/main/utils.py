@@ -6,11 +6,17 @@ from django.conf import settings
 from django.core.exceptions import ValidationError
 from django.core.urlresolvers import reverse
 from django.http import HttpResponseRedirect
-from ledger.checkout.utils import create_basket_session, create_checkout_session, place_order_submission
+from ledger.checkout.utils import (
+    create_basket_session,
+    create_checkout_session,
+    place_order_submission
+)
+from django.db import transaction
 from ledger.payments.models import Invoice
 from wildlifecompliance.exceptions import BindApplicationException
-from django.db.models import Q
 from django.core.cache import cache
+
+logger = logging.getLogger(__name__)
 
 
 def retrieve_department_users():
@@ -98,6 +104,88 @@ def internal_create_application_invoice(application, reference):
     return app_inv
 
 
+@transaction.atomic
+def create_other_application_invoice(application, request=None):
+    '''
+    Create and return an Invoice for an application.
+    '''
+    from wildlifecompliance.components.applications.models import (
+        ApplicationInvoice,
+        ActivityInvoice,
+        ActivityInvoiceLine,
+    )
+
+    try:
+        other_pay_method = get_session_other_pay_method(request.session)
+        delete_session_other_pay_method(request.session)
+
+        order = create_application_invoice(
+            application, payment_method='other')
+        invoice = Invoice.objects.get(order_number=order.number)
+
+        app_inv, c = ApplicationInvoice.objects.get_or_create(
+            application=application,
+            invoice_reference=invoice.reference,
+            other_payment_method=other_pay_method,
+        )
+
+        # record invoice payment for licence activities.
+        for activity in application.activities:
+
+            act_inv = ActivityInvoice.objects.get_or_create(
+                activity=activity,
+                invoice_reference=invoice.reference
+            )
+
+            ActivityInvoiceLine.objects.get_or_create(
+                invoice=act_inv[0],
+                licence_activity=activity.licence_activity,
+                amount=activity.licence_fee
+            )
+
+            ActivityInvoiceLine.objects.get_or_create(
+                invoice=act_inv[0],
+                licence_activity=activity.licence_activity,
+                amount=activity.application_fee
+            )
+
+        return invoice
+
+    except Exception as e:
+        logger.error(
+            'Fail to create OTHER invoice for {0} : {1}'.format(application, e)
+        )
+
+
+@transaction.atomic
+def create_application_invoice(application, payment_method='cc'):
+    '''
+    This will create and invoice and order from a basket bypassing the session
+    and payment bpoint code constraints.
+    '''
+    from wildlifecompliance.components.applications.services import (
+        ApplicationService,
+    )
+    from ledger.checkout.utils import createCustomBasket
+    from ledger.payments.invoice.utils import CreateInvoiceBasket
+
+    products = ApplicationService.get_product_lines(application)
+    user = application.submitter
+    invoice_text = 'Payment Invoice'
+
+    basket = createCustomBasket(
+        products, user, settings.WC_PAYMENT_SYSTEM_ID
+    )
+    order = CreateInvoiceBasket(
+        payment_method=payment_method,
+        system=settings.WC_PAYMENT_SYSTEM_PREFIX
+
+    ).create_invoice_and_order(
+        basket, 0, None, None, user=user, invoice_text=invoice_text)
+
+    return order
+
+
 def set_session_application(session, application):
     print('setting session application')
     session['wc_application'] = application.id
@@ -122,6 +210,42 @@ def get_session_application(session):
 def delete_session_application(session):
     if 'wc_application' in session:
         del session['wc_application']
+        session.modified = True
+
+
+def set_session_other_pay_method(session, other_pay_method):
+    '''
+    Set the Other payment method type on the session for a ledger payment.
+    '''
+    OTHER_PAY_METHOD = 'wc_other_pay_method'
+
+    session[OTHER_PAY_METHOD] = other_pay_method
+    session.modified = True
+
+
+def get_session_other_pay_method(session):
+    '''
+    Set the Other payment method type from the session for a ledger payment.
+    '''
+    OTHER_PAY_METHOD = 'wc_other_pay_method'
+
+    if OTHER_PAY_METHOD in session:
+        other_pay_method = session[OTHER_PAY_METHOD]
+
+    else:
+        raise Exception('Payment Method does not exist on Session')
+
+    return other_pay_method
+
+
+def delete_session_other_pay_method(session):
+    '''
+    Cleanup the Other payment method type from the session.
+    '''
+    OTHER_PAY_METHOD = 'wc_other_pay_method'
+
+    if OTHER_PAY_METHOD in session:
+        del session[OTHER_PAY_METHOD]
         session.modified = True
 
 
@@ -375,3 +499,38 @@ def search_reference(reference_number):
         return url_string
     else:
         raise ValidationError('Record with provided reference number does not exist')
+
+
+def add_url_internal_request(request, url):
+    '''
+    Add '-internal' for url link.
+    '''
+    from django.conf import settings
+    if '-internal' not in url:
+        url = "{0}://{1}{2}.{3}{4}".format(request.scheme,
+                                           settings.SITE_PREFIX,
+                                           '-internal',
+                                           settings.SITE_DOMAIN,
+                                           url.split(request.get_host())[1])
+
+    return url
+
+
+def remove_url_internal_request(request, url):
+    '''
+    Remove '-internal' from url link.
+    '''
+    from django.conf import settings
+    if '-internal' in url:
+        url = "{0}://{1}.{2}{3}".format(request.scheme,
+                                        settings.SITE_PREFIX,
+                                        settings.SITE_DOMAIN,
+                                        url.split(request.get_host())[1])
+
+    return url
+
+
+class FakeRequest():
+    def __init__(self, data):
+        self.data = data
+        self.user = None

@@ -1,9 +1,9 @@
 {%  extends 'wildlifecompliance/emails/base_email.txt' %}
 
 {%  block content %}
-        This Case has been forwarded to you:
+        This Inspection has been sent to you for endorsement:
 
-        Case : <a href="{{url}}">{{ legal_case.number }}</a> 
+        Inspection : <a href="{{url}}">{{ inspection.number }}</a> 
 
         Message:  {{ workflow_entry_details }}
 

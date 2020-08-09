@@ -61,7 +61,8 @@ from wildlifecompliance.components.legal_case.models import (
     CourtProceedingsJournalEntry,
     BriefOfEvidence,
     ProsecutionBrief,
-    CourtProceedings, CourtDate)
+    ProsecutionBriefDocument,
+    CourtProceedings, CourtDate, Court, CourtOutcomeType)
 from wildlifecompliance.components.legal_case.generate_pdf import create_document_pdf_bytes
 
 from wildlifecompliance.components.call_email.models import (
@@ -93,7 +94,10 @@ from wildlifecompliance.components.legal_case.serializers import (
     CourtProceedingsJournalSerializer,
     BriefOfEvidenceSerializer,
     ProsecutionBriefSerializer,
-    SaveCourtDateEntrySerializer)
+    SaveCourtDateEntrySerializer, 
+    CourtSerializer, 
+    LegalCaseNoRunningSheetSerializer,
+    CourtOutcomeTypeSerializer)
 from wildlifecompliance.components.users.models import (
     CompliancePermissionGroup,    
 )
@@ -106,6 +110,7 @@ from rest_framework_datatables.pagination import DatatablesPageNumberPagination
 from rest_framework_datatables.filters import DatatablesFilterBackend
 from rest_framework_datatables.renderers import DatatablesRenderer
 
+from wildlifecompliance.components.main.utils import FakeRequest
 from wildlifecompliance.components.legal_case.email import (
     send_mail)
 from wildlifecompliance.components.artifact.utils import (
@@ -121,8 +126,14 @@ from wildlifecompliance.components.artifact.utils import (
         update_boe_document_artifacts_ticked,
         update_pb_physical_artifacts,
         update_pb_document_artifacts_ticked,
-        copy_brief_of_evidence_to_prosecution_brief,
+        copy_brief_of_evidence_artifacts_to_prosecution_brief,
         )
+
+
+#class FakeRequest():
+ #   def __init__(self, data):
+  #      self.data = data
+
 
 class LegalCaseFilterBackend(DatatablesFilterBackend):
 
@@ -261,6 +272,38 @@ class LegalCaseViewSet(viewsets.ModelViewSet):
         return Response(serialized_instance.data)
 
     @list_route(methods=['GET', ])
+    def court_outcome_type_list(self, request):
+        try:
+            qs = CourtOutcomeType.objects.all()
+            serializer = CourtOutcomeTypeSerializer(qs, many=True, context={'request': request})
+            return Response(serializer.data)
+        except serializers.ValidationError:
+            print(traceback.print_exc())
+            raise
+        except ValidationError as e:
+            print(traceback.print_exc())
+            raise serializers.ValidationError(repr(e.error_dict))
+        except Exception as e:
+            print(traceback.print_exc())
+            raise serializers.ValidationError(str(e))
+
+    @list_route(methods=['GET', ])
+    def court_list(self, request):
+        try:
+            qs = Court.objects.all()
+            serializer = CourtSerializer(qs, many=True, context={'request': request})
+            return Response(serializer.data)
+        except serializers.ValidationError:
+            print(traceback.print_exc())
+            raise
+        except ValidationError as e:
+            print(traceback.print_exc())
+            raise serializers.ValidationError(repr(e.error_dict))
+        except Exception as e:
+            print(traceback.print_exc())
+            raise serializers.ValidationError(str(e))
+
+    @list_route(methods=['GET', ])
     def datatable_list(self, request, *args, **kwargs):
         try:
             qs = self.get_queryset()
@@ -284,7 +327,33 @@ class LegalCaseViewSet(viewsets.ModelViewSet):
             res_obj.append({'id': choice[0], 'display': choice[1]});
         res_json = json.dumps(res_obj)
         return HttpResponse(res_json, content_type='application/json')
-    
+
+    @detail_route(methods=['GET', ])
+    def no_running_sheet(self, request, *args, **kwargs):
+        try:
+            instance = self.get_object()
+            #qs = instance.action_logs.all()
+            #serializer = LegalCaseUserActionSerializer(qs, many=True)
+            return_serializer = LegalCaseNoRunningSheetSerializer(
+                    instance, 
+                    context={'request': request}
+                    )
+            return Response(
+                    return_serializer.data,
+                    #status=status.HTTP_201_CREATED,
+                    #headers=headers
+                    )
+            #return Response(serializer.data)
+        except serializers.ValidationError:
+            print(traceback.print_exc())
+            raise
+        except ValidationError as e:
+            print(traceback.print_exc())
+            raise serializers.ValidationError(repr(e.error_dict))
+        except Exception as e:
+            print(traceback.print_exc())
+            raise serializers.ValidationError(str(e))
+
     @detail_route(methods=['GET', ])
     def action_log(self, request, *args, **kwargs):
         try:
@@ -392,6 +461,7 @@ class LegalCaseViewSet(viewsets.ModelViewSet):
                 # Court Proceedings
                 court_proceedings = request.data.get('court_proceedings', {})
                 if court_proceedings:
+                    court_proceedings['court_outcome_type_id'] = court_proceedings['court_outcome_type']['id'] if court_proceedings['court_outcome_type'] else None
                     serializer = CourtProceedingsJournalSerializer(instance=instance.court_proceedings, data=court_proceedings)
                     if serializer.is_valid(raise_exception=True):
                         serializer.save()
@@ -415,12 +485,15 @@ class LegalCaseViewSet(viewsets.ModelViewSet):
                             comments = entry_copy.get('comments', '')
                             ascii_comments = comments.encode('ascii', 'xmlcharrefreplace')
                             entry_copy.update({'comments': ascii_comments})
+                            entry_copy['court_id'] = entry_copy['court']['id'] if entry_copy['court'] else None
                             if entry_copy.get('id'):
+                                # Update existing court_date
                                 court_date = CourtDate.objects.get(id=entry_copy.get('id'))
                                 serializer = SaveCourtDateEntrySerializer(instance=court_date, data=entry_copy)
                                 if serializer.is_valid(raise_exception=True):
                                     serializer.save()
                             else:
+                                # Create new court_date
                                 entry_copy['court_proceedings_id'] = instance.court_proceedings.id
                                 serializer = SaveCourtDateEntrySerializer(data=entry_copy)
                                 if serializer.is_valid(raise_exception=True):
@@ -447,6 +520,7 @@ class LegalCaseViewSet(viewsets.ModelViewSet):
                             instance.number), request)
                     headers = self.get_success_headers(serializer.data)
                     full_http_response = request.data.get('full_http_response')
+                    #no_running_sheet = request.data.get('no_running_sheet')
                     if full_http_response:
                         return_serializer = self.variable_serializer(request, instance)
                         return Response(
@@ -454,6 +528,16 @@ class LegalCaseViewSet(viewsets.ModelViewSet):
                                 status=status.HTTP_201_CREATED,
                                 headers=headers
                                 )
+                    #elif no_running_sheet:
+                     #   return_serializer = LegalCaseNoRunningSheetSerializer(
+                      #          instance, 
+                       #         context={'request': request}
+                        #        )
+                        #return Response(
+                         #       return_serializer.data,
+                          #      status=status.HTTP_201_CREATED,
+                           #     headers=headers
+                            #    )
                     else:
                         return Response(
                                 status=status.HTTP_201_CREATED,
@@ -646,10 +730,8 @@ class LegalCaseViewSet(viewsets.ModelViewSet):
     def process_brief_of_evidence_document(self, request, *args, **kwargs):
         try:
             instance = self.get_object()
-            brief_of_evidence_instance = instance.brief_of_evidence
-            if brief_of_evidence_instance:
-                returned_data = process_generic_document(request, brief_of_evidence_instance)
-            if returned_data:
+            if hasattr(instance, 'brief_of_evidence'):
+                returned_data = process_generic_document(request, instance.brief_of_evidence)
                 return Response(returned_data)
             else:
                 return Response()
@@ -677,6 +759,11 @@ class LegalCaseViewSet(viewsets.ModelViewSet):
                 document_label = "Brief of Evidence"
             elif request.data.get("document_type") == 'prosecution_brief':
                 document_label = "Prosecution Brief"
+            elif request.data.get("document_type") == 'prosecution_notice':
+                document_label = "Prosecution Notice"
+            elif request.data.get("document_type") == 'court_hearing_notice':
+                document_label = "Court Hearing Notice"
+
             section_list = ''
             if request.data.get('include_statement_of_facts'):
                 section_list += "Statement of Facts"
@@ -700,7 +787,9 @@ class LegalCaseViewSet(viewsets.ModelViewSet):
                 if section_list:
                     section_list += ", "
                 section_list += "List of Photographic, Video and Sound Exhibits"
+
             http_response = create_document_pdf_bytes(instance, request.data)
+
             if http_response:
                 instance.log_user_action(
                         LegalCaseUserAction.ACTION_GENERATE_DOCUMENT.format(
@@ -726,13 +815,75 @@ class LegalCaseViewSet(viewsets.ModelViewSet):
 
     @detail_route(methods=['POST'])
     @renderer_classes((JSONRenderer,))
+    def process_court_hearing_notice_document(self, request, *args, **kwargs):
+        try:
+            instance = self.get_object()
+            # process docs
+            returned_data = process_generic_document(request, instance, 'court_hearing_notice')
+            # delete Sanction Outcome if user cancels modal
+            action = request.data.get('action')
+            if action == 'cancel' and returned_data:
+                instance.status = 'discarded'
+                instance.save()
+
+            # return response
+            if returned_data:
+                return Response(returned_data)
+            else:
+                return Response()
+
+        except serializers.ValidationError:
+            print(traceback.print_exc())
+            raise
+        except ValidationError as e:
+            if hasattr(e, 'error_dict'):
+                raise serializers.ValidationError(repr(e.error_dict))
+            else:
+                raise serializers.ValidationError(repr(e[0].encode('utf-8')))
+        except Exception as e:
+            print(traceback.print_exc())
+            raise serializers.ValidationError(str(e))
+
+
+    @detail_route(methods=['POST'])
+    @renderer_classes((JSONRenderer,))
+    def process_prosecution_notice_document(self, request, *args, **kwargs):
+        try:
+            instance = self.get_object()
+            # process docs
+            returned_data = process_generic_document(request, instance, 'prosecution_notice')
+            # delete Sanction Outcome if user cancels modal
+            action = request.data.get('action')
+            if action == 'cancel' and returned_data:
+                instance.status = 'discarded'
+                instance.save()
+
+            # return response
+            if returned_data:
+                return Response(returned_data)
+            else:
+                return Response()
+
+        except serializers.ValidationError:
+            print(traceback.print_exc())
+            raise
+        except ValidationError as e:
+            if hasattr(e, 'error_dict'):
+                raise serializers.ValidationError(repr(e.error_dict))
+            else:
+                raise serializers.ValidationError(repr(e[0].encode('utf-8')))
+        except Exception as e:
+            print(traceback.print_exc())
+            raise serializers.ValidationError(str(e))
+
+
+    @detail_route(methods=['POST'])
+    @renderer_classes((JSONRenderer,))
     def process_prosecution_brief_document(self, request, *args, **kwargs):
         try:
             instance = self.get_object()
-            prosecution_brief_instance = instance.prosecution_brief
-            if prosecution_brief_instance:
-                returned_data = process_generic_document(request, prosecution_brief_instance)
-            if returned_data:
+            if hasattr(instance, 'prosecution_brief'):
+                returned_data = process_generic_document(request, instance.prosecution_brief)
                 return Response(returned_data)
             else:
                 return Response()
@@ -863,7 +1014,9 @@ class LegalCaseViewSet(viewsets.ModelViewSet):
             instance.call_email.log_user_action(
                     CallEmailUserAction.ACTION_ALLOCATE_FOR_LEGAL_CASE.format(
                     instance.call_email.number), request)
-            instance.call_email.close(request)
+            # instance.call_email.close(request)
+            instance.call_email.status = 'open_case'
+            instance.call_email.save()
 
     @detail_route(methods=['POST'])
     @renderer_classes((JSONRenderer,))
@@ -953,7 +1106,7 @@ class LegalCaseViewSet(viewsets.ModelViewSet):
 
     def process_brief_of_evidence(self, instance, request):
         boe_instance, created = BriefOfEvidence.objects.get_or_create(legal_case=instance)
-        instance.set_status_brief_of_evidence(request)
+        #instance.set_status_brief_of_evidence(request)
         build_all_boe_other_statements_hierarchy(instance)
         build_all_boe_roi_hierarchy(instance)
         generate_boe_document_artifacts(instance)
@@ -961,8 +1114,53 @@ class LegalCaseViewSet(viewsets.ModelViewSet):
         instance.set_status_brief_of_evidence(request)
 
     def process_prosecution_brief(self, instance, request):
+        boe_instance, created = BriefOfEvidence.objects.get_or_create(legal_case=instance)
         pb_instance, created = ProsecutionBrief.objects.get_or_create(legal_case=instance)
-        copy_brief_of_evidence_to_prosecution_brief(instance)
+        # copy model fields
+        pb_instance.statement_of_facts = boe_instance.statement_of_facts
+        pb_instance.victim_impact_statement_taken = boe_instance.victim_impact_statement_taken
+        pb_instance.statements_pending = boe_instance.statements_pending
+        pb_instance.vulnerable_hostile_witnesses = boe_instance.vulnerable_hostile_witnesses
+        pb_instance.witness_refusing_statement = boe_instance.witness_refusing_statement
+        pb_instance.problems_needs_prosecution_witnesses = boe_instance.problems_needs_prosecution_witnesses
+        pb_instance.accused_bad_character = boe_instance.accused_bad_character
+        pb_instance.further_persons_interviews_pending = boe_instance.further_persons_interviews_pending
+        pb_instance.other_interviews = boe_instance.other_interviews
+        pb_instance.relevant_persons_pending_charges = boe_instance.relevant_persons_pending_charges
+        pb_instance.other_persons_receiving_sanction_outcome = boe_instance.other_persons_receiving_sanction_outcome
+        pb_instance.local_public_interest = boe_instance.local_public_interest
+        pb_instance.applications_orders_requests = boe_instance.applications_orders_requests
+        pb_instance.applications_orders_required = boe_instance.applications_orders_required
+        pb_instance.other_legal_matters = boe_instance.other_legal_matters
+
+        pb_instance.victim_impact_statement_taken_details = boe_instance.victim_impact_statement_taken_details
+        pb_instance.statements_pending_details = boe_instance.statements_pending_details
+        pb_instance.vulnerable_hostile_witnesses_details = boe_instance.vulnerable_hostile_witnesses_details
+        pb_instance.witness_refusing_statement_details = boe_instance.witness_refusing_statement_details
+        pb_instance.problems_needs_prosecution_witnesses_details = boe_instance.problems_needs_prosecution_witnesses_details
+        pb_instance.accused_bad_character_details = boe_instance.accused_bad_character_details
+        pb_instance.further_persons_interviews_pending_details = boe_instance.further_persons_interviews_pending_details
+        pb_instance.other_interviews_details = boe_instance.other_interviews_details
+        pb_instance.relevant_persons_pending_charges_details = boe_instance.relevant_persons_pending_charges_details
+        pb_instance.other_persons_receiving_sanction_outcome_details = boe_instance.other_persons_receiving_sanction_outcome_details
+        pb_instance.local_public_interest_details = boe_instance.local_public_interest_details
+        pb_instance.applications_orders_requests_details = boe_instance.applications_orders_requests_details
+        pb_instance.applications_orders_required_details = boe_instance.applications_orders_required_details
+        pb_instance.other_legal_matters_details = boe_instance.other_legal_matters_details
+        pb_instance.save()
+
+        # copy additional documents
+        for doc in boe_instance.documents.all():
+            req = FakeRequest(data={
+                    "_file": doc._file,
+                    "filename": doc.name,
+                    "action": "save",
+                    })
+            self.process_prosecution_brief_document(req)
+
+        # copy artifact sections
+        copy_brief_of_evidence_artifacts_to_prosecution_brief(instance)
+        # change status
         instance.set_status_generate_prosecution_brief(request)
 
     @detail_route(methods=['POST'])

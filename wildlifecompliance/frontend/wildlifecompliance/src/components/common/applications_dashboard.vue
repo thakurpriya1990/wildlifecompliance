@@ -184,13 +184,17 @@ export default {
                         const finalised = ['approved', 'declined', 'awaiting_payment'].includes(full.processing_status.id);
                         links += (full.can_be_processed && full.user_in_officers) ?
                             `<a href='/internal/application/${full.id}'>Process</a><br/>` :
-                            `<a href='/${finalised ? 'internal' : 'external'}/application/${full.id}'>View</a><br/>`;
+                            `<a href='/${!vm.is_external ? 'internal' : 'external'}/application/${full.id}'>View</a><br/>`;
                     }
-                    if (!vm.is_external && full.payment_status=='paid'){
+                    if (!vm.is_external && ['paid','partially_paid'].includes(full.payment_status)){
                         links +=  `<a href='${full.all_payments_url}' target='_blank' >View Payment</a><br/>`;
                     }
-                    if (!vm.is_external && full.payment_status=='over_paid'){
+                    if (!vm.is_external && full.payment_status=='under_paid'){
+                        links = ''
                         links +=  `<a href='${full.all_payments_url}' target='_blank' >Record Payment</a><br/>`;
+                    }
+                    if (!vm.is_external && full.payment_status=='over_paid'){
+                        links +=  `<a href='${full.all_payments_url}' target='_blank' >Refund Payment</a><br/>`;
                     }
                     if (vm.is_external){
                         if (full.can_current_user_edit) {
@@ -291,12 +295,12 @@ export default {
                         else if (full.can_user_view) {
                             links +=  `<a href='/external/application/${full.id}'>View</a><br/>`;
                         }
-                        if (full.payment_status == 'unpaid'){
+                        if (full.can_pay_application){
                             links +=  `<a href='#${full.id}' data-pay-application-fee='${full.id}'>Pay Application Fee</a><br/>`;
                         }
-                        if (['awaiting_payment'].includes(full.customer_status.id) && ['paid','payment_not_required','partially_paid'].includes(full.payment_status)){
+                        if (full.can_pay_licence){
                             let activity = full.activities.find(activity => activity.can_pay_licence_fee=true)
-                            links +=  `<a href='#${full.id}' data-pay-application-licence-fee='${full.id}' pay-licence-fee-for='${activity.id}'>Pay Licence Fee</a><br/>`;
+                            links +=  `<a href='#${full.id}' data-pay-application-licence-fee='${full.id}' pay-licence-fee-for='${activity.id}'>Pay Additional Fee</a><br/>`;
                         }                        
                     }
                     return links;
@@ -617,7 +621,7 @@ export default {
                                 <td>${activity['activity_name_str']}</td>
                                 <td>${activity['activity_purpose_names'].
                                     replace(/(?:\r\n|\r|\n|,)/g, '<br>')}</td>
-                                ${vm.is_external ? '' : activity['assigned_officer'] == null ?  `<td>&nbsp;</td>`: `<td>${activity['officer_name']}</td>`}    
+                                ${vm.is_external ? '' : activity['officer_name'] == null ?  `<td>&nbsp;</td>`: `<td>${activity['officer_name']}</td>`}    
                                 ${vm.is_external ? '' : `<td>${activity['processing_status']['name']}</td>`}
                                 ${vm.is_external ? '' : `<td>${activity['can_pay_licence_fee'] ?
                                     `<a pay-licence-fee-for='${activity['id']}' application-id='${row.data()['id']}'>Pay licence fee</a>` : ''}

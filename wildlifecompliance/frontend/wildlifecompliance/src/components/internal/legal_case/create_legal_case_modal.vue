@@ -60,7 +60,7 @@
                         <div class="form-group">
                           <div class="row">
                             <div class="col-sm-3">
-                              <label>Case Priority</label>
+                              <label>Case priority</label>
                             </div>
                             <div class="col-sm-9">
                               <select class="form-control" v-model="legal_case_priority_id">

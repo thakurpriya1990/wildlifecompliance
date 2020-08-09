@@ -54,3 +54,12 @@ class TemporaryDocumentCollectionSerializer(serializers.ModelSerializer):
     class Meta:
         model = TemporaryDocumentCollection
         fields = ('id',)
+
+
+class BookingSettlementReportSerializer(serializers.Serializer):
+    date = serializers.DateTimeField(input_formats=['%d/%m/%Y'])
+
+
+class OracleSerializer(serializers.Serializer):
+    date = serializers.DateField(input_formats=['%d/%m/%Y','%Y-%m-%d'])
+    override = serializers.BooleanField(default=False)

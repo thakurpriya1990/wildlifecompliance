@@ -2,7 +2,7 @@
     <div class="container">
       <div class="row">
         <div class="col-md-3">
-          <!--h3>Case: {{ legal_case.number }}</h3-->
+          <h3>Object: {{ artifactComponentNumber }}</h3>
         </div>
       </div>
           <div class="col-md-3">
@@ -19,28 +19,6 @@
                                 {{ artifactStatusDisplay }}<br/>
                             </div>
                         </div>
-
-                        <!--div v-if="legal_case.allocated_group" class="form-group">
-                          <div class="row">
-                            <div class="col-sm-12 top-buffer-s">
-                              <strong>Currently assigned to</strong><br/>
-                            </div>
-                          </div>
-                          <div class="row">
-                            <div class="col-sm-12">
-                              <select :disabled="!legal_case.user_in_group" class="form-control" v-model="legal_case.assigned_to_id" @change="updateAssignedToId()">
-                                <option  v-for="option in legal_case.allocated_group" :value="option.id" v-bind:key="option.id">
-                                  {{ option.full_name }} 
-                                </option>
-                              </select>
-                            </div>
-                          </div>
-                        </div>
-                        <div v-if="legal_case.user_in_group">
-                            <a @click="updateAssignedToId('current_user')" class="btn pull-right">
-                                Assign to me
-                            </a>
-                        </div-->
                     </div>
                 </div>
             </div>
@@ -48,53 +26,23 @@
           </div>
           <div class="col-md-9" id="main-column">
             <div class="row">
+                <div class="container-fluid">
 
-                <div v-if="showDocumentArtifactComponent" class="row">
-                    <DocumentArtifact 
-                    ref="document_artifact"
-                    v-bind:key="updateDocumentArtifactBindId"
-                    />
-                </div>
-                <div v-if="showPhysicalArtifactComponent" class="row">
-                    <PhysicalArtifact 
-                    ref="physical_artifact"
-                    v-bind:key="updatePhysicalArtifactBindId"
-                    />
-                </div>
-                <!--div class="container-fluid">
-                    <ul class="nav nav-pills aho2">
-                        <li class="nav-item active"><a data-toggle="tab" :href="'#'+oTab">Object</a></li>
-                        <li class="nav-item"><a data-toggle="tab" :href="'#'+rTab">Related Items</a></li>
-                    </ul>
-                    <div class="tab-content">
-                        <div :id="oTab" class="tab-pane fade in active">
-                            <div v-if="showDocumentArtifactComponent" class="row">
-                                <DocumentArtifact 
-                                ref="document_artifact"
-                                v-bind:key="updateDocumentArtifactBindId"
-                                />
-                            </div>
-                            <div v-if="showPhysicalArtifactComponent" class="row">
-                                <PhysicalArtifact 
-                                ref="physical_artifact"
-                                v-bind:key="updatePhysicalArtifactBindId"
-                                />
-                            </div>
-                        </div>
-
-                        <div :id="rTab" class="tab-pane fade in">
-                            <FormSection :formCollapse="false" label="Related Items">
-                                <div class="col-sm-12 form-group"><div class="row">
-                                    <div class="col-sm-12" v-if="relatedItemsVisibility">
-                                        <RelatedItems 
-                                        v-bind:key="relatedItemsBindId" 
-                                        :readonlyForm="!canUserAction"/>
-                                    </div>
-                                </div></div>
-                            </FormSection>
-                        </div>
+                    <div v-if="showDocumentArtifactComponent" class="row">
+                        <DocumentArtifact 
+                        ref="document_artifact"
+                        :readonlyForm="!canUserAction"
+                        v-bind:key="updateDocumentArtifactBindId"
+                        />
                     </div>
-                </div-->
+                    <div v-if="showPhysicalArtifactComponent" class="row">
+                        <PhysicalArtifact 
+                        ref="physical_artifact"
+                        :readonlyForm="!canUserAction"
+                        v-bind:key="updatePhysicalArtifactBindId"
+                        />
+                    </div>
+                </div>
             </div>
           </div>
 
@@ -221,6 +169,14 @@ export default {
         }
         return component;
     },
+    artifactComponentNumber: function() {
+        let artifactNumber = null;
+        if (this.artifactComponent) {
+            artifactNumber = this.artifactComponent.number;
+        }
+        return artifactNumber;
+    },
+
 
     ...mapGetters({
         current_user: 'current_user'
@@ -240,25 +196,17 @@ export default {
             return this.physical_artifact.status ? this.physical_artifact.status.name : '';
         }
     },
+      /*
     readonlyForm: function() {
-        /*
-        let readonly = true
-        if (this.legal_case && this.legal_case.id) {
-            readonly = !this.legal_case.can_user_action;
-        }
-        return readonly
-        */
         return false;
     },
+    */
     canUserAction: function() {
-        /*
-        let return_val = false
-        if (this.legal_case && this.legal_case.id) {
-            return_val = this.legal_case.can_user_action;
+        let return_val = true;
+        if (this.artifactComponent && this.artifactComponent.status && this.artifactComponent.status.id === 'closed') {
+            return_val = false;
         }
         return return_val
-        */
-        return true;
     },
     updateDocumentArtifactBindId: function() {
         return "PersonOrArtifact_DocumentArtifact_" + this.uuid.toString();
