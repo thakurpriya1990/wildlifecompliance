@@ -507,13 +507,16 @@ class ApplicationFeePolicyForAmendment(ApplicationFeePolicy):
         '''
         self.is_refreshing = False
 
-        application_fees = 0
-        licence = self.get_licence_for()
-        for activity in licence.current_activities:
-            purposes_ids = self.get_form_purpose_ids_for(activity)
-            for p in activity.proposed_purposes.all():
-                if p.purpose_id in purposes_ids and p.is_payable:
-                    application_fees += p.purpose.amendment_application_fee
+        if self.application.application_fee == 0:
+            application_fees = 0
+            licence = self.get_licence_for()
+            for activity in licence.current_activities:
+                purposes_ids = self.get_form_purpose_ids_for(activity)
+                for p in activity.proposed_purposes.all():
+                    if p.purpose_id in purposes_ids and p.is_payable:
+                        application_fees += p.purpose.amendment_application_fee
+        else:
+            application_fees = self.application.application_fee
 
         self.dynamic_attributes = {
             'fees': {
@@ -584,11 +587,11 @@ class ApplicationFeePolicyForAmendment(ApplicationFeePolicy):
         refreshed and no attributes are passed.
         """
         self.is_refreshing = True
-        REQ_NOPAY = ApplicationInvoice.PAYMENT_STATUS_NOT_REQUIRED
+        # REQ_NOPAY = ApplicationInvoice.PAYMENT_STATUS_NOT_REQUIRED
         REQ_AMEND = Application.CUSTOMER_STATUS_AMENDMENT_REQUIRED
 
         is_saved = True \
-            if not self.application.payment_status == REQ_NOPAY else False
+            if not self.application.application_fee == 0 else False
 
         if self.application.customer_status == REQ_AMEND or is_saved:
             # self.set_dynamic_attributes_from_purpose_fees()
@@ -619,7 +622,8 @@ class ApplicationFeePolicyForAmendment(ApplicationFeePolicy):
 
             if is_selected:
                 # adjustments and fees excluding previous adjustments paid
-                application_fees += save_app - prev_adj
+                # application_fees += save_app - prev_adj
+                application_fees += save_app
                 self.dynamic_attributes[
                     'activity_attributes'][a_activity] = {
                         'fees': application_fees
