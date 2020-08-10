@@ -194,7 +194,7 @@ def send_assessment_completed_email(select_group, assessment, request):
     Notification for completed application assessments.
     """
     application = assessment.application
-    text = assessment.text
+    text = assessment.final_comment
     email = ApplicationAssessmentCompletedEmail()
     url = request.build_absolute_uri(
         reverse(
@@ -295,7 +295,7 @@ def send_activity_invoice_issue_notification(
 
     context = {
         'application': application,
-        'url': url
+        'url': remove_url_internal_request(request, url),
     }
     recipients = [application.submitter.email]
     msg = email.send(recipients, context=context)

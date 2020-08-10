@@ -1478,9 +1478,14 @@ class ApplicationViewSet(viewsets.ModelViewSet):
                 active_current_applications = active_applications.exclude(
                     selected_activities__activity_status=ApplicationSelectedActivity.ACTIVITY_STATUS_SUSPENDED
                 )
+                # latest_active_licence = WildlifeLicence.objects.filter(
+                #     licence_category_id=licence_category.id,
+                #     current_application__in=active_applications.values_list('id', flat=True)
+                # ).order_by('-id').first()
+
                 latest_active_licence = WildlifeLicence.objects.filter(
                     licence_category_id=licence_category.id,
-                    current_application__in=active_applications.values_list('id', flat=True)
+                    id=active_applications.values_list('licence_id', flat=True)
                 ).order_by('-id').first()
 
                 # Initial validation
@@ -1524,8 +1529,12 @@ class ApplicationViewSet(viewsets.ModelViewSet):
                 ]:
                     target_application = serializer.instance
                     for activity in licence_activities:
-                        activity_purpose_ids = \
-                            activity.purposes.values_list('id', flat=True)
+                        activity_purpose_ids = [
+                            p.purpose.id
+                            for p in activity.proposed_purposes.all()
+                            if p.is_issued
+                        ]
+
                         purposes_to_copy = set(
                             cleaned_purpose_ids) & set(activity_purpose_ids)
 

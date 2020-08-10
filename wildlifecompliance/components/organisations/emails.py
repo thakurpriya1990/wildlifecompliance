@@ -7,6 +7,11 @@ from django.conf import settings
 
 from wildlifecompliance.components.emails.emails import TemplateEmailBase
 
+from wildlifecompliance.components.main.utils import (
+    add_url_internal_request,
+    remove_url_internal_request,
+)
+
 logger = logging.getLogger(__name__)
 
 SYSTEM_NAME = 'Wildlife Licensing Automated Message'
@@ -129,7 +134,7 @@ def send_org_id_update_request_notification(application, request):
     )
     context = {
         'application': application,
-        'url': url
+        'url': remove_url_internal_request(request, url),
     }
 
     organisation_admin_emails = application.org_applicant.all_admin_emails
@@ -282,16 +287,10 @@ def send_organisation_request_email_notification(
 
     url = request.build_absolute_uri(
         '/internal/organisations/access/{}'.format(org_request.id))
-    if "-internal" not in url:
-        url = "{0}://{1}{2}.{3}{4}".format(request.scheme,
-                                           settings.SITE_PREFIX,
-                                           '-internal',
-                                           settings.SITE_DOMAIN,
-                                           url.split(request.get_host())[1])
 
     context = {
         'request': request.data,
-        'url': url,
+        'url': add_url_internal_request(request, url),
     }
 
     msg = email.send(contact, context=context)
@@ -308,7 +307,7 @@ def send_organisation_request_link_email_notification(
 
     context = {
         'request': org_request,
-        'url': url,
+        'url': remove_url_internal_request(request, url),
     }
 
     msg = email.send(contact, context=context)
