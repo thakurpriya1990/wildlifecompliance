@@ -179,15 +179,21 @@ class CustomGroupCollector(PermissionCollector):
         default_groups = self.default_objects()
         actual = {}
 
-        for group_name, config in default_groups.items():
+        try:
 
-            if config['per_activity']:
-                for activity in LicenceActivity.objects.all():
-                    activity_group_name = "{}: {}".format(group_name, activity.name)
-                    group = self.get_or_create_group(activity_group_name, config, activity)
-                    group.licence_activities.add(activity)
-            else:
-                group = self.get_or_create_group(group_name, config)
+            for group_name, config in default_groups.items():
+
+                if config['per_activity']:
+                    for activity in LicenceActivity.objects.all():
+                        activity_group_name = "{}: {}".format(group_name, activity.name)
+                        group = self.get_or_create_group(activity_group_name, config, activity)
+                        group.licence_activities.add(activity)
+                else:
+                    group = self.get_or_create_group(group_name, config)
+
+        except BaseException as e:
+            logger.error("Creating Group mapping for {0}: {1}".format(
+                group_name, e))
 
         return actual
 
@@ -203,49 +209,54 @@ class CompliancePermissionCollector(PermissionCollector):
         default_permissions = self.default_objects()
         actual = {}
 
-        for permission_name, config in default_permissions.items():
+        try:
+            for permission_name, config in default_permissions.items():
 
-            try:
-                content_type = ContentType.objects.get(
-                    model=config['model'],
-                    app_label=config['app_label'],
+                try:
+                    content_type = ContentType.objects.get(
+                        model=config['model'],
+                        app_label=config['app_label'],
+                    )
+                except ObjectDoesNotExist:
+                    logger.error("Content Type {app_label} - {model} not found for permission: {codename}".format(
+                        app_label=config['app_label'],
+                        model=config['model'],
+                        codename=permission_name,
+                    ))
+                    continue
+
+                permission, created = Permission.objects.get_or_create(
+                    name=config['name'],
+                    content_type_id=content_type.id,
+                    codename=permission_name
                 )
-            except ObjectDoesNotExist:
-                logger.error("Content Type {app_label} - {model} not found for permission: {codename}".format(
-                    app_label=config['app_label'],
-                    model=config['model'],
-                    codename=permission_name,
-                ))
-                continue
+                if created:
+                    logger.info("Created custom permission: %s" % (permission_name))
 
-            permission, created = Permission.objects.get_or_create(
-                name=config['name'],
-                content_type_id=content_type.id,
-                codename=permission_name
-            )
-            if created:
-                logger.info("Created custom permission: %s" % (permission_name))
+                # Only assign permissions to default groups if they didn't exist in the database before.
+                # Don't re-add permissions that were revoked by admins manually!
+                if 'default_groups' in config and created:
+                    for group_name in config['default_groups']:
+                        try:
+                            group = Group.objects.get(name=group_name)
+                        except ObjectDoesNotExist:
+                            logger.error("Cannot assign permission {permission_name} to a non-existent group: {group}".format(
+                                permission_name=permission_name,
+                                group=group_name
+                            ))
+                            continue
 
-            # Only assign permissions to default groups if they didn't exist in the database before.
-            # Don't re-add permissions that were revoked by admins manually!
-            if 'default_groups' in config and created:
-                for group_name in config['default_groups']:
-                    try:
-                        group = Group.objects.get(name=group_name)
-                    except ObjectDoesNotExist:
-                        logger.error("Cannot assign permission {permission_name} to a non-existent group: {group}".format(
+                        group.permissions.add(permission)
+                        logger.info("Assigned permission {permission_name} to group: {group}".format(
                             permission_name=permission_name,
                             group=group_name
                         ))
-                        continue
 
-                    group.permissions.add(permission)
-                    logger.info("Assigned permission {permission_name} to group: {group}".format(
-                        permission_name=permission_name,
-                        group=group_name
-                    ))
+                actual[permission_name] = permission
 
-            actual[permission_name] = permission
+        except BaseException as e:
+            logger.error("Creating permissions for {0}: {1}".format(
+                permission_name, e))
 
         return actual
 
@@ -312,14 +323,20 @@ class ComplianceGroupCollector(PermissionCollector):
         default_groups = self.default_objects()
         actual = {}
 
-        for group_name, config in default_groups.items():
-            if config['per_district']:
-                for region_district in RegionDistrict.objects.all():
-                    compliance_group_name = "{}: {}".format(group_name, region_district.display_name())
-                    group = self.get_or_create_group(compliance_group_name, config, region_district)
-                    group.region_district.add(region_district)
-            else:
-                group = self.get_or_create_group(group_name, config)
+        try:
+
+            for group_name, config in default_groups.items():
+                if config['per_district']:
+                    for region_district in RegionDistrict.objects.all():
+                        compliance_group_name = "{}: {}".format(group_name, region_district.display_name())
+                        group = self.get_or_create_group(compliance_group_name, config, region_district)
+                        group.region_district.add(region_district)
+                else:
+                    group = self.get_or_create_group(group_name, config)
+    
+        except BaseException as e:
+            logger.error("Creating mapping group to district for {0}: {1}".format(
+                group_name, e))
 
         return actual
 
