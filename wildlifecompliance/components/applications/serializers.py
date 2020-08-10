@@ -200,7 +200,23 @@ class ApplicationSelectedActivitySerializer(serializers.ModelSerializer):
         return not obj.licence_fee_paid and obj.processing_status == ApplicationSelectedActivity.PROCESSING_STATUS_AWAITING_LICENCE_FEE_PAYMENT
 
     def get_officer_name(self, obj):
-        return '{0} {1}'.format(obj.assigned_officer.first_name, obj.assigned_officer.last_name) if obj.assigned_officer else ''
+
+        with_officer = ['with_officer', 'with_officer_conditions']
+        with_approver = ['with_officer_finalisation']
+        if obj.processing_status in with_officer and obj.assigned_officer:
+            name = '{0} {1}'.format(
+                obj.assigned_officer.first_name,
+                obj.assigned_officer.last_name
+            )
+        elif obj.processing_status in with_approver and obj.assigned_approver:
+            name = '{0} {1}'.format(
+                obj.assigned_approver.first_name,
+                obj.assigned_approver.last_name
+            )
+        else:
+            name = ''
+
+        return name
 
     def get_is_with_officer(self, obj):
         return True if obj.processing_status in [
@@ -623,12 +639,41 @@ class BaseApplicationSerializer(serializers.ModelSerializer):
         return amendment_request_data
 
     def get_can_be_processed(self, obj):
-        return obj.activities.exclude(processing_status__in=[
+        '''
+        A check that the application is in the correct processing status and
+        current user is authorised (assigned) for the processing status.
+        '''
+        with_approver = [
+            ApplicationSelectedActivity.PROCESSING_STATUS_OFFICER_FINALISATION
+        ]
+        with_officer = [
+            ApplicationSelectedActivity.PROCESSING_STATUS_WITH_OFFICER,
+            ApplicationSelectedActivity.PROCESSING_STATUS_OFFICER_CONDITIONS,
+        ]
+        exclude = [
             ApplicationSelectedActivity.PROCESSING_STATUS_DRAFT,
             ApplicationSelectedActivity.PROCESSING_STATUS_DECLINED,
             ApplicationSelectedActivity.PROCESSING_STATUS_ACCEPTED,
             ApplicationSelectedActivity.PROCESSING_STATUS_AWAITING_LICENCE_FEE_PAYMENT,
-        ]).exists()
+        ]
+
+        assigned_officer = [
+            a for a in obj.activities
+            if a.processing_status in with_officer and a.assigned_officer
+            and not a.assigned_officer == self.context['request'].user
+        ]
+        assigned_approver = [
+            a for a in obj.activities
+            if a.processing_status in with_approver and a.assigned_approver
+            and not a.assigned_approver == self.context['request'].user
+        ]
+        is_assigned = len(assigned_officer) or len(assigned_approver)
+
+        can_be_processed = obj.activities.exclude(
+            processing_status__in=exclude,
+        ).exists()
+
+        return can_be_processed and not is_assigned
 
     def get_processed(self, obj):
         """ check if any activities have been processed (i.e. licence issued)"""
@@ -639,29 +684,31 @@ class BaseApplicationSerializer(serializers.ModelSerializer):
 
     def get_can_current_user_edit(self, obj):
         result = False
-        is_proxy_applicant = False
-        is_in_org_applicant = False
-        is_app_licence_officer = self.context['request'].user in obj.licence_officers
-        is_submitter = obj.submitter == self.context['request'].user
-        if obj.proxy_applicant:
-            is_proxy_applicant = obj.proxy_applicant == self.context['request'].user
-        if obj.org_applicant:
-            user_orgs = [
-                org.id for org in self.context['request'].user.wildlifecompliance_organisations.all()]
-            is_in_org_applicant = obj.org_applicant_id in user_orgs
+        # is_proxy_applicant = False
+        # is_in_org_applicant = False
+        # is_app_licence_officer = self.context['request'].user in obj.licence_officers
+        # is_submitter = obj.submitter == self.context['request'].user
+        # if obj.proxy_applicant:
+        #     is_proxy_applicant = obj.proxy_applicant == self.context['request'].user
+        # if obj.org_applicant:
+        #     user_orgs = [
+        #         org.id for org in self.context['request'].user.wildlifecompliance_organisations.all()]
+        #     is_in_org_applicant = obj.org_applicant_id in user_orgs
 
-        result = False if obj.customer_status == \
-            Application.CUSTOMER_STATUS_AWAITING_PAYMENT else obj.can_user_edit
-
-        if obj.processing_status == \
+        if obj.customer_status == \
+                Application.CUSTOMER_STATUS_AWAITING_PAYMENT:
+            result = False
+        elif obj.processing_status == \
                 Application.PROCESSING_STATUS_AWAITING_APPLICANT_RESPONSE:
             # Outstanding amendment request - edit required.
             result = True
+        else:
+            result = obj.can_user_edit
 
-        if obj.customer_status == Application.CUSTOMER_STATUS_AWAITING_PAYMENT\
-           and (is_submitter or is_proxy_applicant or is_in_org_applicant):
-            # Allow Payment to be paid by applicant with Continue link.
-            return True
+        # if obj.customer_status == Application.CUSTOMER_STATUS_AWAITING_PAYMENT\
+        #    and (is_submitter or is_proxy_applicant or is_in_org_applicant):
+        #     # Allow Payment to be paid by applicant with Continue link.
+        #     return True
 
         # if result and (
         #     is_app_licence_officer or is_submitter or is_proxy_applicant
@@ -669,12 +716,12 @@ class BaseApplicationSerializer(serializers.ModelSerializer):
         #    ):
         #     result = True
 
-        if result and (
-            is_app_licence_officer 
-            or is_submitter
-            or is_proxy_applicant
-            or is_in_org_applicant):
-                result = True
+        # if result and (
+        #     is_app_licence_officer 
+        #     or is_submitter
+        #     or is_proxy_applicant
+        #     or is_in_org_applicant):
+        #         result = True
         return result
 
     def get_can_user_view(self, obj):

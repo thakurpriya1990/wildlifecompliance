@@ -12,6 +12,7 @@
                         <strong>Submitted by</strong><br/>
                         {{ returns.submitter.first_name}} {{ returns.submitter.last_name}}
                     </div>
+                    <div class="col-sm-12"><br/></div>
                     <div class="col-sm-12 top-buffer-s">
                         <strong>Lodged on</strong><br/>
                         {{ returns.lodgement_date | formatDate}}
@@ -39,7 +40,8 @@
                         <strong>Status</strong><br/>
                         {{ returns.processing_status }}
                     </div>
-                    <div v-show="showActionButtons" class="col-sm-12 top-buffer-s">
+                    <div class="col-sm-12"><br/></div>
+                    <div v-show="showAssignToList" class="col-sm-12 top-buffer-s">
                         <strong>Assigned Officer</strong><br/>
                         <div class="form-group">
                             <template>
@@ -49,6 +51,10 @@
                                 <a @click.prevent="assignToMe()" class="actionBtn pull-right">Assign to me</a>
                             </template>
                         </div>
+                    </div>
+                    <div v-show="!showAssignToList" class="col-sm-12 top-buffer-s">
+                        <strong>Assigned Officer</strong><br/>
+                        <div class="form-group"> {{ returns.assigned_to }} </div>
                     </div>
 
                     <!-- Workflow Actions -->
@@ -120,9 +126,13 @@ export default {
             'species_list',
             'is_external',
             'current_user',
+            'canAssignOfficerFor',
         ]),
         showActionButtons: function(){
-            return !this.returns.is_draft
+            return this.returns.can_be_processed
+        },
+        showAssignToList: function(){
+            return this.canAssignOfficerFor(this.returns.condition.licence_activity_id)
         },
     },
     methods: {
@@ -159,6 +169,8 @@ export default {
                 placeholder:"Select Officer"
             }).
             on("select2:select",function (e) {
+                e.stopImmediatePropagation();
+                e.preventDefault();
                 var selected = $(e.currentTarget);
                 vm.returns.assigned_to = selected.val();
                 vm.assignOfficer();
@@ -168,6 +180,8 @@ export default {
                     vm.select2('close');
                 }, 0);
             }).on("select2:unselect",function (e) {
+                e.stopImmediatePropagation();
+                e.preventDefault();
                 var selected = $(e.currentTarget);
                 vm.returns.assigned_to = null;
                 vm.assignOfficer();
@@ -283,7 +297,7 @@ export default {
             await this.save_wo();
             this.form=document.forms.internal_returns_form;
 
-            this.$http.post(helpers.add_endpoint_json(api_endpoints.returns,self.returns.id+'/accept'),{
+            this.$http.post(helpers.add_endpoint_json(api_endpoints.returns,this.returns.id+'/accept'),{
                             emulateJSON:true,
 
             }).then((response)=>{

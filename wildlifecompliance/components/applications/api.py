@@ -655,19 +655,29 @@ class ApplicationViewSet(viewsets.ModelViewSet):
     @renderer_classes((JSONRenderer,))
     def application_fee_checkout(self, request, *args, **kwargs):
         try:
+            checkout_result = None
             instance = self.get_object()
-            product_lines = []
-            if instance.application_fee < 1:
-                raise Exception('Checkout request for zero amount.')
 
-            application_submission = u'Application No: {}'.format(
-                instance.lodgement_number)
+            with transaction.atomic():
 
-            set_session_application(request.session, instance)
-            product_lines = ApplicationService.get_product_lines(instance)
-            checkout_result = checkout(request, instance, lines=product_lines,
-                                       invoice_text=application_submission)
+                product_lines = []
+                if instance.application_fee < 1:
+                    raise Exception('Checkout request for zero amount.')
+
+                application_submission = u'Application No: {}'.format(
+                    instance.lodgement_number
+                )
+
+                set_session_application(request.session, instance)
+                product_lines = ApplicationService.get_product_lines(instance)
+
+                checkout_result = checkout(
+                    request, instance, lines=product_lines,
+                    invoice_text=application_submission
+                )
+
             return checkout_result
+
         except serializers.ValidationError:
             print(traceback.print_exc())
             raise
@@ -1367,22 +1377,23 @@ class ApplicationViewSet(viewsets.ModelViewSet):
     def form_data(self, request, *args, **kwargs):
         try:
             instance = self.get_object()
-            ApplicationService.process_form(
-                request,
-                instance,
-                request.data,
-                action=ApplicationFormDataRecord.ACTION_TYPE_ASSIGN_VALUE
-            )
-            # Set any special form fields on the Application schema.
-            ApplicationService.set_special_form_fields(
-                instance, request.data)
-            # Send any relevant notifications.
-            # instance.alert_for_refund(request)
-            # Log save action for internal officer.
-            if request.user.is_staff:
-                instance.log_user_action(
-                    ApplicationUserAction.ACTION_SAVE_APPLICATION.format(
-                        instance.id), request)
+            with transaction.atomic():
+                ApplicationService.process_form(
+                    request,
+                    instance,
+                    request.data,
+                    action=ApplicationFormDataRecord.ACTION_TYPE_ASSIGN_VALUE
+                )
+                # Set any special form fields on the Application schema.
+                ApplicationService.set_special_form_fields(
+                    instance, request.data)
+                # Send any relevant notifications.
+                # instance.alert_for_refund(request)
+                # Log save action for internal officer.
+                if request.user.is_staff:
+                    instance.log_user_action(
+                        ApplicationUserAction.ACTION_SAVE_APPLICATION.format(
+                            instance.id), request)
 
             return Response({'success': True})
         except MissingFieldsException as e:
@@ -1510,19 +1521,29 @@ class ApplicationViewSet(viewsets.ModelViewSet):
                 if application_type in [
                     Application.APPLICATION_TYPE_AMENDMENT,
                     Application.APPLICATION_TYPE_RENEWAL,
-                    Application.APPLICATION_TYPE_REISSUE,
                 ]:
                     target_application = serializer.instance
                     for activity in licence_activities:
-                        activity_purpose_ids = activity.purposes.values_list('id', flat=True)
-                        purposes_to_copy = set(cleaned_purpose_ids) & set(activity_purpose_ids)
+                        activity_purpose_ids = \
+                            activity.purposes.values_list('id', flat=True)
+                        purposes_to_copy = set(
+                            cleaned_purpose_ids) & set(activity_purpose_ids)
+
                         for purpose_id in purposes_to_copy:
+
                             activity.application.copy_application_purpose_to_target_application(
                                 target_application, purpose_id)
 
-                # Set previous_application to the latest active application if exists
+                            activity.application.copy_conditions_to_target(
+                                target_application,
+                                purpose_id,
+                            )
+
+                # Set previous_application to the latest active application if
+                # exists
                 if latest_active_licence:
-                    serializer.instance.previous_application_id = latest_active_licence.current_application.id
+                    serializer.instance.previous_application_id =\
+                        latest_active_licence.current_application.id
                     serializer.instance.save()
 
                 # serializer.instance.update_dynamic_attributes()

@@ -610,6 +610,8 @@ class WildlifeLicence(models.Model):
         """
         Return a list of activities for the licence, merged by
         licence_activity_id (1 per LicenceActivity)
+
+        NOTE:AYN redundant replaced with LicenceActioner.
         """
         latest_activities = self.latest_activities
         merged_activities = {}
@@ -753,44 +755,45 @@ class WildlifeLicence(models.Model):
             )
         ).filter(licence_category_id=self.licence_category.id).latest('id') == self
 
-    @property
-    def can_action(self):
-        # Returns DICT of can_<action> if any of the licence's latest_activities can be actioned
-        can_action = {
-            'can_amend': False,
-            'can_renew': False,
-            'can_reactivate_renew': False,
-            'can_surrender': False,
-            'can_cancel': False,
-            'can_suspend': False,
-            'can_reissue': False,
-            'can_reinstate': False,
-        }
+    # @property
+    # def can_action(self):
+    #     # Returns DICT of can_<action> if any of the licence's
+    #     # latest_activities can be actioned
+    #     can_action = {
+    #         'can_amend': False,
+    #         'can_renew': False,
+    #         'can_reactivate_renew': False,
+    #         'can_surrender': False,
+    #         'can_cancel': False,
+    #         'can_suspend': False,
+    #         'can_reissue': False,
+    #         'can_reinstate': False,
+    #     }
 
-        # only check if licence is the latest in its category for the applicant
-        if self.is_latest_in_category:
-            # set True if any activities can be actioned
-            purposes_in_open_applications = self.get_purposes_in_open_applications()
-            for activity in self.latest_activities:
-                activity_can_action = activity.can_action(purposes_in_open_applications)
-                if activity_can_action.get('can_amend'):
-                    can_action['can_amend'] = True
-                if activity_can_action.get('can_renew'):
-                    can_action['can_renew'] = True
-                if activity_can_action.get('can_reactivate_renew'):
-                    can_action['can_reactivate_renew'] = True
-                if activity_can_action.get('can_surrender'):
-                    can_action['can_surrender'] = True
-                if activity_can_action.get('can_cancel'):
-                    can_action['can_cancel'] = True
-                if activity_can_action.get('can_suspend'):
-                    can_action['can_suspend'] = True
-                if activity_can_action.get('can_reissue'):
-                    can_action['can_reissue'] = True
-                if activity_can_action.get('can_reinstate'):
-                    can_action['can_reinstate'] = True
+    #     # only check if licence is the latest in its category for the applicant
+    #     if self.is_latest_in_category:
+    #         # set True if any activities can be actioned
+    #         purposes_in_open_applications = self.get_purposes_in_open_applications()
+    #         for activity in self.latest_activities:
+    #             activity_can_action = activity.can_action(purposes_in_open_applications)
+    #             if activity_can_action.get('can_amend'):
+    #                 can_action['can_amend'] = True
+    #             if activity_can_action.get('can_renew'):
+    #                 can_action['can_renew'] = True
+    #             if activity_can_action.get('can_reactivate_renew'):
+    #                 can_action['can_reactivate_renew'] = True
+    #             if activity_can_action.get('can_surrender'):
+    #                 can_action['can_surrender'] = True
+    #             if activity_can_action.get('can_cancel'):
+    #                 can_action['can_cancel'] = True
+    #             if activity_can_action.get('can_suspend'):
+    #                 can_action['can_suspend'] = True
+    #             if activity_can_action.get('can_reissue'):
+    #                 can_action['can_reissue'] = True
+    #             if activity_can_action.get('can_reinstate'):
+    #                 can_action['can_reinstate'] = True
 
-        return can_action
+    #     return can_action
 
     @property
     def has_inspection_open(self):
@@ -870,7 +873,7 @@ class WildlifeLicence(models.Model):
         activity are to be actioned, create new SYSTEM_GENERATED Applications
         and associated activities to apply the relevant statuses for each.
 
-        TODO: REDUNDANT is replaced with LicenceActioner.
+        TODO: replaced with LicenceActioner - this is only used to renew.
         """
         from wildlifecompliance.components.applications.models import (
             Application, ApplicationSelectedActivity
@@ -1033,6 +1036,7 @@ class WildlifeLicence(models.Model):
                     # actioning selected purposes.
                     elif set(application_licence_purpose_ids_list) \
                             - set(purpose_ids_list):
+
                         common_actioned_purpose_ids = set(application_licence_purpose_ids_list) & set(purpose_ids_list)
                         remaining_previous_status_purpose_ids = set(application_licence_purpose_ids_list) - set(purpose_ids_list)
 
@@ -1041,21 +1045,28 @@ class WildlifeLicence(models.Model):
                         if not new_previous_status_applications[previous_status]:
                             new_previous_status_applications[previous_status] = application.copy_application_purposes_for_status(
                                 remaining_previous_status_purpose_ids, previous_status)
+
                         # else, if new previous_status application exists, link
                         # the target LicencePurpose IDs to it.
                         else:
-                            # Link the target LicencePurpose IDs to the application
-                            # TODO:AYN copy activity purpose status dates across
+                            # Link the target LicencePurpose IDs to the
+                            # application.
                             for licence_purpose_id in remaining_previous_status_purpose_ids:
                                 application.copy_application_purpose_to_target_application(
                                     new_previous_status_applications[previous_status],
                                     licence_purpose_id)
 
+                                # Copy conditions to the new_actioned_application.
+                                application.copy_conditions_to_target(
+                                    new_previous_status_applications[
+                                        previous_status
+                                    ],
+                                    licence_purpose_id
+                                )
+
                         # create new actioned application from this application
                         # if not yet exists.
                         if not new_actioned_application:
-                            # TODO:AYN copy activity purpose status dates
-                            # across.
                             new_actioned_application = application.copy_application_purposes_for_status(
                                 common_actioned_purpose_ids,
                                 post_actioned_status
@@ -1069,6 +1080,13 @@ class WildlifeLicence(models.Model):
                                 application.copy_application_purpose_to_target_application(
                                     new_actioned_application,
                                     licence_purpose_id)
+
+                                # Copy conditions to the
+                                # new_actioned_application.
+                                application.copy_conditions_to_target(
+                                    new_actioned_application,
+                                    licence_purpose_id,
+                                )
 
                 # Set original activities to REPLACED except for any that were
                 # ACTIONED completely.
@@ -1103,15 +1121,15 @@ class WildlifeLicence(models.Model):
 
         return available_purpose_records
 
-    @property
-    def can_add_purpose(self):
-        return self.is_latest_in_category and\
-               self.purposes_available_to_add.count() > 0 and\
-               self.can_action.get('can_amend')
+    # @property
+    # def can_add_purpose(self):
+    #     return self.is_latest_in_category and\
+    #            self.purposes_available_to_add.count() > 0 and\
+    #            self.can_action.get('can_amend')
 
     def has_additional_information_for(self, selected_activity):
         """
-        Check for additional information exist for selected activity on this 
+        Check for additional information exist for selected activity on this
         licence.
         """
         has_info = False
@@ -1235,20 +1253,46 @@ class WildlifeLicence(models.Model):
 
         return to_expire
 
+    def get_purposes_to_renew(self, period_days=0):
+        '''
+        Returns selected licence purposes which are about to expire in relation
+        to period.
+
+        :param: period_days is number of days before expiration.
+        '''
+        from wildlifecompliance.components.applications.models import (
+            ApplicationSelectedActivityPurpose,
+        )
+        from datetime import date, timedelta
+
+        today = date.today()
+        today_plus_days = date.today() + timedelta(days=int(period_days))
+        purposes = self.get_proposed_purposes_in_applications()
+
+        to_renew = [
+            p for p in purposes.filter(
+                expiry_date__range=[today, today_plus_days],
+                sent_renewal=False,
+                purpose_status__in=ApplicationSelectedActivityPurpose.RENEWABLE
+            )
+        ]
+
+        return to_renew
+
     def get_document_history(self):
         '''
         Returns a query set of all licence documents for this licence by
         applications with current or suspended activities.
         '''
-        from wildlifecompliance.components.applications.models import (
-            Application,
-        )
-        documents = Application.objects.values(
+        pdf_name = 'licence-{0}.pdf'.format(self.id)
+
+        documents = LicenceDocument.objects.values(
+                'uploaded_date',
+                'name',
                 'licence_document',
-                'licence_id',
-                'licence_document__uploaded_date',
+                'id',
             ).filter(
-                licence_id=self.id,
+                name=pdf_name,
             )
 
         return documents
@@ -1341,13 +1385,13 @@ class WildlifeLicenceReceptionEmail(models.Model):
     used for general purposes.
     '''
     name = models.CharField(max_length=64)
-    address = models.CharField(max_length=128)
+    email = models.CharField(max_length=128)
 
     class Meta:
         app_label = 'wildlifecompliance'
 
     def __str__(self):
-        return self.address
+        return self.email
 
 
 '''

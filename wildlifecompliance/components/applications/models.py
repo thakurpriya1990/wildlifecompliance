@@ -949,6 +949,9 @@ class Application(RevisionedMixin):
                     new_activity,
                 )
 
+                # Copy all conditions from current application to new_app.
+                self.copy_conditions_to_target(new_app, licence_purpose_id)
+
         return new_app
 
     def copy_activity_purpose_to_target_for_status(self, p_id, new):
@@ -989,6 +992,24 @@ class Application(RevisionedMixin):
         issued.processing_status = REPLACE
         issued.purpose_status = S_REPLACE
         issued.save()
+
+    def copy_conditions_to_target(self, target_application, purpose_id):
+        '''
+        Copies the licence condition identifier associated with this
+        application to another application (renewal, admendment, reissue).
+        '''
+        if not target_application:
+            raise ValidationError('Target application must be specified')
+
+        conditions = ApplicationCondition.objects.filter(
+            application_id=self.id,
+            licence_purpose_id=purpose_id,
+        )
+
+        for condition in conditions:
+            condition.id = None
+            condition.application_id = target_application.id
+            condition.save()
 
     def copy_application_purpose_to_target_application(
             self, target_application=None, licence_purpose_id=None):
@@ -1097,14 +1118,14 @@ class Application(RevisionedMixin):
                                     )
 
                                 ac, c = ApplicationCondition.objects.get_or_create(
-                                    is_default=True,
-                                    standard=True,
                                     standard_condition=sc,
-                                    application=self
+                                    application=self,
+                                    licence_purpose=d.licence_purpose,
+                                    licence_activity=d.licence_activity,
+                                    return_type=sc.return_type,
                                 )
-                                ac.licence_activity = d.licence_activity
-                                ac.licence_purpose = d.licence_purpose
-                                ac.return_type = sc.return_type
+                                ac.is_default = True
+                                ac.standard = True
                                 ac.save()
 
                         '''
@@ -2702,13 +2723,22 @@ class Application(RevisionedMixin):
                                     request
                                 )
 
-                        # Additional Fees need to be set before processing fee.
-                        # Fee amount may change by the issuer making decision.
-                        if item['additional_fee']:
-                            selected_activity.additional_fee = \
-                                Decimal(item['additional_fee'])
-                            selected_activity.additional_fee_text = item[
-                                'additional_fee_text']
+                        if not selected_activity.processing_status == \
+                            ApplicationSelectedActivity.PROCESSING_STATUS_DECLINED:
+
+                            # Additional Fees need to be set before processing fee.
+                            # Fee amount may change by the issuer making decision.
+                            if item['additional_fee']:
+                                selected_activity.additional_fee = \
+                                    Decimal(item['additional_fee'])
+                                selected_activity.additional_fee_text = item[
+                                    'additional_fee_text']
+
+                        else :
+                             declined_activities.append(selected_activity)
+                             if item['additional_fee']:
+                                selected_activity.additional_fee = 0
+                                selected_activity.additional_fee_text = ''
 
                         # If there is an outstanding licence fee payment - 
                         # attempt to charge the stored card.
@@ -3527,6 +3557,12 @@ class ApplicationSelectedActivity(models.Model):
         (ACTIVITY_STATUS_SUSPENDED, 'Suspended'),
         (ACTIVITY_STATUS_REPLACED, 'Replaced')
     )
+
+    # Selected licence activity which are current or initialised (default).
+    ACTIVE = [
+        ACTIVITY_STATUS_DEFAULT,
+        ACTIVITY_STATUS_CURRENT,
+    ]
 
     PROCESSING_STATUS_DRAFT = 'draft'
     PROCESSING_STATUS_WITH_OFFICER = 'with_officer'
@@ -4413,13 +4449,13 @@ class ApplicationSelectedActivity(models.Model):
             self.updated_by = request.user
             self.save()
 
-    @transaction.atomic
     def surrender_purposes(self, purpose_ids):
         '''
         Surrender the activity when all proposed purposes are surrendered.
         '''
         A_STATUS = ApplicationSelectedActivity.ACTIVITY_STATUS_SURRENDERED
-        P_STATUS = ApplicationSelectedActivity.PURPOSE_STATUS_SURRENDERED
+        P_STATUS =\
+            ApplicationSelectedActivityPurpose.PURPOSE_STATUS_SURRENDERED
 
         self.set_proposed_purposes_status_for(purpose_ids, P_STATUS)
 
@@ -4429,7 +4465,6 @@ class ApplicationSelectedActivity(models.Model):
         self.activity_status = A_STATUS
         self.save()
 
-    @transaction.atomic
     def cancel_purposes(self, purpose_ids):
         '''
         Cancel the activity when all proposed purposes are cancelled.
@@ -4445,7 +4480,6 @@ class ApplicationSelectedActivity(models.Model):
         self.activity_status = A_STATUS
         self.save()
 
-    @transaction.atomic
     def suspend_purposes(self, purpose_ids):
         '''
         Suspend the activity when all proposed purposes are suspended.
@@ -4461,7 +4495,6 @@ class ApplicationSelectedActivity(models.Model):
         self.activity_status = A_STATUS
         self.save()
 
-    @transaction.atomic
     def reinstate_purposes(self, purpose_ids):
         '''
         Reinstate all licence purposes available on this selected activity.
@@ -4478,7 +4511,6 @@ class ApplicationSelectedActivity(models.Model):
         self.activity_status = A_STATUS
         self.save()
 
-    @transaction.atomic
     def reissue_purposes(self, purpose_ids):
         '''
         Reinstate all licence purposes available on this selected activity.
@@ -4507,7 +4539,6 @@ class ApplicationSelectedActivity(models.Model):
 
         return True
 
-    @transaction.atomic
     def reissue(self):
         '''
         Sets this Selected Activity to be a status that allows for re-issuing
@@ -4600,12 +4631,12 @@ class ApplicationSelectedActivity(models.Model):
         Check all purposes on this activity have the same status. Used to check
         if this activity is still current.
         '''
-        is_same = False
+        not_same = [
+            p for p in self.proposed_purposes.all()
+            if not p.purpose_status == status
+        ]
 
-        for purpose in self.proposed_purposes.all():
-            is_same = True if purpose.purpose_status == status else False
-
-        return is_same
+        return not len(not_same)
 
     @transaction.atomic
     def set_proposed_purposes_status_for(self, ids, status):
@@ -4677,41 +4708,40 @@ class ApplicationSelectedActivity(models.Model):
         '''
         Gets this Application Selected Activity from the previous Application
         Selected Activity application licence.
-
-        TODO: Utilise Licence No to get previous instead of chain.
         '''
         previous = None
         prev_app = self.application.previous_application
-        # prev_id = prev_app.id if prev_app else 0
-        # current_id = self.application.licence_id
+
         status = {
             ApplicationSelectedActivity.ACTIVITY_STATUS_CURRENT,
             ApplicationSelectedActivity.ACTIVITY_STATUS_REPLACED,
         }
-        prev = prev_app.get_current_activity_chain(
+        prev_chain = prev_app.get_current_activity_chain(
             activity_status__in=status).order_by(
                 'licence_activity_id',
             )
-        if not prev:
+        if not prev_chain:
             return previous
 
         try:
-            # Retrieve licence rather than from previous application. Previous
-            # application may not have the same activity.
-            # licence = WildlifeLicence.objects.get(
-            #     id=current_id
-            # )
-
-            # prev = licence.current_activities
             act_id = self.licence_activity_id 
-            prev = [a for a in prev if a.licence_activity_id == act_id]
-            previous = prev[0]
+            prev_chain = [
+                a for a in prev_chain 
+                if a.licence_activity_id == act_id
+                and a.activity_status in self.ACTIVE
+            ]
+            previous = prev_chain[0]    # licence has one current activity. 
 
         except WildlifeLicence.DoesNotExist:
             pass
 
         except BaseException as e:
-            raise Exception('get_activity_from_previous(): {}'.format(e))
+            logger.error('ERR {0} ID {1}: {2}'.format(
+                'get_activity_from_previous()',
+                self.id,
+                e,
+            ))
+            raise Exception(e)
 
         return previous
 
@@ -4799,7 +4829,17 @@ class ApplicationSelectedActivityPurpose(models.Model):
     proposed_start_date = models.DateField(null=True, blank=True)
     proposed_end_date = models.DateField(null=True, blank=True)
     purpose_sequence = models.IntegerField(blank=True, default=0)
+    sent_renewal = models.BooleanField(
+        default=False,
+        help_text='If ticked, a renew reminder has been sent to applicant.')
 
+    def __str__(self):
+        return "SelectedActivityPurposeID {0}".format(self.id)
+
+    class Meta:
+        app_label = 'wildlifecompliance'
+        verbose_name = 'Application selected activity purpose'
+    
     @property
     def is_proposed(self):
         '''
@@ -4836,7 +4876,10 @@ class ApplicationSelectedActivityPurpose(models.Model):
         Property to indicate that this purpose is suspended, cancelled or
         surrendered and can be reinstated.
         '''
-        is_ok = True if self.purpose_status in self.REINSTATABLE else False
+        is_ok = False
+
+        if self.purpose_status in self.REINSTATABLE and not self.is_expired:
+            is_ok = True
 
         return is_ok
 
@@ -4846,7 +4889,10 @@ class ApplicationSelectedActivityPurpose(models.Model):
         Property to indicate that this purpose has expired or about to expire
         and can be renewed.
         '''
-        is_ok = True if self.purpose_status in self.RENEWABLE else False
+        is_ok = False
+        
+        if self.purpose_status in self.RENEWABLE and self.sent_renewal:
+            is_ok = True
 
         return is_ok
 
@@ -4856,6 +4902,23 @@ class ApplicationSelectedActivityPurpose(models.Model):
         Property to indicate that this purpose is current and active.
         '''
         is_ok = True if self.purpose_status in self.ACTIVE else False
+
+        return is_ok
+
+    @property
+    def is_expired(self):
+        '''
+        Property to indicate that this purpose has expired today.
+        '''
+        from datetime import date
+
+        is_ok = True
+        today = date.today()
+
+        if not self.expiry_date:
+            is_ok = False
+        elif self.expiry_date and self.expiry_date >= today:
+            is_ok = False
 
         return is_ok
 
@@ -4927,23 +4990,6 @@ class ApplicationSelectedActivityPurpose(models.Model):
 
         return is_reissued
 
-    def __str__(self):
-        application = self.selected_activity.application_id
-        activity = self.selected_activity.licence_activity.short_name
-        purpose = self.purpose.short_name
-        return "{0}{1}{2}{3}{4}{5}".format(
-            "Purpose: {purpose} ".format(purpose=purpose),
-            "App. Fee: {fee1} ".format(fee1=self.application_fee),
-            "Lic. Fee: {fee2} ".format(fee2=self.licence_fee),
-            "Adj. Fee: {fee3} ".format(fee3=self.adjusted_fee),
-            "(Act: {activity}".format(activity=activity),
-            " App: {application})".format(application=application),
-        )
-
-    class Meta:
-        app_label = 'wildlifecompliance'
-        verbose_name = 'Application selected activity purpose'
-
     def suspend(self):
         '''
         Suspend this selected activity licence purpose.
@@ -4972,21 +5018,15 @@ class ApplicationSelectedActivityPurpose(models.Model):
         '''
         Gets this Application Selected Activity Purpose from the previous
         selected Activity.
-
-        TODO: Utilise Licence No to get previous instead of chain.
         '''
         previous = None
         prev_app = self.selected_activity.application.previous_application
-        # prev_id = prev_app.id if prev_app else 0
-        # current_id = self.selected_activity.application.licence_id
+
         status = {
             ApplicationSelectedActivity.ACTIVITY_STATUS_CURRENT,
             ApplicationSelectedActivity.ACTIVITY_STATUS_REPLACED,
         }
-        # activities = prev_app.get_current_activity_chain(
-        #     activity_status__in=status).order_by(
-        #         'licence_activity_id',
-        #     )
+
         activities = prev_app.get_current_activity_chain(
             activity_status__in=status)
 
@@ -4994,17 +5034,13 @@ class ApplicationSelectedActivityPurpose(models.Model):
             return previous
 
         try:
-            # Retrieve licence rather than from previous application. Previous
-            # application may not have the same purpose.
-            # licence = WildlifeLicence.objects.get(
-            #     id=current_id
-            # )
-            # activities = licence.current_activities
-
             act_id = self.selected_activity.licence_activity_id 
             self_id = self.purpose_id
-            prev = [a for a in activities if a.licence_activity_id == act_id
-                        and self.purpose in a.issued_purposes
+            prev = [
+                a for a in activities 
+                if a.licence_activity_id == act_id
+                and a.activity_status in ApplicationSelectedActivity.ACTIVE
+                and self.purpose in a.issued_purposes
             ]
 
             purposes = prev[0].proposed_purposes.all()
@@ -5015,8 +5051,12 @@ class ApplicationSelectedActivityPurpose(models.Model):
             pass
 
         except BaseException as e:
-            print('get_purpose_from_previous(): ({0}) {1}'.format(self, e))
-            raise Exception('get_purpose_from_previous(): {}'.format(e))
+            logger.error('ERR {0} ID {1}: {2}'.format(
+                'get_purpose_from_previous()',
+                self.id,
+                e,
+            ))
+            raise Exception(e)
 
         return previous
 

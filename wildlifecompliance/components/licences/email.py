@@ -2,6 +2,10 @@ import logging
 
 from django.core.urlresolvers import reverse
 
+from wildlifecompliance.components.main.utils import (
+    remove_url_internal_request,
+)
+
 from wildlifecompliance.components.emails.emails import TemplateEmailBase
 
 logger = logging.getLogger(__name__)
@@ -25,12 +29,40 @@ def send_licence_renewal_notification(licence, purposes, request=None):
     Sender function for licence renewal notification.
     '''
     email = LicenceRenewalNotificationEmail()
-    url = request.build_absolute_uri(reverse('external'))
+    # url = request.build_absolute_uri(reverse('external'))
+    url = ''
 
     context = {
         'licence': licence,
         'purposes': purposes,
         'url': url
+    }
+    recipients = [licence.current_application.submitter.email]
+    email.send(recipients, context=context)
+
+
+class LicenceSurrenderNotificationEmail(TemplateEmailBase):
+    '''
+    Email template for licence surrender notifications.
+    '''
+    subject = 'Your licence has been surrendered.'
+    html_template = \
+        'wildlifecompliance/emails/send_licence_surrender_notification.html'
+    txt_template = \
+        'wildlifecompliance/emails/send_licence_surrender_notification.txt'
+
+
+def send_licence_surrender_notification(licence, purposes, request=None):
+    '''
+    Sender function for licence surrender notification.
+    '''
+    email = LicenceSurrenderNotificationEmail()
+    url = request.build_absolute_uri(reverse('external'))
+
+    context = {
+        'licence': licence,
+        'purposes': purposes,
+        'url': remove_url_internal_request(request, url)
     }
     recipients = [licence.current_application.submitter.email]
     email.send(recipients, context=context)
@@ -57,7 +89,7 @@ def send_licence_cancel_notification(licence, purposes, request=None):
     context = {
         'licence': licence,
         'purposes': purposes,
-        'url': url
+        'url': remove_url_internal_request(request, url)
     }
     recipients = [licence.current_application.submitter.email]
     email.send(recipients, context=context)
@@ -84,7 +116,7 @@ def send_licence_suspend_notification(licence, purposes, request=None):
     context = {
         'licence': licence,
         'purposes': purposes,
-        'url': url
+        'url': remove_url_internal_request(request, url)
     }
     recipients = [licence.current_application.submitter.email]
     email.send(recipients, context=context)
@@ -111,7 +143,7 @@ def send_licence_reinstate_notification(licence, purposes, request=None):
     context = {
         'licence': licence,
         'purposes': purposes,
-        'url': url
+        'url': remove_url_internal_request(request, url)
     }
     recipients = [licence.current_application.submitter.email]
     email.send(recipients, context=context)

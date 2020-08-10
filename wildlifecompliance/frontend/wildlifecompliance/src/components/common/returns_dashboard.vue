@@ -16,7 +16,7 @@
                                 <label for="">Status</label>
                                 <select class="form-control" v-model="filterReturnStatus">
                                     <option value="All">All</option>
-                                    <option v-for="s in return_statusTitles" :value="s">{{s}}</option>
+                                    <option v-for="s in return_statusTitles" :value="s" v-bind:key="`return_status_${s}`">{{s}}</option>
                                 </select>
                             </div>
                         </div>
@@ -135,17 +135,18 @@ export default {
                     {
                         mRender:function (data,type,full) {
                             let links = '';
-                            let int_view =  `<a href='/internal/return/${full.id}'>View</a><br/>`;
-                            let int_continue =  `<a href='/internal/return/${full.id}'>Continue</a><br/>`;
-                            let ext_view =  `<a href='/external/return/${full.id}'>View</a><br/>`;
-                            let ext_continue =  `<a href='/external/return/${full.id}'>Continue</a><br/>`;
-                            let submittable = ['Draft','Due','Overdue'];
-                            if (vm.is_external) {
-                                links = submittable.indexOf(full.processing_status) > -1 ? ext_continue : ext_view
-                            } else {
-                                links = submittable.indexOf(full.processing_status) > -1 ? int_view : int_continue
-                            };
-
+                            if (!vm.is_external){       
+                                links += (full.can_be_processed && full.user_in_officers) ?
+                                    `<a href='/internal/return/${full.id}'>Process</a><br/>` : `<a href='/internal/return/${full.id}'>View</a><br/>`;
+            
+                                if (['paid','partially_paid'].includes(full.payment_status)){
+                                    links +=  `<a href='${full.all_payments_url}' target='_blank' >View Payment</a><br/>`;
+                                }
+                            }        
+                            else{
+                                links += (full.can_current_user_edit) ?
+                                    `<a href='/external/return/${full.id}'>Continue</a><br/>` : `<a href='/external/return/${full.id}'>View</a><br/>`;                
+                            }
                             return links;
                         }
                     },

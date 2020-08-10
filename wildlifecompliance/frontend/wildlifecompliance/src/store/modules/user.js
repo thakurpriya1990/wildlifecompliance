@@ -121,16 +121,28 @@ export const userStore = {
             });          
         },
         canAssignOfficerFor: (state, getters, rootState, rootGetters) => (activity_id) => {
-            return rootGetters.application.activities.find(activity => {
+            if (getters.isApplicationLoaded){
 
-                return activity.licence_activity === activity_id
-                    // verify role exist for activity.
-                    && getters.hasRole('licensing_officer', activity_id)
-                    // verify activity status.
-                    && ['with_officer', 'with_officer_conditions'].includes(activity.processing_status.id)
+                return rootGetters.application.activities.find(activity => {
+
+                    return activity.licence_activity === activity_id
+                        // verify role exist for activity.
+                        && getters.hasRole('licensing_officer', activity_id)
+                        // verify activity status.
+                        && ['with_officer', 'with_officer_conditions'].includes(activity.processing_status.id)
+                        // verify current user is associated.
+                        && activity.licensing_officers.find(officer => officer.id === getters.current_user.id);
+                });  
+
+            }
+            if (getters.isReturnsLoaded){
+
+                return getters.returns.activity_curators.find(curator => {
                     // verify current user is associated.
-                    && activity.licensing_officers.find(officer => officer.id === getters.current_user.id);
-            });                    
+                    return getters.returns.activity_curators.find(officer => officer.id === getters.current_user.id);
+                });
+            }
+                  
         },
         canAssignAssessorFor: (state, getters, rootState, rootGetters) => (activity_id) => {
             return rootGetters.application.activities.find(activity => {

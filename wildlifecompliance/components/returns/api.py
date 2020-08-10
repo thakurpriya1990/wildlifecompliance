@@ -38,6 +38,7 @@ from wildlifecompliance.components.returns.serializers import (
     ReturnLogEntrySerializer,
     ReturnTypeSerializer,
     ReturnRequestSerializer,
+    TableReturnSerializer,
 )
 from wildlifecompliance.components.applications.models import (
     Application,
@@ -106,7 +107,7 @@ class ReturnPaginatedViewSet(viewsets.ModelViewSet):
     pagination_class = DatatablesPageNumberPagination
     renderer_classes = (ReturnRenderer,)
     queryset = Return.objects.none()
-    serializer_class = ReturnSerializer
+    serializer_class = TableReturnSerializer
     page_size = 10
 
     def get_queryset(self):
@@ -149,7 +150,7 @@ class ReturnPaginatedViewSet(viewsets.ModelViewSet):
         queryset = self.filter_queryset(queryset)
         self.paginator.page_size = queryset.count()
         result_page = self.paginator.paginate_queryset(queryset, request)
-        serializer = ReturnSerializer(
+        serializer = TableReturnSerializer(
             result_page, context={'request': request}, many=True)
         return self.paginator.get_paginated_response(serializer.data)
 
@@ -455,9 +456,6 @@ class ReturnViewSet(viewsets.ReadOnlyModelViewSet):
                     'You are not in any relevant officer groups.')
 
             ReturnService.assign_officer_request(request, instance, user)
-
-            # serializer = InternalReturnSerializer(
-            #     instance, context={'request': request})
             serializer = self.get_serializer(instance)
 
             return Response(serializer.data)
@@ -490,18 +488,15 @@ class ReturnViewSet(viewsets.ReadOnlyModelViewSet):
                     'A user with the id passed in does not exist')
 
             if not request.user.has_perm(
-              'wildlifecompliance.licensing_officer'):
+              'wildlifecompliance.return_curator'):
                 raise serializers.ValidationError(
                     'You are not authorised to assign officers')
 
-            if user not in instance.licence_officers:
+            if user not in instance.activity_curators:
                 raise serializers.ValidationError(
                     'User is not in any relevant officer groups')
 
             ReturnService.assign_officer_request(request, instance, user)
-
-            # serializer = InternalReturnSerializer(
-            #     instance, context={'request': request})
             serializer = self.get_serializer(instance)
 
             return Response(serializer.data)
@@ -524,9 +519,6 @@ class ReturnViewSet(viewsets.ReadOnlyModelViewSet):
             instance = self.get_object()
 
             ReturnService.unassign_officer_request(request, instance)
-
-            # serializer = InternalApplicationSerializer(
-            #     instance, context={'request': request})
             serializer = self.get_serializer(instance)
 
             return Response(serializer.data)
@@ -658,32 +650,41 @@ class ReturnAmendmentRequestViewSet(viewsets.ModelViewSet):
         return ReturnRequest.objects.none()
 
     def create(self, request, *args, **kwargs):
+        DRAFT = Return.RETURN_PROCESSING_STATUS_DRAFT
         try:
-            amend_data = self.request.data
-            reason = amend_data.pop('reason')
-            a_return = amend_data.pop('a_return')
-            text = amend_data.pop('text')
 
-            returns = Return.objects.get(id=a_return['id'])
-            returns.processing_status = Return.RETURN_PROCESSING_STATUS_DRAFT
-            returns.save()
-            application = a_return['application']
-            licence = a_return['licence']
-            assigned_to = a_return['assigned_to']
-            data = {
-                    'application': application,
-                    'reason': reason,
-                    'text': text,
-                    'officer': assigned_to
-            }
+            with transaction.atomic():
+                amend_data = self.request.data
+                reason = amend_data.pop('reason')
+                a_return = amend_data.pop('a_return')
+                text = amend_data.pop('text')
 
-            serializer = self.get_serializer(data=data)
-            serializer.is_valid(raise_exception=True)
-            instance = serializer.save()
+                returns = Return.objects.get(id=a_return['id'])
+                returns.processing_status = DRAFT
+                returns.save()
+                application = a_return['application']
+                licence = a_return['licence']
+                assigned_to = a_return['assigned_to']
+                data = {
+                        'application': application,
+                        'reason': reason,
+                        'text': text,
+                        'officer': assigned_to
+                }
+
+                serializer = self.get_serializer(data=data)
+                serializer.is_valid(raise_exception=True)
+                serializer.save()
+
             # send email
             send_return_amendment_email_notification(
                 request, data, returns, licence)
-            serializer = self.get_serializer(instance)
+
+            serializer = ReturnSerializer(
+                returns, context={'request': request}
+            )
+            # serializer = self.get_serializer(instance)
+            # returning amendment.
             return Response(serializer.data)
         except serializers.ValidationError:
             print(traceback.print_exc())

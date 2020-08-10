@@ -501,6 +501,35 @@ def search_reference(reference_number):
         raise ValidationError('Record with provided reference number does not exist')
 
 
+def add_url_internal_request(request, url):
+    '''
+    Add '-internal' for url link.
+    '''
+    from django.conf import settings
+    if '-internal' not in url:
+        url = "{0}://{1}{2}.{3}{4}".format(request.scheme,
+                                           settings.SITE_PREFIX,
+                                           '-internal',
+                                           settings.SITE_DOMAIN,
+                                           url.split(request.get_host())[1])
+
+    return url
+
+
+def remove_url_internal_request(request, url):
+    '''
+    Remove '-internal' from url link.
+    '''
+    from django.conf import settings
+    if '-internal' in url:
+        url = "{0}://{1}.{2}{3}".format(request.scheme,
+                                        settings.SITE_PREFIX,
+                                        settings.SITE_DOMAIN,
+                                        url.split(request.get_host())[1])
+
+    return url
+
+
 class FakeRequest():
     def __init__(self, data):
         self.data = data

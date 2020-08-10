@@ -668,18 +668,20 @@ class ApplicationFeePolicyForAmendment(ApplicationFeePolicy):
         if fees_new < 0:
             # Refund amounts can be calculated from changes to the application
             # form which are then saved against the activity.
-            logger.info('{0}: REFUND {1} for licence ActivityID {2}'.format(
-                'ApplicationFeePolicyForAmendment',
-                fees_new,
-                activity.id
-            ))
+            # logger.info('{0}: REFUND {1} for licence ActivityID {2}'.format(
+            #     'ApplicationFeePolicyForAmendment',
+            #     fees_new,
+            #     activity.id
+            # ))
+            pass
 
         if fees_new == 0:
             # Zero amount paid for amendment activity
-            logger.info('{0}: ZERO FEE for licence ActivityID {1}'.format(
-                'ApplicationFeePolicyForAmendment',
-                activity.id
-            ))
+            # logger.info('{0}: ZERO FEE for licence ActivityID {1}'.format(
+            #     'ApplicationFeePolicyForAmendment',
+            #     activity.id
+            # ))
+            pass
 
     def set_application_fee_from_attributes(self, attributes):
         '''
@@ -961,14 +963,12 @@ class ApplicationFeePolicyForRenew(ApplicationFeePolicy):
         NOTE: Same calculation for set_application_fee_from_attributes.
         '''
         licence_paid = False if activity.total_paid_amount < 1 else True
-        policy_licence_fee = self.dynamic_attributes['fees']['licence']
+        # policy_licence_fee = self.dynamic_attributes['fees']['licence']
         self.set_purpose_fees_for(activity)         # update fees on purpose.
         prev_adj = self.get_previous_adjusted_fee_for(activity)
-        # prev_app = self.get_previous_application_fee_for(activity)
 
         # Adjusted Fee is new adjusted fee excluding previously app fee.
         # NOTE: Activity may include new adjusted amount with form changes.
-        # fees_adj = activity.application_fee + prev_adj - prev_app
         fees_adj = activity.application_fee + prev_adj
 
         # Impose renewal fee.
@@ -976,7 +976,8 @@ class ApplicationFeePolicyForRenew(ApplicationFeePolicy):
 
         fees_new = fees_adj
         activity.application_fee = fees_new
-        activity.licence_fee = policy_licence_fee
+        # NOTE: Activity will have licence fee set from admin.
+        fees_new = fees_new + activity.licence_fee
 
         if licence_paid:
             # application fee is paid just pay the adjustments.
@@ -993,18 +994,20 @@ class ApplicationFeePolicyForRenew(ApplicationFeePolicy):
         if fees_new < 0:
             # Refund for application fees can occur when paid activity
             # adjustment amounts are reduced and recovered from app fees.
-            logger.info('{0}: REFUND {1} for licence ActivityID {2}'.format(
-                'ApplicationFeePolicyForRenew',
-                fees_new,
-                activity.id
-            ))
+            # logger.info('{0}: REFUND {1} for licence ActivityID {2}'.format(
+            #     'ApplicationFeePolicyForRenew',
+            #     fees_new,
+            #     activity.id
+            # ))
+            pass
 
         if fees_new == 0:
             # Zero amount paid for activity
-            logger.info('{0}: ZERO FEE for licence ActivityID {1}'.format(
-                'ApplicationFeePolicyForRenew',
-                activity.id
-            ))
+            # logger.info('{0}: ZERO FEE for licence ActivityID {1}'.format(
+            #     'ApplicationFeePolicyForRenew',
+            #     activity.id
+            # ))
+            pass
 
     def set_application_fee_from_attributes(self, attributes):
         '''
@@ -1190,11 +1193,12 @@ class ApplicationFeePolicyForNew(ApplicationFeePolicy):
             # Refund amounts can be calculated from changes to the application
             # form which are then saved against the activity. Will occur for
             # requested amendments.
-            logger.info('{0}: REFUND {1} for licence ActivityID {2}'.format(
-                'ApplicationFeePolicyForNew',
-                fees_new,
-                activity.id
-            ))
+            # logger.info('{0}: REFUND {1} for licence ActivityID {2}'.format(
+            #     'ApplicationFeePolicyForNew',
+            #     fees_new,
+            #     activity.id
+            # ))
+            pass
 
     def set_application_fee_from_attributes(self, attributes):
         '''
