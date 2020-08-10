@@ -102,9 +102,8 @@ export default {
       return (this.application) ? `/api/application/${this.application.id}/form_data.json` : '';
     },
     requiresCheckout: function() {
-      return (this.adjusted_application_fee > 0 && [
-        'draft', 'awaiting_payment', 'amendment_required'
-      ].includes(this.application_customer_status_onload.id))
+      return ((this.adjusted_application_fee > 0 || this.application.licence_fee > 0)
+      && ['draft', 'awaiting_payment', 'amendment_required'].includes(this.application_customer_status_onload.id))
     },
     showCardPayButton: function() {
       return !this.isProcessing && this.requiresCheckout && !this.showCashPayButton && !this.showNonePayButton;
@@ -337,7 +336,7 @@ export default {
 
               if (is_saved) {
                 vm.isProcessing = true;
-                if (vm.adjusted_application_fee > 0) { //refund not required.
+                if (this.adjusted_application_fee > 0 || this.application.licence_fee > 0) { //refund not required.
 
                     vm.$http.post(helpers.add_endpoint_join(api_endpoints.applications,vm.application.id+'/application_fee_checkout/'), {}).then(res=>{
                         window.location.href = "/ledger/checkout/checkout/payment-details/";
@@ -454,6 +453,7 @@ export default {
     //   this.adjusted_application_fee = this.application.application_fee
     // }
     this.adjusted_application_fee = this.application.application_fee
+    console.log(this.application.licence_fee)
   }
 }
 </script>

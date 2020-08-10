@@ -207,9 +207,9 @@ export default {
                                 // if (full.can_action['can_amend']) {
                                 //     links += `<a amend-licence='${full.id}' org-id='${org_id}' proxy-id='${proxy_id}' licence-category-id='${licence_category_id}'>Amend</a><br/>`
                                 // }
-                                if (vm.is_external && full.can_action['can_renew']) {
-                                    links += `<a licence-id='${full.id}' renew-licence='${full.id}' org-id='${org_id}' proxy-id='${proxy_id}' licence-category-id='${licence_category_id}'>Renew</a><br/>`
-                                }
+                                // if (vm.is_external && full.can_action['can_renew']) {
+                                //     links += `<a licence-id='${full.id}' renew-licence='${full.id}' org-id='${org_id}' proxy-id='${proxy_id}' licence-category-id='${licence_category_id}'>Renew</a><br/>`
+                                // }
                                 if (!vm.is_external && full.can_action['can_reactivate_renew']) {
                                     links += `<a reactivate-renew-licence='${full.id}'>Reactivate Renew</a><br/>`
                                 }

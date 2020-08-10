@@ -21,8 +21,8 @@
                                                     &nbsp;{{p.purpose.short_name}}
                                                 </div>
                                                 <div class="col-sm-3">&nbsp;
-                                                    Issue <input type="radio" :value ="true" :id="p.purpose.id" v-model="getPickedPurpose(p.purpose.id).isProposed" />&nbsp;
-                                                    Decline <input type="radio" :value ="false" :id="p.purpose.id" v-model="getPickedPurpose(p.purpose.id).isProposed" />&nbsp;&nbsp;
+                                                    <input type="radio" :value ="true" :id="p.purpose.id" v-model="getPickedPurpose(p.purpose.id).isProposed" /> Issue &nbsp;
+                                                    <input type="radio" :value ="false" :id="p.purpose.id" v-model="getPickedPurpose(p.purpose.id).isProposed" /> Decline &nbsp;
                                                 </div>
                                                 <div class="col-sm-3">
                                                     <div class="input-group date" v-if="getPickedPurpose(p.purpose.id).isProposed" :ref="`start_date_${p.id}`" style="width: 100%;">

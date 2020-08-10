@@ -738,10 +738,12 @@ class LicenceActioner(LicenceActionable):
                         '{}'.format(p.expiry_date.strftime(
                             '%d/%m/%Y') if p.expiry_date else '')
                         for p in activity.proposed_purposes.all()
+                        if p.is_issued
                     ]),
                     'activity_purpose_names_and_status': '\n'.join([
                         '{} ({})'.format(p.purpose.name, p.purpose_status)
                         for p in activity.proposed_purposes.all()
+                        if p.is_issued
                     ]),
                     'can_action':
                         {

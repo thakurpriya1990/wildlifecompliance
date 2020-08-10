@@ -497,16 +497,16 @@ def _create_licence(licence_buffer, licence, application):
     ]
 
     purposeList = ListFlowable(
-        [[Paragraph("{name} {start} - {end} ({status})".format(
+        [Paragraph("{name} {start} - {end} ({status})".format(
             name=p.purpose.name,
             status=p.purpose_status,
             start=p.start_date.strftime('%d/%m/%Y'),
             end=p.expiry_date.strftime('%d/%m/%Y'),
         ),
             styles['Left'],
-        ) for p in selected_activity.proposed_purposes.all()
-          if p.purpose_status in include
-        ] for selected_activity in licence.current_activities],
+        ) for p in licence.get_purposes_in_sequence()
+          if p.purpose_status in include and p.is_issued
+        ],
         bulletFontName=BOLD_FONTNAME, bulletFontSize=MEDIUM_FONTSIZE)
     elements.append(purposeList)
     elements.append(PageBreak())

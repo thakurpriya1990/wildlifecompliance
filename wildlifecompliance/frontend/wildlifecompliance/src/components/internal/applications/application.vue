@@ -1105,9 +1105,9 @@ export default {
         save: async function(props = { showNotification: true }) {
             this.spinner = true;
             const { showNotification } = props;
-            await this.saveFormData({ url: this.form_data_comments_url }).then(response => {
+            await this.saveFormData({ url: this.form_data_comments_url }).then( async response => {
 
-                this.saveFormData({ url: this.form_data_application_url }).then(response => {
+                await this.saveFormData({ url: this.form_data_application_url }).then(response => {
                     this.spinner = false;   
                     showNotification && swal(
                         'Saved',
