@@ -1,4 +1,4 @@
 SHELL=/bin/bash
 
 # Cron job to execute oracle_integration script - used django_cron framework. MUST execute a few minutes after settings.CRON_RUN_AT_TIMES (wildlifecompliance/cron.py)
-10 3 * * * www-data cd /var/www/ubuntu-1604/app-grp1/wildlifels_uat.8074 && source venv/bin/activate && python manage_co.py runcrons > logs/runcrons.log 2>&1
+10 3 * * * www-data cd /var/www/ubuntu-1604/app-grp1/wildlifels_uat.8074 && source venv/bin/activate && python manage_wc.py runcrons > logs/runcrons.log 2>&1
