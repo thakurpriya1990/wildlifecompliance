@@ -189,6 +189,7 @@ export default {
                         searchable: false // handled by filter_queryset override method - class AssessmentFilterBackend
                     },
                     {
+                        data: "can_be_processed",
                         mRender:function (data,type,full) {
                             let links = '';
                             links +=  full.can_be_processed ? `<a href='/internal/application/assessment/${full.application_id}'>Process</a><br/>`: `<a href='/internal/application/assessment/${full.application_id}'>View</a><br/>`;

@@ -71,6 +71,7 @@ export default {
                         searchable: false // handled by filter_queryset override method - class OrganisationFilterBackend
                     },
                     {
+                        data: "id",
                         mRender:function (data,type,full) {
                             let links = '';
                             links +=  `<a href='/internal/organisations/${full.id}'>View</a><br/>`;
