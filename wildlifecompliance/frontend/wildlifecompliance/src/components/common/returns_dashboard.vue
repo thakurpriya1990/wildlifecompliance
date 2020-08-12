@@ -133,6 +133,7 @@ export default {
                         }
                     },
                     {
+                        data: "can_be_processed",
                         mRender:function (data,type,full) {
                             let links = '';
                             if (!vm.is_external){       

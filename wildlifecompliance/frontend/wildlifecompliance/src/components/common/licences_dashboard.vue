@@ -195,6 +195,7 @@ export default {
                         searchable: false
                     },
                     {
+                        data: "current_application",
                         mRender:function (data,type,full) {
                             let links = '';
                             let org_id = full.current_application.org_applicant ? full.current_application.org_applicant.id : '';
