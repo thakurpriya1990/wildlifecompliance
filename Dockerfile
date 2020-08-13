@@ -49,7 +49,6 @@ RUN touch /app/.env
 COPY .git ./.git
 #COPY ledger ./ledger
 COPY wildlifecompliance ./wildlifecompliance
-RUN rm -rf ./wildlifecompliance/frontend/wildlifecompliance/node_modules
 RUN python manage_wc.py collectstatic --noinput
 
 RUN mkdir /app/tmp/
