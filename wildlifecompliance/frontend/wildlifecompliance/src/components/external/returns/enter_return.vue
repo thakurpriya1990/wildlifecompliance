@@ -9,6 +9,14 @@
         </h3>
     </div>
     <div class="panel-body panel-collapse in" :id="pdBody">
+        <div class="col-md-12">
+            <div class="form-group">
+                <label for="">Species Available:</label>
+                <select class="form-control" ref="selected_species" v-model="returns.species">
+                    <option class="change-species" v-for="(specie, s_idx) in returns.species_list" :value="returns.species" :species_id="s_idx" v-bind:key="`specie_${s_idx}`" >{{specie}}</option>
+                </select>
+            </div>
+        </div>
         <div class="col-sm-12">
             <div class="row">
                 <label style="width:70%;" class="col-sm-4">Do you want to Lodge a nil Return?</label>
@@ -66,6 +74,10 @@ import {
   helpers
 }
 from '@/utils/hooks'
+var select2 = require('select2');
+require("select2/dist/css/select2.min.css");
+require("select2-bootstrap-theme/dist/select2-bootstrap.min.css");
+
 export default {
   name: 'externalReturn',
   props:["table", "data", "grid"],
@@ -149,35 +161,62 @@ export default {
 		        swal('Error Uploading', exception.body.error, 'error');
         });
     },
-    estimate_price: function() {
-      const self = this;
-      self.form=document.forms.external_returns_form;
-      self.$http.post(helpers.add_endpoint_json(api_endpoints.returns,self.returns.id+'/estimate_price'),{
-                      emulateJSON:true,
-                    }).then((response)=>{
+    // estimate_price: function() {
+    //   const self = this;
+    //   self.form=document.forms.external_returns_form;
+    //   self.$http.post(helpers.add_endpoint_json(api_endpoints.returns,self.returns.id+'/estimate_price'),{
+    //                   emulateJSON:true,
+    //                 }).then((response)=>{
 
-                        console.log(response)
+    //                     console.log(response)
 
-                    },(error)=>{
-                        console.log(error);
-                        swal('Error',
-                             'There was an error submitting your return details.<br/>' + error.body,
-                             'error'
-                        )
-                    });
+    //                 },(error)=>{
+    //                     console.log(error);
+    //                     swal('Error',
+    //                          'There was an error submitting your return details.<br/>' + error.body,
+    //                          'error'
+    //                     )
+    //                 });
 
+    // },
+    getSpecies: async function(){
+      return
+    },
+    initialiseSpeciesSelect: function(reinit=false){
+      if (reinit){
+          $(this.$refs.selected_species).data('select2') ? $(this.$refs.selected_species).select2('destroy'): '';
+      }
+      
+      $(this.$refs.selected_species).select2({
+          theme: "bootstrap",
+          allowClear: true,
+          placeholder: "Select..."
+      }).
+      on("select2:select",function (e) {
+          e.stopImmediatePropagation();
+          e.preventDefault();
+          var selected = $(e.currentTarget);
+          this.returns.species = selected.val();
+          this.getSpecies();
+      });
+    },
+    eventListeners: function () {
+      this.initialiseSpeciesSelect();
     }
   },
   mounted: function(){
-    var vm = this;
-    vm.form = document.forms.enter_return;
-    vm.readonly = !vm.is_external;
-    
-    if (vm.returns.table[0]) {
-        vm.nilReturn = 'no'
-        vm.spreadsheetReturn = 'no'
-        vm.replaceReturn = 'no'
-    }
+    this.$nextTick(() => {
+        this.form = document.forms.enter_return;
+        this.readonly = !this.is_external;
+
+        if (this.returns.table[0]) {
+            this.nilReturn = 'no'
+            this.spreadsheetReturn = 'no'
+            this.replaceReturn = 'no'
+        }
+
+        this.eventListeners();
+    });
   },
 }
 </script>
