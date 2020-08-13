@@ -9,7 +9,8 @@ from ledger.accounts.models import EmailUser, RevisionedMixin
 from ledger.payments.invoice.models import Invoice
 from wildlifecompliance.components.applications.models import (
     ApplicationCondition,
-    Application
+    Application,
+    ApplicationFormDataRecord,
 )
 from wildlifecompliance.components.main.models import (
     CommunicationsLogEntry,
@@ -83,6 +84,7 @@ class ReturnType(models.Model):
         blank=True,
         null=True)
     version = models.SmallIntegerField(default=1, blank=False, null=False)
+    species_required = models.BooleanField(default=False)
 
     def __str__(self):
         return '{0} - v{1}'.format(self.name, self.version)
@@ -322,7 +324,7 @@ class Return(models.Model):
         :return:
         """
         has_payment = False
-        if self.payment_status != ReturnInvoice.PAYMENT_STATUS_NOT_REQUIRED:
+        if self.get_latest_invoice():
             has_payment = True
 
         return has_payment
@@ -395,7 +397,38 @@ class Return(models.Model):
         except BaseException:
             raise
 
-    @transaction.atomic
+    def set_future_return_species(self):
+        '''
+        Set the species available for this return.
+        '''
+        SPECIES = ApplicationFormDataRecord.COMPONENT_TYPE_SELECT_SPECIES
+        STATUS = [
+            Return.RETURN_PROCESSING_STATUS_FUTURE
+        ]
+
+        if self.processing_status not in STATUS:
+            '''
+            Species are only set for FUTURE processing status.
+            '''
+            return
+
+        species_qs = ApplicationFormDataRecord.objects.values(
+            'value',
+        ).filter(
+            licence_activity_id=self.condition.licence_activity_id,
+            licence_purpose_id=self.condition.licence_purpose_id,
+            application_id=self.condition.application_id,
+            component_type=SPECIES,
+        )
+        return_table = []
+        for species in species_qs:
+            return_table.append(
+                ReturnTable(name=species['value'], ret_id=str(self.id))
+            )
+
+        if return_table:
+            ReturnTable.objects.bulk_create(return_table)
+
     def set_processing_status(self, status):
         '''
         Set the processing status for this Return.
@@ -403,7 +436,6 @@ class Return(models.Model):
         self.processing_status = status
         self.save()
 
-    @transaction.atomic
     def set_return_fee(self, fee):
         '''
         Set the submission fee for this return.
@@ -464,7 +496,6 @@ class Return(models.Model):
         except BaseException:
             raise
 
-    @transaction.atomic
     def save_return_table(self, table_name, table_rows, request):
         """
         Persist Return Table of data to database.
@@ -476,24 +507,23 @@ class Return(models.Model):
         try:
             # wrap atomic context here to allow natural handling of a Record
             # Modified concurrent error. (optimistic lock)
-            with transaction.atomic():
-                # get the Return Table record and save immediately to check if
-                # it has been concurrently modified.
-                return_table, created = ReturnTable.objects.get_or_create(
-                    name=table_name, ret=self)
-                return_table.save()
-                # delete any existing rows as they will all be recreated
-                return_table.returnrow_set.all().delete()
-                return_rows = [
-                    ReturnRow(
-                        return_table=return_table,
-                        data=row) for row in table_rows]
+            # get the Return Table record and save immediately to check if
+            # it has been concurrently modified.
+            return_table, created = ReturnTable.objects.get_or_create(
+                name=table_name, ret=self)
+            return_table.save()
+            # delete any existing rows as they will all be recreated
+            return_table.returnrow_set.all().delete()
+            return_rows = [
+                ReturnRow(
+                    return_table=return_table,
+                    data=row) for row in table_rows]
 
-                ReturnRow.objects.bulk_create(return_rows)
+            ReturnRow.objects.bulk_create(return_rows)
 
-                # log transaction
-                self.log_user_action(
-                    ReturnUserAction.ACTION_SAVE_REQUEST.format(self), request)
+            # log transaction
+            self.log_user_action(
+                ReturnUserAction.ACTION_SAVE_REQUEST.format(self), request)
 
         except RecordModifiedError:
             raise IntegrityError(

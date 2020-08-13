@@ -51,7 +51,6 @@ class ReturnService(object):
     def record_deficiency_request(request, a_return):
         '''
         '''
-        print('record-deficiency')
         if a_return.has_data:
             data = ReturnData(a_return)
             data.store(request)
@@ -235,6 +234,7 @@ class ReturnService(object):
         for a_return in due_returns:
             if not for_all and not a_return.id == id:
                 continue
+            a_return.set_future_return_species()
             a_return.set_processing_status(status)
 
         overdue_returns = Return.objects.filter(
@@ -345,6 +345,34 @@ class ReturnService(object):
 
         return sheet
 
+    @staticmethod
+    def get_species_list_for(a_return):
+        '''
+        Get list of species available for the return.
+        '''
+        if a_return.has_sheet:
+            sheet = ReturnSheet(a_return)
+            return sheet.species_list
+
+        if a_return.has_data:
+            data = ReturnData(a_return)
+            return data.species_list
+
+        return None
+
+    @staticmethod
+    def get_species_for(a_return):
+
+        if a_return.has_sheet:
+            sheet = ReturnSheet(a_return)
+            return sheet.species
+
+        if a_return.has_data:
+            data = ReturnData(a_return)
+            return data.species
+
+        return None
+
 
 class ReturnData(object):
     """
@@ -352,6 +380,14 @@ class ReturnData(object):
     """
     def __init__(self, a_return):
         self._return = a_return
+
+        self._species_list = []
+        self._table = {'data': None}
+        # build list of currently added Species.
+        self._species = None
+        for _species in ReturnTable.objects.filter(ret=a_return):
+            self._species_list.append(_species.name)
+            self._species = _species.name
 
     @property
     def table(self):
@@ -383,6 +419,8 @@ class ReturnData(object):
                 'data': None
             }
             try:
+                if self.requires_species:
+                    resource_name = self._species
                 return_table = self._return.returntable_set.get(
                     name=resource_name)
                 all_return_rows = return_table.returnrow_set.all()
@@ -403,6 +441,49 @@ class ReturnData(object):
 
         return tables
 
+    @property
+    def species(self):
+        """
+        Species type associated with this Return Data.
+        :return:
+        """
+        return self._species
+
+    @property
+    def species_list(self):
+        """
+        List of Species available with Return Data.
+        :return: List of Species.
+        {
+         'S000001': 'Western Grey Kangaroo', 'S000002': 'Western Red Kangaroo',
+         'S000003': 'Blue Banded Bee', 'S000004': 'Orange-Browed Resin Bee'
+        }
+
+        """
+        from wildlifecompliance.components.licences.models import (
+            LicenceSpecies
+        )
+        new_list = {}
+        for _species in ReturnTable.objects.filter(ret=self._return):
+            try:
+                lic_specie = LicenceSpecies.objects.filter(
+                    specie_id=int(_species.name)
+                )
+
+            except BaseException:
+                break
+
+            lic_specie_data = lic_specie[0].data
+            lic_specie_name = lic_specie_data[0]['vernacular_names']
+            # _species_detail = ReturnRow.objects.filter(return_table=_species)
+            _species_detail = 1
+            if _species_detail:
+                value = lic_specie_name
+                new_list[_species.name] = value
+                self._species = _species.name
+        self._species_list.append(new_list)
+        return new_list
+
     def store(self, request):
         """
         Save the current state of this Return Data.
@@ -422,6 +503,8 @@ class ReturnData(object):
                     table_info = returns_tables.encode('utf-8')
                     table_rows = self._get_table_rows(
                         table_info, request.data)
+                    if self.requires_species:
+                        table_info = self._species
                     if table_rows:
                         self._return.save_return_table(
                             table_info, table_rows, request)
@@ -431,6 +514,8 @@ class ReturnData(object):
                 table_info = returns_tables.encode('utf-8')
                 table_rows = self._get_table_rows(
                     table_info, request.data)
+                if self.requires_species:
+                    table_info = self._species
                 if table_rows:
                     self._return.save_return_table(
                         table_info, table_rows, request)
@@ -555,6 +640,11 @@ class ReturnData(object):
                 row_data[deficiency_data] = post_data[deficiency_data]
                 rows.append(row_data)
         return rows
+
+    def requires_species(self):
+        '''
+        '''
+        return self._return.return_type.species_requred
 
     def __str__(self):
         return self._return.lodgement_number
