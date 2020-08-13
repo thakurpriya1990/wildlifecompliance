@@ -9,11 +9,11 @@
         </h3>
     </div>
     <div class="panel-body panel-collapse in" :id="pdBody">
-        <div class="col-md-12">
+        <div class="col-md-12" v-if="returns.has_species">
             <div class="form-group">
                 <label for="">Species Available:</label>
                 <select class="form-control" ref="selected_species" v-model="returns.species">
-                    <option class="change-species" v-for="(specie, s_idx) in returns.species_list" :value="returns.species" :species_id="s_idx" v-bind:key="`specie_${s_idx}`" >{{specie}}</option>
+                    <option class="change-species" v-for="(specie, s_idx) in returns.species_list" :value="s_idx" :species_id="s_idx" v-bind:key="`specie_${s_idx}`" >{{specie}}</option>
                 </select>
             </div>
         </div>
@@ -103,6 +103,7 @@ export default {
         'isReturnsLoaded',
         'returns',
         'is_external',
+        'species_cache',
     ]),
     uploadedFileName: function() {
       return this.spreadsheet != null ? this.spreadsheet.name: '';
@@ -137,11 +138,11 @@ export default {
       this.spreadsheet = _file;
       this.validate_upload()
     },
-    validate_upload(e) {
+    validate_upload: async function(e) {
       this.refresh_grid = false
       let _data = new FormData(this.form);
       _data.append('spreadsheet', this.spreadsheet)
-      this.$http.post(helpers.add_endpoint_json(api_endpoints.returns,this.returns.id+'/upload_details'),_data,{
+      await this.$http.post(helpers.add_endpoint_json(api_endpoints.returns,this.returns.id+'/upload_details'),_data,{
                     emulateJSON:true,
         }).then((response)=>{
             if (this.replaceReturn === 'no') {
@@ -161,33 +162,60 @@ export default {
 		        swal('Error Uploading', exception.body.error, 'error');
         });
     },
-    // estimate_price: function() {
-    //   const self = this;
-    //   self.form=document.forms.external_returns_form;
-    //   self.$http.post(helpers.add_endpoint_json(api_endpoints.returns,self.returns.id+'/estimate_price'),{
-    //                   emulateJSON:true,
-    //                 }).then((response)=>{
+    getSpecies: async function(_id){
+      var specie_id = _id
 
-    //                     console.log(response)
+      if (this.species_cache[this.returns.species]==null) {
 
-    //                 },(error)=>{
-    //                     console.log(error);
-    //                     swal('Error',
-    //                          'There was an error submitting your return details.<br/>' + error.body,
-    //                          'error'
-    //                     )
-    //                 });
+          this.species_cache[this.returns.species] = this.returns.table[0]['data']
+          // cache currently displayed species json
+      }
 
-    // },
-    getSpecies: async function(){
+      if (this.species_cache[specie_id] != null) {
+          // species json previously loaded from ajax
+          this.returns.table[0]['data'] = this.species_cache[specie_id]
+
+      } else {
+          // load species json from ajax
+
+        this.refresh_grid = false
+        let _data = new FormData(this.form);
+        _data.append('return_id', this.returns.id);
+        _data.append('species_id', this.specie_id);
+
+        await this.$http.post(helpers.add_endpoint_json(api_endpoints.returns,this.returns.id+'/species_data_details'),_data,{
+                      emulateJSON:true,
+          }).then((response)=>{
+              if (this.replaceReturn === 'no') {
+                let idx1 = this.returns.table[0]['data'].length
+                for (let idx2=0; idx2 < response.body[0]['data'].length; idx2++) {
+                  this.returns.table[0]['data'][idx1++] = response.body[0]['data'][idx2]
+                }
+              }
+              if (this.replaceReturn === 'yes') {
+                this.returns.table[0]['data'] = response.body[0]['data']
+                this.replaceReturn = 'no'
+              }
+              this.nilReturn = 'no'
+              this.spreadsheetReturn = 'yes'
+              this.refresh_grid = true
+          },exception=>{
+              swal('Error Uploading', exception.body.error, 'error');
+          });
+
+
+      };  // end 
+      this.returns.species = specie_id;
+
       return
     },
     initialiseSpeciesSelect: function(reinit=false){
+      var vm = this;
       if (reinit){
-          $(this.$refs.selected_species).data('select2') ? $(this.$refs.selected_species).select2('destroy'): '';
+          $(vm.$refs.selected_species).data('select2') ? $(vm.$refs.selected_species).select2('destroy'): '';
       }
       
-      $(this.$refs.selected_species).select2({
+      $(vm.$refs.selected_species).select2({
           theme: "bootstrap",
           allowClear: true,
           placeholder: "Select..."
@@ -196,12 +224,13 @@ export default {
           e.stopImmediatePropagation();
           e.preventDefault();
           var selected = $(e.currentTarget);
-          this.returns.species = selected.val();
-          this.getSpecies();
+          // vm.getSpecies(selected.val());
       });
     },
     eventListeners: function () {
+      var vm = this;
       this.initialiseSpeciesSelect();
+      this.getSpecies(this.returns.species)
     }
   },
   mounted: function(){

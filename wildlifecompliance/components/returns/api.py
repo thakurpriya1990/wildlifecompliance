@@ -250,13 +250,23 @@ class ReturnViewSet(viewsets.ReadOnlyModelViewSet):
             raise serializers.ValidationError(str(e))
 
     @list_route(methods=['GET', ])
+    def species_data_details(self, request, *args, **kwargs):
+        return_id = self.request.query_params.get('return_id')
+        species_id = self.request.query_params.get('species_id')
+
+        instance = Return.objects.get(id=return_id)
+        data = ReturnService.set_species_for(instance, species_id)
+
+        return Response(data.table)
+
+    @list_route(methods=['GET', ])
     def sheet_details(self, request, *args, **kwargs):
         return_id = self.request.query_params.get('return_id')
         species_id = self.request.query_params.get('species_id')
         # instance = Return.objects.get(id=return_id).sheet
         # instance.set_species(species_id)
         instance = Return.objects.get(id=return_id)
-        sheet = ReturnService.set_sheet_species_for(instance, species_id)
+        sheet = ReturnService.set_species_for(instance, species_id)
         # return Response(instance.table)
         return Response(sheet.table)
 

@@ -406,7 +406,8 @@ class Return(models.Model):
             Return.RETURN_PROCESSING_STATUS_FUTURE
         ]
 
-        if self.processing_status not in STATUS:
+        if self.processing_status not in STATUS \
+                or not self.return_type.species_required:
             '''
             Species are only set for FUTURE processing status.
             '''
@@ -421,9 +422,13 @@ class Return(models.Model):
             component_type=SPECIES,
         )
         return_table = []
-        for species in species_qs:
+        specie_ids = []
+        for specie_id in species_qs:
+            specie_ids += specie_id['value']
+
+        for id_name in specie_ids:
             return_table.append(
-                ReturnTable(name=species['value'], ret_id=str(self.id))
+                ReturnTable(name=id_name, ret_id=str(self.id))
             )
 
         if return_table:

@@ -335,17 +335,6 @@ class ReturnService(object):
         return None
 
     @staticmethod
-    def set_sheet_species_for(a_return, species_id):
-
-        sheet = None
-
-        if a_return.has_sheet:
-            sheet = ReturnSheet(a_return)
-            sheet.set_species(species_id)
-
-        return sheet
-
-    @staticmethod
     def get_species_list_for(a_return):
         '''
         Get list of species available for the return.
@@ -359,6 +348,21 @@ class ReturnService(object):
             return data.species_list
 
         return None
+
+    @staticmethod
+    def set_species_for(a_return, species_id):
+
+        updated = None
+
+        if a_return.has_sheet:
+            updated = ReturnSheet(a_return)
+            updated.set_species(species_id)
+
+        if a_return.has_data:
+            updated = ReturnData(a_return)
+            updated.set_species(species_id)
+
+        return updated
 
     @staticmethod
     def get_species_for(a_return):
@@ -421,11 +425,16 @@ class ReturnData(object):
             try:
                 if self.requires_species:
                     resource_name = self._species
+
                 return_table = self._return.returntable_set.get(
                     name=resource_name)
                 all_return_rows = return_table.returnrow_set.all()
                 rows = [
                     return_row.data for return_row in all_return_rows]
+
+                if not rows:
+                    raise ReturnTable.DoesNotExist()
+
                 validated_rows = schema.rows_validator(rows)
                 table['data'] = validated_rows
             except ReturnTable.DoesNotExist:
@@ -643,8 +652,25 @@ class ReturnData(object):
 
     def requires_species(self):
         '''
+        A check to determine if this return type contains a list of species.
         '''
-        return self._return.return_type.species_requred
+        return self._return.return_type.species_required
+
+    def set_species(self, _species):
+        """
+        Sets the species for the current return data.
+        :param _species:
+        :return:
+        """
+        self._species = _species
+        # self._species_list.add(_species)
+
+    def get_species(self):
+        """
+        Gets the species for the current return data.
+        :return:
+        """
+        return self._species
 
     def __str__(self):
         return self._return.lodgement_number

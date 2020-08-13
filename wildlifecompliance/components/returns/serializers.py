@@ -102,8 +102,9 @@ class ReturnSerializer(serializers.ModelSerializer):
     user_in_officers = serializers.SerializerMethodField(read_only=True)
     can_current_user_edit = serializers.SerializerMethodField(read_only=True)
     apply_fee_field = serializers.SerializerMethodField(read_only=True)
-    species_list = serializers.SerializerMethodField()
-    species = serializers.SerializerMethodField()
+    species_list = serializers.SerializerMethodField(read_only=True)
+    species = serializers.SerializerMethodField(read_only=True)
+    has_species = serializers.SerializerMethodField(read_only=True)
 
     class Meta:
         model = Return
@@ -144,6 +145,7 @@ class ReturnSerializer(serializers.ModelSerializer):
             'apply_fee_field',
             'species_list',
             'species',
+            'has_species',
         )
 
         # the serverSide functionality of datatables is such that only columns
@@ -349,6 +351,14 @@ class ReturnSerializer(serializers.ModelSerializer):
         :return: species identifier for a Return Running Sheet.
         """
         return ReturnService.get_species_for(_return)
+
+    def get_has_species(self, _return):
+        """
+        A check whether species is required for this return.
+        :param _return: Return instance.
+        :return: boolean.
+        """
+        return _return.return_type.species_required
 
 
 class TableReturnSerializer(ReturnSerializer):
