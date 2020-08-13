@@ -582,15 +582,18 @@ class ApplicationViewSet(viewsets.ModelViewSet):
         purpose_ids = request.data.get('purpose_ids', [])
         application_id = request.data.get('application_id')
         licence_type = request.data.get('licence_type')
-        if application_id is not None:
-            application = Application.objects.get(id=application_id)
+
+        with transaction.atomic():
+            if application_id is not None:
+                application = Application.objects.get(id=application_id)
+                return Response({
+                    'fees': ApplicationService.calculate_fees(
+                        application, request.data.get('field_data', {}))
+                })
             return Response({
-                'fees': ApplicationService.calculate_fees(
-                    application, request.data.get('field_data', {}))
+                'fees': Application.calculate_base_fees(
+                    purpose_ids, licence_type)
             })
-        return Response({
-            'fees': Application.calculate_base_fees(purpose_ids, licence_type)
-        })
 
     @list_route(methods=['GET', ])
     def internal_datatable_list(self, request, *args, **kwargs):
@@ -699,35 +702,37 @@ class ApplicationViewSet(viewsets.ModelViewSet):
         try:
             instance = self.get_object()
 
-            # if not request.user.is_staff:
-            #     raise Exception('Non staff member.')
+            with transaction.atomic():
 
-            session = request.session
-            set_session_application(session, instance)
+                # if not request.user.is_staff:
+                #     raise Exception('Non staff member.')
 
-            if instance.submit_type == Application.SUBMIT_TYPE_PAPER:
-                invoice = ApplicationService.cash_payment_submission(
-                    request)
-                invoice_url = request.build_absolute_uri(
-                    reverse(
-                        'payments:invoice-pdf',
-                        kwargs={'reference': invoice}))
+                session = request.session
+                set_session_application(session, instance)
 
-            elif instance.submit_type == Application.SUBMIT_TYPE_MIGRATE:
-                invoice = ApplicationService.none_payment_submission(
-                    request)
-                invoice_url = None
+                if instance.submit_type == Application.SUBMIT_TYPE_PAPER:
+                    invoice = ApplicationService.cash_payment_submission(
+                        request)
+                    invoice_url = request.build_absolute_uri(
+                        reverse(
+                            'payments:invoice-pdf',
+                            kwargs={'reference': invoice}))
 
-            else:
-                raise Exception('Cannot make this type of payment.')
+                elif instance.submit_type == Application.SUBMIT_TYPE_MIGRATE:
+                    invoice = ApplicationService.none_payment_submission(
+                        request)
+                    invoice_url = None
 
-            # return template application-success
-            template_name = 'wildlifecompliance/application_success.html'
-            context = {
-                'application': instance,
-                'invoice_ref': invoice,
-                'invoice_url': invoice_url
-            }
+                else:
+                    raise Exception('Cannot make this type of payment.')
+
+                # return template application-success
+                template_name = 'wildlifecompliance/application_success.html'
+                context = {
+                    'application': instance,
+                    'invoice_ref': invoice,
+                    'invoice_url': invoice_url
+                }
 
             return render(request, template_name, context)
 
@@ -1361,12 +1366,15 @@ class ApplicationViewSet(viewsets.ModelViewSet):
     def officer_comments(self, request, *args, **kwargs):
         try:
             instance = self.get_object()
-            ApplicationService.process_form(
-                request,
-                instance,
-                request.data,
-                action=ApplicationFormDataRecord.ACTION_TYPE_ASSIGN_COMMENT
-            )
+
+            with transaction.atomic():
+                ApplicationService.process_form(
+                    request,
+                    instance,
+                    request.data,
+                    action=ApplicationFormDataRecord.ACTION_TYPE_ASSIGN_COMMENT
+                )
+
             return Response({'success': True})
         except Exception as e:
             print(traceback.print_exc())

@@ -3,8 +3,6 @@ import abc
 import requests
 import logging
 
-from django.db import transaction
-
 from wildlifecompliance import settings
 
 from wildlifecompliance.components.licences.models import (
@@ -55,24 +53,23 @@ class ApplicationService(object):
         :return: invoice reference.
         '''
         try:
-            with transaction.atomic():
-                application = get_session_application(request.session)
-                delete_session_application(request.session)
+            application = get_session_application(request.session)
+            delete_session_application(request.session)
 
-                application.submit_type = Application.SUBMIT_TYPE_PAPER
-                application.save()
-                do_update_dynamic_attributes(application)
+            application.submit_type = Application.SUBMIT_TYPE_PAPER
+            application.save()
+            do_update_dynamic_attributes(application)
 
-                set_session_other_pay_method(
-                    request.session, InvoiceClearable.TYPE_CASH
-                )
-                invoice = create_other_application_invoice(
-                    application, request
-                )
-                invoice_ref = invoice.reference
+            set_session_other_pay_method(
+                request.session, InvoiceClearable.TYPE_CASH
+            )
+            invoice = create_other_application_invoice(
+                application, request
+            )
+            invoice_ref = invoice.reference
 
-                # submit application if successful.
-                application.submit(request)
+            # submit application if successful.
+            application.submit(request)
 
         except Exception as e:
             delete_session_application(request.session)
@@ -89,21 +86,20 @@ class ApplicationService(object):
         '''
         invoice_ref = None          # No invoice reference created.
         try:
-            with transaction.atomic():
-                application = get_session_application(request.session)
-                delete_session_application(request.session)
+            application = get_session_application(request.session)
+            delete_session_application(request.session)
 
-                application.submit_type = Application.SUBMIT_TYPE_MIGRATE
-                application.application_fee = 0
-                has_fee_exemption = True
-                do_update_dynamic_attributes(application, has_fee_exemption)
+            application.submit_type = Application.SUBMIT_TYPE_MIGRATE
+            application.application_fee = 0
+            has_fee_exemption = True
+            do_update_dynamic_attributes(application, has_fee_exemption)
 
-                logger.info(
-                    'Zero amount payment submission for {0}'.format(
-                        application.id))
+            logger.info(
+                'Zero amount payment submission for {0}'.format(
+                    application.id))
 
-                # submit application if successful.
-                application.submit(request)
+            # submit application if successful.
+            application.submit(request)
 
         except Exception as e:
             delete_session_application(request.session)
@@ -157,11 +153,18 @@ class ApplicationService(object):
         """
         Verifies species name identifier is current with the TSC database.
         """
-        tsc_service = TSCSpecieService(TSCSpecieCall())
-        tsc_service.set_strategy(TSCSpecieXReferenceCall())
-        logger.info('ApplicationService: Verifying species.')
-        tsc_service.search_taxon(specie_id)
-        logger.info('ApplicationService: Completed. Verified 1 specie.')
+        try:
+            tsc_service = TSCSpecieService(TSCSpecieCall())
+            tsc_service.set_strategy(TSCSpecieXReferenceCall())
+            logger.info('ApplicationService: Verifying species.')
+            tsc_service.search_taxon(specie_id)
+            logger.info('ApplicationService: Completed. Verified 1 specie.')
+
+        except BaseException as e:
+            logger.error('ERR verify_licence_specie_id for {0} : {1}'.format(
+                specie_id,
+                e,
+            ))
 
     @staticmethod
     def calculate_fees(application, data_source):
@@ -218,7 +221,7 @@ class ApplicationService(object):
             'under_review',
         ]
 
-        with transaction.atomic():
+        try:
             # Set form components to be visited.
             checkbox = CheckboxAndRadioButtonVisitor(application, form)
             text_area = TextAreaVisitor(application, form)
@@ -240,13 +243,25 @@ class ApplicationService(object):
                 for_copy_to_licence_fields.accept(text_area)
                 for_copy_to_licence_fields.accept(text)
 
+        except BaseException as e:
+            logger.error('ERR set_special_form_fields for {0} : {1}'.format(
+                application.id,
+                e,
+            ))
+
     @staticmethod
     def update_dynamic_attributes(application):
         """
         Updates application attributes based on admin schema definition.
         """
-        with transaction.atomic():
+        try:
             do_update_dynamic_attributes(application)
+
+        except BaseException as e:
+            logger.error('ERR update_dynamic_attributes for {0} : {1}'.format(
+                application.id,
+                e,
+            ))
 
     def __str__(self):
         return 'ApplicationService'
