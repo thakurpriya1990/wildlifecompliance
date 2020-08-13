@@ -365,18 +365,11 @@ class ReturnViewSet(viewsets.ReadOnlyModelViewSet):
         try:
             instance = self.get_object()
 
-            ReturnService.store_request_details_for(instance, request)
-            # if instance.has_data:
-            #     instance.data.store(request)
+            with transaction.atomic():
+                ReturnService.store_request_details_for(instance, request)
+                instance.save()
+                serializer = self.get_serializer(instance)
 
-            # if instance.has_sheet:
-            #     instance.sheet.store(request)
-
-            # if instance.has_question:
-            #     instance.question.store(request)
-
-            instance.save()
-            serializer = self.get_serializer(instance)
             return Response(serializer.data)
         except serializers.ValidationError:
             print(traceback.print_exc())
