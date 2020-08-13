@@ -180,26 +180,16 @@ class LicencePurpose(models.Model):
 
             options.append(option)
 
+        if not species_list:
+            for details in LicenceSpecies.objects.values('data').all():
+                option = {
+                    'value': details['data'][0][LicenceSpecies.SPECIE_NAME_ID],
+                    'label': details['data'][0][LicenceSpecies.SPECIE_NAME]}
+
+                options.append(option)
+                species_list.append(option['value'])
+
         return options
-
-
-# class LicencePurposeDetail(OrderedModel):
-#     detail = models.CharField(max_length=100)
-#     purpose = models.ForeignKey(
-#         LicencePurpose,
-#         on_delete=models.CASCADE,
-#         related_name='additional_information'
-#     )
-#     index = models.PositiveSmallIntegerField(default=0)
-
-#     class Meta:
-#         ordering = ['purpose', 'index']
-#         app_label = 'wildlifecompliance'
-#         verbose_name = 'Licence purpose additional information'
-#         verbose_name_plural = 'Licence purpose additional information'
-
-#     def __str__(self):
-#         return 'Detail for purpose {}'.format(self.purpose.id)
 
 
 class LicenceActivity(models.Model):
