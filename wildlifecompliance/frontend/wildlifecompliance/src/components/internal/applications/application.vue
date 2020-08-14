@@ -932,10 +932,7 @@ export default {
             return s.replace(/[,;]/g, '\n');
         },
         proposedDecline: async function(){
-            let is_saved = await this.save_wo();
-            if (is_saved) {
-                this.$refs.proposed_decline.isModalOpen = true;
-            }
+            this.$refs.proposed_decline.isModalOpen = true;
         },
         isActivityVisible: function(activity_id) {
             return this.isApplicationActivityVisible({activity_id: activity_id});
@@ -946,14 +943,10 @@ export default {
         proposedLicence: async function(){
             var activity_name=[]
             var selectedTabTitle = $("#tabs-section li.active");
-            let is_saved = await this.save_wo();
-            if (is_saved){
-                this.$refs.proposed_licence.propose_issue.licence_activity_id=this.selected_activity_tab_id;
-                this.$refs.proposed_licence.propose_issue.licence_activity_name=selectedTabTitle.text();
-                this.$refs.proposed_licence.isModalOpen = true;
-                this.$refs.proposed_licence.preloadLastActivity();
-            }
-
+            this.$refs.proposed_licence.propose_issue.licence_activity_id=this.selected_activity_tab_id;
+            this.$refs.proposed_licence.propose_issue.licence_activity_name=selectedTabTitle.text();
+            this.$refs.proposed_licence.isModalOpen = true;
+            this.$refs.proposed_licence.preloadLastActivity();
         },
         toggleIssue: async function(){
             let is_saved = await this.save_wo();
