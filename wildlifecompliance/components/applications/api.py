@@ -282,8 +282,15 @@ class ApplicationPaginatedViewSet(viewsets.ModelViewSet):
         queryset = self.filter_queryset(queryset)
         self.paginator.page_size = queryset.count()
         result_page = self.paginator.paginate_queryset(queryset, request)
+        # TODO: add caching
+        # cached_response = cache.get('internalapplications_{}'.format(result_page))
+        # if cached_response:
+        #     return cached_response
         serializer = DTInternalApplicationSerializer(result_page, context={'request': request}, many=True)
-        return self.paginator.get_paginated_response(serializer.data)
+        # most expensive query that traverses properties etc
+        response = self.paginator.get_paginated_response(serializer.data)
+        # cache.set('internalapplications_{}'.format(result_page), response, 3600)
+        return response
 
     @list_route(methods=['GET', ])
     def external_datatable_list(self, request, *args, **kwargs):
