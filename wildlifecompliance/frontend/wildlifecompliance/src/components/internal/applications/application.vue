@@ -103,12 +103,12 @@
                                             <button class="btn btn-primary top-buffer-s col-xs-12" @click.prevent="returnToOfficerConditions()">Return to Officer - Conditions</button>                                   
                                         </div>
                                     </div>   
-                                    <div v-if="!applicationIsDraft && canRequestAmendment && !requiresRefund" class="row">
+                                    <div v-if="!applicationIsDraft && canRequestAmendment" class="row">
                                         <div class="col-sm-12">
                                             <button class="btn btn-primary top-buffer-s col-xs-12" @click.prevent="amendmentRequest()">Request Amendment</button><br/>
                                         </div>
                                     </div>                            
-                                    <div v-if="canIssueDecline & !requiresRefund" class="row">
+                                    <div v-if="canIssueDecline" class="row">
                                         <div class="col-sm-12">
                                             <button class="btn btn-primary top-buffer-s col-xs-12" @click.prevent="toggleIssue()">Issue/Decline</button>
                                             <!-- v-if="!userIsAssignedOfficer" was removed to enforce permission at group membership only. -->
@@ -518,9 +518,9 @@
                                             <div class="navbar-inner">
                                                 <div class="container">
                                                     <p class="pull-right" style="margin-top:5px;">
-                                                        <span style="margin-right: 5px; font-size: 18px; display: block;" v-if="requiresRefund" >
-                                                            <strong>Estimated application fee: {{adjusted_application_fee | toCurrency}}</strong>
-                                                            <strong>Estimated licence fee: {{application.licence_fee | toCurrency}}</strong>
+                                                        <span style="margin-right: 5px; font-size: 18px; display: block;" v-if="updatedFee" >
+                                                            <strong>Updated application fee: {{adjusted_application_fee | toCurrency}}</strong>
+                                                            <strong>licence fee: {{application.licence_fee | toCurrency}}</strong>
                                                         </span>   
                                                         <button v-if="showSpinner" type="button" class="btn btn-primary" ><i class="fa fa-spinner fa-spin"/>Saving</button>                                                    
                                                         <button v-else="!applicationIsDraft && canSaveApplication" class="btn btn-primary" @click.prevent="save()">Save Changes</button>
@@ -840,8 +840,8 @@ export default {
                 break;
             }
         },
-        requiresRefund: function() {
-            return this.adjusted_application_fee<0 ? true : false
+        updatedFee: function() {
+            return (this.adjusted_application_fee !== 0 || this.application.licence_fee !== 0) ? true : false
         },
         showNavBarBottom: function() {
             return this.canReturnToConditions || (!this.applicationIsDraft && this.canSaveApplication)
@@ -857,8 +857,7 @@ export default {
             return this.showingApplication 
                 && !this.applicationIsDraft 
                 && (this.hasRole('licensing_officer') || this.hasRole('issuing_officer'))
-                && !this.requiresRefund
-                // && this.application.can_be_processed
+
         },
         showFinalDecision: function() {
             if (['awaiting_payment'].includes(this.application.processing_status.id)) { // prevent processing for outstanding payments.
@@ -1472,6 +1471,7 @@ export default {
             // no adjustments for new applications.
             // this.adjusted_application_fee = this.application.application_fee
         }
+        this.adjusted_application_fee = this.application.application_fee
     },
     beforeRouteEnter: function(to, from, next) {
         next(vm => {
