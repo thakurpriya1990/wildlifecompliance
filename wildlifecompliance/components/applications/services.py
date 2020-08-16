@@ -227,6 +227,10 @@ class ApplicationService(object):
             text_area = TextAreaVisitor(application, form)
             text = TextVisitor(application, form)
 
+            # Set species Fields for Checkbox and RadioButtons.
+            for_species_options_fields = SpeciesOptionsFieldElement()
+            for_species_options_fields.accept(checkbox)
+
             if application.processing_status in with_officer:
 
                 # Set StandardCondition Fields for Checkbox and RadioButtons.
@@ -353,7 +357,6 @@ class CheckboxAndRadioButtonCompositor(ApplicationFormCompositor):
     def render(self):
 
         for selected_activity in self._application.activities:
-            self._field.reset(selected_activity)
 
             schema_fields = self._application.get_schema_fields_for_purposes(
                 selected_activity.purposes.values_list('id', flat=True)
@@ -375,6 +378,11 @@ class CheckboxAndRadioButtonCompositor(ApplicationFormCompositor):
                     continue
                 schema_data = schema_fields[schema_name]
 
+                if schema_data['type'] not in ['checkbox', 'radiobuttons']:
+                    continue
+
+                self._field.reset(selected_activity)
+
                 if 'options' in schema_data:
                     for option in schema_data['options']:
                         # Only modifications if the current option is selected
@@ -389,6 +397,7 @@ class CheckboxAndRadioButtonCompositor(ApplicationFormCompositor):
                         )
 
                 # If this is a checkbox - skip unchecked ones
+                # Note: reset settings may override checkbox update.
                 elif data_record['value'] == 'on':
                     self._field.parse_component(
                         component=schema_data,
@@ -531,6 +540,10 @@ class CheckboxAndRadioButtonVisitor(ApplicationFormVisitor):
         self._increase_application_fee_field = increase_fee_field
         self._compositor.do_algorithm(self._increase_application_fee_field)
 
+    def visit_species_options_field(self, species_options_field):
+        self._species_options_field = species_options_field
+        self._compositor.do_algorithm(self._species_options_field)
+
 
 class TextAreaVisitor(ApplicationFormVisitor):
     """
@@ -580,6 +593,118 @@ class SpecialFieldElement(object):
     @abc.abstractmethod
     def accept(self, visitor):
         pass
+
+    def reset(self, licence_activity):
+        """
+        Reset previous option settings on the licence activity by removing.
+        """
+        pass
+
+    def reset_licence_purpose(self, licence_activity, purpose_id):
+        """
+        Reset previous options settings on the licence purpose by removing.
+        """
+        pass
+
+
+class SpeciesOptionsFieldElement(SpecialFieldElement):
+    """
+    An implementation of an SpecialFieldElement operation that takes a
+    ApplicationFormVisitor as an argument.
+
+    example:
+
+        "options": [
+          {
+            "value": "yes",
+            "label": "Yes",
+          },
+          {
+            "value": "no",
+            "label": "No",
+            "species": [33974,33977]
+          }
+        ],
+        "type": "radiobuttons",
+        "name": "ATO-Import3",
+        "label": "Do you need to apply for a licence to import?",
+        "SpeciesOptions": true
+
+    """
+    _NAME = 'SpeciesOptions'
+    _SPECIES = 'species'
+
+    is_refreshing = False       # Flag indicating a page refresh.
+    records = None
+
+    def accept(self, application_form_visitor):
+        self._terms = {'terms': []}
+        self._application = application_form_visitor._application
+        self._data_source = application_form_visitor._data_source
+        if not self._data_source:
+            self.is_refreshing = True
+        application_form_visitor.visit_species_options_field(self)
+
+    def parse_component(
+            self,
+            component,
+            schema_name,
+            adjusted_by_fields,
+            activity,
+            purpose_id):
+
+        if self.is_refreshing:
+            # No user update with a page refesh.
+            return
+
+        if set([self._SPECIES]).issubset(component):
+            '''
+            Set the species options on the form.
+            '''
+            # update the species component value on the form to reference ids.
+            # else create one using name + '-SpeciesOptions'.
+            species_ids = ""
+            try:
+                species_ids = [str(s) for s in component[self._SPECIES]]
+
+            except BaseException:
+                pass
+
+            records = ApplicationFormDataRecord.objects.filter(
+                    application_id=self._application.id,
+                    licence_activity_id=activity.licence_activity_id,
+                    licence_purpose_id=purpose_id,
+                    component_type=self._SPECIES
+            ).update(
+                 value=species_ids
+            )
+
+            if not records:
+                ApplicationFormDataRecord.objects.create(
+                    field_name='{0}-SpeciesOptions'.format(schema_name),
+                    schema_name='{0}-SpeciesOptions'.format(schema_name),
+                    component_type=self._SPECIES,
+                    value=species_ids,
+                    application_id=self._application.id,
+                    licence_activity_id=activity.licence_activity_id,
+                    licence_purpose_id=purpose_id
+                )
+        else:
+            '''
+            SpeciesOptions is set with no species ids therefore clear all
+            species on the application form.
+            '''
+            records = ApplicationFormDataRecord.objects.filter(
+                    application_id=self._application.id,
+                    licence_activity_id=activity.licence_activity_id,
+                    licence_purpose_id=purpose_id,
+                    component_type=self._SPECIES
+            ).update(
+                 value=''
+            )
+
+    def __str__(self):
+        return 'Field Element: {0}'.format(self._NAME)
 
 
 class CopyToLicenceFieldElement(SpecialFieldElement):
