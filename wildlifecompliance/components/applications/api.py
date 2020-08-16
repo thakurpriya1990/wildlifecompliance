@@ -53,6 +53,7 @@ from wildlifecompliance.components.applications.serializers import (
     BaseApplicationSerializer,
     CreateExternalApplicationSerializer,
     DTInternalApplicationSerializer,
+    #DTInternalApplicationDashboardSerializer,
     DTExternalApplicationSerializer,
     ApplicationUserActionSerializer,
     ApplicationLogEntrySerializer,
@@ -256,6 +257,7 @@ class ApplicationPaginatedViewSet(viewsets.ModelViewSet):
     @list_route(methods=['GET', ])
     def internal_datatable_list(self, request, *args, **kwargs):
         self.serializer_class = DTInternalApplicationSerializer
+        #self.serializer_class = DTInternalApplicationDashboardSerializer
         queryset = self.get_queryset()
         # Filter by org
         org_id = request.GET.get('org_id', None)
@@ -1272,7 +1274,7 @@ class ApplicationViewSet(viewsets.ModelViewSet):
         except Exception as e:
             print(traceback.print_exc())
             raise serializers.ValidationError(str(e))
-      
+
     @detail_route(methods=['GET', ])
     def get_proposed_decisions(self, request, *args, **kwargs):
         try:
@@ -1628,7 +1630,7 @@ class ApplicationViewSet(viewsets.ModelViewSet):
     @list_route(methods=['POST', ])
     def set_application_species(self, request, *args, **kwargs):
         species_ids = request.data.get('field_data')
-        if species_ids is not None: 
+        if species_ids is not None:
             species_list = ApplicationService.get_licence_species(species_ids)
             return Response({'species': species_list })
 
