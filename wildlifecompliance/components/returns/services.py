@@ -484,12 +484,10 @@ class ReturnData(object):
 
             lic_specie_data = lic_specie[0].data
             lic_specie_name = lic_specie_data[0]['vernacular_names']
-            # _species_detail = ReturnRow.objects.filter(return_table=_species)
-            _species_detail = 1
-            if _species_detail:
-                value = lic_specie_name
-                new_list[_species.name] = value
-                self._species = _species.name
+            value = lic_specie_name
+            new_list[_species.name] = value
+            self._species = _species.name
+
         self._species_list.append(new_list)
         return new_list
 
@@ -499,19 +497,23 @@ class ReturnData(object):
         :param request:
         :return:
         """
-        for key in request.data.keys():
-            returns_tables = request.data.get('table_name')
-            table_deficiency = returns_tables + '-deficiency-field'
+        returns_tables = request.data.get('table_name')
+        table_deficiency = returns_tables + '-deficiency-field'
+
+        def _validate_and_save_key_data(key, data):
+            '''
+            Validate and Save data.
+            '''
             if key == "nilYes":
                 self._return.nil_return = True
                 self._return.comments = request.data.get('nilReason')
                 self._return.save()
             elif key == "nilNo":
                 if self._is_post_data_valid(
-                        returns_tables.encode('utf-8'), request.data):
+                        returns_tables.encode('utf-8'), data):
                     table_info = returns_tables.encode('utf-8')
                     table_rows = self._get_table_rows(
-                        table_info, request.data)
+                        table_info, data)
                     if self.requires_species:
                         table_info = self._species
                     if table_rows:
@@ -522,12 +524,42 @@ class ReturnData(object):
             elif key == table_deficiency:
                 table_info = returns_tables.encode('utf-8')
                 table_rows = self._get_table_rows(
-                    table_info, request.data)
+                    table_info, data)
                 if self.requires_species:
                     table_info = self._species
                 if table_rows:
                     self._return.save_return_table(
                         table_info, table_rows, request)
+
+        def _parse_species_data(data):
+            '''
+            parse species data for storing.
+            '''
+            import json
+
+            _parsed_data = request.data
+            _json_data = json.loads(data)
+
+            for _key in _json_data.keys():
+                try:
+                    _value = _json_data[_key]['value']
+                    _key_name = '{0}::{1}'.format(returns_tables, _key)
+                    _parsed_data[_key_name] = _value
+                except KeyError:
+                    pass
+
+            return _parsed_data
+
+        for key in request.data.keys():
+            data = request.data
+
+            # if key in self._species_list:
+            #     parsed_data = _parse_species_data(request.data[key])
+            #     self.set_species(key)
+            #     data = parsed_data
+            #     key = "nilNo"
+
+            _validate_and_save_key_data(key, data)
 
     def get_table_deficiency(self, deficiency_key):
         '''

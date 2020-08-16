@@ -249,12 +249,10 @@ class ReturnViewSet(viewsets.ReadOnlyModelViewSet):
             print(traceback.print_exc())
             raise serializers.ValidationError(str(e))
 
-    @list_route(methods=['GET', ])
+    @detail_route(methods=['GET', ])
     def species_data_details(self, request, *args, **kwargs):
-        return_id = self.request.query_params.get('return_id')
-        species_id = self.request.query_params.get('species_id')
-
-        instance = Return.objects.get(id=return_id)
+        species_id = request.GET.get('species_id', None)
+        instance = self.get_object()
         data = ReturnService.set_species_for(instance, species_id)
 
         return Response(data.table)

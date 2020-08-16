@@ -113,6 +113,8 @@ export default {
     },
     refreshGrid: function() {
       this.setReturnsEstimateFee()
+      // update cached for uploaded data.
+      // this.getSpecies(this.returns.species)
       return this.refresh_grid;
     }
   },
@@ -166,47 +168,33 @@ export default {
       var specie_id = _id
 
       if (this.species_cache[this.returns.species]==null) {
-
-          this.species_cache[this.returns.species] = this.returns.table[0]['data']
-          // cache currently displayed species json
+        // cache currently displayed species json
+        this.species_cache[this.returns.species] = this.returns.table[0]['data']
       }
 
       if (this.species_cache[specie_id] != null) {
-          // species json previously loaded from ajax
-          this.returns.table[0]['data'] = this.species_cache[specie_id]
+        // species json previously loaded from ajax
+        this.returns.table[0]['data'] = this.species_cache[specie_id]
 
       } else {
-          // load species json from ajax
-
+        // load species json from ajax
         this.refresh_grid = false
-        let _data = new FormData(this.form);
-        _data.append('return_id', this.returns.id);
-        _data.append('species_id', this.specie_id);
+        await this.$http.get(helpers.add_endpoint_json(api_endpoints.returns,this.returns.id+'/species_data_details/?species_id='+specie_id))
+          .then((response)=>{
+              this.returns.table[0]['data'] = response.body[0]['data']
 
-        await this.$http.post(helpers.add_endpoint_json(api_endpoints.returns,this.returns.id+'/species_data_details'),_data,{
-                      emulateJSON:true,
-          }).then((response)=>{
-              if (this.replaceReturn === 'no') {
-                let idx1 = this.returns.table[0]['data'].length
-                for (let idx2=0; idx2 < response.body[0]['data'].length; idx2++) {
-                  this.returns.table[0]['data'][idx1++] = response.body[0]['data'][idx2]
-                }
-              }
-              if (this.replaceReturn === 'yes') {
-                this.returns.table[0]['data'] = response.body[0]['data']
-                this.replaceReturn = 'no'
-              }
-              this.nilReturn = 'no'
-              this.spreadsheetReturn = 'yes'
-              this.refresh_grid = true
           },exception=>{
-              swal('Error Uploading', exception.body.error, 'error');
+
+            swal('Error with Species data', exception.body.error, 'error');
           });
 
 
       };  // end 
+      //this.replaceReturn = 'no'
+      //this.nilReturn = 'no'
+      //this.spreadsheetReturn = 'no'
       this.returns.species = specie_id;
-
+      this.refresh_grid = true
       return
     },
     initialiseSpeciesSelect: function(reinit=false){
