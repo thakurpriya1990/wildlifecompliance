@@ -358,6 +358,8 @@ class CheckboxAndRadioButtonCompositor(ApplicationFormCompositor):
 
         for selected_activity in self._application.activities:
 
+            self._field.reset(selected_activity)
+
             schema_fields = self._application.get_schema_fields_for_purposes(
                 selected_activity.purposes.values_list('id', flat=True)
             )
@@ -380,8 +382,6 @@ class CheckboxAndRadioButtonCompositor(ApplicationFormCompositor):
 
                 if schema_data['type'] not in ['checkbox', 'radiobuttons']:
                     continue
-
-                self._field.reset(selected_activity)
 
                 if 'options' in schema_data:
                     for option in schema_data['options']:
