@@ -396,8 +396,6 @@ class CheckboxAndRadioButtonCompositor(ApplicationFormCompositor):
                             purpose_id=schema_data['licence_purpose_id']
                         )
 
-                # If this is a checkbox - skip unchecked ones
-                # Note: reset settings may override checkbox update.
                 elif data_record['value'] == 'on':
                     self._field.parse_component(
                         component=schema_data,
@@ -405,6 +403,11 @@ class CheckboxAndRadioButtonCompositor(ApplicationFormCompositor):
                         adjusted_by_fields=adjusted_by_fields,
                         activity=selected_activity,
                         purpose_id=schema_data['licence_purpose_id']
+                    )
+                elif data_record['value'] == '':
+                    # if unchecked reset field adjustments.
+                    self._field.reset_licence_purpose(
+                        selected_activity, schema_data['licence_purpose_id']
                     )
 
 
@@ -886,12 +889,16 @@ class IncreaseApplicationFeeFieldElement(SpecialFieldElement):
     adjustments to the application fee for the Activity/Purpose.
     """
     NAME = 'IncreaseApplicationFee'
+    LICENCE = 'IncreaseLicenceFee'
 
     fee_policy = None           # Policy applied to the fee update.
     dynamic_attributes = None   # Attributes on the Activity Purpose.
     is_updating = False         # Flag indicating if update or retrieval.
     is_refreshing = False       # Flag indicating a page refresh.
     has_fee_exemption = False   # Allow exemption for zero amount invoice.
+
+    adjusted_fee = 0
+    adjusted_licence_fee = 0
 
     def __init__(self):
         pass
@@ -931,6 +938,9 @@ class IncreaseApplicationFeeFieldElement(SpecialFieldElement):
         '''
         Reset the fees for the licence activity to it base fee amount.
         '''
+        self.adjusted_fee = 0
+        self.adjusted_licence_fee = 0
+
         if self.is_refreshing:
             # No user update with a page refesh.
             return
@@ -942,15 +952,24 @@ class IncreaseApplicationFeeFieldElement(SpecialFieldElement):
                 }
 
             if self.is_updating:
-                # reset purpose adjusted fee amount.
-                purposes = ApplicationSelectedActivityPurpose.objects.filter(
-                    selected_activity=licence_activity,
-                )
-                for p in purposes:
-                    p.adjusted_fee = 0
-                    p.save()
-
                 licence_activity.save()
+
+    def reset_licence_purpose(self, licence_activity, purpose_id):
+        """
+        Reset previous options settings on the licence purpose by removing.
+        """
+        if self.is_refreshing or not self.is_updating:
+            # No user update with a page refesh.
+            return
+
+        # reset purpose adjusted fee amount.
+        purposes = ApplicationSelectedActivityPurpose.objects.filter(
+            selected_activity=licence_activity,
+        )
+        for p in purposes:
+            p.adjusted_fee = self.adjusted_fee
+            p.adjusted_licence_fee = self.adjusted_licence_fee
+            p.save()
 
     def parse_component(
             self,
@@ -969,8 +988,8 @@ class IncreaseApplicationFeeFieldElement(SpecialFieldElement):
             # No user update with a page refesh.
             return
 
-        self.adjusted_fee = 0
-        if set([self.NAME]).issubset(component):
+        if set([self.NAME]).issubset(component) \
+                or set([self.LICENCE]).issubset(component):
             def increase_fee(fees, field, amount):
                 if self.has_fee_exemption:
                     return True
@@ -979,13 +998,16 @@ class IncreaseApplicationFeeFieldElement(SpecialFieldElement):
                 fees[field] = fees[field] if fees[field] >= 0 else 0
                 return True
 
-            def adjusted_fee(amount):
+            def adjusted_fee(field, amount):
                 amount = D(amount).quantize(D('0.01'), rounding=ROUND_DOWN)
-                self.adjusted_fee += amount
+                if field == 'licence':
+                    self.adjusted_licence_fee += amount
+                elif field == 'application':
+                    self.adjusted_fee += amount
                 return True
 
             fee_modifier_keys = {
-                'NoIncreaseLicenceFee': 'licence',
+                self.LICENCE: 'licence',
                 self.NAME: 'application',
             }
             increase_limit_key = 'IncreaseTimesLimit'
@@ -1009,6 +1031,7 @@ class IncreaseApplicationFeeFieldElement(SpecialFieldElement):
                 field,
                 component[key]
             ) and adjusted_fee(
+                field,
                 component[key]
             ) for key, field in fee_modifier_keys.items())
 
@@ -1027,8 +1050,12 @@ class IncreaseApplicationFeeFieldElement(SpecialFieldElement):
                     p.application_fee = purpose.base_application_fee
                     p.licence_fee = purpose.base_licence_fee
 
-                self.adjusted_fee = D(p.adjusted_fee) + self.adjusted_fee
+                # self.adjusted_fee = D(p.adjusted_fee) + self.adjusted_fee
+                # self.adjusted_licence_fee = \
+                #     D(p.adjusted_licence_fee) + self.adjusted_licence_fee
+
                 p.adjusted_fee = self.adjusted_fee
+                p.adjusted_licence_fee = self.adjusted_licence_fee
                 p.save()
 
     def get_adjusted_fees(self):
