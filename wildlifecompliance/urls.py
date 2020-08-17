@@ -17,7 +17,7 @@ from wildlifecompliance.components.applications.views import (
 from wildlifecompliance.admin import wildlifecompliance_admin_site
 
 from wildlifecompliance.components.main.views import (
-        SearchKeywordsView, 
+        SearchKeywordsView,
         SearchReferenceView,
         SearchWeakLinksView,
         CreateWeakLinkView,
@@ -124,8 +124,8 @@ router.register(r'disposal_methods', artifact_api.PhysicalArtifactDisposalMethod
 api_patterns = [url(r'^api/my_user_details/$',
                     users_api.GetMyUserDetails.as_view(),
                     name='get-my-user-details'),
-                url(r'^api/department_users$', 
-                    users_api.DepartmentUserList.as_view(), 
+                url(r'^api/department_users$',
+                    users_api.DepartmentUserList.as_view(),
                     name='department-users-list'),
                 url(r'^api/my_compliance_user_details/$',
                     users_api.GetComplianceUserDetails.as_view(),
@@ -210,7 +210,7 @@ urlpatterns = [
     # artifact emails to users
     url(r'^internal/object/(?P<artifact_id>\d+)/$', views.ApplicationView.as_view(),
         name='internal-artifact-detail'),
-    
+
     # following url is defined so that to include url path when sending
     # inspection emails to users
     url(r'^internal/inspection/(?P<inspection_id>\d+)/$', views.ApplicationView.as_view(),
@@ -271,5 +271,10 @@ if not are_migrations_running():
     CollectorManager()
 
 if settings.DEBUG:  # Serve media locally in development.
-    urlpatterns += static(settings.MEDIA_URL,
-                          document_root=settings.MEDIA_ROOT)
+    urlpatterns += static(settings.MEDIA_URL, document_root=settings.MEDIA_ROOT)
+
+if settings.SHOW_DEBUG_TOOLBAR:
+    import debug_toolbar
+    urlpatterns = [
+        url('__debug__/', include(debug_toolbar.urls)),
+    ] + urlpatterns
