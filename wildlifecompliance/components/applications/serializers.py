@@ -118,7 +118,6 @@ class ApplicationSelectedActivityPurposeSerializer(
         return obj.proposed_end_date.strftime(
             '%d/%m/%Y') if obj.proposed_end_date else ''
 
-
 class ApplicationSelectedActivitySerializer(serializers.ModelSerializer):
     activity_name_str = serializers.SerializerMethodField(read_only=True)
     issue_date = serializers.SerializerMethodField(read_only=True)
@@ -227,6 +226,66 @@ class ApplicationSelectedActivitySerializer(serializers.ModelSerializer):
 
     def get_has_inspection(self, obj):
         return obj.has_inspection
+
+
+#class ApplicationSelectedActivityDashboardSerializer(serializers.ModelSerializer):
+#    activity_name_str = serializers.SerializerMethodField(read_only=True)
+#    activity_purpose_names = serializers.SerializerMethodField(read_only=True)
+#    processing_status = CustomChoiceField(read_only=True)
+#    can_action = ApplicationSelectedActivityCanActionSerializer(read_only=True)        # 4s
+#    payment_status = serializers.CharField(read_only=True)                             # 6s
+#    can_pay_licence_fee = serializers.SerializerMethodField()                          # 6s
+#    officer_name = serializers.SerializerMethodField(read_only=True)
+#
+#    class Meta:
+#        model = ApplicationSelectedActivity
+#        #fields = '__all__'
+#        fields = (
+#            'activity_name_str',
+#            'activity_purpose_names',
+#            'processing_status',
+#            'can_action',
+#            'payment_status',
+#            'can_pay_licence_fee',
+#            'officer_name',
+#        )
+#
+#    def get_activity_name_str(self, obj):
+#        return obj.licence_activity.name if obj.licence_activity else ''
+#
+#    def get_activity_purpose_names(self, obj):
+#        purposes = [
+#            p.purpose for p in obj.proposed_purposes.all()
+#        ]
+#
+#        if obj.proposed_action \
+#                == ApplicationSelectedActivity.PROPOSED_ACTION_DEFAULT:
+#            purposes = obj.purposes
+#
+#        return ','.join([p.name for p in purposes])
+#
+#    def get_can_pay_licence_fee(self, obj):
+#        return not obj.licence_fee_paid and obj.processing_status == ApplicationSelectedActivity.PROCESSING_STATUS_AWAITING_LICENCE_FEE_PAYMENT
+#        #return obj.processing_status == ApplicationSelectedActivity.PROCESSING_STATUS_AWAITING_LICENCE_FEE_PAYMENT
+#
+#    def get_officer_name(self, obj):
+#
+#        with_officer = ['with_officer', 'with_officer_conditions']
+#        with_approver = ['with_officer_finalisation']
+#        if obj.processing_status in with_officer and obj.assigned_officer:
+#            name = '{0} {1}'.format(
+#                obj.assigned_officer.first_name,
+#                obj.assigned_officer.last_name
+#            )
+#        elif obj.processing_status in with_approver and obj.assigned_approver:
+#            name = '{0} {1}'.format(
+#                obj.assigned_approver.first_name,
+#                obj.assigned_approver.last_name
+#            )
+#        else:
+#            name = ''
+#
+#        return name
 
 
 class ExternalApplicationSelectedActivitySerializer(serializers.ModelSerializer):
@@ -442,7 +501,7 @@ class ValidCompleteAssessmentSerializer(serializers.Serializer):
     activity_id = serializers.ListField(child=serializers.IntegerField())
     final_comment = serializers.CharField(
         required=False,
-        allow_blank=True, 
+        allow_blank=True,
         allow_null=True)
 
     def validate(self, data):
@@ -717,7 +776,7 @@ class BaseApplicationSerializer(serializers.ModelSerializer):
         #     result = True
 
         # if result and (
-        #     is_app_licence_officer 
+        #     is_app_licence_officer
         #     or is_submitter
         #     or is_proxy_applicant
         #     or is_in_org_applicant):
@@ -883,9 +942,10 @@ class DTInternalApplicationSerializer(BaseApplicationSerializer):
     can_be_processed = serializers.SerializerMethodField(read_only=True)
     user_in_officers = serializers.SerializerMethodField(read_only=True)
     application_type = CustomChoiceField(read_only=True)
+    #activities = ApplicationSelectedActivityDashboardSerializer(many=True, read_only=True)
     activities = ApplicationSelectedActivitySerializer(many=True, read_only=True)
     payment_url = serializers.SerializerMethodField(read_only=True)
-    all_payments_url = serializers.SerializerMethodField(read_only=True)
+    all_payments_url = serializers.SerializerMethodField(read_only=True)                                   # 1.7s
 
     class Meta:
         model = Application
@@ -922,11 +982,69 @@ class DTInternalApplicationSerializer(BaseApplicationSerializer):
 
     def get_user_in_officers(self, obj):
         groups = obj.get_permission_groups(['licensing_officer','issuing_officer']).values_list('id', flat=True)
-        can_process = EmailUser.objects.filter(groups__id__in=groups).distinct()               
+        can_process = EmailUser.objects.filter(groups__id__in=groups).distinct()
         if self.context['request'].user and self.context['request'].user in can_process:
             return True
 
         return False
+
+#class DTInternalApplicationDashboardSerializer(BaseApplicationSerializer):
+#    submitter = EmailUserSerializer()
+#    applicant = serializers.CharField(read_only=True)
+#    org_applicant = OrganisationSerializer()
+#    proxy_applicant = EmailUserSerializer()
+#    processing_status = CustomChoiceField(read_only=True, choices=Application.PROCESSING_STATUS_CHOICES)
+#    customer_status = CustomChoiceField(read_only=True)
+#    can_current_user_edit = serializers.SerializerMethodField(read_only=True)
+#    payment_status = serializers.SerializerMethodField(read_only=True)
+#    can_be_processed = serializers.SerializerMethodField(read_only=True)
+#    user_in_officers = serializers.SerializerMethodField(read_only=True)
+#    application_type = CustomChoiceField(read_only=True)
+#    activities = ApplicationSelectedActivityDashboardSerializer(many=True, read_only=True)
+#    #activities = ApplicationSelectedActivitySerializer(many=True, read_only=True)
+#    payment_url = serializers.SerializerMethodField(read_only=True)
+#    all_payments_url = serializers.SerializerMethodField(read_only=True)
+#
+#    class Meta:
+#        model = Application
+#        fields = (
+#            'id',
+#            'customer_status',
+#            'processing_status',
+#            'applicant',
+#            'proxy_applicant',
+#            'org_applicant',
+#            'submitter',
+#            'lodgement_number',
+#            'lodgement_date',
+#            'category_id',
+#            'category_name',
+#            'activity_names',
+#            'activity_purpose_string',
+#            'purpose_string',
+#            'can_user_view',
+#            'can_current_user_edit',
+#            'payment_status',
+#            'can_be_processed',
+#            'user_in_officers',
+#            'application_type',
+#            'activities',
+#            'invoice_url',
+#            'payment_url',
+#            'all_payments_url',
+#        )
+#        # the serverSide functionality of datatables is such that only columns that have field 'data'
+#        # defined are requested from the serializer. Use datatables_always_serialize to force render
+#        # of fields that are not listed as 'data' in the datatable columns
+#        datatables_always_serialize = fields
+#
+#    def get_user_in_officers(self, obj):
+#        groups = obj.get_permission_groups(['licensing_officer','issuing_officer']).values_list('id', flat=True)
+#        can_process = EmailUser.objects.filter(groups__id__in=groups).distinct()
+#        if self.context['request'].user and self.context['request'].user in can_process:
+#            return True
+#
+#        return False
 
 
 class DTExternalApplicationSerializer(BaseApplicationSerializer):
@@ -1423,7 +1541,7 @@ class DTAssessmentSerializer(serializers.ModelSerializer):
         source='application.application_type',
         choices=Application.APPLICATION_TYPE_CHOICES,
         read_only=True)
-    can_be_processed = serializers.SerializerMethodField(read_only=True)    
+    can_be_processed = serializers.SerializerMethodField(read_only=True)
 
     class Meta:
         model = Assessment
@@ -1452,7 +1570,7 @@ class DTAssessmentSerializer(serializers.ModelSerializer):
 
     def get_can_be_processed(self, obj):
         groups = obj.application.get_permission_groups(['assessor']).values_list('id', flat=True)
-        can_process = EmailUser.objects.filter(groups__id__in=groups).distinct()               
+        can_process = EmailUser.objects.filter(groups__id__in=groups).distinct()
         if self.context['request'].user and self.context['request'].user in can_process and obj.status == obj.STATUS_AWAITING_ASSESSMENT:
             return True
 
