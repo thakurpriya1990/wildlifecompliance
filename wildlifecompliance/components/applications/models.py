@@ -386,6 +386,7 @@ class Application(RevisionedMixin):
         max_length=30,
         choices=SUBMIT_TYPE_CHOICES,
         default=SUBMIT_TYPE_ONLINE)
+    property_cache = JSONField(null=True, blank=True, default={})
 
     class Meta:
         app_label = 'wildlifecompliance'
@@ -396,11 +397,36 @@ class Application(RevisionedMixin):
     # Append 'A' to Application id to generate Lodgement number. Lodgement
     # number and lodgement sequence are used to generate Reference.
     def save(self, *args, **kwargs):
+        self.update_property_cache(False)
         super(Application, self).save(*args, **kwargs)
         if self.lodgement_number == '':
             new_lodgement_id = 'A{0:06d}'.format(self.pk)
             self.lodgement_number = new_lodgement_id
             self.save()
+
+    def get_property_cache(self):
+        '''
+        Get properties which were previously resolved.
+        '''
+        if len(self.property_cache) == 0:
+            self.update_property_cache()
+
+        if self.processing_status == self.PROCESSING_STATUS_AWAITING_PAYMENT:
+            self.update_property_cache()
+
+        return self.property_cache
+
+    def update_property_cache(self, save=True):
+        '''
+        Refresh cached properties with updated properties.
+        '''
+        self.property_cache['payment_status'] = self.payment_status
+        # self.property_cache['activities'] = self.jsonify(self.activities)
+
+        if save is True:
+            self.save()
+
+        return self.property_cache
 
     @property
     def applicant(self):
@@ -3644,7 +3670,8 @@ class ApplicationSelectedActivity(models.Model):
     proposed_start_date = models.DateField(null=True, blank=True)
     proposed_end_date = models.DateField(null=True, blank=True)
     #payment_status = models.CharField(max_length=24, default=ActivityInvoice.PAYMENT_STATUS_UNPAID)
-    payment_status = models.CharField(max_length=24, null=True, blank=True)
+    # payment_status = models.CharField(max_length=24, null=True, blank=True)
+    property_cache = JSONField(null=True, blank=True, default={})
 
     def __str__(self):
         return "{0}{1}{2}{3}{4}".format(
@@ -3660,10 +3687,34 @@ class ApplicationSelectedActivity(models.Model):
         verbose_name = 'Application selected activity'
         verbose_name_plural = 'Application selected activities'
 
+    def save(self, *args, **kwargs):
+        self.update_property_cache(False)
+        super(ApplicationSelectedActivity, self).save(*args, **kwargs)
+
     @staticmethod
     def is_valid_status(status):
         return filter(lambda x: x[0] == status,
                       ApplicationSelectedActivity.PROCESSING_STATUS_CHOICES)
+
+    def get_property_cache(self):
+        '''
+        Get properties which were previously resolved.
+        '''
+        if len(self.property_cache) == 0:
+            self.update_property_cache()
+
+        return self.property_cache
+
+    def update_property_cache(self, save=True):
+        '''
+        Refresh cached properties with updated properties.
+        '''
+        self.property_cache['payment_status'] = self.payment_status
+
+        if save is True:
+            self.save()
+
+        return self.property_cache
 
     @property
     def has_inspection(self):
@@ -3858,97 +3909,97 @@ class ApplicationSelectedActivity(models.Model):
             ActivityInvoice.PAYMENT_STATUS_PARTIALLY_PAID,  # Record Payment
         ]
 
-#    @property
-#    def _payment_status(self):
-#        """
-#        Activity payment consist of Licence and Additional Fee. Property
-#        shows the status for both of these payments. Licence Fee is paid up
-#        front before additional fees.
-#        """
-#        def get_payment_status_for_licence(_status):
-#            if self.application_fee == 0 and self.total_paid_amount < 1:
-#                _status = ActivityInvoice.PAYMENT_STATUS_NOT_REQUIRED
-#            else:
-#                if self.activity_invoices.count() == 0:
-#                    _status = ActivityInvoice.PAYMENT_STATUS_UNPAID
-#                else:
-#                    try:
-#                        latest_invoice = Invoice.objects.get(
-#                            reference=self.activity_invoices.latest(
-#                                'id').invoice_reference)
-#                        _status = latest_invoice.payment_status
-#                    except Invoice.DoesNotExist:
-#                        _status =  ActivityInvoice.PAYMENT_STATUS_UNPAID
-#                     pass
-#
-#            return _status
-#
-#        def get_payment_status_for_additional(_status):
-#            if self.additional_fee > Decimal(0.0):
-#                _status = ActivityInvoice.PAYMENT_STATUS_UNPAID
-#                try:
-#                    latest_invoice = Invoice.objects.get(
-#                        reference=self.activity_invoices.latest(
-#                            'id').invoice_reference,
-#                        amount=self.additional_fee)
-#                    _status = latest_invoice.payment_status
-#                    pass
-#
-#                except Invoice.DoesNotExist:
-#                    if self.processing_status == \
-#                        ApplicationSelectedActivity.PROCESSING_STATUS_ACCEPTED:
-#                        _status = ActivityInvoice.PAYMENT_STATUS_PAID
-#
-#                except BaseException:
-#                    if self.processing_status == \
-#                        ApplicationSelectedActivity.PROCESSING_STATUS_ACCEPTED:
-#                        _status = ActivityInvoice.PAYMENT_STATUS_PAID
-#
-#            # paper-based submission allow Record link for additional payment.
-#            if _status == ActivityInvoice.PAYMENT_STATUS_UNPAID \
-#              and self.application.submit_type \
-#              == Application.SUBMIT_TYPE_PAPER:
-#
-#                _status = ActivityInvoice.PAYMENT_STATUS_PARTIALLY_PAID
-#
-#            return _status
-#
-#        def get_payment_status_for_adjustment(_status):
-#            if self.application_fee > 0 and self.has_adjusted_application_fee:
-#                _status = ActivityInvoice.PAYMENT_STATUS_UNPAID
-#                fees_tot = 0
-#                for purpose in self.proposed_purposes.all():
-#                    fees_tot += purpose.licence_fee
-#                    fees_tot += purpose.adjusted_fee
-#                    fees_tot += purpose.application_fee
-#                if self.total_paid_amount == fees_tot:
-#                    _status = ActivityInvoice.PAYMENT_STATUS_PAID
-#
-#            return _status
-#
-#        if self.application.submit_type == Application.SUBMIT_TYPE_MIGRATE:
-#            # when application is migrated from paper version.
-#            return ActivityInvoice.PAYMENT_STATUS_NOT_REQUIRED
-#
-#        paid_status = [
-#            ActivityInvoice.PAYMENT_STATUS_NOT_REQUIRED,
-#            ActivityInvoice.PAYMENT_STATUS_PAID,
-#        ]
-#
-#        status = ActivityInvoice.PAYMENT_STATUS_UNPAID
-#        status = get_payment_status_for_licence(status)
-#        if status not in paid_status:
-#            return status
-#
-#        status = get_payment_status_for_additional(status)
-#        if status not in paid_status:
-#            return status
-#
-#        status = get_payment_status_for_adjustment(status)
-#        if status not in paid_status:
-#            return status
-#
-#        return status
+    @property
+    def payment_status(self):
+        """
+        Activity payment consist of Licence and Additional Fee. Property
+        shows the status for both of these payments. Licence Fee is paid up
+        front before additional fees.
+        """
+        def get_payment_status_for_licence(_status):
+            if self.application_fee == 0 and self.total_paid_amount < 1:
+                _status = ActivityInvoice.PAYMENT_STATUS_NOT_REQUIRED
+            else:
+                if self.activity_invoices.count() == 0:
+                    _status = ActivityInvoice.PAYMENT_STATUS_UNPAID
+                else:
+                    try:
+                        latest_invoice = Invoice.objects.get(
+                            reference=self.activity_invoices.latest(
+                                'id').invoice_reference)
+                        _status = latest_invoice.payment_status
+                    except Invoice.DoesNotExist:
+                        _status =  ActivityInvoice.PAYMENT_STATUS_UNPAID
+                    pass
+
+            return _status
+
+        def get_payment_status_for_additional(_status):
+            if self.additional_fee > Decimal(0.0):
+                _status = ActivityInvoice.PAYMENT_STATUS_UNPAID
+                try:
+                    latest_invoice = Invoice.objects.get(
+                        reference=self.activity_invoices.latest(
+                            'id').invoice_reference,
+                        amount=self.additional_fee)
+                    _status = latest_invoice.payment_status
+                    pass
+
+                except Invoice.DoesNotExist:
+                    if self.processing_status == \
+                        ApplicationSelectedActivity.PROCESSING_STATUS_ACCEPTED:
+                        _status = ActivityInvoice.PAYMENT_STATUS_PAID
+
+                except BaseException:
+                    if self.processing_status == \
+                        ApplicationSelectedActivity.PROCESSING_STATUS_ACCEPTED:
+                        _status = ActivityInvoice.PAYMENT_STATUS_PAID
+
+            # paper-based submission allow Record link for additional payment.
+            if _status == ActivityInvoice.PAYMENT_STATUS_UNPAID \
+                and self.application.submit_type \
+                == Application.SUBMIT_TYPE_PAPER:
+
+                _status = ActivityInvoice.PAYMENT_STATUS_PARTIALLY_PAID
+
+            return _status
+
+        def get_payment_status_for_adjustment(_status):
+            if self.application_fee > 0 and self.has_adjusted_application_fee:
+                _status = ActivityInvoice.PAYMENT_STATUS_UNPAID
+                fees_tot = 0
+                for purpose in self.proposed_purposes.all():
+                    fees_tot += purpose.licence_fee
+                    fees_tot += purpose.adjusted_fee
+                    fees_tot += purpose.application_fee
+                if self.total_paid_amount == fees_tot:
+                    _status = ActivityInvoice.PAYMENT_STATUS_PAID
+
+            return _status
+
+        if self.application.submit_type == Application.SUBMIT_TYPE_MIGRATE:
+            # when application is migrated from paper version.
+            return ActivityInvoice.PAYMENT_STATUS_NOT_REQUIRED
+
+        paid_status = [
+            ActivityInvoice.PAYMENT_STATUS_NOT_REQUIRED,
+            ActivityInvoice.PAYMENT_STATUS_PAID,
+        ]
+
+        status = ActivityInvoice.PAYMENT_STATUS_UNPAID
+        status = get_payment_status_for_licence(status)
+        if status not in paid_status:
+            return status
+
+        status = get_payment_status_for_additional(status)
+        if status not in paid_status:
+            return status
+
+        status = get_payment_status_for_adjustment(status)
+        if status not in paid_status:
+            return status
+
+        return status
 
     @property
     def licensing_officers(self):
@@ -4838,6 +4889,10 @@ class ApplicationSelectedActivityPurpose(models.Model):
     sent_renewal = models.BooleanField(
         default=False,
         help_text='If ticked, a renew reminder has been sent to applicant.')
+    # Adjusted Licence Fee is an adjusted amount included for the licence. It
+    # occurs with questions selected by the applicant for an Activity Purpose.
+    adjusted_licence_fee = models.DecimalField(
+        max_digits=8, decimal_places=2, default='0')
 
     def __str__(self):
         return "SelectedActivityPurposeID {0}".format(self.id)
@@ -5097,92 +5152,92 @@ class ActivityInvoice(models.Model):
         super(ActivityInvoice, self).save(*args, **kwargs)
         self.activity.payment_status =  self.payment_status
 
-    @property
-    def payment_status(self):
-        """
-        Activity payment consist of Licence and Additional Fee. Property
-        shows the status for both of these payments. Licence Fee is paid up
-        front before additional fees.
-        """
-        def get_payment_status_for_licence(_status):
-            if self.activity.application_fee == 0 and self.activity.total_paid_amount < 1:
-                _status = ActivityInvoice.PAYMENT_STATUS_NOT_REQUIRED
-            else:
-                activity_invoices = ActivityInvoice.objects.filter(activity=self.activity)
-                if activity_invoices.count() == 0:
-                    _status = ActivityInvoice.PAYMENT_STATUS_UNPAID
-                else:
-                    try:
-                        latest_invoice = Invoice.objects.get(
-                            reference=activity_invoices.latest('id').invoice_reference
-                        )
-                        _status = latest_invoice.payment_status
-                    except Invoice.DoesNotExist:
-                        _status =  ActivityInvoice.PAYMENT_STATUS_UNPAID
+    # @property
+    # def _payment_status(self):
+    #     """
+    #     Activity payment consist of Licence and Additional Fee. Property
+    #     shows the status for both of these payments. Licence Fee is paid up
+    #     front before additional fees.
+    #     """
+    #     def get_payment_status_for_licence(_status):
+    #         if self.activity.application_fee == 0 and self.activity.total_paid_amount < 1:
+    #             _status = ActivityInvoice.PAYMENT_STATUS_NOT_REQUIRED
+    #         else:
+    #             activity_invoices = ActivityInvoice.objects.filter(activity=self.activity)
+    #             if activity_invoices.count() == 0:
+    #                 _status = ActivityInvoice.PAYMENT_STATUS_UNPAID
+    #             else:
+    #                 try:
+    #                     latest_invoice = Invoice.objects.get(
+    #                         reference=activity_invoices.latest('id').invoice_reference
+    #                     )
+    #                     _status = latest_invoice.payment_status
+    #                 except Invoice.DoesNotExist:
+    #                     _status =  ActivityInvoice.PAYMENT_STATUS_UNPAID
 
-            return _status
+    #         return _status
 
-        def get_payment_status_for_additional(_status):
-            if self.activity.additional_fee > Decimal(0.0):
-                _status = ActivityInvoice.PAYMENT_STATUS_UNPAID
-                try:
-                    latest_invoice = Invoice.objects.get(
-                        reference=ActivityInvoice.objects.filter(activity=self.activity).latest('id').invoice_reference,
-                        amount=self.additional_fee
-                    )
-                    _status = latest_invoice.payment_status
+    #     def get_payment_status_for_additional(_status):
+    #         if self.activity.additional_fee > Decimal(0.0):
+    #             _status = ActivityInvoice.PAYMENT_STATUS_UNPAID
+    #             try:
+    #                 latest_invoice = Invoice.objects.get(
+    #                     reference=ActivityInvoice.objects.filter(activity=self.activity).latest('id').invoice_reference,
+    #                     amount=self.additional_fee
+    #                 )
+    #                 _status = latest_invoice.payment_status
 
-                except Invoice.DoesNotExist:
-                    if self.activity.processing_status==ApplicationSelectedActivity.PROCESSING_STATUS_ACCEPTED:
-                        _status = ActivityInvoice.PAYMENT_STATUS_PAID
+    #             except Invoice.DoesNotExist:
+    #                 if self.activity.processing_status==ApplicationSelectedActivity.PROCESSING_STATUS_ACCEPTED:
+    #                     _status = ActivityInvoice.PAYMENT_STATUS_PAID
 
-                except BaseException:
-                    if self.activity.processing_status==ApplicationSelectedActivity.PROCESSING_STATUS_ACCEPTED:
-                        _status = ActivityInvoice.PAYMENT_STATUS_PAID
+    #             except BaseException:
+    #                 if self.activity.processing_status==ApplicationSelectedActivity.PROCESSING_STATUS_ACCEPTED:
+    #                     _status = ActivityInvoice.PAYMENT_STATUS_PAID
 
-            # paper-based submission allow Record link for additional payment.
-            if _status == ActivityInvoice.PAYMENT_STATUS_UNPAID \
-              and self.activity.application.submit_type==Application.SUBMIT_TYPE_PAPER:
-                _status = ActivityInvoice.PAYMENT_STATUS_PARTIALLY_PAID
+    #         # paper-based submission allow Record link for additional payment.
+    #         if _status == ActivityInvoice.PAYMENT_STATUS_UNPAID \
+    #           and self.activity.application.submit_type==Application.SUBMIT_TYPE_PAPER:
+    #             _status = ActivityInvoice.PAYMENT_STATUS_PARTIALLY_PAID
 
-            return _status
+    #         return _status
 
-        def get_payment_status_for_adjustment(_status):
-            if self.activity.application_fee > 0 and self.activity.has_adjusted_application_fee:
-                _status = ActivityInvoice.PAYMENT_STATUS_UNPAID
-                fees_tot = 0
-                for purpose in self.activity.proposed_purposes.all():
-                    fees_tot += purpose.licence_fee
-                    fees_tot += purpose.adjusted_fee
-                    fees_tot += purpose.application_fee
-                if self.activity.total_paid_amount == fees_tot:
-                    _status = ActivityInvoice.PAYMENT_STATUS_PAID
+    #     def get_payment_status_for_adjustment(_status):
+    #         if self.activity.application_fee > 0 and self.activity.has_adjusted_application_fee:
+    #             _status = ActivityInvoice.PAYMENT_STATUS_UNPAID
+    #             fees_tot = 0
+    #             for purpose in self.activity.proposed_purposes.all():
+    #                 fees_tot += purpose.licence_fee
+    #                 fees_tot += purpose.adjusted_fee
+    #                 fees_tot += purpose.application_fee
+    #             if self.activity.total_paid_amount == fees_tot:
+    #                 _status = ActivityInvoice.PAYMENT_STATUS_PAID
 
-            return _status
+    #         return _status
 
-        if self.activity.application.submit_type == Application.SUBMIT_TYPE_MIGRATE:
-            # when application is migrated from paper version.
-            return ActivityInvoice.PAYMENT_STATUS_NOT_REQUIRED
+    #     if self.activity.application.submit_type == Application.SUBMIT_TYPE_MIGRATE:
+    #         # when application is migrated from paper version.
+    #         return ActivityInvoice.PAYMENT_STATUS_NOT_REQUIRED
 
-        paid_status = [
-            ActivityInvoice.PAYMENT_STATUS_NOT_REQUIRED,
-            ActivityInvoice.PAYMENT_STATUS_PAID,
-        ]
+    #     paid_status = [
+    #         ActivityInvoice.PAYMENT_STATUS_NOT_REQUIRED,
+    #         ActivityInvoice.PAYMENT_STATUS_PAID,
+    #     ]
 
-        status = ActivityInvoice.PAYMENT_STATUS_UNPAID
-        status = get_payment_status_for_licence(status)
-        if status not in paid_status:
-            return status
+    #     status = ActivityInvoice.PAYMENT_STATUS_UNPAID
+    #     status = get_payment_status_for_licence(status)
+    #     if status not in paid_status:
+    #         return status
 
-        status = get_payment_status_for_additional(status)
-        if status not in paid_status:
-            return status
+    #     status = get_payment_status_for_additional(status)
+    #     if status not in paid_status:
+    #         return status
 
-        status = get_payment_status_for_adjustment(status)
-        if status not in paid_status:
-            return status
+    #     status = get_payment_status_for_adjustment(status)
+    #     if status not in paid_status:
+    #         return status
 
-        return status
+    #     return status
 
 
 
