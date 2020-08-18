@@ -17,6 +17,33 @@
                     />
         </FormSection>
 
+        <!--
+        <div v-if="component.type === 'group'"
+        </div>
+
+          <div v-for="(n,idx) in 2">
+          </div>
+            <Group
+        -->
+        <!--
+        <div v-for="(n,idx) in num_groups()">
+            <Group v-if="component.type === 'group'"
+                :label="component.label"
+                :name="component_name"
+                :id="element_id()"
+                :help_text="help_text"
+                :help_text_url="help_text_url"
+                :isRepeatable="strToBool(component.isRepeatable)"
+                :isRemovable="true">
+                    <renderer-block v-for="(subcomponent, index) in component.children"
+                        :component="subcomponent"
+                        :instance="instance"
+                        v-bind:key="`group_${index}`"
+                        />
+            </Group>
+        </div>
+        -->
+
         <Group v-if="component.type === 'group'"
             :label="component.label"
             :name="component_name"
@@ -30,6 +57,18 @@
                     v-bind:key="`group_${index}`"
                     />
         </Group>
+
+        <Group2 v-if="component.type === 'group2'"
+            :field_data="value"
+            :readonly="is_readonly"
+            :name="component_name"
+            :component="component"
+            :id="element_id()"
+            :label="component.label"
+            :help_text="help_text"
+            :isRequired="component.isRequired"
+            :help_text_url="help_text_url"/>
+
 
         <TextField v-if="component.type === 'text'"
             type="text"
@@ -292,6 +331,7 @@ import { strToBool } from "@/utils/helpers.js";
 
 import FormSection from '@/components/forms/section.vue'
 import Group from '@/components/forms/group.vue'
+import Group2 from '@/components/forms/group2.vue'
 import Radio from '@/components/forms/radio.vue'
 import Conditions from '@/components/forms/conditions.vue'
 import Checkbox from '@/components/forms/checkbox.vue'
@@ -318,6 +358,7 @@ const RendererBlock = {
       FormSection,
       TextField,
       Group,
+      Group2,
       SelectBlock,
       HelpText,
       HelpTextUrl,
@@ -376,6 +417,8 @@ const RendererBlock = {
         return `${this.component.name}${this.instance !== null ? `__instance-${this.instance}`: ''}`;
     },
     json_data: function() {
+        console.log('json_data: ' + JSON.stringify(this.renderer_form_data));
+        console.log('component: ' + JSON.stringify(this.component));
         return this.renderer_form_data;
     },
     formDataRecord: function() {
@@ -425,6 +468,13 @@ const RendererBlock = {
     strToBool: strToBool,
     element_id: function(depth=0) {
         return `id_${this.component_name}${(depth) ? `_${depth}` : ''}${this.instance !== null ? `__instance${this.instance}`: ''}`;
+    },
+    num_groups: function() {
+        var default_max_repeatable = 3;
+        if (this.component.isRepeatable && this.component.type === 'group') {
+            return (this.component.maxRepeatable==null ? default_max_repeatable : this.component.maxRepeatable);
+        }
+        return 1;
     },
     replaceSitePlaceholders: function(text_string) {
         if(text_string && text_string.includes("site_url:/")) {
