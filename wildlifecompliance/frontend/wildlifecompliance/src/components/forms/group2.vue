@@ -6,26 +6,32 @@
         <div v-for="(n,idx) in 1" class="panel panel-default">
         -->
         <div class="repeatable-group" v-for="(group, groupIdx) in repeatableGroups">
-            <div class="panel-body">
-                <!--
-                <p> name: {{name}} </p>
-                <p> value: {{value}} </p>
-                <p> component: {{component}} </p>
-                <p> children: {{component.children}} </p>
-                -->
-                <div class="row header-row">
-                    <div v-for="(header, index) in component.children"
-                        v-bind:key="`repeatable_group_${component.name}_${index}`">
+            <div class="panel panel-default">
+                <div class="panel-body">
+                    <!--
+                    <p> name: {{name}} </p>
+                    <p> value: {{value}} </p>
+                    <p> component: {{component}} </p>
+                    <p> children: {{component.children}} </p>
+                    -->
+                    <div class="row header-row">
+                        <div v-for="(header, index) in component.children"
+                            v-bind:key="`repeatable_group_${component.name}_${index}`">
 
-                        <!-- <p> header: {{header}} </p> -->
-                        <span class="header-contents">
-                            <renderer-block
-                            :component="header"
-                            :json_data="value"
-                            :instance="group"
-                            v-bind:key="`repeatable_group_contents_${component.name}_${index}`"
-                            />
-                        </span>
+                            <!-- <p> header: {{header}} </p> -->
+                            <span class="group-contents">
+                                <renderer-block
+                                :component="header"
+                                :json_data="value"
+                                :instance="group"
+                                v-bind:key="`repeatable_group_contents_${component.name}_${index}`"
+                                />
+                            </span>
+                            <div>
+                                <button v-if="groupIdx && index == component.children.length-1 && !readonly" type="button" class="btn btn-danger"
+                                    @click.prevent="removeGroup(group)">Delete group</button>
+                            </div>
+                        </div>
                     </div>
                 </div>
             </div>
