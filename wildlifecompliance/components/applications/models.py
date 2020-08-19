@@ -603,6 +603,7 @@ class Application(RevisionedMixin):
             return 'under_paid'
 
         elif self.requires_refund:
+            print('refund')
             return ApplicationInvoice.PAYMENT_STATUS_OVERPAID
 
         elif self.invoices.count() == 0:
@@ -1798,8 +1799,8 @@ class Application(RevisionedMixin):
 
         # check additional fee amount can cover refund so it can be adjusted
         # at invoicing.
-        outstanding = self.additional_fees - self.get_refund_amount()
-
+        # outstanding = self.additional_fees - self.get_refund_amount()
+        outstanding = self.get_refund_amount()
         return True if outstanding < 0 else False
 
     def has_declined_refund(self):
@@ -4932,9 +4933,12 @@ class ApplicationSelectedActivityPurpose(models.Model):
         Refresh cached properties with updated properties.
         '''
         self.property_cache[
-            'total_paid_adjusted_application_fee'] = 0
+            'total_paid_adjusted_application_fee'
+        ] = str(self.total_paid_adjusted_application_fee)
+
         self.property_cache[
-            'total_paid_adjusted_licence_fee'] = 0
+            'total_paid_adjusted_licence_fee'
+        ] = str(self.total_paid_adjusted_licence_fee)
 
         if save is True:
             self.save()
@@ -5100,11 +5104,11 @@ class ApplicationSelectedActivityPurpose(models.Model):
         for a_inv in self.selected_activity.activity_invoices.all():
             inv_lines = [
                 l for l in a_inv.licence_activity_lines.all()
-                if a_inv.licence_purpose == self.purpose 
-                and a_inv.invoice_line_type == LINE_TYPE
+                if l.licence_purpose == self.purpose 
+                and l.invoice_line_type == LINE_TYPE
             ]
             for line in inv_lines:
-                amount += amount
+                amount += line.amount
 
         return amount
 
@@ -5117,11 +5121,11 @@ class ApplicationSelectedActivityPurpose(models.Model):
         for a_inv in self.selected_activity.activity_invoices.all():
             inv_lines = [
                 l for l in a_inv.licence_activity_lines.all()
-                if a_inv.licence_purpose == self.purpose 
-                and a_inv.invoice_line_type == LINE_TYPE
+                if l.licence_purpose == self.purpose 
+                and l.invoice_line_type == LINE_TYPE
             ]
             for line in inv_lines:
-                amount += amount
+                amount += line.amount
 
         return amount
 
@@ -5129,11 +5133,17 @@ class ApplicationSelectedActivityPurpose(models.Model):
         '''
         Get application fee owing for this licence purpose.
         '''
+        amt = self.adjusted_fee + self.application_fee
+
+        return amt
 
     def get_payable_licence_fee(self):
         '''
         Get licence fee owing for this licence purpose.
         '''
+        amt = self.adjusted_licence_fee + self.licence_fee
+
+        return amt
 
     def suspend(self):
         '''
@@ -5231,11 +5241,6 @@ class ActivityInvoice(models.Model):
     invoice_reference = models.CharField(
         max_length=50, null=True, blank=True, default='')
     invoice_datetime = models.DateTimeField(auto_now=True)
-
-    def save(self, *args, **kwargs):
-        super(ActivityInvoice, self).save(*args, **kwargs)
-        self.activity.payment_status =  self.payment_status
-
 
     def __str__(self):
         invoice = self.invoice_reference
