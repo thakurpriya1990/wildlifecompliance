@@ -258,7 +258,7 @@
             :field_data="value"
             :id="element_id()"
             :options="component.component_attribute"
-            :isMultiple="strToBool(component.isRepeatable)"
+            :isMultiple="true"
             :isRepeatable="strToBool(component.isRepeatable)"
             :help_text="help_text"
             :readonly="is_readonly"

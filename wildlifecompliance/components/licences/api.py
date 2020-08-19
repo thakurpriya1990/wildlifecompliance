@@ -781,11 +781,15 @@ class UserAvailableWildlifeLicencePurposesViewSet(viewsets.ModelViewSet):
         )
         open_applications = Application.get_open_applications(request)
 
-        # Exclude purposes in currently OPEN applications
+        # Exclude purposes in currently OPEN applications which cannot exist in
+        # multiple applications.
         if open_applications:
             for app in open_applications:
                 available_purpose_records = available_purpose_records.exclude(
-                    id__in=app.licence_purposes.all().values_list('id', flat=True))
+                    id__in=app.licence_purposes.exclude(
+                        apply_multiple=True
+                    ).values_list('id', flat=True)
+                )
 
         if request.user.is_staff:
             # filter out purposes not related to selected licence.
@@ -795,7 +799,7 @@ class UserAvailableWildlifeLicencePurposesViewSet(viewsets.ModelViewSet):
                 for selected_activity in licence.current_activities:
                     active_purpose_ids.extend(
                         [purpose.id for purpose in selected_activity.purposes])
-              
+
             if application_type in [
                 Application.APPLICATION_TYPE_ACTIVITY,
                 Application.APPLICATION_TYPE_NEW_LICENCE,

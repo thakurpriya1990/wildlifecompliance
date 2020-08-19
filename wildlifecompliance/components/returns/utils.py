@@ -500,12 +500,21 @@ class NumberFieldCompositor(SchemaFieldCompositor):
             A TypeError will be thrown if no rows exist in the table. We just
             catch the exception and continue.
             '''
-            pass
+            self._field.field_name = schema_data['name']
+
+        except KeyError:
+            '''
+            A KeyError will be thrown if the special field element does not
+            exist in the schema. We just catch the exception and continue.
+            '''
+            self._field.field_name = schema_data['name']
 
         except Exception as e:
-            logger.error('ERR {0} ReturnID {1} : {2}'.format(
+            self._field.field_name = schema_data['name']
+            logger.error('ERR {0} ReturnID {1} Field {2}: {3}'.format(
                 'NumberFieldCompositor.render()',
                 self._return.id,
+                self._field.field_name,
                 e
             ))
 

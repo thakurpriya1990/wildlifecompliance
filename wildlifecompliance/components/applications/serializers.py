@@ -988,6 +988,11 @@ class DTInternalApplicationSerializer(BaseApplicationSerializer):
 
         return False
 
+    def get_payment_status(self, obj):
+        value = obj.get_property_cache()
+        return value['payment_status']
+
+
 #class DTInternalApplicationDashboardSerializer(BaseApplicationSerializer):
 #    submitter = EmailUserSerializer()
 #    applicant = serializers.CharField(read_only=True)
@@ -1047,17 +1052,67 @@ class DTInternalApplicationSerializer(BaseApplicationSerializer):
 #        return False
 
 
+# class _DTExternalApplicationSerializer(BaseApplicationSerializer):
+#     submitter = EmailUserSerializer()
+#     applicant = serializers.CharField(read_only=True)
+#     org_applicant = ExternalOrganisationSerializer()
+#     proxy_applicant = EmailUserSerializer()
+#     processing_status = CustomChoiceField(read_only=True, choices=Application.PROCESSING_STATUS_CHOICES)
+#     customer_status = CustomChoiceField(read_only=True)
+#     can_current_user_edit = serializers.SerializerMethodField(read_only=True)
+#     payment_status = serializers.SerializerMethodField(read_only=True)
+#     application_type = CustomChoiceField(read_only=True)
+#     activities = ExternalApplicationSelectedActivitySerializer(many=True, read_only=True)
+#     invoice_url = serializers.SerializerMethodField(read_only=True)
+#     payment_url = serializers.SerializerMethodField(read_only=True)
+
+#     class Meta:
+#         model = Application
+#         fields = (
+#             'id',
+#             'customer_status',
+#             'processing_status',
+#             'applicant',
+#             'org_applicant',
+#             'proxy_applicant',
+#             'submitter',
+#             'lodgement_number',
+#             'lodgement_date',
+#             'category_id',
+#             'category_name',
+#             'activity_names',
+#             'activity_purpose_string',
+#             'purpose_string',
+#             'can_user_view',
+#             'can_current_user_edit',
+#             'payment_status',
+#             'application_type',
+#             'activities',
+#             'invoice_url',
+#             'payment_url',
+#             'can_pay_application',
+#             'can_pay_licence',
+
+#         )
+#         # the serverSide functionality of datatables is such that only columns that have field 'data'
+#         # defined are requested from the serializer. Use datatables_always_serialize to force render
+#         # of fields that are not listed as 'data' in the datatable columns
+#         datatables_always_serialize = fields
+
+
 class DTExternalApplicationSerializer(BaseApplicationSerializer):
     submitter = EmailUserSerializer()
     applicant = serializers.CharField(read_only=True)
     org_applicant = ExternalOrganisationSerializer()
     proxy_applicant = EmailUserSerializer()
-    processing_status = CustomChoiceField(read_only=True, choices=Application.PROCESSING_STATUS_CHOICES)
+    processing_status = CustomChoiceField(
+        read_only=True, choices=Application.PROCESSING_STATUS_CHOICES)
     customer_status = CustomChoiceField(read_only=True)
     can_current_user_edit = serializers.SerializerMethodField(read_only=True)
     payment_status = serializers.SerializerMethodField(read_only=True)
     application_type = CustomChoiceField(read_only=True)
-    activities = ExternalApplicationSelectedActivitySerializer(many=True, read_only=True)
+    activities = ExternalApplicationSelectedActivitySerializer(
+        many=True, read_only=True)
     invoice_url = serializers.SerializerMethodField(read_only=True)
     payment_url = serializers.SerializerMethodField(read_only=True)
 
@@ -1089,10 +1144,15 @@ class DTExternalApplicationSerializer(BaseApplicationSerializer):
             'can_pay_licence',
 
         )
-        # the serverSide functionality of datatables is such that only columns that have field 'data'
-        # defined are requested from the serializer. Use datatables_always_serialize to force render
-        # of fields that are not listed as 'data' in the datatable columns
+        # the serverSide functionality of datatables is such that only columns
+        # that have field 'data' defined are requested from the serializer. Use
+        # datatables_always_serialize to force render of fields that are not
+        # listed as 'data' in the datatable columns
         datatables_always_serialize = fields
+
+    def get_payment_status(self, obj):
+        value = obj.get_property_cache()
+        return value['payment_status']
 
 
 class WildlifeLicenceApplicationSerializer(BaseApplicationSerializer):
