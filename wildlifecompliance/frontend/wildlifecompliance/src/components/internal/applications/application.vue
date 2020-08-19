@@ -948,7 +948,6 @@ export default {
             this.$refs.proposed_licence.preloadLastActivity();
         },
         toggleIssue: async function(){
-            let is_saved = await this.save_wo();
             this.showingApplication = false;
             this.isSendingToAssessor=false;
             this.isOfficerConditions=false;
