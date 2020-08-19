@@ -453,7 +453,6 @@ export default {
     //   this.adjusted_application_fee = this.application.application_fee
     // }
     this.adjusted_application_fee = this.application.application_fee
-    console.log(this.application.licence_fee)
   }
 }
 </script>

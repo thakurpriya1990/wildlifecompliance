@@ -102,6 +102,9 @@ class ReturnSerializer(serializers.ModelSerializer):
     user_in_officers = serializers.SerializerMethodField(read_only=True)
     can_current_user_edit = serializers.SerializerMethodField(read_only=True)
     apply_fee_field = serializers.SerializerMethodField(read_only=True)
+    species_list = serializers.SerializerMethodField(read_only=True)
+    species = serializers.SerializerMethodField(read_only=True)
+    has_species = serializers.SerializerMethodField(read_only=True)
 
     class Meta:
         model = Return
@@ -140,6 +143,9 @@ class ReturnSerializer(serializers.ModelSerializer):
             'can_be_processed',
             'can_current_user_edit',
             'apply_fee_field',
+            'species_list',
+            'species',
+            'has_species',
         )
 
         # the serverSide functionality of datatables is such that only columns
@@ -307,7 +313,8 @@ class ReturnSerializer(serializers.ModelSerializer):
             Return.RETURN_PROCESSING_STATUS_PAYMENT,
         ]
         can_user_edit = False
-        is_submitter = _return.submitter == self.context['request'].user
+        is_submitter = _return.application.submitter \
+            == self.context['request'].user
 
         if _return.processing_status in with_customer and is_submitter:
             can_user_edit = True
@@ -328,6 +335,30 @@ class ReturnSerializer(serializers.ModelSerializer):
         for_apply_fee_fields.accept(schema_field)
 
         return for_apply_fee_fields.get_field_name()
+
+    def get_species_list(self, _return):
+        """
+        Gets the list of Species available for a Return Running Sheet.
+        :param _return: Return instance.
+        :return: List of species for a Return Running Sheet.
+        """
+        return ReturnService.get_species_list_for(_return)
+
+    def get_species(self, _return):
+        """
+        Gets the Species available for a Return Running Sheet.
+        :param _return: Return instance.
+        :return: species identifier for a Return Running Sheet.
+        """
+        return ReturnService.get_species_for(_return)
+
+    def get_has_species(self, _return):
+        """
+        A check whether species is required for this return.
+        :param _return: Return instance.
+        :return: boolean.
+        """
+        return _return.return_type.species_required
 
 
 class TableReturnSerializer(ReturnSerializer):
