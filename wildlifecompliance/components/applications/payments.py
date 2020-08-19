@@ -234,25 +234,34 @@ class ApplicationFeePolicy(object):
 
         product_lines = []
 
-        # application.
+        # application fee.
         activities_with_fees = [
             a for a in application.activities if a.application_fee > 0]
 
         for activity in activities_with_fees:
 
-            price_excl = calculate_excl_gst(activity.application_fee)
-            if ApplicationFeePolicy.GST_FREE:
-                price_excl = activity.application_fee
-            oracle_code = activity.licence_activity.oracle_account_code
+            paid_purposes = [
+                p for p in activity.proposed_purposes.all()
+                if p.is_payable
+            ]
 
-            product_lines.append({
-                'ledger_description': '{} (Application Fee)'.format(
-                    activity.licence_activity.name),
-                'quantity': 1,
-                'price_incl_tax': str(activity.application_fee),
-                'price_excl_tax': str(price_excl),
-                'oracle_code': oracle_code
-            })
+            for p in paid_purposes:
+
+                fee = p.get_payable_application_fee()
+
+                price_excl = calculate_excl_gst(fee)
+                if ApplicationFeePolicy.GST_FREE:
+                    price_excl = fee
+                oracle_code = p.purpose.oracle_account_code
+
+                product_lines.append({
+                    'ledger_description': '{} (Application Fee)'.format(
+                        p.purpose.name),
+                    'quantity': 1,
+                    'price_incl_tax': str(fee),
+                    'price_excl_tax': str(price_excl),
+                    'oracle_code': oracle_code
+                })
 
         # licence activities.
         activities_with_fees = [
@@ -260,19 +269,28 @@ class ApplicationFeePolicy(object):
 
         for activity in activities_with_fees:
 
-            price_excl = calculate_excl_gst(activity.licence_fee)
-            if ApplicationFeePolicy.GST_FREE:
-                price_excl = activity.licence_fee
-            oracle_code = activity.licence_activity.oracle_account_code
+            paid_purposes = [
+                p for p in activity.proposed_purposes.all()
+                if p.is_payable
+            ]
 
-            product_lines.append({
-                'ledger_description': '{} (Licence Fee)'.format(
-                    activity.licence_activity.name),
-                'quantity': 1,
-                'price_incl_tax': str(activity.licence_fee),
-                'price_excl_tax': str(price_excl),
-                'oracle_code': oracle_code
-            })
+            for p in paid_purposes:
+
+                fee = p.get_payable_licence_fee()
+
+                price_excl = calculate_excl_gst(fee)
+                if ApplicationFeePolicy.GST_FREE:
+                    price_excl = fee
+                oracle_code = p.purpose.oracle_account_code
+
+                product_lines.append({
+                    'ledger_description': '{} (Licence Fee)'.format(
+                        p.purpose.name),
+                    'quantity': 1,
+                    'price_incl_tax': str(fee),
+                    'price_excl_tax': str(price_excl),
+                    'oracle_code': oracle_code
+                })
 
         activities = application.selected_activities.all()
         # Include additional fees by licence approvers.
@@ -288,7 +306,7 @@ class ApplicationFeePolicy(object):
                 price_excl = calculate_excl_gst(activity.additional_fee)
                 if ApplicationFeePolicy.GST_FREE:
                     price_excl = activity.additional_fee
-                oracle_code = activity.licence_activity.oracle_account_code
+                oracle_code = ''
 
                 product_lines.append({
                     'ledger_description': '{}'.format(
@@ -384,18 +402,32 @@ class ApplicationFeePolicy(object):
         fees_lic_tot = 0
         for activity in self.application.activities:
             fees_app = 0
-            fees_adj = 0
+            fees_app_adj = 0
             fees_lic = 0
+            fees_lic_adj = 0
+            paid_lic_tot = 0
+            paid_app_tot = 0
             for p in activity.proposed_purposes.all():
-                fees_adj += p.adjusted_fee if p.is_payable else 0
+                fees_app_adj += p.adjusted_fee if p.is_payable else 0
                 fees_app += p.application_fee if p.is_payable else 0
                 fees_lic += p.licence_fee if p.is_payable else 0
+                fees_lic_adj += p.adjusted_licence_fee if p.is_payable else 0
+
+                paid_lic_tot += p.total_paid_adjusted_licence_fee \
+                    if p.is_payable else 0
+                paid_app_tot += p.total_paid_adjusted_application_fee \
+                    if p.is_payable else 0
+
                 has_purpose = True
+
             paid_amt = activity.total_paid_amount
-            fees_app = fees_app + fees_adj
+            fees_app = fees_app + fees_app_adj
+            fees_lic = fees_lic + fees_lic_adj
+
             if paid_amt > 0:        # amount already paid on application.
-                fees_app = fees_lic + fees_app - paid_amt
-                fees_lic = 0
+                fees_app = fees_app - paid_app_tot
+                fees_lic = fees_lic - paid_lic_tot
+
             fees_app_tot += fees_app
             fees_lic_tot += fees_lic
 
@@ -610,14 +642,13 @@ class ApplicationFeePolicyForAmendment(ApplicationFeePolicy):
             ).first()
 
             save_app = 0
-            prev_adj = 0
+            prev_app_adj = 0
             for p in activity.proposed_purposes.all():
-
                 if p.purpose_id in purposes_ids and p.is_payable:
                     # Only for purposes existing in copied form.
                     # save_app += p.application_fee
                     save_app += p.purpose.amendment_application_fee
-                    prev_adj += p.adjusted_fee
+                    prev_app_adj += p.adjusted_fee
                     is_selected = True
 
             if is_selected:
@@ -1166,34 +1197,48 @@ class ApplicationFeePolicyForNew(ApplicationFeePolicy):
 
         NOTE: Same calculation for set_application_fee_from_attributes.
         '''
-        fees_adj = 0
+        fees_app_adj = 0
         fees_app = 0
+        fees_lic_adj = 0
         fees_lic = 0
+
+        paid_lic_tot = 0
+        paid_app_tot = 0
 
         licence_paid = False if activity.total_paid_amount < 1 else True
 
         for purpose in activity.proposed_purposes.all():
-            fees_adj += purpose.adjusted_fee if purpose.is_payable else 0
+            fees_app_adj += purpose.adjusted_fee if purpose.is_payable else 0
             fees_app += purpose.application_fee if purpose.is_payable else 0
             fees_lic += purpose.licence_fee if purpose.is_payable else 0
+            fees_lic_adj += purpose.adjusted_licence_fee \
+                if purpose.is_payable else 0
 
-        fees_new = fees_app + fees_adj
+            paid_lic_tot += purpose.total_paid_adjusted_licence_fee \
+                if purpose.is_payable else 0
+            paid_app_tot += purpose.total_paid_adjusted_application_fee \
+                if purpose.is_payable else 0
+
+        fees_app_new = fees_app + fees_app_adj
+        fees_lic_new = fees_lic + fees_lic_adj
+
         if licence_paid:
             # just calculate adjustments.
-            fees_new = fees_lic + fees_new - activity.total_paid_amount
+            fees_app_new = fees_app_adj + fees_app - paid_app_tot
+            fees_lic_new = fees_lic_adj + fees_lic - paid_lic_tot
             activity.application_fee = 0
             fees_lic = 0
 
-        if fees_new != 0:
-            activity.application_fee = fees_new
-        activity.licence_fee = fees_lic
+        # if fees_app_new != 0:
+        activity.application_fee = fees_app_new
+        activity.licence_fee = fees_lic_new
 
         if self.has_fee_exemption:
             activity.application_fee = 0
             activity.licence_fee = 0
             activity.additional_fee = 0
 
-        if fees_new < 0:
+        if fees_app_new < 0:
             # Refund amounts can be calculated from changes to the application
             # form which are then saved against the activity. Will occur for
             # requested amendments.
@@ -1217,29 +1262,43 @@ class ApplicationFeePolicyForNew(ApplicationFeePolicy):
 
         NOTE: Same calculation for set_application_fee_from_activity.
         '''
-        fees_new = 0
-        policy_licence_fee = self.dynamic_attributes['fees']['licence']
+        fees_app_new = 0
+        fees_lic_new = 0
+        # policy_licence_fee = self.dynamic_attributes['fees']['licence']
         for activity in self.application.activities:
             licence_paid = False if activity.total_paid_amount < 1 else True
             # adjusted fees on activity includes application fee amount.
             # fees_adj = fees_adj + fees_app
-            fees_adj = attributes[
+            fees_app_adj = attributes[
                 'activity_attributes'][activity]['fees']['application']
+            fees_lic_adj = attributes[
+                'activity_attributes'][activity]['fees']['licence']
 
             if licence_paid:
                 fees_lic = 0
-                for purpose in activity.proposed_purposes.all():
-                    fees_lic += purpose.licence_fee if purpose.is_payable \
+                fees_app = 0
+                paid_lic_tot = 0
+                paid_app_tot = 0
+                for p in activity.proposed_purposes.all():
+                    fees_lic += p.licence_fee if p.is_payable \
                         else 0
-                fees_new = fees_adj + fees_lic - activity.total_paid_amount
-                policy_licence_fee = 0
-            else:
-                fees_new += fees_adj
+                    fees_app += p.application_fee if p.is_payable \
+                        else 0
+                    paid_lic_tot += p.total_paid_adjusted_licence_fee \
+                        if p.is_payable else 0
+                    paid_app_tot += p.total_paid_adjusted_application_fee \
+                        if p.is_payable else 0
 
-        if fees_new != 0:
-            attributes['fees']['application'] = fees_new
-            self.dynamic_attributes['fees']['application'] = fees_new
-        attributes['fees']['licence'] = policy_licence_fee
+                fees_app_new = fees_app_adj - paid_app_tot
+                fees_lic_new = fees_lic_adj - paid_lic_tot
+
+            else:
+                fees_app_new += fees_app_adj
+                fees_lic_new += fees_lic_adj
+
+        attributes['fees']['application'] = fees_app_new
+        self.dynamic_attributes['fees']['application'] = fees_app_new
+        attributes['fees']['licence'] = fees_lic_new
 
         if self.has_fee_exemption:
             attributes['fees']['application'] = 0

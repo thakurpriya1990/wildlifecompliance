@@ -126,7 +126,7 @@ export default {
     },
     components: { HelpText, HelpTextUrl, },
     methods:{
-        multipleSelection: function(val){
+        multipleSelection2: function(val){
             if (Array.isArray(this.options)){
                 if (this.species.find(v => v == val)){
                     return true;
@@ -136,8 +136,28 @@ export default {
             }
             return false;
         },
+        multipleSelection: function(val){
+            if (Array.isArray(this.field_data.value)){
+                let selected = '0'
+                for (let i=0; i < this.field_data.value.length; i++){
+                    if (this.field_data.value[i] == val){
+                        selected = this.field_data.value[i];
+                        break;
+                    }
+                }
+                if (this.species.find(v => v.value == selected && v.value === val)){
+                    return true;
+                }
+            }else{
+                if (this.species.find(v => v.value === this.field_data.value && v.value === val)){
+                    return true;
+                }
+            }
+            return false;
+        },
         init:function () {
             let vm =this;
+            vm.multipleSelected = vm.field_data.value;
             setTimeout(function (e) {
                    $('#'+vm.selectid).select2({
                        "theme": "bootstrap",
@@ -165,6 +185,11 @@ export default {
                    }
                },100);
         }
+    },
+    updated:function (){
+        this.$nextTick(() => {
+            this.field_data.value = this.multipleSelected[0] ? this.multipleSelected : this.field_data.value;
+        });
     },
     mounted:function () {
         this.init();

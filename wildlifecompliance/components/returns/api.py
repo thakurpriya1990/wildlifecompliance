@@ -249,6 +249,14 @@ class ReturnViewSet(viewsets.ReadOnlyModelViewSet):
             print(traceback.print_exc())
             raise serializers.ValidationError(str(e))
 
+    @detail_route(methods=['GET', ])
+    def species_data_details(self, request, *args, **kwargs):
+        species_id = request.GET.get('species_id', None)
+        instance = self.get_object()
+        data = ReturnService.set_species_for(instance, species_id)
+
+        return Response(data.table)
+
     @list_route(methods=['GET', ])
     def sheet_details(self, request, *args, **kwargs):
         return_id = self.request.query_params.get('return_id')
@@ -256,7 +264,7 @@ class ReturnViewSet(viewsets.ReadOnlyModelViewSet):
         # instance = Return.objects.get(id=return_id).sheet
         # instance.set_species(species_id)
         instance = Return.objects.get(id=return_id)
-        sheet = ReturnService.set_sheet_species_for(instance, species_id)
+        sheet = ReturnService.set_species_for(instance, species_id)
         # return Response(instance.table)
         return Response(sheet.table)
 
@@ -365,18 +373,11 @@ class ReturnViewSet(viewsets.ReadOnlyModelViewSet):
         try:
             instance = self.get_object()
 
-            ReturnService.store_request_details_for(instance, request)
-            # if instance.has_data:
-            #     instance.data.store(request)
+            with transaction.atomic():
+                ReturnService.store_request_details_for(instance, request)
+                instance.save()
+                serializer = self.get_serializer(instance)
 
-            # if instance.has_sheet:
-            #     instance.sheet.store(request)
-
-            # if instance.has_question:
-            #     instance.question.store(request)
-
-            instance.save()
-            serializer = self.get_serializer(instance)
             return Response(serializer.data)
         except serializers.ValidationError:
             print(traceback.print_exc())

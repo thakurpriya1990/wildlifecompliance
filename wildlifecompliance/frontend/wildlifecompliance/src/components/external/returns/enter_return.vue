@@ -9,6 +9,14 @@
         </h3>
     </div>
     <div class="panel-body panel-collapse in" :id="pdBody">
+        <div class="col-md-12" v-if="returns.has_species">
+            <div class="form-group">
+                <label for="">Species Available:</label>
+                <select class="form-control" ref="selected_species" v-model="returns.species">
+                    <option class="change-species" v-for="(specie, s_idx) in returns.species_list" :value="s_idx" :species_id="s_idx" v-bind:key="`specie_${s_idx}`" >{{specie}}</option>
+                </select>
+            </div>
+        </div>
         <div class="col-sm-12">
             <div class="row">
                 <label style="width:70%;" class="col-sm-4">Do you want to Lodge a nil Return?</label>
@@ -66,6 +74,10 @@ import {
   helpers
 }
 from '@/utils/hooks'
+var select2 = require('select2');
+require("select2/dist/css/select2.min.css");
+require("select2-bootstrap-theme/dist/select2-bootstrap.min.css");
+
 export default {
   name: 'externalReturn',
   props:["table", "data", "grid"],
@@ -91,6 +103,7 @@ export default {
         'isReturnsLoaded',
         'returns',
         'is_external',
+        'species_cache',
     ]),
     uploadedFileName: function() {
       return this.spreadsheet != null ? this.spreadsheet.name: '';
@@ -100,6 +113,8 @@ export default {
     },
     refreshGrid: function() {
       this.setReturnsEstimateFee()
+      // update cached for uploaded data.
+      // this.getSpecies(this.returns.species)
       return this.refresh_grid;
     }
   },
@@ -125,11 +140,11 @@ export default {
       this.spreadsheet = _file;
       this.validate_upload()
     },
-    validate_upload(e) {
+    validate_upload: async function(e) {
       this.refresh_grid = false
       let _data = new FormData(this.form);
       _data.append('spreadsheet', this.spreadsheet)
-      this.$http.post(helpers.add_endpoint_json(api_endpoints.returns,this.returns.id+'/upload_details'),_data,{
+      await this.$http.post(helpers.add_endpoint_json(api_endpoints.returns,this.returns.id+'/upload_details'),_data,{
                     emulateJSON:true,
         }).then((response)=>{
             if (this.replaceReturn === 'no') {
@@ -149,35 +164,76 @@ export default {
 		        swal('Error Uploading', exception.body.error, 'error');
         });
     },
-    estimate_price: function() {
-      const self = this;
-      self.form=document.forms.external_returns_form;
-      self.$http.post(helpers.add_endpoint_json(api_endpoints.returns,self.returns.id+'/estimate_price'),{
-                      emulateJSON:true,
-                    }).then((response)=>{
+    getSpecies: async function(_id){
+      var specie_id = _id
 
-                        console.log(response)
+      if (this.species_cache[this.returns.species]==null) {
+        // cache currently displayed species json
+        this.species_cache[this.returns.species] = this.returns.table[0]['data']
+      }
 
-                    },(error)=>{
-                        console.log(error);
-                        swal('Error',
-                             'There was an error submitting your return details.<br/>' + error.body,
-                             'error'
-                        )
-                    });
+      if (this.species_cache[specie_id] != null) {
+        // species json previously loaded from ajax
+        this.returns.table[0]['data'] = this.species_cache[specie_id]
 
+      } else {
+        // load species json from ajax
+        this.refresh_grid = false
+        await this.$http.get(helpers.add_endpoint_json(api_endpoints.returns,this.returns.id+'/species_data_details/?species_id='+specie_id))
+          .then((response)=>{
+              this.returns.table[0]['data'] = response.body[0]['data']
+
+          },exception=>{
+
+            swal('Error with Species data', exception.body.error, 'error');
+          });
+
+
+      };  // end 
+      //this.replaceReturn = 'no'
+      //this.nilReturn = 'no'
+      //this.spreadsheetReturn = 'no'
+      this.returns.species = specie_id;
+      this.refresh_grid = true
+      return
+    },
+    initialiseSpeciesSelect: function(reinit=false){
+      var vm = this;
+      if (reinit){
+          $(vm.$refs.selected_species).data('select2') ? $(vm.$refs.selected_species).select2('destroy'): '';
+      }
+      
+      $(vm.$refs.selected_species).select2({
+          theme: "bootstrap",
+          allowClear: true,
+          placeholder: "Select..."
+      }).
+      on("select2:select",function (e) {
+          e.stopImmediatePropagation();
+          e.preventDefault();
+          var selected = $(e.currentTarget);
+          // vm.getSpecies(selected.val());
+      });
+    },
+    eventListeners: function () {
+      var vm = this;
+      this.initialiseSpeciesSelect();
+      this.getSpecies(this.returns.species)
     }
   },
   mounted: function(){
-    var vm = this;
-    vm.form = document.forms.enter_return;
-    vm.readonly = !vm.is_external;
-    
-    if (vm.returns.table[0]) {
-        vm.nilReturn = 'no'
-        vm.spreadsheetReturn = 'no'
-        vm.replaceReturn = 'no'
-    }
+    this.$nextTick(() => {
+        this.form = document.forms.enter_return;
+        this.readonly = !this.is_external;
+
+        if (this.returns.table[0]) {
+            this.nilReturn = 'no'
+            this.spreadsheetReturn = 'no'
+            this.replaceReturn = 'no'
+        }
+
+        this.eventListeners();
+    });
   },
 }
 </script>
