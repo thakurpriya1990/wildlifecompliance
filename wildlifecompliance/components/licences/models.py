@@ -55,6 +55,7 @@ class LicencePurpose(models.Model):
     apply_multiple = models.BooleanField(
         default=False,
         help_text='If ticked, the licenced Purpose can have multiple periods.')
+    oracle_account_code = models.CharField(max_length=100, default='')
 
     class Meta:
         app_label = 'wildlifecompliance'
@@ -209,7 +210,6 @@ class LicenceActivity(models.Model):
         default=False,
         help_text='If ticked, this licenced activity will not be available for applications on behalf of an organisation.')
     schema = JSONField(default=list)
-    oracle_account_code = models.CharField(max_length=100, default='')
 
     class Meta:
         app_label = 'wildlifecompliance'
