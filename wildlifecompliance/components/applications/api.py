@@ -582,7 +582,11 @@ class ApplicationViewSet(viewsets.ModelViewSet):
 
     @list_route(methods=['GET', ])
     def active_licence_application(self, request, *args, **kwargs):
-        active_application = Application.get_active_licence_applications(request).first()
+        # active_application = Application.get_active_licence_applications(
+        #     request).first()
+        active_application = Application.get_first_active_licence_application(
+            request
+        )
         if not active_application:
             return Response({'application': None})
 
