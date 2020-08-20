@@ -603,7 +603,6 @@ class Application(RevisionedMixin):
             return 'under_paid'
 
         elif self.requires_refund:
-            print('refund')
             return ApplicationInvoice.PAYMENT_STATUS_OVERPAID
 
         elif self.invoices.count() == 0:
@@ -3084,6 +3083,26 @@ class Application(RevisionedMixin):
         applications = applications.filter(
             selected_activities__id__in=a_ids
         )
+
+        return applications
+
+    @staticmethod
+    def get_first_active_licence_application(
+            request, for_application_type=APPLICATION_TYPE_NEW_LICENCE):
+        '''
+        Returns a current application available.
+
+        A check whether requested_user has any current applications.
+        '''
+        applications = Application.get_request_user_applications(
+            request
+        
+        ).filter(
+            selected_activities__activity_status__in=[
+                ApplicationSelectedActivity.ACTIVITY_STATUS_CURRENT,
+                ApplicationSelectedActivity.ACTIVITY_STATUS_SUSPENDED,
+            ],
+        ).first()
 
         return applications
 
