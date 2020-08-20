@@ -211,49 +211,6 @@ class ApplicationService(object):
         do_update_dynamic_attributes(application)
 
     @staticmethod
-    def set_special_form_fields(application, form):
-        """
-        Set Special Form Field Attributes on an Application Form.
-        """
-        with_officer = [
-            'with_officer',
-            'with_officer_condition',
-            'under_review',
-        ]
-
-        try:
-            # Set form components to be visited.
-            checkbox = CheckboxAndRadioButtonVisitor(application, form)
-            text_area = TextAreaVisitor(application, form)
-            text = TextVisitor(application, form)
-
-            # Set species Fields for Checkbox and RadioButtons.
-            for_species_options_fields = SpeciesOptionsFieldElement()
-            for_species_options_fields.accept(checkbox)
-
-            if application.processing_status in with_officer:
-
-                # Set StandardCondition Fields for Checkbox and RadioButtons.
-                for_condition_fields = StandardConditionFieldElement()
-                for_condition_fields.accept(checkbox)
-
-                # Set PromptInspection Fields for Checkbox and RadioButtons.
-                for_inspection_fields = PromptInpsectionFieldElement()
-                for_inspection_fields.accept(checkbox)
-
-                # Set copy-to-licence Fields which allow for additional
-                # terminologies to be dynamically added to the licence pdf.
-                for_copy_to_licence_fields = CopyToLicenceFieldElement()
-                for_copy_to_licence_fields.accept(text_area)
-                for_copy_to_licence_fields.accept(text)
-
-        except BaseException as e:
-            logger.error('ERR set_special_form_fields for {0} : {1}'.format(
-                application.id,
-                e,
-            ))
-
-    @staticmethod
     def update_dynamic_attributes(application):
         """
         Updates application attributes based on admin schema definition.
@@ -767,7 +724,7 @@ class CopyToLicenceFieldElement(SpecialFieldElement):
         return 'Field Element: {0}'.format(self._NAME)
 
 
-class PromptInpsectionFieldElement(SpecialFieldElement):
+class PromptInspectionFieldElement(SpecialFieldElement):
     """
     An implementation of an SpecialFieldElement operation that takes a
     ApplicationFormVisitor as an argument.
@@ -783,8 +740,10 @@ class PromptInpsectionFieldElement(SpecialFieldElement):
             self.is_refreshing = True
         application_form_visitor.visit_prompt_inspection_field(self)
 
-    def reset(self, licence_activity):
-
+    def reset_licence_purpose(self, licence_activity, purpose_id):
+        """
+        Reset previous options settings on the licence purpose by removing.
+        """
         if self.is_refreshing:
             # No user update with a page refesh.
             return
@@ -805,9 +764,10 @@ class PromptInpsectionFieldElement(SpecialFieldElement):
             # No user update with a page refesh.
             return
 
+        activity.is_inspection_required = False
         if set([self._NAME]).issubset(component):
             activity.is_inspection_required = True
-            activity.save()
+        activity.save()
 
     def __str__(self):
         return 'Field Element: {0}'.format(self._NAME)

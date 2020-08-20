@@ -885,6 +885,7 @@ export default {
             'loadCurrentUser',
             'toggleFinalisedTabs',
             'saveFormData',
+            'assessmentData',
         ]),
         eventListeners: function(){
             let vm = this;
@@ -1085,18 +1086,24 @@ export default {
 
         },
         togglesendtoAssessor: async function(){
-            let is_saved = await this.save_wo();
-            
-            if (is_saved) {
+            await this.assessmentData({ url: `/api/application/${this.application.id}/assessment_data.json` }).then( async response => {
+
                 $('#tabs-main li').removeClass('active');
                 this.isSendingToAssessor = !this.isSendingToAssessor;
                 this.showingApplication = false;
-            }
+
+            },(error)=>{
+                swal(
+                    'Application Error',
+                    helpers.apiVueResourceError(error),
+                    'error'
+                )
+            });
         },
         save: async function(props = { showNotification: true }) {
             this.spinner = true;
             const { showNotification } = props;
-            await this.saveFormData({ url: this.form_data_comments_url }).then( async response => {
+            // await this.saveFormData({ url: this.form_data_comments_url }).then( async response => {
 
                 await this.saveFormData({ url: this.form_data_application_url }).then(response => {
                     this.spinner = false;   
@@ -1114,15 +1121,15 @@ export default {
                     )
                 });
 
-            }, error => {
-                console.log('Failed to save comments: ', error);
-                this.spinner = false;
-                swal(
-                    'Application Error',
-                    helpers.apiVueResourceError(error),
-                    'error'
-                )
-            });
+            // }, error => {
+            //     console.log('Failed to save comments: ', error);
+            //     this.spinner = false;
+            //     swal(
+            //         'Application Error',
+            //         helpers.apiVueResourceError(error),
+            //         'error'
+            //     )
+            // });
         },
         save_wo: async function() {
             await this.save({ showNotification: false });

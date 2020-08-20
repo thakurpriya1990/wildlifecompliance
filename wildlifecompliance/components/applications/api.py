@@ -44,7 +44,11 @@ from wildlifecompliance.components.applications.models import (
     ApplicationSelectedActivityPurpose,
 )
 from wildlifecompliance.components.applications.services import (
-    ApplicationService
+    ApplicationService,
+    CheckboxAndRadioButtonVisitor,
+    SpeciesOptionsFieldElement,
+    StandardConditionFieldElement,
+    PromptInspectionFieldElement,
 )
 from wildlifecompliance.components.applications.serializers import (
     ApplicationSerializer,
@@ -1315,6 +1319,62 @@ class ApplicationViewSet(viewsets.ModelViewSet):
             print(traceback.print_exc())
             raise serializers.ValidationError(str(e))
 
+    @detail_route(methods=['post'])
+    @renderer_classes((JSONRenderer,))
+    def assessment_data(self, request, *args, **kwargs):
+        try:
+            instance = self.get_object()
+            with transaction.atomic():
+                checkbox = CheckboxAndRadioButtonVisitor(
+                    instance, request.data
+                )
+                # Set StandardCondition Fields for Checkbox and RadioButtons.
+                for_condition_fields = StandardConditionFieldElement()
+                for_condition_fields.accept(checkbox)
+
+                # Set PromptInspection Fields for Checkbox and RadioButtons.
+                for_inspection_fields = PromptInspectionFieldElement()
+                for_inspection_fields.accept(checkbox)
+
+            return Response({'success': True})
+        except MissingFieldsException as e:
+            return Response({
+                'missing': e.error_list},
+                status=status.HTTP_400_BAD_REQUEST
+            )
+        except ValidationError as e:
+            raise serializers.ValidationError(repr(e.error_dict))
+        except Exception as e:
+            print(traceback.print_exc())
+        raise serializers.ValidationError(str(e))
+
+    @detail_route(methods=['post'])
+    @renderer_classes((JSONRenderer,))
+    def final_decision_data(self, request, *args, **kwargs):
+        try:
+            instance = self.get_object()
+            with transaction.atomic():
+                checkbox = CheckboxAndRadioButtonVisitor(
+                    instance, request.data
+                )
+
+                # Set species Fields for Checkbox and RadioButtons.
+                # save on purpose approval.
+                for_species_options_fields = SpeciesOptionsFieldElement()
+                for_species_options_fields.accept(checkbox)
+
+            return Response({'success': True})
+        except MissingFieldsException as e:
+            return Response({
+                'missing': e.error_list},
+                status=status.HTTP_400_BAD_REQUEST
+            )
+        except ValidationError as e:
+            raise serializers.ValidationError(repr(e.error_dict))
+        except Exception as e:
+            print(traceback.print_exc())
+        raise serializers.ValidationError(str(e))
+
     @detail_route(methods=['POST', ])
     def final_decision(self, request, *args, **kwargs):
         try:
@@ -1410,11 +1470,7 @@ class ApplicationViewSet(viewsets.ModelViewSet):
                     request.data,
                     action=ApplicationFormDataRecord.ACTION_TYPE_ASSIGN_VALUE
                 )
-                # Set any special form fields on the Application schema.
-                ApplicationService.set_special_form_fields(
-                    instance, request.data)
-                # Send any relevant notifications.
-                # instance.alert_for_refund(request)
+
                 # Log save action for internal officer.
                 if request.user.is_staff:
                     instance.log_user_action(
