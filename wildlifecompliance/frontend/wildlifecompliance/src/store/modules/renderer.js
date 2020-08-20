@@ -149,5 +149,29 @@ export const rendererStore = {
                 });
             })
         },
+        finalDecisionData({ dispatch, commit, getters }, { url, draft }) {
+            return new Promise((resolve, reject) => {
+                const post_data = Object.assign({'__draft': draft}, getters.renderer_form_data);
+                Vue.http.post(url, post_data).then(res => {
+                    resolve(res);
+                },
+                err => {
+                    console.log(err);
+                    reject(err);
+                });
+            })
+        },
+        assessmentData({ dispatch, commit, getters }, { url, draft }) {
+            return new Promise((resolve, reject) => {
+                const post_data = Object.assign({'__draft': draft}, getters.renderer_form_data);
+                Vue.http.post(url, post_data).then(res => {
+                    resolve(res);
+                },
+                err => {
+                    console.log(err);
+                    reject(err);
+                });
+            })
+        },
     }
 }
