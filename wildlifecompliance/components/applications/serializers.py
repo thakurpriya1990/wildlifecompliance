@@ -439,7 +439,7 @@ class DTExternalApplicationSelectedActivitySerializer(
                 'latest_invoice_ref')['latest_invoice_ref']:
 
             url = '{0}{1}'.format(
-                settings.WC_PAYMENT_SYSTEM_URL_INVOICE,
+                settings.WC_PAYMENT_SYSTEM_URL_INV,
                 obj.get_property_cache_key(
                      'latest_invoice_ref'
                 )['latest_invoice_ref']
@@ -1359,6 +1359,7 @@ class DTExternalApplicationSerializer(BaseApplicationSerializer):
     # activities = serializers.SerializerMethodField(read_only=True)
     can_current_user_edit = serializers.SerializerMethodField(read_only=True)
     payment_status = serializers.SerializerMethodField(read_only=True)
+    pay_activity_id = serializers.SerializerMethodField(read_only=True)
 
     class Meta:
         model = Application
@@ -1386,6 +1387,7 @@ class DTExternalApplicationSerializer(BaseApplicationSerializer):
             #'payment_url', # only load in expander
             'can_pay_application',
             'can_pay_licence',
+            'pay_activity_id',
 
         )
         # the serverSide functionality of datatables is such that only columns
@@ -1397,6 +1399,9 @@ class DTExternalApplicationSerializer(BaseApplicationSerializer):
     def get_payment_status(self, obj):
         value = obj.get_property_cache_key('payment_status')
         return value['payment_status']
+
+    def get_pay_activity_id(self, obj):
+        return 0
 
 
 class WildlifeLicenceApplicationSerializer(BaseApplicationSerializer):

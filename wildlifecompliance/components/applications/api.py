@@ -591,7 +591,7 @@ class ApplicationViewSet(viewsets.ModelViewSet):
         if not active_application:
             return Response({'application': None})
 
-        serializer = ApplicationSerializer(
+        serializer = DTExternalApplicationSerializer(
             active_application, context={'request': request})
         return Response({'application': serializer.data})
 
@@ -961,13 +961,13 @@ class ApplicationViewSet(viewsets.ModelViewSet):
         try:
             instance = self.get_object()
 
-            if is_internal(request):
-                serializer = DTInternalApplicationSelectedActivitySerializer(
-                    instance.activities, many=True)
+            # if is_internal(request):
+            # serializer = DTInternalApplicationSelectedActivitySerializer(
+            #     instance.activities, many=True)
 
-            if is_customer(request):
-                serializer = DTExternalApplicationSelectedActivitySerializer(
-                    instance.activities, many=True)
+            # if is_customer(request):
+            serializer = DTExternalApplicationSelectedActivitySerializer(
+                instance.activities, many=True)
 
             return Response(serializer.data)
         except serializers.ValidationError:
