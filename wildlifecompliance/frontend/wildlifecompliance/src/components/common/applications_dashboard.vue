@@ -299,8 +299,8 @@ export default {
                             links +=  `<a href='#${full.id}' data-pay-application-fee='${full.id}'>Pay Application Fee</a><br/>`;
                         }
                         if (full.can_pay_licence){
-                            let activity = full.activities.find(activity => activity.can_pay_licence_fee=true)
-                            links +=  `<a href='#${full.id}' data-pay-application-licence-fee='${full.id}' pay-licence-fee-for='${activity.id}'>Pay Additional Fee</a><br/>`;
+                            // let activity = full.activities.find(activity => activity.can_pay_licence_fee=true)
+                            links +=  `<a href='#${full.id}' data-pay-application-licence-fee='${full.id}' pay-licence-fee-for='${full.pay_activity_id}'>Pay Additional Fee</a><br/>`;
                         }                        
                     }
                     return links;
