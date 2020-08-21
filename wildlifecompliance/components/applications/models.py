@@ -433,16 +433,20 @@ class Application(RevisionedMixin):
         '''
         Refresh cached properties with updated properties.
         '''
+
+        if self.id:
+            self.property_cache[
+                'licence_activity_names'] = self.licence_activity_names
+            self.property_cache[
+                'licence_type_name'] = self.licence_type_name
+            self.property_cache[
+                'licence_purpose_names'] = self.licence_purpose_names
+            self.property_cache[
+                'licence_category_id'] = self.licence_category_id
+            self.property_cache[
+                'licence_category_name'] = self.licence_category_name
+
         self.property_cache['payment_status'] = self.payment_status
-        self.property_cache[
-            'licence_activity_names'] = self.licence_activity_names
-        self.property_cache[
-            'licence_type_name'] = self.licence_type_name
-        self.property_cache[
-            'licence_purpose_names'] = self.licence_purpose_names
-        self.property_cache['licence_category_id'] = self.licence_category_id
-        self.property_cache[
-            'licence_category_name'] = self.licence_category_name
         self.property_cache[
             'latest_invoice_ref'
         ] = self.latest_invoice.reference if self.latest_invoice else ''
