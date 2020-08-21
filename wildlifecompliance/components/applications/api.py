@@ -57,7 +57,6 @@ from wildlifecompliance.components.applications.serializers import (
     BaseApplicationSerializer,
     CreateExternalApplicationSerializer,
     DTInternalApplicationSerializer,
-    #DTInternalApplicationDashboardSerializer,
     DTExternalApplicationSerializer,
     ApplicationUserActionSerializer,
     ApplicationLogEntrySerializer,
@@ -74,6 +73,8 @@ from wildlifecompliance.components.applications.serializers import (
     DTAssessmentSerializer,
     ApplicationSelectedActivitySerializer,
     ValidCompleteAssessmentSerializer,
+    DTExternalApplicationSelectedActivitySerializer,
+    DTInternalApplicationSelectedActivitySerializer,
 )
 
 from wildlifecompliance.components.main.process_document import (
@@ -944,6 +945,30 @@ class ApplicationViewSet(viewsets.ModelViewSet):
             instance.request_id_check(request)
             serializer = InternalApplicationSerializer(
                 instance, context={'request': request})
+            return Response(serializer.data)
+        except serializers.ValidationError:
+            print(traceback.print_exc())
+            raise
+        except ValidationError as e:
+            print(traceback.print_exc())
+            raise serializers.ValidationError(repr(e.error_dict))
+        except Exception as e:
+            print(traceback.print_exc())
+            raise serializers.ValidationError(str(e))
+
+    @detail_route(methods=['POST', ])
+    def get_activities(self, request, *args, **kwargs):
+        try:
+            instance = self.get_object()
+
+            if is_internal(request):
+                serializer = DTInternalApplicationSelectedActivitySerializer(
+                    instance.activities, many=True)
+
+            if is_customer(request):
+                serializer = DTExternalApplicationSelectedActivitySerializer(
+                    instance.activities, many=True)
+
             return Response(serializer.data)
         except serializers.ValidationError:
             print(traceback.print_exc())
