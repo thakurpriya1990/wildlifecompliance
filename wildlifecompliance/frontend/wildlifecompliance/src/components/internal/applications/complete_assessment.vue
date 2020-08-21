@@ -481,7 +481,7 @@ export default {
         },
         save: function(props = { showNotification: true }) {
             const { showNotification } = props;
-            this.saveFormData({ url: this.form_data_comments_url }).then(response => {
+            // this.saveFormData({ url: this.form_data_comments_url }).then(response => {
 
                 this.saveFormData({ url: this.form_data_application_url }).then(response => {   
                     showNotification && swal(
@@ -498,14 +498,14 @@ export default {
                     )
                 });
 
-            }, error => {
-                console.log('Failed to save comments: ', error);
-                swal(
-                    'Application Error',
-                    helpers.apiVueResourceError(error),
-                    'error'
-                )
-            });
+            // }, error => {
+            //     console.log('Failed to save comments: ', error);
+            //     swal(
+            //         'Application Error',
+            //         helpers.apiVueResourceError(error),
+            //         'error'
+            //     )
+            // });
         },
         save_wo: function() {
             return this.save({ showNotification: false });

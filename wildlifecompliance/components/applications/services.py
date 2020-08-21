@@ -3,8 +3,6 @@ import abc
 import requests
 import logging
 
-from django.db import transaction
-
 from wildlifecompliance import settings
 
 from wildlifecompliance.components.licences.models import (
@@ -55,24 +53,23 @@ class ApplicationService(object):
         :return: invoice reference.
         '''
         try:
-            with transaction.atomic():
-                application = get_session_application(request.session)
-                delete_session_application(request.session)
+            application = get_session_application(request.session)
+            delete_session_application(request.session)
 
-                application.submit_type = Application.SUBMIT_TYPE_PAPER
-                application.save()
-                do_update_dynamic_attributes(application)
+            application.submit_type = Application.SUBMIT_TYPE_PAPER
+            application.save()
+            do_update_dynamic_attributes(application)
 
-                set_session_other_pay_method(
-                    request.session, InvoiceClearable.TYPE_CASH
-                )
-                invoice = create_other_application_invoice(
-                    application, request
-                )
-                invoice_ref = invoice.reference
+            set_session_other_pay_method(
+                request.session, InvoiceClearable.TYPE_CASH
+            )
+            invoice = create_other_application_invoice(
+                application, request
+            )
+            invoice_ref = invoice.reference
 
-                # submit application if successful.
-                application.submit(request)
+            # submit application if successful.
+            application.submit(request)
 
         except Exception as e:
             delete_session_application(request.session)
@@ -89,21 +86,20 @@ class ApplicationService(object):
         '''
         invoice_ref = None          # No invoice reference created.
         try:
-            with transaction.atomic():
-                application = get_session_application(request.session)
-                delete_session_application(request.session)
+            application = get_session_application(request.session)
+            delete_session_application(request.session)
 
-                application.submit_type = Application.SUBMIT_TYPE_MIGRATE
-                application.application_fee = 0
-                has_fee_exemption = True
-                do_update_dynamic_attributes(application, has_fee_exemption)
+            application.submit_type = Application.SUBMIT_TYPE_MIGRATE
+            application.application_fee = 0
+            has_fee_exemption = True
+            do_update_dynamic_attributes(application, has_fee_exemption)
 
-                logger.info(
-                    'Zero amount payment submission for {0}'.format(
-                        application.id))
+            logger.info(
+                'Zero amount payment submission for {0}'.format(
+                    application.id))
 
-                # submit application if successful.
-                application.submit(request)
+            # submit application if successful.
+            application.submit(request)
 
         except Exception as e:
             delete_session_application(request.session)
@@ -157,11 +153,18 @@ class ApplicationService(object):
         """
         Verifies species name identifier is current with the TSC database.
         """
-        tsc_service = TSCSpecieService(TSCSpecieCall())
-        tsc_service.set_strategy(TSCSpecieXReferenceCall())
-        logger.info('ApplicationService: Verifying species.')
-        tsc_service.search_taxon(specie_id)
-        logger.info('ApplicationService: Completed. Verified 1 specie.')
+        try:
+            tsc_service = TSCSpecieService(TSCSpecieCall())
+            tsc_service.set_strategy(TSCSpecieXReferenceCall())
+            logger.info('ApplicationService: Verifying species.')
+            tsc_service.search_taxon(specie_id)
+            logger.info('ApplicationService: Completed. Verified 1 specie.')
+
+        except BaseException as e:
+            logger.error('ERR verify_licence_specie_id for {0} : {1}'.format(
+                specie_id,
+                e,
+            ))
 
     @staticmethod
     def calculate_fees(application, data_source):
@@ -208,45 +211,18 @@ class ApplicationService(object):
         do_update_dynamic_attributes(application)
 
     @staticmethod
-    def set_special_form_fields(application, form):
-        """
-        Set Special Form Field Attributes on an Application Form.
-        """
-        with_officer = [
-            'with_officer',
-            'with_officer_condition',
-            'under_review',
-        ]
-
-        with transaction.atomic():
-            # Set form components to be visited.
-            checkbox = CheckboxAndRadioButtonVisitor(application, form)
-            text_area = TextAreaVisitor(application, form)
-            text = TextVisitor(application, form)
-
-            if application.processing_status in with_officer:
-
-                # Set StandardCondition Fields for Checkbox and RadioButtons.
-                for_condition_fields = StandardConditionFieldElement()
-                for_condition_fields.accept(checkbox)
-
-                # Set PromptInspection Fields for Checkbox and RadioButtons.
-                for_inspection_fields = PromptInpsectionFieldElement()
-                for_inspection_fields.accept(checkbox)
-
-                # Set copy-to-licence Fields which allow for additional
-                # terminologies to be dynamically added to the licence pdf.
-                for_copy_to_licence_fields = CopyToLicenceFieldElement()
-                for_copy_to_licence_fields.accept(text_area)
-                for_copy_to_licence_fields.accept(text)
-
-    @staticmethod
     def update_dynamic_attributes(application):
         """
         Updates application attributes based on admin schema definition.
         """
-        with transaction.atomic():
+        try:
             do_update_dynamic_attributes(application)
+
+        except BaseException as e:
+            logger.error('ERR update_dynamic_attributes for {0} : {1}'.format(
+                application.id,
+                e,
+            ))
 
     def __str__(self):
         return 'ApplicationService'
@@ -338,6 +314,7 @@ class CheckboxAndRadioButtonCompositor(ApplicationFormCompositor):
     def render(self):
 
         for selected_activity in self._application.activities:
+
             self._field.reset(selected_activity)
 
             schema_fields = self._application.get_schema_fields_for_purposes(
@@ -360,6 +337,9 @@ class CheckboxAndRadioButtonCompositor(ApplicationFormCompositor):
                     continue
                 schema_data = schema_fields[schema_name]
 
+                if schema_data['type'] not in ['checkbox', 'radiobuttons']:
+                    continue
+
                 if 'options' in schema_data:
                     for option in schema_data['options']:
                         # Only modifications if the current option is selected
@@ -373,7 +353,6 @@ class CheckboxAndRadioButtonCompositor(ApplicationFormCompositor):
                             purpose_id=schema_data['licence_purpose_id']
                         )
 
-                # If this is a checkbox - skip unchecked ones
                 elif data_record['value'] == 'on':
                     self._field.parse_component(
                         component=schema_data,
@@ -381,6 +360,11 @@ class CheckboxAndRadioButtonCompositor(ApplicationFormCompositor):
                         adjusted_by_fields=adjusted_by_fields,
                         activity=selected_activity,
                         purpose_id=schema_data['licence_purpose_id']
+                    )
+                elif data_record['value'] == '':
+                    # if unchecked reset field adjustments.
+                    self._field.reset_licence_purpose(
+                        selected_activity, schema_data['licence_purpose_id']
                     )
 
 
@@ -516,6 +500,10 @@ class CheckboxAndRadioButtonVisitor(ApplicationFormVisitor):
         self._increase_application_fee_field = increase_fee_field
         self._compositor.do_algorithm(self._increase_application_fee_field)
 
+    def visit_species_options_field(self, species_options_field):
+        self._species_options_field = species_options_field
+        self._compositor.do_algorithm(self._species_options_field)
+
 
 class TextAreaVisitor(ApplicationFormVisitor):
     """
@@ -565,6 +553,118 @@ class SpecialFieldElement(object):
     @abc.abstractmethod
     def accept(self, visitor):
         pass
+
+    def reset(self, licence_activity):
+        """
+        Reset previous option settings on the licence activity by removing.
+        """
+        pass
+
+    def reset_licence_purpose(self, licence_activity, purpose_id):
+        """
+        Reset previous options settings on the licence purpose by removing.
+        """
+        pass
+
+
+class SpeciesOptionsFieldElement(SpecialFieldElement):
+    """
+    An implementation of an SpecialFieldElement operation that takes a
+    ApplicationFormVisitor as an argument.
+
+    example:
+
+        "options": [
+          {
+            "value": "yes",
+            "label": "Yes",
+          },
+          {
+            "value": "no",
+            "label": "No",
+            "species": [33974,33977]
+          }
+        ],
+        "type": "radiobuttons",
+        "name": "ATO-Import3",
+        "label": "Do you need to apply for a licence to import?",
+        "SpeciesOptions": true
+
+    """
+    _NAME = 'SpeciesOptions'
+    _SPECIES = 'species'
+
+    is_refreshing = False       # Flag indicating a page refresh.
+    records = None
+
+    def accept(self, application_form_visitor):
+        self._terms = {'terms': []}
+        self._application = application_form_visitor._application
+        self._data_source = application_form_visitor._data_source
+        if not self._data_source:
+            self.is_refreshing = True
+        application_form_visitor.visit_species_options_field(self)
+
+    def parse_component(
+            self,
+            component,
+            schema_name,
+            adjusted_by_fields,
+            activity,
+            purpose_id):
+
+        if self.is_refreshing:
+            # No user update with a page refesh.
+            return
+
+        if set([self._SPECIES]).issubset(component):
+            '''
+            Set the species options on the form.
+            '''
+            # update the species component value on the form to reference ids.
+            # else create one using name + '-SpeciesOptions'.
+            species_ids = ""
+            try:
+                species_ids = [str(s) for s in component[self._SPECIES]]
+
+            except BaseException:
+                pass
+
+            records = ApplicationFormDataRecord.objects.filter(
+                    application_id=self._application.id,
+                    licence_activity_id=activity.licence_activity_id,
+                    licence_purpose_id=purpose_id,
+                    component_type=self._SPECIES
+            ).update(
+                 value=species_ids
+            )
+
+            if not records:
+                ApplicationFormDataRecord.objects.create(
+                    field_name='{0}-SpeciesOptions'.format(schema_name),
+                    schema_name='{0}-SpeciesOptions'.format(schema_name),
+                    component_type=self._SPECIES,
+                    value=species_ids,
+                    application_id=self._application.id,
+                    licence_activity_id=activity.licence_activity_id,
+                    licence_purpose_id=purpose_id
+                )
+        else:
+            '''
+            SpeciesOptions is set with no species ids therefore clear all
+            species on the application form.
+            '''
+            records = ApplicationFormDataRecord.objects.filter(
+                    application_id=self._application.id,
+                    licence_activity_id=activity.licence_activity_id,
+                    licence_purpose_id=purpose_id,
+                    component_type=self._SPECIES
+            ).update(
+                 value=''
+            )
+
+    def __str__(self):
+        return 'Field Element: {0}'.format(self._NAME)
 
 
 class CopyToLicenceFieldElement(SpecialFieldElement):
@@ -624,7 +724,7 @@ class CopyToLicenceFieldElement(SpecialFieldElement):
         return 'Field Element: {0}'.format(self._NAME)
 
 
-class PromptInpsectionFieldElement(SpecialFieldElement):
+class PromptInspectionFieldElement(SpecialFieldElement):
     """
     An implementation of an SpecialFieldElement operation that takes a
     ApplicationFormVisitor as an argument.
@@ -640,8 +740,10 @@ class PromptInpsectionFieldElement(SpecialFieldElement):
             self.is_refreshing = True
         application_form_visitor.visit_prompt_inspection_field(self)
 
-    def reset(self, licence_activity):
-
+    def reset_licence_purpose(self, licence_activity, purpose_id):
+        """
+        Reset previous options settings on the licence purpose by removing.
+        """
         if self.is_refreshing:
             # No user update with a page refesh.
             return
@@ -662,9 +764,10 @@ class PromptInpsectionFieldElement(SpecialFieldElement):
             # No user update with a page refesh.
             return
 
+        activity.is_inspection_required = False
         if set([self._NAME]).issubset(component):
             activity.is_inspection_required = True
-            activity.save()
+        activity.save()
 
     def __str__(self):
         return 'Field Element: {0}'.format(self._NAME)
@@ -746,12 +849,16 @@ class IncreaseApplicationFeeFieldElement(SpecialFieldElement):
     adjustments to the application fee for the Activity/Purpose.
     """
     NAME = 'IncreaseApplicationFee'
+    LICENCE = 'IncreaseLicenceFee'
 
     fee_policy = None           # Policy applied to the fee update.
     dynamic_attributes = None   # Attributes on the Activity Purpose.
     is_updating = False         # Flag indicating if update or retrieval.
     is_refreshing = False       # Flag indicating a page refresh.
     has_fee_exemption = False   # Allow exemption for zero amount invoice.
+
+    adjusted_fee = 0
+    adjusted_licence_fee = 0
 
     def __init__(self):
         pass
@@ -791,6 +898,9 @@ class IncreaseApplicationFeeFieldElement(SpecialFieldElement):
         '''
         Reset the fees for the licence activity to it base fee amount.
         '''
+        self.adjusted_fee = 0
+        self.adjusted_licence_fee = 0
+
         if self.is_refreshing:
             # No user update with a page refesh.
             return
@@ -802,15 +912,24 @@ class IncreaseApplicationFeeFieldElement(SpecialFieldElement):
                 }
 
             if self.is_updating:
-                # reset purpose adjusted fee amount.
-                purposes = ApplicationSelectedActivityPurpose.objects.filter(
-                    selected_activity=licence_activity,
-                )
-                for p in purposes:
-                    p.adjusted_fee = 0
-                    p.save()
-
                 licence_activity.save()
+
+    def reset_licence_purpose(self, licence_activity, purpose_id):
+        """
+        Reset previous options settings on the licence purpose by removing.
+        """
+        if self.is_refreshing or not self.is_updating:
+            # No user update with a page refesh.
+            return
+
+        # reset purpose adjusted fee amount.
+        purposes = ApplicationSelectedActivityPurpose.objects.filter(
+            selected_activity=licence_activity,
+        )
+        for p in purposes:
+            p.adjusted_fee = self.adjusted_fee
+            p.adjusted_licence_fee = self.adjusted_licence_fee
+            p.save()
 
     def parse_component(
             self,
@@ -829,8 +948,8 @@ class IncreaseApplicationFeeFieldElement(SpecialFieldElement):
             # No user update with a page refesh.
             return
 
-        self.adjusted_fee = 0
-        if set([self.NAME]).issubset(component):
+        if set([self.NAME]).issubset(component) \
+                or set([self.LICENCE]).issubset(component):
             def increase_fee(fees, field, amount):
                 if self.has_fee_exemption:
                     return True
@@ -839,13 +958,16 @@ class IncreaseApplicationFeeFieldElement(SpecialFieldElement):
                 fees[field] = fees[field] if fees[field] >= 0 else 0
                 return True
 
-            def adjusted_fee(amount):
+            def adjusted_fee(field, amount):
                 amount = D(amount).quantize(D('0.01'), rounding=ROUND_DOWN)
-                self.adjusted_fee += amount
+                if field == 'licence':
+                    self.adjusted_licence_fee += amount
+                elif field == 'application':
+                    self.adjusted_fee += amount
                 return True
 
             fee_modifier_keys = {
-                'NoIncreaseLicenceFee': 'licence',
+                self.LICENCE: 'licence',
                 self.NAME: 'application',
             }
             increase_limit_key = 'IncreaseTimesLimit'
@@ -869,6 +991,7 @@ class IncreaseApplicationFeeFieldElement(SpecialFieldElement):
                 field,
                 component[key]
             ) and adjusted_fee(
+                field,
                 component[key]
             ) for key, field in fee_modifier_keys.items())
 
@@ -887,8 +1010,12 @@ class IncreaseApplicationFeeFieldElement(SpecialFieldElement):
                     p.application_fee = purpose.base_application_fee
                     p.licence_fee = purpose.base_licence_fee
 
-                self.adjusted_fee = D(p.adjusted_fee) + self.adjusted_fee
+                # self.adjusted_fee = D(p.adjusted_fee) + self.adjusted_fee
+                # self.adjusted_licence_fee = \
+                #     D(p.adjusted_licence_fee) + self.adjusted_licence_fee
+
                 p.adjusted_fee = self.adjusted_fee
+                p.adjusted_licence_fee = self.adjusted_licence_fee
                 p.save()
 
     def get_adjusted_fees(self):

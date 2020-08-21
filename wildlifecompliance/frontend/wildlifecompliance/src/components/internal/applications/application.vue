@@ -103,12 +103,12 @@
                                             <button class="btn btn-primary top-buffer-s col-xs-12" @click.prevent="returnToOfficerConditions()">Return to Officer - Conditions</button>                                   
                                         </div>
                                     </div>   
-                                    <div v-if="!applicationIsDraft && canRequestAmendment && !requiresRefund" class="row">
+                                    <div v-if="!applicationIsDraft && canRequestAmendment" class="row">
                                         <div class="col-sm-12">
                                             <button class="btn btn-primary top-buffer-s col-xs-12" @click.prevent="amendmentRequest()">Request Amendment</button><br/>
                                         </div>
                                     </div>                            
-                                    <div v-if="canIssueDecline & !requiresRefund" class="row">
+                                    <div v-if="canIssueDecline" class="row">
                                         <div class="col-sm-12">
                                             <button class="btn btn-primary top-buffer-s col-xs-12" @click.prevent="toggleIssue()">Issue/Decline</button>
                                             <!-- v-if="!userIsAssignedOfficer" was removed to enforce permission at group membership only. -->
@@ -518,9 +518,9 @@
                                             <div class="navbar-inner">
                                                 <div class="container">
                                                     <p class="pull-right" style="margin-top:5px;">
-                                                        <span style="margin-right: 5px; font-size: 18px; display: block;" v-if="requiresRefund" >
-                                                            <strong>Estimated application fee: {{adjusted_application_fee | toCurrency}}</strong>
-                                                            <strong>Estimated licence fee: {{application.licence_fee | toCurrency}}</strong>
+                                                        <span style="margin-right: 5px; font-size: 18px; display: block;" v-if="updatedFee" >
+                                                            <strong>Updated application fee: {{adjusted_application_fee | toCurrency}}</strong>
+                                                            <strong>licence fee: {{application.licence_fee | toCurrency}}</strong>
                                                         </span>   
                                                         <button v-if="showSpinner" type="button" class="btn btn-primary" ><i class="fa fa-spinner fa-spin"/>Saving</button>                                                    
                                                         <button v-else="!applicationIsDraft && canSaveApplication" class="btn btn-primary" @click.prevent="save()">Save Changes</button>
@@ -840,8 +840,8 @@ export default {
                 break;
             }
         },
-        requiresRefund: function() {
-            return this.adjusted_application_fee<0 ? true : false
+        updatedFee: function() {
+            return (this.adjusted_application_fee !== 0 || this.application.licence_fee !== 0) ? true : false
         },
         showNavBarBottom: function() {
             return this.canReturnToConditions || (!this.applicationIsDraft && this.canSaveApplication)
@@ -857,8 +857,7 @@ export default {
             return this.showingApplication 
                 && !this.applicationIsDraft 
                 && (this.hasRole('licensing_officer') || this.hasRole('issuing_officer'))
-                && !this.requiresRefund
-                // && this.application.can_be_processed
+
         },
         showFinalDecision: function() {
             if (['awaiting_payment'].includes(this.application.processing_status.id)) { // prevent processing for outstanding payments.
@@ -886,6 +885,7 @@ export default {
             'loadCurrentUser',
             'toggleFinalisedTabs',
             'saveFormData',
+            'assessmentData',
         ]),
         eventListeners: function(){
             let vm = this;
@@ -932,10 +932,7 @@ export default {
             return s.replace(/[,;]/g, '\n');
         },
         proposedDecline: async function(){
-            let is_saved = await this.save_wo();
-            if (is_saved) {
-                this.$refs.proposed_decline.isModalOpen = true;
-            }
+            this.$refs.proposed_decline.isModalOpen = true;
         },
         isActivityVisible: function(activity_id) {
             return this.isApplicationActivityVisible({activity_id: activity_id});
@@ -946,17 +943,12 @@ export default {
         proposedLicence: async function(){
             var activity_name=[]
             var selectedTabTitle = $("#tabs-section li.active");
-            let is_saved = await this.save_wo();
-            if (is_saved){
-                this.$refs.proposed_licence.propose_issue.licence_activity_id=this.selected_activity_tab_id;
-                this.$refs.proposed_licence.propose_issue.licence_activity_name=selectedTabTitle.text();
-                this.$refs.proposed_licence.isModalOpen = true;
-                this.$refs.proposed_licence.preloadLastActivity();
-            }
-
+            this.$refs.proposed_licence.propose_issue.licence_activity_id=this.selected_activity_tab_id;
+            this.$refs.proposed_licence.propose_issue.licence_activity_name=selectedTabTitle.text();
+            this.$refs.proposed_licence.isModalOpen = true;
+            this.$refs.proposed_licence.preloadLastActivity();
         },
         toggleIssue: async function(){
-            let is_saved = await this.save_wo();
             this.showingApplication = false;
             this.isSendingToAssessor=false;
             this.isOfficerConditions=false;
@@ -1094,18 +1086,24 @@ export default {
 
         },
         togglesendtoAssessor: async function(){
-            let is_saved = await this.save_wo();
-            
-            if (is_saved) {
+            await this.assessmentData({ url: `/api/application/${this.application.id}/assessment_data.json` }).then( async response => {
+
                 $('#tabs-main li').removeClass('active');
                 this.isSendingToAssessor = !this.isSendingToAssessor;
                 this.showingApplication = false;
-            }
+
+            },(error)=>{
+                swal(
+                    'Application Error',
+                    helpers.apiVueResourceError(error),
+                    'error'
+                )
+            });
         },
         save: async function(props = { showNotification: true }) {
             this.spinner = true;
             const { showNotification } = props;
-            await this.saveFormData({ url: this.form_data_comments_url }).then( async response => {
+            // await this.saveFormData({ url: this.form_data_comments_url }).then( async response => {
 
                 await this.saveFormData({ url: this.form_data_application_url }).then(response => {
                     this.spinner = false;   
@@ -1123,15 +1121,15 @@ export default {
                     )
                 });
 
-            }, error => {
-                console.log('Failed to save comments: ', error);
-                this.spinner = false;
-                swal(
-                    'Application Error',
-                    helpers.apiVueResourceError(error),
-                    'error'
-                )
-            });
+            // }, error => {
+            //     console.log('Failed to save comments: ', error);
+            //     this.spinner = false;
+            //     swal(
+            //         'Application Error',
+            //         helpers.apiVueResourceError(error),
+            //         'error'
+            //     )
+            // });
         },
         save_wo: async function() {
             await this.save({ showNotification: false });
@@ -1479,6 +1477,7 @@ export default {
             // no adjustments for new applications.
             // this.adjusted_application_fee = this.application.application_fee
         }
+        this.adjusted_application_fee = this.application.application_fee
     },
     beforeRouteEnter: function(to, from, next) {
         next(vm => {

@@ -110,16 +110,39 @@ class ApplicationSuccessView(TemplateView):
                             invoice_reference=invoice_ref
                         )
 
-                        ActivityInvoiceLine.objects.create(
-                            invoice=invoice[0],
-                            licence_activity=activity.licence_activity,
-                            amount=activity.licence_fee
-                        )
+                        paid_purposes = [
+                            p for p in activity.proposed_purposes.all()
+                            if p.is_payable
+                        ]
 
-                        ActivityInvoiceLine.objects.create(
-                            invoice=invoice[0],
-                            licence_activity=activity.licence_activity,
-                            amount=activity.application_fee
+                        inv_lines = []
+
+                        for p in paid_purposes:
+
+                            fee = p.licence_fee + p.adjusted_licence_fee
+                            l_type = ActivityInvoiceLine.LINE_TYPE_LICENCE
+
+                            inv_lines.append(ActivityInvoiceLine(
+                                invoice=invoice[0],
+                                licence_activity=activity.licence_activity,
+                                licence_purpose=p.purpose,
+                                invoice_line_type=l_type,
+                                amount=fee
+                            ))
+
+                            fee = p.application_fee + p.adjusted_fee
+                            l_type = ActivityInvoiceLine.LINE_TYPE_APPLICATION
+
+                            inv_lines.append(ActivityInvoiceLine(
+                                invoice=invoice[0],
+                                licence_activity=activity.licence_activity,
+                                licence_purpose=p.purpose,
+                                invoice_line_type=l_type,
+                                amount=fee
+                            ))
+
+                        ActivityInvoiceLine.objects.bulk_create(
+                            inv_lines
                         )
 
                 else:

@@ -89,7 +89,7 @@
                             <div class="col-sm-12">
                                 <div class="row">
                                     <label>
-                                        No matching licensed activities found.
+                                        <!-- No matching licensed activities found. -->
                                     </label>
                                 </div>
                             </div>

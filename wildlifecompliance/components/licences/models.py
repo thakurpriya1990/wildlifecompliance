@@ -55,6 +55,7 @@ class LicencePurpose(models.Model):
     apply_multiple = models.BooleanField(
         default=False,
         help_text='If ticked, the licenced Purpose can have multiple periods.')
+    oracle_account_code = models.CharField(max_length=100, default='')
 
     class Meta:
         app_label = 'wildlifecompliance'
@@ -180,26 +181,16 @@ class LicencePurpose(models.Model):
 
             options.append(option)
 
+        if not species_list:
+            for details in LicenceSpecies.objects.values('data').all():
+                option = {
+                    'value': details['data'][0][LicenceSpecies.SPECIE_NAME_ID],
+                    'label': details['data'][0][LicenceSpecies.SPECIE_NAME]}
+
+                options.append(option)
+                species_list.append(option['value'])
+
         return options
-
-
-# class LicencePurposeDetail(OrderedModel):
-#     detail = models.CharField(max_length=100)
-#     purpose = models.ForeignKey(
-#         LicencePurpose,
-#         on_delete=models.CASCADE,
-#         related_name='additional_information'
-#     )
-#     index = models.PositiveSmallIntegerField(default=0)
-
-#     class Meta:
-#         ordering = ['purpose', 'index']
-#         app_label = 'wildlifecompliance'
-#         verbose_name = 'Licence purpose additional information'
-#         verbose_name_plural = 'Licence purpose additional information'
-
-#     def __str__(self):
-#         return 'Detail for purpose {}'.format(self.purpose.id)
 
 
 class LicenceActivity(models.Model):
@@ -219,7 +210,6 @@ class LicenceActivity(models.Model):
         default=False,
         help_text='If ticked, this licenced activity will not be available for applications on behalf of an organisation.')
     schema = JSONField(default=list)
-    oracle_account_code = models.CharField(max_length=100, default='')
 
     class Meta:
         app_label = 'wildlifecompliance'

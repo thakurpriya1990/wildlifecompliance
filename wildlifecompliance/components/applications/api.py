@@ -44,7 +44,11 @@ from wildlifecompliance.components.applications.models import (
     ApplicationSelectedActivityPurpose,
 )
 from wildlifecompliance.components.applications.services import (
-    ApplicationService
+    ApplicationService,
+    CheckboxAndRadioButtonVisitor,
+    SpeciesOptionsFieldElement,
+    StandardConditionFieldElement,
+    PromptInspectionFieldElement,
 )
 from wildlifecompliance.components.applications.serializers import (
     ApplicationSerializer,
@@ -578,7 +582,11 @@ class ApplicationViewSet(viewsets.ModelViewSet):
 
     @list_route(methods=['GET', ])
     def active_licence_application(self, request, *args, **kwargs):
-        active_application = Application.get_active_licence_applications(request).first()
+        # active_application = Application.get_active_licence_applications(
+        #     request).first()
+        active_application = Application.get_first_active_licence_application(
+            request
+        )
         if not active_application:
             return Response({'application': None})
 
@@ -591,15 +599,18 @@ class ApplicationViewSet(viewsets.ModelViewSet):
         purpose_ids = request.data.get('purpose_ids', [])
         application_id = request.data.get('application_id')
         licence_type = request.data.get('licence_type')
-        if application_id is not None:
-            application = Application.objects.get(id=application_id)
+
+        with transaction.atomic():
+            if application_id is not None:
+                application = Application.objects.get(id=application_id)
+                return Response({
+                    'fees': ApplicationService.calculate_fees(
+                        application, request.data.get('field_data', {}))
+                })
             return Response({
-                'fees': ApplicationService.calculate_fees(
-                    application, request.data.get('field_data', {}))
+                'fees': Application.calculate_base_fees(
+                    purpose_ids, licence_type)
             })
-        return Response({
-            'fees': Application.calculate_base_fees(purpose_ids, licence_type)
-        })
 
     @list_route(methods=['GET', ])
     def internal_datatable_list(self, request, *args, **kwargs):
@@ -708,35 +719,37 @@ class ApplicationViewSet(viewsets.ModelViewSet):
         try:
             instance = self.get_object()
 
-            # if not request.user.is_staff:
-            #     raise Exception('Non staff member.')
+            with transaction.atomic():
 
-            session = request.session
-            set_session_application(session, instance)
+                # if not request.user.is_staff:
+                #     raise Exception('Non staff member.')
 
-            if instance.submit_type == Application.SUBMIT_TYPE_PAPER:
-                invoice = ApplicationService.cash_payment_submission(
-                    request)
-                invoice_url = request.build_absolute_uri(
-                    reverse(
-                        'payments:invoice-pdf',
-                        kwargs={'reference': invoice}))
+                session = request.session
+                set_session_application(session, instance)
 
-            elif instance.submit_type == Application.SUBMIT_TYPE_MIGRATE:
-                invoice = ApplicationService.none_payment_submission(
-                    request)
-                invoice_url = None
+                if instance.submit_type == Application.SUBMIT_TYPE_PAPER:
+                    invoice = ApplicationService.cash_payment_submission(
+                        request)
+                    invoice_url = request.build_absolute_uri(
+                        reverse(
+                            'payments:invoice-pdf',
+                            kwargs={'reference': invoice}))
 
-            else:
-                raise Exception('Cannot make this type of payment.')
+                elif instance.submit_type == Application.SUBMIT_TYPE_MIGRATE:
+                    invoice = ApplicationService.none_payment_submission(
+                        request)
+                    invoice_url = None
 
-            # return template application-success
-            template_name = 'wildlifecompliance/application_success.html'
-            context = {
-                'application': instance,
-                'invoice_ref': invoice,
-                'invoice_url': invoice_url
-            }
+                else:
+                    raise Exception('Cannot make this type of payment.')
+
+                # return template application-success
+                template_name = 'wildlifecompliance/application_success.html'
+                context = {
+                    'application': instance,
+                    'invoice_ref': invoice,
+                    'invoice_url': invoice_url
+                }
 
             return render(request, template_name, context)
 
@@ -793,19 +806,28 @@ class ApplicationViewSet(viewsets.ModelViewSet):
 
                 for activity in activities_with_fees:
 
-                    price_excl = calculate_excl_gst(activity.application_fee)
-                    if ApplicationFeePolicy.GST_FREE:
-                        price_excl = activity.application_fee
-                    oracle_code = activity.licence_activity.oracle_account_code
+                    paid_purposes = [
+                        p for p in activity.proposed_purposes.all()
+                        if p.is_payable
+                    ]
 
-                    product_lines.append({
-                        'ledger_description': '{} (Application Fee)'.format(
-                            activity.licence_activity.name),
-                        'quantity': 1,
-                        'price_incl_tax': str(activity.application_fee),
-                        'price_excl_tax': str(price_excl),
-                        'oracle_code': oracle_code
-                    })
+                    for p in paid_purposes:
+
+                        fee = p.get_payable_application_fee()
+
+                        price_excl = calculate_excl_gst(fee)
+                        if ApplicationFeePolicy.GST_FREE:
+                            price_excl = fee
+                        oracle_code = p.purpose.oracle_account_code
+
+                        product_lines.append({
+                            'ledger_description': '{} (Application Fee)'.format(
+                                p.purpose.name),
+                            'quantity': 1,
+                            'price_incl_tax': str(fee),
+                            'price_excl_tax': str(price_excl),
+                            'oracle_code': oracle_code
+                        })
 
             activities = instance.selected_activities.all()
             # Include additional fees by licence approvers.
@@ -824,7 +846,7 @@ class ApplicationViewSet(viewsets.ModelViewSet):
                     price_excl = calculate_excl_gst(activity.additional_fee)
                     if ApplicationFeePolicy.GST_FREE:
                         price_excl = activity.additional_fee
-                    oracle_code = activity.licence_activity.oracle_account_code
+                    oracle_code = ''
 
                     product_lines.append({
                         'ledger_description': '{}'.format(
@@ -1301,6 +1323,62 @@ class ApplicationViewSet(viewsets.ModelViewSet):
             print(traceback.print_exc())
             raise serializers.ValidationError(str(e))
 
+    @detail_route(methods=['post'])
+    @renderer_classes((JSONRenderer,))
+    def assessment_data(self, request, *args, **kwargs):
+        try:
+            instance = self.get_object()
+            with transaction.atomic():
+                checkbox = CheckboxAndRadioButtonVisitor(
+                    instance, request.data
+                )
+                # Set StandardCondition Fields for Checkbox and RadioButtons.
+                for_condition_fields = StandardConditionFieldElement()
+                for_condition_fields.accept(checkbox)
+
+                # Set PromptInspection Fields for Checkbox and RadioButtons.
+                for_inspection_fields = PromptInspectionFieldElement()
+                for_inspection_fields.accept(checkbox)
+
+            return Response({'success': True})
+        except MissingFieldsException as e:
+            return Response({
+                'missing': e.error_list},
+                status=status.HTTP_400_BAD_REQUEST
+            )
+        except ValidationError as e:
+            raise serializers.ValidationError(repr(e.error_dict))
+        except Exception as e:
+            print(traceback.print_exc())
+        raise serializers.ValidationError(str(e))
+
+    @detail_route(methods=['post'])
+    @renderer_classes((JSONRenderer,))
+    def final_decision_data(self, request, *args, **kwargs):
+        try:
+            instance = self.get_object()
+            with transaction.atomic():
+                checkbox = CheckboxAndRadioButtonVisitor(
+                    instance, request.data
+                )
+
+                # Set species Fields for Checkbox and RadioButtons.
+                # save on purpose approval.
+                for_species_options_fields = SpeciesOptionsFieldElement()
+                for_species_options_fields.accept(checkbox)
+
+            return Response({'success': True})
+        except MissingFieldsException as e:
+            return Response({
+                'missing': e.error_list},
+                status=status.HTTP_400_BAD_REQUEST
+            )
+        except ValidationError as e:
+            raise serializers.ValidationError(repr(e.error_dict))
+        except Exception as e:
+            print(traceback.print_exc())
+        raise serializers.ValidationError(str(e))
+
     @detail_route(methods=['POST', ])
     def final_decision(self, request, *args, **kwargs):
         try:
@@ -1370,12 +1448,15 @@ class ApplicationViewSet(viewsets.ModelViewSet):
     def officer_comments(self, request, *args, **kwargs):
         try:
             instance = self.get_object()
-            ApplicationService.process_form(
-                request,
-                instance,
-                request.data,
-                action=ApplicationFormDataRecord.ACTION_TYPE_ASSIGN_COMMENT
-            )
+
+            with transaction.atomic():
+                ApplicationService.process_form(
+                    request,
+                    instance,
+                    request.data,
+                    action=ApplicationFormDataRecord.ACTION_TYPE_ASSIGN_COMMENT
+                )
+
             return Response({'success': True})
         except Exception as e:
             print(traceback.print_exc())
@@ -1393,11 +1474,7 @@ class ApplicationViewSet(viewsets.ModelViewSet):
                     request.data,
                     action=ApplicationFormDataRecord.ACTION_TYPE_ASSIGN_VALUE
                 )
-                # Set any special form fields on the Application schema.
-                ApplicationService.set_special_form_fields(
-                    instance, request.data)
-                # Send any relevant notifications.
-                # instance.alert_for_refund(request)
+
                 # Log save action for internal officer.
                 if request.user.is_staff:
                     instance.log_user_action(
@@ -1537,15 +1614,21 @@ class ApplicationViewSet(viewsets.ModelViewSet):
                     Application.APPLICATION_TYPE_RENEWAL,
                 ]:
                     target_application = serializer.instance
+                    copied_purpose_ids = []
+                    # FIXME: Copying the first licence purpose from list.
+                    # duplicates can exist for multi. Correctly select the
+                    # required activity and pass in for amend and renewal.
                     for activity in licence_activities:
                         activity_purpose_ids = [
                             p.purpose.id
                             for p in activity.proposed_purposes.all()
                             if p.is_issued
                         ]
-
+                        copy_purpose_ids = list(
+                           set(activity_purpose_ids) - set(copied_purpose_ids)
+                        )
                         purposes_to_copy = set(
-                            cleaned_purpose_ids) & set(activity_purpose_ids)
+                            cleaned_purpose_ids) & set(copy_purpose_ids)
 
                         for purpose_id in purposes_to_copy:
 
@@ -1556,6 +1639,7 @@ class ApplicationViewSet(viewsets.ModelViewSet):
                                 target_application,
                                 purpose_id,
                             )
+                            copied_purpose_ids.append(purpose_id)
 
                 # Set previous_application to the latest active application if
                 # exists

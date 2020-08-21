@@ -14,6 +14,7 @@ from wildlifecompliance.components.applications.models import (
     ApplicationFormDataRecord,
     ApplicationSelectedActivityPurpose,
     ApplicationInvoice,
+    ActivityInvoice,
 )
 from wildlifecompliance.components.organisations.models import (
     Organisation
@@ -80,10 +81,13 @@ class ApplicationSelectedActivityCanActionSerializer(serializers.Serializer):
         if user is None:
             return False
         perm_user = PermissionUser(user)
-        return (user.has_perm('wildlifecompliance.system_administrator') or
-            perm_user.has_wildlifelicenceactivity_perm([
-                'issuing_officer',
-            ], obj.get('licence_activity_id'))) and obj.get('can_reissue')
+        return (
+            user.has_perm('wildlifecompliance.system_administrator') or
+            perm_user.has_wildlifelicenceactivity_perm(
+                    ['issuing_officer'],
+                    obj.get('licence_activity_id')
+                )
+            ) and obj.get('can_reissue')
 
 
 class ApplicationSelectedActivityPurposeSerializer(
@@ -299,7 +303,8 @@ class ExternalApplicationSelectedActivitySerializer(serializers.ModelSerializer)
     can_pay_licence_fee = serializers.SerializerMethodField()
     licence_fee = serializers.DecimalField(
         max_digits=8, decimal_places=2, coerce_to_string=False, read_only=True)
-    payment_status = serializers.CharField(read_only=True)
+    #payment_status = serializers.CharField(read_only=True)
+    payment_status = serializers.SerializerMethodField()
 
     class Meta:
         model = ApplicationSelectedActivity
@@ -340,7 +345,19 @@ class ExternalApplicationSelectedActivitySerializer(serializers.ModelSerializer)
         return ','.join([p.name for p in obj.purposes])
 
     def get_can_pay_licence_fee(self, obj):
-        return not obj.licence_fee_paid and obj.processing_status == ApplicationSelectedActivity.PROCESSING_STATUS_AWAITING_LICENCE_FEE_PAYMENT
+        licence_fee_paid = False
+        if obj.get_property_cache()['payment_status'] in [
+            ActivityInvoice.PAYMENT_STATUS_NOT_REQUIRED,
+            ActivityInvoice.PAYMENT_STATUS_PAID,
+            ActivityInvoice.PAYMENT_STATUS_OVERPAID,
+            ActivityInvoice.PAYMENT_STATUS_PARTIALLY_PAID,  # Record Payment
+        ]:  # obj.licence_fee_paid
+            licence_fee_paid = True
+
+        return not licence_fee_paid and obj.processing_status == ApplicationSelectedActivity.PROCESSING_STATUS_AWAITING_LICENCE_FEE_PAYMENT
+
+    def get_payment_status(self, obj):
+        return obj.get_property_cache()['payment_status']
 
 
 class ExternalApplicationSelectedActivityMergedSerializer(serializers.Serializer):
@@ -663,7 +680,7 @@ class BaseApplicationSerializer(serializers.ModelSerializer):
         return False
 
     def get_payment_status(self, obj):
-        return obj.payment_status
+        return obj.get_property_cache()['payment_status']
 
     def get_category_id(self, obj):
         return obj.licence_category_id
@@ -923,7 +940,7 @@ class BaseApplicationSerializer(serializers.ModelSerializer):
 
         if obj.submit_type == Application.SUBMIT_TYPE_ONLINE \
             and obj.customer_status == AWAITING and \
-                obj.payment_status in pay_status:
+                obj.get_property_cache()['payment_status'] in pay_status:
 
             can_pay = True
 
@@ -988,6 +1005,11 @@ class DTInternalApplicationSerializer(BaseApplicationSerializer):
 
         return False
 
+    def get_payment_status(self, obj):
+        value = obj.get_property_cache()
+        return value['payment_status']
+
+
 #class DTInternalApplicationDashboardSerializer(BaseApplicationSerializer):
 #    submitter = EmailUserSerializer()
 #    applicant = serializers.CharField(read_only=True)
@@ -1047,19 +1069,70 @@ class DTInternalApplicationSerializer(BaseApplicationSerializer):
 #        return False
 
 
+# class _DTExternalApplicationSerializer(BaseApplicationSerializer):
+#     submitter = EmailUserSerializer()
+#     applicant = serializers.CharField(read_only=True)
+#     org_applicant = ExternalOrganisationSerializer()
+#     proxy_applicant = EmailUserSerializer()
+#     processing_status = CustomChoiceField(read_only=True, choices=Application.PROCESSING_STATUS_CHOICES)
+#     customer_status = CustomChoiceField(read_only=True)
+#     can_current_user_edit = serializers.SerializerMethodField(read_only=True)
+#     payment_status = serializers.SerializerMethodField(read_only=True)
+#     application_type = CustomChoiceField(read_only=True)
+#     activities = ExternalApplicationSelectedActivitySerializer(many=True, read_only=True)
+#     invoice_url = serializers.SerializerMethodField(read_only=True)
+#     payment_url = serializers.SerializerMethodField(read_only=True)
+
+#     class Meta:
+#         model = Application
+#         fields = (
+#             'id',
+#             'customer_status',
+#             'processing_status',
+#             'applicant',
+#             'org_applicant',
+#             'proxy_applicant',
+#             'submitter',
+#             'lodgement_number',
+#             'lodgement_date',
+#             'category_id',
+#             'category_name',
+#             'activity_names',
+#             'activity_purpose_string',
+#             'purpose_string',
+#             'can_user_view',
+#             'can_current_user_edit',
+#             'payment_status',
+#             'application_type',
+#             'activities',
+#             'invoice_url',
+#             'payment_url',
+#             'can_pay_application',
+#             'can_pay_licence',
+
+#         )
+#         # the serverSide functionality of datatables is such that only columns that have field 'data'
+#         # defined are requested from the serializer. Use datatables_always_serialize to force render
+#         # of fields that are not listed as 'data' in the datatable columns
+#         datatables_always_serialize = fields
+
+
 class DTExternalApplicationSerializer(BaseApplicationSerializer):
     submitter = EmailUserSerializer()
     applicant = serializers.CharField(read_only=True)
     org_applicant = ExternalOrganisationSerializer()
     proxy_applicant = EmailUserSerializer()
-    processing_status = CustomChoiceField(read_only=True, choices=Application.PROCESSING_STATUS_CHOICES)
+    processing_status = CustomChoiceField(
+        read_only=True, choices=Application.PROCESSING_STATUS_CHOICES)
     customer_status = CustomChoiceField(read_only=True)
     can_current_user_edit = serializers.SerializerMethodField(read_only=True)
     payment_status = serializers.SerializerMethodField(read_only=True)
     application_type = CustomChoiceField(read_only=True)
-    activities = ExternalApplicationSelectedActivitySerializer(many=True, read_only=True)
+    # activities = ExternalApplicationSelectedActivitySerializer(
+    #     many=True, read_only=True)
     invoice_url = serializers.SerializerMethodField(read_only=True)
     payment_url = serializers.SerializerMethodField(read_only=True)
+    activities = serializers.SerializerMethodField(read_only=True)
 
     class Meta:
         model = Application
@@ -1089,10 +1162,21 @@ class DTExternalApplicationSerializer(BaseApplicationSerializer):
             'can_pay_licence',
 
         )
-        # the serverSide functionality of datatables is such that only columns that have field 'data'
-        # defined are requested from the serializer. Use datatables_always_serialize to force render
-        # of fields that are not listed as 'data' in the datatable columns
+        # the serverSide functionality of datatables is such that only columns
+        # that have field 'data' defined are requested from the serializer. Use
+        # datatables_always_serialize to force render of fields that are not
+        # listed as 'data' in the datatable columns
         datatables_always_serialize = fields
+
+    def get_payment_status(self, obj):
+        value = obj.get_property_cache()
+        return value['payment_status']
+
+    def get_activities(self, obj):          # + ~2.00secs
+        activities = obj.activities
+        return ExternalApplicationSelectedActivitySerializer(
+            activities, many=True
+        ).data
 
 
 class WildlifeLicenceApplicationSerializer(BaseApplicationSerializer):
