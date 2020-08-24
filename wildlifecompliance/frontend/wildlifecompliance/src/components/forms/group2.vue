@@ -14,19 +14,46 @@
                     <p> component: {{component}} </p>
                     <p> children: {{component.children}} </p>
                     -->
-                    <div class="row header-row">
-                        <div v-for="(header, index) in component.children"
-                            v-bind:key="`repeatable_group_${component.name}_${index}`">
 
-                            <!-- <p> header: {{header}} </p> -->
-                            <span class="group-contents">
-                                <renderer-block
-                                :component="header"
-                                :json_data="value"
-                                :instance="group"
-                                v-bind:key="`repeatable_group_contents_${component.name}_${index}`"
+                    <!--
+                    <p> {{groupIdx}} group: {{group}} </p>
+                    <p> {{groupIdx}} value: {{value}} </p>
+                    -->
+                    <div class="row header-row">
+                        <div v-for="(subcomponent, index) in component.children"
+                            v-bind:key="`repeatable_group_${component.name}_${index}`">
+                            <!--
+                            <p> {{index}} subcomponent: {{subcomponent}} </p>
+
+                            <span v-if="!index" :class="`expand-icon ${isExpanded(group) ? 'collapse' : ''}`"
+                                v-on:click="toggleGroupVisibility(group)"></span>
+                            -->
+
+
+                            <span v-if="subcomponent.type==='expander_table'" class="group-contents">
+                                <p> {{index}} subcomponent: {{subcomponent}} </p>
+                                <p> {{index}} subcomponent.type: {{subcomponent.type}} </p>
+                                <p> {{index}} value: {{value}} </p>
+                                <ExpanderTable
+                                    :readonly="is_readonly"
+                                    :name="subcomponent.name"
+                                    :component="subcomponent"
+                                    id=1000
+                                    :label="subcomponent.label"
+                                    :help_text="help_text"
+                                    :isRequired="subcomponent.isRequired"
+                                    :help_text_url="help_text_url"
                                 />
                             </span>
+                            <span v-else class="group-contents">
+                                <renderer-block
+                                    :component="subcomponent"
+                                    :json_data="value"
+                                    :instance="group"
+                                    v-bind:key="`repeatable_group_contents_${component.name}_${index}`"
+                                />
+                            </span>
+
                             <div>
                                 <button v-if="groupIdx && index == component.children.length-1 && !readonly" type="button" class="btn btn-danger"
                                     @click.prevent="removeGroup(group)">Delete group</button>
@@ -37,7 +64,7 @@
             </div>
         </div>
 
-        <div class="row" v-if="!readonly">
+        <div class="row" v-if="component.isRepeatable && !readonly">
             <input type="button" value="Add Group" class="btn btn-primary add-new-button"
                 @click.prevent="addNewGroup">
         </div>
@@ -49,6 +76,7 @@
 import CommentBlock from './comment_block.vue';
 import HelpText from './help_text.vue';
 import HelpTextUrl from './help_text_url.vue';
+import ExpanderTable from '@/components/forms/expander_table.vue'
 import { mapGetters, mapActions } from 'vuex';
 import '@/scss/forms/expander_table.scss';
 
@@ -73,7 +101,8 @@ const Group2 = {
     components: {
         CommentBlock,
         HelpText,
-        HelpTextUrl
+        HelpTextUrl,
+        ExpanderTable,
     },
     data(){
         return {
@@ -134,12 +163,13 @@ const Group2 = {
         getInstanceName: function(tableId) {
             return `__instance-${tableId}`
         },
+
+        /*
         removeLabel: function(header) {
             let newHeader = {...header};
             delete newHeader['label'];
             return newHeader;
         },
-
         num_groups: function() {
             var default_max_repeatable = 3;
             //if (this.component.isRepeatable && this.component.type === 'group') {
@@ -148,6 +178,7 @@ const Group2 = {
             }
             return 1;
         },
+        */
     },
 
     computed:{
@@ -175,7 +206,7 @@ const Group2 = {
             return this.existingGroups;
         },
         value: function() {
-            console.log('value: ' + JSON.stringify(this.field_data));
+            //console.log('value: ' + JSON.stringify(this.field_data));
             return this.field_data;
         },
     }
