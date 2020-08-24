@@ -360,12 +360,13 @@ export default {
             revert: 'revertApplication',
         }),
         ...mapActions([
-            'setActivityTab'
+            'setActivityTab',
+            'finalDecisionData',
         ]),
         selectTab: function(component) {
             this.setActivityTab({id: component.id, name: component.name});
         },
-        ok: function () {
+        ok: async function () {
             let vm = this;
 
             if(!this.isValidAdditionalFee) {
@@ -390,7 +391,7 @@ export default {
                 type: "question",
                 showCancelButton: true,
                 confirmButtonText: 'Finalise'
-            }).then((result) => {
+            }).then( async (result) => {
                 if (result.value) {
                     let selected = []
                     for (let a=0; a<this.application.activities.length; a++){
@@ -416,20 +417,32 @@ export default {
                                 moment(purpose.proposed_end_date, date_formats).format('YYYY-MM-DD') : null,
                         }
                     });
-                    vm.$http.post(helpers.add_endpoint_json(api_endpoints.applications,vm.application.id+'/final_decision'),JSON.stringify(licence),{
-                                emulateJSON:true,
 
-                            }).then((response)=>{
-                                vm.$router.push({ name:"internal-dash", });
+                    await this.finalDecisionData({ url: `/api/application/${this.application.id}/final_decision_data.json` }).then( async response => {
 
-                            },(error)=>{
-                                swal(
-                                    'Application Error',
-                                    helpers.apiVueResourceError(error),
-                                    'error'
-                                )
-                                this.load({ url: `/api/application/${this.application.id}/internal_application.json` });
-                            });
+                        await vm.$http.post(helpers.add_endpoint_json(api_endpoints.applications,vm.application.id+'/final_decision'),JSON.stringify(licence),{
+                                    emulateJSON:true,
+
+                                }).then((response)=>{
+                                    vm.$router.push({ name:"internal-dash", });
+
+                                },(error)=>{
+                                    swal(
+                                        'Application Error',
+                                        helpers.apiVueResourceError(error),
+                                        'error'
+                                    )
+                                    this.load({ url: `/api/application/${this.application.id}/internal_application.json` });
+                                });
+
+                    },(error)=>{
+                        swal(
+                            'Application Error',
+                            helpers.apiVueResourceError(error),
+                            'error'
+                        )
+                        this.load({ url: `/api/application/${this.application.id}/internal_application.json` });
+                    });
                 }
             },(error) => {
             });

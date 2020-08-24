@@ -23,7 +23,7 @@ RUN apt-get clean \
   imagemagick poppler-utils \
   libldap2-dev libssl-dev wget build-essential \
   libmagic-dev binutils libproj-dev gunicorn tzdata \
-  postgresql-client mtr \
+  mtr \
   cron rsyslog iproute2
 RUN pip install --upgrade pip
 RUN apt-get install -yq vim
@@ -42,7 +42,8 @@ RUN pip install --no-cache-dir -r requirements.txt \
 # Install the project (ensure that frontend projects have been built prior to this step).
 FROM python_libs_wls
 COPY gunicorn.ini manage_wc.py ./
-COPY timezone /etc/timezone
+#COPY timezone /etc/timezone
+RUN echo "Australia/Perth" > /etc/timezone
 ENV TZ=Australia/Perth
 RUN ln -snf /usr/share/zoneinfo/$TZ /etc/localtime && echo $TZ > /etc/timezone
 RUN touch /app/.env
@@ -50,6 +51,12 @@ COPY .git ./.git
 #COPY ledger ./ledger
 COPY wildlifecompliance ./wildlifecompliance
 RUN python manage_wc.py collectstatic --noinput
+
+# upgrade postgresql to v11
+#RUN echo "deb http://apt.postgresql.org/pub/repos/apt/ $(lsb_release -cs)-pgdg main 11" > /etc/apt/sources.list.d/pgsql.list
+RUN echo "deb http://apt.postgresql.org/pub/repos/apt/ bionic-pgdg main 11" > /etc/apt/sources.list.d/pgsql.list
+RUN wget --quiet -O - https://www.postgresql.org/media/keys/ACCC4CF8.asc | apt-key add -
+RUN apt update && apt install -y lsb-release postgresql-11 postgresql-client
 
 RUN mkdir /app/tmp/
 RUN chmod 777 /app/tmp/

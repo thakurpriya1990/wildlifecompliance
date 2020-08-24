@@ -416,12 +416,40 @@ class Application(RevisionedMixin):
 
         return self.property_cache
 
+    def get_property_cache_key(self, key):
+        '''
+        Get properties which were previously resolved with key.
+        '''
+        try:
+
+            self.property_cache[key]
+
+        except KeyError:
+            self.update_property_cache()
+
+        return self.property_cache
+
     def update_property_cache(self, save=True):
         '''
         Refresh cached properties with updated properties.
         '''
+
+        if self.id:
+            self.property_cache[
+                'licence_activity_names'] = self.licence_activity_names
+            self.property_cache[
+                'licence_type_name'] = self.licence_type_name
+            self.property_cache[
+                'licence_purpose_names'] = self.licence_purpose_names
+            self.property_cache[
+                'licence_category_id'] = self.licence_category_id
+            self.property_cache[
+                'licence_category_name'] = self.licence_category_name
+
         self.property_cache['payment_status'] = self.payment_status
-        # self.property_cache['activities'] = self.jsonify(self.activities)
+        self.property_cache[
+            'latest_invoice_ref'
+        ] = self.latest_invoice.reference if self.latest_invoice else ''
 
         if save is True:
             self.save()
@@ -603,7 +631,6 @@ class Application(RevisionedMixin):
             return 'under_paid'
 
         elif self.requires_refund:
-            print('refund')
             return ApplicationInvoice.PAYMENT_STATUS_OVERPAID
 
         elif self.invoices.count() == 0:
@@ -3088,6 +3115,26 @@ class Application(RevisionedMixin):
         return applications
 
     @staticmethod
+    def get_first_active_licence_application(
+            request, for_application_type=APPLICATION_TYPE_NEW_LICENCE):
+        '''
+        Returns a current application available.
+
+        A check whether requested_user has any current applications.
+        '''
+        applications = Application.get_request_user_applications(
+            request
+        
+        ).filter(
+            selected_activities__activity_status__in=[
+                ApplicationSelectedActivity.ACTIVITY_STATUS_CURRENT,
+                ApplicationSelectedActivity.ACTIVITY_STATUS_SUSPENDED,
+            ],
+        ).first()
+
+        return applications
+
+    @staticmethod
     def get_open_applications(request):
         return Application.get_request_user_applications(request).exclude(
             selected_activities__processing_status__in=[
@@ -3711,11 +3758,44 @@ class ApplicationSelectedActivity(models.Model):
         Refresh cached properties with updated properties.
         '''
         self.property_cache['payment_status'] = self.payment_status
+        self.property_cache[
+            'latest_invoice_ref'
+        ] = self.latest_invoice.reference if self.latest_invoice else ''
 
         if save is True:
             self.save()
 
         return self.property_cache
+
+    def get_property_cache_key(self, key):
+        '''
+        Get properties which were previously resolved with key.
+        '''
+        try:
+            
+            self.property_cache[key]
+
+        except KeyError:
+            self.update_property_cache()
+
+        return self.property_cache
+
+    @property
+    def latest_invoice(self):
+        """
+        Property defining the latest invoice for the Selected Activity.
+        """
+        latest_invoice = None
+        if self.activity_invoices.count() > 0:
+            try:
+                latest_invoice = Invoice.objects.get(
+                    reference=self.activity_invoices.latest(
+                        'id').invoice_reference
+                )
+            except Invoice.DoesNotExist:
+                return None
+
+        return latest_invoice
 
     @property
     def has_inspection(self):

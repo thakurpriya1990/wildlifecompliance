@@ -299,8 +299,8 @@ export default {
                             links +=  `<a href='#${full.id}' data-pay-application-fee='${full.id}'>Pay Application Fee</a><br/>`;
                         }
                         if (full.can_pay_licence){
-                            let activity = full.activities.find(activity => activity.can_pay_licence_fee=true)
-                            links +=  `<a href='#${full.id}' data-pay-application-licence-fee='${full.id}' pay-licence-fee-for='${activity.id}'>Pay Additional Fee</a><br/>`;
+                            // let activity = full.activities.find(activity => activity.can_pay_licence_fee=true)
+                            links +=  `<a href='#${full.id}' data-pay-application-licence-fee='${full.id}' pay-licence-fee-for='${full.pay_activity_id}'>Pay Additional Fee</a><br/>`;
                         }                        
                     }
                     return links;
@@ -460,7 +460,8 @@ export default {
                     // Fix the table rendering columns
                     vm.visibleDatatable.vmDataTable.columns.adjust().responsive.recalc();
                 }
-            }
+            },
+            activities : [],
         }
     },
     components:{
@@ -553,6 +554,21 @@ export default {
                     )
                 });
         },
+        getActivities: async function(application_id) {
+            await this.$http.post(helpers.add_endpoint_join(api_endpoints.applications,application_id+'/get_activities/'), {
+                application_id
+            }).then(res=>{
+
+                    this.activities = res.body;
+
+                },err=>{
+                    swal(
+                        'Get Activity Error',
+                        helpers.apiVueResourceError(err),
+                        'error'
+                    )
+                });
+        },
         addEventListeners: function(){
             let vm = this;
             // Initialise Application Date Filters
@@ -596,7 +612,7 @@ export default {
                 vm.payLicenceFee(application_id, activity_id);
             });                       
             // Child row listener
-            vm.visibleDatatable.vmDataTable.on('click', 'tr.appRecordRow', function(e) {
+            vm.visibleDatatable.vmDataTable.on('click', 'tr.appRecordRow', async function(e) {
                 // If a link is clicked, ignore
                 if($(e.target).is('a')){
                     return;
@@ -605,6 +621,7 @@ export default {
                 var tr = $(this);
                 var row = vm.visibleDatatable.vmDataTable.row(tr);
 
+                await vm.getActivities(row.data()['id'])
                 if (row.child.isShown()) {
                     // This row is already open - close it
                     row.child.hide();
@@ -615,7 +632,8 @@ export default {
                     var child_row = ''
                     // Generate rows for each activity if internal
                     var activity_rows = ''
-                    row.data()['activities'].forEach(function(activity) {
+                    var activity_invoice_url = ''
+                    vm.activities.forEach(function(activity) {
                         activity_rows += `
                             <tr>
                                 <td>${activity['activity_name_str']}</td>
@@ -627,6 +645,7 @@ export default {
                                     `<a pay-licence-fee-for='${activity['id']}' application-id='${row.data()['id']}'>Pay licence fee</a>` : ''}
                                 </td>`}
                             </tr>`;
+                        activity_invoice_url = activity['invoice_url']
                     });
                     // Generate html for child row
                     child_row += `
@@ -642,10 +661,10 @@ export default {
                                 <td><strong>Payment Status:&nbsp;</strong></td>
                                 <td>&nbsp;&nbsp;${row.data()['payment_status']}</td>
                             </tr>
-                            ${row.data()['invoice_url'] ?
+                            ${activity_invoice_url ?
                             `<tr>
                                 <td><strong>Invoice:&nbsp;</strong></td>
-                                <td><a href="${row.data()['invoice_url']}'" target="_blank"><i style="color:red" class="fa fa-file-pdf-o"></i></a></td>
+                                <td><a href="${activity_invoice_url}'" target="_blank"><i style="color:red" class="fa fa-file-pdf-o"></i></a></td>
                             </tr>` : ' ' } `;
 
                     child_row += `</table>`

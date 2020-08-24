@@ -1,6 +1,7 @@
 import datetime
 from django.urls import reverse
 from ledger.accounts.models import EmailUser
+from wildlifecompliance import settings
 from wildlifecompliance.components.applications.models import (
     Application,
     ApplicationUserAction,
@@ -14,19 +15,23 @@ from wildlifecompliance.components.applications.models import (
     ApplicationFormDataRecord,
     ApplicationSelectedActivityPurpose,
     ApplicationInvoice,
+    ActivityInvoice,
 )
 from wildlifecompliance.components.organisations.models import (
     Organisation
 )
 from wildlifecompliance.components.licences.models import LicenceActivity
-from wildlifecompliance.components.main.serializers import CommunicationLogEntrySerializer
+from wildlifecompliance.components.main.serializers import (
+    CommunicationLogEntrySerializer
+)
 from wildlifecompliance.components.organisations.serializers import (
     OrganisationSerializer,
     ExternalOrganisationSerializer
 )
-from wildlifecompliance.components.users.serializers import UserAddressSerializer, DocumentSerializer
+from wildlifecompliance.components.users.serializers import (
+    UserAddressSerializer, DocumentSerializer
+)
 from wildlifecompliance.components.main.fields import CustomChoiceField
-from wildlifecompliance import helpers
 from wildlifecompliance.management.permissions_manager import PermissionUser
 
 from rest_framework import serializers
@@ -80,10 +85,13 @@ class ApplicationSelectedActivityCanActionSerializer(serializers.Serializer):
         if user is None:
             return False
         perm_user = PermissionUser(user)
-        return (user.has_perm('wildlifecompliance.system_administrator') or
-            perm_user.has_wildlifelicenceactivity_perm([
-                'issuing_officer',
-            ], obj.get('licence_activity_id'))) and obj.get('can_reissue')
+        return (
+            user.has_perm('wildlifecompliance.system_administrator') or
+            perm_user.has_wildlifelicenceactivity_perm(
+                    ['issuing_officer'],
+                    obj.get('licence_activity_id')
+                )
+            ) and obj.get('can_reissue')
 
 
 class ApplicationSelectedActivityPurposeSerializer(
@@ -299,7 +307,8 @@ class ExternalApplicationSelectedActivitySerializer(serializers.ModelSerializer)
     can_pay_licence_fee = serializers.SerializerMethodField()
     licence_fee = serializers.DecimalField(
         max_digits=8, decimal_places=2, coerce_to_string=False, read_only=True)
-    payment_status = serializers.CharField(read_only=True)
+    #payment_status = serializers.CharField(read_only=True)
+    payment_status = serializers.SerializerMethodField()
 
     class Meta:
         model = ApplicationSelectedActivity
@@ -340,7 +349,214 @@ class ExternalApplicationSelectedActivitySerializer(serializers.ModelSerializer)
         return ','.join([p.name for p in obj.purposes])
 
     def get_can_pay_licence_fee(self, obj):
-        return not obj.licence_fee_paid and obj.processing_status == ApplicationSelectedActivity.PROCESSING_STATUS_AWAITING_LICENCE_FEE_PAYMENT
+        licence_fee_paid = False
+        if obj.get_property_cache_key('payment_status')['payment_status'] in [
+            ActivityInvoice.PAYMENT_STATUS_NOT_REQUIRED,
+            ActivityInvoice.PAYMENT_STATUS_PAID,
+            ActivityInvoice.PAYMENT_STATUS_OVERPAID,
+            ActivityInvoice.PAYMENT_STATUS_PARTIALLY_PAID,  # Record Payment
+        ]:  # obj.licence_fee_paid
+            licence_fee_paid = True
+
+        return not licence_fee_paid and obj.processing_status == ApplicationSelectedActivity.PROCESSING_STATUS_AWAITING_LICENCE_FEE_PAYMENT
+
+    def get_payment_status(self, obj):
+        return obj.get_property_cache_key('payment_status')['payment_status']
+
+
+class DTExternalApplicationSelectedActivitySerializer(
+            serializers.ModelSerializer):
+    activity_name_str = serializers.SerializerMethodField(read_only=True)
+    issue_date = serializers.SerializerMethodField(read_only=True)
+    start_date = serializers.SerializerMethodField(read_only=True)
+    expiry_date = serializers.SerializerMethodField(read_only=True)
+    activity_purpose_names = serializers.SerializerMethodField(read_only=True)
+    activity_status = CustomChoiceField(read_only=True)
+    can_action = ApplicationSelectedActivityCanActionSerializer(read_only=True)
+    can_pay_licence_fee = serializers.SerializerMethodField()
+    licence_fee = serializers.DecimalField(
+        max_digits=8, decimal_places=2, coerce_to_string=False, read_only=True)
+    payment_status = serializers.SerializerMethodField()
+    invoice_url = serializers.SerializerMethodField()
+    # payment_url = serializers.SerializerMethodField()
+
+    class Meta:
+        model = ApplicationSelectedActivity
+        fields = (
+            'id',
+            'activity_name_str',
+            'issue_date',
+            'start_date',
+            'expiry_date',
+            'activity_purpose_names',
+            'activity_status',
+            'can_action',
+            'licence_fee',
+            'payment_status',
+            'can_pay_licence_fee',
+            'invoice_url',      # only load in expander
+            # 'payment_url',    # only load in expander
+        )
+        # the serverSide functionality of datatables is such that only columns
+        # that have field 'data' defined are requested from the serializer. Use
+        # datatables_always_serialize to force render of fields that are not
+        # listed as 'data' in the datatable columns.
+        datatables_always_serialize = fields
+
+    def get_activity_name_str(self, obj):
+        return obj.licence_activity.name if obj.licence_activity else ''
+
+    def get_issue_date(self, obj):
+        return obj.get_issue_date() if obj.get_issue_date() else ''
+
+    def get_start_date(self, obj):
+        return obj.get_start_date() if obj.get_start_date() else ''
+
+    def get_expiry_date(self, obj):
+        return obj.get_expiry_date() if obj.get_expiry_date() else ''
+
+    def get_activity_purpose_names(self, obj):
+        return ','.join([p.name for p in obj.purposes])
+
+    def get_can_pay_licence_fee(self, obj):
+        licence_fee_paid = False
+        if obj.get_property_cache_key('payment_status')['payment_status'] in [
+            ActivityInvoice.PAYMENT_STATUS_NOT_REQUIRED,
+            ActivityInvoice.PAYMENT_STATUS_PAID,
+            ActivityInvoice.PAYMENT_STATUS_OVERPAID,
+            ActivityInvoice.PAYMENT_STATUS_PARTIALLY_PAID,  # Record Payment
+        ]:  # obj.licence_fee_paid
+            licence_fee_paid = True
+
+        return not licence_fee_paid and obj.processing_status == ApplicationSelectedActivity.PROCESSING_STATUS_AWAITING_LICENCE_FEE_PAYMENT
+
+    def get_payment_status(self, obj):
+        return obj.get_property_cache_key('payment_status')['payment_status']
+
+    def get_invoice_url(self, obj):
+        url = None
+        if obj.get_property_cache_key(
+                'latest_invoice_ref')['latest_invoice_ref']:
+
+            url = '{0}{1}'.format(
+                settings.WC_PAYMENT_SYSTEM_URL_INV,
+                obj.get_property_cache_key(
+                     'latest_invoice_ref'
+                )['latest_invoice_ref']
+            )
+
+        return url
+
+
+class DTInternalApplicationSelectedActivitySerializer(
+            serializers.ModelSerializer):
+    activity_name_str = serializers.SerializerMethodField(read_only=True)
+    issue_date = serializers.SerializerMethodField(read_only=True)
+    start_date = serializers.SerializerMethodField(read_only=True)
+    expiry_date = serializers.SerializerMethodField(read_only=True)
+    activity_purpose_names = serializers.SerializerMethodField(read_only=True)
+    activity_status = CustomChoiceField(read_only=True)
+    can_action = ApplicationSelectedActivityCanActionSerializer(read_only=True)
+    can_pay_licence_fee = serializers.SerializerMethodField()
+    licence_fee = serializers.DecimalField(
+        max_digits=8, decimal_places=2, coerce_to_string=False, read_only=True)
+    # payment_status = serializers.CharField(read_only=True)
+    payment_status = serializers.SerializerMethodField()
+    processing_status = CustomChoiceField(read_only=True, choices=ApplicationSelectedActivity.PROCESSING_STATUS_CHOICES)
+    can_pay_licence = serializers.SerializerMethodField()
+    officer_name = serializers.SerializerMethodField()
+
+    class Meta:
+        model = ApplicationSelectedActivity
+        fields = (
+            'id',
+            'activity_name_str',
+            'issue_date',
+            'start_date',
+            'expiry_date',
+            'activity_purpose_names',
+            'activity_status',
+            'can_action',
+            'licence_fee',
+            'payment_status',
+            'can_pay_licence_fee',
+            'processing_status',
+            'can_pay_licence',
+            'officer_name',
+        )
+        # the serverSide functionality of datatables is such that only columns
+        # that have field 'data' defined are requested from the serializer. Use
+        # datatables_always_serialize to force render of fields that are not
+        # listed as 'data' in the datatable columns.
+        datatables_always_serialize = fields
+
+    def get_activity_name_str(self, obj):
+        return obj.licence_activity.name if obj.licence_activity else ''
+
+    def get_issue_date(self, obj):
+        return obj.get_issue_date() if obj.get_issue_date() else ''
+
+    def get_start_date(self, obj):
+        return obj.get_start_date() if obj.get_start_date() else ''
+
+    def get_expiry_date(self, obj):
+        return obj.get_expiry_date() if obj.get_expiry_date() else ''
+
+    def get_activity_purpose_names(self, obj):
+        return ','.join([p.name for p in obj.purposes])
+
+    def get_can_pay_licence_fee(self, obj):
+        licence_fee_paid = False
+        if obj.get_property_cache_key('payment_status')['payment_status'] in [
+            ActivityInvoice.PAYMENT_STATUS_NOT_REQUIRED,
+            ActivityInvoice.PAYMENT_STATUS_PAID,
+            ActivityInvoice.PAYMENT_STATUS_OVERPAID,
+            ActivityInvoice.PAYMENT_STATUS_PARTIALLY_PAID,  # Record Payment
+        ]:  # obj.licence_fee_paid
+            licence_fee_paid = True
+
+        return not licence_fee_paid and obj.processing_status == ApplicationSelectedActivity.PROCESSING_STATUS_AWAITING_LICENCE_FEE_PAYMENT
+
+    def get_payment_status(self, obj):
+        return obj.get_property_cache_key('payment_status')['payment_status']
+
+    def get_can_pay_licence(self, obj):
+        can_pay = False
+
+        pay_status = [
+            ApplicationInvoice.PAYMENT_STATUS_NOT_REQUIRED,
+            ApplicationInvoice.PAYMENT_STATUS_PARTIALLY_PAID,
+            ApplicationInvoice.PAYMENT_STATUS_PAID,
+        ]
+        AWAITING = Application.CUSTOMER_STATUS_AWAITING_PAYMENT
+
+        if obj.application.submit_type == Application.SUBMIT_TYPE_ONLINE \
+            and obj.application.customer_status == AWAITING and \
+                obj.get_property_cache_key('payment_status')[
+                    'payment_status'] in pay_status:
+
+            can_pay = True
+
+        return can_pay
+
+    def get_officer_name(self, obj):
+
+        with_officer = ['with_officer', 'with_officer_conditions']
+        with_approver = ['with_officer_finalisation']
+        if obj.processing_status in with_officer and obj.assigned_officer:
+            name = '{0} {1}'.format(
+                obj.assigned_officer.first_name,
+                obj.assigned_officer.last_name
+            )
+        elif obj.processing_status in with_approver and obj.assigned_approver:
+            name = '{0} {1}'.format(
+                obj.assigned_approver.first_name,
+                obj.assigned_approver.last_name
+            )
+        else:
+            name = ''
+
+        return name
 
 
 class ExternalApplicationSelectedActivityMergedSerializer(serializers.Serializer):
@@ -598,6 +814,7 @@ class BaseApplicationSerializer(serializers.ModelSerializer):
     is_return_check_accept = serializers.SerializerMethodField(read_only=True)
     can_pay_application = serializers.SerializerMethodField(read_only=True)
     can_pay_licence = serializers.SerializerMethodField(read_only=True)
+    licence_type_name = serializers.SerializerMethodField(read_only=True)
 
     class Meta:
         model = Application
@@ -663,26 +880,38 @@ class BaseApplicationSerializer(serializers.ModelSerializer):
         return False
 
     def get_payment_status(self, obj):
-        return obj.payment_status
+        return obj.get_property_cache_key('payment_status')['payment_status']
 
     def get_category_id(self, obj):
-        return obj.licence_category_id
+        return obj.get_property_cache_key(
+            'licence_category_id')['licence_category_id']
 
     def get_category_name(self, obj):
-        return obj.licence_category_name
+        return obj.get_property_cache_key(
+            'licence_category_name')['licence_category_name']
 
     def get_activity_purpose_string(self, obj):
-        activity_names = obj.licence_type_name.split(' - ')[1] if ' - ' in obj.licence_type_name else obj.licence_type_name
+        name = obj.get_property_cache_key(
+            'licence_type_name')['licence_type_name']
+        activity_names = name.split(' - ')[1] if ' - ' in name else name
+
         return activity_names
 
     def get_purpose_string(self, obj):
-        return obj.licence_purpose_names
+        return obj.get_property_cache_key(
+            'licence_purpose_names')['licence_purpose_names']
+
+    def get_licence_type_name(self, obj):
+        return obj.get_property_cache_key(
+            'licence_type_name')['licence_type_name']
 
     def get_activity_names(self, obj):
-        return obj.licence_activity_names
+        return obj.get_property_cache_key(
+            'licence_activity_names')['licence_activity_names']
 
     def get_activities(self, obj):
-        return ApplicationSelectedActivitySerializer(obj.activities, many=True).data
+        return ApplicationSelectedActivitySerializer(
+            obj.activities, many=True).data
 
     def get_amendment_requests(self, obj):
         amendment_request_data = []
@@ -790,24 +1019,33 @@ class BaseApplicationSerializer(serializers.ModelSerializer):
 
     def get_invoice_url(self, obj):
         url = None
-        if obj.latest_invoice:
-            url = reverse(
-                'payments:invoice-pdf',
-                kwargs={'reference': obj.latest_invoice.reference})
+        if obj.get_property_cache_key(
+                'latest_invoice_ref')['latest_invoice_ref']:
+
+            url = '{0}{1}'.format(
+                settings.WC_PAYMENT_SYSTEM_URL_PDF,
+                obj.get_property_cache_key(
+                    'latest_invoice_ref')['latest_invoice_ref'],
+            )
 
         return url
 
-    def get_payment_url(self, app):
+    def get_payment_url(self, obj):
         """
         Builds a url link to ledger for invoice details associated with a
         licence activity on this application.
         """
         url = None
 
-        if app.latest_invoice:  # url for latest invoice on app.
-            url = '{}?invoice={}'.format(
-                reverse('payments:invoice-payment'),
-                app.latest_invoice.reference)
+        # url for latest invoice on app.
+        if obj.get_property_cache_key(
+                'latest_invoice_ref')['latest_invoice_ref']:
+
+            url = '{0}{1}'.format(
+                settings.WC_PAYMENT_SYSTEM_URL_INV,
+                obj.get_property_cache_key(
+                    'latest_invoice_ref')['latest_invoice_ref'],
+            )
 
         return url
 
@@ -818,9 +1056,12 @@ class BaseApplicationSerializer(serializers.ModelSerializer):
         """
         url = None
 
-        if app.invoices.count() > 0:    # url for all invoices on app.
+        # url for all invoices on app.
+        if app.get_property_cache_key(
+                'latest_invoice_ref')['latest_invoice_ref']:
             invoices = app.invoices.all()
-            invoice_str = app.latest_invoice.reference
+            invoice_str = app.get_property_cache_key(
+                'latest_invoice_ref')['latest_invoice_ref']
             for invoice in invoices:
                 invoice_str += '&invoice={}'.format(invoice.invoice_reference)
 
@@ -834,9 +1075,10 @@ class BaseApplicationSerializer(serializers.ModelSerializer):
                         invoice_str += '&invoice={}'.format(
                             invoice.invoice_reference)
 
-            url = '{}?invoice={}'.format(
-                reverse('payments:invoice-payment'),
-                invoice_str)
+            url = '{0}payment?invoice={1}'.format(
+                settings.WC_PAYMENT_SYSTEM_URL_INV,
+                invoice_str,
+            )
 
         return url
 
@@ -904,7 +1146,7 @@ class BaseApplicationSerializer(serializers.ModelSerializer):
         ]
 
         if obj.submit_type == Application.SUBMIT_TYPE_ONLINE \
-            and obj.payment_status in pay_status and \
+            and obj.get_property_cache_key('payment_status')['payment_status'] in pay_status and \
                 obj.processing_status != Application.PROCESSING_STATUS_DRAFT:
 
             can_pay = True
@@ -923,7 +1165,7 @@ class BaseApplicationSerializer(serializers.ModelSerializer):
 
         if obj.submit_type == Application.SUBMIT_TYPE_ONLINE \
             and obj.customer_status == AWAITING and \
-                obj.payment_status in pay_status:
+                obj.get_property_cache_key('payment_status')['payment_status'] in pay_status:
 
             can_pay = True
 
@@ -943,7 +1185,7 @@ class DTInternalApplicationSerializer(BaseApplicationSerializer):
     user_in_officers = serializers.SerializerMethodField(read_only=True)
     application_type = CustomChoiceField(read_only=True)
     #activities = ApplicationSelectedActivityDashboardSerializer(many=True, read_only=True)
-    activities = ApplicationSelectedActivitySerializer(many=True, read_only=True)
+    #activities = ApplicationSelectedActivitySerializer(many=True, read_only=True)
     payment_url = serializers.SerializerMethodField(read_only=True)
     all_payments_url = serializers.SerializerMethodField(read_only=True)                                   # 1.7s
 
@@ -970,7 +1212,7 @@ class DTInternalApplicationSerializer(BaseApplicationSerializer):
             'can_be_processed',
             'user_in_officers',
             'application_type',
-            'activities',
+            # 'activities',
             'invoice_url',
             'payment_url',
             'all_payments_url',
@@ -989,7 +1231,7 @@ class DTInternalApplicationSerializer(BaseApplicationSerializer):
         return False
 
     def get_payment_status(self, obj):
-        value = obj.get_property_cache()
+        value = obj.get_property_cache_key('payment_status')
         return value['payment_status']
 
 
@@ -1108,13 +1350,16 @@ class DTExternalApplicationSerializer(BaseApplicationSerializer):
     processing_status = CustomChoiceField(
         read_only=True, choices=Application.PROCESSING_STATUS_CHOICES)
     customer_status = CustomChoiceField(read_only=True)
-    can_current_user_edit = serializers.SerializerMethodField(read_only=True)
-    payment_status = serializers.SerializerMethodField(read_only=True)
+
     application_type = CustomChoiceField(read_only=True)
-    activities = ExternalApplicationSelectedActivitySerializer(
-        many=True, read_only=True)
+    # activities = ExternalApplicationSelectedActivitySerializer(
+    #     many=True, read_only=True)
     invoice_url = serializers.SerializerMethodField(read_only=True)
     payment_url = serializers.SerializerMethodField(read_only=True)
+    # activities = serializers.SerializerMethodField(read_only=True)
+    can_current_user_edit = serializers.SerializerMethodField(read_only=True)
+    payment_status = serializers.SerializerMethodField(read_only=True)
+    pay_activity_id = serializers.SerializerMethodField(read_only=True)
 
     class Meta:
         model = Application
@@ -1130,18 +1375,19 @@ class DTExternalApplicationSerializer(BaseApplicationSerializer):
             'lodgement_date',
             'category_id',
             'category_name',
-            'activity_names',
-            'activity_purpose_string',
+            #'activity_names', # in expander
+            #'activity_purpose_string', # in expander
             'purpose_string',
             'can_user_view',
             'can_current_user_edit',
-            'payment_status',
+            'payment_status', 
             'application_type',
-            'activities',
-            'invoice_url',
-            'payment_url',
+            # 'activities', # only in expander
+            #'invoice_url', # only load in expander
+            #'payment_url', # only load in expander
             'can_pay_application',
             'can_pay_licence',
+            'pay_activity_id',
 
         )
         # the serverSide functionality of datatables is such that only columns
@@ -1151,8 +1397,11 @@ class DTExternalApplicationSerializer(BaseApplicationSerializer):
         datatables_always_serialize = fields
 
     def get_payment_status(self, obj):
-        value = obj.get_property_cache()
+        value = obj.get_property_cache_key('payment_status')
         return value['payment_status']
+
+    def get_pay_activity_id(self, obj):
+        return 0
 
 
 class WildlifeLicenceApplicationSerializer(BaseApplicationSerializer):
