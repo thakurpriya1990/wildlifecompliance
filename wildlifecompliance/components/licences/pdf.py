@@ -473,18 +473,18 @@ def _create_licence(licence_buffer, licence, application):
 
     elements.append(Paragraph(
         'Licence Summary', styles['InfoTitleVeryLargeCenter']))
-    elements.append(Spacer(1, SECTION_BUFFER_HEIGHT))
-    elements.append(Paragraph('Activities', styles['BoldLeft']))
-    elements.append(Spacer(1, SECTION_BUFFER_HEIGHT))
+    # elements.append(Spacer(1, SECTION_BUFFER_HEIGHT))
+    # elements.append(Paragraph('Activities', styles['BoldLeft']))
+    # elements.append(Spacer(1, SECTION_BUFFER_HEIGHT))
 
-    activityList = ListFlowable(
-        [Paragraph("{name}".format(
-            name=selected_activity.licence_activity.name
-        ),
-            styles['Left'],
-        ) for selected_activity in licence.current_activities],
-        bulletFontName=BOLD_FONTNAME, bulletFontSize=MEDIUM_FONTSIZE)
-    elements.append(activityList)
+    # activityList = ListFlowable(
+    #     [Paragraph("{name}".format(
+    #         name=selected_activity.licence_activity.name
+    #     ),
+    #         styles['Left'],
+    #     ) for selected_activity in licence.current_activities],
+    #     bulletFontName=BOLD_FONTNAME, bulletFontSize=MEDIUM_FONTSIZE)
+    # elements.append(activityList)
 
     elements.append(Spacer(1, SECTION_BUFFER_HEIGHT))
     elements.append(Paragraph('Purposes', styles['BoldLeft']))
@@ -496,6 +496,11 @@ def _create_licence(licence_buffer, licence, application):
         ApplicationSelectedActivityPurpose.PURPOSE_STATUS_DEFAULT,
     ]
 
+    licence_purposes = [
+        p for p in licence.get_purposes_in_sequence()
+        if p.purpose_status in include and p.is_issued
+    ]
+
     purposeList = ListFlowable(
         [Paragraph("{name} {start} - {end} ({status})".format(
             name=p.purpose.name,
@@ -504,17 +509,16 @@ def _create_licence(licence_buffer, licence, application):
             end=p.expiry_date.strftime('%d/%m/%Y'),
         ),
             styles['Left'],
-        ) for p in licence.get_purposes_in_sequence()
-          if p.purpose_status in include and p.is_issued
+        ) for p in licence_purposes
         ],
         bulletFontName=BOLD_FONTNAME, bulletFontSize=MEDIUM_FONTSIZE)
     elements.append(purposeList)
     elements.append(PageBreak())
 
-    for purpose in licence.get_purposes_in_sequence():
-        if not purpose.is_issued and purpose.purpose_status not in include:
-            # Exclude purposes that are not issued.
-            continue
+    for purpose in licence_purposes:
+        # if not purpose.is_issued or purpose.purpose_status not in include:
+        #     # Exclude purposes that are not issued.
+        #     continue
         _create_licence_purpose(elements, purpose.selected_activity, purpose)
 
     doc.build(elements)
@@ -654,7 +658,7 @@ def create_licence_doc(licence, application):
     licence_buffer = BytesIO()
 
     _create_licence(licence_buffer, licence, application)
-    filename = 'licence-{}.pdf'.format(licence.id)
+    filename = 'licence-{}.pdf'.format(licence.licence_number)
     document = LicenceDocument.objects.create(name=filename)
     document._file.save(filename, File(licence_buffer), save=True)
 

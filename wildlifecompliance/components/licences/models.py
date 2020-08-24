@@ -56,6 +56,9 @@ class LicencePurpose(models.Model):
         default=False,
         help_text='If ticked, the licenced Purpose can have multiple periods.')
     oracle_account_code = models.CharField(max_length=100, default='')
+    not_renewable = models.BooleanField(
+        default=False,
+        help_text='If ticked, the licenced Purpose can not be renewed.')
 
     class Meta:
         app_label = 'wildlifecompliance'
@@ -1266,7 +1269,7 @@ class WildlifeLicence(models.Model):
                 purpose_status__in=ApplicationSelectedActivityPurpose.RENEWABLE
             )
         ]
-
+        to_renew = [p for p in to_renew if not p.purpose.not_renewable]
         return to_renew
 
     def get_document_history(self):
@@ -1274,7 +1277,7 @@ class WildlifeLicence(models.Model):
         Returns a query set of all licence documents for this licence by
         applications with current or suspended activities.
         '''
-        pdf_name = 'licence-{0}.pdf'.format(self.id)
+        pdf_name = 'licence-{0}.pdf'.format(self.licence_number)
 
         documents = LicenceDocument.objects.values(
                 'uploaded_date',
