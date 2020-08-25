@@ -24,7 +24,7 @@ class OracleIntegrationCronJob(CronJobBase):
     RUN_AT_TIMES = [settings.CRON_RUN_AT_TIMES]
 
     schedule = Schedule(run_at_times=RUN_AT_TIMES)
-    code = 'wildlifels.oracle_integration'
+    code = 'wlc.oracle_integration'
 
     def do(self):
         oracle_integration(str(date.today()-timedelta(days=1)), False)
