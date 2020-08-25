@@ -292,30 +292,30 @@ class ApplicationFeePolicy(object):
                     'oracle_code': oracle_code
                 })
 
-        activities = application.selected_activities.all()
+        # activities = application.selected_activities.all()
         # Include additional fees by licence approvers.
-        if application.has_additional_fees:
-            # only fees which are greater than zero.
-            activities_with_fees = [
-                a for a in activities if a.additional_fee > 0
-            ]
+        # if application.has_additional_fees:
+        #     # only fees which are greater than zero.
+        #     activities_with_fees = [
+        #         a for a in activities if a.additional_fee > 0
+        #     ]
 
-            # only fees awaiting payment
-            for activity in activities_with_fees:
+        #     # only fees awaiting payment
+        #     for activity in activities_with_fees:
 
-                price_excl = calculate_excl_gst(activity.additional_fee)
-                if ApplicationFeePolicy.GST_FREE:
-                    price_excl = activity.additional_fee
-                oracle_code = ''
+        #         price_excl = calculate_excl_gst(activity.additional_fee)
+        #         if ApplicationFeePolicy.GST_FREE:
+        #             price_excl = activity.additional_fee
+        #         oracle_code = ''
 
-                product_lines.append({
-                    'ledger_description': '{}'.format(
-                        activity.additional_fee_text),
-                    'quantity': 1,
-                    'price_incl_tax': str(activity.additional_fee),
-                    'price_excl_tax': str(price_excl),
-                    'oracle_code': oracle_code
-                })
+        #         product_lines.append({
+        #             'ledger_description': '{}'.format(
+        #                 activity.additional_fee_text),
+        #             'quantity': 1,
+        #             'price_incl_tax': str(activity.additional_fee),
+        #             'price_excl_tax': str(price_excl),
+        #             'oracle_code': oracle_code
+        #         })
 
         # Check if refund is required.
         clear_inv = LicenceFeeClearingInvoice(application)
@@ -698,7 +698,7 @@ class ApplicationFeePolicyForAmendment(ApplicationFeePolicy):
         if self.has_fee_exemption:
             activity.application_fee = 0
             activity.licence_fee = 0
-            activity.additional_fee = 0
+            # activity.additional_fee = 0
 
         if fees_new < 0:
             # Refund amounts can be calculated from changes to the application
@@ -1024,7 +1024,7 @@ class ApplicationFeePolicyForRenew(ApplicationFeePolicy):
         if self.has_fee_exemption:
             activity.application_fee = 0
             activity.licence_fee = 0
-            activity.additional_fee = 0
+            # activity.additional_fee = 0
 
         if fees_new < 0:
             # Refund for application fees can occur when paid activity
@@ -1236,7 +1236,7 @@ class ApplicationFeePolicyForNew(ApplicationFeePolicy):
         if self.has_fee_exemption:
             activity.application_fee = 0
             activity.licence_fee = 0
-            activity.additional_fee = 0
+            # activity.additional_fee = 0
 
         if fees_app_new < 0:
             # Refund amounts can be calculated from changes to the application

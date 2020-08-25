@@ -67,20 +67,8 @@
                                                     <div class="col-sm-12" />
                                                 </div><br/>                                          
                                                 <div class="row">
-                                                    <div class="col-sm-3">
-                                                        <label class="control-label pull-left">Additional Fee Details</label>
-                                                    </div>
-                                                    <div class="col-sm-9">
-                                                        <input type="text" class="form-control" name="cc_email" style="width: 70%;"  v-model="getActivity(item.id).additional_fee_text">
-                                                    </div>
                                                 </div><br/>
                                                 <div class="row">
-                                                    <div class="col-sm-3">
-                                                        <label class="control-label pull-left">Additional Fee</label>
-                                                    </div>
-                                                    <div class="col-sm-9">
-                                                        <input type="text" class="form-control" name="cc_email" style="width: 20%;"  v-model="getActivity(item.id).additional_fee">
-                                                    </div>
                                                 </div>
                                             </div>
                                         </div>
@@ -327,11 +315,12 @@ export default {
                 || this.application.return_check_status.id == 'updated' ;
         },
         isValidAdditionalFee: function(){
-            let invalid = this.licence.activity.filter(function(e) {
-                return (e.additional_fee.substring(0)!=='0.00' && e.additional_fee.substring(0)!=='0' && e.additional_fee.substring(0)!=='')
-                    && (e.additional_fee_text == null || e.additional_fee_text === '')
-            });        
-            return invalid.length < 1 ? true : false
+            // if additional fee exists then addition fee text must be included.
+            // let invalid = this.licence.activity.filter(function(e) {
+            //     return (e.additional_fee.substring(0)!=='0.00' && e.additional_fee.substring(0)!=='0' && e.additional_fee.substring(0)!=='')
+            //         && (e.additional_fee_text == null || e.additional_fee_text === '')
+            // });        
+            // return invalid.length < 1 ? true : false
         },
         finalStatus: function() {
             return (id) => {
@@ -369,13 +358,13 @@ export default {
         ok: async function () {
             let vm = this;
 
-            if(!this.isValidAdditionalFee) {
-                return swal(
-                    'Cannot issue/decline',
-                    "One or more activity tabs has additional fee amount without description",
-                    'error'
-                );
-            }
+            // if(!this.isValidAdditionalFee) {
+            //     return swal(
+            //         'Cannot issue/decline',
+            //         "One or more activity tabs has additional fee amount without description",
+            //         'error'
+            //     );
+            // }
 
             if(!this.canSubmit) {
                 return swal(
@@ -483,8 +472,8 @@ export default {
                     final_status: final_status,
                     confirmed: false,
                     purposes: proposal.issued_purposes_id,
-                    additional_fee: proposal.additional_fee,
-                    additional_fee_text: proposal.additional_fee_text,
+                    // additional_fee: proposal.additional_fee,
+                    // additional_fee_text: proposal.additional_fee_text,
                 });
             }
             if(this.application.id_check_status.id == 'accepted'){

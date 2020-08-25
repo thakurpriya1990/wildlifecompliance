@@ -1761,10 +1761,11 @@ class Application(RevisionedMixin):
         """
         Check for additional costs manually included by officer at proposal.
         """
-        additional_fees = [
-            a.id for a in self.activities if a.additional_fee > 0]
+        # additional_fees = [
+        #     a.id for a in self.activities if a.additional_fee > 0]
 
-        return len(additional_fees)
+        # return len(additional_fees)
+        return False
 
     @property
     def additional_fees(self):
@@ -1772,8 +1773,8 @@ class Application(RevisionedMixin):
         Total additional costs manually included by officer at proposal.
         """
         fees = 0
-        for a in self.activities:
-            fees = fees + a.additional_fee
+        # for a in self.activities:
+        #     fees = fees + a.additional_fee
 
         return Decimal(fees)
 
@@ -2297,12 +2298,13 @@ class Application(RevisionedMixin):
                 proposed_activities = request.data.get('activities')
                 for p_activity in proposed_activities:
                     activity = self.activities.get(id=p_activity['id'])
-                    activity.additional_fee=p_activity[
-                        'additional_fee'] if p_activity[
-                            'additional_fee'] else 0
-                    activity.additional_fee_text=p_activity[
-                        'additional_fee_text'] if p_activity[
-                            'additional_fee'] > 0 else None
+
+                    # activity.additional_fee=p_activity[
+                    #     'additional_fee'] if p_activity[
+                    #         'additional_fee'] else 0
+                    # activity.additional_fee_text=p_activity[
+                    #     'additional_fee_text'] if p_activity[
+                    #         'additional_fee'] > 0 else None
 
                     # update the Application Selected Activity Purposes
                     # which have been proposed for this activity.
@@ -2786,20 +2788,20 @@ class Application(RevisionedMixin):
 
                         if not selected_activity.processing_status == \
                             ApplicationSelectedActivity.PROCESSING_STATUS_DECLINED:
-
+                            pass
                             # Additional Fees need to be set before processing fee.
                             # Fee amount may change by the issuer making decision.
-                            if item['additional_fee']:
-                                selected_activity.additional_fee = \
-                                    Decimal(item['additional_fee'])
-                                selected_activity.additional_fee_text = item[
-                                    'additional_fee_text']
+                            # if item['additional_fee']:
+                            #     selected_activity.additional_fee = \
+                            #         Decimal(item['additional_fee'])
+                            #     selected_activity.additional_fee_text = item[
+                            #         'additional_fee_text']
 
                         else :
                              declined_activities.append(selected_activity)
-                             if item['additional_fee']:
-                                selected_activity.additional_fee = 0
-                                selected_activity.additional_fee_text = ''
+                            #  if item['additional_fee']:
+                            #     selected_activity.additional_fee = 0
+                            #     selected_activity.additional_fee_text = ''
 
                         # If there is an outstanding licence fee payment -
                         # attempt to charge the stored card.
@@ -2895,8 +2897,8 @@ class Application(RevisionedMixin):
                         # 3. provide record/refund link.
                         generate_invoice = False
                         for activity in issued_activities:
-                            if activity.additional_fee > 0 \
-                              or activity.has_adjusted_application_fee:
+                            # if activity.additional_fee > 0 \
+                            if activity.has_adjusted_application_fee:
                                 generate_invoice = True
                                 break
 
@@ -3700,9 +3702,9 @@ class ApplicationSelectedActivity(models.Model):
         max_digits=8, decimal_places=2, default='0')
     # Additional Fee is the amount an internal officer imposes on an Activity
     # for services excluded from the application fee.
-    additional_fee = models.DecimalField(
-        max_digits=8, decimal_places=2, default='0')
-    additional_fee_text = models.TextField(blank=True, null=True)
+    # additional_fee = models.DecimalField(
+    #     max_digits=8, decimal_places=2, default='0')
+    # additional_fee_text = models.TextField(blank=True, null=True)
     assigned_approver = models.ForeignKey(
         EmailUser,
         blank=True,
@@ -3727,11 +3729,10 @@ class ApplicationSelectedActivity(models.Model):
     property_cache = JSONField(null=True, blank=True, default={})
 
     def __str__(self):
-        return "{0}{1}{2}{3}{4}".format(
+        return "{0}{1}{2}{3}".format(
             "Activity: {name} ".format(name=self.licence_activity.short_name),
             "App. Fee: {fee1} ".format(fee1=self.pre_adjusted_application_fee),
             "Lic. Fee: {fee2} ".format(fee2=self.licence_fee),
-            "Add. Fee: {fee3} ".format(fee3=self.additional_fee),
             "(App: {id})".format(id=self.application_id),
         )
 
@@ -4021,25 +4022,26 @@ class ApplicationSelectedActivity(models.Model):
             return _status
 
         def get_payment_status_for_additional(_status):
-            if self.additional_fee > Decimal(0.0):
-                _status = ActivityInvoice.PAYMENT_STATUS_UNPAID
-                try:
-                    latest_invoice = Invoice.objects.get(
-                        reference=self.activity_invoices.latest(
-                            'id').invoice_reference,
-                        amount=self.additional_fee)
-                    _status = latest_invoice.payment_status
-                    pass
+            _status = ActivityInvoice.PAYMENT_STATUS_NOT_REQUIRED
+            # if self.additional_fee > Decimal(0.0):
+            #     _status = ActivityInvoice.PAYMENT_STATUS_UNPAID
+            #     try:
+            #         latest_invoice = Invoice.objects.get(
+            #             reference=self.activity_invoices.latest(
+            #                 'id').invoice_reference,
+            #             amount=self.additional_fee)
+            #         _status = latest_invoice.payment_status
+            #         pass
 
-                except Invoice.DoesNotExist:
-                    if self.processing_status == \
-                        ApplicationSelectedActivity.PROCESSING_STATUS_ACCEPTED:
-                        _status = ActivityInvoice.PAYMENT_STATUS_PAID
+            #     except Invoice.DoesNotExist:
+            #         if self.processing_status == \
+            #             ApplicationSelectedActivity.PROCESSING_STATUS_ACCEPTED:
+            #             _status = ActivityInvoice.PAYMENT_STATUS_PAID
 
-                except BaseException:
-                    if self.processing_status == \
-                        ApplicationSelectedActivity.PROCESSING_STATUS_ACCEPTED:
-                        _status = ActivityInvoice.PAYMENT_STATUS_PAID
+            #     except BaseException:
+            #         if self.processing_status == \
+            #             ApplicationSelectedActivity.PROCESSING_STATUS_ACCEPTED:
+            #             _status = ActivityInvoice.PAYMENT_STATUS_PAID
 
             # paper-based submission allow Record link for additional payment.
             if _status == ActivityInvoice.PAYMENT_STATUS_UNPAID \
@@ -4236,7 +4238,8 @@ class ApplicationSelectedActivity(models.Model):
             if self.payment_status in [
                 ActivityInvoice.PAYMENT_STATUS_PAID,
             ]:
-                additional = self.licence_fee + self.additional_fee
+                # additional = self.licence_fee + self.additional_fee
+                additional = self.licence_fee
                 previous_paid = self.total_paid_amount - additional
 
             return previous_paid

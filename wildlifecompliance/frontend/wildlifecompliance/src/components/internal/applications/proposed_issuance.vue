@@ -110,30 +110,30 @@
                             </div> 
                             <div v-for="a, idx in checkedActivities">
                                 <div class="form-group">
-                                    <div class="row">
+                                    <!-- <div class="row">
                                         <div class="col-sm-12">
                                             <label class="control-label pull-left" >Additional Fees for {{ getCheckedActivity(a).activity_name_str }}</label>
                                         </div>
-                                    </div>
+                                    </div> -->
                                 </div>                                 
                                 <div class="form-group">
                                     <div class="row">
-                                        <div class="col-sm-3">
+                                        <!-- <div class="col-sm-3">
                                             <label class="control-label pull-left" for="Name">Description</label>
                                         </div>
                                         <div class="col-sm-9">
                                             <input type="text" :name='"licence_fee_text_" + idx' class="form-control" style="width:70%;" v-model="getCheckedActivity(a).additional_fee_text" />
-                                        </div>
+                                        </div> -->
                                     </div>
                                 </div>  
                                 <div class="form-group">
                                     <div class="row">
-                                        <div class="col-sm-3">
+                                        <!-- <div class="col-sm-3">
                                             <label class="control-label pull-left" for="Name">Fee</label>
                                         </div>
                                         <div class="col-sm-9">
                                             <input type="text" ref="licence_fee" class="form-control" style="width:20%;" v-model="getCheckedActivity(a).additional_fee" />
-                                        </div>
+                                        </div> -->
                                     </div>
                                 </div>
                             </div>  
@@ -177,8 +177,8 @@ export default {
                 cc_email:null,
                 reason:null,
                 approver_detail:null,
-                additional_fee_text:null,
-                additional_fee:0,
+                // additional_fee_text:null,
+                // additional_fee:0,
                 temporary_document_email_id: null,
                 activities: null,
             },
@@ -223,9 +223,9 @@ export default {
         },
         applicationSelectedActivitiesForPurposes: function() {
             return this.application.activities.filter( activity => { 
-                if (activity.additional_fee==null){
-                    activity.additional_fee = '0.00'
-                }
+                // if (activity.additional_fee==null){
+                //     activity.additional_fee = '0.00'
+                // }
                 return activity.processing_status.name.match(/with officer/gi) 
                 } // only non-processed activities.
             );
@@ -259,10 +259,10 @@ export default {
             $('.has-error').removeClass('has-error');
             this.validation_form.resetForm();
 
-            this.application.activities.forEach(a => {
-                a.additional_fee = '0.00'
-                a.additional_fee_text = null
-            });
+            // this.application.activities.forEach(a => {
+            //     a.additional_fee = '0.00'
+            //     a.additional_fee_text = null
+            // });
             this.checkedActivities = [];
             this.pickedPurposes = [];
         },
@@ -353,10 +353,10 @@ export default {
             });
        },
        initialiseAttributes: function() {
-            this.application.activities.forEach(a => {
-                a.additional_fee = null
-                a.additional_fee_text = null
-            })
+            // this.application.activities.forEach(a => {
+            //     a.additional_fee = null
+            //     a.additional_fee_text = null
+            // })
        },
        eventListeners:function () {
             let vm = this;

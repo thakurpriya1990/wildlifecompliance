@@ -148,10 +148,10 @@ class ApplicationSelectedActivitySerializer(serializers.ModelSerializer):
     # proposed_purposes = serializers.SerializerMethodField(read_only=True)
     proposed_purposes = ApplicationSelectedActivityPurposeSerializer(
         many=True)
-    additional_fee_text = serializers.CharField(
-        required=False, allow_null=True)
-    additional_fee = serializers.DecimalField(
-        max_digits=7, decimal_places=2, required=False, allow_null=True)
+    # additional_fee_text = serializers.CharField(
+    #     required=False, allow_null=True)
+    # additional_fee = serializers.DecimalField(
+    #     max_digits=7, decimal_places=2, required=False, allow_null=True)
     # previous_paid_amount = serializers.SerializerMethodField(read_only=True)
     has_inspection = serializers.SerializerMethodField(read_only=True)
 
@@ -1755,10 +1755,10 @@ class ApplicationProposedIssueSerializer(serializers.ModelSerializer):
     decision_action = CustomChoiceField(read_only=True)
     licence_activity = ActivitySerializer()
     issued_purposes_id = serializers.SerializerMethodField(read_only=True)
-    additional_fee_text = serializers.CharField(
-        required=False, allow_null=True)
-    additional_fee = serializers.DecimalField(
-        max_digits=7, decimal_places=2, required=False, allow_null=True)
+    # additional_fee_text = serializers.CharField(
+    #     required=False, allow_null=True)
+    # additional_fee = serializers.DecimalField(
+    #     max_digits=7, decimal_places=2, required=False, allow_null=True)
 
     class Meta:
         model = ApplicationSelectedActivity
@@ -1783,18 +1783,18 @@ class ProposedLicenceSerializer(serializers.Serializer):
     def validate(self, obj):
         # validate additional fees.
         activities = self.initial_data['activities']
-        try:
-            incomplete_fees = [a for a in activities if float(a[
-                'additional_fee']) > 0 and not a['additional_fee_text']]
-        except (TypeError):
-            incomplete_fees = False  # Allow for NoneTypes in Fees.
-        except (ValueError):
-            raise serializers.ValidationError(
-                'Numeric value required for additional fee amount.')
+        # try:
+        #     incomplete_fees = [a for a in activities if float(a[
+        #         'additional_fee']) > 0 and not a['additional_fee_text']]
+        # except (TypeError):
+        #     incomplete_fees = False  # Allow for NoneTypes in Fees.
+        # except (ValueError):
+        #     raise serializers.ValidationError(
+        #         'Numeric value required for additional fee amount.')
 
-        if incomplete_fees:
-            raise serializers.ValidationError(
-                'Please provide description for additional fees.')
+        # if incomplete_fees:
+        #     raise serializers.ValidationError(
+        #         'Please provide description for additional fees.')
 
         # validate proposal dates.
         try:

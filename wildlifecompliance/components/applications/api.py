@@ -832,31 +832,31 @@ class ApplicationViewSet(viewsets.ModelViewSet):
 
             activities = instance.selected_activities.all()
             # Include additional fees by licence approvers.
-            if instance.has_additional_fees:
-                # only fees awaiting payment
-                activities_with_payments = [
-                    a for a in activities if a.processing_status == PAY_STATUS
-                ]
-                # only fees which are greater than zero.
-                activities_with_fees = [
-                    a for a in activities_with_payments if a.additional_fee > 0
-                ]
+            # if instance.has_additional_fees:
+            #     # only fees awaiting payment
+            #     activities_with_payments = [
+            #         a for a in activities if a.processing_status == PAY_STATUS
+            #     ]
+            #     # only fees which are greater than zero.
+            #     activities_with_fees = [
+            #         a for a in activities_with_payments if a.additional_fee > 0
+            #     ]
 
-                for activity in activities_with_fees:
+            #     for activity in activities_with_fees:
 
-                    price_excl = calculate_excl_gst(activity.additional_fee)
-                    if ApplicationFeePolicy.GST_FREE:
-                        price_excl = activity.additional_fee
-                    oracle_code = ''
+            #         price_excl = calculate_excl_gst(activity.additional_fee)
+            #         if ApplicationFeePolicy.GST_FREE:
+            #             price_excl = activity.additional_fee
+            #         oracle_code = ''
 
-                    product_lines.append({
-                        'ledger_description': '{}'.format(
-                            activity.additional_fee_text),
-                        'quantity': 1,
-                        'price_incl_tax': str(activity.additional_fee),
-                        'price_excl_tax': str(price_excl),
-                        'oracle_code': oracle_code
-                    })
+            #         product_lines.append({
+            #             'ledger_description': '{}'.format(
+            #                 activity.additional_fee_text),
+            #             'quantity': 1,
+            #             'price_incl_tax': str(activity.additional_fee),
+            #             'price_excl_tax': str(price_excl),
+            #             'oracle_code': oracle_code
+            #         })
 
             # Check if refund is required from last invoice.
             last_inv = LicenceFeeClearingInvoice(instance)
