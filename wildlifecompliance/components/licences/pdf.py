@@ -377,7 +377,7 @@ def _create_licence(licence_buffer, licence, application):
                 elements.append(Paragraph(text, styles['Left']))
                 elements.append(Spacer(1, SECTION_BUFFER_HEIGHT))
 
-        except KeyError:
+        except BaseException:
             pass
 
         # application conditions
