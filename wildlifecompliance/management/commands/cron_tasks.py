@@ -17,7 +17,7 @@ class Command(BaseCommand):
         subprocess.call('python manage_wc.py verify_due_returns', shell=True)
         subprocess.call('python manage_wc.py verify_expired_licences', shell=True)
         subprocess.call('python manage_wc.py verify_licence_renewals', shell=True)
-        subprocess.call('python manage_wc.py verify_species', shell=True)
+        # subprocess.call('python manage_wc.py verify_species', shell=True)
 
         # subprocess.call('python manage_wc.py send_unpaid_infringements_file', shell=True)
         # subprocess.call('python manage_wc.py extend_due_date_from_1st_to_2nd', shell=True)
