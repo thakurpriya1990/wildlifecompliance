@@ -513,6 +513,43 @@ def _create_licence(licence_buffer, licence, application):
         ],
         bulletFontName=BOLD_FONTNAME, bulletFontSize=MEDIUM_FONTSIZE)
     elements.append(purposeList)
+
+#a=Application.objects.get(id=134)
+#l=a.licence
+#p=a.licence_purposes.all()[0]
+#p.__dict__
+#p.purpose_species.all()[0].__dict__
+#%history
+#s=p.purpose_species.all()[0].
+#s=p.purpose_species.all()[0]
+#s.header
+#s.details
+#
+#
+#.purpose.purpose_species.all()
+#
+
+    elements.append(Spacer(1, SECTION_BUFFER_HEIGHT))
+    elements.append(Paragraph('Species', styles['BoldLeft']))
+    elements.append(Spacer(1, SECTION_BUFFER_HEIGHT))
+
+    purposes = [
+        p.purpose for p in licence_purposes
+    ]
+
+    import ipdb; ipdb.set_trace()
+    purposeSpeciesList = ListFlowable(
+        [Table("{details}".format(
+            details=s.details,
+        ),
+            styles['Left'],
+        ) for s in purposes[0].purpose_species.all()
+        ],
+        bulletFontName=BOLD_FONTNAME, bulletFontSize=MEDIUM_FONTSIZE)
+    elements.append(purposeSpeciesList)
+
+
+
     elements.append(PageBreak())
 
     for purpose in licence_purposes:

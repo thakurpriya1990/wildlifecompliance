@@ -197,11 +197,13 @@ class LicencePurpose(models.Model):
 
 
 class PurposeSpecies(models.Model):
-    purpose = models.ForeignKey(LicencePurpose)
+    licence_purpose = models.ForeignKey(LicencePurpose, related_name='purpose_species')
     order = models.IntegerField(default=1)
     header = models.CharField(max_length=255)
     details = models.TextField()
+    species = models.NullBooleanField()
 
+        
     class Meta:
         ordering = ['order', 'header']
         app_label = 'wildlifecompliance'
@@ -209,7 +211,7 @@ class PurposeSpecies(models.Model):
         verbose_name_plural = 'Purpose Species'
 
     def __str__(self):
-        return '{} - {}'.format(self.purpose, self.header)
+        return '{} - {}'.format(self.licence_purpose, self.header)
 
 
 class LicenceActivity(models.Model):
