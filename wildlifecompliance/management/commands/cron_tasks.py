@@ -14,12 +14,17 @@ class Command(BaseCommand):
     def handle(self, *args, **options):
         logger.info('Running command {}'.format(__name__))
 
-        subprocess.call('python manage_wc.py send_unpaid_infringements_file', shell=True)
-        subprocess.call('python manage_wc.py extend_due_date_from_1st_to_2nd', shell=True)
-        subprocess.call('python manage_wc.py send_rego_to_dot', shell=True)
-        subprocess.call('python manage_wc.py close_document_and_physical_artifacts', shell=True)
-        subprocess.call('python manage_wc.py notification_close_to_due_remediation_action', shell=True)
-        subprocess.call('python manage_wc.py notification_overdue_remediation_action', shell=True)
+        subprocess.call('python manage_wc.py verify_due_returns', shell=True)
+        subprocess.call('python manage_wc.py verify_expired_licences', shell=True)
+        subprocess.call('python manage_wc.py verify_licence_renewals', shell=True)
+        subprocess.call('python manage_wc.py verify_species', shell=True)
+
+        # subprocess.call('python manage_wc.py send_unpaid_infringements_file', shell=True)
+        # subprocess.call('python manage_wc.py extend_due_date_from_1st_to_2nd', shell=True)
+        # subprocess.call('python manage_wc.py send_rego_to_dot', shell=True)
+        # subprocess.call('python manage_wc.py close_document_and_physical_artifacts', shell=True)
+        # subprocess.call('python manage_wc.py notification_close_to_due_remediation_action', shell=True)
+        # subprocess.call('python manage_wc.py notification_overdue_remediation_action', shell=True)
 
         logger.info('Command {} completed'.format(__name__))
 
