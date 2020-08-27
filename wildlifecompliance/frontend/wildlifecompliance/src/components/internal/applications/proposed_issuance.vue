@@ -21,12 +21,12 @@
                                                 <div class="panel panel-primary">
                                                     <div class="panel-heading">
                                                         <h4 class="panel-title">{{p.purpose.short_name}}
-                                                            <a class="panelClicker" :href="`#${p_idx}`+purposeBody" data-toggle="collapse"  data-parent="#userInfo" expanded="true" :aria-controls="purposeBody">
+                                                            <a class="panelClicker" :href="`#${p_idx}${index}`+purposeBody" data-toggle="collapse"  data-parent="#userInfo" expanded="true" :aria-controls="purposeBody">
                                                                 <span class="glyphicon glyphicon-chevron-down pull-right "></span>
                                                             </a>
                                                         </h4>
                                                     </div>
-                                                    <div class="panel-body panel-collapse collapse" :id="`${p_idx}`+purposeBody">
+                                                    <div class="panel-body panel-collapse collapse" :id="`${p_idx}${index}`+purposeBody">
                                                         <div class="row">
                                                             <div class="col-sm-3">
                                                                 <input type="radio" :value ="true" :id="p.purpose.id" v-model="getPickedPurpose(p.purpose.id).isProposed" /> Issue &nbsp;
