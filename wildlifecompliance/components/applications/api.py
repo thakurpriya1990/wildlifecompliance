@@ -1610,9 +1610,10 @@ class ApplicationViewSet(viewsets.ModelViewSet):
                 #     current_application__in=active_applications.values_list('id', flat=True)
                 # ).order_by('-id').first()
 
+                # determine licence no from active application for category.
                 latest_active_licence = WildlifeLicence.objects.filter(
                     licence_category_id=licence_category.id,
-                    id=active_applications.values_list('licence_id', flat=True)
+                    id__in=active_applications.values_list('licence_id', flat=True)
                 ).order_by('-id').first()
 
                 # Initial validation
