@@ -1161,12 +1161,14 @@ class BaseApplicationSerializer(serializers.ModelSerializer):
             ApplicationInvoice.PAYMENT_STATUS_NOT_REQUIRED,
             ApplicationInvoice.PAYMENT_STATUS_PARTIALLY_PAID,
             ApplicationInvoice.PAYMENT_STATUS_PAID,
+            ApplicationInvoice.PAYMENT_STATUS_OVERPAID,   # refund internally
         ]
         AWAITING = Application.CUSTOMER_STATUS_AWAITING_PAYMENT
 
         if obj.submit_type == Application.SUBMIT_TYPE_ONLINE \
             and obj.customer_status == AWAITING and \
-                obj.get_property_cache_key('payment_status')['payment_status'] in pay_status:
+                obj.get_property_cache_key('payment_status')[
+                    'payment_status'] in pay_status:
 
             can_pay = True
 
