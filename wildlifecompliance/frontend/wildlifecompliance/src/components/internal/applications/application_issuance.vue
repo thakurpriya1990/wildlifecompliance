@@ -34,31 +34,59 @@
                                                     </div>
                                                     <div class="col-sm-12">
                                                         <div v-for="(p, index) in applicationSelectedActivitiesForPurposes" v-bind:key="`p_${index}`">
-                                                            <div class="col-sm-12">
-                                                            {{p.purpose['short_name']}}
-                                                            </div>
-                                                            <div class="col-sm-3">
-                                                                <input type="radio" :value ="true" :id="p.purpose.id" v-model="getPickedPurpose(p.purpose.id).isProposed" /> Issue&nbsp;&nbsp;
-                                                                <input type="radio" :value ="false" :id="p.purpose.id" v-model="getPickedPurpose(p.purpose.id).isProposed" /> Decline
-                                                            </div>
-                                                            <div class="col-sm-3">
-                                                                <div class="input-group date" v-if="getPickedPurpose(p.purpose.id).isProposed" :ref="`start_date_${p.id}`" style="width: 100%;">
-                                                                    <input :readonly="!canEditLicenceDates && p.proposed_start_date" type="text" class="form-control" :name="`start_date_${p.id}`" placeholder="DD/MM/YYYY" v-model="p.proposed_start_date">
-                                                                    <span class="input-group-addon">
-                                                                        <span class="glyphicon glyphicon-calendar"></span>
-                                                                    </span>
+                                
+                                                            <div class="panel panel-primary">
+                                                                <div class="panel-heading">
+                                                                    <h4 class="panel-title">{{p.purpose.short_name}}
+                                                                        <a class="panelClicker" :href="`#${index}`+purposeBody" data-toggle="collapse"  data-parent="#userInfo" expanded="true" :aria-controls="purposeBody">
+                                                                            <span class="glyphicon glyphicon-chevron-down pull-right "></span>
+                                                                        </a>
+                                                                    </h4>
                                                                 </div>
-                                                            </div>                                                
-                                                            <div class="col-sm-3">                                                        
-                                                                <div class="input-group date" v-if="getPickedPurpose(p.purpose.id).isProposed" :ref="`end_date_${p.id}`" style="width: 100%;">
-                                                                    <input :readonly="!canEditLicenceDates && p.proposed_end_date" type="text" class="form-control" :name="`end_date_${p.id}`" placeholder="DD/MM/YYYY" v-model="p.proposed_end_date">
-                                                                    <span class="input-group-addon">
-                                                                        <span class="glyphicon glyphicon-calendar"></span>
-                                                                    </span>
+                                                                <div class="panel-body panel-collapse collapse" :id="`${index}`+purposeBody">
+                                                                    <div class="row">
+                                                                        <div class="col-sm-3">
+                                                                            <input type="radio" :value ="true" :id="p.purpose.id" v-model="getPickedPurpose(p.purpose.id).isProposed" /> Issue &nbsp;
+                                                                            <input type="radio" :value ="false" :id="p.purpose.id" v-model="getPickedPurpose(p.purpose.id).isProposed" /> Decline &nbsp;
+                                                                        </div>
+
+                                                                        <div class="col-sm-3">
+                                                                            <div class="input-group date" v-if="getPickedPurpose(p.purpose.id).isProposed" :ref="`start_date_${p.id}`" style="width: 100%;">
+                                                                                <input :readonly="!canEditLicenceDates && p.proposed_start_date" type="text" class="form-control" :name="`start_date_${p.id}`" placeholder="DD/MM/YYYY" v-model="p.proposed_start_date">
+                                                                                <span class="input-group-addon">
+                                                                                    <span class="glyphicon glyphicon-calendar"></span>
+                                                                                </span>
+                                                                            </div>
+                                                                        </div>                                                
+                                                                        <div class="col-sm-3">                                                        
+                                                                            <div class="input-group date" v-if="getPickedPurpose(p.purpose.id).isProposed" :ref="`end_date_${p.id}`" style="width: 100%;">
+                                                                                <input :readonly="!canEditLicenceDates && p.proposed_end_date" type="text" class="form-control" :name="`end_date_${p.id}`" placeholder="DD/MM/YYYY" v-model="p.proposed_end_date">
+                                                                                <span class="input-group-addon">
+                                                                                    <span class="glyphicon glyphicon-calendar"></span>
+                                                                                </span>
+                                                                            </div>
+                                                                        </div>
+                                                                        <div class="col-sm-12">
+                                                                            <div class="col-sm-3" v-if="getPickedPurpose(p.purpose.id).isProposed">
+                                                                                <label class="control-label pull-left" for="Name">Additional Fee</label>
+                                                                            </div>
+                                                                            <div class="col-sm-6" v-if="getPickedPurpose(p.purpose.id).isProposed">
+                                                                                <input type="text" ref="licence_fee" class="form-control" style="width:20%;" v-model="p.additional_fee" />
+                                                                            </div>
+                                                                        </div>
+                                                                        <div class="col-sm-12">
+                                                                            <div class="col-sm-3" v-if="getPickedPurpose(p.purpose.id).isProposed">
+                                                                                <label class="control-label pull-left" for="Name">Fee Description</label>
+                                                                            </div>
+                                                                            <div class="col-sm-6" v-if="getPickedPurpose(p.purpose.id).isProposed">
+                                                                                <input type="text" :name='"licence_fee_text_" + index' class="form-control" style="width:70%;" v-model="p.additional_fee_text" />
+                                                                            </div>
+                                                                        </div>
+                                                                        <div class="col-sm-12" v-if="!getPickedPurpose(p.purpose.id).isProposed">                                                        
+                                                                            &nbsp;
+                                                                        </div>
+                                                                    </div>
                                                                 </div>
-                                                            </div>
-                                                            <div class="col-sm-12" v-if="!getPickedPurpose(p.purpose.id).isProposed">                                                        
-                                                                &nbsp;
                                                             </div>
                                                         </div>
                                                     </div>
@@ -213,6 +241,7 @@ export default {
         let vm = this;
         return {
             panelBody: "application-issuance-"+vm._uid,
+            purposeBody: `purposeBody${vm._uid}`,
             proposed_licence:{},
             licence:{
                 activity: [],
@@ -421,7 +450,7 @@ export default {
                                         helpers.apiVueResourceError(error),
                                         'error'
                                     )
-                                    this.load({ url: `/api/application/${this.application.id}/internal_application.json` });
+                                    // this.load({ url: `/api/application/${this.application.id}/internal_application.json` });
                                 });
 
                     },(error)=>{
@@ -430,7 +459,7 @@ export default {
                             helpers.apiVueResourceError(error),
                             'error'
                         )
-                        this.load({ url: `/api/application/${this.application.id}/internal_application.json` });
+                        // this.load({ url: `/api/application/${this.application.id}/internal_application.json` });
                     });
                 }
             },(error) => {

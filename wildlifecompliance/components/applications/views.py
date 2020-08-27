@@ -119,7 +119,7 @@ class ApplicationSuccessView(TemplateView):
 
                         for p in paid_purposes:
 
-                            fee = p.licence_fee + p.adjusted_licence_fee
+                            fee = p.get_payable_licence_fee()
                             l_type = ActivityInvoiceLine.LINE_TYPE_LICENCE
 
                             inv_lines.append(ActivityInvoiceLine(
@@ -130,8 +130,19 @@ class ApplicationSuccessView(TemplateView):
                                 amount=fee
                             ))
 
-                            fee = p.application_fee + p.adjusted_fee
+                            fee = p.get_payable_application_fee()
                             l_type = ActivityInvoiceLine.LINE_TYPE_APPLICATION
+
+                            inv_lines.append(ActivityInvoiceLine(
+                                invoice=invoice[0],
+                                licence_activity=activity.licence_activity,
+                                licence_purpose=p.purpose,
+                                invoice_line_type=l_type,
+                                amount=fee
+                            ))
+
+                            fee = p.additional_fee
+                            l_type = ActivityInvoiceLine.LINE_TYPE_ADDITIONAL
 
                             inv_lines.append(ActivityInvoiceLine(
                                 invoice=invoice[0],
@@ -203,13 +214,59 @@ class LicenceFeeSuccessView(TemplateView):
                     invoice_reference=invoice_ref
                 )
 
-                # There may be adjustments to application fee.
-                if activity.application_fee > 0:
-                    ActivityInvoiceLine.objects.get_or_create(
+                paid_purposes = [
+                    p for p in activity.proposed_purposes.all()
+                    if p.is_payable
+                ]
+
+                inv_lines = []
+
+                for p in paid_purposes:
+
+                    fee = p.additional_fee
+                    l_type = ActivityInvoiceLine.LINE_TYPE_ADDITIONAL
+
+                    inv_lines.append(ActivityInvoiceLine(
                         invoice=invoice[0],
                         licence_activity=activity.licence_activity,
-                        amount=activity.application_fee
-                    )
+                        licence_purpose=p.purpose,
+                        invoice_line_type=l_type,
+                        amount=fee
+                    ))
+
+                    fee = p.adjusted_licence_fee
+                    l_type = ActivityInvoiceLine.LINE_TYPE_LICENCE
+
+                    inv_lines.append(ActivityInvoiceLine(
+                        invoice=invoice[0],
+                        licence_activity=activity.licence_activity,
+                        licence_purpose=p.purpose,
+                        invoice_line_type=l_type,
+                        amount=fee
+                    ))
+
+                    fee = p.adjusted_fee
+                    l_type = ActivityInvoiceLine.LINE_TYPE_APPLICATION
+
+                    inv_lines.append(ActivityInvoiceLine(
+                        invoice=invoice[0],
+                        licence_activity=activity.licence_activity,
+                        licence_purpose=p.purpose,
+                        invoice_line_type=l_type,
+                        amount=fee
+                    ))
+
+                ActivityInvoiceLine.objects.bulk_create(
+                    inv_lines
+                )
+
+                # There may be adjustments to application fee.
+                # if activity.application_fee > 0:
+                #     ActivityInvoiceLine.objects.get_or_create(
+                #         invoice=invoice[0],
+                #         licence_activity=activity.licence_activity,
+                #         amount=activity.application_fee
+                #     )
                 # update the status from awaiting fee payment.
                 activity.processing_status = ACCEPTED
                 activity.application.issue_activity(

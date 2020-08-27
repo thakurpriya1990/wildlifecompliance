@@ -434,17 +434,18 @@ class DTExternalApplicationSelectedActivitySerializer(
         return obj.get_property_cache_key('payment_status')['payment_status']
 
     def get_invoice_url(self, obj):
+        print('get_invoice_url')
         url = None
-        if obj.get_property_cache_key(
+        if obj.application.get_property_cache_key(
                 'latest_invoice_ref')['latest_invoice_ref']:
 
             url = '{0}{1}'.format(
                 settings.WC_PAYMENT_SYSTEM_URL_INV,
-                obj.get_property_cache_key(
+                obj.application.get_property_cache_key(
                      'latest_invoice_ref'
                 )['latest_invoice_ref']
             )
-
+        print(url)
         return url
 
 
@@ -1770,7 +1771,61 @@ class ApplicationProposedIssueSerializer(serializers.ModelSerializer):
         return purposes
 
 
+class IssueLicenceSerializer(serializers.Serializer):
+    '''
+    Utilise for validation only for Licence Purposes being approved.
+    '''
+    def validate(self, obj):
+        from decimal import Decimal
+        # validate additional fees.
+        proposed_ids = [
+            p['id'] for p in self.initial_data['selected_purpose_ids']
+            if p['isProposed']
+        ]
+        purposes = [
+            p for p in self.initial_data['purposes']
+            if p['purpose']['id'] in proposed_ids
+        ]
+        for p in purposes:
+
+            try:
+                fee = Decimal(p['additional_fee'])
+                if not p['additional_fee_text'] and not fee == 0:
+                    raise serializers.ValidationError(
+                        'Description is required for Additional Fee.')
+
+            except (ValueError):
+                raise serializers.ValidationError(
+                    'Numeric value required for additional fee amount.')
+
+            try:
+                sdate = p['proposed_start_date']
+                edate = p['proposed_end_date']
+                s_time = datetime.datetime.strptime(sdate, '%Y-%m-%d')
+                e_time = datetime.datetime.strptime(edate, '%Y-%m-%d')
+                if e_time < s_time:
+                    raise serializers.ValidationError(
+                        'End Date can not be before start date.')
+
+            except (AttributeError):
+                raise serializers.ValidationError(
+                    'Date value required for proposed dates.')
+
+            except (ValueError):
+                raise serializers.ValidationError(
+                    'Date value required for proposed dates.')
+
+            except (TypeError):
+                raise serializers.ValidationError(
+                    'Date value required for proposed dates.')
+        return obj
+
+
 class ProposedLicenceSerializer(serializers.Serializer):
+    '''
+    Utilised only for validation only for licence purposes being proposed for
+    approval.
+    '''
     expiry_date = serializers.DateField(
         input_formats=['%d/%m/%Y'], required=False, allow_null=True)
     start_date = serializers.DateField(
@@ -1781,47 +1836,69 @@ class ProposedLicenceSerializer(serializers.Serializer):
     approver_detail = serializers.CharField(required=False, allow_null=True)
 
     def validate(self, obj):
+        from decimal import Decimal
         # validate additional fees.
         activities = self.initial_data['activities']
-        # try:
-        #     incomplete_fees = [a for a in activities if float(a[
-        #         'additional_fee']) > 0 and not a['additional_fee_text']]
-        # except (TypeError):
-        #     incomplete_fees = False  # Allow for NoneTypes in Fees.
-        # except (ValueError):
-        #     raise serializers.ValidationError(
-        #         'Numeric value required for additional fee amount.')
-
-        # if incomplete_fees:
-        #     raise serializers.ValidationError(
-        #         'Please provide description for additional fees.')
-
-        # validate proposal dates.
-        try:
-            proposed_ids = [
-                p['id'] for p in self.initial_data[
-                    'purposes'] if p['isProposed']
-            ]
+        for p_activity in activities:
             for p_activity in activities:
+                proposed_ids = [
+                    p['id'] for p in self.initial_data[
+                        'purposes'] if p['isProposed']
+                ]
+
                 proposed_purposes = p_activity['proposed_purposes']
-                for p_proposed in proposed_purposes:
-                    if p_proposed['purpose']['id'] not in proposed_ids:
-                        continue
-                    start_date = p_proposed['proposed_start_date']
-                    end_date = p_proposed['proposed_end_date']
-                    s_time = datetime.datetime.strptime(start_date, '%d/%m/%Y')
-                    e_time = datetime.datetime.strptime(end_date, '%d/%m/%Y')
-                    if e_time < s_time:
-                        raise serializers.ValidationError(
-                            'End Date can not be before start date.')
+                proposed_purposes = [
+                    p for p in proposed_purposes
+                    if p['purpose']['id'] in proposed_ids
+                ]
 
-        except (AttributeError):
-            raise serializers.ValidationError(
-                'Date value required for proposed dates.')
+                try:
 
-        except (ValueError):
-            raise serializers.ValidationError(
-                'Date value required for proposed dates.')
+                    for p_proposed in proposed_purposes:
+
+                        fee = Decimal(p_proposed['additional_fee'])
+                        if not p_proposed['additional_fee_text'] and \
+                                not fee == 0:
+
+                            raise serializers.ValidationError(
+                                'Description is required for Additional Fee.')
+
+                except (ValueError):
+                    raise serializers.ValidationError(
+                        'Numeric value required for additional fee amount.')
+
+                # validate proposal dates.
+                try:
+                    proposed_ids = [
+                        p['id'] for p in self.initial_data[
+                            'purposes'] if p['isProposed']
+                    ]
+
+                    proposed_purposes = p_activity['proposed_purposes']
+                    for p_proposed in proposed_purposes:
+                        if p_proposed['purpose']['id'] not in proposed_ids:
+                            continue
+                        start_date = p_proposed['proposed_start_date']
+                        end_date = p_proposed['proposed_end_date']
+                        s_time = datetime.datetime.strptime(
+                            start_date, '%d/%m/%Y')
+                        e_time = datetime.datetime.strptime(
+                            end_date, '%d/%m/%Y')
+                        if e_time < s_time:
+                            raise serializers.ValidationError(
+                                'End Date can not be before start date.')
+
+                except (AttributeError):
+                    raise serializers.ValidationError(
+                        'Date value required for proposed dates.')
+
+                except (ValueError):
+                    raise serializers.ValidationError(
+                        'Date value required for proposed dates.')
+
+                except (TypeError):
+                    raise serializers.ValidationError(
+                        'Date value required for proposed dates.')
 
         return obj
 

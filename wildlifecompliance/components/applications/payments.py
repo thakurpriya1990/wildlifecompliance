@@ -56,7 +56,7 @@ class LicenceFeeClearingInvoice(InvoiceClearable):
     the ledger with an un-balanced amount. ie either under or over paid.
 
     NOTE: Can occur where the licence fee consist of fees for adjustment to
-    application fee, additional fees and fefunds for declined licenses.
+    application fee, additional fees and refunds for declined licenses.
     '''
     application = None                  # Composite application.
     fee_policy = None                   # Policy applied to the fee update.
@@ -227,7 +227,7 @@ class ApplicationFeePolicy(object):
     @staticmethod
     def get_fee_product_lines_for(application):
         """
-        Gets the checkout product lines for this application which inlcudes
+        Gets the checkout product lines for this application which includes
         fee for both the application and licence activities.
         """
         from ledger.checkout.utils import calculate_excl_gst
@@ -381,9 +381,8 @@ class ApplicationFeePolicy(object):
             3.  Re-calculate dynamic attributes with saved details to guarantee
                 dynamic attribute fees match changes committed.
 
-            NOTE: check if this is necessary.
             '''
-            # self.set_dynamic_attributes_from_purpose_fees()
+            self.set_dynamic_attributes_from_purpose_fees()
 
         except BaseException as e:
             logger.error(

@@ -75,6 +75,7 @@ from wildlifecompliance.components.applications.serializers import (
     ValidCompleteAssessmentSerializer,
     DTExternalApplicationSelectedActivitySerializer,
     DTInternalApplicationSelectedActivitySerializer,
+    IssueLicenceSerializer,
 )
 
 from wildlifecompliance.components.main.process_document import (
@@ -789,23 +790,26 @@ class ApplicationViewSet(viewsets.ModelViewSet):
             set_session_activity(request.session, activities[0])
 
             # Adjustments occuring only to the application fee.
-            activities = instance.selected_activities.all()
-            if instance.has_adjusted_fees:
+            if instance.has_adjusted_fees or instance.has_additional_fees:
                 # activities = instance.amended_activities
                 # only fees awaiting payment
                 activities_pay = [
                     a for a in activities if a.processing_status == PAY_STATUS
                 ]
-                # only fees with adjustments.
+                # only fees with adjustments or additional fee.
                 activities_adj = [
-                   a for a in activities_pay if a.has_adjusted_application_fee
+                   a for a in activities_pay
+                   if a.has_adjusted_application_fee
+                   or a.has_adjusted_licence_fee
+                   or a.has_additional_fee
                 ]
                 # only fees which are greater than zero.
-                activities_with_fees = [
-                   a for a in activities_adj if a.application_fee > 0
-                ]
+                # activities_with_fees = [
+                #    a for a in activities_adj 
+                #    if a.application_fee > 0 or a.licence_fee > 0
+                # ]
 
-                for activity in activities_with_fees:
+                for activity in activities_adj:
 
                     paid_purposes = [
                         p for p in activity.proposed_purposes.all()
@@ -813,50 +817,60 @@ class ApplicationViewSet(viewsets.ModelViewSet):
                     ]
 
                     for p in paid_purposes:
-
+                        oracle_code = p.purpose.oracle_account_code
                         fee = p.get_payable_application_fee()
 
-                        price_excl = calculate_excl_gst(fee)
-                        if ApplicationFeePolicy.GST_FREE:
-                            price_excl = fee
-                        oracle_code = p.purpose.oracle_account_code
+                        if fee > 0:
+                            price_excl = calculate_excl_gst(fee)
+                            if ApplicationFeePolicy.GST_FREE:
+                                price_excl = fee
+                            product_lines.append(
+                                {
+                                    'ledger_description': '{} {}'.format(
+                                        p.purpose.name,
+                                        '(Application Fee)'
+                                    ),
+                                    'quantity': 1,
+                                    'price_incl_tax': str(fee),
+                                    'price_excl_tax': str(price_excl),
+                                    'oracle_code': oracle_code
+                                }
+                            )
 
-                        product_lines.append({
-                            'ledger_description': '{} (Application Fee)'.format(
-                                p.purpose.name),
-                            'quantity': 1,
-                            'price_incl_tax': str(fee),
-                            'price_excl_tax': str(price_excl),
-                            'oracle_code': oracle_code
-                        })
+                        fee = p.get_payable_licence_fee()
+                        if fee > 0:
+                            price_excl = calculate_excl_gst(fee)
+                            if ApplicationFeePolicy.GST_FREE:
+                                price_excl = fee
+                            product_lines.append(
+                                {
+                                    'ledger_description': '{} {}'.format(
+                                        p.purpose.name,
+                                        '(Licence Fee)'
+                                    ),
+                                    'quantity': 1,
+                                    'price_incl_tax': str(fee),
+                                    'price_excl_tax': str(price_excl),
+                                    'oracle_code': oracle_code
+                                }
+                            )
 
-            activities = instance.selected_activities.all()
-            # Include additional fees by licence approvers.
-            # if instance.has_additional_fees:
-            #     # only fees awaiting payment
-            #     activities_with_payments = [
-            #         a for a in activities if a.processing_status == PAY_STATUS
-            #     ]
-            #     # only fees which are greater than zero.
-            #     activities_with_fees = [
-            #         a for a in activities_with_payments if a.additional_fee > 0
-            #     ]
-
-            #     for activity in activities_with_fees:
-
-            #         price_excl = calculate_excl_gst(activity.additional_fee)
-            #         if ApplicationFeePolicy.GST_FREE:
-            #             price_excl = activity.additional_fee
-            #         oracle_code = ''
-
-            #         product_lines.append({
-            #             'ledger_description': '{}'.format(
-            #                 activity.additional_fee_text),
-            #             'quantity': 1,
-            #             'price_incl_tax': str(activity.additional_fee),
-            #             'price_excl_tax': str(price_excl),
-            #             'oracle_code': oracle_code
-            #         })
+                        fee = p.additional_fee
+                        if fee > 0:
+                            price_excl = calculate_excl_gst(fee)
+                            if ApplicationFeePolicy.GST_FREE:
+                                price_excl = fee
+                            product_lines.append(
+                                {
+                                    'ledger_description': '{}'.format(
+                                        p.additional_fee_text,
+                                    ),
+                                    'quantity': 1,
+                                    'price_incl_tax': str(fee),
+                                    'price_excl_tax': str(price_excl),
+                                    'oracle_code': oracle_code
+                                }
+                            )
 
             # Check if refund is required from last invoice.
             last_inv = LicenceFeeClearingInvoice(instance)
@@ -1408,6 +1422,8 @@ class ApplicationViewSet(viewsets.ModelViewSet):
     def final_decision(self, request, *args, **kwargs):
         try:
             instance = self.get_object()
+            serializer = IssueLicenceSerializer(data=request.data)
+            serializer.is_valid(raise_exception=True)
             instance.final_decision(request)
             serializer = InternalApplicationSerializer(
                 instance, context={'request': request})
