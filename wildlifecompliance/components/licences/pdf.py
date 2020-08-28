@@ -1,7 +1,7 @@
 import os
 from io import BytesIO
 
-from reportlab.lib import enums
+from reportlab.lib import enums, colors
 from reportlab.lib.pagesizes import A4
 from reportlab.platypus import (
     BaseDocTemplate,
@@ -251,6 +251,8 @@ def _create_licence(licence_buffer, licence, application):
         '''
         Creates the licence purpose details per page available on the activity.
         '''
+
+
         # delegation holds the dates, licencee and issuer details.
         delegation = []
         sequence = purpose.purpose_sequence
@@ -513,6 +515,71 @@ def _create_licence(licence_buffer, licence, application):
         ],
         bulletFontName=BOLD_FONTNAME, bulletFontSize=MEDIUM_FONTSIZE)
     elements.append(purposeList)
+
+#a=Application.objects.get(id=134)
+#l=a.licence
+#p=a.licence_purposes.all()[0]
+#p.__dict__
+#p.purpose_species.all()[0].__dict__
+#%history
+#s=p.purpose_species.all()[0].
+#s=p.purpose_species.all()[0]
+#s.header
+#s.details
+#
+#
+#.purpose.purpose_species.all()
+#
+
+    elements.append(Spacer(1, SECTION_BUFFER_HEIGHT))
+    elements.append(Paragraph('Species', styles['BoldLeft']))
+    elements.append(Spacer(1, SECTION_BUFFER_HEIGHT))
+
+    purposes = [
+        p.purpose for p in licence_purposes
+    ]
+
+    import ipdb; ipdb.set_trace()
+    no_border_table_style = TableStyle([('VALIGN', (0, 0), (-1, -1), 'TOP')])
+    box_table_style = TableStyle([('VALIGN', (0, 0), (-1, -1), 'TOP'), ('BOX', (0,0), (-1,-1), 0.25, colors.black), ('INNERGRID', (0,0), (-1,-1), 0.25, colors.black), ('ALIGN', (0, 0), (-1, -1), 'RIGHT')])
+    box_table_style_hdrbold = TableStyle([('VALIGN', (0, 0), (-1, -1), 'TOP'), ('BOX', (0,0), (-1,-1), 0.25, colors.black), ('GRID', (0,0), (-1,-1), 0.25, colors.black), ('FONTNAME', (0,0), (-1,0), 'Courier-Bold'), ('ALIGN', (0, 0), (-1, -1), 'RIGHT')])
+    box_table_style_colbold = TableStyle([('VALIGN', (0, 0), (-1, -1), 'TOP'), ('BOX', (0,0), (-1,-1), 0.25, colors.black), ('GRID', (0,0), (-1,-1), 0.25, colors.black), ('FONTNAME', (0,0), (0,-1), 'Courier-Bold'), ('ALIGN', (0, 0), (-1, -1), 'RIGHT')])
+
+    specieslist = []
+    for purposes in licence_purposes:
+        for specie in purposes.purpose.purpose_species.all():
+            specieslist.append(specie)
+
+#    specieslist = []
+#    for purposes in purposes:
+#        for specie in purposes.purpose.purpose_species.all():
+#            specieslist.append(specie)
+
+
+#    import ipdb; ipdb.set_trace()
+#    #speciesList = []
+#    for purposes in licence_purposes:
+#        for specie in purposes.purpose.purpose_species.all():
+#            #speciesList.append(specie)
+#            elements.append(
+#                Table(
+#                    parse_html_table(specie.details),
+#                    style=box_table_style_hdrbold
+#                    #style=TableStyle([('VALIGN', (0, 0), (-1, -1), 'TOP')])
+#                )
+#            )
+
+    import ipdb; ipdb.set_trace()
+    purposeSpeciesList = ListFlowable(
+        [Table(parse_html_tableA(s.details), style=box_table_style_hdrbold) for s in speciesList],
+        bulletFontName=BOLD_FONTNAME, bulletFontSize=MEDIUM_FONTSIZE)
+    elements.append(purposeSpeciesList)
+
+
+#    parse_html_table()
+#    elements.append(Table(species_data, style=TableStyle(
+#        [('VALIGN', (0, 0), (-1, -1), 'TOP')])))
+
     elements.append(PageBreak())
 
     for purpose in licence_purposes:
@@ -657,6 +724,7 @@ def _layout_extracted_fields(extracted_fields):
 def create_licence_doc(licence, application):
     licence_buffer = BytesIO()
 
+    import ipdb; ipdb.set_trace()
     _create_licence(licence_buffer, licence, application)
     filename = 'licence-{}.pdf'.format(licence.licence_number)
     document = LicenceDocument.objects.create(name=filename)
@@ -674,6 +742,7 @@ def create_licence_pdf_bytes(
         original_issue_date):
     licence_buffer = BytesIO()
 
+    import ipdb; ipdb.set_trace()
     _create_licence(licence_buffer, licence, application)
 
     # Get the value of the BytesIO buffer
@@ -681,3 +750,20 @@ def create_licence_pdf_bytes(
     licence_buffer.close()
 
     return value
+
+
+def parse_html_table(raw_html):
+    from xml.etree import ElementTree as ET
+    data = []
+    table = ET.XML(raw_html)
+    rows = iter(table)
+    headers = [col.text for col in next(rows)]
+    data.append(headers)
+    # print headers
+    for row in rows:
+        values = [col.text for col in row]
+        data.append(values)
+        # print values #dict(zip(headers, values))
+
+    return data
+

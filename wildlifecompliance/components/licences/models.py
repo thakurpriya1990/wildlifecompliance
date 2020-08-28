@@ -196,6 +196,24 @@ class LicencePurpose(models.Model):
         return options
 
 
+class PurposeSpecies(models.Model):
+    licence_purpose = models.ForeignKey(LicencePurpose, related_name='purpose_species')
+    order = models.IntegerField(default=1)
+    header = models.CharField(max_length=255)
+    details = models.TextField()
+    species = models.NullBooleanField()
+
+        
+    class Meta:
+        ordering = ['order', 'header']
+        app_label = 'wildlifecompliance'
+        verbose_name = 'Purpose Species'
+        verbose_name_plural = 'Purpose Species'
+
+    def __str__(self):
+        return '{} - {}'.format(self.licence_purpose, self.header)
+
+
 class LicenceActivity(models.Model):
     name = models.CharField(max_length=100)
     licence_category = models.ForeignKey(
