@@ -23,7 +23,7 @@ RUN apt-get clean \
   imagemagick poppler-utils \
   libldap2-dev libssl-dev wget build-essential \
   libmagic-dev binutils libproj-dev gunicorn tzdata \
-  mtr \
+  mtr libevent-dev python-gevent \
   cron rsyslog iproute2
 RUN pip install --upgrade pip
 RUN apt-get install -yq vim
