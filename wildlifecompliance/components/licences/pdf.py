@@ -539,34 +539,41 @@ def _create_licence(licence_buffer, licence, application):
         p.purpose for p in licence_purposes
     ]
 
-    no_border_table_style = TableStyle([('VALIGN', (0, 0), (-1, -1), 'TOP')])
-    box_table_style = TableStyle([('VALIGN', (0, 0), (-1, -1), 'TOP'), ('BOX', (0,0), (-1,-1), 0.25, black), ('INNERGRID', (0,0), (-1,-1), 0.25, colors.black), ('ALIGN', (0, 0), (-1, -1), 'RIGHT')])
-    box_table_style_hdrbold = TableStyle([('VALIGN', (0, 0), (-1, -1), 'TOP'), ('BOX', (0,0), (-1,-1), 0.25, black), ('GRID', (0,0), (-1,-1), 0.25, colors.black), ('FONTNAME', (0,0), (-1,0), 'Courier-Bold'), ('ALIGN', (0, 0), (-1, -1), 'RIGHT')])
-    box_table_style_colbold = TableStyle([('VALIGN', (0, 0), (-1, -1), 'TOP'), ('BOX', (0,0), (-1,-1), 0.25, black), ('GRID', (0,0), (-1,-1), 0.25, colors.black), ('FONTNAME', (0,0), (0,-1), 'Courier-Bold'), ('ALIGN', (0, 0), (-1, -1), 'RIGHT')])
-
     import ipdb; ipdb.set_trace()
-    #speciesList = []
+    no_border_table_style = TableStyle([('VALIGN', (0, 0), (-1, -1), 'TOP')])
+    box_table_style = TableStyle([('VALIGN', (0, 0), (-1, -1), 'TOP'), ('BOX', (0,0), (-1,-1), 0.25, colors.black), ('INNERGRID', (0,0), (-1,-1), 0.25, colors.black), ('ALIGN', (0, 0), (-1, -1), 'RIGHT')])
+    box_table_style_hdrbold = TableStyle([('VALIGN', (0, 0), (-1, -1), 'TOP'), ('BOX', (0,0), (-1,-1), 0.25, colors.black), ('GRID', (0,0), (-1,-1), 0.25, colors.black), ('FONTNAME', (0,0), (-1,0), 'Courier-Bold'), ('ALIGN', (0, 0), (-1, -1), 'RIGHT')])
+    box_table_style_colbold = TableStyle([('VALIGN', (0, 0), (-1, -1), 'TOP'), ('BOX', (0,0), (-1,-1), 0.25, colors.black), ('GRID', (0,0), (-1,-1), 0.25, colors.black), ('FONTNAME', (0,0), (0,-1), 'Courier-Bold'), ('ALIGN', (0, 0), (-1, -1), 'RIGHT')])
+
+    specieslist = []
     for purposes in licence_purposes:
         for specie in purposes.purpose.purpose_species.all():
-            #speciesList.append(specie)
-            elements.append(
-                Table(
-                    parse_html_table(specie.details),
-                    style=box_table_style_hdrbold
-                    #style=TableStyle([('VALIGN', (0, 0), (-1, -1), 'TOP')])
-                )
-            )
+            specieslist.append(specie)
+
+#    specieslist = []
+#    for purposes in purposes:
+#        for specie in purposes.purpose.purpose_species.all():
+#            specieslist.append(specie)
+
 
 #    import ipdb; ipdb.set_trace()
-#    purposeSpeciesList = ListFlowable(
-#        [Table(
-#            parse_html_table(s.details),
-#            style=TableStyle([('VALIGN', (0, 0), (-1, -1), 'TOP')])
+#    #speciesList = []
+#    for purposes in licence_purposes:
+#        for specie in purposes.purpose.purpose_species.all():
+#            #speciesList.append(specie)
+#            elements.append(
+#                Table(
+#                    parse_html_table(specie.details),
+#                    style=box_table_style_hdrbold
+#                    #style=TableStyle([('VALIGN', (0, 0), (-1, -1), 'TOP')])
+#                )
 #            )
-#        for s in purposes[0].purpose_species.all()
-#        ],
-#        bulletFontName=BOLD_FONTNAME, bulletFontSize=MEDIUM_FONTSIZE)
-#    elements.append(purposeSpeciesList)
+
+    import ipdb; ipdb.set_trace()
+    purposeSpeciesList = ListFlowable(
+        [Table(parse_html_tableA(s.details), style=box_table_style_hdrbold) for s in speciesList],
+        bulletFontName=BOLD_FONTNAME, bulletFontSize=MEDIUM_FONTSIZE)
+    elements.append(purposeSpeciesList)
 
 
 #    parse_html_table()
