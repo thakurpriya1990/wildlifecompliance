@@ -190,6 +190,9 @@ class LicenceFeeSuccessView(TemplateView):
     template_name = 'wildlifecompliance/licence_fee_success.html'
 
     def get(self, request, *args, **kwargs):
+        from wildlifecompliance.components.applications.payments import (
+            LicenceFeeClearingInvoice
+        )
         ACCEPTED = ApplicationSelectedActivity.PROCESSING_STATUS_ACCEPTED
         try:
             session_activity = get_session_activity(request.session)
@@ -223,38 +226,51 @@ class LicenceFeeSuccessView(TemplateView):
 
                 for p in paid_purposes:
 
+                    # Check if refund is required and can be included.
+                    # clear_inv = LicenceFeeClearingInvoice(application)
+
                     fee = p.additional_fee
                     l_type = ActivityInvoiceLine.LINE_TYPE_ADDITIONAL
 
-                    inv_lines.append(ActivityInvoiceLine(
-                        invoice=invoice[0],
-                        licence_activity=activity.licence_activity,
-                        licence_purpose=p.purpose,
-                        invoice_line_type=l_type,
-                        amount=fee
-                    ))
+                    if fee > -1:
+                        inv_lines.append(ActivityInvoiceLine(
+                            invoice=invoice[0],
+                            licence_activity=activity.licence_activity,
+                            licence_purpose=p.purpose,
+                            invoice_line_type=l_type,
+                            amount=fee
+                        ))
 
                     fee = p.adjusted_licence_fee
                     l_type = ActivityInvoiceLine.LINE_TYPE_LICENCE
 
-                    inv_lines.append(ActivityInvoiceLine(
-                        invoice=invoice[0],
-                        licence_activity=activity.licence_activity,
-                        licence_purpose=p.purpose,
-                        invoice_line_type=l_type,
-                        amount=fee
-                    ))
+                    if fee > -1:
+
+                        inv_lines.append(ActivityInvoiceLine(
+                            invoice=invoice[0],
+                            licence_activity=activity.licence_activity,
+                            licence_purpose=p.purpose,
+                            invoice_line_type=l_type,
+                            amount=fee
+                        ))
 
                     fee = p.adjusted_fee
                     l_type = ActivityInvoiceLine.LINE_TYPE_APPLICATION
 
-                    inv_lines.append(ActivityInvoiceLine(
-                        invoice=invoice[0],
-                        licence_activity=activity.licence_activity,
-                        licence_purpose=p.purpose,
-                        invoice_line_type=l_type,
-                        amount=fee
-                    ))
+                    if fee > -1:
+                        inv_lines.append(ActivityInvoiceLine(
+                            invoice=invoice[0],
+                            licence_activity=activity.licence_activity,
+                            licence_purpose=p.purpose,
+                            invoice_line_type=l_type,
+                            amount=fee
+                        ))
+
+                    # if clear_inv.is_refundable:
+                    #     inv_lines.append(
+                    #         clear_inv.get_invoice_line_refund_for(
+                    #             p, invoice[0])
+                    #     )
 
                 ActivityInvoiceLine.objects.bulk_create(
                     inv_lines

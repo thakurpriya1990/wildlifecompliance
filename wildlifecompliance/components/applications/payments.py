@@ -8,6 +8,7 @@ from wildlifecompliance.components.applications.models import (
     ApplicationSelectedActivityPurpose,
     ApplicationFormDataRecord,
     ApplicationInvoice,
+    ActivityInvoiceLine,
 )
 
 logger = logging.getLogger(__name__)
@@ -63,10 +64,12 @@ class LicenceFeeClearingInvoice(InvoiceClearable):
     dynamic_attributes = None           # Container for fees.
     invoice_balance = None              # balance attributes.
     is_refreshing = False               # Flag indicating a page refresh.
+    is_refundable = False               # Flag indicating if refundable.
 
     def __init__(self, application):
         super(InvoiceClearable, self).__init__()
         self.application = application
+        self.is_refundable = self.is_refundable_with_payment()
 
     def verify_payment_status(self):
         '''
@@ -75,14 +78,6 @@ class LicenceFeeClearingInvoice(InvoiceClearable):
         NOTE: concrete method.
         '''
         return self.application.payment_status
-
-    def is_refundable(self):
-        '''
-        Check for refund amount where the application requires a refund.
-        '''
-        requires_refund = self.application.requires_refund
-
-        return requires_refund
 
     def is_refundable_with_payment(self):
         '''
@@ -95,13 +90,13 @@ class LicenceFeeClearingInvoice(InvoiceClearable):
         requires_payment = self.application.has_adjusted_fees \
             or self.application.has_additional_fees
 
-        requires_refund = requires_payment and (
-            self.application.get_refund_amount() > 0
-        )
+        refund_amt = self.application.get_refund_amount()  # refund is negative
+        requires_refund = requires_payment and (refund_amt < 0)
 
-        amount = self.application.application_fee \
-            + self.application.additional_fees \
-            - self.application.get_refund_amount()
+        # self.application.application_fee excludes licence fee amount.
+        # amount = self.application.application_fee \
+        #     + self.application.additional_fees + refund_amt
+        amount = self.application.additional_fees + refund_amt
 
         return requires_refund and amount > 0
 
@@ -112,6 +107,58 @@ class LicenceFeeClearingInvoice(InvoiceClearable):
         NOTE: concrete method.
         '''
         return self.application.requires_record
+
+    def get_product_line_refund_for(self, payable_purpose):
+        '''
+        Builds a refundable payment line for a payable licence purpose.
+        '''
+        from ledger.checkout.utils import calculate_excl_gst
+        if not self.is_refundable:
+            return None
+
+        refund = payable_purpose.get_refund_amount()
+
+        if not refund < 0:
+            return None
+
+        price_excl = calculate_excl_gst(refund)
+        if ApplicationFeePolicy.GST_FREE:
+            price_excl = refund
+        oracle_code = payable_purpose.purpose.oracle_account_code
+
+        product_line = {
+            'ledger_description': '{} (Refund)'.format(
+                payable_purpose.purpose.name),
+            'quantity': 1,
+            'price_incl_tax': str(refund),
+            'price_excl_tax': str(price_excl),
+            'oracle_code': oracle_code
+        }
+
+        return product_line
+
+    def get_invoice_line_refund_for(self, r_purpose, inv_ref):
+        '''
+        Builds a refundable invoice line for a payable licence purpose.
+        '''
+        if not self.is_refundable:
+            return None
+
+        refund = r_purpose.get_refund_amount()
+
+        if not refund < 0:
+            return None
+
+        l_type = ActivityInvoiceLine.LINE_TYPE_LICENCE
+        invoice_line = ActivityInvoiceLine(
+            invoice=inv_ref,
+            licence_activity=r_purpose.selected_activity.licence_activity,
+            licence_purpose=r_purpose.purpose,
+            invoice_line_type=l_type,
+            amount=refund
+        )
+
+        return invoice_line
 
     def get_product_line_for_refund(self, description=None):
         '''
@@ -124,23 +171,68 @@ class LicenceFeeClearingInvoice(InvoiceClearable):
         if not self.is_refundable:
             return None
 
-        desc = 'Licence fee refund' if not description else description
-        refund = self.application.get_refund_amount()
-        refund = refund * -1
-        refund_excl = refund \
-            if ApplicationFeePolicy.GST_FREE else calculate_excl_gst(refund)
-        # oracle_code = activity.licence_activity.oracle_account_code
-        oracle_code = ''
+        product_lines = []
+        activities_with_refund = [
+            a for a in self.application.activities]
 
-        product_line = {
-                    'ledger_description': '{0}'.format(desc),
+        for activity in activities_with_refund:
+
+            paid_purposes = [
+                p for p in activity.proposed_purposes.all()
+                if p.is_payable
+            ]
+
+            for p in paid_purposes:
+
+                fee = p.get_refund_amount()
+
+                if not fee < 0:
+                    continue
+
+                price_excl = calculate_excl_gst(fee)
+                if ApplicationFeePolicy.GST_FREE:
+                    price_excl = fee
+                oracle_code = p.purpose.oracle_account_code
+
+                product_lines.append({
+                    'ledger_description': '{} (Refund)'.format(
+                        p.purpose.name),
                     'quantity': 1,
-                    'price_incl_tax': str(refund),
-                    'price_excl_tax': str(refund_excl),
+                    'price_incl_tax': str(fee),
+                    'price_excl_tax': str(price_excl),
                     'oracle_code': oracle_code
-                }
+                })
 
-        return product_line
+        return product_lines
+
+    # def _get_product_line_for_refund(self, description=None):
+    #     '''
+    #     Builds and returns a product line for the refund.
+
+    #     NOTE: display the last invoice number on line.
+    #     '''
+    #     from ledger.checkout.utils import calculate_excl_gst
+
+    #     if not self.is_refundable:
+    #         return None
+
+    #     desc = 'Licence fee refund' if not description else description
+    #     refund = self.application.get_refund_amount()
+    #     refund = refund * -1
+    #     refund_excl = refund \
+    #         if ApplicationFeePolicy.GST_FREE else calculate_excl_gst(refund)
+    #     # oracle_code = activity.licence_activity.oracle_account_code
+    #     oracle_code = ''
+
+    #     product_line = {
+    #                 'ledger_description': '{0}'.format(desc),
+    #                 'quantity': 1,
+    #                 'price_incl_tax': str(refund),
+    #                 'price_excl_tax': str(refund_excl),
+    #                 'oracle_code': oracle_code
+    #             }
+
+    #     return product_line
 
     def set_refunded_fees_for(self, activity):
         '''
@@ -198,7 +290,8 @@ class ApplicationFeePolicy(object):
     """
     A Payment Policy Interface for Licence Applications.
     """
-    GST_FREE = True
+    GST_FREE = True                     # Flag to set GST.
+    for_amendment = False               # Flag for licence amendments.
 
     __metaclass__ = abc.ABCMeta
 
@@ -318,9 +411,9 @@ class ApplicationFeePolicy(object):
         #         })
 
         # Check if refund is required.
-        clear_inv = LicenceFeeClearingInvoice(application)
-        if clear_inv.is_refundable_with_payment():
-            product_lines.append(clear_inv.get_product_line_for_refund())
+        # clear_inv = LicenceFeeClearingInvoice(application)
+        # if clear_inv.is_refundable():
+        #     product_lines.append(clear_inv.get_product_line_for_refund())
 
         return product_lines
 
@@ -423,7 +516,9 @@ class ApplicationFeePolicy(object):
             fees_app = fees_app + fees_app_adj
             fees_lic = fees_lic + fees_lic_adj
 
-            if paid_amt > 0:        # amount already paid on application.
+            # amount already paid on application or the policy is for a licence
+            # amendment then exclude paid amount.
+            if paid_amt > 0 or self.for_amendment:
                 fees_app = fees_app - paid_app_tot
                 fees_lic = fees_lic - paid_lic_tot
 
@@ -473,6 +568,7 @@ class ApplicationFeePolicyForAmendment(ApplicationFeePolicy):
         super(ApplicationFeePolicy, self).__init__()
         self.application = application
         if self.application.application_type == self.AMEND:
+            self.for_amendment = True       # on super
             self.init_dynamic_attributes()
 
     def __str__(self):
@@ -625,10 +721,10 @@ class ApplicationFeePolicyForAmendment(ApplicationFeePolicy):
             if not self.application.application_fee == 0 else False
 
         if self.application.customer_status == REQ_AMEND or is_saved:
-            # self.set_dynamic_attributes_from_purpose_fees()
+            self.set_dynamic_attributes_from_purpose_fees()
             return
 
-        # Override the parent setter as Licence amendments need to include
+        # Override the parent setter as Licence amendments need to exclude
         # previous adjustments paid for licence purposes.
         application_fees = 0
         licence = self.get_licence_for()

@@ -1842,6 +1842,8 @@ class Application(RevisionedMixin):
         paid. Application fee amount can be adjusted more or less than base.
         """
         approved = [
+            Application.PROCESSING_STATUS_DRAFT,    # applicant submit check.
+            Application.PROCESSING_STATUS_UNDER_REVIEW,  # first time only.
             Application.PROCESSING_STATUS_APPROVED,
             Application.PROCESSING_STATUS_PARTIALLY_APPROVED,
             Application.PROCESSING_STATUS_AWAITING_PAYMENT,
@@ -1879,8 +1881,14 @@ class Application(RevisionedMixin):
         Get refund amount for this application.
         '''
         logger.debug('get_refund_amount appID {}'.format(self.id))
+        IGNORE = [
+            ApplicationSelectedActivity.PROCESSING_STATUS_DECLINED,
+            ApplicationSelectedActivity.PROCESSING_STATUS_DISCARDED,
+        ]
         refund = 0
         for activity in self.activities:
+            if activity.processing_status in IGNORE:
+                continue
             for p in activity.proposed_purposes.all():
                 refund += p.get_refund_amount()
 
@@ -2653,8 +2661,9 @@ class Application(RevisionedMixin):
                         = parent_licence.licence_document
                     latest_application_in_function.save()
 
-            except BaseException:
-                print(Exception)
+            except BaseException as e:
+                logger.error('issue_activity() ID {} - {}'.format(
+                    self.id, e))
                 raise
 
     def final_decision(self, request):
@@ -2733,7 +2742,17 @@ class Application(RevisionedMixin):
                                 'selected_purpose_ids') if p['isProposed']
                         ]) - decline_ids)
                         decline_ids = list(decline_ids)
-                        proposed_purposes = request.data.get('purposes')
+
+                        '''
+                        NOTE: issue_ids and declined_ids will include purposes
+                        from all activities on application. Filter proposed
+                        purposes for relevant selected activity to prevent 
+                        declining different activity purpose.
+                        '''
+                        proposed_purposes = [
+                            p for p in request.data.get('purposes')
+                            if p['selected_activity'] == selected_activity.id
+                        ]
 
                         for proposed in proposed_purposes:
                             purpose =\
@@ -2828,14 +2847,22 @@ class Application(RevisionedMixin):
 
                         if not selected_activity.processing_status == \
                             ApplicationSelectedActivity.PROCESSING_STATUS_DECLINED:
-                            pass
-                            # Additional Fees need to be set before processing fee.
-                            # Fee amount may change by the issuer making decision.
-                            # if item['additional_fee']:
-                            #     selected_activity.additional_fee = \
-                            #         Decimal(item['additional_fee'])
-                            #     selected_activity.additional_fee_text = item[
-                            #         'additional_fee_text']
+
+                            # If there is an outstanding licence fee payment -
+                            # attempt to charge the stored card.
+                            payment_successful = \
+                                selected_activity.process_licence_fee_payment(
+                                    request, self
+                            )
+                            if not payment_successful:
+                                failed_payment_activities.append(
+                                    selected_activity
+                                )
+                            else:
+                                issued_activities.append(selected_activity)
+                                self.issue_activity(
+                                    request, selected_activity,
+                                    parent_licence, generate_licence=False)
 
                         else :
                              declined_activities.append(selected_activity)
@@ -2843,17 +2870,17 @@ class Application(RevisionedMixin):
                             #     selected_activity.additional_fee = 0
                             #     selected_activity.additional_fee_text = ''
 
-                        # If there is an outstanding licence fee payment -
-                        # attempt to charge the stored card.
-                        payment_successful = selected_activity.process_licence_fee_payment(request, self)
+                        # # If there is an outstanding licence fee payment -
+                        # # attempt to charge the stored card.
+                        # payment_successful = selected_activity.process_licence_fee_payment(request, self)
 
-                        if not payment_successful:
-                            failed_payment_activities.append(selected_activity)
-                        else:
-                            issued_activities.append(selected_activity)
-                            self.issue_activity(
-                                request, selected_activity,
-                                parent_licence, generate_licence=False)
+                        # if not payment_successful:
+                        #     failed_payment_activities.append(selected_activity)
+                        # else:
+                        #     issued_activities.append(selected_activity)
+                        #     self.issue_activity(
+                        #         request, selected_activity,
+                        #         parent_licence, generate_licence=False)
 
                         # Populate fields below even if the token payment has
                         # failed. They will be reused after a successful
@@ -4860,31 +4887,52 @@ class ApplicationSelectedActivity(models.Model):
         '''
         REPLACE = ApplicationSelectedActivityPurpose.PROCESSING_STATUS_REPLACED
         S_REPLACE = ApplicationSelectedActivityPurpose.PURPOSE_STATUS_REPLACED
-        lp = LicencePurpose.objects.get(id=p_id)
-        selected_purposes = self.proposed_purposes.filter(
-            purpose=lp
-        )
-        sequence_no = 0
-        for selected in selected_purposes:
-            selected.processing_status = REPLACE
-            selected_purpose_status = S_REPLACE
-            selected.save()
-            sequence_no = selected.purpose_sequence
+
+        # lp = LicencePurpose.objects.get(id=p_id)
+
+        selected_purpose = self.proposed_purposes.filter(
+            purpose_id=p_id
+        ).last()
+
+        sequence_no = selected_purpose.purpose_sequence
+        selected_purpose.processing_status = REPLACE
+        selected_purpose.purpose_status = S_REPLACE
+        selected_purpose.save()
+
+        # for selected in selected_purposes:
+        #     selected.processing_status = REPLACE
+        #     selected_purpose_status = S_REPLACE
+        #     selected.save()
+        #     sequence_no = selected.purpose_sequence
 
         return sequence_no
 
     def set_selected_purpose_sequence(self, p_id, sequence_no):
         '''
         Set all Selected Purposes for the activity to the same sequence number.
+        Setter used for when replacing a selected purpose with a set sequence
+        number. Processing status and issue date may note be set.
         '''
-        lp = LicencePurpose.objects.get(id=p_id)
-        selected_purposes = self.proposed_purposes.filter(
-            purpose=lp
-        )
+        # lp = LicencePurpose.objects.get(id=p_id)
 
-        for selected in selected_purposes:
-            selected.purpose_sequence = int(sequence_no)
-            selected.save()
+        selected_purpose = self.proposed_purposes.filter(
+            purpose_id=p_id,
+            # purpose_sequence=int(sequence_no)
+        ).last()
+        selected_purpose.purpose_sequence = int(sequence_no)
+        selected_purpose.save()
+
+        # update_purposes = self.proposed_purposes.filter(
+        #     purpose=lp,
+        # ).exclude(purpose_sequence=int(sequence_no))
+
+        # ISSUE = ApplicationSelectedActivityPurpose.PROCESSING_STATUS_ISSUED
+
+        # for update in update_purposes:
+        #     update.purpose_sequence = int(sequence_no)
+        #     # update.processing_status = ISSUE
+        #     # update.issue_date = 
+        #     selected.save()
 
     def is_proposed_purposes_status(self, status):
         '''
@@ -4989,6 +5037,7 @@ class ApplicationSelectedActivity(models.Model):
                 a for a in prev_chain
                 if a.licence_activity_id == act_id
                 and a.activity_status in self.ACTIVE
+                and a.processing_status in self.PROCESSING_STATUS_ACCEPTED
             ]
             previous = prev_chain[0]    # licence has one current activity.
 
@@ -5411,6 +5460,11 @@ class ApplicationSelectedActivityPurpose(models.Model):
     @property
     def total_paid_adjusted_application_fee(self):
         '''
+        Property for the total application fees paid calculated from the 
+        invoice lines which includes adjustments.
+
+        NOTE: for licence amendments previous paid adjustments are added to 
+        this total.
         '''
         LINE_TYPE = ActivityInvoiceLine.LINE_TYPE_APPLICATION
         amount = 0
@@ -5423,11 +5477,33 @@ class ApplicationSelectedActivityPurpose(models.Model):
             for line in inv_lines:
                 amount += line.amount
 
+        AMEND = Application.APPLICATION_TYPE_AMENDMENT
+        if self.selected_activity.application.application_type == AMEND:
+            '''
+            For amendments exclude fees for previous adjustments. Note taken
+            from invoice lines.
+            '''
+            try:
+                prev_purpose = self.get_purpose_from_previous()
+                amount = amount + prev_purpose.adjusted_licence_fee
+
+            except BaseException as e:
+                logger.error(
+                    'total_paid_adjusted_licence_fee() ID {} {}'.format(
+                        self.id,
+                        e
+                    ))
+
         return amount
 
     @property
     def total_paid_adjusted_licence_fee(self):
         '''
+        Property for the total licence fees paid calculated from the 
+        invoice lines which includes adjustments.
+
+        NOTE: for licence amendments previous paid adjustments are added to 
+        this total.
         '''
         LINE_TYPE = ActivityInvoiceLine.LINE_TYPE_LICENCE
         amount = 0
@@ -5440,11 +5516,30 @@ class ApplicationSelectedActivityPurpose(models.Model):
             for line in inv_lines:
                 amount += line.amount
 
+        AMEND = Application.APPLICATION_TYPE_AMENDMENT
+        if self.selected_activity.application.application_type == AMEND:
+            '''
+            For amendments exclude fees for previous adjustments. Not taken
+            from invoice lines.
+            '''
+            try:
+                prev_purpose = self.get_purpose_from_previous()
+                amount = amount + prev_purpose.adjusted_licence_fee
+
+            except BaseException as e:
+                logger.error(
+                    'total_paid_adjusted_licence_fee() ID {} {}'.format(
+                        self.id,
+                        e
+                    ))
+
         return amount
 
     @property
     def total_paid_additional_fee(self):
         '''
+        Property for the total additional fees paid calculated from the 
+        invoice lines.
         '''
         LINE_TYPE = ActivityInvoiceLine.LINE_TYPE_ADDITIONAL
         amount = 0
@@ -5487,14 +5582,19 @@ class ApplicationSelectedActivityPurpose(models.Model):
         paid_lic_fee = self.total_paid_adjusted_licence_fee
 
         if self.processing_status == self.PROCESSING_STATUS_DECLINED:
+            # refund any licence fees paid.
             paid_lic_fee = 0
 
         # total_paid_amount is the expected total paid for this purpose.
         refund = self.total_paid_amount - (paid_app_fee + paid_lic_fee)
-        
-        refund = refund * -1    # make a negative value.
 
-        return refund if refund < 0 else 0
+        # Refund will be negative when the total_paid_amount is negative, as
+        # adjustments made to the fees are set to negative in admin schema.
+        # Otherwise refund should be a positive amount which will be converted
+        # to negative.
+        refund = refund if refund < 0 else refund * -1
+
+        return refund
 
     def suspend(self):
         '''
@@ -5539,6 +5639,7 @@ class ApplicationSelectedActivityPurpose(models.Model):
         if not activities:
             return previous
 
+        ACCEPT = ApplicationSelectedActivity.PROCESSING_STATUS_ACCEPTED
         try:
             act_id = self.selected_activity.licence_activity_id
             self_id = self.purpose_id
@@ -5546,6 +5647,7 @@ class ApplicationSelectedActivityPurpose(models.Model):
                 a for a in activities
                 if a.licence_activity_id == act_id
                 and a.activity_status in ApplicationSelectedActivity.ACTIVE
+                and a.processing_status == ACCEPT
                 and self.purpose in a.issued_purposes
             ]
 

@@ -791,6 +791,7 @@ class ApplicationViewSet(viewsets.ModelViewSet):
 
             # Adjustments occuring only to the application fee.
             if instance.has_adjusted_fees or instance.has_additional_fees:
+
                 # activities = instance.amended_activities
                 # only fees awaiting payment
                 activities_pay = [
@@ -805,11 +806,14 @@ class ApplicationViewSet(viewsets.ModelViewSet):
                 ]
                 # only fees which are greater than zero.
                 # activities_with_fees = [
-                #    a for a in activities_adj 
+                #    a for a in activities_adj
                 #    if a.application_fee > 0 or a.licence_fee > 0
                 # ]
 
                 for activity in activities_adj:
+
+                    # Check if refund is required and can be included.
+                    clear_inv = LicenceFeeClearingInvoice(instance)
 
                     paid_purposes = [
                         p for p in activity.proposed_purposes.all()
@@ -872,27 +876,32 @@ class ApplicationViewSet(viewsets.ModelViewSet):
                                 }
                             )
 
+                        if clear_inv.is_refundable:
+                            product_lines.append(
+                                clear_inv.get_product_line_refund_for(p)
+                            )
+
             # Check if refund is required from last invoice.
-            last_inv = LicenceFeeClearingInvoice(instance)
-            if last_inv.is_refundable_with_payment():
-                product_lines.append(last_inv.get_product_line_for_refund())
+            # last_inv = LicenceFeeClearingInvoice(instance)
+            # if last_inv.is_refundable:
+            #     product_lines.append(last_inv.get_product_line_for_refund())
 
-                # refund any application fee adjustments.
-                if instance.application_fee < 0:
+                # # refund any application fee adjustments.
+                # if instance.application_fee < 0:
 
-                    price_excl = calculate_excl_gst(instance.application_fee)
-                    if ApplicationFeePolicy.GST_FREE:
-                        price_excl = instance.application_fee
-                    # _code = activity.licence_activity.oracle_account_code
-                    oracle_code = ''
+                #     price_excl = calculate_excl_gst(instance.application_fee)
+                #     if ApplicationFeePolicy.GST_FREE:
+                #         price_excl = instance.application_fee
+                #     # _code = activity.licence_activity.oracle_account_code
+                #     oracle_code = ''
 
-                    product_lines.append({
-                        'ledger_description': 'Adjusted fee refund',
-                        'quantity': 1,
-                        'price_incl_tax': str(instance.application_fee),
-                        'price_excl_tax': str(price_excl),
-                        'oracle_code': oracle_code
-                    })
+                #     product_lines.append({
+                #         'ledger_description': 'Adjusted fee refund',
+                #         'quantity': 1,
+                #         'price_incl_tax': str(instance.application_fee),
+                #         'price_excl_tax': str(price_excl),
+                #         'oracle_code': oracle_code
+                #     })
 
             checkout_result = checkout(
                 request, instance,
@@ -1564,6 +1573,10 @@ class ApplicationViewSet(viewsets.ModelViewSet):
             application_type = request.data.get('application_type')
             customer_pay_method = request.data.get('customer_method_id')
 
+            # Amendment to licence purpose requires the selected activity it
+            # belongs to - allows for multiple purposes of same type.
+            selected_activity = request.data.get('selected_activity', None)
+
             # establish the submit type from the payment method.
             CASH = ApplicationInvoice.OTHER_PAYMENT_METHOD_CASH
             NONE = ApplicationInvoice.OTHER_PAYMENT_METHOD_NONE
@@ -1635,6 +1648,15 @@ class ApplicationViewSet(viewsets.ModelViewSet):
                         'licence_purposes__id',
                         flat=True
                     )
+
+                    previous_application = licence_activities.filter(
+                        id=selected_activity
+                    ).values_list(
+                        'application_id',
+                        flat=True
+                    ).first()
+                    data['previous_application'] = previous_application
+
                     cleaned_purpose_ids = set(active_current_purposes) & set(licence_purposes)
                     data['licence_purposes'] = cleaned_purpose_ids
 
@@ -1685,7 +1707,8 @@ class ApplicationViewSet(viewsets.ModelViewSet):
 
                 # Set previous_application to the latest active application if
                 # exists
-                if latest_active_licence:
+                if not serializer.instance.previous_application \
+                        and latest_active_licence:
                     serializer.instance.previous_application_id =\
                         latest_active_licence.current_application.id
                     serializer.instance.save()
