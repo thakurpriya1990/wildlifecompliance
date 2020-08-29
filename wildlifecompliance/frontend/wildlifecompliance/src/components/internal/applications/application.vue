@@ -117,7 +117,8 @@
                                     </div>
                                     <div v-show="showAssessmentConditionButton" class="row">
                                         <div class="col-sm-12">
-                                            <button class="btn btn-primary top-buffer-s col-xs-12" @click.prevent="togglesendtoAssessor()">Assessments &amp; Conditions</button><br/>
+                                            <button v-if="showSpinner" disabled type="button" class="btn btn-primary top-buffer-s col-xs-12" ><i class="fa fa-spinner fa-spin"/>Assessments &amp; Conditions</button>
+                                            <button v-else class="btn btn-primary top-buffer-s col-xs-12" @click.prevent="togglesendtoAssessor()">Assessments &amp; Conditions</button><br/>
                                         </div>
                                     </div>
                                 </template>
@@ -1086,8 +1087,9 @@ export default {
 
         },
         togglesendtoAssessor: async function(){
+            this.spinner = true
             await this.assessmentData({ url: `/api/application/${this.application.id}/assessment_data.json` }).then( async response => {
-
+                this.spinner = false;   
                 $('#tabs-main li').removeClass('active');
                 this.isSendingToAssessor = !this.isSendingToAssessor;
                 this.showingApplication = false;

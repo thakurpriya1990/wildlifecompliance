@@ -71,7 +71,7 @@
                                                                                 <label class="control-label pull-left" for="Name">Additional Fee</label>
                                                                             </div>
                                                                             <div class="col-sm-6" v-if="getPickedPurpose(p.purpose.id).isProposed">
-                                                                                <input type="text" ref="licence_fee" class="form-control" style="width:20%;" v-model="p.additional_fee" />
+                                                                                <input type="text" ref="licence_fee" class="form-control" style="width:50%;" v-model="p.additional_fee" />
                                                                             </div>
                                                                         </div>
                                                                         <div class="col-sm-12">
@@ -79,7 +79,7 @@
                                                                                 <label class="control-label pull-left" for="Name">Fee Description</label>
                                                                             </div>
                                                                             <div class="col-sm-6" v-if="getPickedPurpose(p.purpose.id).isProposed">
-                                                                                <input type="text" :name='"licence_fee_text_" + index' class="form-control" style="width:70%;" v-model="p.additional_fee_text" />
+                                                                                <input type="text" :name='"licence_fee_text_" + index' class="form-control" style="width:100%;" v-model="p.additional_fee_text" />
                                                                             </div>
                                                                         </div>
                                                                         <div class="col-sm-12" v-if="!getPickedPurpose(p.purpose.id).isProposed">                                                        
@@ -205,10 +205,15 @@
                     <div class="row" style="margin-bottom:50px;">
                         <div class="navbar navbar-fixed-bottom" style="background-color: #f5f5f5 ">
                             <div class="navbar-inner">
-                                <div class="container">
+                                <div class="container" v-if="canIssueOrDecline">
                                     <p class="pull-right" style="margin-top:5px;">
-                                        <button v-if="canIssueOrDecline" class="btn btn-primary pull-right" @click.prevent="ok()">Issue/Decline</button>
-                                        <button v-else disabled class="btn btn-primary pull-right">Issue/Decline</button>
+                                        <button v-if="showSpinner" type="button" class="btn btn-primary pull-right" ><i class="fa fa-spinner fa-spin"/>Issue/Decline</button>
+                                        <button v-else class="btn btn-primary pull-right" @click.prevent="ok()">Issue/Decline</button>
+                                    </p>
+                                </div>
+                                <div class="container" v-else>
+                                    <p class="pull-right" style="margin-top:5px;">
+                                        <button disabled class="btn btn-primary pull-right" @click.prevent="ok()">Issue/Decline</button>
                                     </p>
                                 </div>
                             </div>
@@ -260,6 +265,7 @@ export default {
                 allowInputToggle:true
             },
             pickedPurposes: [],
+            spinner:false,
         }
     },
     watch:{
@@ -371,6 +377,9 @@ export default {
         canEditLicenceDates: function() {
             return this.application.application_type && this.application.application_type.id !== 'amend_activity';
         },
+        showSpinner: function() {
+            return this.spinner
+        },
     },
     methods:{
         ...mapActions({
@@ -411,6 +420,7 @@ export default {
                 confirmButtonText: 'Finalise'
             }).then( async (result) => {
                 if (result.value) {
+                    this.spinner = true;
                     let selected = []
                     for (let a=0; a<this.application.activities.length; a++){
                         let activity = this.application.activities[a]
@@ -442,9 +452,11 @@ export default {
                                     emulateJSON:true,
 
                                 }).then((response)=>{
+                                    this.spinner = false
                                     vm.$router.push({ name:"internal-dash", });
 
                                 },(error)=>{
+                                    this.spinner = false
                                     swal(
                                         'Application Error',
                                         helpers.apiVueResourceError(error),
@@ -454,6 +466,7 @@ export default {
                                 });
 
                     },(error)=>{
+                        this.spinner = false
                         swal(
                             'Application Error',
                             helpers.apiVueResourceError(error),
