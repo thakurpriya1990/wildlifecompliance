@@ -48,20 +48,116 @@
                                                                     </span>
                                                                 </div>
                                                             </div>
-                                                            <div class="col-sm-12">
-                                                                <div class="col-sm-3" v-if="getPickedPurpose(p.purpose.id).isProposed">
+                                                            <div class="col-sm-12" v-if="getPickedPurpose(p.purpose.id).isProposed">
+                                                                <div class="col-sm-3">
                                                                     <label class="control-label pull-left" for="Name">Additional Fee</label>
                                                                 </div>
-                                                                <div class="col-sm-6" v-if="getPickedPurpose(p.purpose.id).isProposed">
+                                                                <div class="col-sm-6">
                                                                     <input type="text" ref="licence_fee" class="form-control" style="width:20%;" v-model="p.additional_fee" />
                                                                 </div>
                                                             </div>
-                                                            <div class="col-sm-12">
-                                                                <div class="col-sm-3" v-if="getPickedPurpose(p.purpose.id).isProposed">
+                                                            <div class="col-sm-12" v-if="getPickedPurpose(p.purpose.id).isProposed">
+                                                                <div class="col-sm-3">
                                                                     <label class="control-label pull-left" for="Name">Fee Description</label>
                                                                 </div>
-                                                                <div class="col-sm-6" v-if="getPickedPurpose(p.purpose.id).isProposed">
+                                                                <div class="col-sm-6">
                                                                     <input type="text" ref="licence_fee_text" class="form-control" style="width:70%;" v-model="p.additional_fee_text" />
+                                                                </div>
+                                                            </div>
+                                                            <div class="col-sm-12" v-if="getPickedPurpose(p.purpose.id).isProposed && p.purpose.species_header_1">
+                                                                <div class="col-sm-3">
+                                                                    <label class="control-label pull-left" for="Name">Header1</label>
+                                                                </div>
+                                                                <div class="col-sm-6">
+                                                                    <input type="text" ref="species_header_text_1" class="form-control" style="width:70%;" v-model="p.species_header_1" />
+                                                                </div>
+                                                            </div>
+                                                            <div class="col-sm-12" v-if="getPickedPurpose(p.purpose.id).isProposed && p.purpose.species_text_1">
+                                                                <div class="col-sm-3">
+                                                                    <label class="control-label pull-left" for="Name">Text1</label>
+                                                                </div>
+                                                                <div class="col-sm-6">
+                                                                    <textarea ref="species_header_text_1" class="form-control" style="width:100%;" v-model="p.species_text_1" />
+                                                                </div>
+                                                            </div>
+                                                            <div class="col-sm-12" v-if="getPickedPurpose(p.purpose.id).isProposed && p.purpose.species_header_2">
+                                                                <div class="col-sm-3">
+                                                                    <label class="control-label pull-left" for="Name">Header2</label>
+                                                                </div>
+                                                                <div class="col-sm-6">
+                                                                    <input type="text" ref="species_header_text_1" class="form-control" style="width:70%;" v-model="p.species_header_2" />
+                                                                </div>
+                                                            </div>
+                                                            <div class="col-sm-12" v-if="getPickedPurpose(p.purpose.id).isProposed && p.purpose.species_text_2">
+                                                                <div class="col-sm-3">
+                                                                    <label class="control-label pull-left" for="Name">Text2</label>
+                                                                </div>
+                                                                <div class="col-sm-6">
+                                                                    <textarea ref="species_header_text_1" class="form-control" style="width:100%;" v-model="p.species_text_2" />
+                                                                </div>
+                                                            </div>
+                                                            <div class="col-sm-12" v-if="getPickedPurpose(p.purpose.id).isProposed && p.purpose.species_header_3">
+                                                                <div class="col-sm-3">
+                                                                    <label class="control-label pull-left" for="Name">Header3</label>
+                                                                </div>
+                                                                <div class="col-sm-6">
+                                                                    <input type="text" ref="species_header_text_1" class="form-control" style="width:70%;" v-model="p.species_header_3" />
+                                                                </div>
+                                                            </div>
+                                                            <div class="col-sm-12" v-if="getPickedPurpose(p.purpose.id).isProposed && p.purpose.species_text_3">
+                                                                <div class="col-sm-3">
+                                                                    <label class="control-label pull-left" for="Name">Text3</label>
+                                                                </div>
+                                                                <div class="col-sm-6">
+                                                                    <textarea ref="species_header_text_1" class="form-control" style="width:100%;" v-model="p.species_text_3" />
+                                                                </div>
+                                                            </div>
+                                                            <div class="col-sm-12" v-if="getPickedPurpose(p.purpose.id).isProposed && p.purpose.species_header_4">
+                                                                <div class="col-sm-3">
+                                                                    <label class="control-label pull-left" for="Name">Header4</label>
+                                                                </div>
+                                                                <div class="col-sm-6">
+                                                                    <input type="text" ref="species_header_text_1" class="form-control" style="width:70%;" v-model="p.species_header_4" />
+                                                                </div>
+                                                            </div>
+                                                            <div class="col-sm-12" v-if="getPickedPurpose(p.purpose.id).isProposed && p.purpose.species_text_4">
+                                                                <div class="col-sm-3">
+                                                                    <label class="control-label pull-left" for="Name">Text4</label>
+                                                                </div>
+                                                                <div class="col-sm-6">
+                                                                    <textarea ref="species_header_text_1" class="form-control" style="width:100%;" v-model="p.species_text_4" />
+                                                                </div>
+                                                            </div>
+                                                            <div class="col-sm-12" v-if="getPickedPurpose(p.purpose.id).isProposed && p.purpose.species_header_5">
+                                                                <div class="col-sm-3">
+                                                                    <label class="control-label pull-left" for="Name">Header5</label>
+                                                                </div>
+                                                                <div class="col-sm-6">
+                                                                    <input type="text" ref="species_header_text_1" class="form-control" style="width:70%;" v-model="p.species_header_5" />
+                                                                </div>
+                                                            </div>
+                                                            <div class="col-sm-12" v-if="getPickedPurpose(p.purpose.id).isProposed && p.purpose.species_text_5">
+                                                                <div class="col-sm-3">
+                                                                    <label class="control-label pull-left" for="Name">Text5</label>
+                                                                </div>
+                                                                <div class="col-sm-6">
+                                                                    <textarea ref="species_header_text_1" class="form-control" style="width:100%;" v-model="p.species_text_5" />
+                                                                </div>
+                                                            </div>
+                                                            <div class="col-sm-12" v-if="getPickedPurpose(p.purpose.id).isProposed && p.purpose.species_header_6">
+                                                                <div class="col-sm-3">
+                                                                    <label class="control-label pull-left" for="Name">Header6</label>
+                                                                </div>
+                                                                <div class="col-sm-6">
+                                                                    <input type="text" ref="species_header_text_1" class="form-control" style="width:70%;" v-model="p.species_header_6" />
+                                                                </div>
+                                                            </div>
+                                                            <div class="col-sm-12" v-if="getPickedPurpose(p.purpose.id).isProposed && p.purpose.species_text_6">
+                                                                <div class="col-sm-3">
+                                                                    <label class="control-label pull-left" for="Name">Text6</label>
+                                                                </div>
+                                                                <div class="col-sm-6">
+                                                                    <textarea ref="species_header_text_1" class="form-control" style="width:100%;" v-model="p.species_text_6" />
                                                                 </div>
                                                             </div>
                                                         </div>
@@ -312,7 +408,9 @@ export default {
                     id: _id, 
                     isProposed: true,
                     additional_fee: 0,
-                    additional_fee_text: ''
+                    additional_fee_text: '',
+                    species_header: '',
+                    species_text: '',
                 }
                 this.pickedPurposes.push(picked)
             }
@@ -384,10 +482,8 @@ export default {
             });
        },
        initialiseAttributes: function() {
-            // this.application.activities.forEach(a => {
-            //     a.additional_fee = null
-            //     a.additional_fee_text = null
-            // })
+           this.preloadProposedPurpose()
+
        },
        eventListeners:function () {
             let vm = this;
@@ -418,6 +514,26 @@ export default {
                     });
                 }
             }
+         },
+         preloadProposedPurpose: function() {
+            for (let i=0; i<this.applicationSelectedActivitiesForPurposes.length; i++){
+                let act = this.applicationSelectedActivitiesForPurposes[i]
+                for (let p=0; p<act.proposed_purposes.length; p++){
+                    let proposed = act.proposed_purposes[p]
+                    proposed.species_header_1 = proposed.purpose.species_header_1
+                    proposed.species_header_2 = proposed.purpose.species_header_2
+                    proposed.species_header_3 = proposed.purpose.species_header_3
+                    proposed.species_header_4 = proposed.purpose.species_header_4
+                    proposed.species_header_5 = proposed.purpose.species_header_5
+                    proposed.species_header_6 = proposed.purpose.species_header_6
+                    proposed.species_text_1 = proposed.purpose.species_text_1
+                    proposed.species_text_2 = proposed.purpose.species_text_2
+                    proposed.species_text_3 = proposed.purpose.species_text_3
+                    proposed.species_text_4 = proposed.purpose.species_text_4
+                    proposed.species_text_5 = proposed.purpose.species_text_5
+                    proposed.species_text_6 = proposed.purpose.species_text_6
+                }
+            }             
          },
         preloadLastActivity: function() {
             let activities = this.applicationSelectedActivitiesForPurposes

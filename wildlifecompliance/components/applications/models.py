@@ -2353,8 +2353,6 @@ class Application(RevisionedMixin):
                             p['isProposed'] for p in purpose_list \
                                 if p['id']==p_purpose['id']
                         ][0]
-                        additional_fee = p_proposed['additional_fee']
-                        additional_fee_text = p_proposed['additional_fee_text']
                         status = propose if is_proposed else select
                         proposed = activity.proposed_purposes.filter(
                             id=p_proposed['id']
@@ -2364,6 +2362,8 @@ class Application(RevisionedMixin):
                             selected_activity=activity,
                         )
                         if status == propose:
+
+                            # 1. Set proposal dates.
                             proposed.proposed_start_date = \
                                 datetime.datetime.strptime(
                                     p_proposed[
@@ -2374,8 +2374,50 @@ class Application(RevisionedMixin):
                                     p_proposed[
                                         'proposed_end_date'], '%d/%m/%Y')
 
+                            # 2. Set proposal additional fee.
+                            additional_fee = p_proposed['additional_fee']
+                            additional_fee_text = \
+                                p_proposed['additional_fee_text']
                             proposed.additional_fee = Decimal(additional_fee)
                             proposed.additional_fee_text = additional_fee_text
+
+                            # 3. Set proposal species headers and text.
+                            proposed.set_species_header_1(
+                                p_proposed['species_header_1']
+                            )
+                            proposed.set_species_text_1(
+                                p_proposed['species_text_1']
+                            )
+                            proposed.set_species_header_2(
+                                p_proposed['species_header_2']
+                            )
+                            proposed.set_species_text_2(
+                                p_proposed['species_text_2']
+                            )
+                            proposed.set_species_header_3(
+                                p_proposed['species_header_3']
+                            )
+                            proposed.set_species_text_3(
+                                p_proposed['species_text_3']
+                            )
+                            proposed.set_species_header_4(
+                                p_proposed['species_header_4']
+                            )
+                            proposed.set_species_text_4(
+                                p_proposed['species_text_4']
+                            )
+                            proposed.set_species_header_5(
+                                p_proposed['species_header_5']
+                            )
+                            proposed.set_species_text_5(
+                                p_proposed['species_text_5']
+                            )
+                            proposed.set_species_header_6(
+                                p_proposed['species_header_6']
+                            )
+                            proposed.set_species_text_6(
+                                p_proposed['species_text_6']
+                            )
 
                         proposed.processing_status = status
                         proposed.save()
@@ -2776,6 +2818,7 @@ class Application(RevisionedMixin):
                                     purpose.purpose_sequence = purpose_sequence
                                     purpose_sequence += 1
 
+                                # 1. Set period dates.
                                 # proposed dates are not set when the purpose
                                 # was previously declined by proposal officer.
                                 if purpose.proposed_start_date == None:
@@ -2789,10 +2832,49 @@ class Application(RevisionedMixin):
                                 purpose.expiry_date =\
                                     proposed['proposed_end_date']
 
+                                # 2. Set proposal additional fee.
                                 purpose.additional_fee =\
                                     Decimal(str(proposed['additional_fee']))
                                 purpose.additional_fee_text =\
                                     proposed['additional_fee_text']
+
+                                # 3. Set proposal species headers and text.
+                                purpose.set_species_header_1(
+                                    proposed['species_header_1']
+                                )
+                                purpose.set_species_text_1(
+                                    proposed['species_text_1']
+                                )
+                                purpose.set_species_header_2(
+                                    proposed['species_header_2']
+                                )
+                                purpose.set_species_text_2(
+                                    proposed['species_text_2']
+                                )
+                                purpose.set_species_header_3(
+                                    proposed['species_header_3']
+                                )
+                                purpose.set_species_text_3(
+                                    proposed['species_text_3']
+                                )
+                                purpose.set_species_header_4(
+                                    proposed['species_header_4']
+                                )
+                                purpose.set_species_text_4(
+                                    proposed['species_text_4']
+                                )
+                                purpose.set_species_header_5(
+                                    proposed['species_header_5']
+                                )
+                                purpose.set_species_text_5(
+                                    proposed['species_text_5']
+                                )
+                                purpose.set_species_header_6(
+                                    proposed['species_header_6']
+                                )
+                                purpose.set_species_text_6(
+                                    proposed['species_text_6']
+                                )
 
                                 selected_activity.decision_action =\
                                     ApplicationSelectedActivity.DECISION_ACTION_ISSUED
@@ -5150,6 +5232,9 @@ class ApplicationSelectedActivityPurpose(models.Model):
     additional_fee = models.DecimalField(
         max_digits=8, decimal_places=2, default='0')
     additional_fee_text = models.TextField(blank=True, null=True)
+    # Additional species header and text taken from licence purpose which can
+    # be customised for this selected purpose.
+    purpose_species_json = JSONField(null=True, blank=True, default={})
     property_cache = JSONField(null=True, blank=True, default={})
 
     def __str__(self):
@@ -5668,6 +5753,365 @@ class ApplicationSelectedActivityPurpose(models.Model):
 
         return previous
 
+    def set_species_header_1(self, header):
+        '''
+        Set species header details for this selected activity purpose.
+        '''
+        if header:
+            try:
+                self.purpose_species_json[0]['header-1'] = str(header)
+
+            except BaseException as e:
+                logger.error('set_species_header_1() ID {} : {}'.format(
+                    self.id,
+                    e
+                ))
+
+    def get_species_header_1(self):
+        '''
+        Get species header details for this selected activity purpose.
+        '''
+        header = None
+        try:
+            header = self.purpose_species_json['header-1']
+
+        except BaseException as e:
+            logger.error('get_species_header_1() ID {} : {}'.format(
+                self.id,
+                e
+            ))
+
+        return header
+
+    def set_species_text_1(self, text):
+        '''
+        Set species text details for this selected activity purpose.
+        '''
+        if text:
+            try:
+                self.purpose_species_json[0]['text-1'] = str(text)
+
+            except BaseException as e:
+                logger.error('set_species_text_1() ID {} : {}'.format(
+                    self.id,
+                    e
+                ))
+
+    def get_species_text_1(self):
+        '''
+        Get species text details for this selected activity purpose.
+        '''
+        text = None
+        try:
+            header = self.purpose_species_json['text-1']
+
+        except BaseException as e:
+            logger.error('get_species_text_1() ID {} : {}'.format(
+                self.id,
+                e
+            ))
+
+        return text
+
+    def set_species_header_2(self, header):
+        '''
+        Set species header details for this selected activity purpose.
+        '''
+        if header:
+            try:
+                self.purpose_species_json[0]['header-2'] = str(header)
+
+            except BaseException as e:
+                logger.error('set_species_header_2() ID {} : {}'.format(
+                    self.id,
+                    e
+                ))
+
+    def get_species_header_2(self):
+        '''
+        Get species header details for this selected activity purpose.
+        '''
+        header = None
+        try:
+            header = self.purpose_species_json['header-2']
+
+        except BaseException as e:
+            logger.error('get_species_header_2() ID {} : {}'.format(
+                self.id,
+                e
+            ))
+
+        return header
+
+    def set_species_text_2(self, text):
+        '''
+        Set species text details for this selected activity purpose.
+        '''
+        if text:
+            try:
+                self.purpose_species_json[0]['text-2'] = str(text)
+
+            except BaseException as e:
+                logger.error('set_species_text_2() ID {} : {}'.format(
+                    self.id,
+                    e
+                ))
+
+    def get_species_text_2(self):
+        '''
+        Get species text details for this selected activity purpose.
+        '''
+        text = None
+        try:
+            header = self.purpose_species_json['text-2']
+
+        except BaseException as e:
+            logger.error('get_species_text_2() ID {} : {}'.format(
+                self.id,
+                e
+            ))
+
+        return text
+
+    def set_species_header_3(self, header):
+        '''
+        Set species header details for this selected activity purpose.
+        '''
+        if header:
+            try:
+                self.purpose_species_json[0]['header-3'] = str(header)
+
+            except BaseException as e:
+                logger.error('set_species_header_3() ID {} : {}'.format(
+                    self.id,
+                    e
+                ))
+
+    def get_species_header_3(self):
+        '''
+        Get species header details for this selected activity purpose.
+        '''
+        header = None
+        try:
+            header = self.purpose_species_json['header-3']
+
+        except BaseException as e:
+            logger.error('get_species_header_3() ID {} : {}'.format(
+                self.id,
+                e
+            ))
+
+        return header
+
+    def set_species_text_3(self, text):
+        '''
+        Set species text details for this selected activity purpose.
+        '''
+        if text:
+            try:
+                self.purpose_species_json[0]['text-3'] = str(text)
+
+            except BaseException as e:
+                logger.error('set_species_text_3() ID {} : {}'.format(
+                    self.id,
+                    e
+                ))
+
+    def get_species_text_3(self):
+        '''
+        Get species text details for this selected activity purpose.
+        '''
+        text = None
+        try:
+            header = self.purpose_species_json['text-3']
+
+        except BaseException as e:
+            logger.error('get_species_text_3() ID {} : {}'.format(
+                self.id,
+                e
+            ))
+
+        return text
+
+    def set_species_header_4(self, header):
+        '''
+        Set species header details for this selected activity purpose.
+        '''
+        if header:
+            try:
+                self.purpose_species_json[0]['header-4'] = str(header)
+
+            except BaseException as e:
+                logger.error('set_species_header_4() ID {} : {}'.format(
+                    self.id,
+                    e
+                ))
+
+    def get_species_header_4(self):
+        '''
+        Get species header details for this selected activity purpose.
+        '''
+        header = None
+        try:
+            header = self.purpose_species_json['header-4']
+
+        except BaseException as e:
+            logger.error('get_species_header_4() ID {} : {}'.format(
+                self.id,
+                e
+            ))
+
+        return header
+
+    def set_species_text_4(self, text):
+        '''
+        Set species text details for this selected activity purpose.
+        '''
+        if text:
+            try:
+                self.purpose_species_json[0]['text-4'] = str(text)
+
+            except BaseException as e:
+                logger.error('set_species_text_4() ID {} : {}'.format(
+                    self.id,
+                    e
+                ))
+
+    def get_species_text_4(self):
+        '''
+        Get species text details for this selected activity purpose.
+        '''
+        text = None
+        try:
+            header = self.purpose_species_json['text-4']
+
+        except BaseException as e:
+            logger.error('get_species_text_4() ID {} : {}'.format(
+                self.id,
+                e
+            ))
+
+        return text
+
+    def set_species_header_5(self, header):
+        '''
+        Set species header details for this selected activity purpose.
+        '''
+        if header:
+            try:
+                self.purpose_species_json[0]['header-5'] = str(header)
+
+            except BaseException as e:
+                logger.error('set_species_header_5() ID {} : {}'.format(
+                    self.id,
+                    e
+                ))
+
+    def get_species_header_5(self):
+        '''
+        Get species header details for this selected activity purpose.
+        '''
+        header = None
+        try:
+            header = self.purpose_species_json['header-5']
+
+        except BaseException as e:
+            logger.error('get_species_header_5() ID {} : {}'.format(
+                self.id,
+                e
+            ))
+
+        return header
+
+    def set_species_text_5(self, text):
+        '''
+        Set species text details for this selected activity purpose.
+        '''
+        if text:
+            try:
+                self.purpose_species_json[0]['text-5'] = str(text)
+
+            except BaseException as e:
+                logger.error('set_species_text_5() ID {} : {}'.format(
+                    self.id,
+                    e
+                ))
+
+    def get_species_text_5(self):
+        '''
+        Get species text details for this selected activity purpose.
+        '''
+        text = None
+        try:
+            header = self.purpose_species_json['text-5']
+
+        except BaseException as e:
+            logger.error('get_species_text_5() ID {} : {}'.format(
+                self.id,
+                e
+            ))
+
+        return text
+
+    def set_species_header_6(self, header):
+        '''
+        Set species header details for this selected activity purpose.
+        '''
+        if header:
+            try:
+                self.purpose_species_json[0]['header-6'] = str(header)
+
+            except BaseException as e:
+                logger.error('set_species_header_6() ID {} : {}'.format(
+                    self.id,
+                    e
+                ))
+
+    def get_species_header_6(self):
+        '''
+        Get species header details for this selected activity purpose.
+        '''
+        header = None
+        try:
+            header = self.purpose_species_json['header-6']
+
+        except BaseException as e:
+            logger.error('get_species_header_6() ID {} : {}'.format(
+                self.id,
+                e
+            ))
+
+        return header
+
+    def set_species_text_6(self, text):
+        '''
+        Set species text details for this selected activity purpose.
+        '''
+        if text:
+            try:
+                self.purpose_species_json[0]['text-6'] = str(text)
+
+            except BaseException as e:
+                logger.error('set_species_text_6() ID {} : {}'.format(
+                    self.id,
+                    e
+                ))
+
+    def get_species_text_6(self):
+        '''
+        Get species text details for this selected activity purpose.
+        '''
+        text = None
+        try:
+            header = self.purpose_species_json['text-6']
+
+        except BaseException as e:
+            logger.error('get_species_text_6() ID {} : {}'.format(
+                self.id,
+                e
+            ))
+
+        return text
 
 class IssuanceDocument(Document):
     _file = models.FileField(max_length=255)

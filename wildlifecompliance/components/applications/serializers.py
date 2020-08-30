@@ -97,6 +97,18 @@ class ApplicationSelectedActivityCanActionSerializer(serializers.Serializer):
 class ApplicationSelectedActivityPurposeSerializer(
         serializers.ModelSerializer):
     purpose = serializers.SerializerMethodField(read_only=True)
+    species_header_1 = serializers.SerializerMethodField(read_only=True)
+    species_text_1 = serializers.SerializerMethodField(read_only=True)
+    species_header_2 = serializers.SerializerMethodField(read_only=True)
+    species_text_2 = serializers.SerializerMethodField(read_only=True)
+    species_header_3 = serializers.SerializerMethodField(read_only=True)
+    species_text_3 = serializers.SerializerMethodField(read_only=True)
+    species_header_4 = serializers.SerializerMethodField(read_only=True)
+    species_text_4 = serializers.SerializerMethodField(read_only=True)
+    species_header_5 = serializers.SerializerMethodField(read_only=True)
+    species_text_5 = serializers.SerializerMethodField(read_only=True)
+    species_header_6 = serializers.SerializerMethodField(read_only=True)
+    species_text_6 = serializers.SerializerMethodField(read_only=True)
 
     class Meta:
         model = ApplicationSelectedActivityPurpose
@@ -125,6 +137,127 @@ class ApplicationSelectedActivityPurposeSerializer(
     def get_proposed_end_date(self, obj):
         return obj.proposed_end_date.strftime(
             '%d/%m/%Y') if obj.proposed_end_date else ''
+
+    def get_species_header_1(self, obj):
+        header = None
+        try:
+            header = obj.purpose_species_json[0]['header-1']
+
+        except BaseException:
+            pass
+
+        return header
+
+    def get_species_text_1(self, obj):
+        text = None
+        try:
+            text = obj.purpose_species_json[0]['text-1']
+
+        except BaseException:
+            pass
+
+        return text
+
+    def get_species_header_2(self, obj):
+        header = None
+        try:
+            header = obj.purpose_species_json[0]['header-2']
+
+        except BaseException:
+            pass
+
+        return header
+
+    def get_species_text_2(self, obj):
+        text = None
+        try:
+            text = obj.purpose_species_json[0]['text-2']
+
+        except BaseException:
+            pass
+
+        return text
+
+    def get_species_header_3(self, obj):
+        header = None
+        try:
+            header = obj.purpose_species_json[0]['header-3']
+
+        except BaseException:
+            pass
+
+        return header
+
+    def get_species_text_3(self, obj):
+        text = None
+        try:
+            text = obj.purpose_species_json[0]['text-3']
+
+        except BaseException:
+            pass
+
+        return text
+
+    def get_species_header_4(self, obj):
+        header = None
+        try:
+            header = obj.purpose_species_json[0]['header-4']
+
+        except BaseException:
+            pass
+
+        return header
+
+    def get_species_text_4(self, obj):
+        text = None
+        try:
+            text = obj.purpose_species_json[0]['text-4']
+
+        except BaseException:
+            pass
+
+        return text
+
+    def get_species_header_5(self, obj):
+        header = None
+        try:
+            header = obj.purpose_species_json[0]['header-5']
+
+        except BaseException:
+            pass
+
+        return header
+
+    def get_species_text_5(self, obj):
+        text = None
+        try:
+            text = obj.purpose_species_json[0]['text-5']
+
+        except BaseException:
+            pass
+
+        return text
+
+    def get_species_header_6(self, obj):
+        header = None
+        try:
+            header = obj.purpose_species_json[0]['header-6']
+
+        except BaseException:
+            pass
+
+        return header
+
+    def get_species_text_6(self, obj):
+        text = None
+        try:
+            text = obj.purpose_species_json[0]['text-6']
+
+        except BaseException:
+            pass
+
+        return text
+
 
 class ApplicationSelectedActivitySerializer(serializers.ModelSerializer):
     activity_name_str = serializers.SerializerMethodField(read_only=True)
