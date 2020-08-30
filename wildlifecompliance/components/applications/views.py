@@ -95,11 +95,6 @@ class ApplicationSuccessView(TemplateView):
                         kwargs={'reference': invoice_ref}))
 
                 if application.application_fee_paid:
-                    # can only submit again if application is in Draft.
-                    if application.can_user_edit:
-                        application.submit(request)
-                    send_application_invoice_email_notification(
-                        application, invoice_ref, request)
 
                     # record invoice payment for licence activities. Record the
                     # licence and application fee for refunding purposes.
@@ -155,6 +150,12 @@ class ApplicationSuccessView(TemplateView):
                         ActivityInvoiceLine.objects.bulk_create(
                             inv_lines
                         )
+
+                    # can only submit again if application is in Draft.
+                    if application.can_user_edit:
+                        application.submit(request)
+                    send_application_invoice_email_notification(
+                        application, invoice_ref, request)
 
                 else:
                     # TODO: check if this ever occurs from the above code and

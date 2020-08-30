@@ -1109,8 +1109,9 @@ class Application(RevisionedMixin):
     def submit(self, request):
         from wildlifecompliance.components.licences.models import LicenceActivity
         with transaction.atomic():
+            requires_refund = self.requires_refund_at_submit()
             if self.can_user_edit:
-                if not self.application_fee_paid and not self.requires_refund \
+                if not self.application_fee_paid and not requires_refund \
                   and self.submit_type == Application.SUBMIT_TYPE_ONLINE:
                     self.customer_status = Application.CUSTOMER_STATUS_AWAITING_PAYMENT
                     self.save()
@@ -1219,7 +1220,7 @@ class Application(RevisionedMixin):
                     self.log_user_action(
                         ApplicationUserAction.ACTION_ID_REQUEST_AMENDMENTS_SUBMIT.format(
                             self.id), request)
-                    if self.requires_refund:
+                    if requires_refund:
                         self.alert_for_refund(request)
                     else:
                         send_amendment_submit_email_notification(
@@ -1246,7 +1247,7 @@ class Application(RevisionedMixin):
                                 self.id), request)
 
                     # notify linked officer groups of submission.
-                    if self.requires_refund:
+                    if requires_refund:
                         self.alert_for_refund(request)
                     else:
                         send_application_submit_email_notification(
@@ -1842,14 +1843,41 @@ class Application(RevisionedMixin):
         paid. Application fee amount can be adjusted more or less than base.
         """
         approved = [
-            Application.PROCESSING_STATUS_DRAFT,    # applicant submit check.
-            Application.PROCESSING_STATUS_UNDER_REVIEW,  # first time only.
+            # Application.PROCESSING_STATUS_DRAFT,    # applicant submit check.
+            # Application.PROCESSING_STATUS_UNDER_REVIEW,  # first time only.
             Application.PROCESSING_STATUS_APPROVED,
             Application.PROCESSING_STATUS_PARTIALLY_APPROVED,
             Application.PROCESSING_STATUS_AWAITING_PAYMENT,
         ]
 
         if self.processing_status not in approved:
+            return False
+
+        # check additional fee amount can cover refund so it can be adjusted
+        # at invoicing.
+        # outstanding = self.additional_fees - self.get_refund_amount()
+        outstanding = self.get_refund_amount()
+        return True if outstanding < 0 else False
+
+    def requires_refund_at_submit(self):
+        """
+        Check on the previously paid invoice amount against application fee at
+        submission. Required only for requested amendments and licence amend
+        where fee has been paid.
+
+        Refund is required when application fee is more than what has been
+        paid. Application fee amount can be adjusted more or less than base.
+        """
+        apply_type = [
+            Application.APPLICATION_TYPE_AMENDMENT
+        ]
+
+        status = [
+            Application.CUSTOMER_STATUS_AMENDMENT_REQUIRED
+        ]
+
+        if self.application_type not in apply_type \
+                and self.customer_status not in status:
             return False
 
         # check additional fee amount can cover refund so it can be adjusted
@@ -5570,7 +5598,7 @@ class ApplicationSelectedActivityPurpose(models.Model):
             '''
             try:
                 prev_purpose = self.get_purpose_from_previous()
-                amount = amount + prev_purpose.adjusted_licence_fee
+                amount = amount + prev_purpose.adjusted_fee
 
             except BaseException as e:
                 logger.error(
