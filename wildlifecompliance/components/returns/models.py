@@ -55,6 +55,14 @@ class ReturnType(models.Model):
         (FORMAT_QUESTION, 'Question'),
         (FORMAT_DATA, 'Data')
     )
+    SPECIES_LIST_REGULATED = 'regulated'
+    SPECIES_LIST_APPLICATION = 'application'
+    SPECIES_LIST_NONE = 'none'
+    SPECIES_LIST_CHOICES = (
+        (SPECIES_LIST_REGULATED, 'Regulated Species List'),
+        (SPECIES_LIST_APPLICATION, 'Application Species List'),
+        (SPECIES_LIST_NONE, 'No Species List')
+    )
     name = models.CharField(null=True, blank=True, max_length=100)
     description = models.TextField(null=True, blank=True, max_length=256)
     data_descriptor = JSONField()
@@ -84,7 +92,11 @@ class ReturnType(models.Model):
         blank=True,
         null=True)
     version = models.SmallIntegerField(default=1, blank=False, null=False)
-    species_required = models.BooleanField(default=False)
+    species_list = models.CharField(
+        'Species List',
+        max_length=30,
+        choices=SPECIES_LIST_CHOICES,
+        default=SPECIES_LIST_NONE)
 
     def __str__(self):
         return '{0} - v{1}'.format(self.name, self.version)
@@ -441,11 +453,11 @@ class Return(models.Model):
         '''
         SPECIES = ApplicationFormDataRecord.COMPONENT_TYPE_SELECT_SPECIES
         STATUS = [
-            Return.RETURN_PROCESSING_STATUS_FUTURE
+            # Return.RETURN_PROCESSING_STATUS_FUTURE
+            'NO SPECIES ALLOWED'
         ]
 
-        if self.processing_status not in STATUS \
-                or not self.return_type.species_required:
+        if self.processing_status not in STATUS:
             '''
             Species are only set for FUTURE processing status.
             '''

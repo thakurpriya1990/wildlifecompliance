@@ -686,7 +686,8 @@ class ReturnData(object):
         '''
         A check to determine if this return type contains a list of species.
         '''
-        return self._return.return_type.species_required
+        # return self._return.return_type.species_required
+        return False
 
     def set_species(self, _species):
         """
