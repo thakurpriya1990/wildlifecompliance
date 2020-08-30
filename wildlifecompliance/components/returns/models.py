@@ -205,12 +205,50 @@ class Return(models.Model):
         max_digits=8,
         decimal_places=2,
         default='0')
+    property_cache = JSONField(null=True, blank=True, default={})
+
+    class Meta:
+        app_label = 'wildlifecompliance'
 
     def __str__(self):
         return self.lodgement_number
 
-    class Meta:
-        app_label = 'wildlifecompliance'
+    def save(self, *args, **kwargs):
+        self.update_property_cache(False)
+        super(Return, self).save(*args, **kwargs)
+
+    def get_property_cache(self):
+        '''
+        Get properties which were previously resolved.
+        '''
+        if len(self.property_cache) == 0:
+            self.update_property_cache()
+
+        return self.property_cache
+
+    def update_property_cache(self, save=True):
+        '''
+        Refresh cached properties with updated properties.
+        '''
+        # self.property_cache['payment_status'] = self.payment_status
+
+        if save is True:
+            self.save()
+
+        return self.property_cache
+
+    def get_property_cache_key(self, key):
+        '''
+        Get properties which were previously resolved with key.
+        '''
+        try:
+
+            self.property_cache[key]
+
+        except KeyError:
+            self.update_property_cache()
+
+        return self.property_cache
 
     @property
     def activity(self):
