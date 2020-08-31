@@ -4,6 +4,7 @@ import datetime
 import logging
 import mimetypes
 import six
+import json
 import re
 from decimal import Decimal
 from django.conf import settings
@@ -2736,7 +2737,16 @@ class Application(RevisionedMixin):
                     self.id, e))
                 raise
 
-    def final_decision(self, request):
+
+    def preview_final_decision(self, request):
+        """ Displays a preview of the Licence PDF """
+        with transaction.atomic():
+            preview_doc = self.final_decision(request, preview=True)
+            transaction.set_rollback(True)
+        return preview_doc
+
+
+    def final_decision(self, request, preview=False):
         """
         Carry out the Final Issue/Decline decision for the Application (self)
         """
@@ -2761,8 +2771,9 @@ class Application(RevisionedMixin):
 
                 purpose_sequence = parent_licence.get_next_purpose_sequence()
 
-                # perform issue for each licence activity id in request.data.get('activity')
-                for item in request.data.get('activity'):
+                data = json.loads(request.POST.get('formData')) if request.POST.has_key('formData') else request.data
+                # perform issue for each licence activity id in data.get('activity')
+                for item in data.get('activity'):
                     licence_activity_id = item['id']
                     # use .get here as it should not be possible to have more than one activity per licence_activity_id
                     # per application
@@ -2804,11 +2815,11 @@ class Application(RevisionedMixin):
                         ensure all dates have been provide for the activity.
                         '''
                         decline_ids = set([
-                            p['id'] for p in request.data.get(
+                            p['id'] for p in data.get(
                                 'selected_purpose_ids') if not p['isProposed']
                         ])
                         issue_ids = list(set([
-                            p['id'] for p in request.data.get(
+                            p['id'] for p in data.get(
                                 'selected_purpose_ids') if p['isProposed']
                         ]) - decline_ids)
                         decline_ids = list(decline_ids)
@@ -2816,11 +2827,11 @@ class Application(RevisionedMixin):
                         '''
                         NOTE: issue_ids and declined_ids will include purposes
                         from all activities on application. Filter proposed
-                        purposes for relevant selected activity to prevent 
+                        purposes for relevant selected activity to prevent
                         declining different activity purpose.
                         '''
                         proposed_purposes = [
-                            p for p in request.data.get('purposes')
+                            p for p in data.get('purposes')
                             if p['selected_activity'] == selected_activity.id
                         ]
 
@@ -3056,6 +3067,9 @@ class Application(RevisionedMixin):
 
                 if issued_activities:
                     # Re-generate PDF document using all finalised activities
+                    if preview:
+                        return parent_licence.generate_preview_doc()
+
                     parent_licence.generate_doc()
                     send_application_issue_notification(
                         activities=issued_activities,
@@ -4388,7 +4402,7 @@ class ApplicationSelectedActivity(models.Model):
         adj_fees = 0
         for p in self.proposed_purposes.all():
             if p.is_payable and not p.adjusted_fee == 0:
-                adjusted = True 
+                adjusted = True
                 break
 
         return adjusted
@@ -4403,7 +4417,7 @@ class ApplicationSelectedActivity(models.Model):
 
         for p in self.proposed_purposes.all():
             if p.is_payable and not p.adjusted_licence_fee == 0:
-                adjusted = True 
+                adjusted = True
                 break
 
         return adjusted
@@ -4430,7 +4444,7 @@ class ApplicationSelectedActivity(models.Model):
 
         for p in self.proposed_purposes.all():
             if p.is_payable and p.has_additional_fee:
-                has_additional = True 
+                has_additional = True
                 break
 
         return has_additional
@@ -5041,7 +5055,7 @@ class ApplicationSelectedActivity(models.Model):
         # for update in update_purposes:
         #     update.purpose_sequence = int(sequence_no)
         #     # update.processing_status = ISSUE
-        #     # update.issue_date = 
+        #     # update.issue_date =
         #     selected.save()
 
     def is_proposed_purposes_status(self, status):
@@ -5573,10 +5587,10 @@ class ApplicationSelectedActivityPurpose(models.Model):
     @property
     def total_paid_adjusted_application_fee(self):
         '''
-        Property for the total application fees paid calculated from the 
+        Property for the total application fees paid calculated from the
         invoice lines which includes adjustments.
 
-        NOTE: for licence amendments previous paid adjustments are added to 
+        NOTE: for licence amendments previous paid adjustments are added to
         this total.
         '''
         LINE_TYPE = ActivityInvoiceLine.LINE_TYPE_APPLICATION
@@ -5612,10 +5626,10 @@ class ApplicationSelectedActivityPurpose(models.Model):
     @property
     def total_paid_adjusted_licence_fee(self):
         '''
-        Property for the total licence fees paid calculated from the 
+        Property for the total licence fees paid calculated from the
         invoice lines which includes adjustments.
 
-        NOTE: for licence amendments previous paid adjustments are added to 
+        NOTE: for licence amendments previous paid adjustments are added to
         this total.
         '''
         LINE_TYPE = ActivityInvoiceLine.LINE_TYPE_LICENCE
@@ -5651,7 +5665,7 @@ class ApplicationSelectedActivityPurpose(models.Model):
     @property
     def total_paid_additional_fee(self):
         '''
-        Property for the total additional fees paid calculated from the 
+        Property for the total additional fees paid calculated from the
         invoice lines.
         '''
         LINE_TYPE = ActivityInvoiceLine.LINE_TYPE_ADDITIONAL
@@ -5659,7 +5673,7 @@ class ApplicationSelectedActivityPurpose(models.Model):
         for a_inv in self.selected_activity.activity_invoices.all():
             inv_lines = [
                 l for l in a_inv.licence_activity_lines.all()
-                if l.licence_purpose == self.purpose 
+                if l.licence_purpose == self.purpose
                 and l.invoice_line_type == LINE_TYPE
             ]
             for line in inv_lines:

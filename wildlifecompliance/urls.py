@@ -265,6 +265,8 @@ urlpatterns = [
         application_views.ApplicationHistoryCompareView.as_view(),
         name='application-history'),
 
+    url(r'^preview/licence-pdf/(?P<application_pk>\d+)',application_views.PreviewLicencePDFView.as_view(), name='preview_licence_pdf'),
+
 ] + ledger_patterns
 
 if not are_migrations_running():
