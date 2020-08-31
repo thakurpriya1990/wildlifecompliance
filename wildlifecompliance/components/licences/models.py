@@ -17,10 +17,6 @@ from wildlifecompliance.components.main.models import (
     Document
 )
 
-from wildlifecompliance.components.licences.pdf import (
-    create_licence_pdf_bytes,
-    create_licence_doc,
-)
 
 def update_licence_doc_filename(instance, filename):
     return 'wildlifecompliance/licences/{}/documents/{}'.format(
@@ -1359,11 +1355,13 @@ class WildlifeLicence(models.Model):
         return documents
 
     def generate_doc(self):
+        from wildlifecompliance.components.licences.pdf import create_licence_doc
         self.licence_document = create_licence_doc(
             self, self.current_application)
         self.save()
 
     def generate_preview_doc(self):
+        from wildlifecompliance.components.licences.pdf import create_licence_pdf_bytes
         return create_licence_pdf_bytes(self, self.current_application)
 
 
