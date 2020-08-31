@@ -197,6 +197,12 @@ class LicencePurpose(models.Model):
 
         return options
 
+    def to_json(self):
+        _list = []
+        for i in self.purpose_species.all():
+            _list.append(dict(model_to_dict(i)))
+        return json.dumps(_list)
+
 
 class PurposeSpecies(models.Model):
     licence_purpose = models.ForeignKey(LicencePurpose, related_name='purpose_species')
