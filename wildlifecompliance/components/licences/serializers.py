@@ -326,6 +326,18 @@ class PurposeSerializer(BasePurposeSerializer):
         max_digits=8, decimal_places=2, coerce_to_string=False, read_only=True)
     renewal_application_fee = serializers.DecimalField(
         max_digits=8, decimal_places=2, coerce_to_string=False, read_only=True)
+    species_header_1 = serializers.SerializerMethodField(read_only=True)
+    species_text_1 = serializers.SerializerMethodField(read_only=True)
+    species_header_2 = serializers.SerializerMethodField(read_only=True)
+    species_text_2 = serializers.SerializerMethodField(read_only=True)
+    species_header_3 = serializers.SerializerMethodField(read_only=True)
+    species_text_3 = serializers.SerializerMethodField(read_only=True)
+    species_header_4 = serializers.SerializerMethodField(read_only=True)
+    species_text_4 = serializers.SerializerMethodField(read_only=True)
+    species_header_5 = serializers.SerializerMethodField(read_only=True)
+    species_text_5 = serializers.SerializerMethodField(read_only=True)
+    species_header_6 = serializers.SerializerMethodField(read_only=True)
+    species_text_6 = serializers.SerializerMethodField(read_only=True)
 
     class Meta:
         model = LicencePurpose
@@ -337,7 +349,127 @@ class PurposeSerializer(BasePurposeSerializer):
             'short_name',
             'renewal_application_fee',
             'amendment_application_fee',
+            'species_header_1',
+            'species_text_1',
+            'species_header_2',
+            'species_text_2',
+            'species_header_3',
+            'species_text_3',
+            'species_header_4',
+            'species_text_4',
+            'species_header_5',
+            'species_text_5',
+            'species_header_6',
+            'species_text_6',
         )
+
+    def get_species_header_1(self, obj):
+        header = None
+        try:
+            header = obj.purpose_species_json['header1']
+        except BaseException:
+            pass
+
+        return header
+
+    def get_species_text_1(self, obj):
+        text = None
+        try:
+            text = obj.purpose_species_json['text1']
+        except BaseException:
+            pass
+
+        return text
+
+    def get_species_header_2(self, obj):
+        header = None
+        try:
+            header = obj.purpose_species_json['header2']
+        except BaseException:
+            pass
+
+        return header
+
+    def get_species_text_2(self, obj):
+        text = None
+        try:
+            text = obj.purpose_species_json['text2']
+        except BaseException:
+            pass
+
+        return text
+
+    def get_species_header_3(self, obj):
+        header = None
+        try:
+            header = obj.purpose_species_json['header3']
+        except BaseException:
+            pass
+
+        return header
+
+    def get_species_text_3(self, obj):
+        text = None
+        try:
+            text = obj.purpose_species_json['text3']
+        except BaseException:
+            pass
+
+        return text
+
+    def get_species_header_4(self, obj):
+        header = None
+        try:
+            header = obj.purpose_species_json['header4']
+        except BaseException:
+            pass
+
+        return header
+
+    def get_species_text_4(self, obj):
+        text = None
+        try:
+            text = obj.purpose_species_json['text4']
+        except BaseException:
+            pass
+
+        return text
+
+    def get_species_header_5(self, obj):
+        header = None
+        try:
+            header = obj.purpose_species_json['header5']
+        except BaseException:
+            pass
+
+        return header
+
+    def get_species_text_5(self, obj):
+        text = None
+        try:
+            text = obj.purpose_species_json['text5']
+        except BaseException:
+            pass
+
+        return text
+
+    def get_species_header_6(self, obj):
+        header = None
+        try:
+            header = obj.purpose_species_json['header6']
+        except BaseException:
+            pass
+
+        return header
+
+    def get_species_text_6(self, obj):
+        text = None
+        try:
+            text = obj.purpose_species_json['text6']
+        except BaseException:
+            pass
+
+        return text
 
 
 class ActivitySerializer(serializers.ModelSerializer):

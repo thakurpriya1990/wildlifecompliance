@@ -34,31 +34,159 @@
                                                     </div>
                                                     <div class="col-sm-12">
                                                         <div v-for="(p, index) in applicationSelectedActivitiesForPurposes" v-bind:key="`p_${index}`">
-                                                            <div class="col-sm-12">
-                                                            {{p.purpose['short_name']}}
-                                                            </div>
-                                                            <div class="col-sm-3">
-                                                                <input type="radio" :value ="true" :id="p.purpose.id" v-model="getPickedPurpose(p.purpose.id).isProposed" /> Issue&nbsp;&nbsp;
-                                                                <input type="radio" :value ="false" :id="p.purpose.id" v-model="getPickedPurpose(p.purpose.id).isProposed" /> Decline
-                                                            </div>
-                                                            <div class="col-sm-3">
-                                                                <div class="input-group date" v-if="getPickedPurpose(p.purpose.id).isProposed" :ref="`start_date_${p.id}`" style="width: 100%;">
-                                                                    <input :readonly="!canEditLicenceDates && p.proposed_start_date" type="text" class="form-control" :name="`start_date_${p.id}`" placeholder="DD/MM/YYYY" v-model="p.proposed_start_date">
-                                                                    <span class="input-group-addon">
-                                                                        <span class="glyphicon glyphicon-calendar"></span>
-                                                                    </span>
+                                
+                                                            <div class="panel panel-primary">
+                                                                <div class="panel-heading">
+                                                                    <h4 class="panel-title">{{p.purpose.short_name}}
+                                                                        <a class="panelClicker" :href="`#${index}`+purposeBody" data-toggle="collapse"  data-parent="#userInfo" expanded="true" :aria-controls="purposeBody">
+                                                                            <span class="glyphicon glyphicon-chevron-down pull-right "></span>
+                                                                        </a>
+                                                                    </h4>
                                                                 </div>
-                                                            </div>                                                
-                                                            <div class="col-sm-3">                                                        
-                                                                <div class="input-group date" v-if="getPickedPurpose(p.purpose.id).isProposed" :ref="`end_date_${p.id}`" style="width: 100%;">
-                                                                    <input :readonly="!canEditLicenceDates && p.proposed_end_date" type="text" class="form-control" :name="`end_date_${p.id}`" placeholder="DD/MM/YYYY" v-model="p.proposed_end_date">
-                                                                    <span class="input-group-addon">
-                                                                        <span class="glyphicon glyphicon-calendar"></span>
-                                                                    </span>
+                                                                <div class="panel-body panel-collapse collapse" :id="`${index}`+purposeBody">
+                                                                    <div class="row">
+                                                                        <div class="col-sm-3">
+                                                                            <input type="radio" :value ="true" :id="p.purpose.id" v-model="getPickedPurpose(p.purpose.id).isProposed" /> Issue &nbsp;
+                                                                            <input type="radio" :value ="false" :id="p.purpose.id" v-model="getPickedPurpose(p.purpose.id).isProposed" /> Decline &nbsp;
+                                                                        </div>
+
+                                                                        <div class="col-sm-3">
+                                                                            <div class="input-group date" v-if="getPickedPurpose(p.purpose.id).isProposed" :ref="`start_date_${p.id}`" style="width: 100%;">
+                                                                                <input :readonly="!canEditLicenceDates && p.proposed_start_date" type="text" class="form-control" :name="`start_date_${p.id}`" placeholder="DD/MM/YYYY" v-model="p.proposed_start_date">
+                                                                                <span class="input-group-addon">
+                                                                                    <span class="glyphicon glyphicon-calendar"></span>
+                                                                                </span>
+                                                                            </div>
+                                                                        </div>                                                
+                                                                        <div class="col-sm-3">                                                        
+                                                                            <div class="input-group date" v-if="getPickedPurpose(p.purpose.id).isProposed" :ref="`end_date_${p.id}`" style="width: 100%;">
+                                                                                <input :readonly="!canEditLicenceDates && p.proposed_end_date" type="text" class="form-control" :name="`end_date_${p.id}`" placeholder="DD/MM/YYYY" v-model="p.proposed_end_date">
+                                                                                <span class="input-group-addon">
+                                                                                    <span class="glyphicon glyphicon-calendar"></span>
+                                                                                </span>
+                                                                            </div>
+                                                                        </div>
+                                                                        <div class="col-sm-12">
+                                                                            <div class="col-sm-3" v-if="getPickedPurpose(p.purpose.id).isProposed">
+                                                                                <label class="control-label pull-left" for="Name">Additional Fee</label>
+                                                                            </div>
+                                                                            <div class="col-sm-6" v-if="getPickedPurpose(p.purpose.id).isProposed">
+                                                                                <input type="text" ref="licence_fee" class="form-control" style="width:50%;" v-model="p.additional_fee" />
+                                                                            </div>
+                                                                        </div>
+                                                                        <div class="col-sm-12">
+                                                                            <div class="col-sm-3" v-if="getPickedPurpose(p.purpose.id).isProposed">
+                                                                                <label class="control-label pull-left" for="Name">Fee Description</label>
+                                                                            </div>
+                                                                            <div class="col-sm-6" v-if="getPickedPurpose(p.purpose.id).isProposed">
+                                                                                <input type="text" :name='"licence_fee_text_" + index' class="form-control" style="width:100%;" v-model="p.additional_fee_text" />
+                                                                            </div>
+                                                                        </div>
+
+                                                                        <div class="col-sm-12" v-if="getPickedPurpose(p.purpose.id).isProposed && p.purpose.species_header_1">
+                                                                            <div class="col-sm-3">
+                                                                                <label class="control-label pull-left" for="Name">Header1</label>
+                                                                            </div>
+                                                                            <div class="col-sm-6">
+                                                                                <input type="text" ref="species_header_text_1" class="form-control" style="width:70%;" v-model="p.species_header_1" />
+                                                                            </div>
+                                                                        </div>
+                                                                        <div class="col-sm-12" v-if="getPickedPurpose(p.purpose.id).isProposed && p.purpose.species_text_1">
+                                                                            <div class="col-sm-3">
+                                                                                <label class="control-label pull-left" for="Name">Text1</label>
+                                                                            </div>
+                                                                            <div class="col-sm-6">
+                                                                                <textarea ref="species_header_text_1" class="form-control" style="width:100%;" v-model="p.species_text_1" />
+                                                                            </div>
+                                                                        </div>
+                                                                        <div class="col-sm-12" v-if="getPickedPurpose(p.purpose.id).isProposed && p.purpose.species_header_2">
+                                                                            <div class="col-sm-3">
+                                                                                <label class="control-label pull-left" for="Name">Header2</label>
+                                                                            </div>
+                                                                            <div class="col-sm-6">
+                                                                                <input type="text" ref="species_header_text_1" class="form-control" style="width:70%;" v-model="p.species_header_2" />
+                                                                            </div>
+                                                                        </div>
+                                                                        <div class="col-sm-12" v-if="getPickedPurpose(p.purpose.id).isProposed && p.purpose.species_text_2">
+                                                                            <div class="col-sm-3">
+                                                                                <label class="control-label pull-left" for="Name">Text2</label>
+                                                                            </div>
+                                                                            <div class="col-sm-6">
+                                                                                <textarea ref="species_header_text_1" class="form-control" style="width:100%;" v-model="p.species_text_2" />
+                                                                            </div>
+                                                                        </div>
+                                                                        <div class="col-sm-12" v-if="getPickedPurpose(p.purpose.id).isProposed && p.purpose.species_header_3">
+                                                                            <div class="col-sm-3">
+                                                                                <label class="control-label pull-left" for="Name">Header3</label>
+                                                                            </div>
+                                                                            <div class="col-sm-6">
+                                                                                <input type="text" ref="species_header_text_1" class="form-control" style="width:70%;" v-model="p.species_header_3" />
+                                                                            </div>
+                                                                        </div>
+                                                                        <div class="col-sm-12" v-if="getPickedPurpose(p.purpose.id).isProposed && p.purpose.species_text_3">
+                                                                            <div class="col-sm-3">
+                                                                                <label class="control-label pull-left" for="Name">Text3</label>
+                                                                            </div>
+                                                                            <div class="col-sm-6">
+                                                                                <textarea ref="species_header_text_1" class="form-control" style="width:100%;" v-model="p.species_text_3" />
+                                                                            </div>
+                                                                        </div>
+                                                                        <div class="col-sm-12" v-if="getPickedPurpose(p.purpose.id).isProposed && p.purpose.species_header_4">
+                                                                            <div class="col-sm-3">
+                                                                                <label class="control-label pull-left" for="Name">Header4</label>
+                                                                            </div>
+                                                                            <div class="col-sm-6">
+                                                                                <input type="text" ref="species_header_text_1" class="form-control" style="width:70%;" v-model="p.species_header_4" />
+                                                                            </div>
+                                                                        </div>
+                                                                        <div class="col-sm-12" v-if="getPickedPurpose(p.purpose.id).isProposed && p.purpose.species_text_4">
+                                                                            <div class="col-sm-3">
+                                                                                <label class="control-label pull-left" for="Name">Text4</label>
+                                                                            </div>
+                                                                            <div class="col-sm-6">
+                                                                                <textarea ref="species_header_text_1" class="form-control" style="width:100%;" v-model="p.species_text_4" />
+                                                                            </div>
+                                                                        </div>
+                                                                        <div class="col-sm-12" v-if="getPickedPurpose(p.purpose.id).isProposed && p.purpose.species_header_5">
+                                                                            <div class="col-sm-3">
+                                                                                <label class="control-label pull-left" for="Name">Header5</label>
+                                                                            </div>
+                                                                            <div class="col-sm-6">
+                                                                                <input type="text" ref="species_header_text_1" class="form-control" style="width:70%;" v-model="p.species_header_5" />
+                                                                            </div>
+                                                                        </div>
+                                                                        <div class="col-sm-12" v-if="getPickedPurpose(p.purpose.id).isProposed && p.purpose.species_text_5">
+                                                                            <div class="col-sm-3">
+                                                                                <label class="control-label pull-left" for="Name">Text5</label>
+                                                                            </div>
+                                                                            <div class="col-sm-6">
+                                                                                <textarea ref="species_header_text_1" class="form-control" style="width:100%;" v-model="p.species_text_5" />
+                                                                            </div>
+                                                                        </div>
+                                                                        <div class="col-sm-12" v-if="getPickedPurpose(p.purpose.id).isProposed && p.purpose.species_header_6">
+                                                                            <div class="col-sm-3">
+                                                                                <label class="control-label pull-left" for="Name">Header6</label>
+                                                                            </div>
+                                                                            <div class="col-sm-6">
+                                                                                <input type="text" ref="species_header_text_1" class="form-control" style="width:70%;" v-model="p.species_header_6" />
+                                                                            </div>
+                                                                        </div>
+                                                                        <div class="col-sm-12" v-if="getPickedPurpose(p.purpose.id).isProposed && p.purpose.species_text_6">
+                                                                            <div class="col-sm-3">
+                                                                                <label class="control-label pull-left" for="Name">Text6</label>
+                                                                            </div>
+                                                                            <div class="col-sm-6">
+                                                                                <textarea ref="species_header_text_1" class="form-control" style="width:100%;" v-model="p.species_text_6" />
+                                                                            </div>
+                                                                        </div>
+
+
+
+                                                                        <div class="col-sm-12" v-if="!getPickedPurpose(p.purpose.id).isProposed">                                                        
+                                                                            &nbsp;
+                                                                        </div>
+                                                                    </div>
                                                                 </div>
-                                                            </div>
-                                                            <div class="col-sm-12" v-if="!getPickedPurpose(p.purpose.id).isProposed">                                                        
-                                                                &nbsp;
                                                             </div>
                                                         </div>
                                                     </div>
@@ -67,20 +195,8 @@
                                                     <div class="col-sm-12" />
                                                 </div><br/>                                          
                                                 <div class="row">
-                                                    <div class="col-sm-3">
-                                                        <label class="control-label pull-left">Additional Fee Details</label>
-                                                    </div>
-                                                    <div class="col-sm-9">
-                                                        <input type="text" class="form-control" name="cc_email" style="width: 70%;"  v-model="getActivity(item.id).additional_fee_text">
-                                                    </div>
                                                 </div><br/>
                                                 <div class="row">
-                                                    <div class="col-sm-3">
-                                                        <label class="control-label pull-left">Additional Fee</label>
-                                                    </div>
-                                                    <div class="col-sm-9">
-                                                        <input type="text" class="form-control" name="cc_email" style="width: 20%;"  v-model="getActivity(item.id).additional_fee">
-                                                    </div>
                                                 </div>
                                             </div>
                                         </div>
@@ -189,10 +305,15 @@
                     <div class="row" style="margin-bottom:50px;">
                         <div class="navbar navbar-fixed-bottom" style="background-color: #f5f5f5 ">
                             <div class="navbar-inner">
-                                <div class="container">
+                                <div class="container" v-if="canIssueOrDecline">
                                     <p class="pull-right" style="margin-top:5px;">
-                                        <button v-if="canIssueOrDecline" class="btn btn-primary pull-right" @click.prevent="ok()">Issue/Decline</button>
-                                        <button v-else disabled class="btn btn-primary pull-right">Issue/Decline</button>
+                                        <button v-if="showSpinner" type="button" class="btn btn-primary pull-right" ><i class="fa fa-spinner fa-spin"/>Issue/Decline</button>
+                                        <button v-else class="btn btn-primary pull-right" @click.prevent="ok()">Issue/Decline</button>
+                                    </p>
+                                </div>
+                                <div class="container" v-else>
+                                    <p class="pull-right" style="margin-top:5px;">
+                                        <button disabled class="btn btn-primary pull-right" @click.prevent="ok()">Issue/Decline</button>
                                     </p>
                                 </div>
                             </div>
@@ -225,6 +346,7 @@ export default {
         let vm = this;
         return {
             panelBody: "application-issuance-"+vm._uid,
+            purposeBody: `purposeBody${vm._uid}`,
             proposed_licence:{},
             licence:{
                 activity: [],
@@ -243,6 +365,7 @@ export default {
                 allowInputToggle:true
             },
             pickedPurposes: [],
+            spinner:false,
         }
     },
     watch:{
@@ -327,11 +450,12 @@ export default {
                 || this.application.return_check_status.id == 'updated' ;
         },
         isValidAdditionalFee: function(){
-            let invalid = this.licence.activity.filter(function(e) {
-                return (e.additional_fee.substring(0)!=='0.00' && e.additional_fee.substring(0)!=='0' && e.additional_fee.substring(0)!=='')
-                    && (e.additional_fee_text == null || e.additional_fee_text === '')
-            });        
-            return invalid.length < 1 ? true : false
+            // if additional fee exists then addition fee text must be included.
+            // let invalid = this.licence.activity.filter(function(e) {
+            //     return (e.additional_fee.substring(0)!=='0.00' && e.additional_fee.substring(0)!=='0' && e.additional_fee.substring(0)!=='')
+            //         && (e.additional_fee_text == null || e.additional_fee_text === '')
+            // });        
+            // return invalid.length < 1 ? true : false
         },
         finalStatus: function() {
             return (id) => {
@@ -353,6 +477,9 @@ export default {
         canEditLicenceDates: function() {
             return this.application.application_type && this.application.application_type.id !== 'amend_activity';
         },
+        showSpinner: function() {
+            return this.spinner
+        },
     },
     methods:{
         ...mapActions({
@@ -369,13 +496,13 @@ export default {
         ok: async function () {
             let vm = this;
 
-            if(!this.isValidAdditionalFee) {
-                return swal(
-                    'Cannot issue/decline',
-                    "One or more activity tabs has additional fee amount without description",
-                    'error'
-                );
-            }
+            // if(!this.isValidAdditionalFee) {
+            //     return swal(
+            //         'Cannot issue/decline',
+            //         "One or more activity tabs has additional fee amount without description",
+            //         'error'
+            //     );
+            // }
 
             if(!this.canSubmit) {
                 return swal(
@@ -393,6 +520,7 @@ export default {
                 confirmButtonText: 'Finalise'
             }).then( async (result) => {
                 if (result.value) {
+                    this.spinner = true;
                     let selected = []
                     for (let a=0; a<this.application.activities.length; a++){
                         let activity = this.application.activities[a]
@@ -424,24 +552,27 @@ export default {
                                     emulateJSON:true,
 
                                 }).then((response)=>{
+                                    this.spinner = false
                                     vm.$router.push({ name:"internal-dash", });
 
                                 },(error)=>{
+                                    this.spinner = false
                                     swal(
                                         'Application Error',
                                         helpers.apiVueResourceError(error),
                                         'error'
                                     )
-                                    this.load({ url: `/api/application/${this.application.id}/internal_application.json` });
+                                    // this.load({ url: `/api/application/${this.application.id}/internal_application.json` });
                                 });
 
                     },(error)=>{
+                        this.spinner = false
                         swal(
                             'Application Error',
                             helpers.apiVueResourceError(error),
                             'error'
                         )
-                        this.load({ url: `/api/application/${this.application.id}/internal_application.json` });
+                        // this.load({ url: `/api/application/${this.application.id}/internal_application.json` });
                     });
                 }
             },(error) => {
@@ -483,8 +614,8 @@ export default {
                     final_status: final_status,
                     confirmed: false,
                     purposes: proposal.issued_purposes_id,
-                    additional_fee: proposal.additional_fee,
-                    additional_fee_text: proposal.additional_fee_text,
+                    // additional_fee: proposal.additional_fee,
+                    // additional_fee_text: proposal.additional_fee_text,
                 });
             }
             if(this.application.id_check_status.id == 'accepted'){

@@ -55,6 +55,14 @@ class ReturnType(models.Model):
         (FORMAT_QUESTION, 'Question'),
         (FORMAT_DATA, 'Data')
     )
+    SPECIES_LIST_REGULATED = 'regulated'
+    SPECIES_LIST_APPLICATION = 'application'
+    SPECIES_LIST_NONE = 'none'
+    SPECIES_LIST_CHOICES = (
+        (SPECIES_LIST_REGULATED, 'Regulated Species List'),
+        (SPECIES_LIST_APPLICATION, 'Application Species List'),
+        (SPECIES_LIST_NONE, 'No Species List')
+    )
     name = models.CharField(null=True, blank=True, max_length=100)
     description = models.TextField(null=True, blank=True, max_length=256)
     data_descriptor = JSONField()
@@ -84,7 +92,11 @@ class ReturnType(models.Model):
         blank=True,
         null=True)
     version = models.SmallIntegerField(default=1, blank=False, null=False)
-    species_required = models.BooleanField(default=False)
+    species_list = models.CharField(
+        'Species List',
+        max_length=30,
+        choices=SPECIES_LIST_CHOICES,
+        default=SPECIES_LIST_NONE)
 
     def __str__(self):
         return '{0} - v{1}'.format(self.name, self.version)
@@ -205,12 +217,50 @@ class Return(models.Model):
         max_digits=8,
         decimal_places=2,
         default='0')
+    property_cache = JSONField(null=True, blank=True, default={})
+
+    class Meta:
+        app_label = 'wildlifecompliance'
 
     def __str__(self):
         return self.lodgement_number
 
-    class Meta:
-        app_label = 'wildlifecompliance'
+    def save(self, *args, **kwargs):
+        self.update_property_cache(False)
+        super(Return, self).save(*args, **kwargs)
+
+    def get_property_cache(self):
+        '''
+        Get properties which were previously resolved.
+        '''
+        if len(self.property_cache) == 0:
+            self.update_property_cache()
+
+        return self.property_cache
+
+    def update_property_cache(self, save=True):
+        '''
+        Refresh cached properties with updated properties.
+        '''
+        # self.property_cache['payment_status'] = self.payment_status
+
+        if save is True:
+            self.save()
+
+        return self.property_cache
+
+    def get_property_cache_key(self, key):
+        '''
+        Get properties which were previously resolved with key.
+        '''
+        try:
+
+            self.property_cache[key]
+
+        except KeyError:
+            self.update_property_cache()
+
+        return self.property_cache
 
     @property
     def activity(self):
@@ -403,11 +453,11 @@ class Return(models.Model):
         '''
         SPECIES = ApplicationFormDataRecord.COMPONENT_TYPE_SELECT_SPECIES
         STATUS = [
-            Return.RETURN_PROCESSING_STATUS_FUTURE
+            # Return.RETURN_PROCESSING_STATUS_FUTURE
+            'NO SPECIES ALLOWED'
         ]
 
-        if self.processing_status not in STATUS \
-                or not self.return_type.species_required:
+        if self.processing_status not in STATUS:
             '''
             Species are only set for FUTURE processing status.
             '''
