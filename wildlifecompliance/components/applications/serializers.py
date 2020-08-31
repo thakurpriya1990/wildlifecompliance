@@ -97,6 +97,18 @@ class ApplicationSelectedActivityCanActionSerializer(serializers.Serializer):
 class ApplicationSelectedActivityPurposeSerializer(
         serializers.ModelSerializer):
     purpose = serializers.SerializerMethodField(read_only=True)
+    species_header_1 = serializers.SerializerMethodField(read_only=True)
+    species_text_1 = serializers.SerializerMethodField(read_only=True)
+    species_header_2 = serializers.SerializerMethodField(read_only=True)
+    species_text_2 = serializers.SerializerMethodField(read_only=True)
+    species_header_3 = serializers.SerializerMethodField(read_only=True)
+    species_text_3 = serializers.SerializerMethodField(read_only=True)
+    species_header_4 = serializers.SerializerMethodField(read_only=True)
+    species_text_4 = serializers.SerializerMethodField(read_only=True)
+    species_header_5 = serializers.SerializerMethodField(read_only=True)
+    species_text_5 = serializers.SerializerMethodField(read_only=True)
+    species_header_6 = serializers.SerializerMethodField(read_only=True)
+    species_text_6 = serializers.SerializerMethodField(read_only=True)
 
     class Meta:
         model = ApplicationSelectedActivityPurpose
@@ -126,6 +138,127 @@ class ApplicationSelectedActivityPurposeSerializer(
         return obj.proposed_end_date.strftime(
             '%d/%m/%Y') if obj.proposed_end_date else ''
 
+    def get_species_header_1(self, obj):
+        header = None
+        try:
+            header = obj.purpose_species_json[0]['header-1']
+
+        except BaseException:
+            pass
+
+        return header
+
+    def get_species_text_1(self, obj):
+        text = None
+        try:
+            text = obj.purpose_species_json[0]['text-1']
+
+        except BaseException:
+            pass
+
+        return text
+
+    def get_species_header_2(self, obj):
+        header = None
+        try:
+            header = obj.purpose_species_json[0]['header-2']
+
+        except BaseException:
+            pass
+
+        return header
+
+    def get_species_text_2(self, obj):
+        text = None
+        try:
+            text = obj.purpose_species_json[0]['text-2']
+
+        except BaseException:
+            pass
+
+        return text
+
+    def get_species_header_3(self, obj):
+        header = None
+        try:
+            header = obj.purpose_species_json[0]['header-3']
+
+        except BaseException:
+            pass
+
+        return header
+
+    def get_species_text_3(self, obj):
+        text = None
+        try:
+            text = obj.purpose_species_json[0]['text-3']
+
+        except BaseException:
+            pass
+
+        return text
+
+    def get_species_header_4(self, obj):
+        header = None
+        try:
+            header = obj.purpose_species_json[0]['header-4']
+
+        except BaseException:
+            pass
+
+        return header
+
+    def get_species_text_4(self, obj):
+        text = None
+        try:
+            text = obj.purpose_species_json[0]['text-4']
+
+        except BaseException:
+            pass
+
+        return text
+
+    def get_species_header_5(self, obj):
+        header = None
+        try:
+            header = obj.purpose_species_json[0]['header-5']
+
+        except BaseException:
+            pass
+
+        return header
+
+    def get_species_text_5(self, obj):
+        text = None
+        try:
+            text = obj.purpose_species_json[0]['text-5']
+
+        except BaseException:
+            pass
+
+        return text
+
+    def get_species_header_6(self, obj):
+        header = None
+        try:
+            header = obj.purpose_species_json[0]['header-6']
+
+        except BaseException:
+            pass
+
+        return header
+
+    def get_species_text_6(self, obj):
+        text = None
+        try:
+            text = obj.purpose_species_json[0]['text-6']
+
+        except BaseException:
+            pass
+
+        return text
+
+
 class ApplicationSelectedActivitySerializer(serializers.ModelSerializer):
     activity_name_str = serializers.SerializerMethodField(read_only=True)
     issue_date = serializers.SerializerMethodField(read_only=True)
@@ -148,10 +281,10 @@ class ApplicationSelectedActivitySerializer(serializers.ModelSerializer):
     # proposed_purposes = serializers.SerializerMethodField(read_only=True)
     proposed_purposes = ApplicationSelectedActivityPurposeSerializer(
         many=True)
-    additional_fee_text = serializers.CharField(
-        required=False, allow_null=True)
-    additional_fee = serializers.DecimalField(
-        max_digits=7, decimal_places=2, required=False, allow_null=True)
+    # additional_fee_text = serializers.CharField(
+    #     required=False, allow_null=True)
+    # additional_fee = serializers.DecimalField(
+    #     max_digits=7, decimal_places=2, required=False, allow_null=True)
     # previous_paid_amount = serializers.SerializerMethodField(read_only=True)
     has_inspection = serializers.SerializerMethodField(read_only=True)
 
@@ -434,17 +567,18 @@ class DTExternalApplicationSelectedActivitySerializer(
         return obj.get_property_cache_key('payment_status')['payment_status']
 
     def get_invoice_url(self, obj):
+        print('get_invoice_url')
         url = None
-        if obj.get_property_cache_key(
+        if obj.application.get_property_cache_key(
                 'latest_invoice_ref')['latest_invoice_ref']:
 
             url = '{0}{1}'.format(
                 settings.WC_PAYMENT_SYSTEM_URL_INV,
-                obj.get_property_cache_key(
+                obj.application.get_property_cache_key(
                      'latest_invoice_ref'
                 )['latest_invoice_ref']
             )
-
+        print(url)
         return url
 
 
@@ -1160,12 +1294,14 @@ class BaseApplicationSerializer(serializers.ModelSerializer):
             ApplicationInvoice.PAYMENT_STATUS_NOT_REQUIRED,
             ApplicationInvoice.PAYMENT_STATUS_PARTIALLY_PAID,
             ApplicationInvoice.PAYMENT_STATUS_PAID,
+            ApplicationInvoice.PAYMENT_STATUS_OVERPAID,   # refund internally
         ]
         AWAITING = Application.CUSTOMER_STATUS_AWAITING_PAYMENT
 
         if obj.submit_type == Application.SUBMIT_TYPE_ONLINE \
             and obj.customer_status == AWAITING and \
-                obj.get_property_cache_key('payment_status')['payment_status'] in pay_status:
+                obj.get_property_cache_key('payment_status')[
+                    'payment_status'] in pay_status:
 
             can_pay = True
 
@@ -1755,10 +1891,10 @@ class ApplicationProposedIssueSerializer(serializers.ModelSerializer):
     decision_action = CustomChoiceField(read_only=True)
     licence_activity = ActivitySerializer()
     issued_purposes_id = serializers.SerializerMethodField(read_only=True)
-    additional_fee_text = serializers.CharField(
-        required=False, allow_null=True)
-    additional_fee = serializers.DecimalField(
-        max_digits=7, decimal_places=2, required=False, allow_null=True)
+    # additional_fee_text = serializers.CharField(
+    #     required=False, allow_null=True)
+    # additional_fee = serializers.DecimalField(
+    #     max_digits=7, decimal_places=2, required=False, allow_null=True)
 
     class Meta:
         model = ApplicationSelectedActivity
@@ -1770,7 +1906,61 @@ class ApplicationProposedIssueSerializer(serializers.ModelSerializer):
         return purposes
 
 
+class IssueLicenceSerializer(serializers.Serializer):
+    '''
+    Utilise for validation only for Licence Purposes being approved.
+    '''
+    def validate(self, obj):
+        from decimal import Decimal
+        # validate additional fees.
+        proposed_ids = [
+            p['id'] for p in self.initial_data['selected_purpose_ids']
+            if p['isProposed']
+        ]
+        purposes = [
+            p for p in self.initial_data['purposes']
+            if p['purpose']['id'] in proposed_ids
+        ]
+        for p in purposes:
+
+            try:
+                fee = Decimal(p['additional_fee'])
+                if not p['additional_fee_text'] and not fee == 0:
+                    raise serializers.ValidationError(
+                        'Description is required for Additional Fee.')
+
+            except (ValueError):
+                raise serializers.ValidationError(
+                    'Numeric value required for additional fee amount.')
+
+            try:
+                sdate = p['proposed_start_date']
+                edate = p['proposed_end_date']
+                s_time = datetime.datetime.strptime(sdate, '%Y-%m-%d')
+                e_time = datetime.datetime.strptime(edate, '%Y-%m-%d')
+                if e_time < s_time:
+                    raise serializers.ValidationError(
+                        'End Date can not be before start date.')
+
+            except (AttributeError):
+                raise serializers.ValidationError(
+                    'Date value required for proposed dates.')
+
+            except (ValueError):
+                raise serializers.ValidationError(
+                    'Date value required for proposed dates.')
+
+            except (TypeError):
+                raise serializers.ValidationError(
+                    'Date value required for proposed dates.')
+        return obj
+
+
 class ProposedLicenceSerializer(serializers.Serializer):
+    '''
+    Utilised only for validation only for licence purposes being proposed for
+    approval.
+    '''
     expiry_date = serializers.DateField(
         input_formats=['%d/%m/%Y'], required=False, allow_null=True)
     start_date = serializers.DateField(
@@ -1781,47 +1971,69 @@ class ProposedLicenceSerializer(serializers.Serializer):
     approver_detail = serializers.CharField(required=False, allow_null=True)
 
     def validate(self, obj):
+        from decimal import Decimal
         # validate additional fees.
         activities = self.initial_data['activities']
-        try:
-            incomplete_fees = [a for a in activities if float(a[
-                'additional_fee']) > 0 and not a['additional_fee_text']]
-        except (TypeError):
-            incomplete_fees = False  # Allow for NoneTypes in Fees.
-        except (ValueError):
-            raise serializers.ValidationError(
-                'Numeric value required for additional fee amount.')
-
-        if incomplete_fees:
-            raise serializers.ValidationError(
-                'Please provide description for additional fees.')
-
-        # validate proposal dates.
-        try:
-            proposed_ids = [
-                p['id'] for p in self.initial_data[
-                    'purposes'] if p['isProposed']
-            ]
+        for p_activity in activities:
             for p_activity in activities:
+                proposed_ids = [
+                    p['id'] for p in self.initial_data[
+                        'purposes'] if p['isProposed']
+                ]
+
                 proposed_purposes = p_activity['proposed_purposes']
-                for p_proposed in proposed_purposes:
-                    if p_proposed['purpose']['id'] not in proposed_ids:
-                        continue
-                    start_date = p_proposed['proposed_start_date']
-                    end_date = p_proposed['proposed_end_date']
-                    s_time = datetime.datetime.strptime(start_date, '%d/%m/%Y')
-                    e_time = datetime.datetime.strptime(end_date, '%d/%m/%Y')
-                    if e_time < s_time:
-                        raise serializers.ValidationError(
-                            'End Date can not be before start date.')
+                proposed_purposes = [
+                    p for p in proposed_purposes
+                    if p['purpose']['id'] in proposed_ids
+                ]
 
-        except (AttributeError):
-            raise serializers.ValidationError(
-                'Date value required for proposed dates.')
+                try:
 
-        except (ValueError):
-            raise serializers.ValidationError(
-                'Date value required for proposed dates.')
+                    for p_proposed in proposed_purposes:
+
+                        fee = Decimal(p_proposed['additional_fee'])
+                        if not p_proposed['additional_fee_text'] and \
+                                not fee == 0:
+
+                            raise serializers.ValidationError(
+                                'Description is required for Additional Fee.')
+
+                except (ValueError):
+                    raise serializers.ValidationError(
+                        'Numeric value required for additional fee amount.')
+
+                # validate proposal dates.
+                try:
+                    proposed_ids = [
+                        p['id'] for p in self.initial_data[
+                            'purposes'] if p['isProposed']
+                    ]
+
+                    proposed_purposes = p_activity['proposed_purposes']
+                    for p_proposed in proposed_purposes:
+                        if p_proposed['purpose']['id'] not in proposed_ids:
+                            continue
+                        start_date = p_proposed['proposed_start_date']
+                        end_date = p_proposed['proposed_end_date']
+                        s_time = datetime.datetime.strptime(
+                            start_date, '%d/%m/%Y')
+                        e_time = datetime.datetime.strptime(
+                            end_date, '%d/%m/%Y')
+                        if e_time < s_time:
+                            raise serializers.ValidationError(
+                                'End Date can not be before start date.')
+
+                except (AttributeError):
+                    raise serializers.ValidationError(
+                        'Date value required for proposed dates.')
+
+                except (ValueError):
+                    raise serializers.ValidationError(
+                        'Date value required for proposed dates.')
+
+                except (TypeError):
+                    raise serializers.ValidationError(
+                        'Date value required for proposed dates.')
 
         return obj
 

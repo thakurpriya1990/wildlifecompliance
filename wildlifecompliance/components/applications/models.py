@@ -1109,8 +1109,9 @@ class Application(RevisionedMixin):
     def submit(self, request):
         from wildlifecompliance.components.licences.models import LicenceActivity
         with transaction.atomic():
+            requires_refund = self.requires_refund_at_submit()
             if self.can_user_edit:
-                if not self.application_fee_paid and not self.requires_refund \
+                if not self.application_fee_paid and not requires_refund \
                   and self.submit_type == Application.SUBMIT_TYPE_ONLINE:
                     self.customer_status = Application.CUSTOMER_STATUS_AWAITING_PAYMENT
                     self.save()
@@ -1219,7 +1220,7 @@ class Application(RevisionedMixin):
                     self.log_user_action(
                         ApplicationUserAction.ACTION_ID_REQUEST_AMENDMENTS_SUBMIT.format(
                             self.id), request)
-                    if self.requires_refund:
+                    if requires_refund:
                         self.alert_for_refund(request)
                     else:
                         send_amendment_submit_email_notification(
@@ -1246,7 +1247,7 @@ class Application(RevisionedMixin):
                                 self.id), request)
 
                     # notify linked officer groups of submission.
-                    if self.requires_refund:
+                    if requires_refund:
                         self.alert_for_refund(request)
                     else:
                         send_application_submit_email_notification(
@@ -1751,20 +1752,39 @@ class Application(RevisionedMixin):
         Check for adjustments to the application form causing a change to the
         application fee.
         '''
-        adjusted_fees = [
-            a.id for a in self.activities if a.has_adjusted_application_fee]
+        # adjusted_fees = [
+        #     a.id for a in self.activities if a.has_adjusted_application_fee]
 
-        return len(adjusted_fees)
+        # return len(adjusted_fees)
+
+        has_adjustment = False
+
+        for activity in self.activities:
+            for p in activity.proposed_purposes.all():
+                adjust = p.has_adjusted_licence_fee or \
+                    p.has_adjusted_application_fee
+                if p.is_payable and adjust:
+                    has_adjustment = True
+                    break
+
+        # return len(additional_fees)
+        return has_adjustment
 
     @property
     def has_additional_fees(self):
         """
         Check for additional costs manually included by officer at proposal.
         """
-        additional_fees = [
-            a.id for a in self.activities if a.additional_fee > 0]
+        has_additional = False
 
-        return len(additional_fees)
+        for activity in self.activities:
+            for purpose in activity.proposed_purposes.all():
+                if purpose.has_additional_fee and purpose.is_payable:
+                    has_additional = True
+                    break
+
+        # return len(additional_fees)
+        return has_additional
 
     @property
     def additional_fees(self):
@@ -1772,8 +1792,10 @@ class Application(RevisionedMixin):
         Total additional costs manually included by officer at proposal.
         """
         fees = 0
-        for a in self.activities:
-            fees = fees + a.additional_fee
+        for activity in self.activities:
+            for purpose in activity.proposed_purposes.all():
+                if purpose.has_additional_fee and purpose.is_payable:
+                    fees += purpose.additional_fee
 
         return Decimal(fees)
 
@@ -1821,6 +1843,8 @@ class Application(RevisionedMixin):
         paid. Application fee amount can be adjusted more or less than base.
         """
         approved = [
+            # Application.PROCESSING_STATUS_DRAFT,    # applicant submit check.
+            # Application.PROCESSING_STATUS_UNDER_REVIEW,  # first time only.
             Application.PROCESSING_STATUS_APPROVED,
             Application.PROCESSING_STATUS_PARTIALLY_APPROVED,
             Application.PROCESSING_STATUS_AWAITING_PAYMENT,
@@ -1835,29 +1859,69 @@ class Application(RevisionedMixin):
         outstanding = self.get_refund_amount()
         return True if outstanding < 0 else False
 
-    def has_declined_refund(self):
-        '''
-        Check whether any licence purposes have been decline with required fee
-        refund.
-        '''
-        declined = [a for a in self.activities if a.is_issued_with_refund]
-        for activity in declined:
-            over_paid = activity.get_refund_amount()
-            if over_paid > 0:
-                return True
+    def requires_refund_at_submit(self):
+        """
+        Check on the previously paid invoice amount against application fee at
+        submission. Required only for requested amendments and licence amend
+        where fee has been paid.
 
-        return False
+        Refund is required when application fee is more than what has been
+        paid. Application fee amount can be adjusted more or less than base.
+        """
+        apply_type = [
+            Application.APPLICATION_TYPE_AMENDMENT
+        ]
+
+        status = [
+            Application.CUSTOMER_STATUS_AMENDMENT_REQUIRED
+        ]
+
+        if self.application_type not in apply_type \
+                and self.customer_status not in status:
+            return False
+
+        # check additional fee amount can cover refund so it can be adjusted
+        # at invoicing.
+        # outstanding = self.additional_fees - self.get_refund_amount()
+        outstanding = self.get_refund_amount()
+        return True if outstanding < 0 else False
+
+    # def has_declined_refund(self):
+    #     '''
+    #     Check whether any licence purposes have been decline with required fee
+    #     refund.
+    #     '''
+    #     declined = [a for a in self.activities if a.is_issued_with_refund]
+    #     for activity in declined:
+    #         for p in activity.proposed_purposes.all():
+    #             refund = p.get_refund_amount()
+    #         if over_paid > 0:
+    #             return True
+
+    #         over_paid = activity.get_refund_amount()
+    #         if over_paid > 0:
+    #             return True
+
+    #     return False
 
     def get_refund_amount(self):
         '''
         Get refund amount for this application.
         '''
-        over_paid = 0
+        logger.debug('get_refund_amount appID {}'.format(self.id))
+        IGNORE = [
+            ApplicationSelectedActivity.PROCESSING_STATUS_DECLINED,
+            ApplicationSelectedActivity.PROCESSING_STATUS_DISCARDED,
+        ]
+        refund = 0
         for activity in self.activities:
+            if activity.processing_status in IGNORE:
+                continue
+            for p in activity.proposed_purposes.all():
+                refund += p.get_refund_amount()
 
-            over_paid += activity.get_refund_amount()
-
-        return over_paid if over_paid > 0 else 0
+        logger.debug('get_refund_amount refund {}'.format(refund))
+        return refund
 
     def alert_for_refund(self, request):
         """
@@ -2297,12 +2361,13 @@ class Application(RevisionedMixin):
                 proposed_activities = request.data.get('activities')
                 for p_activity in proposed_activities:
                     activity = self.activities.get(id=p_activity['id'])
-                    activity.additional_fee=p_activity[
-                        'additional_fee'] if p_activity[
-                            'additional_fee'] else 0
-                    activity.additional_fee_text=p_activity[
-                        'additional_fee_text'] if p_activity[
-                            'additional_fee'] > 0 else None
+
+                    # activity.additional_fee=p_activity[
+                    #     'additional_fee'] if p_activity[
+                    #         'additional_fee'] else 0
+                    # activity.additional_fee_text=p_activity[
+                    #     'additional_fee_text'] if p_activity[
+                    #         'additional_fee'] > 0 else None
 
                     # update the Application Selected Activity Purposes
                     # which have been proposed for this activity.
@@ -2315,8 +2380,8 @@ class Application(RevisionedMixin):
                         is_proposed = [
                             p['isProposed'] for p in purpose_list \
                                 if p['id']==p_purpose['id']
-                        ]
-                        status = propose if is_proposed[0] else select
+                        ][0]
+                        status = propose if is_proposed else select
                         proposed = activity.proposed_purposes.filter(
                             id=p_proposed['id']
                         ).first()
@@ -2325,6 +2390,8 @@ class Application(RevisionedMixin):
                             selected_activity=activity,
                         )
                         if status == propose:
+
+                            # 1. Set proposal dates.
                             proposed.proposed_start_date = \
                                 datetime.datetime.strptime(
                                     p_proposed[
@@ -2334,6 +2401,51 @@ class Application(RevisionedMixin):
                                 datetime.datetime.strptime(
                                     p_proposed[
                                         'proposed_end_date'], '%d/%m/%Y')
+
+                            # 2. Set proposal additional fee.
+                            additional_fee = p_proposed['additional_fee']
+                            additional_fee_text = \
+                                p_proposed['additional_fee_text']
+                            proposed.additional_fee = Decimal(additional_fee)
+                            proposed.additional_fee_text = additional_fee_text
+
+                            # 3. Set proposal species headers and text.
+                            proposed.set_species_header_1(
+                                p_proposed['species_header_1']
+                            )
+                            proposed.set_species_text_1(
+                                p_proposed['species_text_1']
+                            )
+                            proposed.set_species_header_2(
+                                p_proposed['species_header_2']
+                            )
+                            proposed.set_species_text_2(
+                                p_proposed['species_text_2']
+                            )
+                            proposed.set_species_header_3(
+                                p_proposed['species_header_3']
+                            )
+                            proposed.set_species_text_3(
+                                p_proposed['species_text_3']
+                            )
+                            proposed.set_species_header_4(
+                                p_proposed['species_header_4']
+                            )
+                            proposed.set_species_text_4(
+                                p_proposed['species_text_4']
+                            )
+                            proposed.set_species_header_5(
+                                p_proposed['species_header_5']
+                            )
+                            proposed.set_species_text_5(
+                                p_proposed['species_text_5']
+                            )
+                            proposed.set_species_header_6(
+                                p_proposed['species_header_6']
+                            )
+                            proposed.set_species_text_6(
+                                p_proposed['species_text_6']
+                            )
 
                         proposed.processing_status = status
                         proposed.save()
@@ -2619,8 +2731,9 @@ class Application(RevisionedMixin):
                         = parent_licence.licence_document
                     latest_application_in_function.save()
 
-            except BaseException:
-                print(Exception)
+            except BaseException as e:
+                logger.error('issue_activity() ID {} - {}'.format(
+                    self.id, e))
                 raise
 
     def final_decision(self, request):
@@ -2699,7 +2812,17 @@ class Application(RevisionedMixin):
                                 'selected_purpose_ids') if p['isProposed']
                         ]) - decline_ids)
                         decline_ids = list(decline_ids)
-                        proposed_purposes = request.data.get('purposes')
+
+                        '''
+                        NOTE: issue_ids and declined_ids will include purposes
+                        from all activities on application. Filter proposed
+                        purposes for relevant selected activity to prevent 
+                        declining different activity purpose.
+                        '''
+                        proposed_purposes = [
+                            p for p in request.data.get('purposes')
+                            if p['selected_activity'] == selected_activity.id
+                        ]
 
                         for proposed in proposed_purposes:
                             purpose =\
@@ -2723,6 +2846,7 @@ class Application(RevisionedMixin):
                                     purpose.purpose_sequence = purpose_sequence
                                     purpose_sequence += 1
 
+                                # 1. Set period dates.
                                 # proposed dates are not set when the purpose
                                 # was previously declined by proposal officer.
                                 if purpose.proposed_start_date == None:
@@ -2736,6 +2860,50 @@ class Application(RevisionedMixin):
                                 purpose.expiry_date =\
                                     proposed['proposed_end_date']
 
+                                # 2. Set proposal additional fee.
+                                purpose.additional_fee =\
+                                    Decimal(str(proposed['additional_fee']))
+                                purpose.additional_fee_text =\
+                                    proposed['additional_fee_text']
+
+                                # 3. Set proposal species headers and text.
+                                purpose.set_species_header_1(
+                                    proposed['species_header_1']
+                                )
+                                purpose.set_species_text_1(
+                                    proposed['species_text_1']
+                                )
+                                purpose.set_species_header_2(
+                                    proposed['species_header_2']
+                                )
+                                purpose.set_species_text_2(
+                                    proposed['species_text_2']
+                                )
+                                purpose.set_species_header_3(
+                                    proposed['species_header_3']
+                                )
+                                purpose.set_species_text_3(
+                                    proposed['species_text_3']
+                                )
+                                purpose.set_species_header_4(
+                                    proposed['species_header_4']
+                                )
+                                purpose.set_species_text_4(
+                                    proposed['species_text_4']
+                                )
+                                purpose.set_species_header_5(
+                                    proposed['species_header_5']
+                                )
+                                purpose.set_species_text_5(
+                                    proposed['species_text_5']
+                                )
+                                purpose.set_species_header_6(
+                                    proposed['species_header_6']
+                                )
+                                purpose.set_species_text_6(
+                                    proposed['species_text_6']
+                                )
+
                                 selected_activity.decision_action =\
                                     ApplicationSelectedActivity.DECISION_ACTION_ISSUED
 
@@ -2745,6 +2913,9 @@ class Application(RevisionedMixin):
                                 purpose.status = DEFAULT
                                 # p_selected_activity = purpose.selected_activity
                                 selected_activity.decision_action = REFUND
+
+                                purpose.additional_fee = Decimal(0)
+                                purpose.additional_fee_text = ''
 
                                 if not len(issue_ids):
                                     # if nothing to issue on activity.
@@ -2787,31 +2958,39 @@ class Application(RevisionedMixin):
                         if not selected_activity.processing_status == \
                             ApplicationSelectedActivity.PROCESSING_STATUS_DECLINED:
 
-                            # Additional Fees need to be set before processing fee.
-                            # Fee amount may change by the issuer making decision.
-                            if item['additional_fee']:
-                                selected_activity.additional_fee = \
-                                    Decimal(item['additional_fee'])
-                                selected_activity.additional_fee_text = item[
-                                    'additional_fee_text']
+                            # If there is an outstanding licence fee payment -
+                            # attempt to charge the stored card.
+                            payment_successful = \
+                                selected_activity.process_licence_fee_payment(
+                                    request, self
+                            )
+                            if not payment_successful:
+                                failed_payment_activities.append(
+                                    selected_activity
+                                )
+                            else:
+                                issued_activities.append(selected_activity)
+                                self.issue_activity(
+                                    request, selected_activity,
+                                    parent_licence, generate_licence=False)
 
                         else :
                              declined_activities.append(selected_activity)
-                             if item['additional_fee']:
-                                selected_activity.additional_fee = 0
-                                selected_activity.additional_fee_text = ''
+                            #  if item['additional_fee']:
+                            #     selected_activity.additional_fee = 0
+                            #     selected_activity.additional_fee_text = ''
 
-                        # If there is an outstanding licence fee payment -
-                        # attempt to charge the stored card.
-                        payment_successful = selected_activity.process_licence_fee_payment(request, self)
+                        # # If there is an outstanding licence fee payment -
+                        # # attempt to charge the stored card.
+                        # payment_successful = selected_activity.process_licence_fee_payment(request, self)
 
-                        if not payment_successful:
-                            failed_payment_activities.append(selected_activity)
-                        else:
-                            issued_activities.append(selected_activity)
-                            self.issue_activity(
-                                request, selected_activity,
-                                parent_licence, generate_licence=False)
+                        # if not payment_successful:
+                        #     failed_payment_activities.append(selected_activity)
+                        # else:
+                        #     issued_activities.append(selected_activity)
+                        #     self.issue_activity(
+                        #         request, selected_activity,
+                        #         parent_licence, generate_licence=False)
 
                         # Populate fields below even if the token payment has
                         # failed. They will be reused after a successful
@@ -2839,9 +3018,10 @@ class Application(RevisionedMixin):
 
                         proposed_purposes = selected_activity.proposed_purposes.all()
                         for p in proposed_purposes:
-                            p.processing_status = DECLINE
                             p.status = DEFAULT
                             p.processing_status = ApplicationSelectedActivityPurpose.PROCESSING_STATUS_DECLINED
+                            p.additional_fee = Decimal(0)
+                            p.additional_fee_text = ''
                             p.save()
 
                             # Log entry for application
@@ -2895,8 +3075,8 @@ class Application(RevisionedMixin):
                         # 3. provide record/refund link.
                         generate_invoice = False
                         for activity in issued_activities:
-                            if activity.additional_fee > 0 \
-                              or activity.has_adjusted_application_fee:
+                            # if activity.additional_fee > 0 \
+                            if activity.has_adjusted_application_fee:
                                 generate_invoice = True
                                 break
 
@@ -3700,9 +3880,9 @@ class ApplicationSelectedActivity(models.Model):
         max_digits=8, decimal_places=2, default='0')
     # Additional Fee is the amount an internal officer imposes on an Activity
     # for services excluded from the application fee.
-    additional_fee = models.DecimalField(
-        max_digits=8, decimal_places=2, default='0')
-    additional_fee_text = models.TextField(blank=True, null=True)
+    # additional_fee = models.DecimalField(
+    #     max_digits=8, decimal_places=2, default='0')
+    # additional_fee_text = models.TextField(blank=True, null=True)
     assigned_approver = models.ForeignKey(
         EmailUser,
         blank=True,
@@ -3727,11 +3907,10 @@ class ApplicationSelectedActivity(models.Model):
     property_cache = JSONField(null=True, blank=True, default={})
 
     def __str__(self):
-        return "{0}{1}{2}{3}{4}".format(
+        return "{0}{1}{2}{3}".format(
             "Activity: {name} ".format(name=self.licence_activity.short_name),
             "App. Fee: {fee1} ".format(fee1=self.pre_adjusted_application_fee),
             "Lic. Fee: {fee2} ".format(fee2=self.licence_fee),
-            "Add. Fee: {fee3} ".format(fee3=self.additional_fee),
             "(App: {id})".format(id=self.application_id),
         )
 
@@ -3743,11 +3922,6 @@ class ApplicationSelectedActivity(models.Model):
     def save(self, *args, **kwargs):
         self.update_property_cache(False)
         super(ApplicationSelectedActivity, self).save(*args, **kwargs)
-
-    @staticmethod
-    def is_valid_status(status):
-        return filter(lambda x: x[0] == status,
-                      ApplicationSelectedActivity.PROCESSING_STATUS_CHOICES)
 
     def get_property_cache(self):
         '''
@@ -3784,6 +3958,53 @@ class ApplicationSelectedActivity(models.Model):
             self.update_property_cache()
 
         return self.property_cache
+
+    @staticmethod
+    def is_valid_status(status):
+        return filter(lambda x: x[0] == status,
+                      ApplicationSelectedActivity.PROCESSING_STATUS_CHOICES)
+
+    @staticmethod
+    def get_current_activities_for_application_type(application_type, **kwargs):
+        """
+        Retrieves the current or suspended activities for an
+        ApplicationSelectedActivity, filterable by LicenceActivity ID and
+        Application.APPLICATION_TYPE in the case of the additional date_filter
+        (use Application.APPLICATION_TYPE_SYSTEM_GENERATED for no
+        APPLICATION_TYPE filters)
+        """
+        applications = kwargs.get('applications', Application.objects.none())
+        activity_ids = kwargs.get('activity_ids', [])
+        activities = None
+
+        date_filter = Application.get_activity_date_filter(
+            application_type)
+
+        ACCEPT = ApplicationSelectedActivity.PROCESSING_STATUS_ACCEPTED
+        # TODO: date_filter applies expiry_date
+        activities = ApplicationSelectedActivity.objects.filter(
+            Q(id__in=activity_ids) if activity_ids else
+            Q(application_id__in=applications.values_list('id', flat=True)),
+            # **date_filter
+        ).filter(
+            processing_status=ACCEPT
+        ).exclude(
+            activity_status__in=[
+                ApplicationSelectedActivity.ACTIVITY_STATUS_SURRENDERED,
+                ApplicationSelectedActivity.ACTIVITY_STATUS_EXPIRED,
+                ApplicationSelectedActivity.ACTIVITY_STATUS_CANCELLED,
+                ApplicationSelectedActivity.ACTIVITY_STATUS_REPLACED
+            ]
+        ).distinct()
+
+        a_ids = ApplicationSelectedActivityPurpose.objects.filter(
+            # Apply the date filtering on the Purposes.
+            selected_activity_id__in=[a.id for a in activities],
+            **date_filter
+        ).values_list('selected_activity_id', flat=True)
+        activities = activities.filter(id__in=a_ids)
+
+        return activities
 
     @property
     def latest_invoice(self):
@@ -4002,6 +4223,29 @@ class ApplicationSelectedActivity(models.Model):
         shows the status for both of these payments. Licence Fee is paid up
         front before additional fees.
         """
+        logger.debug('ApplicationSelectedActivity.payment_status()')
+        paid_status = [
+            ActivityInvoice.PAYMENT_STATUS_NOT_REQUIRED,
+            ActivityInvoice.PAYMENT_STATUS_PAID,
+        ]
+
+        status = ActivityInvoice.PAYMENT_STATUS_UNPAID
+
+        for p in self.proposed_purposes.all():
+
+            # status = get_payment_status_for_licence(status, p)
+            status = p.payment_status
+            if status not in paid_status:
+                break
+
+        return status
+
+    def _payment_status(self):
+        """
+        Activity payment consist of Licence and Additional Fee. Property
+        shows the status for both of these payments. Licence Fee is paid up
+        front before additional fees.
+        """
         def get_payment_status_for_licence(_status):
             if self.application_fee == 0 and self.total_paid_amount < 1:
                 _status = ActivityInvoice.PAYMENT_STATUS_NOT_REQUIRED
@@ -4021,9 +4265,12 @@ class ApplicationSelectedActivity(models.Model):
             return _status
 
         def get_payment_status_for_additional(_status):
+            _status = ActivityInvoice.PAYMENT_STATUS_NOT_REQUIRED
             if self.additional_fee > Decimal(0.0):
                 _status = ActivityInvoice.PAYMENT_STATUS_UNPAID
                 try:
+                    activity_inv = self.activity_invoices.latest('id')
+
                     latest_invoice = Invoice.objects.get(
                         reference=self.activity_invoices.latest(
                             'id').invoice_reference,
@@ -4107,48 +4354,6 @@ class ApplicationSelectedActivity(models.Model):
 
         return EmailUser.objects.filter(groups__id__in=groups).distinct()
 
-    @staticmethod
-    def get_current_activities_for_application_type(application_type, **kwargs):
-        """
-        Retrieves the current or suspended activities for an
-        ApplicationSelectedActivity, filterable by LicenceActivity ID and
-        Application.APPLICATION_TYPE in the case of the additional date_filter
-        (use Application.APPLICATION_TYPE_SYSTEM_GENERATED for no
-        APPLICATION_TYPE filters)
-        """
-        applications = kwargs.get('applications', Application.objects.none())
-        activity_ids = kwargs.get('activity_ids', [])
-        activities = None
-
-        date_filter = Application.get_activity_date_filter(
-            application_type)
-
-        ACCEPT = ApplicationSelectedActivity.PROCESSING_STATUS_ACCEPTED
-        # TODO: date_filter applies expiry_date
-        activities = ApplicationSelectedActivity.objects.filter(
-            Q(id__in=activity_ids) if activity_ids else
-            Q(application_id__in=applications.values_list('id', flat=True)),
-            # **date_filter
-        ).filter(
-            processing_status=ACCEPT
-        ).exclude(
-            activity_status__in=[
-                ApplicationSelectedActivity.ACTIVITY_STATUS_SURRENDERED,
-                ApplicationSelectedActivity.ACTIVITY_STATUS_EXPIRED,
-                ApplicationSelectedActivity.ACTIVITY_STATUS_CANCELLED,
-                ApplicationSelectedActivity.ACTIVITY_STATUS_REPLACED
-            ]
-        ).distinct()
-
-        a_ids = ApplicationSelectedActivityPurpose.objects.filter(
-            # Apply the date filtering on the Purposes.
-            selected_activity_id__in=[a.id for a in activities],
-            **date_filter
-        ).values_list('selected_activity_id', flat=True)
-        activities = activities.filter(id__in=a_ids)
-
-        return activities
-
     @property
     def total_paid_amount(self):
         """
@@ -4182,9 +4387,26 @@ class ApplicationSelectedActivity(models.Model):
         adjusted = False
         adj_fees = 0
         for p in self.proposed_purposes.all():
-            adj_fees += p.adjusted_fee
+            if p.is_payable and not p.adjusted_fee == 0:
+                adjusted = True 
+                break
 
-        return True if not adj_fees == 0 else False
+        return adjusted
+
+    @property
+    def has_adjusted_licence_fee(self):
+        '''
+        Property indicating this Selected Activity has a licence fee cost
+        different from the base admin fee Activity/Purpose.
+        '''
+        adjusted = False
+
+        for p in self.proposed_purposes.all():
+            if p.is_payable and not p.adjusted_licence_fee == 0:
+                adjusted = True 
+                break
+
+        return adjusted
 
     @property
     def pre_adjusted_application_fee(self):
@@ -4197,6 +4419,34 @@ class ApplicationSelectedActivity(models.Model):
             app_fees += p.application_fee
 
         return app_fees
+
+    @property
+    def has_additional_fee(self):
+        '''
+        Property indicating this Selected Activity has an additional fee cost
+        imposed by internal officer.
+        '''
+        has_additional = False
+
+        for p in self.proposed_purposes.all():
+            if p.is_payable and p.has_additional_fee:
+                has_additional = True 
+                break
+
+        return has_additional
+
+    @property
+    def additional_fee(self):
+        '''
+        Additional Fee amount Property for this Selected Activity.
+        '''
+        adjusted = False
+        fees = 0
+        for p in self.proposed_purposes.all():
+            if p.is_payable and p.has_additional_fee:
+                fees += p.additional_fee
+
+        return fees
 
     @property
     def requires_refund(self):
@@ -4236,7 +4486,8 @@ class ApplicationSelectedActivity(models.Model):
             if self.payment_status in [
                 ActivityInvoice.PAYMENT_STATUS_PAID,
             ]:
-                additional = self.licence_fee + self.additional_fee
+                # additional = self.licence_fee + self.additional_fee
+                additional = self.licence_fee
                 previous_paid = self.total_paid_amount - additional
 
             return previous_paid
@@ -4531,6 +4782,9 @@ class ApplicationSelectedActivity(models.Model):
         if not card_token:
             logger.error("No card token found for user: %s" % card_owner_id)
             return False
+        else:
+            logger.error("Cannot make payment with stored card: %s" % card_owner_id)
+            return False
 
         product_lines = []
         application_submission = u'Activity licence issued for {} application {}'.format(
@@ -4743,31 +4997,52 @@ class ApplicationSelectedActivity(models.Model):
         '''
         REPLACE = ApplicationSelectedActivityPurpose.PROCESSING_STATUS_REPLACED
         S_REPLACE = ApplicationSelectedActivityPurpose.PURPOSE_STATUS_REPLACED
-        lp = LicencePurpose.objects.get(id=p_id)
-        selected_purposes = self.proposed_purposes.filter(
-            purpose=lp
-        )
-        sequence_no = 0
-        for selected in selected_purposes:
-            selected.processing_status = REPLACE
-            selected_purpose_status = S_REPLACE
-            selected.save()
-            sequence_no = selected.purpose_sequence
+
+        # lp = LicencePurpose.objects.get(id=p_id)
+
+        selected_purpose = self.proposed_purposes.filter(
+            purpose_id=p_id
+        ).last()
+
+        sequence_no = selected_purpose.purpose_sequence
+        selected_purpose.processing_status = REPLACE
+        selected_purpose.purpose_status = S_REPLACE
+        selected_purpose.save()
+
+        # for selected in selected_purposes:
+        #     selected.processing_status = REPLACE
+        #     selected_purpose_status = S_REPLACE
+        #     selected.save()
+        #     sequence_no = selected.purpose_sequence
 
         return sequence_no
 
     def set_selected_purpose_sequence(self, p_id, sequence_no):
         '''
         Set all Selected Purposes for the activity to the same sequence number.
+        Setter used for when replacing a selected purpose with a set sequence
+        number. Processing status and issue date may note be set.
         '''
-        lp = LicencePurpose.objects.get(id=p_id)
-        selected_purposes = self.proposed_purposes.filter(
-            purpose=lp
-        )
+        # lp = LicencePurpose.objects.get(id=p_id)
 
-        for selected in selected_purposes:
-            selected.purpose_sequence = int(sequence_no)
-            selected.save()
+        selected_purpose = self.proposed_purposes.filter(
+            purpose_id=p_id,
+            # purpose_sequence=int(sequence_no)
+        ).last()
+        selected_purpose.purpose_sequence = int(sequence_no)
+        selected_purpose.save()
+
+        # update_purposes = self.proposed_purposes.filter(
+        #     purpose=lp,
+        # ).exclude(purpose_sequence=int(sequence_no))
+
+        # ISSUE = ApplicationSelectedActivityPurpose.PROCESSING_STATUS_ISSUED
+
+        # for update in update_purposes:
+        #     update.purpose_sequence = int(sequence_no)
+        #     # update.processing_status = ISSUE
+        #     # update.issue_date = 
+        #     selected.save()
 
     def is_proposed_purposes_status(self, status):
         '''
@@ -4872,6 +5147,7 @@ class ApplicationSelectedActivity(models.Model):
                 a for a in prev_chain
                 if a.licence_activity_id == act_id
                 and a.activity_status in self.ACTIVE
+                and a.processing_status in self.PROCESSING_STATUS_ACCEPTED
             ]
             previous = prev_chain[0]    # licence has one current activity.
 
@@ -4979,6 +5255,14 @@ class ApplicationSelectedActivityPurpose(models.Model):
     # occurs with questions selected by the applicant for an Activity Purpose.
     adjusted_licence_fee = models.DecimalField(
         max_digits=8, decimal_places=2, default='0')
+    # Additional Fee is the amount an internal officer imposes on a Licence
+    # for services excluded from the application fee.
+    additional_fee = models.DecimalField(
+        max_digits=8, decimal_places=2, default='0')
+    additional_fee_text = models.TextField(blank=True, null=True)
+    # Additional species header and text taken from licence purpose which can
+    # be customised for this selected purpose.
+    purpose_species_json = JSONField(null=True, blank=True, default={})
     property_cache = JSONField(null=True, blank=True, default={})
 
     def __str__(self):
@@ -5029,6 +5313,93 @@ class ApplicationSelectedActivityPurpose(models.Model):
             self.save()
 
         return self.property_cache
+
+    @property
+    def payment_status(self):
+        '''
+        Property indicating the payment status for the last invoice to be paid
+        on the selected activity.
+        '''
+        def check_payment_status_for_licence(_status):
+            '''
+            Check licence and application fee has been paid with the latest
+            invoice.
+            '''
+            if self.selected_activity.application_fee == 0 \
+                    and self.selected_activity.total_paid_amount < 1:
+
+                _status = ActivityInvoice.PAYMENT_STATUS_NOT_REQUIRED
+
+            return _status
+
+        def check_payment_status_for_additional(_status):
+            '''
+            Check additional fees has been paid with the latest invoice.
+            '''
+            _PAID = ActivityInvoice.PAYMENT_STATUS_PAID
+
+            # paper-based submission allow Record link for additional payment.
+            if _status == _PAID and self.additional_fee > Decimal(0.0) \
+                and self.selected_activity.application.submit_type \
+                == Application.SUBMIT_TYPE_PAPER:
+
+                _status = ActivityInvoice.PAYMENT_STATUS_PARTIALLY_PAID
+
+            # Paid with additional fee.
+            elif self.additional_fee > Decimal(0.0) and _status == _PAID:
+                # paid invoiced amount does not exist.
+                if self.total_paid_additional_fee < 1:
+                    _status = ActivityInvoice.PAYMENT_STATUS_UNPAID
+
+            return _status
+
+        def check_payment_status_for_adjustment(_status):
+            _PAID = ActivityInvoice.PAYMENT_STATUS_PAID
+
+            if _status == _PAID and\
+                    self.get_payable_application_fee() > Decimal(0.0):
+                _status = ActivityInvoice.PAYMENT_STATUS_UNPAID
+
+            elif _status == _PAID and\
+                    self.get_payable_licence_fee() > Decimal(0.0):
+                _status = ActivityInvoice.PAYMENT_STATUS_UNPAID
+
+            return _status
+
+        if self.selected_activity.application.submit_type \
+                        == Application.SUBMIT_TYPE_MIGRATE:
+            # when application is migrated from paper version.
+            return ActivityInvoice.PAYMENT_STATUS_NOT_REQUIRED
+
+        paid_status = [
+            ActivityInvoice.PAYMENT_STATUS_NOT_REQUIRED,
+            ActivityInvoice.PAYMENT_STATUS_PAID,
+        ]
+
+        try:
+            latest_invoice = Invoice.objects.get(
+                reference=self.selected_activity.activity_invoices.latest(
+                    'id').invoice_reference,
+            )
+            status = latest_invoice.payment_status
+        except Invoice.DoesNotExist:
+            status =  ActivityInvoice.PAYMENT_STATUS_UNPAID
+        except ActivityInvoice.DoesNotExist:
+            status =  ActivityInvoice.PAYMENT_STATUS_UNPAID
+
+        status = check_payment_status_for_licence(status)
+        if status not in paid_status:
+            return status
+
+        status = check_payment_status_for_additional(status)
+        if status not in paid_status:
+            return status
+
+        status = check_payment_status_for_adjustment(status)
+        if status not in paid_status:
+            return status
+
+        return status
 
     @property
     def is_proposed(self):
@@ -5134,9 +5505,20 @@ class ApplicationSelectedActivityPurpose(models.Model):
         An attribute for the total fees paid for this Select Activity Purpose.
         The total amount includes fee, additional and licence fee.
         '''
-        amount = self.application_fee + self.licence_fee + self.adjusted_fee
+        amount = self.application_fee \
+            + self.licence_fee \
+            + self.adjusted_fee \
+            + self.adjusted_licence_fee
 
         return amount
+
+    @property
+    def has_additional_fee(self):
+        '''
+        An Attribute indicating this Selected Activity Purpose has additional
+        fee.
+        '''
+        return True if self.additional_fee else False
 
     @property
     def has_adjusted_application_fee(self):
@@ -5144,7 +5526,15 @@ class ApplicationSelectedActivityPurpose(models.Model):
         An Attribute indicating this Selected Activity Purpose has an adjusted
         application fee different from the base admin fee.
         '''
-        return True if self.adjusted_fee > 0 else False
+        return True if self.adjusted_fee else False
+
+    @property
+    def has_adjusted_licence_fee(self):
+        '''
+        An Attribute indicating this Selected Activity Purpose has an adjusted
+        licence fee different from the base admin fee.
+        '''
+        return True if self.adjusted_licence_fee else False
 
     @property
     def pre_adjusted_application_fee(self):
@@ -5183,6 +5573,11 @@ class ApplicationSelectedActivityPurpose(models.Model):
     @property
     def total_paid_adjusted_application_fee(self):
         '''
+        Property for the total application fees paid calculated from the 
+        invoice lines which includes adjustments.
+
+        NOTE: for licence amendments previous paid adjustments are added to 
+        this total.
         '''
         LINE_TYPE = ActivityInvoiceLine.LINE_TYPE_APPLICATION
         amount = 0
@@ -5195,11 +5590,33 @@ class ApplicationSelectedActivityPurpose(models.Model):
             for line in inv_lines:
                 amount += line.amount
 
+        AMEND = Application.APPLICATION_TYPE_AMENDMENT
+        if self.selected_activity.application.application_type == AMEND:
+            '''
+            For amendments exclude fees for previous adjustments. Note taken
+            from invoice lines.
+            '''
+            try:
+                prev_purpose = self.get_purpose_from_previous()
+                amount = amount + prev_purpose.adjusted_fee
+
+            except BaseException as e:
+                logger.error(
+                    'total_paid_adjusted_licence_fee() ID {} {}'.format(
+                        self.id,
+                        e
+                    ))
+
         return amount
 
     @property
     def total_paid_adjusted_licence_fee(self):
         '''
+        Property for the total licence fees paid calculated from the 
+        invoice lines which includes adjustments.
+
+        NOTE: for licence amendments previous paid adjustments are added to 
+        this total.
         '''
         LINE_TYPE = ActivityInvoiceLine.LINE_TYPE_LICENCE
         amount = 0
@@ -5212,6 +5629,42 @@ class ApplicationSelectedActivityPurpose(models.Model):
             for line in inv_lines:
                 amount += line.amount
 
+        AMEND = Application.APPLICATION_TYPE_AMENDMENT
+        if self.selected_activity.application.application_type == AMEND:
+            '''
+            For amendments exclude fees for previous adjustments. Not taken
+            from invoice lines.
+            '''
+            try:
+                prev_purpose = self.get_purpose_from_previous()
+                amount = amount + prev_purpose.adjusted_licence_fee
+
+            except BaseException as e:
+                logger.error(
+                    'total_paid_adjusted_licence_fee() ID {} {}'.format(
+                        self.id,
+                        e
+                    ))
+
+        return amount
+
+    @property
+    def total_paid_additional_fee(self):
+        '''
+        Property for the total additional fees paid calculated from the 
+        invoice lines.
+        '''
+        LINE_TYPE = ActivityInvoiceLine.LINE_TYPE_ADDITIONAL
+        amount = 0
+        for a_inv in self.selected_activity.activity_invoices.all():
+            inv_lines = [
+                l for l in a_inv.licence_activity_lines.all()
+                if l.licence_purpose == self.purpose 
+                and l.invoice_line_type == LINE_TYPE
+            ]
+            for line in inv_lines:
+                amount += line.amount
+
         return amount
 
     def get_payable_application_fee(self):
@@ -5219,6 +5672,7 @@ class ApplicationSelectedActivityPurpose(models.Model):
         Get application fee owing for this licence purpose.
         '''
         amt = self.adjusted_fee + self.application_fee
+        amt = amt - self.total_paid_adjusted_application_fee
 
         return amt
 
@@ -5227,8 +5681,33 @@ class ApplicationSelectedActivityPurpose(models.Model):
         Get licence fee owing for this licence purpose.
         '''
         amt = self.adjusted_licence_fee + self.licence_fee
+        amt = amt - self.total_paid_adjusted_licence_fee
 
         return amt
+
+    def get_refund_amount(self):
+        '''
+        Get refundable licence amount for this licence purpose.
+        '''
+        refund = 0
+        # paid fees are invoiced amounts paid.
+        paid_app_fee = self.total_paid_adjusted_application_fee
+        paid_lic_fee = self.total_paid_adjusted_licence_fee
+
+        if self.processing_status == self.PROCESSING_STATUS_DECLINED:
+            # refund any licence fees paid.
+            paid_lic_fee = 0
+
+        # total_paid_amount is the expected total paid for this purpose.
+        refund = self.total_paid_amount - (paid_app_fee + paid_lic_fee)
+
+        # Refund will be negative when the total_paid_amount is negative, as
+        # adjustments made to the fees are set to negative in admin schema.
+        # Otherwise refund should be a positive amount which will be converted
+        # to negative.
+        refund = refund if refund < 0 else refund * -1
+
+        return refund
 
     def suspend(self):
         '''
@@ -5273,6 +5752,7 @@ class ApplicationSelectedActivityPurpose(models.Model):
         if not activities:
             return previous
 
+        ACCEPT = ApplicationSelectedActivity.PROCESSING_STATUS_ACCEPTED
         try:
             act_id = self.selected_activity.licence_activity_id
             self_id = self.purpose_id
@@ -5280,6 +5760,7 @@ class ApplicationSelectedActivityPurpose(models.Model):
                 a for a in activities
                 if a.licence_activity_id == act_id
                 and a.activity_status in ApplicationSelectedActivity.ACTIVE
+                and a.processing_status == ACCEPT
                 and self.purpose in a.issued_purposes
             ]
 
@@ -5300,6 +5781,365 @@ class ApplicationSelectedActivityPurpose(models.Model):
 
         return previous
 
+    def set_species_header_1(self, header):
+        '''
+        Set species header details for this selected activity purpose.
+        '''
+        if header:
+            try:
+                self.purpose_species_json[0]['header-1'] = str(header)
+
+            except BaseException as e:
+                logger.error('set_species_header_1() ID {} : {}'.format(
+                    self.id,
+                    e
+                ))
+
+    def get_species_header_1(self):
+        '''
+        Get species header details for this selected activity purpose.
+        '''
+        header = None
+        try:
+            header = self.purpose_species_json['header-1']
+
+        except BaseException as e:
+            logger.error('get_species_header_1() ID {} : {}'.format(
+                self.id,
+                e
+            ))
+
+        return header
+
+    def set_species_text_1(self, text):
+        '''
+        Set species text details for this selected activity purpose.
+        '''
+        if text:
+            try:
+                self.purpose_species_json[0]['text-1'] = str(text)
+
+            except BaseException as e:
+                logger.error('set_species_text_1() ID {} : {}'.format(
+                    self.id,
+                    e
+                ))
+
+    def get_species_text_1(self):
+        '''
+        Get species text details for this selected activity purpose.
+        '''
+        text = None
+        try:
+            header = self.purpose_species_json['text-1']
+
+        except BaseException as e:
+            logger.error('get_species_text_1() ID {} : {}'.format(
+                self.id,
+                e
+            ))
+
+        return text
+
+    def set_species_header_2(self, header):
+        '''
+        Set species header details for this selected activity purpose.
+        '''
+        if header:
+            try:
+                self.purpose_species_json[0]['header-2'] = str(header)
+
+            except BaseException as e:
+                logger.error('set_species_header_2() ID {} : {}'.format(
+                    self.id,
+                    e
+                ))
+
+    def get_species_header_2(self):
+        '''
+        Get species header details for this selected activity purpose.
+        '''
+        header = None
+        try:
+            header = self.purpose_species_json['header-2']
+
+        except BaseException as e:
+            logger.error('get_species_header_2() ID {} : {}'.format(
+                self.id,
+                e
+            ))
+
+        return header
+
+    def set_species_text_2(self, text):
+        '''
+        Set species text details for this selected activity purpose.
+        '''
+        if text:
+            try:
+                self.purpose_species_json[0]['text-2'] = str(text)
+
+            except BaseException as e:
+                logger.error('set_species_text_2() ID {} : {}'.format(
+                    self.id,
+                    e
+                ))
+
+    def get_species_text_2(self):
+        '''
+        Get species text details for this selected activity purpose.
+        '''
+        text = None
+        try:
+            header = self.purpose_species_json['text-2']
+
+        except BaseException as e:
+            logger.error('get_species_text_2() ID {} : {}'.format(
+                self.id,
+                e
+            ))
+
+        return text
+
+    def set_species_header_3(self, header):
+        '''
+        Set species header details for this selected activity purpose.
+        '''
+        if header:
+            try:
+                self.purpose_species_json[0]['header-3'] = str(header)
+
+            except BaseException as e:
+                logger.error('set_species_header_3() ID {} : {}'.format(
+                    self.id,
+                    e
+                ))
+
+    def get_species_header_3(self):
+        '''
+        Get species header details for this selected activity purpose.
+        '''
+        header = None
+        try:
+            header = self.purpose_species_json['header-3']
+
+        except BaseException as e:
+            logger.error('get_species_header_3() ID {} : {}'.format(
+                self.id,
+                e
+            ))
+
+        return header
+
+    def set_species_text_3(self, text):
+        '''
+        Set species text details for this selected activity purpose.
+        '''
+        if text:
+            try:
+                self.purpose_species_json[0]['text-3'] = str(text)
+
+            except BaseException as e:
+                logger.error('set_species_text_3() ID {} : {}'.format(
+                    self.id,
+                    e
+                ))
+
+    def get_species_text_3(self):
+        '''
+        Get species text details for this selected activity purpose.
+        '''
+        text = None
+        try:
+            header = self.purpose_species_json['text-3']
+
+        except BaseException as e:
+            logger.error('get_species_text_3() ID {} : {}'.format(
+                self.id,
+                e
+            ))
+
+        return text
+
+    def set_species_header_4(self, header):
+        '''
+        Set species header details for this selected activity purpose.
+        '''
+        if header:
+            try:
+                self.purpose_species_json[0]['header-4'] = str(header)
+
+            except BaseException as e:
+                logger.error('set_species_header_4() ID {} : {}'.format(
+                    self.id,
+                    e
+                ))
+
+    def get_species_header_4(self):
+        '''
+        Get species header details for this selected activity purpose.
+        '''
+        header = None
+        try:
+            header = self.purpose_species_json['header-4']
+
+        except BaseException as e:
+            logger.error('get_species_header_4() ID {} : {}'.format(
+                self.id,
+                e
+            ))
+
+        return header
+
+    def set_species_text_4(self, text):
+        '''
+        Set species text details for this selected activity purpose.
+        '''
+        if text:
+            try:
+                self.purpose_species_json[0]['text-4'] = str(text)
+
+            except BaseException as e:
+                logger.error('set_species_text_4() ID {} : {}'.format(
+                    self.id,
+                    e
+                ))
+
+    def get_species_text_4(self):
+        '''
+        Get species text details for this selected activity purpose.
+        '''
+        text = None
+        try:
+            header = self.purpose_species_json['text-4']
+
+        except BaseException as e:
+            logger.error('get_species_text_4() ID {} : {}'.format(
+                self.id,
+                e
+            ))
+
+        return text
+
+    def set_species_header_5(self, header):
+        '''
+        Set species header details for this selected activity purpose.
+        '''
+        if header:
+            try:
+                self.purpose_species_json[0]['header-5'] = str(header)
+
+            except BaseException as e:
+                logger.error('set_species_header_5() ID {} : {}'.format(
+                    self.id,
+                    e
+                ))
+
+    def get_species_header_5(self):
+        '''
+        Get species header details for this selected activity purpose.
+        '''
+        header = None
+        try:
+            header = self.purpose_species_json['header-5']
+
+        except BaseException as e:
+            logger.error('get_species_header_5() ID {} : {}'.format(
+                self.id,
+                e
+            ))
+
+        return header
+
+    def set_species_text_5(self, text):
+        '''
+        Set species text details for this selected activity purpose.
+        '''
+        if text:
+            try:
+                self.purpose_species_json[0]['text-5'] = str(text)
+
+            except BaseException as e:
+                logger.error('set_species_text_5() ID {} : {}'.format(
+                    self.id,
+                    e
+                ))
+
+    def get_species_text_5(self):
+        '''
+        Get species text details for this selected activity purpose.
+        '''
+        text = None
+        try:
+            header = self.purpose_species_json['text-5']
+
+        except BaseException as e:
+            logger.error('get_species_text_5() ID {} : {}'.format(
+                self.id,
+                e
+            ))
+
+        return text
+
+    def set_species_header_6(self, header):
+        '''
+        Set species header details for this selected activity purpose.
+        '''
+        if header:
+            try:
+                self.purpose_species_json[0]['header-6'] = str(header)
+
+            except BaseException as e:
+                logger.error('set_species_header_6() ID {} : {}'.format(
+                    self.id,
+                    e
+                ))
+
+    def get_species_header_6(self):
+        '''
+        Get species header details for this selected activity purpose.
+        '''
+        header = None
+        try:
+            header = self.purpose_species_json['header-6']
+
+        except BaseException as e:
+            logger.error('get_species_header_6() ID {} : {}'.format(
+                self.id,
+                e
+            ))
+
+        return header
+
+    def set_species_text_6(self, text):
+        '''
+        Set species text details for this selected activity purpose.
+        '''
+        if text:
+            try:
+                self.purpose_species_json[0]['text-6'] = str(text)
+
+            except BaseException as e:
+                logger.error('set_species_text_6() ID {} : {}'.format(
+                    self.id,
+                    e
+                ))
+
+    def get_species_text_6(self):
+        '''
+        Get species text details for this selected activity purpose.
+        '''
+        text = None
+        try:
+            header = self.purpose_species_json['text-6']
+
+        except BaseException as e:
+            logger.error('get_species_text_6() ID {} : {}'.format(
+                self.id,
+                e
+            ))
+
+        return text
 
 class IssuanceDocument(Document):
     _file = models.FileField(max_length=255)

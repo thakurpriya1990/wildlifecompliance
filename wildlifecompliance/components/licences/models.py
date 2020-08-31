@@ -342,6 +342,7 @@ class WildlifeLicence(models.Model):
     licence_sequence = models.IntegerField(blank=True, default=1)
     licence_category = models.ForeignKey(LicenceCategory)
     current_application = models.ForeignKey('wildlifecompliance.Application')
+    property_cache = JSONField(null=True, blank=True, default={})
 
     class Meta:
         unique_together = (
@@ -354,11 +355,45 @@ class WildlifeLicence(models.Model):
         return '{} {}-{}'.format(self.licence_category, self.licence_number, self.licence_sequence)
 
     def save(self, *args, **kwargs):
+        self.update_property_cache(False)
         super(WildlifeLicence, self).save(*args, **kwargs)
         if not self.licence_number:
             self.licence_number = 'L{0:06d}'.format(
                 self.next_licence_number_id)
             self.save()
+
+    def get_property_cache(self):
+        '''
+        Get properties which were previously resolved.
+        '''
+        if len(self.property_cache) == 0:
+            self.update_property_cache()
+
+        return self.property_cache
+
+    def update_property_cache(self, save=True):
+        '''
+        Refresh cached properties with updated properties.
+        '''
+        # self.property_cache['payment_status'] = self.payment_status
+
+        if save is True:
+            self.save()
+
+        return self.property_cache
+
+    def get_property_cache_key(self, key):
+        '''
+        Get properties which were previously resolved with key.
+        '''
+        try:
+
+            self.property_cache[key]
+
+        except KeyError:
+            self.update_property_cache()
+
+        return self.property_cache
 
     def get_activities_by_activity_status_ordered(self, status):
         '''
