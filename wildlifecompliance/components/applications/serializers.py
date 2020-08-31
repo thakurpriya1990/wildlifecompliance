@@ -20,7 +20,10 @@ from wildlifecompliance.components.applications.models import (
 from wildlifecompliance.components.organisations.models import (
     Organisation
 )
-from wildlifecompliance.components.licences.models import LicenceActivity
+from wildlifecompliance.components.licences.models import (
+    LicenceActivity,
+    PurposeSpecies,
+)
 from wildlifecompliance.components.main.serializers import (
     CommunicationLogEntrySerializer
 )
@@ -94,21 +97,23 @@ class ApplicationSelectedActivityCanActionSerializer(serializers.Serializer):
             ) and obj.get('can_reissue')
 
 
+class PurposeSpeciesSerializer(serializers.ModelSerializer):
+
+    class Meta:
+        model = PurposeSpecies
+        fields = (
+            'order',
+            'header',
+            'details',
+            'species')
+
+
 class ApplicationSelectedActivityPurposeSerializer(
         serializers.ModelSerializer):
     purpose = serializers.SerializerMethodField(read_only=True)
-    species_header_1 = serializers.SerializerMethodField(read_only=True)
-    species_text_1 = serializers.SerializerMethodField(read_only=True)
-    species_header_2 = serializers.SerializerMethodField(read_only=True)
-    species_text_2 = serializers.SerializerMethodField(read_only=True)
-    species_header_3 = serializers.SerializerMethodField(read_only=True)
-    species_text_3 = serializers.SerializerMethodField(read_only=True)
-    species_header_4 = serializers.SerializerMethodField(read_only=True)
-    species_text_4 = serializers.SerializerMethodField(read_only=True)
-    species_header_5 = serializers.SerializerMethodField(read_only=True)
-    species_text_5 = serializers.SerializerMethodField(read_only=True)
-    species_header_6 = serializers.SerializerMethodField(read_only=True)
-    species_text_6 = serializers.SerializerMethodField(read_only=True)
+    purpose_species_json = serializers.SerializerMethodField(
+        read_only=True
+    )
 
     class Meta:
         model = ApplicationSelectedActivityPurpose
@@ -138,123 +143,20 @@ class ApplicationSelectedActivityPurposeSerializer(
         return obj.proposed_end_date.strftime(
             '%d/%m/%Y') if obj.proposed_end_date else ''
 
-    def get_species_header_1(self, obj):
-        header = None
-        try:
-            header = obj.purpose_species_json[0]['header-1']
+    def get_purpose_species_json(self, obj):
+        print('get_purpose_species_json')
 
-        except BaseException:
-            pass
+        text = []
+        # print(obj.purpose.purpose_species)
+        if obj.purpose_species_json:
 
-        return header
+            text = obj.purpose_species_json
 
-    def get_species_text_1(self, obj):
-        text = None
-        try:
-            text = obj.purpose_species_json[0]['text-1']
+        else:
 
-        except BaseException:
-            pass
-
-        return text
-
-    def get_species_header_2(self, obj):
-        header = None
-        try:
-            header = obj.purpose_species_json[0]['header-2']
-
-        except BaseException:
-            pass
-
-        return header
-
-    def get_species_text_2(self, obj):
-        text = None
-        try:
-            text = obj.purpose_species_json[0]['text-2']
-
-        except BaseException:
-            pass
-
-        return text
-
-    def get_species_header_3(self, obj):
-        header = None
-        try:
-            header = obj.purpose_species_json[0]['header-3']
-
-        except BaseException:
-            pass
-
-        return header
-
-    def get_species_text_3(self, obj):
-        text = None
-        try:
-            text = obj.purpose_species_json[0]['text-3']
-
-        except BaseException:
-            pass
-
-        return text
-
-    def get_species_header_4(self, obj):
-        header = None
-        try:
-            header = obj.purpose_species_json[0]['header-4']
-
-        except BaseException:
-            pass
-
-        return header
-
-    def get_species_text_4(self, obj):
-        text = None
-        try:
-            text = obj.purpose_species_json[0]['text-4']
-
-        except BaseException:
-            pass
-
-        return text
-
-    def get_species_header_5(self, obj):
-        header = None
-        try:
-            header = obj.purpose_species_json[0]['header-5']
-
-        except BaseException:
-            pass
-
-        return header
-
-    def get_species_text_5(self, obj):
-        text = None
-        try:
-            text = obj.purpose_species_json[0]['text-5']
-
-        except BaseException:
-            pass
-
-        return text
-
-    def get_species_header_6(self, obj):
-        header = None
-        try:
-            header = obj.purpose_species_json[0]['header-6']
-
-        except BaseException:
-            pass
-
-        return header
-
-    def get_species_text_6(self, obj):
-        text = None
-        try:
-            text = obj.purpose_species_json[0]['text-6']
-
-        except BaseException:
-            pass
+            text = PurposeSpeciesSerializer(
+                obj.purpose.purpose_species, many=True
+            ).data
 
         return text
 

@@ -390,7 +390,7 @@ def _create_licence(licence_buffer, licence, application):
 #        import ipdb; ipdb.set_trace()
 #        no_border_table_style = TableStyle([('VALIGN', (0, 0), (-1, -1), 'TOP')])
 #        box_table_style = TableStyle([('VALIGN', (0, 0), (-1, -1), 'TOP'), ('BOX', (0,0), (-1,-1), 0.25, colors.black), ('INNERGRID', (0,0), (-1,-1), 0.25, colors.black), ('ALIGN', (0, 0), (-1, -1), 'RIGHT')])
-#        box_table_style_hdrbold = TableStyle([('VALIGN', (0, 0), (-1, -1), 'TOP'), ('BOX', (0,0), (-1,-1), 0.25, colors.black), ('GRID', (0,0), (-1,-1), 0.25, colors.black), ('FONTNAME', (0,0), (-1,0), 'Courier-Bold'), ('ALIGN', (0, 0), (-1, -1), 'RIGHT')])
+        box_table_style_hdrbold = TableStyle([('VALIGN', (0, 0), (-1, -1), 'TOP'), ('BOX', (0,0), (-1,-1), 0.25, colors.black), ('GRID', (0,0), (-1,-1), 0.25, colors.black), ('FONTNAME', (0,0), (-1,0), 'Courier-Bold'), ('ALIGN', (0, 0), (-1, -1), 'RIGHT')])
 #        box_table_style_colbold = TableStyle([('VALIGN', (0, 0), (-1, -1), 'TOP'), ('BOX', (0,0), (-1,-1), 0.25, colors.black), ('GRID', (0,0), (-1,-1), 0.25, colors.black), ('FONTNAME', (0,0), (0,-1), 'Courier-Bold'), ('ALIGN', (0, 0), (-1, -1), 'RIGHT')])
 #
 ##        specieslist = []
@@ -398,10 +398,24 @@ def _create_licence(licence_buffer, licence, application):
 ##            for specie in purposes.purpose.purpose_species.all():
 ##                specieslist.append(specie)
 ##
-#        purposeSpeciesList = ListFlowable(
-#            [Table(parse_html_table(s.details), style=box_table_style_hdrbold) for s in purpose.purpose.purpose_species.all()],
-#            bulletFontName=BOLD_FONTNAME, bulletFontSize=MEDIUM_FONTSIZE)
-#        elements.append(purposeSpeciesList)
+        purposeSpeciesList = None
+        try:
+            purposeSpeciesList = ListFlowable(
+                [Table(
+                    parse_html_table(s['details']),
+                    style=box_table_style_hdrbold
+                    ) for s in purpose.purpose_species_json],
+                bulletFontName=BOLD_FONTNAME, bulletFontSize=MEDIUM_FONTSIZE
+            )
+
+        except BaseException:
+            purposeSpeciesList = ListFlowable(
+                [Paragraph(
+                    'ERROR formatting {}'.format(s['header']), styles['Left']
+                    ) for s in purpose.purpose_species_json],
+                bulletFontName=BOLD_FONTNAME, bulletFontSize=MEDIUM_FONTSIZE
+            )
+        elements.append(purposeSpeciesList)
 #        # PurposeSpecies Section End
 
 
