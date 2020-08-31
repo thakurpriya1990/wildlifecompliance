@@ -37,10 +37,16 @@ class WildlifeLicence(admin.ModelAdmin):
         self.message_user(
             request, 'Selected licence renewals have been verified.')
 
+class PurposeSpeciesInline(admin.TabularInline):
+    extra = 0
+    model = models.PurposeSpecies
 
 @admin.register(models.LicencePurpose)
 class LicencePurposeAdmin(admin.ModelAdmin):
-    pass
+    inlines = [
+        PurposeSpeciesInline,
+    ]
+    #pass
 
 
 @admin.register(models.LicenceSpecies)

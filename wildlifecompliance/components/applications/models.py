@@ -3309,7 +3309,7 @@ class Application(RevisionedMixin):
         '''
         applications = Application.get_request_user_applications(
             request
-        
+
         ).filter(
             selected_activities__activity_status__in=[
                 ApplicationSelectedActivity.ACTIVITY_STATUS_CURRENT,
@@ -3951,7 +3951,7 @@ class ApplicationSelectedActivity(models.Model):
         Get properties which were previously resolved with key.
         '''
         try:
-            
+
             self.property_cache[key]
 
         except KeyError:
@@ -5584,7 +5584,7 @@ class ApplicationSelectedActivityPurpose(models.Model):
         for a_inv in self.selected_activity.activity_invoices.all():
             inv_lines = [
                 l for l in a_inv.licence_activity_lines.all()
-                if l.licence_purpose == self.purpose 
+                if l.licence_purpose == self.purpose
                 and l.invoice_line_type == LINE_TYPE
             ]
             for line in inv_lines:
@@ -5623,7 +5623,7 @@ class ApplicationSelectedActivityPurpose(models.Model):
         for a_inv in self.selected_activity.activity_invoices.all():
             inv_lines = [
                 l for l in a_inv.licence_activity_lines.all()
-                if l.licence_purpose == self.purpose 
+                if l.licence_purpose == self.purpose
                 and l.invoice_line_type == LINE_TYPE
             ]
             for line in inv_lines:

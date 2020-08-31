@@ -5,6 +5,8 @@ from django.db import models, transaction
 from django.contrib.postgres.fields.jsonb import JSONField
 from django.db.models import Max
 from django.db.models import Q
+from django.forms.models import model_to_dict
+import json
 from ledger.licence.models import LicenceType
 
 from wildlifecompliance.components.inspection.models import Inspection
@@ -194,6 +196,33 @@ class LicencePurpose(models.Model):
                 species_list.append(option['value'])
 
         return options
+
+    def to_json(self):
+        _list = []
+        for i in self.purpose_species.all():
+            _list.append(dict(model_to_dict(i)))
+        return json.dumps(_list)
+
+
+class PurposeSpecies(models.Model):
+    licence_purpose = models.ForeignKey(LicencePurpose, related_name='purpose_species')
+    order = models.IntegerField(default=1)
+    header = models.CharField(max_length=255)
+    details = models.TextField()
+    species = models.NullBooleanField()
+
+    class Meta:
+        ordering = ['order', 'header']
+        app_label = 'wildlifecompliance'
+        verbose_name = 'Purpose Species'
+        verbose_name_plural = 'Purpose Species'
+
+    def __str__(self):
+        return '{} - {}'.format(self.licence_purpose, self.header)
+
+    def to_json(self):
+        dict_obj=model_to_dict(self)
+        return json.dumps(dict_obj)
 
 
 class LicenceActivity(models.Model):
@@ -1168,7 +1197,7 @@ class WildlifeLicence(models.Model):
         for condition in activity_conditions:
             if condition.standard_condition:
                 has_info = condition.standard_condition.additional_information
-                return has_info 
+                return has_info
 
         return has_info
 
@@ -1385,7 +1414,7 @@ class LicenceUserAction(UserAction):
     ACTION_CREATE_LICENCE = "Create licence {}"
     ACTION_UPDATE_LICENCE = "Create licence {}"
     ACTION_CREATE_LICENCE_INSPECTION = \
-        "Inspection {} for licence {} was requested."   
+        "Inspection {} for licence {} was requested."
 
     class Meta:
         app_label = 'wildlifecompliance'
