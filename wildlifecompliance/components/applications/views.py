@@ -41,10 +41,7 @@ class PreviewLicencePDFView(View):
     def post(self, request, *args, **kwargs):
         response = HttpResponse(content_type='application/pdf')
 
-        import ipdb; ipdb.set_trace()
         application = self.get_object()
-        details = json.loads(request.POST.get('formData'))
-
         response.write(application.preview_final_decision(request))
         return response
 

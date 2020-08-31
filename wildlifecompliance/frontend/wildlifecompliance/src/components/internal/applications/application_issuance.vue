@@ -563,6 +563,7 @@ export default {
             var formElement = $(postFormStr);
             $('body').append(formElement);
             $(formElement).submit();
+            this.spinner = false;
         },
 
         ok: async function () {
