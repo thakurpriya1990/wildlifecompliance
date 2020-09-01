@@ -74,7 +74,7 @@ export default {
         'returns_estimate_fee',
     ]),
     isSubmittable() {
-      let submittable = ['Draft','Due','Overdue'];
+      let submittable = ['Due','Overdue'];
       let can_submit = submittable.indexOf(this.returns.processing_status) > -1
 
       return can_submit && this.returns.format !== 'sheet' && !this.isPayable

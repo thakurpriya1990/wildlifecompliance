@@ -257,19 +257,27 @@ class ReturnService(object):
         Return data presented in table format with column headers.
         :return: formatted data.
         """
-        if a_return.has_sheet:
-            sheet = ReturnSheet(a_return)
-            return sheet.table
+        details = []
+        try:
+            if a_return.has_sheet:
+                sheet = ReturnSheet(a_return)
+                details = sheet.table
 
-        if a_return.has_data:
-            data = ReturnData(a_return)
-            return data.table
+            if a_return.has_data:
+                data = ReturnData(a_return)
+                details = data.table
 
-        if a_return.has_question:
-            question = ReturnQuestion(a_return)
-            return question.table
+            if a_return.has_question:
+                question = ReturnQuestion(a_return)
+                details = question.table
 
-        return []
+        except BaseException as e:
+            # NOTE: invalid schema exception can be thrown here.
+            logger.error('get_details_for() ID {0} - {1}'.format(
+                a_return.id, e
+            ))
+
+        return details
 
     @staticmethod
     def store_request_details_for(a_return, request):

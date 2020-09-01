@@ -385,7 +385,7 @@ class Return(models.Model):
             self.RETURN_PROCESSING_STATUS_DUE: DUE,
             self.RETURN_PROCESSING_STATUS_OVERDUE: OVERDUE,
             self.RETURN_PROCESSING_STATUS_DRAFT: DRAFT,
-            self.RETURN_PROCESSING_STATUS_FUTURE: FUTURE,
+            self.RETURN_PROCESSING_STATUS_FUTURE: DRAFT,
             self.RETURN_PROCESSING_STATUS_WITH_CURATOR: UNDER_REVIEW,
             self.RETURN_PROCESSING_STATUS_ACCEPTED: ACCEPTED,
             self.RETURN_PROCESSING_STATUS_PAYMENT: UNDER_REVIEW
@@ -491,6 +491,49 @@ class Return(models.Model):
             # send_submit_email_notification(request,self)
         except BaseException:
             raise
+
+    def set_return_species(self):
+        '''
+        Set the species available for this return.
+        '''
+        try:
+            return_table = []
+            specie_names = []
+
+            if self.return_type.with_application_species:
+                specie_names = self.get_application_return_species()
+
+            elif self.return_type.with_regulated_species:
+                specie_names = self.get_regulated_return_species()
+
+            for name in specie_names:
+                return_table.append(
+                    ReturnTable(name=name, ret_id=str(self.id))
+                )
+
+            if return_table:
+                ReturnTable.objects.bulk_create(return_table)
+
+        except BaseException as e:
+            logger.error('set_return_speces() ID: {0} - {1}'.format(
+                self.id, e
+            ))
+
+    def get_application_return_species(self):
+        '''
+        Set the species available for this return.
+        '''
+        species = []
+
+        return species
+
+    def get_regulated_return_species(self):
+        '''
+        Set the species available for this return.
+        '''
+        species = []
+
+        return species
 
     def set_future_return_species(self):
         '''
