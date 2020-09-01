@@ -748,7 +748,7 @@ class PromptInspectionFieldElement(SpecialFieldElement):
             # No user update with a page refesh.
             return
 
-        if isinstance(licence_activity, ApplicationSelectedActivity):
+        if licence_activity.is_inspection_required:
             licence_activity.is_inspection_required = False
             licence_activity.save()
 
