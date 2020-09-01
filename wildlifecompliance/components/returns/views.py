@@ -1,4 +1,5 @@
 import traceback
+from django.db import transaction
 from django.views.generic.base import TemplateView
 from django.core.urlresolvers import reverse
 from django.shortcuts import render, redirect
@@ -15,11 +16,13 @@ class ReturnSuccessView(TemplateView):
     def get(self, request, *args, **kwargs):
         context = None
         try:
-            the_return = get_session_return(request.session)
-            # When submission is successful the payment can be invoiced. When
-            # unsuccessful invoicing, the Return is submitted but unpaid.
-            ReturnService.submit_session_return_request(request)
-            ReturnService.invoice_session_return_request(request)
+            with transaction.atomic:
+                the_return = get_session_return(request.session)
+                # When submission is successful the payment can be invoiced.
+                # When unsuccessful invoicing, the Return is submitted but
+                # unpaid.
+                ReturnService.submit_session_return_request(request)
+                ReturnService.invoice_session_return_request(request)
 
             invoice_ref = request.GET.get('invoice')
             invoice_url = request.build_absolute_uri(

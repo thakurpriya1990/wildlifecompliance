@@ -423,7 +423,7 @@ class ReturnData(object):
                 'data': None
             }
             try:
-                if self.requires_species:
+                if self.requires_species():
                     resource_name = self._species
 
                 return_table = self._return.returntable_set.get(
@@ -514,7 +514,7 @@ class ReturnData(object):
                     table_info = returns_tables.encode('utf-8')
                     table_rows = self._get_table_rows(
                         table_info, data)
-                    if self.requires_species:
+                    if self.requires_species():
                         table_info = self._species
                     if table_rows:
                         self._return.save_return_table(
@@ -525,7 +525,7 @@ class ReturnData(object):
                 table_info = returns_tables.encode('utf-8')
                 table_rows = self._get_table_rows(
                     table_info, data)
-                if self.requires_species:
+                if self.requires_species():
                     table_info = self._species
                 if table_rows:
                     self._return.save_return_table(
@@ -686,8 +686,7 @@ class ReturnData(object):
         '''
         A check to determine if this return type contains a list of species.
         '''
-        # return self._return.return_type.species_required
-        return False
+        return self._return.has_species_list
 
     def set_species(self, _species):
         """
