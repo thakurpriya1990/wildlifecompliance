@@ -37,6 +37,18 @@ import logging
 logger = logging.getLogger(__name__)
 
 
+class PreviewLicencePDFView(View):
+    def post(self, request, *args, **kwargs):
+        response = HttpResponse(content_type='application/pdf')
+
+        application = self.get_object()
+        response.write(application.preview_final_decision(request))
+        return response
+
+    def get_object(self):
+        return get_object_or_404(Application, id=self.kwargs['application_pk'])
+
+
 class ApplicationHistoryCompareView(HistoryCompareDetailView):
     """
     View for reversion_compare

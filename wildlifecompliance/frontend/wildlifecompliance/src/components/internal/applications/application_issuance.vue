@@ -225,6 +225,9 @@
                             </div>
                         </div>
                     </div>
+
+                    <p>Click <a href="#" @click.prevent="preview()">here</a> to preview the licence document.</p>
+
                     <div class="row" style="margin-bottom:50px;">
                         <div class="navbar navbar-fixed-bottom" style="background-color: #f5f5f5 ">
                             <div class="navbar-inner">
@@ -299,6 +302,9 @@ export default {
             'licenceActivities',
             'filterActivityList',
         ]),
+        csrf_token: function() {
+            return helpers.getCookie('csrftoken')
+        },
         applicationIssuanceDocumentUrl: function() {
             let url = '';
             if (this.selectedApplicationActivityId) {
@@ -403,6 +409,9 @@ export default {
         showSpinner: function() {
             return this.spinner
         },
+        preview_licence_url: function() {
+            return (this.application.id) ? `/preview/licence-pdf/${this.application.id}` : ''
+        },
     },
     methods:{
         ...mapActions({
@@ -416,6 +425,70 @@ export default {
         selectTab: function(component) {
             this.setActivityTab({id: component.id, name: component.name});
         },
+       preview: async function () {
+            let vm = this;
+
+            if(!this.canSubmit) {
+                return swal(
+                    'Cannot issue/decline',
+                    "One or more activity tabs hasn't been marked as ready for finalisation!",
+                    'error'
+                );
+            }
+
+            this.spinner = true;
+            let selected = []
+            for (let a=0; a<this.application.activities.length; a++){
+                let activity = this.application.activities[a]
+                let proposed = activity.proposed_purposes
+                for (let p=0; p<proposed.length; p++){
+                    let purpose = proposed[p]
+                    if (['reissue','propose','selected'].includes(purpose.processing_status)){
+                        selected.push(purpose)
+                    }
+                }
+            }
+            vm.licence.purposes = selected
+            vm.licence.selected_purpose_ids = this.pickedPurposes
+            let licence = JSON.parse(JSON.stringify(vm.licence));
+            licence.purposes = vm.licence.purposes.map(purpose => {
+                const date_formats = ["DD/MM/YYYY", "YYYY-MM-DD"];
+                return {
+                    ...purpose,
+                    proposed_start_date: purpose.proposed_start_date ?
+                        moment(purpose.proposed_start_date, date_formats).format('YYYY-MM-DD') : null,
+                    proposed_end_date: purpose.proposed_end_date ?
+                        moment(purpose.proposed_end_date, date_formats).format('YYYY-MM-DD') : null,
+                }
+            });
+
+            vm.post_and_redirect(
+                vm.preview_licence_url,
+                {'csrfmiddlewaretoken' : vm.csrf_token, 'formData': JSON.stringify(licence)}
+            );
+
+        },
+
+        post_and_redirect: function(url, postData) {
+            /* http.post and ajax do not allow redirect from Django View (post method),
+               this function allows redirect by mimicking a form submit.
+
+               usage:  vm.post_and_redirect(vm.application_fee_url, {'csrfmiddlewaretoken' : vm.csrf_token});
+            */
+            var postFormStr = "<form method='POST' target='_blank' name='Preview Licence' action='" + url + "'>";
+
+            for (var key in postData) {
+                if (postData.hasOwnProperty(key)) {
+                    postFormStr += "<input type='hidden' name='" + key + "' value='" + postData[key] + "'>";
+                }
+            }
+            postFormStr += "</form>";
+            var formElement = $(postFormStr);
+            $('body').append(formElement);
+            $(formElement).submit();
+            this.spinner = false;
+        },
+
         ok: async function () {
             let vm = this;
 
