@@ -109,6 +109,45 @@ class ReturnType(models.Model):
     def resources(self):
         return self.data_descriptor.get('resources', [])
 
+    @property
+    def with_application_species(self):
+        '''
+        Boolean property to indicate that this return type is for a list of
+        species selected when applying for licence.
+        '''
+        with_application_species = False
+
+        if self.species_list == self.SPECIES_LIST_APPLICATION:
+            with_application_species = True
+
+        return with_application_species
+
+    @property
+    def with_regulated_species(self):
+        '''
+        Boolean property to indicate that this return type is for a list of
+        regulated species applied from the questions answered when applying.
+        '''
+        with_regulated_species = False
+
+        if self.species_list == self.SPECIES_LIST_REGULATED:
+            with_regulated_species = True
+
+        return with_regulated_species
+
+    @property
+    def with_no_species(self):
+        '''
+        Boolean property to indicate that this return type has no species
+        associated.
+        '''
+        no_species = False
+
+        if self.species_list == self.SPECIES_LIST_NONE:
+            no_species = True
+
+        return no_species
+
     def get_resource_by_name(self, name):
         for resource in self.resources:
             if resource.get('name') == name:
@@ -228,6 +267,13 @@ class Return(models.Model):
     def save(self, *args, **kwargs):
         self.update_property_cache(False)
         super(Return, self).save(*args, **kwargs)
+        '''
+        Append 'R' to Return id to generate Return lodgement number.
+        '''
+        if self.lodgement_number == '':
+            new_lodgement_id = 'R{0:06d}'.format(self.pk)
+            self.lodgement_number = new_lodgement_id
+            self.save()
 
     def get_property_cache(self):
         '''
@@ -316,6 +362,13 @@ class Return(models.Model):
         return True if self.format == ReturnType.FORMAT_SHEET else False
 
     @property
+    def has_species_list(self):
+        """
+        Boolean Property defining if the Return has an associated species list.
+        """
+        return False if self.return_type.with_no_species else True
+
+    @property
     def customer_status(self):
         """
         Property defining external status in relation to processing status.
@@ -332,7 +385,7 @@ class Return(models.Model):
             self.RETURN_PROCESSING_STATUS_DUE: DUE,
             self.RETURN_PROCESSING_STATUS_OVERDUE: OVERDUE,
             self.RETURN_PROCESSING_STATUS_DRAFT: DRAFT,
-            self.RETURN_PROCESSING_STATUS_FUTURE: FUTURE,
+            self.RETURN_PROCESSING_STATUS_FUTURE: DRAFT,
             self.RETURN_PROCESSING_STATUS_WITH_CURATOR: UNDER_REVIEW,
             self.RETURN_PROCESSING_STATUS_ACCEPTED: ACCEPTED,
             self.RETURN_PROCESSING_STATUS_PAYMENT: UNDER_REVIEW
@@ -406,14 +459,6 @@ class Return(models.Model):
 
         return EmailUser.objects.filter(groups__id__in=groups).distinct()
 
-    # Append 'R' to Return id to generate Return lodgement number.
-    def save(self, *args, **kwargs):
-        super(Return, self).save(*args, **kwargs)
-        if self.lodgement_number == '':
-            new_lodgement_id = 'R{0:06d}'.format(self.pk)
-            self.lodgement_number = new_lodgement_id
-            self.save()
-
     @transaction.atomic
     def set_submitted(self, request):
         '''
@@ -446,6 +491,49 @@ class Return(models.Model):
             # send_submit_email_notification(request,self)
         except BaseException:
             raise
+
+    def set_return_species(self):
+        '''
+        Set the species available for this return.
+        '''
+        try:
+            return_table = []
+            specie_names = []
+
+            if self.return_type.with_application_species:
+                specie_names = self.get_application_return_species()
+
+            elif self.return_type.with_regulated_species:
+                specie_names = self.get_regulated_return_species()
+
+            for name in specie_names:
+                return_table.append(
+                    ReturnTable(name=name, ret_id=str(self.id))
+                )
+
+            if return_table:
+                ReturnTable.objects.bulk_create(return_table)
+
+        except BaseException as e:
+            logger.error('set_return_speces() ID: {0} - {1}'.format(
+                self.id, e
+            ))
+
+    def get_application_return_species(self):
+        '''
+        Set the species available for this return.
+        '''
+        species = []
+
+        return species
+
+    def get_regulated_return_species(self):
+        '''
+        Set the species available for this return.
+        '''
+        species = []
+
+        return species
 
     def set_future_return_species(self):
         '''
