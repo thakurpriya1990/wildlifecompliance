@@ -1360,6 +1360,11 @@ class WildlifeLicence(models.Model):
             self, self.current_application)
         self.save()
 
+    def generate_preview_doc(self):
+        from wildlifecompliance.components.licences.pdf import create_licence_pdf_bytes
+        return create_licence_pdf_bytes(self, self.current_application)
+
+
     def log_user_action(self, action, request):
         return LicenceUserAction.log_action(self, action, request.user)
 

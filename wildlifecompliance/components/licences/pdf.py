@@ -707,11 +707,7 @@ def create_licence_doc(licence, application):
     return document
 
 
-def create_licence_pdf_bytes(
-        licence,
-        application,
-        site_url,
-        original_issue_date):
+def create_licence_pdf_bytes(licence, application):
     licence_buffer = BytesIO()
 
     _create_licence(licence_buffer, licence, application)
