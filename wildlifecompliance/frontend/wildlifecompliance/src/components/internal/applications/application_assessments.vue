@@ -495,6 +495,7 @@ export default {
                         {data:'status.name'},
                         {data:'final_comment'},
                         {
+                            data: "id",
                             mRender:function (data,type,full) {
                                 let links = '';
                                 const pending = full.status.id === 'awaiting_assessment';

@@ -115,6 +115,7 @@ export default {
                         orderable: false
                     },
                     {
+                        data: "source_group",
                         mRender:function (data,type,full) {
                             let links = '';
                             if(full.source_group && vm.activity.processing_status.id !== 'with_officer_finalisation') {
@@ -134,6 +135,7 @@ export default {
                         orderable: false
                     },
                     {
+                        data: "id",
                         mRender:function (data,type,full) {
                             let links = '';
                             if(vm.canEditConditions) {

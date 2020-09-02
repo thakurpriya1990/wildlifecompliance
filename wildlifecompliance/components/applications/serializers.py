@@ -144,10 +144,7 @@ class ApplicationSelectedActivityPurposeSerializer(
             '%d/%m/%Y') if obj.proposed_end_date else ''
 
     def get_purpose_species_json(self, obj):
-        print('get_purpose_species_json')
-
         text = []
-        # print(obj.purpose.purpose_species)
         if obj.purpose_species_json:
 
             text = obj.purpose_species_json

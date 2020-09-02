@@ -484,7 +484,6 @@ export default {
         });
    },
    mounted:function () {
-        console.log(this.applicationSelectedActivitiesForPurposes)
         this.form = document.forms.licenceForm;
         this.addFormValidations();
         this.$nextTick(()=>{
