@@ -12,6 +12,7 @@
         {{activity.licence_activity.name}}
         Start Date: {{activity.get_start_date}}
         Expiry Date: {{activity.get_expiry_date}}
+        Details: {{activity.reason}}
     {% endfor %}
 
     Link: {{url}}
