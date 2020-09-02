@@ -1,4 +1,5 @@
 import logging
+import mimetypes
 
 from django.core.mail import EmailMultiAlternatives, EmailMessage
 from django.utils.encoding import smart_text
@@ -494,10 +495,21 @@ def send_application_issue_notification(
         'url': remove_url_internal_request(request, url)
     }
 
+    documents = []
+    documents.append((
+        licence.licence_document.name,
+        licence.licence_document._file.read(),
+        'application/pdf'
+    ))
+    for activity in activities:
+        for document in activity.issuance_documents.all():
+            content = document._file.read()
+            mime = mimetypes.guess_type(document.name)[0]
+            documents.append((document.name, content, mime))
+
     msg = email.send(
         application.submitter.email,
-        context=context, attachments=[
-            (licence.licence_document.name, licence.licence_document._file.read(), 'application/pdf')],
+        context=context, attachments=documents,
         bcc=[activities[0].cc_email] if activities[0].cc_email else None
     )
 
