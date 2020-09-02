@@ -392,12 +392,15 @@ class ReturnViewSet(viewsets.ReadOnlyModelViewSet):
     @detail_route(methods=['POST', ])
     def submit(self, request, *args, **kwargs):
         try:
-            instance = self.get_object()
-            instance.set_submitted(request)
-            instance.submitter = request.user
-            instance.save()
-            serializer = self.get_serializer(instance)
+            with transaction.atomic:
+                instance = self.get_object()
+                instance.set_submitted(request)
+                instance.submitter = request.user
+                instance.save()
+                serializer = self.get_serializer(instance)
+
             return Response(serializer.data)
+
         except serializers.ValidationError:
             delete_session_return(request.session)
             print(traceback.print_exc())

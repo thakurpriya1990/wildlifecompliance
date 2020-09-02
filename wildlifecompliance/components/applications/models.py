@@ -3129,7 +3129,13 @@ class Application(RevisionedMixin):
                             return_type=condition.return_type,
                             submitter=request.user
                         )
-                        # compliance.log_user_action(ComplianceUserAction.ACTION_CREATE.format(compliance.id),request)
+
+                    # Make first return editable for applicant but cannot
+                    # submit until due.
+                    # Establish species list for first return.
+                    # if first_return.has_species_list:
+                    #   first_return.set_species_list()
+
                     if condition.recurrence:
                         while current_date < licence_expiry:
                             for x in range(condition.recurrence_schedule):

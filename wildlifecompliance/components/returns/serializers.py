@@ -358,8 +358,7 @@ class ReturnSerializer(serializers.ModelSerializer):
         :param _return: Return instance.
         :return: boolean.
         """
-        # return _return.return_type.species_required
-        return False
+        return _return.has_species_list
 
 
 class TableReturnSerializer(ReturnSerializer):

@@ -257,19 +257,27 @@ class ReturnService(object):
         Return data presented in table format with column headers.
         :return: formatted data.
         """
-        if a_return.has_sheet:
-            sheet = ReturnSheet(a_return)
-            return sheet.table
+        details = []
+        try:
+            if a_return.has_sheet:
+                sheet = ReturnSheet(a_return)
+                details = sheet.table
 
-        if a_return.has_data:
-            data = ReturnData(a_return)
-            return data.table
+            if a_return.has_data:
+                data = ReturnData(a_return)
+                details = data.table
 
-        if a_return.has_question:
-            question = ReturnQuestion(a_return)
-            return question.table
+            if a_return.has_question:
+                question = ReturnQuestion(a_return)
+                details = question.table
 
-        return []
+        except BaseException as e:
+            # NOTE: invalid schema exception can be thrown here.
+            logger.error('get_details_for() ID {0} - {1}'.format(
+                a_return.id, e
+            ))
+
+        return details
 
     @staticmethod
     def store_request_details_for(a_return, request):
@@ -423,7 +431,7 @@ class ReturnData(object):
                 'data': None
             }
             try:
-                if self.requires_species:
+                if self.requires_species():
                     resource_name = self._species
 
                 return_table = self._return.returntable_set.get(
@@ -514,7 +522,7 @@ class ReturnData(object):
                     table_info = returns_tables.encode('utf-8')
                     table_rows = self._get_table_rows(
                         table_info, data)
-                    if self.requires_species:
+                    if self.requires_species():
                         table_info = self._species
                     if table_rows:
                         self._return.save_return_table(
@@ -525,7 +533,7 @@ class ReturnData(object):
                 table_info = returns_tables.encode('utf-8')
                 table_rows = self._get_table_rows(
                     table_info, data)
-                if self.requires_species:
+                if self.requires_species():
                     table_info = self._species
                 if table_rows:
                     self._return.save_return_table(
@@ -686,8 +694,7 @@ class ReturnData(object):
         '''
         A check to determine if this return type contains a list of species.
         '''
-        # return self._return.return_type.species_required
-        return False
+        return self._return.has_species_list
 
     def set_species(self, _species):
         """
