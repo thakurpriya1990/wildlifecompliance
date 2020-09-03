@@ -153,21 +153,28 @@ export default {
                         emulateJSON:true,
                     }).then((response)=>{
                         //vm.$parent.loading.splice('processing contact',1);
-                        swal(
-                             'Sent',
-                             'An email has been sent to applicant with the request to amend this Application',
-                             'success'
-                        );
-                        vm.amendingApplication = true;
-                        vm.close();
+                        swal({
+                             title: 'Sent',
+                             text: 'An email has been sent to applicant with the request to amend this Application',
+                             type: 'question',
+                             showCancelButton: false,
+                             confirmButtonText: 'Ok'
+
+                        }).then ( result => {
+
+                            vm.amendingApplication = true;
+                            vm.close();
+                            this.$router.push({name:"internal-dash",});
+                        })
+
                         //vm.$emit('refreshFromResponse',response);
-                        Vue.http.get(`/api/application/${vm.application_id}/internal_application.json`).then((res)=>
-                        {
-                            vm.$emit('refreshFromResponse',res);
+                        // Vue.http.get(`/api/application/${vm.application_id}/internal_application.json`).then((res)=>
+                        // {
+                        //     vm.$emit('refreshFromResponse',res);
                             
-                        },(error)=>{
-                            console.log(error);
-                        });
+                        // },(error)=>{
+                        //     console.log(error);
+                        // });
 
                     },(error)=>{
                         console.log(error);
