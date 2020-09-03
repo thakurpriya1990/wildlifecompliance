@@ -1338,9 +1338,12 @@ class ApplicationViewSet(viewsets.ModelViewSet):
             serializer = ProposedLicenceSerializer(data=request.data)
             serializer.is_valid(raise_exception=True)
             instance.proposed_licence(request, serializer.validated_data)
-            serializer = InternalApplicationSerializer(
-                instance, context={'request': request})
-            return Response(serializer.data)
+            # serializer = InternalApplicationSerializer(
+            #     instance, context={'request': request})
+            # return Response(serializer.data)
+
+            return Response({'success': True})
+
         except serializers.ValidationError:
             print(traceback.print_exc())
             raise
@@ -1435,9 +1438,12 @@ class ApplicationViewSet(viewsets.ModelViewSet):
             serializer = IssueLicenceSerializer(data=request.data)
             serializer.is_valid(raise_exception=True)
             instance.final_decision(request)
-            serializer = InternalApplicationSerializer(
-                instance, context={'request': request})
-            return Response(serializer.data)
+            # serializer = InternalApplicationSerializer(
+            #     instance, context={'request': request})
+            # return Response(serializer.data)
+
+            return Response({'success': True})
+
         except serializers.ValidationError:
             print(traceback.print_exc())
             raise
