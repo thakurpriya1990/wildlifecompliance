@@ -55,6 +55,8 @@ class ReturnType(models.Model):
         (FORMAT_QUESTION, 'Question'),
         (FORMAT_DATA, 'Data')
     )
+    # Species list for this Return Type can be regulated, application-based or
+    # none.
     SPECIES_LIST_REGULATED = 'regulated'
     SPECIES_LIST_APPLICATION = 'application'
     SPECIES_LIST_NONE = 'none'
@@ -92,6 +94,7 @@ class ReturnType(models.Model):
         blank=True,
         null=True)
     version = models.SmallIntegerField(default=1, blank=False, null=False)
+    # species_list is the type of species associated with this Return Type.
     species_list = models.CharField(
         'Species List',
         max_length=30,
@@ -157,6 +160,31 @@ class ReturnType(models.Model):
     def get_schema_by_name(self, name):
         resource = self.get_resource_by_name(name)
         return resource.get('schema', {}) if resource else None
+
+
+class ReturnTypeRegulatedSpecies(models.Model):
+    '''
+    Model object representation of Regulated Species applicable for a Return
+    Type.
+    '''
+    return_type = models.ForeignKey(
+        ReturnType,
+        related_name='regulated_species',
+    )
+    species_name = models.CharField(max_length=100)
+    species_price = models.DecimalField(
+        max_digits=8,
+        decimal_places=2,
+        default='0',
+    )
+
+    class Meta:
+        app_label = 'wildlifecompliance'
+        verbose_name = 'Regulated Species'
+        verbose_name_plural = 'Regulated Species'
+
+    def __str__(self):
+        return '{} - {}'.format(self.return_type, self.species_name)
 
 
 class Return(models.Model):
