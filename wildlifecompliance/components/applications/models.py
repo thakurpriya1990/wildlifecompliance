@@ -3099,7 +3099,9 @@ class Application(RevisionedMixin):
         self.save()
 
     def generate_returns(self, licence, selected_activity, request):
-
+        from wildlifecompliance.components.returns.utils import (
+            ReturnSpeciesUtility,
+        )
         # TODO: Delete any previously existing returns with default status
         # which may occur if this activity is being reissued or amended.
         from wildlifecompliance.components.returns.models import Return
@@ -3117,10 +3119,10 @@ class Application(RevisionedMixin):
                     current_date = condition.due_date
                     # create a first Return
                     try:
-                        Return.objects.get(
+                        first_return = Return.objects.get(
                             condition=condition, due_date=current_date)
                     except Return.DoesNotExist:
-                        Return.objects.create(
+                        first_return = Return.objects.create(
                             application=self,
                             due_date=current_date,
                             processing_status=Return.RETURN_PROCESSING_STATUS_FUTURE,
@@ -3130,11 +3132,14 @@ class Application(RevisionedMixin):
                             submitter=request.user
                         )
 
-                    # Make first return editable for applicant but cannot
-                    # submit until due.
-                    # Establish species list for first return.
-                    # if first_return.has_species_list:
-                    #   first_return.set_species_list()
+                    # Make first return editable (draft) for applicant but
+                    # cannot submit until due. Establish species list for first
+                    # return.
+                    DRAFT = Returns.PROCESSING_STATUS_DRAFT
+                    first_return.processing_status = DRAFT
+                    first_return.save()
+                    returns_utils = ReturnSpeciesUtility(first_return)
+                    returns_utils.set_species_list()
 
                     if condition.recurrence:
                         while current_date < licence_expiry:
