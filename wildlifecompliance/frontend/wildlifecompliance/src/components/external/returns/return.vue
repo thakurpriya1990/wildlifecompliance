@@ -109,9 +109,10 @@ export default {
       for (const speciesID in self.species_cache) { // Running Sheet Cache
         let speciesJSON = []
         for (let i=0;i<self.species_cache[speciesID].length;i++){
-          speciesJSON[i] = JSON.stringify(self.species_cache[speciesID][i])
+          // speciesJSON[i] = JSON.stringify(self.species_cache[speciesID][i])
+          speciesJSON[i] = self.species_cache[speciesID][i]
         }
-        data.append(speciesID, speciesJSON)
+        data.append(speciesID, JSON.stringify(speciesJSON))
       };
       var speciesJSON = []
       let cnt = 0;
