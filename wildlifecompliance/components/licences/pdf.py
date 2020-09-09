@@ -1,5 +1,6 @@
 import os
 from io import BytesIO
+from bs4 import BeautifulSoup
 
 from reportlab.lib import enums, colors
 from reportlab.lib.pagesizes import A4
@@ -719,7 +720,7 @@ def create_licence_pdf_bytes(licence, application):
     return value
 
 
-def parse_html_table(raw_html):
+def _parse_html_table(raw_html):
     from xml.etree import ElementTree as ET
     data = []
     table = ET.XML(raw_html)
@@ -733,4 +734,90 @@ def parse_html_table(raw_html):
         # print values #dict(zip(headers, values))
 
     return data
+
+
+class HtmlParser(object):
+
+'''
+html =
+    <div>
+       <table style="width:100%" species_col=2>
+         <tr>
+           <th>Firstname</th>
+           <th>Lastname</th>
+           <th>Age</th>
+         </tr>
+         <tr>
+           <td>Jill</td>
+           <td>Smith</td>
+           <td>50</td>
+         </tr>
+         <tr>
+           <td>Eve</td>
+           <td>Jackson</td>
+           <td>94</td>
+         </tr>
+       </table>
+
+       <ul>
+         <li>Coffee</li>
+         <li>Tea</li>
+       </ul>
+
+       <ul>
+         <li>ssss</li>
+       </ul>
+
+       <p>
+       This is some text ...
+       </p>
+
+       <p>
+       More text ...
+       </p>
+    </div>
+'''
+
+    def __init__(self, raw_html):
+        self.raw_html = raw_html
+        self.tables = []
+        self.lists = []
+        self.free_text = []
+        self.parse()
+
+    def parse(self):
+        try:
+            self.soup = BeautifulSoup(self.raw_html, "html.parser")
+            self._parse_table()
+            self._parse_list()
+            self._parse_free_text()
+        except Exception as e:
+            raise
+
+    def _parse_table(self):
+        for tbl in self.soup.findAll('table'):
+            rows = []
+
+            # add table column headers
+            rows.append([row.get_text(strip=True) for row in self.soup.select("table tr > th")])
+
+            for tr in tbl.findAll('tr'):
+                cols = []
+                for td in tr.findAll('td'):
+                    cols.append(td.string)
+
+                if cols:
+                    rows.append(cols)
+            self.tables.append(rows)
+
+
+    def _parse_list(self):
+        for ul in self.soup.findAll('ul'):
+            self.lists.append(
+                [row.get_text(strip=True) for row in ul.select("li")]
+            )
+
+    def _parse_free_text(self):
+        self.free_text = [row.get_text(strip=True) for row in self.soup.select("p")]
+
 
