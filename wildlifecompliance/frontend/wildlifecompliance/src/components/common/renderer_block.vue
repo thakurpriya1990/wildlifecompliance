@@ -280,6 +280,22 @@
                     />
         </SpeciesGroup>
 
+        <SpeciesFiltered v-if="component.type === 'species-all'"
+            :name="component.name"
+            :label="component.label"
+            :field_data="value"
+            :id="element_id()"
+            :options="component.component_attribute"
+            :isMultiple="true"
+            :isRepeatable="strToBool(component.isRepeatable)"
+            :help_text="help_text"
+            :readonly="is_readonly"
+            :isRequired="component.isRequired"
+            :handleChange="handleComponentChange(component, true)"
+            :help_text_url="help_text_url"
+            :filtered_list_url="application_url(component)"
+            />
+
     </span>
 </template>
 
@@ -311,6 +327,7 @@ import ExpanderTable from '@/components/forms/expander_table.vue'
 import GridBlock from '@/components/forms/grid.vue'
 import Species from '@/components/forms/select_species.vue'
 import SpeciesGroup from '@/components/forms/group_species.vue'
+import SpeciesFiltered from '@/components/forms/select_filtered.vue'
 
 const RendererBlock = {
   name: 'renderer-block',
@@ -334,6 +351,7 @@ const RendererBlock = {
       GridBlock,
       Species,
       SpeciesGroup,
+      SpeciesFiltered,
   },
   data: function() {
     return {
@@ -425,6 +443,13 @@ const RendererBlock = {
     strToBool: strToBool,
     element_id: function(depth=0) {
         return `id_${this.component_name}${(depth) ? `_${depth}` : ''}${this.instance !== null ? `__instance${this.instance}`: ''}`;
+    },
+    application_url: function(component) {
+        if (component.type === 'species-all') {
+            return "/api/application/" + this.application_id + "/select_filtered_species/"
+        }
+
+        return ''
     },
     replaceSitePlaceholders: function(text_string) {
         if(text_string && text_string.includes("site_url:/")) {

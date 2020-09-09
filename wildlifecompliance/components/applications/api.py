@@ -50,6 +50,9 @@ from wildlifecompliance.components.applications.services import (
     SpeciesOptionsFieldElement,
     StandardConditionFieldElement,
     PromptInspectionFieldElement,
+    TSCSpecieService,
+    TSCSpecieCall,
+    HerbieSpecieKMICall,
 )
 from wildlifecompliance.components.applications.serializers import (
     ApplicationSerializer,
@@ -1543,6 +1546,24 @@ class ApplicationViewSet(viewsets.ModelViewSet):
         except Exception as e:
             print(traceback.print_exc())
         raise serializers.ValidationError(str(e))
+
+    @detail_route(methods=['get'])
+    def select_filtered_species(self, request, *args, **kwargs):
+        try:
+            filter_str = request.query_params['term']
+            tsc_service = TSCSpecieService(HerbieSpecieKMICall())
+            data = tsc_service.search_filtered_taxon(filter_str)
+
+            return Response(data)
+
+        except serializers.ValidationError:
+            print(traceback.print_exc())
+            raise
+        except ValidationError as e:
+            raise serializers.ValidationError(repr(e.error_dict))
+        except Exception as e:
+            print(traceback.print_exc())
+            raise serializers.ValidationError(str(e))
 
     @detail_route(methods=['post'])
     @renderer_classes((JSONRenderer,))

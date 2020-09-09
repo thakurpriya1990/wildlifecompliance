@@ -1234,6 +1234,21 @@ class TSCSpecieService():
     def get_strategy(self):
         return self._strategy
 
+    def search_filtered_taxon(self, filter_str):
+        """
+        Search filtered taxonomy of results for specie details.
+        """
+        try:
+            search_data = self._strategy.request_filtered_species(filter_str)
+
+            return search_data
+
+        except BaseException as e:
+            logger.error('{0} - {1}'.format(
+                TSCSpecieService.search_filtered_taxon(), e
+            ))
+            raise
+
     def search_taxon(self, specie_id):
         """
         Search taxonomy for specie details and save search data.
@@ -1283,6 +1298,118 @@ class TSCSpecieCallStrategy(object):
         Operation for consuming TSCSpecie details.
         """
         pass
+
+
+class HerbieSpecieKMICall(TSCSpecieCallStrategy):
+    '''
+    Public Herbie from KMI.
+    '''
+    _CODE = 'HERBIE'
+    _URL = 'https://kmi.dpaw.wa.gov.au/geoserver/ows?service=wfs&version=1.1.0'
+
+    def __init__(self):
+        super(TSCSpecieCallStrategy, self).__init__()
+        self._depth = sys.getrecursionlimit()
+
+    def set_depth(self, depth):
+        '''
+        Set the number of recursion levels.
+        '''
+        self._depth = depth if depth > 0 else sys.getrecursionlimit()
+
+    def request_filtered_species(self, search_data):
+        '''
+        Search herbie for species and return a list of matching species in the
+        form 'scientific name (common name)'.
+        The 'search' parameter is used to search (icontains like) through the
+        species_name (scientific name) and vernacular property (common name).
+        The 'type'=['fauna'|'flora'] parameter can be used to limit the
+        kingdom.
+
+        :return: a list of matching species in the form 'scientific name
+        (common name)'
+        '''
+        import sys
+        reload(sys)
+        sys.setdefaultencoding('utf8')
+        filtered_species = {}
+        results = []
+        params = {
+            'propertyName': '(species_name,vernacular)',
+            'sortBy': 'species_name'
+        }
+
+        def add_filter(cql_filter, params):
+            if 'cql_filter' not in params:
+                params['cql_filter'] = cql_filter
+            else:
+                params['cql_filter'] = params['cql_filter'] \
+                                                    + ' AND ' + cql_filter
+
+        def send_request(search):
+            A = '&request=GetFeature&typeNames=public:herbie_hbvspecies_public'
+            B = '&outputFormat=application/json'
+
+            kingdom = 'fauna'
+            fauna_kingdom = 5
+            if kingdom == 'fauna':
+                add_filter('kingdom_id IN ({})'.format(fauna_kingdom), params)
+
+            elif kingdom == 'flora':
+                add_filter('kingdom_id NOT IN ({})'.format(
+                    fauna_kingdom
+                ), params)
+
+            if search_data:
+                f_ = "(species_name ILIKE '%{1}%'" \
+                    "OR vernacular ILIKE '%{1}%')".format(search, search)
+                add_filter(f_, params)
+
+            url = '{0}{1}{2}'.format(self._URL, A, B)
+            _request_results = requests.get(url, params=params, verify=False)
+            return _request_results
+
+        request_result = send_request(search_data)
+        if request_result:
+            features = request_result.json()['features']
+            for f in features:
+                specie = {}
+                name = f['properties']['species_name']
+                common_name = f[
+                    'properties'
+                ]['vernacular'] if 'vernacular' in f['properties'] else None
+
+                if common_name:
+                    name += ' ({0})'.format(common_name.encode("utf-8"))
+
+                specie['text'] = name
+                specie['id'] = name
+                results.append(specie)
+
+        filtered_species['results'] = results
+
+        return filtered_species
+
+    def request_species(self, specie_id):
+        '''
+        Search herbie for species and return a list of matching species in the
+        form 'scientific name (common name)'.
+        The 'search' parameter is used to search (icontains like) through the
+        species_name (scientific name) and vernacular property (common name).
+        The 'type'=['fauna'|'flora'] parameter can be used to limit the
+        kingdom.
+
+        :return: a list of matching species in the form 'scientific name
+        (common name)'
+        '''
+        def send_request(specie_id):
+            url = '{0}'.format(self._URL)
+            specie_json = requests.get(url, headers=self._AUTHORISE).json()
+            return specie_json
+
+        details = send_request(specie_id)
+
+        return details
 
 
 class TSCSpecieCall(TSCSpecieCallStrategy):
