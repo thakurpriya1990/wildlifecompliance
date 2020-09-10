@@ -588,30 +588,31 @@ class ReturnData(object):
                     table_info, data)
                 if self.requires_species():
                     table_info = self._species
+                    table_rows = None       # Don't save - already done.
                 if table_rows:
                     self._return.save_return_table(
                         table_info, table_rows, request)
 
-        def _parse_species_data(data):
-            '''
-            parse species data for storing.
-            '''
-            import json
+        # def _parse_species_data(data):
+        #     '''
+        #     parse species data for storing.
+        #     '''
+        #     import json
 
-            _parsed_data = request.data
-            _json_data = json.loads(data)
+        #     _parsed_data = request.data
+        #     _json_data = json.loads(data)
 
-            for _data in _json_data:
-                for _key in _data.keys():
-                    try:
-                        _value = _data[_key]['value']
-                        _key_name = '{0}::{1}'.format(returns_tables, _key)
-                        _parsed_data[_key_name] = _value
+        #     for _data in _json_data:
+        #         for _key in _data.keys():
+        #             try:
+        #                 _value = _data[_key]['value']
+        #                 _key_name = '{0}::{1}'.format(returns_tables, _key)
+        #                 _parsed_data[_key_name] = _value
 
-                    except KeyError:
-                        pass
+        #             except KeyError:
+        #                 pass
 
-            return _parsed_data
+        #     return _parsed_data
 
         for key in request.data.keys():
             data = request.data
