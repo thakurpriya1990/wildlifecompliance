@@ -1234,12 +1234,14 @@ class TSCSpecieService():
     def get_strategy(self):
         return self._strategy
 
-    def search_filtered_taxon(self, filter_str):
+    def search_filtered_taxon(self, filter_str, category):
         """
         Search filtered taxonomy of results for specie details.
         """
         try:
-            search_data = self._strategy.request_filtered_species(filter_str)
+            search_data = self._strategy.request_filtered_species(
+                filter_str, category
+            )
 
             return search_data
 
@@ -1299,6 +1301,13 @@ class TSCSpecieCallStrategy(object):
         """
         pass
 
+    @abc.abstractmethod
+    def request_filtered_species(self, species, category):
+        """
+        Operation for consuming a filtered set of TSCSpecie details.
+        """
+        pass
+
 
 class HerbieSpecieKMICall(TSCSpecieCallStrategy):
     '''
@@ -1306,6 +1315,8 @@ class HerbieSpecieKMICall(TSCSpecieCallStrategy):
     '''
     _CODE = 'HERBIE'
     _URL = 'https://kmi.dpaw.wa.gov.au/geoserver/ows?service=wfs&version=1.1.0'
+    FLORA = 'flora'
+    FAUNA = 'fauna'
 
     def __init__(self):
         super(TSCSpecieCallStrategy, self).__init__()
@@ -1317,7 +1328,7 @@ class HerbieSpecieKMICall(TSCSpecieCallStrategy):
         '''
         self._depth = depth if depth > 0 else sys.getrecursionlimit()
 
-    def request_filtered_species(self, search_data):
+    def request_filtered_species(self, search_data, category):
         '''
         Search herbie for species and return a list of matching species in the
         form 'scientific name (common name)'.
@@ -1350,12 +1361,12 @@ class HerbieSpecieKMICall(TSCSpecieCallStrategy):
             A = '&request=GetFeature&typeNames=public:herbie_hbvspecies_public'
             B = '&outputFormat=application/json'
 
-            kingdom = 'fauna'
+            kingdom = category.lower()
             fauna_kingdom = 5
-            if kingdom == 'fauna':
+            if kingdom == self.FAUNA:
                 add_filter('kingdom_id IN ({})'.format(fauna_kingdom), params)
 
-            elif kingdom == 'flora':
+            elif kingdom == self.FLORA:
                 add_filter('kingdom_id NOT IN ({})'.format(
                     fauna_kingdom
                 ), params)

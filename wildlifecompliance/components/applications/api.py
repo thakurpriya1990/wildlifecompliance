@@ -1550,9 +1550,12 @@ class ApplicationViewSet(viewsets.ModelViewSet):
     @detail_route(methods=['get'])
     def select_filtered_species(self, request, *args, **kwargs):
         try:
+            instance = self.get_object()
+            category = instance.licence_category
+
             filter_str = request.query_params['term']
             tsc_service = TSCSpecieService(HerbieSpecieKMICall())
-            data = tsc_service.search_filtered_taxon(filter_str)
+            data = tsc_service.search_filtered_taxon(filter_str, category)
 
             return Response(data)
 
