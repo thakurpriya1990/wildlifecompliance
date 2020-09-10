@@ -3135,7 +3135,7 @@ class Application(RevisionedMixin):
                     # Make first return editable (draft) for applicant but
                     # cannot submit until due. Establish species list for first
                     # return.
-                    DRAFT = Returns.PROCESSING_STATUS_DRAFT
+                    DRAFT = Return.RETURN_PROCESSING_STATUS_DRAFT
                     first_return.processing_status = DRAFT
                     first_return.save()
                     returns_utils = ReturnSpeciesUtility(first_return)
