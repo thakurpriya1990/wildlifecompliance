@@ -130,7 +130,9 @@ export default {
                         'value': this.field_data.value[i],
                         'label': this.field_data.value[i],
                     }
-                    results[i] = specie
+                    if (this.field_data.value[i] != ''){
+                        results[i] = specie 
+                    }
                 }
 
             }
@@ -140,10 +142,13 @@ export default {
                     'value': this.field_data.value,
                     'label': this.field_data.value,
                 }
-                results[0] = specie
+                if (this.field_data.value != ''){
+                    results[0] = specie 
+                }
 
             }
-            return results
+            let unique_results = [...new Set(results)]
+            return unique_results
         },
     },
     components: { HelpText, HelpTextUrl, },
