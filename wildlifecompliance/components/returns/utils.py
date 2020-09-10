@@ -267,7 +267,8 @@ class ReturnSpeciesUtility(ReturnUtility):
     '''
     Utility class to manage return species.
     '''
-    _return = None          # Composite Return for this utility.
+    _return = None                      # Composite Return for this utility.
+    application_species_list = []       # Composite List for this utility.
 
     def __init__(self, a_return):
         super(ReturnUtility, self).__init__()
@@ -281,12 +282,8 @@ class ReturnSpeciesUtility(ReturnUtility):
         return_table = []
 
         try:
-
-            if a_species_list:
-                species_list = a_species_list
-
-            else:
-                species_list = self.get_species_list()
+            self.set_application_species_list(a_species_list)
+            species_list = self.get_species_list()
 
             for species in species_list:
                 name_id = self.get_id_from_species_name(species.species_name)
@@ -311,7 +308,7 @@ class ReturnSpeciesUtility(ReturnUtility):
         species_list = []
 
         if self._return.return_type.with_application_species:
-            species_list = self.get_licence_species_list()
+            species_list = self.get_application_species_list()
 
         elif self._return.return_type.with_regulated_species:
             species_list = self.get_regulated_species_list()
@@ -331,7 +328,19 @@ class ReturnSpeciesUtility(ReturnUtility):
         '''
         return self._return.return_type.regulated_species.all()
 
+    def set_application_species_list(self, the_species_list):
+        '''
+        Set application list of species associated with this Return.
+        '''
+        self.application_species_list = the_species_list
+
     def get_application_species_list(self):
+        '''
+        Get application list of species associated with this Return.
+        '''
+        return self.application_species_list
+
+    def get_form_species_list(self):
         '''
         Get list of species common names from the application form.
         '''
