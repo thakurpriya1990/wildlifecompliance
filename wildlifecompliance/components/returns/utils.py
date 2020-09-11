@@ -282,11 +282,15 @@ class ReturnSpeciesUtility(ReturnUtility):
         return_table = []
 
         try:
-            self.set_application_species_list(a_species_list)
+            if isinstance(a_species_list, list):
+                self.set_application_species_list(a_species_list)
+            else:
+                self.set_raw_species_list(a_species_list)
+
             species_list = self.get_species_list()
 
-            for species in species_list:
-                name_id = self.get_id_from_species_name(species.species_name)
+            for species_name in species_list:
+                name_id = self.get_id_from_species_name(species_name)
                 return_table.append(
                     ReturnTable(name=name_id, ret_id=str(self._return.id))
                 )
@@ -333,6 +337,63 @@ class ReturnSpeciesUtility(ReturnUtility):
         Set application list of species associated with this Return.
         '''
         self.application_species_list = the_species_list
+
+    def set_raw_species_list(self, raw_species_list):
+        '''
+        Set raw list of species associated with this Return.
+
+        Setter to attempt to build a species list from an unknown type.
+        '''
+        from wildlifecompliance.components.licences.pdf import HtmlParser
+
+        the_species_list = None
+        try:
+            # attempt to build from raw data type with a html parser.
+            parser = HtmlParser(raw_species_list)
+            the_species_list = parser.species
+
+        except TypeError:
+            logger.warn('{0} ReturnID: {1}'.format(
+                'No Species list available.', self._return.id
+            ))
+        except BaseException as e:
+            logger.error('{0} ReturnID: {1} - {2}'.format(
+                'ReturnSpeciesUtility.set_raw_species_list()',
+                self._return.id, e
+            ))
+
+        self.application_species_list = the_species_list
+
+    def get_raw_species_list_for(self, selected_activity):
+        '''
+        Get raw list of species associated with this Return.
+        '''
+        raw_species_list = None
+        try:
+
+            condition = self._return.condition
+            selected_purpose = [
+                p for p in selected_activity.proposed_purposes.all()
+                if p.purpose_id == condition.licence_purpose_id
+            ][0]
+            # NOTE: Expectation that only ONE species 'Details' is created.
+            # 'Details' may consist of a list of species in html format.
+            raw_species_list = [
+                d['details'] for d in selected_purpose.purpose_species_json
+                if d['species']
+            ][0]
+
+        except IndexError:
+            logger.warn('{0} ReturnID: {1}'.format(
+                'No Species list available.', self._return.id
+            ))
+        except BaseException as e:
+            logger.error('{0} ReturnID: {1} - {2}'.format(
+                'ReturnSpeciesUtility.get_raw_species_list_for_activity()',
+                self._return.id, e
+            ))
+
+        return raw_species_list
 
     def get_application_species_list(self):
         '''

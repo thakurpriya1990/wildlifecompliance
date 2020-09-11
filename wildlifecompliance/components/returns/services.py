@@ -237,7 +237,15 @@ class ReturnService(object):
                 continue
             # a_return.set_future_return_species()
             utils = ReturnSpeciesUtility(a_return)
-            utils.set_species_list()
+            licence_activity_id = a_return.condition.licence_activity_id
+            selected_activity = [
+                a for a in a_return.application.activities
+                if a.licence_activity_id == licence_activity_id
+            ][0]
+            raw_specie_names = utils.get_raw_species_list_for(
+                selected_activity
+            )
+            utils.set_species_list(raw_specie_names)
             a_return.set_processing_status(status)
 
         overdue_returns = Return.objects.filter(

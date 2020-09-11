@@ -3139,12 +3139,12 @@ class Application(RevisionedMixin):
                     first_return.processing_status = DRAFT
                     first_return.save()
                     returns_utils = ReturnSpeciesUtility(first_return)
-                    # Application species is a list of names defined manually
+                    # raw_specie_names is a list of names defined manually
                     # by the licensing officer at the time of propose/issuance.
-                    # TODO: parse free field rich text to 'scrape' species
-                    # names required for returns.
-                    scraped_specie_names = None
-                    returns_utils.set_species_list(scraped_specie_names)
+                    raw_specie_names = returns_utils.get_raw_species_list_for(
+                        selected_activity
+                    )
+                    returns_utils.set_species_list(raw_specie_names)
 
                     if condition.recurrence:
                         while current_date < licence_expiry:
