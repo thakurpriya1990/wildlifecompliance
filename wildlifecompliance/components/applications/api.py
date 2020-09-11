@@ -50,6 +50,9 @@ from wildlifecompliance.components.applications.services import (
     SpeciesOptionsFieldElement,
     StandardConditionFieldElement,
     PromptInspectionFieldElement,
+    TSCSpecieService,
+    TSCSpecieCall,
+    HerbieSpecieKMICall,
 )
 from wildlifecompliance.components.applications.serializers import (
     ApplicationSerializer,
@@ -1338,9 +1341,12 @@ class ApplicationViewSet(viewsets.ModelViewSet):
             serializer = ProposedLicenceSerializer(data=request.data)
             serializer.is_valid(raise_exception=True)
             instance.proposed_licence(request, serializer.validated_data)
-            serializer = InternalApplicationSerializer(
-                instance, context={'request': request})
-            return Response(serializer.data)
+            # serializer = InternalApplicationSerializer(
+            #     instance, context={'request': request})
+            # return Response(serializer.data)
+
+            return Response({'success': True})
+
         except serializers.ValidationError:
             print(traceback.print_exc())
             raise
@@ -1435,9 +1441,12 @@ class ApplicationViewSet(viewsets.ModelViewSet):
             serializer = IssueLicenceSerializer(data=request.data)
             serializer.is_valid(raise_exception=True)
             instance.final_decision(request)
-            serializer = InternalApplicationSerializer(
-                instance, context={'request': request})
-            return Response(serializer.data)
+            # serializer = InternalApplicationSerializer(
+            #     instance, context={'request': request})
+            # return Response(serializer.data)
+
+            return Response({'success': True})
+
         except serializers.ValidationError:
             print(traceback.print_exc())
             raise
@@ -1543,6 +1552,27 @@ class ApplicationViewSet(viewsets.ModelViewSet):
         except Exception as e:
             print(traceback.print_exc())
         raise serializers.ValidationError(str(e))
+
+    @detail_route(methods=['get'])
+    def select_filtered_species(self, request, *args, **kwargs):
+        try:
+            instance = self.get_object()
+            category = instance.licence_category
+
+            filter_str = request.query_params['term']
+            tsc_service = TSCSpecieService(HerbieSpecieKMICall())
+            data = tsc_service.search_filtered_taxon(filter_str, category)
+
+            return Response(data)
+
+        except serializers.ValidationError:
+            print(traceback.print_exc())
+            raise
+        except ValidationError as e:
+            raise serializers.ValidationError(repr(e.error_dict))
+        except Exception as e:
+            print(traceback.print_exc())
+            raise serializers.ValidationError(str(e))
 
     @detail_route(methods=['post'])
     @renderer_classes((JSONRenderer,))
