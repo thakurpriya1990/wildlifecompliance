@@ -394,7 +394,7 @@ def _create_licence(licence_buffer, licence, application):
 #        import ipdb; ipdb.set_trace()
 #        no_border_table_style = TableStyle([('VALIGN', (0, 0), (-1, -1), 'TOP')])
 #        box_table_style = TableStyle([('VALIGN', (0, 0), (-1, -1), 'TOP'), ('BOX', (0,0), (-1,-1), 0.25, colors.black), ('INNERGRID', (0,0), (-1,-1), 0.25, colors.black), ('ALIGN', (0, 0), (-1, -1), 'RIGHT')])
-        box_table_style_hdrbold = TableStyle([('VALIGN', (0, 0), (-1, -1), 'TOP'), ('BOX', (0,0), (-1,-1), 0.25, colors.black), ('GRID', (0,0), (-1,-1), 0.25, colors.black), ('FONTNAME', (0,0), (-1,0), 'Courier-Bold'), ('ALIGN', (0, 0), (-1, -1), 'LEFT')])
+#        box_table_style_hdrbold = TableStyle([('VALIGN', (0, 0), (-1, -1), 'TOP'), ('BOX', (0,0), (-1,-1), 0.25, colors.black), ('GRID', (0,0), (-1,-1), 0.25, colors.black), ('FONTNAME', (0,0), (-1,0), 'Courier-Bold'), ('ALIGN', (0, 0), (-1, -1), 'LEFT')])
 #        box_table_style_colbold = TableStyle([('VALIGN', (0, 0), (-1, -1), 'TOP'), ('BOX', (0,0), (-1,-1), 0.25, colors.black), ('GRID', (0,0), (-1,-1), 0.25, colors.black), ('FONTNAME', (0,0), (0,-1), 'Courier-Bold'), ('ALIGN', (0, 0), (-1, -1), 'RIGHT')])
 #
 ##        specieslist = []
@@ -433,8 +433,6 @@ def _create_licence(licence_buffer, licence, application):
 
         #import ipdb; ipdb.set_trace()
         for s in purpose.purpose_species_json:
-            flow_list = []
-            purposeSpeciesList = None
             parser = HtmlParser(s['details'])
 
             # Get and Display Purpose Species Header
@@ -445,58 +443,13 @@ def _create_licence(licence_buffer, licence, application):
                 )
             )
 
-            # Get and Display Purpose Species Table(s) (<table>)
-            for table in parser.tables:
-                flow_list.append(
-                    Table(
-                        table,
-                        style=box_table_style_hdrbold,
-                        hAlign='LEFT'
-                    )
-                )
-
-            # Get and Display Purpose Species List(s) (<ul><li>)
-            for _list in parser.lists:
-                flow_list.append(
-                    [Paragraph(
-                        li,
-                        styles['Left']
-                    ) for li in _list ]
-                )
-
-            # Get and Display Purpose Species Free Text (<p>)
-            flow_list.append(
-                [Paragraph(
-                    text,
-                    styles['Left']
-                ) for text in parser.free_text]
-            )
-
-            purposeSpeciesList = ListFlowable(
-                flow_list,
-                bulletFontName=BOLD_FONTNAME, bulletFontSize=MEDIUM_FONTSIZE
-            )
+            purposeSpeciesList = add_parsed_details(parser)
             elements.append(purposeSpeciesList)
-
-#        # PurposeSpecies Section End
-
 
         # application conditions
         activity_conditions = selected_activity.application.conditions.filter(
             licence_activity_id=selected_activity.licence_activity_id,
             licence_purpose_id=issued_purpose.purpose.id)
-#        conditionList = None
-#        if activity_conditions.exists():
-#            elements.append(Spacer(1, SECTION_BUFFER_HEIGHT))
-#            elements.append(Paragraph('CONDITIONS', styles['BoldLeft']))
-#            elements.append(Spacer(1, SECTION_BUFFER_HEIGHT))
-#
-#            conditionList = ListFlowable(
-#                [Paragraph(
-#                    a.condition, styles['Left']
-#                    ) for a in activity_conditions.order_by('order')],
-#                bulletFontName=BOLD_FONTNAME, bulletFontSize=MEDIUM_FONTSIZE)
-#            elements.append(conditionList)
 
         if activity_conditions.exists():
             elements.append(Spacer(1, SECTION_BUFFER_HEIGHT))
@@ -504,44 +457,10 @@ def _create_licence(licence_buffer, licence, application):
             elements.append(Spacer(1, SECTION_BUFFER_HEIGHT))
 
             for s in activity_conditions.order_by('order'):
-                flow_list = []
                 conditionList = None
-                #import ipdb; ipdb.set_trace()
                 parser = HtmlParser(s.condition)
-
-                # Get and Display Purpose Species Table(s) (<table>)
-                for table in parser.tables:
-                    flow_list.append(
-                        Table(
-                            table,
-                            style=box_table_style_hdrbold,
-                            hAlign='LEFT'
-                        )
-                    )
-
-                # Get and Display Purpose Species List(s) (<ul><li>)
-                for _list in parser.lists:
-                    flow_list.append(
-                        [Paragraph(
-                            li,
-                            styles['Left']
-                        ) for li in _list ]
-                    )
-
-                # Get and Display Purpose Species Free Text (<p>)
-                flow_list.append(
-                    [Paragraph(
-                        text,
-                        styles['Left']
-                    ) for text in parser.free_text]
-                )
-
-                conditionList = ListFlowable(
-                    flow_list,
-                    bulletFontName=BOLD_FONTNAME, bulletFontSize=MEDIUM_FONTSIZE
-                )
+                conditionList = add_parsed_details(parser)
                 elements.append(conditionList)
-
 
         elements += _layout_extracted_fields(licence.extracted_fields)
         elements.append(Spacer(1, SECTION_BUFFER_HEIGHT))
@@ -582,52 +501,10 @@ def _create_licence(licence_buffer, licence, application):
                     infos.append('{0} (related to condition no.{1})'.format(
                         info.encode('utf8'), c_num))
 
-#            infoList = ListFlowable(
-#                [Paragraph("{info}".format(
-#                    info=i,
-#                ), styles['Left'],) for i in infos],
-#                bulletFontName=BOLD_FONTNAME, bulletFontSize=MEDIUM_FONTSIZE)
-#            elements.append(infoList)
-
             for s in infos:
-                flow_list = []
-                infoList = None
-                import ipdb; ipdb.set_trace()
                 parser = HtmlParser(s)
-
-                # Get and Display Purpose Species Table(s) (<table>)
-                for table in parser.tables:
-                    flow_list.append(
-                        Table(
-                            table,
-                            style=box_table_style_hdrbold,
-                            hAlign='LEFT'
-                        )
-                    )
-
-                # Get and Display Purpose Species List(s) (<ul><li>)
-                for _list in parser.lists:
-                    flow_list.append(
-                        [Paragraph(
-                            li,
-                            styles['Left']
-                        ) for li in _list ]
-                    )
-
-                # Get and Display Purpose Species Free Text (<p>)
-                flow_list.append(
-                    [Paragraph(
-                        text,
-                        styles['Left']
-                    ) for text in parser.free_text]
-                )
-
-                infoList = ListFlowable(
-                    flow_list,
-                    bulletFontName=BOLD_FONTNAME, bulletFontSize=MEDIUM_FONTSIZE
-                )
+                infoList = add_parsed_details(parser)
                 elements.append(infoList)
-
 
         elements.append(PageBreak())
 
@@ -971,9 +848,16 @@ class HtmlParser(object):
         except KeyError as e:
             logger.warn('Species attribute <species_col> not found in HTML table definition. \n{}'.format(e))
 
-def add_info(items):
+def add_parsed_details(parser):
         flow_list = []
         infoList = None
+        box_table_style_hdrbold = TableStyle([
+            ('VALIGN', (0, 0), (-1, -1), 'TOP'),
+            ('BOX', (0,0), (-1,-1), 0.25, colors.black),
+            ('GRID', (0,0), (-1,-1), 0.25, colors.black),
+            ('FONTNAME', (0,0), (-1,0), 'Courier-Bold'),
+            ('ALIGN', (0, 0), (-1, -1), 'LEFT')
+        ])
 
         # Get and Display Purpose Species Table(s) (<table>)
         for table in parser.tables:
