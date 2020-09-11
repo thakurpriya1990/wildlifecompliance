@@ -836,6 +836,9 @@ class HtmlParser(object):
 
     def _parse_species(self):
         try:
+            if not self.soup.table:
+                return []
+
             col_name = self.soup.table["species_col"]
             for tbl in self.tables:
                 for i, row in enumerate(tbl):
