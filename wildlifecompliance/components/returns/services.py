@@ -34,6 +34,7 @@ from wildlifecompliance.components.returns.email import (
 from wildlifecompliance.components.returns.utils import (
     get_session_return,
     bind_return_to_invoice,
+    ReturnSpeciesUtility,
 )
 
 logger = logging.getLogger(__name__)
@@ -234,7 +235,17 @@ class ReturnService(object):
         for a_return in due_returns:
             if not for_all and not a_return.id == id:
                 continue
-            a_return.set_future_return_species()
+            # a_return.set_future_return_species()
+            utils = ReturnSpeciesUtility(a_return)
+            licence_activity_id = a_return.condition.licence_activity_id
+            selected_activity = [
+                a for a in a_return.application.activities
+                if a.licence_activity_id == licence_activity_id
+            ][0]
+            raw_specie_names = utils.get_raw_species_list_for(
+                selected_activity
+            )
+            utils.set_species_list(raw_specie_names)
             a_return.set_processing_status(status)
 
         overdue_returns = Return.objects.filter(
@@ -477,6 +488,28 @@ class ReturnData(object):
         }
 
         """
+        new_list = {}
+        for _species in ReturnTable.objects.filter(ret=self._return):
+            utils = ReturnSpeciesUtility(self._return)
+            name_str = utils.get_species_name_from_id(_species.name)
+            new_list[_species.name] = name_str
+
+            self._species = _species.name
+
+        self._species_list.append(new_list)
+
+        return new_list
+
+    def _species_list(self):
+        """
+        List of Species available with Return Data.
+        :return: List of Species.
+        {
+         'S000001': 'Western Grey Kangaroo', 'S000002': 'Western Red Kangaroo',
+         'S000003': 'Blue Banded Bee', 'S000004': 'Orange-Browed Resin Bee'
+        }
+
+        """
         from wildlifecompliance.components.licences.models import (
             LicenceSpecies
         )
@@ -487,8 +520,11 @@ class ReturnData(object):
                     specie_id=int(_species.name)
                 )
 
-            except BaseException:
-                break
+            except BaseException as e:
+                logger.error('species_list() ID: {0} - {1}'.format(
+                    self._return.id,
+                    e,
+                ))
 
             lic_specie_data = lic_specie[0].data
             lic_specie_name = lic_specie_data[0]['vernacular_names']
@@ -516,47 +552,75 @@ class ReturnData(object):
                 self._return.nil_return = True
                 self._return.comments = request.data.get('nilReason')
                 self._return.save()
+
             elif key == "nilNo":
-                if self._is_post_data_valid(
-                        returns_tables.encode('utf-8'), data):
+                # Not submitting a Nil return so save data.
+                is_valid_data = self._is_post_data_valid(
+                    returns_tables.encode('utf-8'),
+                    data
+                )
+                if is_valid_data:
+
                     table_info = returns_tables.encode('utf-8')
-                    table_rows = self._get_table_rows(
-                        table_info, data)
-                    if self.requires_species():
-                        table_info = self._species
-                    if table_rows:
-                        self._return.save_return_table(
-                            table_info, table_rows, request)
+                    if self._return.return_type.with_no_species:
+                        table_rows = self._get_table_rows(table_info, data)
+                        if table_rows:
+                            self._return.save_return_table(
+                                table_info, table_rows, request
+                            )
+
+                    else:
+                        for species in self.species_list:
+                            try:
+                                species_data = data[species]
+
+                            except KeyError:
+                                continue
+
+                            table_rows = self._get_table_species_rows(
+                                species,
+                                species_data
+                            )
+                            table_info = species
+
+                            if table_rows:
+                                self._return.save_return_table(
+                                    table_info, table_rows, request
+                                )
                 else:
                     raise FieldError('Enter data in correct format.')
+
             elif key == table_deficiency:
                 table_info = returns_tables.encode('utf-8')
                 table_rows = self._get_table_rows(
                     table_info, data)
                 if self.requires_species():
                     table_info = self._species
+                    table_rows = None       # Don't save - already done.
                 if table_rows:
                     self._return.save_return_table(
                         table_info, table_rows, request)
 
-        def _parse_species_data(data):
-            '''
-            parse species data for storing.
-            '''
-            import json
+        # def _parse_species_data(data):
+        #     '''
+        #     parse species data for storing.
+        #     '''
+        #     import json
 
-            _parsed_data = request.data
-            _json_data = json.loads(data)
+        #     _parsed_data = request.data
+        #     _json_data = json.loads(data)
 
-            for _key in _json_data.keys():
-                try:
-                    _value = _json_data[_key]['value']
-                    _key_name = '{0}::{1}'.format(returns_tables, _key)
-                    _parsed_data[_key_name] = _value
-                except KeyError:
-                    pass
+        #     for _data in _json_data:
+        #         for _key in _data.keys():
+        #             try:
+        #                 _value = _data[_key]['value']
+        #                 _key_name = '{0}::{1}'.format(returns_tables, _key)
+        #                 _parsed_data[_key_name] = _value
 
-            return _parsed_data
+        #             except KeyError:
+        #                 pass
+
+        #     return _parsed_data
 
         for key in request.data.keys():
             data = request.data
@@ -655,6 +719,30 @@ class ReturnData(object):
         if not schema.is_all_valid(table_rows):
             return False
         return True
+
+    def _get_table_species_rows(self, species, species_data):
+        """
+        Builds a row of data taken from a table into a standard that can be
+        consumed by the Schema.
+        :param species:
+        :param post_data:
+        :return:
+        """
+        import json
+
+        rows = []
+        _json_data = json.loads(species_data)
+
+        for _data in _json_data:
+            for key in _data.keys():
+                try:
+                    value = _data[key]['value']
+                except KeyError:
+                    continue
+                _data[key] = value
+            rows.append(_data)
+
+        return rows
 
     def _get_table_rows(self, table_name, post_data):
         """
@@ -1113,16 +1201,16 @@ class ReturnSheet(object):
                "licence": "false", "pay": "false", "inward": ""},
         SA03: {"label": SA03_TEXT, "auto": "false",
                "licence": "false", "pay": "false", "inward": ""},
-        SA04: {"label": SA04_TEXT, "auto": "true",
-               "licence": "false", "pay": "false", "inward": ""},
+        # SA04: {"label": SA04_TEXT, "auto": "true",
+        #        "licence": "false", "pay": "false", "inward": ""},
         SA05: {"label": SA05_TEXT, "auto": "false",
                "licence": "false", "pay": "false", "outward": ""},
         SA06: {"label": SA06_TEXT, "auto": "false",
                "licence": "false", "pay": "false", "outward": ""},
-        SA07: {"label": SA07_TEXT, "auto": "false",
-               "licence": "true", "pay": "true", "outward": SA04},
-        SA08: {"label": SA08_TEXT, "auto": "false",
-               "licence": "true", "pay": "false", "outward": SA04},
+        # SA07: {"label": SA07_TEXT, "auto": "false",
+        #        "licence": "true", "pay": "true", "outward": SA04},
+        # SA08: {"label": SA08_TEXT, "auto": "false",
+        #        "licence": "true", "pay": "false", "outward": SA04},
         NONE: {"label": "", "auto": "false", "licence": "false",
                "pay": "false", "initial": ""}
     }
@@ -1300,8 +1388,11 @@ class ReturnSheet(object):
                 _data = ast.literal_eval(_data)  # ast should convert to tuple.
                 table_rows = self._get_table_rows(_data)
                 self._return.save_return_table(species, table_rows, request)
-            except AttributeError:
+
+            except AttributeError as e:
+                print(e)
                 continue
+
         self._add_transfer_activity(request)
 
     def set_species(self, _species):
@@ -1380,18 +1471,26 @@ class ReturnSheet(object):
         # by_column is of format {'col_header':[row1_val, row2_val,...],...}
         key_values = []
         num_rows = 0
-        if isinstance(_data, tuple):
-            for key in _data[0].keys():
-                for cnt in range(_data.__len__()):
-                    key_values.append(_data[cnt][key])
-                by_column[key] = key_values
-                key_values = []
-            num_rows = len(list(by_column.values())[0])\
-                if len(by_column.values()) > 0 else 0
-        else:
-            for key in _data.keys():
-                by_column[key] = _data[key]
-            num_rows = num_rows + 1
+        # if isinstance(_data, tuple):
+        #     for key in _data[0].keys():
+        #         for cnt in range(_data.__len__()):
+        #             key_values.append(_data[cnt][key])
+        #         by_column[key] = key_values
+        #         key_values = []
+        #     num_rows = len(list(by_column.values())[0])\
+        #         if len(by_column.values()) > 0 else 0
+        # else:
+        #     for key in _data[0].keys():
+        #         by_column[key] = _data[0][key]
+        #     num_rows = num_rows + 1
+
+        for key in _data[0].keys():
+            for cnt in range(_data.__len__()):
+                key_values.append(_data[cnt][key])
+            by_column[key] = key_values
+            key_values = []
+        num_rows = len(list(by_column.values())[0])\
+            if len(by_column.values()) > 0 else 0
 
         rows = []
         for row_num in range(num_rows):

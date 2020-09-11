@@ -115,6 +115,7 @@ export default {
       this.setReturnsEstimateFee()
       // update cached for uploaded data.
       // this.getSpecies(this.returns.species)
+      this.species_cache[this.returns.species] = this.returns.table[0]['data']
       return this.refresh_grid;
     }
   },
@@ -157,6 +158,7 @@ export default {
               this.returns.table[0]['data'] = response.body[0]['data']
               this.replaceReturn = 'no'
             }
+            this.species_cache[this.returns.species] = this.returns.table[0]['data']
             this.nilReturn = 'no'
             this.spreadsheetReturn = 'yes'
             this.refresh_grid = true
@@ -179,9 +181,12 @@ export default {
       } else {
         // load species json from ajax
         this.refresh_grid = false
-        await this.$http.get(helpers.add_endpoint_json(api_endpoints.returns,this.returns.id+'/species_data_details/?species_id='+specie_id))
+        this.returns.species = specie_id
+        await this.$http.get(helpers.add_endpoint_json(api_endpoints.returns,this.returns.id+'/species_data_details/?species_id='+specie_id+'&'))
           .then((response)=>{
-              this.returns.table[0]['data'] = response.body[0]['data']
+            this.returns.table[0]['data'] = response.body[0]['data']     
+            // cache currently displayed species json
+            // this.species_cache[specie_id] = this.returns.table[0]['data']
 
           },exception=>{
 
@@ -190,9 +195,9 @@ export default {
 
 
       };  // end 
-      //this.replaceReturn = 'no'
-      //this.nilReturn = 'no'
-      //this.spreadsheetReturn = 'no'
+      this.replaceReturn = 'no'
+      this.nilReturn = 'no'
+      this.spreadsheetReturn = 'no'
       this.returns.species = specie_id;
       this.refresh_grid = true
       return
@@ -212,7 +217,7 @@ export default {
           e.stopImmediatePropagation();
           e.preventDefault();
           var selected = $(e.currentTarget);
-          // vm.getSpecies(selected.val());
+          vm.getSpecies(selected.val());
       });
     },
     eventListeners: function () {

@@ -139,6 +139,9 @@ const GridBlock = {
               defaultDate: dateVal != '' ? newDate : null
             }).off('dp.change').on('dp.change', (e) => {
               self.value = $(e.target).data('DateTimePicker').date($(e.target)[0].value).format('DD/MM/YYYY');
+              let row_no = e.target.id.split('::')[1]
+              let name = e.target.name.split('::')[1]
+              self.setDateValue(e.target.value, row_no, name, e.target.disabled)
             });
           }
         });

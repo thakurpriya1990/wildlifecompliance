@@ -2740,7 +2740,18 @@ class Application(RevisionedMixin):
 
                 purpose_sequence = parent_licence.get_next_purpose_sequence()
 
-                data = json.loads(request.POST.get('formData')) if request.POST.has_key('formData') else request.data
+                try:
+                    data = json.loads(
+                        request.POST.get('formData')
+                    ) if request.POST.has_key('formData') else request.data
+
+                except ValueError as e:
+                    # Throw exception if html fields are not created correctly.
+                    logger.error('Could not resolve table fields for licence.')
+                    raise Exception(
+                        "Error resolving table fields for licence generation."
+                    )
+
                 # perform issue for each licence activity id in data.get('activity')
                 for item in data.get('activity'):
                     licence_activity_id = item['id']
@@ -3099,7 +3110,9 @@ class Application(RevisionedMixin):
         self.save()
 
     def generate_returns(self, licence, selected_activity, request):
-
+        from wildlifecompliance.components.returns.utils import (
+            ReturnSpeciesUtility,
+        )
         # TODO: Delete any previously existing returns with default status
         # which may occur if this activity is being reissued or amended.
         from wildlifecompliance.components.returns.models import Return
@@ -3117,10 +3130,10 @@ class Application(RevisionedMixin):
                     current_date = condition.due_date
                     # create a first Return
                     try:
-                        Return.objects.get(
+                        first_return = Return.objects.get(
                             condition=condition, due_date=current_date)
                     except Return.DoesNotExist:
-                        Return.objects.create(
+                        first_return = Return.objects.create(
                             application=self,
                             due_date=current_date,
                             processing_status=Return.RETURN_PROCESSING_STATUS_FUTURE,
@@ -3130,11 +3143,19 @@ class Application(RevisionedMixin):
                             submitter=request.user
                         )
 
-                    # Make first return editable for applicant but cannot
-                    # submit until due.
-                    # Establish species list for first return.
-                    # if first_return.has_species_list:
-                    #   first_return.set_species_list()
+                    # Make first return editable (draft) for applicant but
+                    # cannot submit until due. Establish species list for first
+                    # return.
+                    DRAFT = Return.RETURN_PROCESSING_STATUS_DRAFT
+                    first_return.processing_status = DRAFT
+                    first_return.save()
+                    returns_utils = ReturnSpeciesUtility(first_return)
+                    # raw_specie_names is a list of names defined manually
+                    # by the licensing officer at the time of propose/issuance.
+                    raw_specie_names = returns_utils.get_raw_species_list_for(
+                        selected_activity
+                    )
+                    returns_utils.set_species_list(raw_specie_names)
 
                     if condition.recurrence:
                         while current_date < licence_expiry:

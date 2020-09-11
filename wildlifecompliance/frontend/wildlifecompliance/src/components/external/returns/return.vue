@@ -20,8 +20,8 @@
                                 <strong style="font-size: 18px;" v-if="isPayable">Return submission fee: {{returns_estimate_fee | toCurrency}}</strong><br>
                                 <button style="width:150px;" class="btn btn-primary btn-md" @click.prevent="save(false)" name="save_exit">Save and Exit</button>
                                 <button style="width:150px;" class="btn btn-primary btn-md" @click.prevent="save(true)" name="save_continue">Save and Continue</button>
-                                <button style="width:150px;" class="btn btn-primary btn-md" v-if="isSubmittable" @click.prevent="submit()" name="submit">Submit</button>
-                                <button style="width:150px;" class="btn btn-primary btn-md" v-if="isPayable" @click.prevent="submit_and_checkout()" name="submit">Pay and Submit</button>                                
+                                <button style="width:150px;" class="btn btn-primary btn-md" v-if="!isPayable && isSubmittable" @click.prevent="submit()" name="submit">Submit</button>
+                                <button style="width:150px;" class="btn btn-primary btn-md" v-if="isPayable && isSubmittable" @click.prevent="submit_and_checkout()" name="submit">Pay and Submit</button>                                
                             </p>
                         </div>
                     </div>
@@ -109,9 +109,10 @@ export default {
       for (const speciesID in self.species_cache) { // Running Sheet Cache
         let speciesJSON = []
         for (let i=0;i<self.species_cache[speciesID].length;i++){
-          speciesJSON[i] = JSON.stringify(self.species_cache[speciesID][i])
+          // speciesJSON[i] = JSON.stringify(self.species_cache[speciesID][i])
+          speciesJSON[i] = self.species_cache[speciesID][i]
         }
-        data.append(speciesID, speciesJSON)
+        data.append(speciesID, JSON.stringify(speciesJSON))
       };
       var speciesJSON = []
       let cnt = 0;
