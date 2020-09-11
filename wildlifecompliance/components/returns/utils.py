@@ -256,6 +256,201 @@ def _create_return_data_from_post_data(ret, tables_info, post_data):
         ReturnRow.objects.bulk_create(return_rows)
 
 
+class ReturnUtility(object):
+    '''
+    An abstract ReturnUtility.
+    '''
+    __metaclass__ = abc.ABCMeta
+
+
+class ReturnSpeciesUtility(ReturnUtility):
+    '''
+    Utility class to manage return species.
+    '''
+    _return = None                      # Composite Return for this utility.
+    application_species_list = []       # Composite List for this utility.
+
+    def __init__(self, a_return):
+        super(ReturnUtility, self).__init__()
+        self._return = a_return
+
+    def set_species_list(self, a_species_list=None):
+        '''
+        Set list of species for the Return.
+        '''
+        species_list = []
+        return_table = []
+
+        try:
+            if isinstance(a_species_list, list):
+                self.set_application_species_list(a_species_list)
+            else:
+                self.set_raw_species_list(a_species_list)
+
+            species_list = self.get_species_list()
+
+            for species_name in species_list:
+                name_id = self.get_id_from_species_name(species_name)
+                return_table.append(
+                    ReturnTable(name=name_id, ret_id=str(self._return.id))
+                )
+
+            if return_table:
+                ReturnTable.objects.bulk_create(return_table)
+
+        except BaseException as e:
+            logger.error('{0} ReturnID: {1} - {2}'.format(
+                'ReturnSpeciesUtil.set_species_list()',
+                self._return.id,
+                e
+            ))
+
+    def get_species_list(self):
+        '''
+        Get list of species associated with this Return.
+        '''
+        species_list = []
+
+        if self._return.return_type.with_application_species:
+            species_list = self.get_application_species_list()
+
+        elif self._return.return_type.with_regulated_species:
+            species_list = self.get_regulated_species_list()
+
+        return species_list
+
+    def get_licence_species_list(self):
+        '''
+        Get regulated list of species associated with this Return.
+        '''
+        licence_purpose = self._return.returns_condition.licence_purpose
+        return licence_purpose.purpose_species.all()
+
+    def get_regulated_species_list(self):
+        '''
+        Get regulated list of species associated with this Return.
+        '''
+        return self._return.return_type.regulated_species.all()
+
+    def set_application_species_list(self, the_species_list):
+        '''
+        Set application list of species associated with this Return.
+        '''
+        self.application_species_list = the_species_list
+
+    def set_raw_species_list(self, raw_species_list):
+        '''
+        Set raw list of species associated with this Return.
+
+        Setter to attempt to build a species list from an unknown type.
+        '''
+        from wildlifecompliance.components.licences.pdf import HtmlParser
+
+        the_species_list = None
+        try:
+            # attempt to build from raw data type with a html parser.
+            parser = HtmlParser(raw_species_list)
+            the_species_list = parser.species
+
+        except TypeError:
+            logger.warn('{0} ReturnID: {1}'.format(
+                'No Species list available.', self._return.id
+            ))
+        except BaseException as e:
+            logger.error('{0} ReturnID: {1} - {2}'.format(
+                'ReturnSpeciesUtility.set_raw_species_list()',
+                self._return.id, e
+            ))
+
+        self.application_species_list = the_species_list
+
+    def get_raw_species_list_for(self, selected_activity):
+        '''
+        Get raw list of species associated with this Return.
+        '''
+        raw_species_list = None
+        try:
+
+            condition = self._return.condition
+            selected_purpose = [
+                p for p in selected_activity.proposed_purposes.all()
+                if p.purpose_id == condition.licence_purpose_id
+            ][0]
+            # NOTE: Expectation that only ONE species 'Details' is created.
+            # 'Details' may consist of a list of species in html format.
+            raw_species_list = [
+                d['details'] for d in selected_purpose.purpose_species_json
+                if d['species']
+            ][0]
+
+        except IndexError:
+            logger.warn('{0} ReturnID: {1}'.format(
+                'No Species list available.', self._return.id
+            ))
+        except BaseException as e:
+            logger.error('{0} ReturnID: {1} - {2}'.format(
+                'ReturnSpeciesUtility.get_raw_species_list_for_activity()',
+                self._return.id, e
+            ))
+
+        return raw_species_list
+
+    def get_application_species_list(self):
+        '''
+        Get application list of species associated with this Return.
+        '''
+        return self.application_species_list
+
+    def get_form_species_list(self):
+        '''
+        Get list of species common names from the application form.
+        '''
+        from wildlifecompliance.components.applications.models import (
+            ApplicationFormDataRecord,
+        )
+        SPECIES = ApplicationFormDataRecord.COMPONENT_TYPE_SELECT_SPECIES
+        species_qs = []
+
+        try:
+            species_qs = ApplicationFormDataRecord.objects.values(
+                'value',
+            ).filter(
+                licence_activity_id=self._return.condition.licence_activity_id,
+                licence_purpose_id=self._return.condition.licence_purpose_id,
+                application_id=self._return.condition.application_id,
+                component_type=SPECIES,
+            )
+
+        except BaseException as e:
+            logger.error('{0} ReturnID: {1} - {2}'.format(
+                'ReturnSpeciesUtility.get_species_list_from_application()',
+                self._return.id,
+                e
+            ))
+
+        return species_qs
+
+    def get_species_name_from_id(self, species_id):
+        '''
+        Get string name of species from hyphened species identifier.
+        '''
+        name = ''
+        name = species_id.replace('-', ' ')
+
+        return name
+
+    def get_id_from_species_name(self, species_name):
+        '''
+        Get hyphened string id of species from the species name.
+        '''
+        import re
+
+        identifier = ''
+        identifier = re.sub(' +', '-', species_name)
+
+        return identifier
+
+
 class SpreadSheet(object):
     """
     An utility object for Excel manipulation.

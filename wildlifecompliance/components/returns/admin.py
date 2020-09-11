@@ -4,9 +4,23 @@ from wildlifecompliance.components.returns.services import ReturnService
 # Register your models here.
 
 
+class RegulatedSpeciesInline(admin.TabularInline):
+    extra = 0
+    model = models.ReturnTypeRegulatedSpecies
+
+
 @admin.register(models.ReturnType)
 class ReturnTypeAdmin(admin.ModelAdmin):
-    pass
+    inlines = [
+        RegulatedSpeciesInline,
+    ]
+
+    def get_inline_instances(self, request, obj=None):
+        return [
+            inline(self.model, self.admin_site) for inline in self.inlines
+            if obj
+            and obj.species_list == models.ReturnType.SPECIES_LIST_REGULATED
+        ]
 
 
 @admin.register(models.Return)
