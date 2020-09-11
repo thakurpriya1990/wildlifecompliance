@@ -2740,7 +2740,18 @@ class Application(RevisionedMixin):
 
                 purpose_sequence = parent_licence.get_next_purpose_sequence()
 
-                data = json.loads(request.POST.get('formData')) if request.POST.has_key('formData') else request.data
+                try:
+                    data = json.loads(
+                        request.POST.get('formData')
+                    ) if request.POST.has_key('formData') else request.data
+
+                except ValueError as e:
+                    # Throw exception if html fields are not created correctly.
+                    logger.error('Could not resolve table fields for licence.')
+                    raise Exception(
+                        "Error resolving table fields for licence generation."
+                    )
+
                 # perform issue for each licence activity id in data.get('activity')
                 for item in data.get('activity'):
                     licence_activity_id = item['id']
