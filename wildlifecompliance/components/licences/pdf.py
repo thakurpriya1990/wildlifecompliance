@@ -30,6 +30,9 @@ from wildlifecompliance.components.applications.models import (
     ApplicationSelectedActivityPurpose,
 )
 
+import logging
+logger = logging.getLogger(__name__)
+
 BW_DPAW_HEADER_LOGO = os.path.join(
     settings.BASE_DIR,
     'wildlifecompliance',
@@ -720,67 +723,57 @@ def create_licence_pdf_bytes(licence, application):
     return value
 
 
-def _parse_html_table(raw_html):
-    from xml.etree import ElementTree as ET
-    data = []
-    table = ET.XML(raw_html)
-    rows = iter(table)
-    headers = [col.text for col in next(rows)]
-    data.append(headers)
-    # print headers
-    for row in rows:
-        values = [col.text for col in row]
-        data.append(values)
-        # print values #dict(zip(headers, values))
-
-    return data
-
-
 class HtmlParser(object):
+    ''' Usage:
+        html = "<table style="width:100%" species_col='Age'>
+                <tr>
+                    <th>Firstname</th>
+                    <th>Lastname</th>
+                    <th>Age</th>
+                </tr>
+                <tr>
+                    <td>Jill</td>
+                    <td>Smith</td>
+                    <td>50</td>
+                </tr>
+                <tr>
+                    <td>Eve</td>
+                    <td>Jackson</td>
+                    <td>94</td>
+                </tr>
+            </table>
 
-'''
-html =
-    <div>
-       <table style="width:100%" species_col=2>
-         <tr>
-           <th>Firstname</th>
-           <th>Lastname</th>
-           <th>Age</th>
-         </tr>
-         <tr>
-           <td>Jill</td>
-           <td>Smith</td>
-           <td>50</td>
-         </tr>
-         <tr>
-           <td>Eve</td>
-           <td>Jackson</td>
-           <td>94</td>
-         </tr>
-       </table>
+            <ul>
+                <li>Coffee</li>
+                <li>Tea</li>
+            </ul>
 
-       <ul>
-         <li>Coffee</li>
-         <li>Tea</li>
-       </ul>
+            <p>
+                This is some text ...
+            </p>"
 
-       <ul>
-         <li>ssss</li>
-       </ul>
+    from wildlifecompliance.components.licences.pdf import HtmlParser
+    parser=HtmlParser(html)
 
-       <p>
-       This is some text ...
-       </p>
+    parser.tables
+        [[[u'Firstname', u'Lastname', u'Age'],
+        [u'Jill', u'Smith', u'50'],
+        [u'Eve', u'Jackson', u'94']]]
 
-       <p>
-       More text ...
-       </p>
-    </div>
-'''
+    parser.lists
+        [[u'Coffee', u'Tea'], [u'ssss']]
+
+    parser.free_text
+        [u'This is some text ...']
+
+    parser.species
+        [u'50', u'94']
+    '''
 
     def __init__(self, raw_html):
         self.raw_html = raw_html
         self.tables = []
+        self.species = []
         self.lists = []
         self.free_text = []
         self.parse()
@@ -791,6 +784,7 @@ html =
             self._parse_table()
             self._parse_list()
             self._parse_free_text()
+            self._parse_species()
         except Exception as e:
             raise
 
@@ -808,8 +802,8 @@ html =
 
                 if cols:
                     rows.append(cols)
-            self.tables.append(rows)
 
+            self.tables.append(rows)
 
     def _parse_list(self):
         for ul in self.soup.findAll('ul'):
@@ -819,5 +813,19 @@ html =
 
     def _parse_free_text(self):
         self.free_text = [row.get_text(strip=True) for row in self.soup.select("p")]
+
+    def _parse_species(self):
+        try:
+            col_name = self.soup.table["species_col"]
+            for tbl in self.tables:
+                for i, row in enumerate(tbl):
+                    if i==0:
+                        idx = row.index(col_name)
+                    else:
+                        self.species.append(row[idx])
+        except ValueError as e:
+            logger.warn('Species name not found in HTML. \n{}'.format(e))
+        except KeyError as e:
+            logger.warn('Species attribute <species_col> not found in HTML table definition. \n{}'.format(e))
 
 
