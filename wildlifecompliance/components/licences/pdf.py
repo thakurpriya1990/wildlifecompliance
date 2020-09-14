@@ -386,65 +386,23 @@ def _create_licence(licence_buffer, licence, application):
         except BaseException:
             pass
 
-#        # PurposeSpecies Section
-#        elements.append(Spacer(1, SECTION_BUFFER_HEIGHT))
-#        elements.append(Paragraph('Species', styles['BoldLeft']))
-#        elements.append(Spacer(1, SECTION_BUFFER_HEIGHT))
-#
-#        import ipdb; ipdb.set_trace()
-#        no_border_table_style = TableStyle([('VALIGN', (0, 0), (-1, -1), 'TOP')])
-#        box_table_style = TableStyle([('VALIGN', (0, 0), (-1, -1), 'TOP'), ('BOX', (0,0), (-1,-1), 0.25, colors.black), ('INNERGRID', (0,0), (-1,-1), 0.25, colors.black), ('ALIGN', (0, 0), (-1, -1), 'RIGHT')])
-#        box_table_style_hdrbold = TableStyle([('VALIGN', (0, 0), (-1, -1), 'TOP'), ('BOX', (0,0), (-1,-1), 0.25, colors.black), ('GRID', (0,0), (-1,-1), 0.25, colors.black), ('FONTNAME', (0,0), (-1,0), 'Courier-Bold'), ('ALIGN', (0, 0), (-1, -1), 'LEFT')])
-#        box_table_style_colbold = TableStyle([('VALIGN', (0, 0), (-1, -1), 'TOP'), ('BOX', (0,0), (-1,-1), 0.25, colors.black), ('GRID', (0,0), (-1,-1), 0.25, colors.black), ('FONTNAME', (0,0), (0,-1), 'Courier-Bold'), ('ALIGN', (0, 0), (-1, -1), 'RIGHT')])
-#
-##        specieslist = []
-##        for purposes in licence_purposes:
-##            for specie in purposes.purpose.purpose_species.all():
-##                specieslist.append(specie)
-##
-
-#        rlTables = []
-#        for ps in purpose.purpose_species_json:
-#            parser = HtmlParser(ps['details'])
-#            for table in parser.tables:
-#                Table(table)
-
-
-#        purposeSpeciesList = None
-#        try:
-#            import ipdb; ipdb.set_trace()
-#            purposeSpeciesList = ListFlowable(
-#                [Table(
-#                    #parse_html_table(s['details']),
-#                    HtmlParser(s['details']).tables[0],
-#                    style=box_table_style_hdrbold
-#                    ) for s in purpose.purpose_species_json],
-#                bulletFontName=BOLD_FONTNAME, bulletFontSize=MEDIUM_FONTSIZE
-#            )
-#
-#        except BaseException:
-#            purposeSpeciesList = ListFlowable(
-#                [Paragraph(
-#                    'ERROR formatting {}'.format(s['header']), styles['Left']
-#                    ) for s in purpose.purpose_species_json],
-#                bulletFontName=BOLD_FONTNAME, bulletFontSize=MEDIUM_FONTSIZE
-#            )
-#        elements.append(purposeSpeciesList)
-
-        #import ipdb; ipdb.set_trace()
+        # PurposeSpecies Section
         for s in purpose.purpose_species_json:
             parser = HtmlParser(s['details'])
 
             # Get and Display Purpose Species Header
+            elements.append(Spacer(1, SECTION_BUFFER_HEIGHT))
             elements.append(
                 Paragraph(
                     s['header'],
                     styles['BoldLeft']
                 )
             )
+            elements.append(Spacer(1, SECTION_BUFFER_HEIGHT))
 
             purposeSpeciesList = add_parsed_details(parser)
             elements.append(purposeSpeciesList)
+        # End PurposeSpecies Section
 
         # application conditions
         activity_conditions = selected_activity.application.conditions.filter(
@@ -454,13 +412,16 @@ def _create_licence(licence_buffer, licence, application):
         if activity_conditions.exists():
             elements.append(Spacer(1, SECTION_BUFFER_HEIGHT))
             elements.append(Paragraph('CONDITIONS', styles['BoldLeft']))
-            elements.append(Spacer(1, SECTION_BUFFER_HEIGHT))
+            #elements.append(Spacer(1, SECTION_BUFFER_HEIGHT))
 
+            # Conditions Section
             for s in activity_conditions.order_by('order'):
                 conditionList = None
                 parser = HtmlParser(s.condition)
                 conditionList = add_parsed_details(parser)
+                elements.append(Spacer(1, SECTION_BUFFER_HEIGHT))
                 elements.append(conditionList)
+            # End Conditions Section
 
         elements += _layout_extracted_fields(licence.extracted_fields)
         elements.append(Spacer(1, SECTION_BUFFER_HEIGHT))
@@ -482,12 +443,11 @@ def _create_licence(licence_buffer, licence, application):
         elements.append(Spacer(1, SECTION_BUFFER_HEIGHT))
 
         # additional information
-        #infoList = None
         if licence.has_additional_information_for(selected_activity):
             elements.append(Spacer(1, SECTION_BUFFER_HEIGHT))
             elements.append(Paragraph(
                 'ADDITIONAL INFORMATION', styles['BoldLeft']))
-            elements.append(Spacer(1, SECTION_BUFFER_HEIGHT))
+            #elements.append(Spacer(1, SECTION_BUFFER_HEIGHT))
 
             conditions = activity_conditions
             infos = []
@@ -501,10 +461,13 @@ def _create_licence(licence_buffer, licence, application):
                     infos.append('{0} (related to condition no.{1})'.format(
                         info.encode('utf8'), c_num))
 
+            # Conditions Section
             for s in infos:
                 parser = HtmlParser(s)
                 infoList = add_parsed_details(parser)
+                elements.append(Spacer(1, SECTION_BUFFER_HEIGHT))
                 elements.append(infoList)
+            # End Conditions Section
 
         elements.append(PageBreak())
 
