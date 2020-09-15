@@ -34,7 +34,7 @@
                                     <div class="col-sm-9" v-if="condition.standard">
                                         <div style="width:70% !important">
                                             <select class="form-control" ref="standard_req" name="standard_condition" v-model="condition.standard_condition">
-                                                <option v-for="r in conditions" :value="r.id" >{{r.text.substr(0,60)}}</option>
+                                                <option v-for="r in conditions" :value="r.id" >{{r.short_description}}</option>
                                             </select>
                                         </div>
                                     </div>
@@ -379,9 +379,8 @@ export default {
                 vm.condition.standard_condition = selected.val();
             });
        },
-       eventListeners:function () {
+       setPurposeSelector: function () {
             let vm = this;
-            vm.setConditionSelector();
 
             $(vm.$refs.select_purpose).select2({
                 "theme": "bootstrap",
@@ -396,17 +395,20 @@ export default {
                 var selected = $(e.currentTarget);
                 vm.condition.licence_purpose = selected.val();
             });
+       },
+       eventListeners:function () {
+            let vm = this;
+            vm.setConditionSelector();
+            vm.setPurposeSelector();
        }
    },
    updated:function () {
        let vm = this;
-     
+       vm.setPurposeSelector();
        vm.setConditionSelector();
-
        if (vm.condition.free_condition){
             vm.showDueDate=true;
        }
- 
        // Initialise Date Picker
        if (!vm.condition.standard || vm.showDueDate) {
             $(vm.$refs.due_date).datetimepicker(vm.datepickerOptions);

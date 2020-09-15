@@ -1776,7 +1776,7 @@ class ApplicationStandardConditionSerializer(serializers.ModelSerializer):
 
     class Meta:
         model = ApplicationStandardCondition
-        fields = ('id', 'code', 'text', 'require_return')
+        fields = ('id', 'code', 'short_description', 'text', 'require_return')
 
     def get_require_return(self, obj):
         return True if obj.return_type else False
