@@ -65,4 +65,4 @@ class ApplicationAdmin(VersionAdmin):
 
 @admin.register(models.ApplicationStandardCondition)
 class ApplicationStandardConditionAdmin(admin.ModelAdmin):
-    list_display = ['code', 'text', 'obsolete']
+    list_display = ['code', 'short_description', 'obsolete']

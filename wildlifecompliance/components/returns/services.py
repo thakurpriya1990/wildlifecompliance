@@ -1221,7 +1221,7 @@ class ReturnSheet(object):
         self._species_list = []
         self._table = {'data': None}
         # build list of currently added Species.
-        self._species = self._DEFAULT_SPECIES
+        self._species = None
         for _species in ReturnTable.objects.filter(ret=a_return):
             self._species_list.append(_species.name)
             self._species = _species.name
@@ -1268,6 +1268,28 @@ class ReturnSheet(object):
 
     @property
     def species_list(self):
+        """
+        List of Species available with Return Data.
+        :return: List of Species.
+        {
+         'S000001': 'Western Grey Kangaroo', 'S000002': 'Western Red Kangaroo',
+         'S000003': 'Blue Banded Bee', 'S000004': 'Orange-Browed Resin Bee'
+        }
+
+        """
+        new_list = {}
+        for _species in ReturnTable.objects.filter(ret=self._return):
+            utils = ReturnSpeciesUtility(self._return)
+            name_str = utils.get_species_name_from_id(_species.name)
+            new_list[_species.name] = name_str
+
+            self._species = _species.name
+
+        self._species_list.append(new_list)
+
+        return new_list
+
+    def _species_list(self):
         """
         List of Species available with Running Sheet of Activities.
         :return: List of Species.
@@ -1495,11 +1517,14 @@ class ReturnSheet(object):
         rows = []
         for row_num in range(num_rows):
             row_data = {}
-            if num_rows > 1:
-                for key, value in by_column.items():
-                    row_data[key] = value[row_num]
-            else:
-                row_data = by_column
+            # if num_rows > 1:
+            #     for key, value in by_column.items():
+            #         row_data[key] = value[row_num]
+            # else:
+            #     row_data = by_column
+            for key, value in by_column.items():
+                row_data[key] = value[row_num]
+
             # filter empty rows.
             is_empty = True
             for value in row_data.values():

@@ -19,7 +19,7 @@
                                     </div>
                                     <div class="col-sm-9" >
                                         <div style="width:70% !important">
-                                            <select class="form-control" name="purpoose" v-model="condition.licence_purpose" >
+                                            <select class="form-control" ref="select_purpose" name="purpose" v-model="condition.licence_purpose" >
                                                 <option v-for="p in purposes" :value="p.id" >{{p.short_name}}</option>
                                             </select>
                                         </div>
@@ -33,13 +33,13 @@
                                     </div>
                                     <div class="col-sm-9" v-if="condition.standard">
                                         <div style="width:70% !important">
-                                            <select class="form-control" ref="standard_req" name="standard_condition" v-model="condition.standard_condition" v-on:change="setShowDueDate($event.target.value)">
-                                                <option v-for="r in conditions" :value="r.id" >{{r.text.substr(0,60)}}</option>
+                                            <select class="form-control" ref="standard_req" name="standard_condition" v-model="condition.standard_condition">
+                                                <option v-for="r in conditions" :value="r.id" >{{r.short_description}}</option>
                                             </select>
                                         </div>
                                     </div>
                                     <div class="col-sm-9" v-else>
-                                        <textarea style="width: 70%;"class="form-control" name="free_condition" v-model="condition.free_condition"></textarea>
+                                        <textarea style="width: 70%;" class="form-control" name="free_condition" v-model="condition.free_condition"></textarea>
                                     </div>
                                 </div>
                             </div>
@@ -72,7 +72,7 @@
                                     </div>
                                 </div>
                             </div>
-                            <template v-if="validDate">
+                            <template v-if="showDueDate && validDate">
                                 <div class="form-group">
                                     <div class="row">
                                         <div class="col-sm-3">
@@ -135,6 +135,11 @@
 import modal from '@vue-utils/bootstrap-modal.vue'
 import alert from '@vue-utils/alert.vue'
 import {helpers,api_endpoints} from "@/utils/hooks.js"
+
+var select2 = require('select2');
+require("select2/dist/css/select2.min.css");
+require("select2-bootstrap-theme/dist/select2-bootstrap.min.css");
+
 export default {
     name:'Condition-Detail',
     components:{
@@ -351,38 +356,59 @@ export default {
                 }
             });
        },
-       eventListeners:function () {
+       setConditionSelector: function () {
             let vm = this;
             // Intialise select2
             $(vm.$refs.standard_req).select2({
                 "theme": "bootstrap",
                 allowClear: true,
                 minimumInputLength: 2,
-                placeholder:"Select Condition"
+                placeholder:"Select Condition..."
+            }).
+            on("select2:selecting",function (e) {
+                var selected = $(e.currentTarget);
+                vm.showDueDate = false;
             }).
             on("select2:select",function (e) {
                 var selected = $(e.currentTarget);
                 vm.condition.standard_condition = selected.val();
+                vm.setShowDueDate(selected.val());
             }).
             on("select2:unselect",function (e) {
                 var selected = $(e.currentTarget);
                 vm.condition.standard_condition = selected.val();
             });
+       },
+       setPurposeSelector: function () {
+            let vm = this;
+
+            $(vm.$refs.select_purpose).select2({
+                "theme": "bootstrap",
+                allowClear: true,
+                placeholder:"Select Purpose..."
+            }).
+            on("select2:select",function (e) {
+                var selected = $(e.currentTarget);
+                vm.condition.licence_purpose = selected.val();
+            }).
+            on("select2:unselect",function (e) {
+                var selected = $(e.currentTarget);
+                vm.condition.licence_purpose = selected.val();
+            });
+       },
+       eventListeners:function () {
+            let vm = this;
+            vm.setConditionSelector();
+            vm.setPurposeSelector();
        }
    },
    updated:function () {
        let vm = this;
+       vm.setPurposeSelector();
+       vm.setConditionSelector();
        if (vm.condition.free_condition){
             vm.showDueDate=true;
-       } else {
-            let cond = vm.conditions.filter(c => {
-                return c.id === vm.condition.standard_condition
-            })
-            if ( cond[0] ) {
-                vm.showDueDate=cond[0].require_return  
-            }
-       }      
-     
+       }
        // Initialise Date Picker
        if (!vm.condition.standard || vm.showDueDate) {
             $(vm.$refs.due_date).datetimepicker(vm.datepickerOptions);
@@ -404,9 +430,6 @@ export default {
         this.$nextTick(()=>{
             vm.eventListeners();
         });
-
-        // this.showDueDate=vm.condition.require_return
-        //this.showDueDate=true
    }
 }
 </script>

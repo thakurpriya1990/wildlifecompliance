@@ -104,7 +104,7 @@ export default {
             columns: [
               { data: "date" },
               { data: "date",
-                className: "pay-row-icon",
+                // className: "pay-row-icon",
                 mRender: function(data, type, full) {
                    let _date = new Date(parseInt(full.date));
                    return _date.toLocaleString("en-GB")
@@ -312,7 +312,7 @@ export default {
       });
 
       // payment row listener
-      vm.$refs.return_datatable.vmDataTable.on('click', 'tr.payRecordRow', function(e) {
+      vm.$refs.return_datatable.vmDataTable.on('click', 'tr.payRecordRow_', function(e) {
           // If a link is clicked, ignore
           if($(e.target).is('a')){
               return;

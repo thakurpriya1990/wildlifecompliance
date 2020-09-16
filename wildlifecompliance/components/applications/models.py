@@ -5917,6 +5917,7 @@ class ApplicationFormDataRecord(models.Model):
 
 @python_2_unicode_compatible
 class ApplicationStandardCondition(RevisionedMixin):
+    short_description = models.CharField(max_length=100, null=True, blank=True)
     text = models.TextField()
     code = models.CharField(max_length=10, unique=True)
     obsolete = models.BooleanField(default=False)
