@@ -105,7 +105,8 @@ class PurposeSpeciesSerializer(serializers.ModelSerializer):
             'order',
             'header',
             'details',
-            'species')
+            'species',
+            'is_additional_info')
 
 
 class ApplicationSelectedActivityPurposeSerializer(
@@ -1415,7 +1416,7 @@ class DTExternalApplicationSerializer(BaseApplicationSerializer):
             'purpose_string',
             'can_user_view',
             'can_current_user_edit',
-            'payment_status', 
+            'payment_status',
             'application_type',
             # 'activities', # only in expander
             #'invoice_url', # only load in expander
