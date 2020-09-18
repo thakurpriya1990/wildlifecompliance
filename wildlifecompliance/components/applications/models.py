@@ -1254,8 +1254,18 @@ class Application(RevisionedMixin):
                     if requires_refund:
                         self.alert_for_refund(request)
                     else:
-                        send_application_submit_email_notification(
-                            group_users, self, request)
+
+                        try:
+                            send_application_submit_email_notification(
+                                group_users, self, request)
+
+                        except BaseException as e:
+                            logger.error('{0} {1} AppID: {2} - {3}'.format(
+                                'Application.submit()',
+                                'Could not send submit email notification',
+                                self.id,
+                                e
+                            ))
 
                     self.documents.all().update(can_delete=False)
 
