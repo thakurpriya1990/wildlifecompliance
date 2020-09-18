@@ -117,7 +117,7 @@ export default {
               },
               { data: "qty" },
               { data: "total" },
-              { data: "editable",
+              { data: "transfer",
                 mRender: function(data, type, full) {
                    if (full.activity && vm.is_external
                                 && !vm.isTrue(vm.returns.sheet_activity_list[full.activity]['auto'])

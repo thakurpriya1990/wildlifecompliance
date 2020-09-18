@@ -205,18 +205,18 @@ export default {
                         e.preventDefault();
                         var selected = $(e.currentTarget);
                         vm.handleChange(selected[0])
-                        if( vm.isMultiple){
-                            vm.field_data.value = vm.multipleSelected = selected.val();
-                        }
+                        // if( vm.isMultiple){
+                        vm.field_data.value = vm.multipleSelected = selected.val();
+                        // }
                    }).
                    on("select2:unselect",function (e) {
                         e.stopImmediatePropagation();
                         e.preventDefault();
                         var selected = $(e.currentTarget);
                         vm.handleChange(selected[0])
-                        if( vm.isMultiple){
-                            vm.field_data.value = vm.multipleSelected = selected.val();
-                        }
+                        // if( vm.isMultiple){
+                        vm.field_data.value = vm.multipleSelected = selected.val();
+                        // }
                    });
                    if (vm.value) {
                        vm.handleChange(vm.$refs.selectB);
