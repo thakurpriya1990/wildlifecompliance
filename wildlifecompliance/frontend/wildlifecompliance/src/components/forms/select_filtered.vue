@@ -191,6 +191,7 @@ export default {
             setTimeout(function (e) {
                    $('#'+vm.selectid).select2({
                        "theme": "bootstrap",
+                       tags: true,
                        allowClear: true,
                        placeholder:"Select...",
                        minimumInputLength: 3,
