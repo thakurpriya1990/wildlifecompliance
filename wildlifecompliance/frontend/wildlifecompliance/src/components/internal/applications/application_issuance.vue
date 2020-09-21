@@ -93,6 +93,10 @@
                                                                                 <div class="col-sm-6">
                                                                                     <input type="text" ref="ap_text_header" class="form-control" style="width:70%;" v-model="free_text.header" />
                                                                                 </div>
+                                                                                <div v-show="free_text.is_additional_info" class="col-sm-3">
+                                                                                    <input type="checkbox" checked disabled/>
+                                                                                    <label>Is additional info</label>
+                                                                                </div>
                                                                             </div>
                                                                             <div class="col-sm-12">
                                                                                 <div class="col-sm-3">

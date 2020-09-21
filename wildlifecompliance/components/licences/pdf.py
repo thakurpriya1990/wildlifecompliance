@@ -388,23 +388,25 @@ def _create_licence(licence_buffer, licence, application):
 
         # PurposeSpecies Section
         for s in purpose.purpose_species_json:
-            if s['is_additional_info']:
+            if s.has_key('is_additional_info') and s['is_additional_info']:
                 continue
-            parser = HtmlParser(s['details'])
 
-            # Get and Display Purpose Species Header
-            elements.append(Spacer(1, SECTION_BUFFER_HEIGHT))
-            elements.append(
-                Paragraph(
-                    s['header'],
-                    styles['BoldLeft']
+            if s['details']:
+                parser = HtmlParser(s['details'])
+
+                # Get and Display Purpose Species Header
+                elements.append(Spacer(1, SECTION_BUFFER_HEIGHT))
+                elements.append(
+                    Paragraph(
+                        s['header'],
+                        styles['BoldLeft']
+                    )
                 )
-            )
-            elements.append(Spacer(1, SECTION_BUFFER_HEIGHT))
+                elements.append(Spacer(1, SECTION_BUFFER_HEIGHT))
 
-            purposeSpeciesList = add_parsed_details(parser, list_flowable=False)
-            for info_item in purposeSpeciesList:
-                elements.append(KeepTogether(info_item))
+                purposeSpeciesList = add_parsed_details(parser, list_flowable=False)
+                for info_item in purposeSpeciesList:
+                    elements.append(KeepTogether(info_item))
         # End PurposeSpecies Section
 
         # application conditions
@@ -418,12 +420,17 @@ def _create_licence(licence_buffer, licence, application):
             #elements.append(Spacer(1, SECTION_BUFFER_HEIGHT))
 
             # Conditions Section
+            conditionList = []
             for s in activity_conditions.order_by('order'):
-                conditionList = None
                 parser = HtmlParser(s.condition)
-                conditionList = add_parsed_details(parser)
-                elements.append(Spacer(1, SECTION_BUFFER_HEIGHT))
-                elements.append(conditionList)
+                conditionList += add_parsed_details(parser, list_flowable=False)
+                #elements.append(Spacer(1, SECTION_BUFFER_HEIGHT))
+
+            conditionList = ListFlowable(
+                conditionList,
+                bulletFontName=BOLD_FONTNAME, bulletFontSize=MEDIUM_FONTSIZE
+            )
+            elements.append(conditionList)
             # End Conditions Section
 
         elements += _layout_extracted_fields(licence.extracted_fields)
@@ -448,27 +455,25 @@ def _create_licence(licence_buffer, licence, application):
         # additional information
         # 'is_additional_info' Section from Purposespecies
         for s in purpose.purpose_species_json:
-            if not s['is_additional_info']:
-                continue
-            parser = HtmlParser(s['details'])
+            if s.has_key('is_additional_info') and s['is_additional_info'] and s['details']:
+                parser = HtmlParser(s['details'])
 
-            # Get and Display Purpose Species Header
-            elements.append(Spacer(1, SECTION_BUFFER_HEIGHT))
-            elements.append(
-                Paragraph(
-                    s['header'],
-                    styles['BoldLeft']
+                # Get and Display Purpose Species Header
+                elements.append(Spacer(1, SECTION_BUFFER_HEIGHT))
+                elements.append(
+                    Paragraph(
+                        s['header'],
+                        styles['BoldLeft']
+                    )
                 )
-            )
-            elements.append(Spacer(1, SECTION_BUFFER_HEIGHT))
+                elements.append(Spacer(1, SECTION_BUFFER_HEIGHT))
 
-            purposeSpeciesInfoList = add_parsed_details(parser, list_flowable=False)
-            #elements.append(purposeSpeciesInfoList)
-            for info_item in purposeSpeciesInfoList:
-                elements.append(KeepTogether(info_item))
+                purposeSpeciesInfoList = add_parsed_details(parser, list_flowable=False)
+                #elements.append(purposeSpeciesInfoList)
+                for info_item in purposeSpeciesInfoList:
+                    elements.append(KeepTogether(info_item))
 
         # End PurposeSpecies Section
-
 
         if licence.has_additional_information_for(selected_activity):
             elements.append(Spacer(1, SECTION_BUFFER_HEIGHT))
@@ -494,7 +499,7 @@ def _create_licence(licence_buffer, licence, application):
                 infoList = add_parsed_details(parser)
                 elements.append(Spacer(1, SECTION_BUFFER_HEIGHT))
                 elements.append(infoList)
-        # End Conditions Section
+            # End Conditions Section
 
         elements.append(PageBreak())
 
