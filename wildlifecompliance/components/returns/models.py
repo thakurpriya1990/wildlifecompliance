@@ -186,7 +186,7 @@ class ReturnTypeRegulatedSpecies(models.Model):
     def __str__(self):
         return '{} - {}'.format(
             self.return_type,
-            self.species_name.encode('utf-8')
+            self.id
         )
 
 
