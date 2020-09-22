@@ -17,11 +17,11 @@ search and calls the server api with a filtered_list_url.
      
             <template v-if="readonly">
                 <select v-if="!isMultiple" disabled ref="selectB" :id="selectid" :name="name" class="form-control" :data-conditions="cons" style="width:100%">
-                    <option value="">Select...</option>
+                    <!-- <option value="">Select...</option> -->
                     <option v-for="(op, idx1) in species"  :value="op.value" @change="handleChange" :selected="op.value == value" v-bind:key="`value_${op.value}_${idx1}`">{{ op.label }}</option>
                 </select>
                 <select v-else disabled ref="selectB" :id="selectid" class="form-control" multiple style="width:100%">
-                    <option value="">Select...</option>
+                    <!-- <option value="">Select...</option> -->
                     <option v-for="(op, idx1) in species"  :value="op.value" :selected="multipleSelection(op.value)" v-bind:key="`value_${op.value}_${idx1}`">{{ op.label }}</option>
                 </select>
                 <template v-if="isMultiple">
@@ -33,11 +33,11 @@ search and calls the server api with a filtered_list_url.
             </template>
             <template v-else>
                 <select v-if="!isMultiple" ref="selectB" :id="selectid" :name="name" class="form-control" :data-conditions="cons" style="width:100%" :required="isRequired">
-                    <option value="">Select...</option>
+                    <!-- <option value="">Select...</option> -->
                     <option v-for="(op, idx1) in species" :value="op.value" selected="selected" v-bind:key="`value_${op.value}_${idx1}`">{{ op.label }}</option>
                 </select>
                 <select v-else ref="selectB" :id="selectid" :name="name" class="form-control" multiple style="width:100%" :required="isRequired">
-                    <option value="">Select...</option>
+                    <!-- <option value="">Select...</option> -->
                     <option v-for="(op, idx1) in species" :value="op.value" selected="selected" v-bind:key="`value_${op.value}_${idx1}`">{{ op.label }}</option>
                 </select>
             </template>
@@ -192,7 +192,7 @@ export default {
                    $('#'+vm.selectid).select2({
                        "theme": "bootstrap",
                        tags: true,
-                       allowClear: true,
+                    //    allowClear: true,
                        placeholder:"Select...",
                        minimumInputLength: 3,
                        type: 'GET',
@@ -205,7 +205,7 @@ export default {
                         e.stopImmediatePropagation();
                         e.preventDefault();
                         var selected = $(e.currentTarget);
-                        vm.handleChange(selected[0])
+                        //vm.handleChange(selected[0])
                         // if( vm.isMultiple){
                         vm.field_data.value = vm.multipleSelected = selected.val();
                         // }
@@ -226,9 +226,10 @@ export default {
         },
     },
     updated:function (){
-        this.$nextTick(() => {
-            this.field_data.value = this.multipleSelected[0] ? this.multipleSelected : this.field_data.value;
-        });
+        // this.$nextTick(() => {
+        //     this.field_data.value = this.multipleSelected[0] ? this.multipleSelected : this.field_data.value;
+        //     console.log(this.field_data.value)
+        // });
     },
     mounted:function () {
         this.init();
