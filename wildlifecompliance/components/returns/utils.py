@@ -289,8 +289,8 @@ class ReturnSpeciesUtility(ReturnUtility):
 
             species_list = self.get_species_list()
 
-            for species_name in species_list:
-                name_id = self.get_id_from_species_name(species_name)
+            for specie_name in species_list:
+                name_id = self.get_id_from_species_name(specie_name)
                 return_table.append(
                     ReturnTable(name=name_id, ret_id=str(self._return.id))
                 )
@@ -326,11 +326,29 @@ class ReturnSpeciesUtility(ReturnUtility):
         licence_purpose = self._return.returns_condition.licence_purpose
         return licence_purpose.purpose_species.all()
 
+    def get_application_species_list(self):
+        '''
+        Get application list of species associated with this Return.
+        '''
+        species_names = []
+        for name in self.application_species_list:
+            species_names.append(name)
+
+        unique_list = list(set(species_names))
+
+        return unique_list
+
     def get_regulated_species_list(self):
         '''
         Get regulated list of species associated with this Return.
         '''
-        return self._return.return_type.regulated_species.all()
+        species_names = []
+        for specie in self._return.return_type.regulated_species.all():
+            species_names.append(specie.species_name)
+
+        unique_list = list(set(species_names))
+
+        return unique_list
 
     def set_application_species_list(self, the_species_list):
         '''
@@ -395,12 +413,6 @@ class ReturnSpeciesUtility(ReturnUtility):
 
         return raw_species_list
 
-    def get_application_species_list(self):
-        '''
-        Get application list of species associated with this Return.
-        '''
-        return self.application_species_list
-
     def get_form_species_list(self):
         '''
         Get list of species common names from the application form.
@@ -432,21 +444,21 @@ class ReturnSpeciesUtility(ReturnUtility):
 
     def get_species_name_from_id(self, species_id):
         '''
-        Get string name of species from hyphened species identifier.
+        Get string name of species from underscored species identifier.
         '''
         name = ''
-        name = species_id.replace('-', ' ')
+        name = species_id.replace('_', ' ')
 
         return name
 
     def get_id_from_species_name(self, species_name):
         '''
-        Get hyphened string id of species from the species name.
+        Get underscored string id of species from the species name.
         '''
         import re
 
         identifier = ''
-        identifier = re.sub(' +', '-', species_name)
+        identifier = re.sub(' +', '_', species_name)
 
         return identifier
 

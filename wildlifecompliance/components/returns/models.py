@@ -844,7 +844,7 @@ class ReturnActivity(models.Model):
 
 class ReturnTable(RevisionedMixin):
     ret = models.ForeignKey(Return)
-    name = models.CharField(max_length=50)
+    name = models.CharField(max_length=100)
     version = IntegerVersionField()
 
     class Meta:
