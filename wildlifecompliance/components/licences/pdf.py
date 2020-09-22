@@ -432,7 +432,7 @@ def _create_licence(licence_buffer, licence, application):
 
             if s['details']:
                 elements.append(Spacer(1, SECTION_BUFFER_HEIGHT))
-                purposeSpeciesList = html_to_rl(s['details'], styles)
+                purposeSpeciesList, listcounter = html_to_rl(s['details'], styles)
 
                 for info_item in purposeSpeciesList:
                     elements.append(KeepTogether(info_item))
@@ -463,9 +463,12 @@ def _create_licence(licence_buffer, licence, application):
 #            )
 #            elements.append(conditionList)
 
+            listcounter = 0
             conditionList = []
             for s in activity_conditions.order_by('order'):
-                conditionList += html_to_rl(s.condition, styles)
+                #_conditionList, listcounter += html_to_rl(s.condition, styles)
+                _conditionList, listcounter = html_to_rl(s.condition, styles, listcounter)
+                conditionList += _conditionList
 
             for info_item in conditionList:
                 elements.append(KeepTogether(info_item))
@@ -517,7 +520,7 @@ def _create_licence(licence_buffer, licence, application):
             if s.has_key('is_additional_info') and s['is_additional_info'] and s['details']:
                 # Get and Display Purpose Species Header
                 elements.append(Spacer(1, SECTION_BUFFER_HEIGHT))
-                purposeSpeciesInfoList = html_to_rl(s['details'], styles)
+                purposeSpeciesInfoList, listcounter = html_to_rl(s['details'], styles)
 
                 for info_item in purposeSpeciesInfoList:
                     elements.append(KeepTogether(info_item))
@@ -549,7 +552,7 @@ def _create_licence(licence_buffer, licence, application):
 #                elements.append(infoList)
 
             for s in infos:
-                infoList = html_to_rl(s, styles)
+                infoList, listcounter = html_to_rl(s, styles)
                 elements.append(Spacer(1, SECTION_BUFFER_HEIGHT))
 
                 #elements.append(infoList)
@@ -891,9 +894,8 @@ class HtmlParser(object):
         except KeyError as e:
             logger.warn('Species attribute <species_col> not found in HTML table definition. \n{}'.format(e))
 
-
 import xml.sax as sax
-def html_to_rl(html, styleSheet):
+def html_to_rl(html, styleSheet, start_counter=0):
     html = html.replace('<br>', '<br/>')
     soup = BeautifulSoup(html, "html.parser")
     elements = list()
@@ -905,41 +907,6 @@ def html_to_rl(html, styleSheet):
         ('FONTNAME', (0,0), (-1,0), 'Courier-Bold'),
         ('ALIGN', (0, 0), (-1, -1), 'LEFT')
     ])
-
-    def _parse_table_rows():
-        rows = []
-
-        # add table column headers
-        rows.append([row.get_text(strip=True) for row in soup.select("table tr > th")])
-        for tr in soup.findAll('tr'):
-            cols = []
-            for td in tr.findAll('td'):
-                cols.append(td.string)
-
-            if cols:
-                rows.append(cols)
-
-        return rows
-
-    def species():
-        species = []
-        try:
-            rows = _parse_table_rows()
-            if not rows:
-                return []
-
-            col_name = soup.table["species_col"]
-            for i, row in enumerate(rows):
-                if i==0:
-                    idx = row.index(col_name)
-                else:
-                    species.append(row[idx])
-
-            return species
-        except ValueError as e:
-            logger.warn('Species name not found in HTML. \n{}'.format(e))
-        except KeyError as e:
-            logger.warn('Species attribute <species_col> not found in HTML table definition. \n{}'.format(e))
 
 
     class Handler(sax.ContentHandler):
@@ -963,6 +930,25 @@ def html_to_rl(html, styleSheet):
             <h4>This is a H4 tag Title Example</h4>
             <h5>This is a H5 tag Title Example</h5>
             <h6>This is a H6 tag Title Example</h6>
+            <br>
+
+            <p>The empty line below is a line-break br tag Example</p>
+            <br>
+
+            <hr>
+            <h2>This page break is a page-break hr tag Example</h2>
+
+            <p>This is a p tag Example</p>
+            <br>
+
+            <p>This is a <b>bold b tag</b> Example</p>
+            <br>
+
+            <p>This is an <i>italic i tag</i> Example</p>
+            <br>
+
+            <p>This is an <em> emphasized em tag</em> Example</p>
+            <br>
 
             <p>This is a p tag Example</p>
             <br>
@@ -1002,6 +988,23 @@ def html_to_rl(html, styleSheet):
         listtype = ""
         prev_listtype = ""
 
+        def __init__(self, start_counter):
+            self.start_counter = start_counter
+
+        def _parse_table_rows(self):
+            rows = []
+
+            # add table column headers
+            rows.append([row.get_text(strip=True) for row in soup.select("table tr > th")])
+            for tr in soup.findAll('tr'):
+                cols = []
+                for td in tr.findAll('td'):
+                    cols.append(td.string)
+
+                if cols:
+                    rows.append(cols)
+
+            return rows
 
         def _clear(self):
             self.buffer = ""
@@ -1010,7 +1013,7 @@ def html_to_rl(html, styleSheet):
             if name in ["strong", "em", "i", "b"]:
                 self.mode = name
             elif name == "ol":
-                self.listcounter = 1
+                self.listcounter = 1 if self.start_counter==0 else self.start_counter
                 self.listtype = "ol"
             elif name == "ul":
                 if self.listtype == "ol":
@@ -1047,7 +1050,7 @@ def html_to_rl(html, styleSheet):
             elif name == "table":
                 elements.append(
                     Table(
-                        _parse_table_rows(),
+                        self._parse_table_rows(),
                         style=box_table_style_hdrbold,
                         hAlign='LEFT'
                     )
@@ -1072,6 +1075,7 @@ def html_to_rl(html, styleSheet):
 
             self.buffer += chars
 
-    sax.parseString(u"<doc>%s</doc>" % html, Handler())
+    handler = Handler(start_counter)
+    sax.parseString(u"<doc>%s</doc>" % html, handler)
 
-    return elements
+    return elements, handler.listcounter
