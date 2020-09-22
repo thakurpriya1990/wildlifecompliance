@@ -896,7 +896,9 @@ class HtmlParser(object):
 
 import xml.sax as sax
 def html_to_rl(html, styleSheet, start_counter=0):
+    html = html.encode('ascii', 'ignore').decode('ascii')
     html = html.replace('<br>', '<br/>')
+    html = html.replace('<hr>', '<hr/>')
     soup = BeautifulSoup(html, "html.parser")
     elements = list()
 
@@ -1059,7 +1061,7 @@ def html_to_rl(html, styleSheet, start_counter=0):
                 self._clear()
 
             if name in ["h1", "h2", "h3", "h4", "h5", "h6", "p", "li"]:
-                self.buffer = ""
+                self._clear()
 
         def characters(self, chars):
             surrounding = None
