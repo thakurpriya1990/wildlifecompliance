@@ -142,6 +142,24 @@ styles.add(
         fontName=ITALIC_FONTNAME,
         fontSize=MEDIUM_FONTSIZE,
         alignment=enums.TA_RIGHT))
+styles.add(
+    ParagraphStyle(
+        name='ListLeftIndent',
+        #fontName=BOLD_FONTNAME,
+        fontSize=MEDIUM_FONTSIZE,
+        spaceAfter=PARAGRAPH_BOTTOM_MARGIN,
+        alignment=enums.TA_LEFT,
+        leftIndent=14))
+styles.add(
+    ParagraphStyle(
+        name='ListNestedLeftIndent',
+        #fontName=BOLD_FONTNAME,
+        fontSize=MEDIUM_FONTSIZE,
+        spaceAfter=PARAGRAPH_BOTTOM_MARGIN,
+        alignment=enums.TA_LEFT,
+        leftIndent=20))
+
+
 styles.add(ParagraphStyle(name='Center', alignment=enums.TA_CENTER))
 styles.add(ParagraphStyle(name='Left', alignment=enums.TA_LEFT))
 styles.add(ParagraphStyle(name='Right', alignment=enums.TA_RIGHT))
@@ -387,24 +405,39 @@ def _create_licence(licence_buffer, licence, application):
             pass
 
         # PurposeSpecies Section
+#        for s in purpose.purpose_species_json:
+#            if s.has_key('is_additional_info') and s['is_additional_info']:
+#                continue
+#
+#            if s['details']:
+#                parser = HtmlParser(s['details'])
+#
+#                # Get and Display Purpose Species Header
+#                elements.append(Spacer(1, SECTION_BUFFER_HEIGHT))
+#                elements.append(
+#                    Paragraph(
+#                        s['header'],
+#                        styles['BoldLeft']
+#                    )
+#                )
+#                elements.append(Spacer(1, SECTION_BUFFER_HEIGHT))
+#
+#                purposeSpeciesList = add_parsed_details(parser, list_flowable=False)
+#                for info_item in purposeSpeciesList:
+#                    elements.append(KeepTogether(info_item))
+
         for s in purpose.purpose_species_json:
-            if s['is_additional_info']:
+            if s.has_key('is_additional_info') and s['is_additional_info']:
                 continue
-            parser = HtmlParser(s['details'])
 
-            # Get and Display Purpose Species Header
-            elements.append(Spacer(1, SECTION_BUFFER_HEIGHT))
-            elements.append(
-                Paragraph(
-                    s['header'],
-                    styles['BoldLeft']
-                )
-            )
-            elements.append(Spacer(1, SECTION_BUFFER_HEIGHT))
+            if s['details']:
+                elements.append(Spacer(1, SECTION_BUFFER_HEIGHT))
+                purposeSpeciesList, listcounter = html_to_rl(s['details'], styles)
 
-            purposeSpeciesList = add_parsed_details(parser, list_flowable=False)
-            for info_item in purposeSpeciesList:
-                elements.append(KeepTogether(info_item))
+                for info_item in purposeSpeciesList:
+                    elements.append(KeepTogether(info_item))
+
+
         # End PurposeSpecies Section
 
         # application conditions
@@ -418,12 +451,28 @@ def _create_licence(licence_buffer, licence, application):
             #elements.append(Spacer(1, SECTION_BUFFER_HEIGHT))
 
             # Conditions Section
+#            conditionList = []
+#            for s in activity_conditions.order_by('order'):
+#                parser = HtmlParser(s.condition)
+#                conditionList += add_parsed_details(parser, list_flowable=False)
+#                #elements.append(Spacer(1, SECTION_BUFFER_HEIGHT))
+
+#            conditionList = ListFlowable(
+#                conditionList,
+#                bulletFontName=BOLD_FONTNAME, bulletFontSize=MEDIUM_FONTSIZE
+#            )
+#            elements.append(conditionList)
+
+            listcounter = 0
+            conditionList = []
             for s in activity_conditions.order_by('order'):
-                conditionList = None
-                parser = HtmlParser(s.condition)
-                conditionList = add_parsed_details(parser)
-                elements.append(Spacer(1, SECTION_BUFFER_HEIGHT))
-                elements.append(conditionList)
+                #_conditionList, listcounter += html_to_rl(s.condition, styles)
+                _conditionList, listcounter = html_to_rl(s.condition, styles, listcounter)
+                conditionList += _conditionList
+
+            for info_item in conditionList:
+                elements.append(KeepTogether(info_item))
+
             # End Conditions Section
 
         elements += _layout_extracted_fields(licence.extracted_fields)
@@ -447,28 +496,35 @@ def _create_licence(licence_buffer, licence, application):
 
         # additional information
         # 'is_additional_info' Section from Purposespecies
+#        for s in purpose.purpose_species_json:
+#            if s.has_key('is_additional_info') and s['is_additional_info'] and s['details']:
+#                parser = HtmlParser(s['details'])
+#
+#                # Get and Display Purpose Species Header
+#                elements.append(Spacer(1, SECTION_BUFFER_HEIGHT))
+#                elements.append(
+#                    Paragraph(
+#                        s['header'],
+#                        styles['BoldLeft']
+#                    )
+#                )
+#                elements.append(Spacer(1, SECTION_BUFFER_HEIGHT))
+#
+#                purposeSpeciesInfoList = add_parsed_details(parser, list_flowable=False)
+#                #elements.append(purposeSpeciesInfoList)
+#                for info_item in purposeSpeciesInfoList:
+#                    elements.append(KeepTogether(info_item))
+
+        # additional information
         for s in purpose.purpose_species_json:
-            if not s['is_additional_info']:
-                continue
-            parser = HtmlParser(s['details'])
+            if s.has_key('is_additional_info') and s['is_additional_info'] and s['details']:
+                # Get and Display Purpose Species Header
+                elements.append(Spacer(1, SECTION_BUFFER_HEIGHT))
+                purposeSpeciesInfoList, listcounter = html_to_rl(s['details'], styles)
 
-            # Get and Display Purpose Species Header
-            elements.append(Spacer(1, SECTION_BUFFER_HEIGHT))
-            elements.append(
-                Paragraph(
-                    s['header'],
-                    styles['BoldLeft']
-                )
-            )
-            elements.append(Spacer(1, SECTION_BUFFER_HEIGHT))
-
-            purposeSpeciesInfoList = add_parsed_details(parser, list_flowable=False)
-            #elements.append(purposeSpeciesInfoList)
-            for info_item in purposeSpeciesInfoList:
-                elements.append(KeepTogether(info_item))
-
+                for info_item in purposeSpeciesInfoList:
+                    elements.append(KeepTogether(info_item))
         # End PurposeSpecies Section
-
 
         if licence.has_additional_information_for(selected_activity):
             elements.append(Spacer(1, SECTION_BUFFER_HEIGHT))
@@ -489,12 +545,22 @@ def _create_licence(licence_buffer, licence, application):
                         info.encode('utf8'), c_num))
 
             # Conditions Section
+#            for s in infos:
+#                parser = HtmlParser(s)
+#                infoList = add_parsed_details(parser)
+#                elements.append(Spacer(1, SECTION_BUFFER_HEIGHT))
+#                elements.append(infoList)
+
             for s in infos:
-                parser = HtmlParser(s)
-                infoList = add_parsed_details(parser)
+                infoList, listcounter = html_to_rl(s, styles)
                 elements.append(Spacer(1, SECTION_BUFFER_HEIGHT))
-                elements.append(infoList)
-        # End Conditions Section
+
+                #elements.append(infoList)
+                for info_item in infoList:
+                    elements.append(KeepTogether(info_item))
+
+            # End Conditions Section
+
 
         elements.append(PageBreak())
 
@@ -784,16 +850,12 @@ class HtmlParser(object):
         self.raw_html = raw_html
         self.tables = []
         self.species = []
-        self.lists = []
-        self.free_text = []
         self.parse()
 
     def parse(self):
         try:
             self.soup = BeautifulSoup(self.raw_html, "html.parser")
             self._parse_table()
-            self._parse_list()
-            self._parse_free_text()
             self._parse_species()
         except Exception as e:
             raise
@@ -815,15 +877,6 @@ class HtmlParser(object):
 
             self.tables.append(rows)
 
-    def _parse_list(self):
-        for ul in self.soup.findAll('ul'):
-            self.lists.append(
-                [row.get_text(strip=True) for row in ul.select("li")]
-            )
-
-    def _parse_free_text(self):
-        self.free_text = [row.get_text(strip=True) for row in self.soup.select("p")]
-
     def _parse_species(self):
         try:
             if not self.soup.table:
@@ -841,52 +894,190 @@ class HtmlParser(object):
         except KeyError as e:
             logger.warn('Species attribute <species_col> not found in HTML table definition. \n{}'.format(e))
 
-def add_parsed_details(parser, list_flowable=True):
-        flow_list = []
-        infoList = None
-        box_table_style_hdrbold = TableStyle([
-            ('VALIGN', (0, 0), (-1, -1), 'TOP'),
-            ('BOX', (0,0), (-1,-1), 0.25, colors.black),
-            ('GRID', (0,0), (-1,-1), 0.25, colors.black),
-            ('FONTNAME', (0,0), (-1,0), 'Courier-Bold'),
-            ('ALIGN', (0, 0), (-1, -1), 'LEFT')
-        ])
+import xml.sax as sax
+def html_to_rl(html, styleSheet, start_counter=0):
+    html = html.encode('ascii', 'ignore').decode('ascii')
+    html = html.replace('<br>', '<br/>')
+    html = html.replace('<hr>', '<hr/>')
+    soup = BeautifulSoup(html, "html.parser")
+    elements = list()
 
-        # Get and Display Purpose Species Table(s) (<table>)
-        for table in parser.tables:
-            flow_list.append(
-                Table(
-                    table,
-                    style=box_table_style_hdrbold,
-                    hAlign='LEFT'
+    box_table_style_hdrbold = TableStyle([
+        ('VALIGN', (0, 0), (-1, -1), 'TOP'),
+        ('BOX', (0,0), (-1,-1), 0.25, colors.black),
+        ('GRID', (0,0), (-1,-1), 0.25, colors.black),
+        ('FONTNAME', (0,0), (-1,0), 'Courier-Bold'),
+        ('ALIGN', (0, 0), (-1, -1), 'LEFT')
+    ])
+
+
+    class Handler(sax.ContentHandler):
+        '''
+        Example input:
+            from wildlifecompliance.components.licences.pdf import styles, html_to_rl
+            html_to_rl(raw_html, styles)
+
+        Example Raw HTML input:
+            <h2>This is a Table Header Example using H2 tag</h2>
+            <table>
+                <tr><th>Event</th><th>Start Date</th><th>End Date</th></tr>
+                <tr><td>a</td><td>b</td><td>c</td></tr>
+                <tr><td>d</td><td>e</td><td>f</td></tr>
+                <tr><td>g</td><td>h</td><td>i</td></tr>
+            </table>
+
+            <h1>This is a H1 tag Title Example</h1>
+            <h2>This is a H2 tag Title Example</h2>
+            <h3>This is a H3 tag Title Example</h3>
+            <h4>This is a H4 tag Title Example</h4>
+            <h5>This is a H5 tag Title Example</h5>
+            <h6>This is a H6 tag Title Example</h6>
+            <br>
+
+            <p>The empty line below is a line-break br tag Example</p>
+            <br>
+
+            <hr>
+            <h2>This page break is a page-break hr tag Example</h2>
+
+            <p>This is a p tag Example</p>
+            <br>
+
+            <p>This is a <b>bold b tag</b> Example</p>
+            <br>
+
+            <p>This is an <i>italic i tag</i> Example</p>
+            <br>
+
+            <p>This is an <em> emphasized em tag</em> Example</p>
+            <br>
+
+            <p>This is a p tag Example</p>
+            <br>
+
+            <h2>This is a H2 tag Title - (ol) ordered-list</h2>
+            <ol>
+                <li>Coffee  ddd dd dd dd dd dd dd dd dd dd dd dd dd dd dd dd dd dd dd dd dd  ddd dd dd dd dd dd dd dd dd dd dd dd dd dd dd dd dd dd dd dd dd</li>
+                <li>Tea</li>
+                <li>Milk</li>
+            </ol>
+            <br>
+
+            <h2>This is a H2 tag Title - (ul) un-ordered-list (Bullet Points)</h2>
+            <ul>
+                <li>Coffee  ddd dd dd dd dd dd dd dd dd dd dd dd dd dd dd dd dd dd dd dd dd  ddd dd dd dd dd dd dd dd dd dd dd dd dd dd dd dd dd dd dd dd dd</li>
+                <li>Tea</li>
+                <li>Milk</li>
+            </ul>
+            <br>
+
+            <h3>The list below is an ordered (ol) list Example, with a nested (nested once) inner (ul) list</h3>
+            <ol>
+                <li>Coffee  ddd dd dd dd dd dd dd dd dd dd dd dd dd dd dd dd dd dd dd dd dd  ddd dd dd dd dd dd dd dd dd dd dd dd dd dd dd dd dd dd dd dd dd</li>
+                <li>Tea</li>
+                    <ul>
+                        <li>Black tea</li>
+                        <li>Green tea  ddd dd dd dd dd dd dd dd dd dd dd dd dd dd dd dd dd dd dd dd dd ddd dd dd dd dd dd dd dd dd dd dd dd dd dd dd dd dd dd dd dd dd  </li>
+                        <li>Blue tea</li>
+                    </ul>
+                <li>Milk</li>
+            </ol>
+            <br>
+        '''
+        mode = ""
+        buffer = ""
+        listcounter = 0
+        listtype = ""
+        prev_listtype = ""
+
+        def __init__(self, start_counter):
+            self.start_counter = start_counter
+
+        def _parse_table_rows(self):
+            rows = []
+
+            # add table column headers
+            rows.append([row.get_text(strip=True) for row in soup.select("table tr > th")])
+            for tr in soup.findAll('tr'):
+                cols = []
+                for td in tr.findAll('td'):
+                    cols.append(td.string)
+
+                if cols:
+                    rows.append(cols)
+
+            return rows
+
+        def _clear(self):
+            self.buffer = ""
+
+        def startElement(self, name, attrs):
+            if name in ["strong", "em", "i", "b"]:
+                self.mode = name
+            elif name == "ol":
+                self.listcounter = 1 if self.start_counter==0 else self.start_counter
+                self.listtype = "ol"
+            elif name == "ul":
+                if self.listtype == "ol":
+                    self.prev_listtype = "ol"
+                self.listtype = "ul"
+            elif name == "hr":
+                elements.append(PageBreak())
+            elif name == "br":
+                elements.append(Spacer(1, SECTION_BUFFER_HEIGHT))
+            #elif name == "table":
+            #    elements.append(Spacer(1, SECTION_BUFFER_HEIGHT))
+
+        def endElement(self, name):
+            if name.startswith("h") and name[-1] in ["1", "2", "3", "4", "5", "6"]:
+                elements.append(Paragraph(self.buffer, styleSheet["Heading%s" % name[-1]]))
+            elif name in ["strong", "em", "i", "b"]:
+                self.mode = ""
+            elif name == "p":
+                elements.append(Paragraph(self.buffer, styleSheet["BodyText"]))
+            elif name == "li":
+                if self.listtype == "ul":
+                    #elements.append(Paragraph(self.buffer, styleSheet["BodyText"], bulletText="-"))
+                    elements.append(Paragraph(self.buffer, styleSheet["ListNestedLeftIndent"], bulletText=u"    \u2022"))
+                else:
+                    elements.append(Paragraph(self.buffer, styleSheet["ListLeftIndent"], bulletText="%s." % self.listcounter))
+                    self.listcounter += 1
+            #elif name in ["ol", "ul"]:
+            elif name in ["ul"]:
+                self.listtype = "ol" if self.prev_listtype == "ol" else ""
+            elif name in ["ol"]:
+                self.listtype = ""
+                self.prev_listtype = ""
+
+            elif name == "table":
+                elements.append(
+                    Table(
+                        self._parse_table_rows(),
+                        style=box_table_style_hdrbold,
+                        hAlign='LEFT'
+                    )
                 )
-            )
+                elements.append(Spacer(1, SECTION_BUFFER_HEIGHT))
+                self._clear()
 
-        # Get and Display Purpose Species List(s) (<ul><li>)
-        for _list in parser.lists:
-            flow_list.append(
-                [Paragraph(
-                    li,
-                    styles['Left']
-                ) for li in _list ]
-            )
+            if name in ["h1", "h2", "h3", "h4", "h5", "h6", "p", "li"]:
+                self._clear()
 
-        # Get and Display Purpose Species Free Text (<p>)
-        flow_list.append(
-            [Paragraph(
-                text,
-                styles['Left']
-            ) for text in parser.free_text]
-        )
+        def characters(self, chars):
+            surrounding = None
 
-        if list_flowable:
-            infoList = ListFlowable(
-                flow_list,
-                bulletFontName=BOLD_FONTNAME, bulletFontSize=MEDIUM_FONTSIZE
-            )
-        else:
-            infoList = flow_list
+            if self.mode in ["strong", "em", "i", "b"]:
+                if self.mode in ["strong", "b"]:
+                    surrounding = "b"
+                else:
+                    surrounding = "i"
 
-        return infoList
+            if surrounding:
+                chars = u"<%s>%s</%s>" % (surrounding, chars, surrounding)
 
+            self.buffer += chars
 
+    handler = Handler(start_counter)
+    sax.parseString(u"<doc>%s</doc>" % html, handler)
+
+    return elements, handler.listcounter

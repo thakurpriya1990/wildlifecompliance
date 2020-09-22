@@ -58,7 +58,7 @@
                                                             </div>
                                                             <div class="col-sm-12" v-if="getPickedPurpose(p.purpose.id).isProposed">
                                                                 <div class="col-sm-3">
-                                                                    <label class="control-label pull-left" for="Name">Fee Description</label>
+                                                                    <label class="control-label pull-left" for="Name">Fee Description 1</label>
                                                                 </div>
                                                                 <div class="col-sm-6">
                                                                     <input type="text" ref="licence_fee_text" class="form-control" style="width:70%;" v-model="p.additional_fee_text" />
@@ -67,6 +67,7 @@
                                                             <!-- Activity Purpose Free Text -->        
                                                             <div v-for="(free_text, pt_idx) in p.purpose_species_json" v-bind:key="`pt_${pt_idx}`">
 
+                                                                <!--
                                                                 <div class="col-sm-12">
                                                                     <div class="col-sm-3">
                                                                         <label class="control-label pull-left" for="Name">Header</label>
@@ -74,13 +75,22 @@
                                                                     <div class="col-sm-6">
                                                                         <input type="text" ref="ap_text_header" class="form-control" style="width:70%;" v-model="free_text.header" />
                                                                     </div>
+                                                                    <div v-show="free_text.is_additional_info" class="col-sm-3">
+                                                                        <input type="checkbox" checked disabled/>
+                                                                        <label>Is additional info</label>
+                                                                    </div>
                                                                 </div>
+                                                                -->
                                                                 <div class="col-sm-12">
                                                                     <div class="col-sm-3">
                                                                         <label class="control-label pull-left" for="Name">Details</label>
                                                                     </div>
                                                                     <div class="col-sm-6">
                                                                         <textarea ref="ap_text_detail" class="form-control" style="width:100%;" v-model="free_text.details" />
+                                                                    </div>
+                                                                    <div v-show="free_text.is_additional_info" class="col-sm-3">
+                                                                        <input type="checkbox" checked disabled/>
+                                                                        <label>Is additional info</label>
                                                                     </div>
                                                                 </div>
 
