@@ -262,6 +262,18 @@ class ReturnUtility(object):
     '''
     __metaclass__ = abc.ABCMeta
 
+    @staticmethod
+    def default_return_due_date():
+        '''
+        Standard default due date for returns 12 months from submit date.
+        '''
+        from datetime import date, timedelta
+        PERIOD_DAYS = 356
+
+        today_plus_days = date.today() + timedelta(days=int(PERIOD_DAYS))
+
+        return today_plus_days
+
 
 class ReturnSpeciesUtility(ReturnUtility):
     '''
