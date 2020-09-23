@@ -1109,6 +1109,7 @@ class Application(RevisionedMixin):
 
     def submit(self, request):
         from wildlifecompliance.components.licences.models import LicenceActivity
+        from wildlifecompliance.components.returns.utils import ReturnUtility
         with transaction.atomic():
             requires_refund = self.requires_refund_at_submit()
             if self.can_user_edit:
@@ -1184,6 +1185,11 @@ class Application(RevisionedMixin):
                                 )
                                 ac.is_default = True
                                 ac.standard = True
+                                if sc.return_type:
+                                    # default 12 months from submission.
+                                    ac.due_date = \
+                                        ReturnUtility.default_return_due_date()
+
                                 ac.save()
 
                         '''

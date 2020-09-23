@@ -406,7 +406,7 @@ export default {
        let vm = this;
        vm.setPurposeSelector();
        vm.setConditionSelector();
-       if (vm.condition.free_condition){
+       if (vm.condition.free_condition || vm.condition.due_date){
             vm.showDueDate=true;
        }
        // Initialise Date Picker
