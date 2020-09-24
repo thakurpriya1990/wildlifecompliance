@@ -10,13 +10,16 @@
                             <div class="col-md-3">
                                 <label class="control-label pull-left" >Activity:</label>
                             </div>
-                            <div class="col-md-6" v-show="isAddEntry">
+                            <div class="col-md-3" v-if="isStockEntry">
+                                <label>{{activityList[entryActivity]['label']}}</label>
+                            </div>
+                            <div class="col-md-6" v-if="isAddEntry && !isStockEntry">
                                 <select class="form-control" v-model="entryActivity">
-                                    <option v-for="(activity, activityId) in activityList" v-if="activity['auto']=='false'" :value="activityId">{{activity['label']}}</option>
+                                    <option v-for="(activity, activityId) in filteredActivityList" v-if="activity['auto']=='false'" :value="activityId">{{activity['label']}}</option>
                                 </select>
                             </div>
-                            <div class="col-md-3" v-show="isChangeEntry">
-                                <label>{{activityList[entryActivity]['label']}} </label>
+                            <div class="col-md-3" v-if="isChangeEntry && !isStockEntry">
+                                <label>{{filteredActivityList[entryActivity]['label']}} </label>
                             </div>
                         </div>
                         <div class="row">
@@ -155,6 +158,17 @@ export default {
       isPayable: function() {
         return (this.returns.sheet_activity_list[this.entryActivity]['pay'] === 'true');
       },
+      isStockEntry: function() {
+        return this.entryActivity==='stock'?true:false;
+      },
+      filteredActivityList: function() {
+        let filteredList = Object.assign({}, this.activityList)
+        if (filteredList['stock'] && !this.isStockEntry) {
+          delete filteredList['stock']
+        }
+  
+        return filteredList
+      }
     },
     methods:{
       isOutStock: function(activity) {

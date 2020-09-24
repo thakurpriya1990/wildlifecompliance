@@ -219,13 +219,16 @@ export default {
     addSheetRow: function () {
       const self = this;
       var rows = self.$refs.return_datatable.vmDataTable
+      self.$refs.sheet_entry.entryActivity = Object.keys(self.returns.sheet_activity_list)[0];
+      if (rows.data().length<1) {
+        self.$refs.sheet_entry.entryActivity = Object.keys(self.returns.sheet_activity_list)[5];
+      }
       self.$refs.sheet_entry.isAddEntry = true;
       self.$refs.sheet_entry.return_table = rows;
       self.$refs.sheet_entry.row_of_data = rows;
       self.$refs.sheet_entry.activityList = self.returns.sheet_activity_list;
       self.$refs.sheet_entry.speciesType = self.returns.sheet_species
       self.$refs.sheet_entry.entrySpecies = self.sheetTitle;
-      self.$refs.sheet_entry.entryActivity = Object.keys(self.returns.sheet_activity_list)[0];
       self.$refs.sheet_entry.entryTotal = self.sheet_total;
       self.$refs.sheet_entry.currentStock = self.sheet_total;
       self.$refs.sheet_entry.initialQty = '0';
