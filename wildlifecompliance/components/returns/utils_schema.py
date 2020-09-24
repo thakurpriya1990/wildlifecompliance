@@ -469,7 +469,7 @@ class Schema:
                 be
             ))
 
-        return row
+        return True
 
     def get_error_fields(self, row):
         """
