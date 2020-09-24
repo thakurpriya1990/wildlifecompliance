@@ -39,8 +39,25 @@
                             <div class="col-md-3">
                                 <label class="control-label pull-left" >Receiving licence:</label>
                             </div>
-                            <div class="col-md-3">
+                            <!-- <div class="col-md-3">  Replaced with Keeper
                                 <input type='text' v-model='entryLicence' >
+                            </div> -->
+                        </div>
+                        <div class="row">
+                            <div class="col-md-3">
+                                <label class="control-label pull-left" >Name of Supplier/Recipient:</label>
+                            </div>
+                            <div class="col-md-9">
+                                <input style="width: 95%;" type='text' v-model='entrySupplier' >
+                            </div>
+                        </div>
+                        <div class="row">
+                            <div class="col-md-3">
+                                <label class="control-label pull-left" >Keeper, Import or Export</label>
+                                <label>Licence number:</label>
+                            </div>
+                            <div class="col-md-9">
+                                <input style="width: 95%;" type='text' v-model='entryLicence' >
                             </div>
                         </div>
                         <div class="row">
@@ -100,6 +117,7 @@ export default {
         entryLicence: '',
         entryComment: '',
         entryTransfer: '',
+        entrySupplier: '',
         currentStock: 0,
         speciesType: '',
         row_of_data: null,
@@ -180,6 +198,7 @@ export default {
                         comment: self.entryComment,
                         licence: self.entryLicence,
                         transfer: self.entryTransfer,
+                        supplier: self.entrySupplier,
                       };
 
           if (self.isLicenceRequired) { // licence only required for transfers.
@@ -207,6 +226,7 @@ export default {
           _data.licence = self.entryLicence;
           _data.comment = self.entryComment;
           _data.transfer = self.entryTransfer;
+          _data.supplier = self.entrySupplier;
 
           if (self.isLicenceRequired) { // licence only required for transfers.
 
@@ -246,6 +266,7 @@ export default {
                         comment: self.entryComment,
                         licence: self.entryLicence,
                         transfer: self.entryTransfer,
+                        supplier: self.entrySupplier,
                       };
 
 
@@ -309,6 +330,7 @@ export default {
                             self.row_of_data.data().licence = self.entryLicence;
                             self.row_of_data.data().comment = self.entryComment;
                             self.row_of_data.data().transfer = self.entryTransfer;
+                            self.row_of_data.data().supplier = self.entrySupplier;
                             self.row_of_data.invalidate().draw()
                             self.species_cache[self.returns.sheet_species] = self.return_table.data();
                         }

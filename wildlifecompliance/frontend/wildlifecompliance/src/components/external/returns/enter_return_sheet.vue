@@ -82,7 +82,7 @@ export default {
         sheetTitle: null,
         sheet_total: 0,
         sheet_activity_type: [],
-        sheet_headers:["order","Date","Activity","Qty","Total","Action","Comments"],
+        sheet_headers:["order","Date","Activity","Qty","Total","Action","Supplier","Comments"],
         sheet_options:{
             language: {
                 processing: "<i class='fa fa-4x fa-spinner fa-spin'></i>"
@@ -99,7 +99,7 @@ export default {
                 },
             },
             columnDefs: [
-              { visible: false, targets: [0, 6] } // hide order column.
+              { visible: false, targets: [0, 6, 7] } // hide order column.
             ],
             columns: [
               { data: "date" },
@@ -142,6 +142,7 @@ export default {
                    }
                 }
               },
+              { data: "supplier"},
               { data: "comment"},
             ],
             order: [0, 'desc'],
@@ -231,6 +232,7 @@ export default {
       self.$refs.sheet_entry.entryComment = '';
       self.$refs.sheet_entry.entryLicence = '';
       self.$refs.sheet_entry.entryDateTime = '';
+      self.$refs.sheet_entry.entrySupplier = '';
       self.$refs.sheet_entry.isSubmitable = true;
       self.$refs.sheet_entry.isModalOpen = true;
     },
@@ -254,6 +256,7 @@ export default {
         vm.$refs.sheet_entry.entryComment = vm.$refs.sheet_entry.row_of_data.data().comment;
         vm.$refs.sheet_entry.entryLicence = vm.$refs.sheet_entry.row_of_data.data().licence;
         vm.$refs.sheet_entry.entryTransfer = vm.$refs.sheet_entry.row_of_data.data().transfer;
+        vm.$refs.sheet_entry.entrySupplier = vm.$refs.sheet_entry.row_of_data.data().supplier;
 
         vm.species_cache[vm.returns.sheet_species] = vm.$refs.return_datatable.vmDataTable.data();
 
@@ -342,13 +345,23 @@ export default {
               child_row += `
                   <table class="table table-bordered child-row-table">
                       `;
+              child_row += 
+                      `<tr>
+                          <td class="width_15pc"><strong>Name of Supplier/Recipient:&nbsp;</strong></td>
+                          <td>${row.data()['supplier']}</td>
+                      </tr>`;
 
-              child_row += `
-                      ${row.data()['comment'] ?
+              child_row += 
+                      `<tr>
+                          <td class="width_15pc"><strong>Keeper, Import or Export <br/> Licence number:&nbsp;</strong></td>
+                          <td>${row.data()['licence']}</td>
+                      </tr>`;
+
+              child_row += 
                       `<tr>
                           <td class="width_15pc"><strong>Comments:&nbsp;</strong></td>
                           <td>${row.data()['comment']}</td>
-                      </tr>` : ' ' } `;
+                      </tr>`;
 
               child_row += `</table>`
               // child_row += `

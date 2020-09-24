@@ -1166,6 +1166,8 @@ class ReturnSheet(object):
                     "type": "string"}, {
                     "name": "comment",
                     "type": "string"}, {
+                    "name": "supplier",
+                    "type": "string"}, {
                     "name": "transfer",
                     "type": "string"}]}}]}
 
@@ -1472,7 +1474,9 @@ class ReturnSheet(object):
                 _r_table = self._return.returntable_set.get(
                     name=_resource_name)
                 rows = [
-                    _r_row.data for _r_row in _r_table.returnrow_set.all()]
+                    _r_row.data for _r_row in _r_table.returnrow_set.all()
+                ]
+                _schema.set_field_for(rows)     # Add missing schema fields.
                 _schema.rows_validator(rows)
                 self._table['data'] = rows
                 self._table['echo'] = 1
