@@ -104,7 +104,7 @@ export default {
             columns: [
               { data: "date" },
               { data: "date",
-                // className: "pay-row-icon",
+                className: "pay-row-icon",
                 mRender: function(data, type, full) {
                    let _date = new Date(parseInt(full.date));
                    return _date.toLocaleString("en-GB")
@@ -312,7 +312,7 @@ export default {
       });
 
       // payment row listener
-      vm.$refs.return_datatable.vmDataTable.on('click', 'tr.payRecordRow_', function(e) {
+      vm.$refs.return_datatable.vmDataTable.on('click', 'tr.payRecordRow', function(e) {
           // If a link is clicked, ignore
           if($(e.target).is('a')){
               return;
@@ -351,13 +351,13 @@ export default {
                       </tr>` : ' ' } `;
 
               child_row += `</table>`
-              child_row += `
-                  <table class="table table-striped table-bordered child-row-table">
-                      <tr>
-                          <td class="width_15pc"><strong>Invoice:&nbsp;</strong></td>
-                          <td>1233412244</td>
-                      </tr>
-                  </table>`;
+              // child_row += `
+              //     <table class="table table-striped table-bordered child-row-table">
+              //         <tr>
+              //             <td class="width_15pc"><strong>Invoice:&nbsp;</strong></td>
+              //             <td>1233412244</td>
+              //         </tr>
+              //     </table>`;
               // Show child row, dark-row className CSS applied from application.scss
               row.child(
                   child_row
