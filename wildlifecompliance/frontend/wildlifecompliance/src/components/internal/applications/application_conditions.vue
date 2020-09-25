@@ -35,7 +35,7 @@ from '@/utils/hooks';
 import '@/scss/dashboards/application.scss';
 import datatable from '@vue-utils/datatable.vue';
 import ConditionDetail from './application_add_condition.vue';
-import { mapGetters } from 'vuex';
+import { mapActions, mapGetters } from 'vuex'
 export default {
     name: 'InternalApplicationConditions',
     props: {
@@ -148,6 +148,12 @@ export default {
                     }
                 ],
                 processing: true,
+                rowCallback: function ( row, data, index) {
+                    if (data.return_type && !data.due_date) {
+                        $('td', row).css('background-color', 'Red');
+                        vm.setApplicationWorkflowState({bool: true})
+                    }
+                },
                 drawCallback: function (settings) {
                     if(vm.$refs.conditions_datatable) {
                         $(vm.$refs.conditions_datatable.table).find('tr:last .dtMoveDown').remove();
@@ -159,6 +165,9 @@ export default {
                     // Bind clicks to functions
                     $('.dtMoveUp').click(vm.moveUp);
                     $('.dtMoveDown').click(vm.moveDown);
+                },
+                preDrawCallback: function (settings) {
+                    vm.setApplicationWorkflowState({bool: false})
                 }
             }
         }
@@ -178,6 +187,7 @@ export default {
             'canEditAssessmentFor',
             'current_user',
             'canAssignOfficerFor',
+            'application_workflow_state',
         ]),
         canAddConditions: function() {
             if(!this.selected_activity_tab_id || this.activity == null) {
@@ -217,6 +227,9 @@ export default {
         },
     },
     methods:{
+        ...mapActions([
+            'setApplicationWorkflowState',
+        ]),
         addCondition(preloadedCondition){
             if(preloadedCondition) {
                 this.viewedCondition = preloadedCondition;
