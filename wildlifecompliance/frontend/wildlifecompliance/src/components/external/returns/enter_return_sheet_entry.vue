@@ -10,13 +10,16 @@
                             <div class="col-md-3">
                                 <label class="control-label pull-left" >Activity:</label>
                             </div>
-                            <div class="col-md-6" v-show="isAddEntry">
+                            <div class="col-md-3" v-if="isStockEntry">
+                                <label>{{activityList[entryActivity]['label']}}</label>
+                            </div>
+                            <div class="col-md-6" v-if="isAddEntry && !isStockEntry">
                                 <select class="form-control" v-model="entryActivity">
-                                    <option v-for="(activity, activityId) in activityList" v-if="activity['auto']=='false'" :value="activityId">{{activity['label']}}</option>
+                                    <option v-for="(activity, activityId) in filteredActivityList" v-if="activity['auto']=='false'" :value="activityId">{{activity['label']}}</option>
                                 </select>
                             </div>
-                            <div class="col-md-3" v-show="isChangeEntry">
-                                <label>{{activityList[entryActivity]['label']}} </label>
+                            <div class="col-md-3" v-if="isChangeEntry && !isStockEntry">
+                                <label>{{filteredActivityList[entryActivity]['label']}} </label>
                             </div>
                         </div>
                         <div class="row">
@@ -39,8 +42,25 @@
                             <div class="col-md-3">
                                 <label class="control-label pull-left" >Receiving licence:</label>
                             </div>
-                            <div class="col-md-3">
+                            <!-- <div class="col-md-3">  Replaced with Keeper
                                 <input type='text' v-model='entryLicence' >
+                            </div> -->
+                        </div>
+                        <div class="row">
+                            <div class="col-md-3">
+                                <label class="control-label pull-left" >Name of Supplier/Recipient:</label>
+                            </div>
+                            <div class="col-md-9">
+                                <input style="width: 95%;" type='text' v-model='entrySupplier' >
+                            </div>
+                        </div>
+                        <div class="row">
+                            <div class="col-md-3">
+                                <label class="control-label pull-left" >Keeper, Import or Export</label>
+                                <label>Licence number:</label>
+                            </div>
+                            <div class="col-md-9">
+                                <input style="width: 95%;" type='text' v-model='entryLicence' >
                             </div>
                         </div>
                         <div class="row">
@@ -100,6 +120,7 @@ export default {
         entryLicence: '',
         entryComment: '',
         entryTransfer: '',
+        entrySupplier: '',
         currentStock: 0,
         speciesType: '',
         row_of_data: null,
@@ -137,6 +158,17 @@ export default {
       isPayable: function() {
         return (this.returns.sheet_activity_list[this.entryActivity]['pay'] === 'true');
       },
+      isStockEntry: function() {
+        return this.entryActivity==='stock'?true:false;
+      },
+      filteredActivityList: function() {
+        let filteredList = Object.assign({}, this.activityList)
+        if (filteredList['stock'] && !this.isStockEntry) {
+          delete filteredList['stock']
+        }
+  
+        return filteredList
+      }
     },
     methods:{
       isOutStock: function(activity) {
@@ -180,6 +212,7 @@ export default {
                         comment: self.entryComment,
                         licence: self.entryLicence,
                         transfer: self.entryTransfer,
+                        supplier: self.entrySupplier,
                       };
 
           if (self.isLicenceRequired) { // licence only required for transfers.
@@ -207,6 +240,7 @@ export default {
           _data.licence = self.entryLicence;
           _data.comment = self.entryComment;
           _data.transfer = self.entryTransfer;
+          _data.supplier = self.entrySupplier;
 
           if (self.isLicenceRequired) { // licence only required for transfers.
 
@@ -246,6 +280,7 @@ export default {
                         comment: self.entryComment,
                         licence: self.entryLicence,
                         transfer: self.entryTransfer,
+                        supplier: self.entrySupplier,
                       };
 
 
@@ -309,6 +344,7 @@ export default {
                             self.row_of_data.data().licence = self.entryLicence;
                             self.row_of_data.data().comment = self.entryComment;
                             self.row_of_data.data().transfer = self.entryTransfer;
+                            self.row_of_data.data().supplier = self.entrySupplier;
                             self.row_of_data.invalidate().draw()
                             self.species_cache[self.returns.sheet_species] = self.return_table.data();
                         }

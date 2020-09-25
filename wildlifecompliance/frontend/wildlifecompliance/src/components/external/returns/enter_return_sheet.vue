@@ -82,7 +82,7 @@ export default {
         sheetTitle: null,
         sheet_total: 0,
         sheet_activity_type: [],
-        sheet_headers:["order","Date","Activity","Qty","Total","Action","Comments"],
+        sheet_headers:["order","Date","Activity","Qty","Total","Action","Supplier","Comments"],
         sheet_options:{
             language: {
                 processing: "<i class='fa fa-4x fa-spinner fa-spin'></i>"
@@ -99,12 +99,12 @@ export default {
                 },
             },
             columnDefs: [
-              { visible: false, targets: [0, 6] } // hide order column.
+              { visible: false, targets: [0, 6, 7] } // hide order column.
             ],
             columns: [
               { data: "date" },
               { data: "date",
-                // className: "pay-row-icon",
+                className: "pay-row-icon",
                 mRender: function(data, type, full) {
                    let _date = new Date(parseInt(full.date));
                    return _date.toLocaleString("en-GB")
@@ -142,6 +142,7 @@ export default {
                    }
                 }
               },
+              { data: "supplier"},
               { data: "comment"},
             ],
             order: [0, 'desc'],
@@ -218,19 +219,23 @@ export default {
     addSheetRow: function () {
       const self = this;
       var rows = self.$refs.return_datatable.vmDataTable
+      self.$refs.sheet_entry.entryActivity = Object.keys(self.returns.sheet_activity_list)[0];
+      if (rows.data().length<1) {
+        self.$refs.sheet_entry.entryActivity = Object.keys(self.returns.sheet_activity_list)[5];
+      }
       self.$refs.sheet_entry.isAddEntry = true;
       self.$refs.sheet_entry.return_table = rows;
       self.$refs.sheet_entry.row_of_data = rows;
       self.$refs.sheet_entry.activityList = self.returns.sheet_activity_list;
       self.$refs.sheet_entry.speciesType = self.returns.sheet_species
       self.$refs.sheet_entry.entrySpecies = self.sheetTitle;
-      self.$refs.sheet_entry.entryActivity = Object.keys(self.returns.sheet_activity_list)[0];
       self.$refs.sheet_entry.entryTotal = self.sheet_total;
       self.$refs.sheet_entry.currentStock = self.sheet_total;
       self.$refs.sheet_entry.initialQty = '0';
       self.$refs.sheet_entry.entryComment = '';
       self.$refs.sheet_entry.entryLicence = '';
       self.$refs.sheet_entry.entryDateTime = '';
+      self.$refs.sheet_entry.entrySupplier = '';
       self.$refs.sheet_entry.isSubmitable = true;
       self.$refs.sheet_entry.isModalOpen = true;
     },
@@ -254,6 +259,7 @@ export default {
         vm.$refs.sheet_entry.entryComment = vm.$refs.sheet_entry.row_of_data.data().comment;
         vm.$refs.sheet_entry.entryLicence = vm.$refs.sheet_entry.row_of_data.data().licence;
         vm.$refs.sheet_entry.entryTransfer = vm.$refs.sheet_entry.row_of_data.data().transfer;
+        vm.$refs.sheet_entry.entrySupplier = vm.$refs.sheet_entry.row_of_data.data().supplier;
 
         vm.species_cache[vm.returns.sheet_species] = vm.$refs.return_datatable.vmDataTable.data();
 
@@ -312,7 +318,7 @@ export default {
       });
 
       // payment row listener
-      vm.$refs.return_datatable.vmDataTable.on('click', 'tr.payRecordRow_', function(e) {
+      vm.$refs.return_datatable.vmDataTable.on('click', 'tr.payRecordRow', function(e) {
           // If a link is clicked, ignore
           if($(e.target).is('a')){
               return;
@@ -342,22 +348,32 @@ export default {
               child_row += `
                   <table class="table table-bordered child-row-table">
                       `;
+              child_row += 
+                      `<tr>
+                          <td class="width_15pc"><strong>Name of Supplier/Recipient:&nbsp;</strong></td>
+                          <td>${row.data()['supplier']}</td>
+                      </tr>`;
 
-              child_row += `
-                      ${row.data()['comment'] ?
+              child_row += 
+                      `<tr>
+                          <td class="width_15pc"><strong>Keeper, Import or Export <br/> Licence number:&nbsp;</strong></td>
+                          <td>${row.data()['licence']}</td>
+                      </tr>`;
+
+              child_row += 
                       `<tr>
                           <td class="width_15pc"><strong>Comments:&nbsp;</strong></td>
                           <td>${row.data()['comment']}</td>
-                      </tr>` : ' ' } `;
+                      </tr>`;
 
               child_row += `</table>`
-              child_row += `
-                  <table class="table table-striped table-bordered child-row-table">
-                      <tr>
-                          <td class="width_15pc"><strong>Invoice:&nbsp;</strong></td>
-                          <td>1233412244</td>
-                      </tr>
-                  </table>`;
+              // child_row += `
+              //     <table class="table table-striped table-bordered child-row-table">
+              //         <tr>
+              //             <td class="width_15pc"><strong>Invoice:&nbsp;</strong></td>
+              //             <td>1233412244</td>
+              //         </tr>
+              //     </table>`;
               // Show child row, dark-row className CSS applied from application.scss
               row.child(
                   child_row

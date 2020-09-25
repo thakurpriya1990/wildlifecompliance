@@ -1166,6 +1166,8 @@ class ReturnSheet(object):
                     "type": "string"}, {
                     "name": "comment",
                     "type": "string"}, {
+                    "name": "supplier",
+                    "type": "string"}, {
                     "name": "transfer",
                     "type": "string"}]}}]}
 
@@ -1176,10 +1178,10 @@ class ReturnSheet(object):
         "data": []}
 
     SA01 = ReturnActivity.TYPE_IN_STOCK
-    SA02 = ReturnActivity.TYPE_IN_IMPORT
+    SA02 = ReturnActivity.TYPE_IN_ACQUISITION
     SA03 = ReturnActivity.TYPE_IN_BIRTH
     SA04 = ReturnActivity.TYPE_IN_TRANSFER
-    SA05 = ReturnActivity.TYPE_OUT_EXPORT
+    SA05 = ReturnActivity.TYPE_OUT_DISPOSAL
     SA06 = ReturnActivity.TYPE_OUT_DEATH
     SA07 = ReturnActivity.TYPE_OUT_OTHER
     SA08 = ReturnActivity.TYPE_OUT_DEALER
@@ -1472,7 +1474,9 @@ class ReturnSheet(object):
                 _r_table = self._return.returntable_set.get(
                     name=_resource_name)
                 rows = [
-                    _r_row.data for _r_row in _r_table.returnrow_set.all()]
+                    _r_row.data for _r_row in _r_table.returnrow_set.all()
+                ]
+                _schema.set_field_for(rows)     # Add missing schema fields.
                 _schema.rows_validator(rows)
                 self._table['data'] = rows
                 self._table['echo'] = 1
