@@ -1178,10 +1178,10 @@ class ReturnSheet(object):
         "data": []}
 
     SA01 = ReturnActivity.TYPE_IN_STOCK
-    SA02 = ReturnActivity.TYPE_IN_IMPORT
+    SA02 = ReturnActivity.TYPE_IN_ACQUISITION
     SA03 = ReturnActivity.TYPE_IN_BIRTH
     SA04 = ReturnActivity.TYPE_IN_TRANSFER
-    SA05 = ReturnActivity.TYPE_OUT_EXPORT
+    SA05 = ReturnActivity.TYPE_OUT_DISPOSAL
     SA06 = ReturnActivity.TYPE_OUT_DEATH
     SA07 = ReturnActivity.TYPE_OUT_OTHER
     SA08 = ReturnActivity.TYPE_OUT_DEALER

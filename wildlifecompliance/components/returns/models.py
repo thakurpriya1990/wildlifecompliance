@@ -741,34 +741,32 @@ class ReturnActivity(models.Model):
     )
     # Activity Type.
     TYPE_IN_STOCK = 'stock'
-    TYPE_IN_IMPORT = 'in_import'
+    TYPE_IN_ACQUISITION = 'in_import'
     TYPE_IN_BIRTH = 'in_birth'
     TYPE_IN_TRANSFER = 'in_transfer'
-    TYPE_OUT_EXPORT = 'out_export'
+    TYPE_OUT_DISPOSAL = 'out_export'
     TYPE_OUT_DEATH = 'out_death'
     TYPE_OUT_OTHER = 'out_other'
     TYPE_OUT_DEALER = 'out_dealer'
 
     TYPE_DESC = {
         TYPE_IN_STOCK: 'Stock',
-        TYPE_IN_IMPORT: 'In through Import',
-        TYPE_IN_BIRTH: 'In through Birth',
-        TYPE_IN_TRANSFER: 'In through Transfer',
-        TYPE_OUT_EXPORT: 'Out through Export',
-        TYPE_OUT_DEATH: 'Out through Death',
-        TYPE_OUT_OTHER: 'Out through Transfer',
-        TYPE_OUT_DEALER: 'Out through Dealer Transfer',
+        TYPE_IN_BIRTH: 'In through birth',
+        TYPE_IN_TRANSFER: 'In through transfer',
+        TYPE_IN_ACQUISITION: 'In through acquisition',
+        TYPE_OUT_DEATH: 'Out through death',
+        TYPE_OUT_OTHER: 'Out through transfer',
+        TYPE_OUT_DEALER: 'Out through dealer transfer',
+        TYPE_OUT_DISPOSAL: 'Out through disposal',
     }
 
     TYPE_CHOICES = (
         (TYPE_IN_STOCK, TYPE_DESC.get(TYPE_IN_STOCK)),
-        (TYPE_IN_IMPORT, TYPE_DESC.get(TYPE_IN_STOCK)),
+        (TYPE_IN_ACQUISITION, TYPE_DESC.get(TYPE_IN_ACQUISITION)),
         (TYPE_IN_BIRTH, TYPE_DESC.get(TYPE_IN_BIRTH)),
         (TYPE_IN_TRANSFER, TYPE_DESC.get(TYPE_IN_TRANSFER)),
-        (TYPE_OUT_EXPORT, TYPE_DESC.get(TYPE_OUT_EXPORT)),
         (TYPE_OUT_DEATH, TYPE_DESC.get(TYPE_OUT_DEATH)),
-        (TYPE_OUT_OTHER, TYPE_DESC.get(TYPE_OUT_OTHER)),
-        (TYPE_OUT_DEALER, TYPE_DESC.get(TYPE_OUT_DEALER)),
+        (TYPE_OUT_DISPOSAL, TYPE_DESC.get(TYPE_OUT_DISPOSAL)),
     )
     # Activity Type requiring fee.
     FEE_ACTIVITY_TYPE = [
