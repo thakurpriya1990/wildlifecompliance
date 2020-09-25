@@ -811,7 +811,6 @@ class StandardConditionFieldElement(SpecialFieldElement):
             adjusted_by_fields,
             activity,
             purpose_id):
-        from wildlifecompliance.components.returns.utils import ReturnUtility
 
         if self.is_refreshing:
             # No user update with a page refesh.
@@ -836,12 +835,7 @@ class StandardConditionFieldElement(SpecialFieldElement):
                 ac.licence_activity = LicenceActivity.objects.get(
                         id=activity.licence_activity_id)
                 ac.licence_purpose = purpose
-                if condition.return_type:
-                    ac.return_type = condition.return_type
-                    # default 12 months from submission.
-                    ac.due_date = \
-                        ReturnUtility.default_return_due_date()
-
+                ac.return_type = condition.return_type
                 ac.save()
 
     def __str__(self):
