@@ -1777,6 +1777,7 @@ class ApplicationConditionSerializer(serializers.ModelSerializer):
 
         if obj.standard:
             short_desc = obj.standard_condition.short_description
+            obj.return_type = obj.standard_condition.return_type
 
         return short_desc
 

@@ -13,8 +13,8 @@
                 <div class="col-md-6">
                     <div class="form-group">
                         <label for="">Species Available:</label>
-                        <select class="form-control" >
-                            <option class="change-species" v-for="(specie, s_idx) in returns.sheet_species_list" :value="returns.sheet_species" :species_id="s_idx" v-bind:key="`specie_${s_idx}`" >{{specie}}</option>
+                        <select class="form-control" ref="species_selector" name="species_selector">
+                            <option class="change-species" v-for="(specie, s_idx) in returns.sheet_species_list" :value="s_idx" :species_id="s_idx" v-bind:key="`specie_${s_idx}`" >{{specie}}</option>
                         </select>
                     </div>
                 </div>
@@ -28,7 +28,7 @@
                 <div class="col-md-6">
                     <div class="form-group">
                         <label for="">Activity Type:</label>
-                        <select class="form-control" v-model="filterActivityType">
+                        <select ref="activity_filter_selector" name="activity_filter_selector" class="form-control" v-model="filterActivityType">
                             <option value="All">All</option>
                             <option v-for="(sa, sa_idx) in sheet_activity_type" :value="sa['label']" v-bind:key="`sa_type_${sa_idx}`">{{sa['label']}}</option>
                         </select>
@@ -184,13 +184,13 @@ export default {
     datatable,
     Returns,
   },
-  watch:{
-    filterActivityType: function(value){
-      let table = this.$refs.return_datatable.vmDataTable
-      value = value != 'All' ? value : ''
-      table.column(2).search(value).draw();
-    },
-  },
+  // watch:{
+  //   filterActivityType: function(value){
+  //     let table = this.$refs.return_datatable.vmDataTable
+  //     value = value != 'All' ? value : ''
+  //     table.column(2).search(value).draw();
+  //   },
+  // },
   computed: {
      ...mapGetters([
         'isReturnsLoaded',
@@ -382,29 +382,86 @@ export default {
           }
       });
 
-      // Instantiate Form Actions
-      $('form').on('click', '.change-species', function(e) {
-        e.preventDefault();
-        let selected_id = $(this).attr('species_id');
-        if (vm.species_cache[vm.returns.sheet_species]==null
-                        && vm.$refs.return_datatable.vmDataTable.ajax.json().length>0) {
-            // cache currently displayed species json
-            vm.species_cache[vm.returns.sheet_species] = vm.$refs.return_datatable.vmDataTable.ajax.json()
-        }
-        vm.returns.sheet_species = selected_id;
-        if (vm.species_cache[selected_id] != null) {
-            // species json previously loaded from ajax
-            vm.$refs.return_datatable.vmDataTable.clear().draw();
-            vm.$refs.return_datatable.vmDataTable.rows.add(vm.species_cache[selected_id]);
-            vm.$refs.return_datatable.vmDataTable.draw();
-        } else {
-            // load species json from ajax
-            vm.$refs.return_datatable.vmDataTable.clear().draw();
-            vm.$refs.return_datatable.vmDataTable
-                    .ajax.url = helpers.add_endpoint_json(api_endpoints.returns,'sheet_details');
-            vm.$refs.return_datatable.vmDataTable.ajax.reload();
-        };
-      });
+      // // Instantiate Form Actions
+      // $('form').on('click', '.change-species', function(e) {
+      //   e.preventDefault();
+      //   let selected_id = $(this).attr('species_id');
+      //   if (vm.species_cache[vm.returns.sheet_species]==null
+      //                   && vm.$refs.return_datatable.vmDataTable.ajax.json().length>0) {
+      //       // cache currently displayed species json
+      //       vm.species_cache[vm.returns.sheet_species] = vm.$refs.return_datatable.vmDataTable.ajax.json()
+      //   }
+      //   vm.returns.sheet_species = selected_id;
+      //   if (vm.species_cache[selected_id] != null) {
+      //       // species json previously loaded from ajax
+      //       vm.$refs.return_datatable.vmDataTable.clear().draw();
+      //       vm.$refs.return_datatable.vmDataTable.rows.add(vm.species_cache[selected_id]);
+      //       vm.$refs.return_datatable.vmDataTable.draw();
+      //   } else {
+      //       // load species json from ajax
+      //       vm.$refs.return_datatable.vmDataTable.clear().draw();
+      //       vm.$refs.return_datatable.vmDataTable
+      //               .ajax.url = helpers.add_endpoint_json(api_endpoints.returns,'sheet_details');
+      //       vm.$refs.return_datatable.vmDataTable.ajax.reload();
+      //   };
+      // });
+
+      vm.setSpeciesSelector();
+      vm.setActivityFilterSelector();
+    },      // end of eventListener()
+    setFilterActivityType: function(value){
+      let table = this.$refs.return_datatable.vmDataTable
+      value = value != 'All' ? value : ''
+      table.column(2).search(value).draw();
+    },
+    setSheetSpecies: function(selected_species) {
+      let vm = this;
+      let selected_id = selected_species;
+      if (vm.species_cache[vm.returns.sheet_species]==null
+                      && vm.$refs.return_datatable.vmDataTable.ajax.json().length>0) {
+          // cache currently displayed species json
+          vm.species_cache[vm.returns.sheet_species] = vm.$refs.return_datatable.vmDataTable.ajax.json()
+      }
+      vm.returns.sheet_species = selected_id;
+      if (vm.species_cache[selected_id] != null) {
+          // species json previously loaded from ajax
+          vm.$refs.return_datatable.vmDataTable.clear().draw();
+          vm.$refs.return_datatable.vmDataTable.rows.add(vm.species_cache[selected_id]);
+          vm.$refs.return_datatable.vmDataTable.draw();
+      } else {
+          // load species json from ajax
+          vm.$refs.return_datatable.vmDataTable.clear().draw();
+          vm.$refs.return_datatable.vmDataTable
+                  .ajax.url = helpers.add_endpoint_json(api_endpoints.returns,'sheet_details');
+          vm.$refs.return_datatable.vmDataTable.ajax.reload();
+      };
+    },
+    setSpeciesSelector: function () {
+        let vm = this;
+
+        $(vm.$refs.species_selector).select2({
+            "theme": "bootstrap",
+            minimumInputLength: 2,
+            placeholder:"Select Species..."
+        }).
+        on("select2:select",function (e) {
+            var selected = $(e.currentTarget);
+            var selected_species = selected.val();
+            vm.setSheetSpecies(selected_species)
+        });
+    },
+    setActivityFilterSelector: function () {
+        let vm = this;
+
+        $(vm.$refs.activity_filter_selector).select2({
+            "theme": "bootstrap",
+            // placeholder:"Select Species..."
+        }).
+        on("select2:select",function (e) {
+            var selected = $(e.currentTarget);
+            var filter = selected.val();
+            vm.setFilterActivityType(filter)
+        });
     },
   },
   created: function(){

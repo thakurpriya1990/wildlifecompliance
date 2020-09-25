@@ -271,6 +271,7 @@ export default {
             }
             if (!condition.due_date){
                 condition.due_date = null;
+                condition.return_type = null;
                 condition.recurrence = false;
                 delete condition.recurrence_pattern;
                 condition.recurrence_schedule ? delete condition.recurrence_schedule : '';

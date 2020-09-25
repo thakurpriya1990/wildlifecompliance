@@ -722,6 +722,7 @@ export default {
             'canRequestAmendmentFor',
             'canAssignOfficerFor',
             'canAssignAssessorFor',
+            'application_workflow_state',
         ]),
         applicationDetailsVisible: function() {
             return !this.isSendingToAssessor && !this.isofficerfinalisation && this.unfinishedActivities.length && !this.isOfficerConditions;
@@ -785,6 +786,11 @@ export default {
                     return activity.id === this.selected_activity_tab_id
                         && activity.processing_status.name.match(/with officer/gi) // FIXME: required because of temporary status set below.
                 });                                                                // processing_status.id not related to processing_status.name
+
+            if (this.application_workflow_state){
+                // presentation frontend state is incomplete.
+                proposal = false;
+            }
 
             // officer can Issue or Decline without conditions so set temporary status.
             return proposal ? proposal.processing_status.id = 'with_officer_conditions' : false;
