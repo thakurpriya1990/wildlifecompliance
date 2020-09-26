@@ -1726,6 +1726,7 @@ class ApplicationConditionSerializer(serializers.ModelSerializer):
     purpose_name = serializers.SerializerMethodField(read_only=True)
     source_name = serializers.SerializerMethodField(read_only=True)
     source_group = serializers.SerializerMethodField(read_only=True)
+    condition = serializers.SerializerMethodField(read_only=True)
 
     class Meta:
         model = ApplicationCondition
@@ -1770,6 +1771,15 @@ class ApplicationConditionSerializer(serializers.ModelSerializer):
             is_member = True if user in obj.source_group.members else False
 
         return obj.source_group.name if is_member else None
+
+    def get_condition(self, obj):
+        short_desc = obj.condition
+
+        if obj.standard:
+            short_desc = obj.standard_condition.short_description
+            obj.return_type = obj.standard_condition.return_type
+
+        return short_desc
 
 
 class ApplicationStandardConditionSerializer(serializers.ModelSerializer):

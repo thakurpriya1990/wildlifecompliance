@@ -13,8 +13,8 @@
                 <div class="col-md-6">
                     <div class="form-group">
                         <label for="">Species Available:</label>
-                        <select class="form-control" >
-                            <option class="change-species" v-for="(specie, s_idx) in returns.sheet_species_list" :value="returns.sheet_species" :species_id="s_idx" v-bind:key="`specie_${s_idx}`" >{{specie}}</option>
+                        <select class="form-control" ref="species_selector" name="species_selector">
+                            <option class="change-species" v-for="(specie, s_idx) in returns.sheet_species_list" :value="s_idx" :species_id="s_idx" v-bind:key="`specie_${s_idx}`" >{{specie}}</option>
                         </select>
                     </div>
                 </div>
@@ -28,7 +28,7 @@
                 <div class="col-md-6">
                     <div class="form-group">
                         <label for="">Activity Type:</label>
-                        <select class="form-control" v-model="filterActivityType">
+                        <select ref="activity_filter_selector" name="activity_filter_selector" class="form-control" v-model="filterActivityType">
                             <option value="All">All</option>
                             <option v-for="(sa, sa_idx) in sheet_activity_type" :value="sa['label']" v-bind:key="`sa_type_${sa_idx}`">{{sa['label']}}</option>
                         </select>
@@ -82,7 +82,7 @@ export default {
         sheetTitle: null,
         sheet_total: 0,
         sheet_activity_type: [],
-        sheet_headers:["order","Date","Activity","Qty","Total","Action","Comments"],
+        sheet_headers:["order","Date","Activity","Qty","Total","Action","Supplier","Comments"],
         sheet_options:{
             language: {
                 processing: "<i class='fa fa-4x fa-spinner fa-spin'></i>"
@@ -99,12 +99,12 @@ export default {
                 },
             },
             columnDefs: [
-              { visible: false, targets: [0, 6] } // hide order column.
+              { visible: false, targets: [0, 6, 7] } // hide order column.
             ],
             columns: [
               { data: "date" },
               { data: "date",
-                // className: "pay-row-icon",
+                className: "pay-row-icon",
                 mRender: function(data, type, full) {
                    let _date = new Date(parseInt(full.date));
                    return _date.toLocaleString("en-GB")
@@ -142,6 +142,7 @@ export default {
                    }
                 }
               },
+              { data: "supplier"},
               { data: "comment"},
             ],
             order: [0, 'desc'],
@@ -183,13 +184,13 @@ export default {
     datatable,
     Returns,
   },
-  watch:{
-    filterActivityType: function(value){
-      let table = this.$refs.return_datatable.vmDataTable
-      value = value != 'All' ? value : ''
-      table.column(2).search(value).draw();
-    },
-  },
+  // watch:{
+  //   filterActivityType: function(value){
+  //     let table = this.$refs.return_datatable.vmDataTable
+  //     value = value != 'All' ? value : ''
+  //     table.column(2).search(value).draw();
+  //   },
+  // },
   computed: {
      ...mapGetters([
         'isReturnsLoaded',
@@ -218,19 +219,23 @@ export default {
     addSheetRow: function () {
       const self = this;
       var rows = self.$refs.return_datatable.vmDataTable
+      self.$refs.sheet_entry.entryActivity = Object.keys(self.returns.sheet_activity_list)[0];
+      if (rows.data().length<1) {
+        self.$refs.sheet_entry.entryActivity = Object.keys(self.returns.sheet_activity_list)[5];
+      }
       self.$refs.sheet_entry.isAddEntry = true;
       self.$refs.sheet_entry.return_table = rows;
       self.$refs.sheet_entry.row_of_data = rows;
       self.$refs.sheet_entry.activityList = self.returns.sheet_activity_list;
       self.$refs.sheet_entry.speciesType = self.returns.sheet_species
       self.$refs.sheet_entry.entrySpecies = self.sheetTitle;
-      self.$refs.sheet_entry.entryActivity = Object.keys(self.returns.sheet_activity_list)[0];
       self.$refs.sheet_entry.entryTotal = self.sheet_total;
       self.$refs.sheet_entry.currentStock = self.sheet_total;
       self.$refs.sheet_entry.initialQty = '0';
       self.$refs.sheet_entry.entryComment = '';
       self.$refs.sheet_entry.entryLicence = '';
       self.$refs.sheet_entry.entryDateTime = '';
+      self.$refs.sheet_entry.entrySupplier = '';
       self.$refs.sheet_entry.isSubmitable = true;
       self.$refs.sheet_entry.isModalOpen = true;
     },
@@ -254,6 +259,7 @@ export default {
         vm.$refs.sheet_entry.entryComment = vm.$refs.sheet_entry.row_of_data.data().comment;
         vm.$refs.sheet_entry.entryLicence = vm.$refs.sheet_entry.row_of_data.data().licence;
         vm.$refs.sheet_entry.entryTransfer = vm.$refs.sheet_entry.row_of_data.data().transfer;
+        vm.$refs.sheet_entry.entrySupplier = vm.$refs.sheet_entry.row_of_data.data().supplier;
 
         vm.species_cache[vm.returns.sheet_species] = vm.$refs.return_datatable.vmDataTable.data();
 
@@ -312,7 +318,7 @@ export default {
       });
 
       // payment row listener
-      vm.$refs.return_datatable.vmDataTable.on('click', 'tr.payRecordRow_', function(e) {
+      vm.$refs.return_datatable.vmDataTable.on('click', 'tr.payRecordRow', function(e) {
           // If a link is clicked, ignore
           if($(e.target).is('a')){
               return;
@@ -342,22 +348,32 @@ export default {
               child_row += `
                   <table class="table table-bordered child-row-table">
                       `;
+              child_row += 
+                      `<tr>
+                          <td class="width_15pc"><strong>Name of Supplier/Recipient:&nbsp;</strong></td>
+                          <td>${row.data()['supplier']}</td>
+                      </tr>`;
 
-              child_row += `
-                      ${row.data()['comment'] ?
+              child_row += 
+                      `<tr>
+                          <td class="width_15pc"><strong>Keeper, Import or Export <br/> Licence number:&nbsp;</strong></td>
+                          <td>${row.data()['licence']}</td>
+                      </tr>`;
+
+              child_row += 
                       `<tr>
                           <td class="width_15pc"><strong>Comments:&nbsp;</strong></td>
                           <td>${row.data()['comment']}</td>
-                      </tr>` : ' ' } `;
+                      </tr>`;
 
               child_row += `</table>`
-              child_row += `
-                  <table class="table table-striped table-bordered child-row-table">
-                      <tr>
-                          <td class="width_15pc"><strong>Invoice:&nbsp;</strong></td>
-                          <td>1233412244</td>
-                      </tr>
-                  </table>`;
+              // child_row += `
+              //     <table class="table table-striped table-bordered child-row-table">
+              //         <tr>
+              //             <td class="width_15pc"><strong>Invoice:&nbsp;</strong></td>
+              //             <td>1233412244</td>
+              //         </tr>
+              //     </table>`;
               // Show child row, dark-row className CSS applied from application.scss
               row.child(
                   child_row
@@ -366,29 +382,86 @@ export default {
           }
       });
 
-      // Instantiate Form Actions
-      $('form').on('click', '.change-species', function(e) {
-        e.preventDefault();
-        let selected_id = $(this).attr('species_id');
-        if (vm.species_cache[vm.returns.sheet_species]==null
-                        && vm.$refs.return_datatable.vmDataTable.ajax.json().length>0) {
-            // cache currently displayed species json
-            vm.species_cache[vm.returns.sheet_species] = vm.$refs.return_datatable.vmDataTable.ajax.json()
-        }
-        vm.returns.sheet_species = selected_id;
-        if (vm.species_cache[selected_id] != null) {
-            // species json previously loaded from ajax
-            vm.$refs.return_datatable.vmDataTable.clear().draw();
-            vm.$refs.return_datatable.vmDataTable.rows.add(vm.species_cache[selected_id]);
-            vm.$refs.return_datatable.vmDataTable.draw();
-        } else {
-            // load species json from ajax
-            vm.$refs.return_datatable.vmDataTable.clear().draw();
-            vm.$refs.return_datatable.vmDataTable
-                    .ajax.url = helpers.add_endpoint_json(api_endpoints.returns,'sheet_details');
-            vm.$refs.return_datatable.vmDataTable.ajax.reload();
-        };
-      });
+      // // Instantiate Form Actions
+      // $('form').on('click', '.change-species', function(e) {
+      //   e.preventDefault();
+      //   let selected_id = $(this).attr('species_id');
+      //   if (vm.species_cache[vm.returns.sheet_species]==null
+      //                   && vm.$refs.return_datatable.vmDataTable.ajax.json().length>0) {
+      //       // cache currently displayed species json
+      //       vm.species_cache[vm.returns.sheet_species] = vm.$refs.return_datatable.vmDataTable.ajax.json()
+      //   }
+      //   vm.returns.sheet_species = selected_id;
+      //   if (vm.species_cache[selected_id] != null) {
+      //       // species json previously loaded from ajax
+      //       vm.$refs.return_datatable.vmDataTable.clear().draw();
+      //       vm.$refs.return_datatable.vmDataTable.rows.add(vm.species_cache[selected_id]);
+      //       vm.$refs.return_datatable.vmDataTable.draw();
+      //   } else {
+      //       // load species json from ajax
+      //       vm.$refs.return_datatable.vmDataTable.clear().draw();
+      //       vm.$refs.return_datatable.vmDataTable
+      //               .ajax.url = helpers.add_endpoint_json(api_endpoints.returns,'sheet_details');
+      //       vm.$refs.return_datatable.vmDataTable.ajax.reload();
+      //   };
+      // });
+
+      vm.setSpeciesSelector();
+      vm.setActivityFilterSelector();
+    },      // end of eventListener()
+    setFilterActivityType: function(value){
+      let table = this.$refs.return_datatable.vmDataTable
+      value = value != 'All' ? value : ''
+      table.column(2).search(value).draw();
+    },
+    setSheetSpecies: function(selected_species) {
+      let vm = this;
+      let selected_id = selected_species;
+      if (vm.species_cache[vm.returns.sheet_species]==null
+                      && vm.$refs.return_datatable.vmDataTable.ajax.json().length>0) {
+          // cache currently displayed species json
+          vm.species_cache[vm.returns.sheet_species] = vm.$refs.return_datatable.vmDataTable.ajax.json()
+      }
+      vm.returns.sheet_species = selected_id;
+      if (vm.species_cache[selected_id] != null) {
+          // species json previously loaded from ajax
+          vm.$refs.return_datatable.vmDataTable.clear().draw();
+          vm.$refs.return_datatable.vmDataTable.rows.add(vm.species_cache[selected_id]);
+          vm.$refs.return_datatable.vmDataTable.draw();
+      } else {
+          // load species json from ajax
+          vm.$refs.return_datatable.vmDataTable.clear().draw();
+          vm.$refs.return_datatable.vmDataTable
+                  .ajax.url = helpers.add_endpoint_json(api_endpoints.returns,'sheet_details');
+          vm.$refs.return_datatable.vmDataTable.ajax.reload();
+      };
+    },
+    setSpeciesSelector: function () {
+        let vm = this;
+
+        $(vm.$refs.species_selector).select2({
+            "theme": "bootstrap",
+            minimumInputLength: 2,
+            placeholder:"Select Species..."
+        }).
+        on("select2:select",function (e) {
+            var selected = $(e.currentTarget);
+            var selected_species = selected.val();
+            vm.setSheetSpecies(selected_species)
+        });
+    },
+    setActivityFilterSelector: function () {
+        let vm = this;
+
+        $(vm.$refs.activity_filter_selector).select2({
+            "theme": "bootstrap",
+            // placeholder:"Select Species..."
+        }).
+        on("select2:select",function (e) {
+            var selected = $(e.currentTarget);
+            var filter = selected.val();
+            vm.setFilterActivityType(filter)
+        });
     },
   },
   created: function(){
