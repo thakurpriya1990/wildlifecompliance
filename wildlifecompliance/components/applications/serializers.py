@@ -1727,6 +1727,7 @@ class ApplicationConditionSerializer(serializers.ModelSerializer):
     source_name = serializers.SerializerMethodField(read_only=True)
     source_group = serializers.SerializerMethodField(read_only=True)
     condition = serializers.SerializerMethodField(read_only=True)
+    require_return = serializers.SerializerMethodField(read_only=True)
 
     class Meta:
         model = ApplicationCondition
@@ -1750,6 +1751,7 @@ class ApplicationConditionSerializer(serializers.ModelSerializer):
             'source_group',
             'purpose_name',
             'source_name',
+            'require_return',
             )
         readonly_fields = ('order', 'condition')
 
@@ -1780,6 +1782,9 @@ class ApplicationConditionSerializer(serializers.ModelSerializer):
             obj.return_type = obj.standard_condition.return_type
 
         return short_desc
+
+    def get_require_return(self, obj):
+        return True if obj.return_type else False
 
 
 class ApplicationStandardConditionSerializer(serializers.ModelSerializer):
