@@ -195,15 +195,28 @@ export default {
             }
 
             let required_role = false;
-            switch(this.activity.processing_status.id) {
-                case 'with_assessor':
-                    let assessment = this.canEditAssessmentFor(this.selected_activity_tab_id)
-                    required_role = assessment && assessment.assessors.find(assessor => assessor.id === this.current_user.id) ? 'assessor' : false;
-                break;
-                case 'with_officer_conditions':
-                    required_role =  this.canAssignOfficerFor(this.selected_activity_tab_id) ? 'licensing_officer' : false;
-                break;
+            if (this.activity.processing_status.id === 'with_assessor') {
+                let assessment = this.canEditAssessmentFor(this.selected_activity_tab_id)
+                required_role = assessment && assessment.assessors.find(assessor => assessor.id === this.current_user.id) ? 'assessor' : false;
+
+            } else if (this.activity.processing_status.id === 'with_officer') {
+                required_role =  this.canAssignOfficerFor(this.selected_activity_tab_id) ? 'licensing_officer' : false;
+            } else if (this.activity.processing_status.id === 'with_officer_conditions') {
+                required_role =  this.canAssignOfficerFor(this.selected_activity_tab_id) ? 'licensing_officer' : false;
             }
+
+            // switch(this.activity.processing_status.id) {
+            //     case 'with_assessor':
+            //         console.log('with_assessor')
+            //         let assessment = this.canEditAssessmentFor(this.selected_activity_tab_id)
+            //         required_role = assessment && assessment.assessors.find(assessor => assessor.id === this.current_user.id) ? 'assessor' : false;
+            //     break;
+            //     case 'with_officer_conditions':
+            //         console.log('with_officer_condit')
+            //         required_role =  this.canAssignOfficerFor(this.selected_activity_tab_id) ? 'licensing_officer' : false;
+            //     break;
+            // }
+      
             return required_role && this.hasRole(required_role, this.selected_activity_tab_id);
         },
         canEditConditions: function() {
