@@ -388,6 +388,7 @@ class Application(RevisionedMixin):
         choices=SUBMIT_TYPE_CHOICES,
         default=SUBMIT_TYPE_ONLINE)
     property_cache = JSONField(null=True, blank=True, default={})
+    is_resubmitted = models.BooleanField(default=False)
 
     class Meta:
         app_label = 'wildlifecompliance'
@@ -1121,6 +1122,10 @@ class Application(RevisionedMixin):
                 self.customer_status = Application.CUSTOMER_STATUS_UNDER_REVIEW
                 self.submitter = request.user
                 self.lodgement_date = timezone.now()
+                # set is_resubmitted to True everytime.
+                # flag is only used for assessments and conditions and is set
+                # to false once conditions are processed.
+                self.is_resubmitted = True
                 # if amendment is submitted change the status of only particular activity
                 # else if the new application is submitted change the status of
                 # all the activities
