@@ -771,7 +771,10 @@ export default {
             if (this.selectedActivity.assigned_officer != null && this.selectedActivity.assigned_officer !== this.current_user.id) {
                 return false;
             }
-
+            // check activity is not reissued.
+            if (this.selectedActivity.decision_action === 'reissue'){
+                return false;
+            }
             // check authorisation
             return this.canRequestAmendmentFor(this.selected_activity_tab_id);
         },

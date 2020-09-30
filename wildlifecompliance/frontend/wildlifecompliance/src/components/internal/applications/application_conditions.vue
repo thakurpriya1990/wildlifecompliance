@@ -231,9 +231,11 @@ export default {
             'setApplicationWorkflowState',
         ]),
         addCondition(preloadedCondition){
+            var showDueDate = false
             if(preloadedCondition) {
                 this.viewedCondition = preloadedCondition;
                 this.viewedCondition.due_date = preloadedCondition.due_date != null ? moment(preloadedCondition.due_date).format('DD/MM/YYYY'): '';
+                showDueDate=this.viewedCondition.require_return
             }
             else {
                 this.viewedCondition = {
@@ -245,6 +247,7 @@ export default {
                     application: this.application.id
                 };
             }
+            this.$refs.condition_detail.showDueDate = showDueDate
             this.$refs.condition_detail.licence_activity = this.selected_activity_tab_id;
             this.$refs.condition_detail.isModalOpen = true;
         },
