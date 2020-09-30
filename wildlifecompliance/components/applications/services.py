@@ -801,8 +801,13 @@ class StandardConditionFieldElement(SpecialFieldElement):
             return
 
         if isinstance(licence_activity, ApplicationSelectedActivity):
-            # Do not delete when previously added.
-            pass
+            # delete existing rendered standard conditions.
+            for condition in ApplicationCondition.objects.filter(
+                is_rendered=True,
+                standard=True,
+                application=self._application
+            ):
+                condition.delete()
 
     def parse_component(
             self,
