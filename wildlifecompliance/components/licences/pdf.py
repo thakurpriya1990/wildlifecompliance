@@ -1077,7 +1077,10 @@ def html_to_rl(html, styleSheet, start_counter=0):
 
             self.buffer += chars
 
-    handler = Handler(start_counter)
-    sax.parseString(u"<doc>%s</doc>" % html, handler)
+    try:
+        handler = Handler(start_counter)
+        sax.parseString(u"<doc>%s</doc>" % html, handler)
+    except Exception as e:
+        logger.error('Parse Error: {}\n{}'.format(html, e))
 
     return elements, handler.listcounter
