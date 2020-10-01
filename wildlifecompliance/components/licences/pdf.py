@@ -285,7 +285,7 @@ def _create_licence(licence_buffer, licence, application):
             licence_purpose.upper(),
             styles['InfoTitleVeryLargeCenter']))
         elements.append(Paragraph(
-            'Regulation 28, Biodiversity Conservation Regulations 2018',
+            'Regulation {}, Biodiversity Conservation Regulations 2018'.format(issued_purpose.purpose.regulation),
             styles['Center']))
 
         # applicant details
