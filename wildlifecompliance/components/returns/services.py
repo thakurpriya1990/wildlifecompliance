@@ -235,7 +235,7 @@ class ReturnService(object):
         for a_return in due_returns:
             if not for_all and not a_return.id == id:
                 continue
-            # a_return.set_future_return_species()
+            # set future species list for return before setting status.
             utils = ReturnSpeciesUtility(a_return)
             licence_activity_id = a_return.condition.licence_activity_id
             selected_activity = [
@@ -245,7 +245,8 @@ class ReturnService(object):
             raw_specie_names = utils.get_raw_species_list_for(
                 selected_activity
             )
-            utils.set_species_list(raw_specie_names)
+            utils.set_species_list_future(raw_specie_names)
+            # update status for the return.
             a_return.set_processing_status(status)
 
         overdue_returns = Return.objects.filter(
