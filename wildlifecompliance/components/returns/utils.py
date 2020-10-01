@@ -6,6 +6,7 @@ from django.conf import settings
 from django.core.urlresolvers import reverse
 from django.http import HttpResponseRedirect
 from wildlifecompliance.components.returns.models import (
+    Return,
     ReturnTable,
     ReturnRow,
 )
@@ -285,6 +286,23 @@ class ReturnSpeciesUtility(ReturnUtility):
     def __init__(self, a_return):
         super(ReturnUtility, self).__init__()
         self._return = a_return
+
+    def set_species_list_future(self, a_species_list=None):
+        '''
+        Set list of species for future Return.
+        '''
+        FUTURE = Return.RETURN_PROCESSING_STATUS_FUTURE
+        try:
+            if self._return.processing_status == FUTURE:
+
+                self.set_species_list(a_species_list)
+
+        except BaseException as e:
+            logger.error('{0} ReturnID: {1} - {2}'.format(
+                'ReturnSpeciesUtil.set_species_list_future()',
+                self._return.id,
+                e
+            ))
 
     def set_species_list(self, a_species_list=None):
         '''
