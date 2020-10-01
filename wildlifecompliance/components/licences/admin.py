@@ -40,6 +40,7 @@ class WildlifeLicence(admin.ModelAdmin):
 class PurposeSpeciesInline(admin.TabularInline):
     extra = 0
     model = models.PurposeSpecies
+    exclude = ['header']
 
 @admin.register(models.LicencePurpose)
 class LicencePurposeAdmin(admin.ModelAdmin):

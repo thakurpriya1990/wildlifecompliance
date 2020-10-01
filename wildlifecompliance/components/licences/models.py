@@ -43,6 +43,7 @@ class LicencePurpose(models.Model):
         max_digits=8, decimal_places=2, default='0')
     amendment_application_fee = models.DecimalField(
         max_digits=8, decimal_places=2, default='0')
+    regulation = models.CharField(max_length=100)
     fields = JSONField(default=list)
     licence_category = models.ForeignKey(
         'LicenceCategory',

@@ -285,7 +285,7 @@ def _create_licence(licence_buffer, licence, application):
             licence_purpose.upper(),
             styles['InfoTitleVeryLargeCenter']))
         elements.append(Paragraph(
-            'Regulation 28, Biodiversity Conservation Regulations 2018',
+            'Regulation {}, Biodiversity Conservation Regulations 2018'.format(issued_purpose.purpose.regulation),
             styles['Center']))
 
         # applicant details
@@ -1077,7 +1077,10 @@ def html_to_rl(html, styleSheet, start_counter=0):
 
             self.buffer += chars
 
-    handler = Handler(start_counter)
-    sax.parseString(u"<doc>%s</doc>" % html, handler)
+    try:
+        handler = Handler(start_counter)
+        sax.parseString(u"<doc>%s</doc>" % html, handler)
+    except Exception as e:
+        logger.error('Parse Error: {}\n{}'.format(html, e))
 
     return elements, handler.listcounter
