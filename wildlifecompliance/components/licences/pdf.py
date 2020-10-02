@@ -33,13 +33,13 @@ from wildlifecompliance.components.applications.models import (
 import logging
 logger = logging.getLogger(__name__)
 
-BW_DPAW_HEADER_LOGO = os.path.join(
+BW_DBCA_HEADER_LOGO = os.path.join(
     settings.BASE_DIR,
     'wildlifecompliance',
     'static',
     'wildlifecompliance',
     'img',
-    'bw_dpaw_header_logo.png')
+    'bw_dbca_header_logo.png')
 
 COLOUR_DPAW_HEADER_LOGO = os.path.join(
     settings.BASE_DIR,
@@ -189,9 +189,9 @@ def _create_licence_header(canvas, doc, draw_page_number=True):
 
     current_y -= 30
 
-    dpaw_header_logo = ImageReader(BW_DPAW_HEADER_LOGO)
+    header_logo = ImageReader(BW_DBCA_HEADER_LOGO)
     canvas.drawImage(
-        dpaw_header_logo,
+        header_logo,
         HEADER_MARGIN,
         current_y - 40,
         width=LICENCE_HEADER_IMAGE_WIDTH,
