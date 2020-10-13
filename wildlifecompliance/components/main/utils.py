@@ -137,17 +137,32 @@ def create_other_application_invoice(application, request=None):
                 invoice_reference=invoice.reference
             )
 
-            ActivityInvoiceLine.objects.get_or_create(
-                invoice=act_inv[0],
-                licence_activity=activity.licence_activity,
-                amount=activity.licence_fee
-            )
+            paid_purposes = [
+                p for p in activity.proposed_purposes.all()
+                if p.is_payable
+            ]
 
-            ActivityInvoiceLine.objects.get_or_create(
-                invoice=act_inv[0],
-                licence_activity=activity.licence_activity,
-                amount=activity.application_fee
-            )
+            for p in paid_purposes:
+
+                fee = p.get_payable_licence_fee()
+                l_type = ActivityInvoiceLine.LINE_TYPE_LICENCE
+                ActivityInvoiceLine.objects.get_or_create(
+                    invoice=act_inv[0],
+                    licence_activity=activity.licence_activity,
+                    licence_purpose=p.purpose,
+                    amount=fee,
+                    invoice_line_type=l_type,
+                )
+
+                fee = p.get_payable_application_fee()
+                l_type = ActivityInvoiceLine.LINE_TYPE_APPLICATION
+                ActivityInvoiceLine.objects.get_or_create(
+                    invoice=act_inv[0],
+                    licence_activity=activity.licence_activity,
+                    licence_purpose=p.purpose,
+                    amount=fee,
+                    invoice_line_type=l_type,
+                )
 
         return invoice
 
