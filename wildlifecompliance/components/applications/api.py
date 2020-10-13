@@ -1,6 +1,7 @@
 import traceback
 import os
-import json
+import logging
+
 from datetime import datetime, timedelta
 from django.db.models import Q
 from django.db import transaction
@@ -51,7 +52,6 @@ from wildlifecompliance.components.applications.services import (
     StandardConditionFieldElement,
     PromptInspectionFieldElement,
     TSCSpecieService,
-    TSCSpecieCall,
     HerbieSpecieKMICall,
 )
 from wildlifecompliance.components.applications.serializers import (
@@ -91,6 +91,56 @@ from rest_framework_datatables.filters import DatatablesFilterBackend
 from rest_framework_datatables.renderers import DatatablesRenderer
 
 from wildlifecompliance.management.permissions_manager import PermissionUser
+
+logger = logging.getLogger(__name__)
+
+
+def application_refund_callback(invoice_ref, bpoint_tid):
+    '''
+    Callback routine for Ledger when refund transaction.
+
+    Required to update payment status on application as this property is
+    cached and can only be updated on save.
+    '''
+    logger.info(
+        'application_refund_callback: Inv {0}'.format(invoice_ref)
+    )
+    try:
+        ai = ApplicationInvoice.objects.filter(
+            invoice_reference=invoice_ref
+        )
+
+        for i in ai:
+            i.application.save()
+
+    except Exception as e:
+        logger.error(
+            'app_refund_callback(): Inv {0} - {1}'.format(invoice_ref, e)
+        )
+
+
+def application_invoice_callback(invoice_ref):
+    '''
+    Callback routine for Ledger when record transaction.
+
+    Required to update payment status on application as this property is
+    cached and can only be updated on save.
+    '''
+    logger.info(
+        'application_invoice_callback: Inv {0}'.format(invoice_ref)
+    )
+    try:
+        ai = ApplicationInvoice.objects.filter(
+            invoice_reference=invoice_ref
+        )
+
+        for i in ai:
+            i.application.save()
+
+    except Exception as e:
+        logger.error(
+            'app_invoice_callback(): Inv {0} - {1}'.format(invoice_ref, e)
+        )
 
 
 class GetEmptyList(views.APIView):
