@@ -336,6 +336,7 @@ export default {
                 {'id': 'accepted', 'name': 'Accepted'},
                 {'id': 'partially_approved', 'name': 'Partially Approved'},
                 {'id': 'declined', 'name': 'Declined'},
+                {'id': 'discarded', 'name': 'Discarded'},
             ],
             application_ex_headers: ["Number","Category","Activity","Type","Submitter","Applicant","Status","Lodged on","Action"],
             application_ex_options:{
