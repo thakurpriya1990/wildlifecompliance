@@ -73,7 +73,7 @@ export default {
                     {
                         data: "condition",
                         mRender:function (data,type,full) {
-                            return data.substring(0, 80)
+                            return data ? data.substring(0, 80) : ''
                         },
                         orderable: false
                     },

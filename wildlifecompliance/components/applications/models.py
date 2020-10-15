@@ -3028,6 +3028,10 @@ class Application(RevisionedMixin):
                     parent_licence.save()
 
                 if issued_activities:
+                    # When issued exists set application licence to parent
+                    # before licence generation.
+                    self.licence = parent_licence
+
                     # Re-generate PDF document using all finalised activities
                     if preview:
                         return parent_licence.generate_preview_doc()
@@ -3040,7 +3044,6 @@ class Application(RevisionedMixin):
                         licence=parent_licence
                     )
                     self.licence_document = parent_licence.licence_document
-                    self.licence = parent_licence
                     self.save()
 
                     # outstanding payments for paper submission require cash

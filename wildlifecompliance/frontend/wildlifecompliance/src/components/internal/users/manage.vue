@@ -281,7 +281,7 @@ export default {
             logs_url: helpers.add_endpoint_json(api_endpoints.users,vm.$route.params.user_id+'/action_log'),
             applications_url: api_endpoints.applications_paginated+'internal_datatable_list?user_id='+vm.$route.params.user_id,
             licences_url: api_endpoints.licences_paginated+'internal_datatable_list?user_id='+vm.$route.params.user_id,
-            returns_url: api_endpoints.returns+'?user_id='+vm.$route.params.user_id,
+            returns_url: api_endpoints.returns_paginated+'?user_id='+vm.$route.params.user_id,
             orgRequest_pending: [],
         }
     },
@@ -332,8 +332,8 @@ export default {
             // Fix the table responsiveness when tab is shown
             $('a[href="#'+vm.oTab+'"]').on('shown.bs.tab', function (e) {
                 vm.$refs.applications_table.$refs.application_datatable.vmDataTable.columns.adjust().responsive.recalc();
-                vm.$refs.licences_table.$refs.application_datatable.vmDataTable.columns.adjust().responsive.recalc();
-                vm.$refs.returns_table.$refs.application_datatable.vmDataTable.columns.adjust().responsive.recalc();
+                vm.$refs.licences_table.$refs.licence_datatable.vmDataTable.columns.adjust().responsive.recalc();
+                vm.$refs.returns_table.$refs.return_datatable.vmDataTable.columns.adjust().responsive.recalc();
             });
         },
         updatePersonal: function() {

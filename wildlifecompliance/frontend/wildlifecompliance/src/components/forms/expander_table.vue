@@ -27,7 +27,7 @@
                 <div :class="`col-xs-${Math.floor(12 / component.header.length)}`"
                     v-for="(header, index) in component.header"
                     v-bind:key="`expander_header_${component.name}_${index}`">
-                        <span v-if="!index" :class="`expand-icon ${isExpanded(table) ? 'collapse' : ''}`"
+                        <span v-if="index>1" :class="`expand-icon ${isExpanded(table) ? 'collapse' : ''}`"
                             v-on:click="toggleTableVisibility(table)"></span>
                         <span class="header-contents">
                             <renderer-block
@@ -182,6 +182,10 @@ const ExpanderTable = {
         },
         value: function() {
             return this.field_data;
+        },
+        showExpanderIcon: function() {
+            console.log('showExpanderIcon')
+            return false
         },
     }
 }
