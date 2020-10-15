@@ -328,7 +328,16 @@ export default {
             },
             application_licence_types : [],
             application_submitters: [],
-            application_status: [],
+            application_status: [
+                {'id': 'draft', 'name': 'Draft'},
+                {'id': 'under_review', 'name': 'Under Review'},
+                {'id': 'awaiting_payment', 'name': 'Awaiting Payment'},
+                {'id': 'amendment_required', 'name': 'Amendment Required'},
+                {'id': 'accepted', 'name': 'Accepted'},
+                {'id': 'partially_approved', 'name': 'Partially Approved'},
+                {'id': 'declined', 'name': 'Declined'},
+                {'id': 'discarded', 'name': 'Discarded'},
+            ],
             application_ex_headers: ["Number","Category","Activity","Type","Submitter","Applicant","Status","Lodged on","Action"],
             application_ex_options:{
                 serverSide: true,
@@ -454,7 +463,7 @@ export default {
                         $.each(d,(index,a) => {
                             a != null && !statusTitles.filter(status => status.id == a.id ).length ? statusTitles.push(a): '';
                         })
-                        vm.application_status = statusTitles;
+                        // vm.application_status = statusTitles;
                     });
 
                     // Fix the table rendering columns

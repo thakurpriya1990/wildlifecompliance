@@ -546,7 +546,7 @@
                 <p>The licence has been issued and has been emailed to {{ application.applicant }}.</p>
                 <p>Licence: <a :href="application.permit" target="_blank" >licence.pdf</a></p>
             </div>
-            <div v-else class="col-md-12 alert alert-warning">
+            <div class="col-md-12 alert alert-danger" v-if="application.processing_status.name !== 'Approved'">
                 <p>The application is not approved. An update to the status was emailed to {{application.applicant}}</p>
             </div>
         </div>

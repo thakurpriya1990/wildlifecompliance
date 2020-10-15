@@ -899,6 +899,7 @@ def html_to_rl(html, styleSheet, start_counter=0):
     html = html.encode('ascii', 'ignore').decode('ascii')
     html = html.replace('<br>', '<br/>')
     html = html.replace('<hr>', '<hr/>')
+    html = html.replace('&nbsp;', '')
     soup = BeautifulSoup(html, "html.parser")
     elements = list()
 
@@ -1082,5 +1083,6 @@ def html_to_rl(html, styleSheet, start_counter=0):
         sax.parseString(u"<doc>%s</doc>" % html, handler)
     except Exception as e:
         logger.error('Parse Error: {}\n{}'.format(html, e))
+        raise Exception('Error converting HTML: {} - {}'.format(html, e))
 
     return elements, handler.listcounter
