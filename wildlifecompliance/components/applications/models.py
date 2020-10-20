@@ -211,8 +211,8 @@ class Application(RevisionedMixin):
         (CUSTOMER_STATUS_DRAFT, 'Draft'),
         (CUSTOMER_STATUS_AWAITING_PAYMENT, 'Awaiting Payment'),
         (CUSTOMER_STATUS_UNDER_REVIEW, 'Under Review'),
-        (CUSTOMER_STATUS_AMENDMENT_REQUIRED, 'Amendment Required'),
-        (CUSTOMER_STATUS_ACCEPTED, 'Accepted'),
+        (CUSTOMER_STATUS_AMENDMENT_REQUIRED, 'Draft'),
+        (CUSTOMER_STATUS_ACCEPTED, 'Approved'),
         (CUSTOMER_STATUS_PARTIALLY_APPROVED, 'Partially Approved'),
         (CUSTOMER_STATUS_DECLINED, 'Declined'),
     )
@@ -243,7 +243,7 @@ class Application(RevisionedMixin):
     PROCESSING_STATUS_AWAITING_PAYMENT = 'awaiting_payment'
     PROCESSING_STATUS_CHOICES = (
         (PROCESSING_STATUS_DRAFT, 'Draft'),
-        (PROCESSING_STATUS_AWAITING_APPLICANT_RESPONSE, 'Awaiting Applicant Response'),
+        (PROCESSING_STATUS_AWAITING_APPLICANT_RESPONSE, 'Draft'),
         (PROCESSING_STATUS_APPROVED, 'Approved'),
         (PROCESSING_STATUS_PARTIALLY_APPROVED, 'Partially Approved'),
         (PROCESSING_STATUS_DECLINED, 'Declined'),

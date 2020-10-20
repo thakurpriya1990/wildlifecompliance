@@ -155,9 +155,11 @@ class ApplicationFilterBackend(DatatablesFilterBackend):
     Custom filters
     """
     def filter_queryset(self, request, queryset, view):
-
-        # Get built-in DRF datatables queryset first to join with search text, then apply additional filters
-        super_queryset = super(ApplicationFilterBackend, self).filter_queryset(request, queryset, view).distinct()
+        # Get built-in DRF datatables queryset first to join with search text,
+        # then apply additional filters.
+        super_queryset = super(ApplicationFilterBackend, self).filter_queryset(
+            request, queryset, view
+        ).distinct()
 
         total_count = queryset.count()
         date_from = request.GET.get('date_from')
@@ -175,26 +177,34 @@ class ApplicationFilterBackend(DatatablesFilterBackend):
             if search_text:
                 search_text = search_text.lower()
                 # join queries for the search_text search
-                search_text_app_ids = []
-                for application in queryset:
-                    if (search_text in application.licence_category.lower()
-                        or search_text in application.licence_purpose_names.lower()
-                        or search_text in application.applicant.lower()
-                        or search_text in application.processing_status.lower()
-                        or search_text in application.customer_status.lower()
-                        or search_text in application.payment_status.lower()
-                    ):
-                        search_text_app_ids.append(application.id)
-                    # if applicant is not an organisation, also search against the user's email address
-                    if (application.applicant_type == Application.APPLICANT_TYPE_PROXY and
-                        search_text in application.proxy_applicant.email.lower()):
-                            search_text_app_ids.append(application.id)
-                    if (application.applicant_type == Application.APPLICANT_TYPE_SUBMITTER and
-                        search_text in application.submitter.email.lower()):
-                            search_text_app_ids.append(application.id)
-                # use pipe to join both custom and built-in DRF datatables querysets (returned by super call above)
+                # search_text_app_ids = []
+                search_text_app_ids = [
+                    application.id for application in queryset.all()
+                    if search_text in application.licence_purpose_names.lower()
+                ]
+                # for application in queryset:
+                #     if (search_text in application.licence_category.lower()
+                #         or search_text in application.licence_purpose_names.lower()
+                #         or search_text in application.applicant.lower()
+                #         or search_text in application.processing_status.lower()
+                #         or search_text in application.customer_status.lower()
+                #         or search_text in application.payment_status.lower()
+                #     ):
+                #         search_text_app_ids.append(application.id)
+                #     # if applicant is not an organisation, also search against the user's email address
+                #     if (application.applicant_type == Application.APPLICANT_TYPE_PROXY and
+                #         search_text in application.proxy_applicant.email.lower()):
+                #             search_text_app_ids.append(application.id)
+                #     if (application.applicant_type == Application.APPLICANT_TYPE_SUBMITTER and
+                #         search_text in application.submitter.email.lower()):
+                #             search_text_app_ids.append(application.id)
+
+                # use pipe to join both custom and built-in DRF datatables
+                # querysets (returned by super call above)
                 # (otherwise they will filter on top of each other)
-                queryset = queryset.filter(id__in=search_text_app_ids).distinct() | super_queryset
+                queryset = queryset.filter(
+                    id__in=search_text_app_ids
+                ).distinct() | super_queryset
 
             # apply user selected filters
             category_name = category_name.lower() if category_name else 'all'
@@ -206,10 +216,18 @@ class ApplicationFilterBackend(DatatablesFilterBackend):
                 queryset = queryset.filter(id__in=category_name_app_ids)
             processing_status = processing_status.lower() if processing_status else 'all'
             if processing_status != 'all':
-                processing_status_app_ids = []
-                for application in queryset:
-                    if processing_status in application.processing_status.lower():
-                        processing_status_app_ids.append(application.id)
+                # processing_status_app_ids = []
+                processing_status_app_ids = [
+                    application.id for application in queryset.all()
+                    if processing_status in application.processing_status.lower()
+                    or (
+                        processing_status == Application.PROCESSING_STATUS_DRAFT
+                        and Application.PROCESSING_STATUS_AWAITING_APPLICANT_RESPONSE in application.processing_status.lower()
+                    )
+                ]
+                # for application in queryset:
+                #     if processing_status in application.processing_status.lower():
+                #         processing_status_app_ids.append(application.id)
                 queryset = queryset.filter(id__in=processing_status_app_ids)
             customer_status = customer_status.lower() if customer_status else 'all'
             if customer_status != 'all':

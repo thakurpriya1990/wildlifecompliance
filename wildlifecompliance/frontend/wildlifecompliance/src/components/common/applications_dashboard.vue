@@ -31,13 +31,13 @@
                         </div>
                         <div class="col-md-3">
                             <div class="form-group">
-                                <label for="">Submitter</label>
+                                <!-- <label for="">Submitter</label>
                                 <select class="form-control" v-model="filterApplicationSubmitter">
                                     <option value="All">All</option>
                                     <option v-for="s in application_submitters" :value="s.email" v-bind:key="`submitter_${s.email}`">{{s.search_term}}</option>
-                                </select>
+                                </select> -->
                             </div>
-                        </div>                        
+                        </div>
                         <div v-if="is_external" class="col-md-3">
                             <router-link  style="margin-top:25px;" class="btn btn-primary pull-right" :to="{ name: 'apply_application_organisation' }">New Application</router-link>
                         </div>
@@ -131,6 +131,7 @@ export default {
                 mRender:function (data,type,full) {
                     return data.name;
                 },
+                searchable: false
             },
             {
                 data: "submitter",
@@ -328,15 +329,22 @@ export default {
             },
             application_licence_types : [],
             application_submitters: [],
-            application_status: [
+            application_status: [       // Processing status
                 {'id': 'draft', 'name': 'Draft'},
                 {'id': 'under_review', 'name': 'Under Review'},
                 {'id': 'awaiting_payment', 'name': 'Awaiting Payment'},
-                {'id': 'amendment_required', 'name': 'Amendment Required'},
-                {'id': 'accepted', 'name': 'Accepted'},
+                {'id': 'approved', 'name': 'Approved'},
                 {'id': 'partially_approved', 'name': 'Partially Approved'},
                 {'id': 'declined', 'name': 'Declined'},
                 {'id': 'discarded', 'name': 'Discarded'},
+            ],
+            customer_status: [
+                {'id': 'draft', 'name': 'Draft'},
+                {'id': 'under_review', 'name': 'Under Review'},
+                {'id': 'awaiting_payment', 'name': 'Awaiting Payment'},
+                {'id': 'accepted', 'name': 'Approved'},
+                {'id': 'partially_approved', 'name': 'Partially Approved'},
+                {'id': 'declined', 'name': 'Declined'},
             ],
             application_ex_headers: ["Number","Category","Activity","Type","Submitter","Applicant","Status","Lodged on","Action"],
             application_ex_options:{
@@ -369,6 +377,13 @@ export default {
                 columns: external_columns,
                 processing: true,
                 initComplete: function () {
+                    var $searchInput = $('div.dataTables_filter input');
+                    $searchInput.unbind('keyup search input');
+                    $searchInput.bind('keypress', (vm.delay(function(e) {
+                        if (e.which == 13) {
+                            vm.visibleDatatable.vmDataTable.search( this.value ).draw();
+                        }
+                    }, 0)));
                     // Grab Category from the data in the table
                     var titleColumn = vm.visibleDatatable.vmDataTable.columns(vm.getColumnIndex('category'));
                     titleColumn.data().unique().sort().each( function ( d, j ) {
@@ -399,7 +414,8 @@ export default {
                         $.each(d,(index,a) => {
                             a != null && !statusTitles.filter(status => status.id == a.id ).length ? statusTitles.push(a): '';
                         })
-                        vm.application_status = statusTitles;
+                        //vm.application_status = statusTitles;
+                        vm.application_status = vm.customer_status;
                     });
                 }
             },
@@ -434,6 +450,13 @@ export default {
                 columns: internal_columns,
                 processing: true,
                 initComplete: function () {
+                    var $searchInput = $('div.dataTables_filter input');
+                    $searchInput.unbind('keyup search input');
+                    $searchInput.bind('keypress', (vm.delay(function(e) {
+                        if (e.which == 13) {
+                            vm.visibleDatatable.vmDataTable.search( this.value ).draw();
+                        }
+                    }, 0)));
                     // Grab Activity from the data in the table
                     var titleColumn = vm.visibleDatatable.vmDataTable.columns(vm.getColumnIndex('category'));
                     titleColumn.data().unique().sort().each( function ( d, j ) {
@@ -537,6 +560,16 @@ export default {
                 }
             },(error) => {
             });
+        },
+        delay(callback, ms) {
+            var timer = 0;
+            return function () {
+                var context = this, args = arguments;
+                clearTimeout(timer);
+                timer = setTimeout(function () {
+                    callback.apply(context, args);
+                }, ms || 0);
+            };
         },
         payLicenceFee: function(application_id, activity_id) {
             this.$http.post(helpers.add_endpoint_join(api_endpoints.applications,application_id+'/licence_fee_checkout/'), {
