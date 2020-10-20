@@ -29,7 +29,7 @@
                                 </select>
                             </div>
                         </div>
-                        <div class="col-md-3">
+                        <!-- <div class="col-md-3">
                             <div class="form-group">
                                 <label for="">Submitter</label>
                                 <select class="form-control" v-model="filterApplicationSubmitter">
@@ -37,7 +37,7 @@
                                     <option v-for="s in application_submitters" :value="s.email" v-bind:key="`submitter_${s.email}`">{{s.search_term}}</option>
                                 </select>
                             </div>
-                        </div>                        
+                        </div>                         -->
                         <div v-if="is_external" class="col-md-3">
                             <router-link  style="margin-top:25px;" class="btn btn-primary pull-right" :to="{ name: 'apply_application_organisation' }">New Application</router-link>
                         </div>
@@ -131,6 +131,7 @@ export default {
                 mRender:function (data,type,full) {
                     return data.name;
                 },
+                searchable: false
             },
             {
                 data: "submitter",
@@ -442,6 +443,13 @@ export default {
                 columns: internal_columns,
                 processing: true,
                 initComplete: function () {
+                    var $searchInput = $('div.dataTables_filter input');
+                    $searchInput.unbind('keyup search input');
+                    $searchInput.bind('keypress', (vm.delay(function(e) {
+                        if (e.which == 13) {
+                            vm.visibleDatatable.vmDataTable.search( this.value ).draw();
+                        }
+                    }, 0)));
                     // Grab Activity from the data in the table
                     var titleColumn = vm.visibleDatatable.vmDataTable.columns(vm.getColumnIndex('category'));
                     titleColumn.data().unique().sort().each( function ( d, j ) {
@@ -545,6 +553,16 @@ export default {
                 }
             },(error) => {
             });
+        },
+        delay(callback, ms) {
+            var timer = 0;
+            return function () {
+                var context = this, args = arguments;
+                clearTimeout(timer);
+                timer = setTimeout(function () {
+                    callback.apply(context, args);
+                }, ms || 0);
+            };
         },
         payLicenceFee: function(application_id, activity_id) {
             this.$http.post(helpers.add_endpoint_join(api_endpoints.applications,application_id+'/licence_fee_checkout/'), {
