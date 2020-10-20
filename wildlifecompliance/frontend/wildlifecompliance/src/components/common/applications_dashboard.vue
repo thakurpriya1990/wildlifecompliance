@@ -377,6 +377,13 @@ export default {
                 columns: external_columns,
                 processing: true,
                 initComplete: function () {
+                    var $searchInput = $('div.dataTables_filter input');
+                    $searchInput.unbind('keyup search input');
+                    $searchInput.bind('keypress', (vm.delay(function(e) {
+                        if (e.which == 13) {
+                            vm.visibleDatatable.vmDataTable.search( this.value ).draw();
+                        }
+                    }, 0)));
                     // Grab Category from the data in the table
                     var titleColumn = vm.visibleDatatable.vmDataTable.columns(vm.getColumnIndex('category'));
                     titleColumn.data().unique().sort().each( function ( d, j ) {
