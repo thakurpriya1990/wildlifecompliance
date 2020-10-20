@@ -29,15 +29,15 @@
                                 </select>
                             </div>
                         </div>
-                        <!-- <div class="col-md-3">
+                        <div class="col-md-3">
                             <div class="form-group">
-                                <label for="">Submitter</label>
+                                <!-- <label for="">Submitter</label>
                                 <select class="form-control" v-model="filterApplicationSubmitter">
                                     <option value="All">All</option>
                                     <option v-for="s in application_submitters" :value="s.email" v-bind:key="`submitter_${s.email}`">{{s.search_term}}</option>
-                                </select>
+                                </select> -->
                             </div>
-                        </div>                         -->
+                        </div>
                         <div v-if="is_external" class="col-md-3">
                             <router-link  style="margin-top:25px;" class="btn btn-primary pull-right" :to="{ name: 'apply_application_organisation' }">New Application</router-link>
                         </div>
