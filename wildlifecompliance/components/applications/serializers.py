@@ -2,6 +2,7 @@ import datetime
 from django.urls import reverse
 from ledger.accounts.models import EmailUser
 from wildlifecompliance import settings
+from wildlifecompliance.helpers import is_internal
 from wildlifecompliance.components.applications.models import (
     Application,
     ApplicationUserAction,
@@ -23,6 +24,7 @@ from wildlifecompliance.components.organisations.models import (
 from wildlifecompliance.components.licences.models import (
     LicenceActivity,
     PurposeSpecies,
+    LicenceCategory,
 )
 from wildlifecompliance.components.main.serializers import (
     CommunicationLogEntrySerializer
@@ -50,6 +52,73 @@ class EmailUserSerializer(serializers.ModelSerializer):
             'last_name',
             'title',
             'organisation')
+
+
+class LicenceCategorySerializer(serializers.ModelSerializer):
+    class Meta:
+        model = LicenceCategory
+        fields = ('id', 'name', 'short_name')
+
+
+class DTApplicationSelectSerializer(serializers.ModelSerializer):
+    '''
+    Serializer for all list selects required for application dashboard.
+    '''
+    all_category = serializers.SerializerMethodField(read_only=True)
+    all_status = serializers.SerializerMethodField(read_only=True)
+
+    class Meta:
+        model = Application
+        fields = (
+            'all_category',
+            'all_status',
+        )
+
+    def get_all_category(self, obj):
+        '''
+        Returns all licence types available for applications.
+        '''
+        qs = LicenceCategory.objects.all()
+        serializer = LicenceCategorySerializer(qs, many=True)
+
+        return serializer.data
+
+    def get_all_status(self, obj):
+        '''
+        returns all status types available for either internal or external
+        application.
+        '''
+        # Displayable text for drop-down.
+        N1 = 'Draft'
+        N2 = 'Under Review'
+        N3 = 'Awaiting Payment'
+        N4 = 'Approved'
+        N5 = 'Partially Approved'
+        N6 = 'Declined'
+        N7 = 'Discarded'
+
+        data = [
+            {'id': Application.CUSTOMER_STATUS_DRAFT, 'name': N1},
+            {'id': Application.CUSTOMER_STATUS_UNDER_REVIEW, 'name': N2},
+            {'id': Application.CUSTOMER_STATUS_AWAITING_PAYMENT, 'name': N3},
+            {'id': Application.CUSTOMER_STATUS_ACCEPTED, 'name': N4},
+            {'id': Application.CUSTOMER_STATUS_PARTIALLY_APPROVED, 'name': N5},
+            {'id': Application.CUSTOMER_STATUS_DECLINED, 'name': N6},
+        ],
+
+        if is_internal:
+            data = [
+                {'id': Application.PROCESSING_STATUS_DRAFT, 'name': N1},
+                {'id': Application.PROCESSING_STATUS_UNDER_REVIEW, 'name': N2},
+                {'id': Application.PROCESSING_STATUS_AWAITING_PAYMENT, 'name': N3},
+                {'id': Application.PROCESSING_STATUS_APPROVED, 'name': N4},
+                {'id': Application.PROCESSING_STATUS_PARTIALLY_APPROVED, 'name': N5},
+                {'id': Application.PROCESSING_STATUS_DECLINED, 'name': N6},
+                {'id': Application.PROCESSING_STATUS_DISCARDED, 'name': N7},
+            ],
+
+        return data[0]
+
 
 class ApplicationSelectedActivityCanActionSerializer(serializers.Serializer):
     """

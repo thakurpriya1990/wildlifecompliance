@@ -80,6 +80,7 @@ from wildlifecompliance.components.applications.serializers import (
     DTExternalApplicationSelectedActivitySerializer,
     DTInternalApplicationSelectedActivitySerializer,
     IssueLicenceSerializer,
+    DTApplicationSelectSerializer,
 )
 
 from wildlifecompliance.components.main.process_document import (
@@ -544,6 +545,28 @@ class ApplicationViewSet(viewsets.ModelViewSet):
                 # End Save Documents
 
                 return Response(serializer.data)
+        except serializers.ValidationError:
+            print(traceback.print_exc())
+            raise
+        except ValidationError as e:
+            print(traceback.print_exc())
+            raise serializers.ValidationError(repr(e.error_dict))
+        except Exception as e:
+            print(traceback.print_exc())
+            raise serializers.ValidationError(str(e))
+
+    @detail_route(methods=['GET', ])
+    def get_application_selects(self, request, *args, **kwargs):
+        '''
+        Returns all drop-down lists for application dashboard.
+        '''
+        try:
+
+            instance = Application.objects.last()
+            serializer = DTApplicationSelectSerializer(instance)
+
+            return Response(serializer.data)
+
         except serializers.ValidationError:
             print(traceback.print_exc())
             raise
