@@ -123,7 +123,8 @@ export default {
                     return output;
                 },
                 orderable: false,
-                searchable: false // handled by filter_queryset override method - class ApplicationFilterBackend
+                //searchable: false // handled by filter_queryset override method - class ApplicationFilterBackend
+                name: "licence_purposes__name",
             },
             {
                 data: "application_type",

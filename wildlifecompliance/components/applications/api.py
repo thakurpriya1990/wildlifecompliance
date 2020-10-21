@@ -179,27 +179,12 @@ class ApplicationFilterBackend(DatatablesFilterBackend):
                 search_text = search_text.lower()
                 # join queries for the search_text search
                 # search_text_app_ids = []
-                search_text_app_ids = [
-                    application.id for application in queryset.all()
-                    if search_text in application.licence_purpose_names.lower()
-                ]
-                # for application in queryset:
-                #     if (search_text in application.licence_category.lower()
-                #         or search_text in application.licence_purpose_names.lower()
-                #         or search_text in application.applicant.lower()
-                #         or search_text in application.processing_status.lower()
-                #         or search_text in application.customer_status.lower()
-                #         or search_text in application.payment_status.lower()
-                #     ):
-                #         search_text_app_ids.append(application.id)
-                #     # if applicant is not an organisation, also search against the user's email address
-                #     if (application.applicant_type == Application.APPLICANT_TYPE_PROXY and
-                #         search_text in application.proxy_applicant.email.lower()):
-                #             search_text_app_ids.append(application.id)
-                #     if (application.applicant_type == Application.APPLICANT_TYPE_SUBMITTER and
-                #         search_text in application.submitter.email.lower()):
-                #             search_text_app_ids.append(application.id)
-
+                search_text_app_ids = Application.objects.values(
+                    'id'
+                ).filter(
+                    Q(proxy_applicant__first_name__icontains=search_text) |
+                    Q(proxy_applicant__last_name__icontains=search_text)
+                )
                 # use pipe to join both custom and built-in DRF datatables
                 # querysets (returned by super call above)
                 # (otherwise they will filter on top of each other)
@@ -210,10 +195,12 @@ class ApplicationFilterBackend(DatatablesFilterBackend):
             # apply user selected filters
             category_name = category_name.lower() if category_name else 'all'
             if category_name != 'all':
-                category_name_app_ids = []
-                for application in queryset:
-                    if category_name in application.licence_category_name.lower():
-                        category_name_app_ids.append(application.id)
+                # category_name_app_ids = []
+                category_name_app_ids = Application.objects.values(
+                    'id'
+                ).filter(
+                    selected_activities__licence_activity__licence_category__name__icontains=category_name
+                )
                 queryset = queryset.filter(id__in=category_name_app_ids)
             processing_status = processing_status.lower() if processing_status else 'all'
             if processing_status != 'all':
