@@ -785,6 +785,11 @@ export default {
         canProposeIssueOrDecline: function(){
             let auth_activity = this.canAssignOfficerFor(this.selected_activity_tab_id);
 
+            // check activity is not assigned to another officer.
+            if (auth_activity && auth_activity.assigned_officer != null && auth_activity.assigned_officer !== this.current_user.id) {
+                return false;
+            }
+
             let proposal = auth_activity && auth_activity.is_with_officer && this.licence_type_data.activity.find(activity => {
                     return activity.id === this.selected_activity_tab_id
                         && activity.processing_status.name.match(/with officer/gi) // FIXME: required because of temporary status set below.
