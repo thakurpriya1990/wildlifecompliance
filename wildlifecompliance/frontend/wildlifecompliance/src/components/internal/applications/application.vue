@@ -723,6 +723,9 @@ export default {
             'canAssignOfficerFor',
             'canAssignAssessorFor',
             'application_workflow_state',
+            'id_check_status',
+            'character_check_status',
+            'return_check_status',
         ]),
         applicationDetailsVisible: function() {
             return !this.isSendingToAssessor && !this.isofficerfinalisation && this.unfinishedActivities.length && !this.isOfficerConditions;
@@ -819,19 +822,19 @@ export default {
           return (this.application) ? `/api/application/${this.application.id}/application_officer_save.json` : '';
         },
         isIdCheckAccepted: function(){
-            return this.application.id_check_status.id == 'accepted';
+            return this.id_check_status === 'accepted';
         },
         isIdNotChecked: function(){
-            return this.application.id_check_status.id == 'not_checked';
+            return this.id_check_status === 'not_checked';
         },
         isIdCheckRequested: function(){
-            return this.application.id_check_status.id == 'awaiting_update';
+            return this.id_check_status === 'awaiting_update';
         },
         isIdCheckUpdated: function(){
-            return this.application.id_check_status.id == 'updated';
+            return this.id_check_status === 'updated';
         },
         isCharacterCheckAccepted: function(){
-            return this.application.character_check_status.id == 'accepted';
+            return this.character_check_status === 'accepted';
         },
         userIsAssignedOfficer: function(){
             return this.current_user.id == this.selectedActivity.assigned_officer;
@@ -885,7 +888,8 @@ export default {
             return this.spinner
         },
         showReturnCheckButton: function() {
-            return this.application.is_return_check_accept ? false : true
+            // return this.application.is_return_check_accept ? false : true
+            return this.return_check_status !== 'accepted';
         }
     },
     methods: {
@@ -901,6 +905,9 @@ export default {
             'toggleFinalisedTabs',
             'saveFormData',
             'assessmentData',
+            'setIdCheckStatus',
+            'setCharacterCheckStatus',
+            'setReturnCheckStatus',
         ]),
         eventListeners: function(){
             let vm = this;
@@ -982,7 +989,7 @@ export default {
                 if (result.value) {
                     await vm.$http.post(helpers.add_endpoint_json(api_endpoints.applications,(vm.application.id+'/accept_id_check')))
                     .then((response) => {
-                        vm.setApplication(response.body);
+                        vm.setIdCheckStatus(response.body.id_check_status);
                     }, (error) => {
                         console.log(error);
                     });
@@ -1002,7 +1009,7 @@ export default {
                 if (result.value) {
                     await vm.$http.post(helpers.add_endpoint_json(api_endpoints.applications,(vm.application.id+'/reset_id_check')))
                     .then((response) => {
-                        vm.setApplication(response.body);
+                        vm.setIdCheckStatus(response.body.id_check_status);
                     }, (error) => {
                         console.log(error);
                     });
@@ -1022,7 +1029,7 @@ export default {
                 if (result.value) {
                     await vm.$http.post(helpers.add_endpoint_json(api_endpoints.applications,(vm.application.id+'/request_id_check')))
                     .then((response) => {
-                        vm.setApplication(response.body);
+                        vm.setIdCheckStatus(response.body.id_check_status);
                     }, (error) => {
                         console.log(error);
                     });
@@ -1042,7 +1049,7 @@ export default {
                 if (result.value) {
                     await vm.$http.post(helpers.add_endpoint_json(api_endpoints.applications,(vm.application.id+'/accept_character_check')))
                     .then((response) => {
-                        vm.setApplication(response.body);
+                        vm.setCharacterCheckStatus(response.body.character_check_status);
                     }, (error) => {
                         console.log(error);
                     });
@@ -1062,7 +1069,7 @@ export default {
                 if (result.value) {
                     await vm.$http.post(helpers.add_endpoint_json(api_endpoints.applications,(vm.application.id+'/accept_return_check')))
                     .then((response) => {
-                        vm.setApplication(response.body);
+                        vm.setReturnCheckStatus(response.body.return_check_status);
                     }, (error) => {
                         console.log(error);
                     });
@@ -1082,7 +1089,7 @@ export default {
                 if (result.value) {
                     await vm.$http.post(helpers.add_endpoint_json(api_endpoints.applications,(vm.application.id+'/reset_return_check')))
                     .then((response) => {
-                        vm.setApplication(response.body);
+                        vm.setReturnCheckStatus(response.body.return_check_status);
                     }, (error) => {
                         console.log(error);
                     });

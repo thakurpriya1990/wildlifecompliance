@@ -1012,9 +1012,13 @@ class ApplicationViewSet(viewsets.ModelViewSet):
         try:
             instance = self.get_object()
             instance.accept_id_check(request)
-            serializer = InternalApplicationSerializer(
-                instance, context={'request': request})
-            return Response(serializer.data)
+            # serializer = InternalApplicationSerializer(
+            #     instance, context={'request': request})
+            # return Response(serializer.data)
+            return Response(
+                {'id_check_status': instance.id_check_status},
+                status=status.HTTP_200_OK
+            )
         except serializers.ValidationError:
             print(traceback.print_exc())
             raise
@@ -1030,9 +1034,13 @@ class ApplicationViewSet(viewsets.ModelViewSet):
         try:
             instance = self.get_object()
             instance.reset_id_check(request)
-            serializer = InternalApplicationSerializer(
-                instance, context={'request': request})
-            return Response(serializer.data)
+            # serializer = InternalApplicationSerializer(
+            #     instance, context={'request': request})
+            # return Response(serializer.data)
+            return Response(
+                {'id_check_status': instance.id_check_status},
+                status=status.HTTP_200_OK
+            )
         except serializers.ValidationError:
             print(traceback.print_exc())
             raise
@@ -1048,9 +1056,13 @@ class ApplicationViewSet(viewsets.ModelViewSet):
         try:
             instance = self.get_object()
             instance.request_id_check(request)
-            serializer = InternalApplicationSerializer(
-                instance, context={'request': request})
-            return Response(serializer.data)
+            # serializer = InternalApplicationSerializer(
+            #     instance, context={'request': request})
+            # return Response(serializer.data)
+            return Response(
+                {'id_check_status': instance.id_check_status},
+                status=status.HTTP_200_OK
+            )
         except serializers.ValidationError:
             print(traceback.print_exc())
             raise
@@ -1090,9 +1102,13 @@ class ApplicationViewSet(viewsets.ModelViewSet):
         try:
             instance = self.get_object()
             instance.accept_character_check(request)
-            serializer = InternalApplicationSerializer(
-                instance, context={'request': request})
-            return Response(serializer.data)
+            # serializer = InternalApplicationSerializer(
+            #     instance, context={'request': request})
+            # return Response(serializer.data)
+            return Response(
+                {'character_check_status': instance.character_check_status},
+                status=status.HTTP_200_OK
+            )
         except serializers.ValidationError:
             print(traceback.print_exc())
             raise
@@ -1108,9 +1124,13 @@ class ApplicationViewSet(viewsets.ModelViewSet):
         try:
             instance = self.get_object()
             instance.accept_return_check(request)
-            serializer = InternalApplicationSerializer(
-                instance, context={'request': request})
-            return Response(serializer.data)
+            # serializer = InternalApplicationSerializer(
+            #     instance, context={'request': request})
+            # return Response(serializer.data)
+            return Response(
+                {'return_check_status': instance.return_check_status},
+                status=status.HTTP_200_OK
+            )
         except serializers.ValidationError:
             print(traceback.print_exc())
             raise
@@ -1126,9 +1146,13 @@ class ApplicationViewSet(viewsets.ModelViewSet):
         try:
             instance = self.get_object()
             instance.reset_return_check(request)
-            serializer = InternalApplicationSerializer(
-                instance, context={'request': request})
-            return Response(serializer.data)
+            # serializer = InternalApplicationSerializer(
+            #     instance, context={'request': request})
+            # return Response(serializer.data)
+            return Response(
+                {'return_check_status': instance.return_check_status},
+                status=status.HTTP_200_OK
+            )
         except serializers.ValidationError:
             print(traceback.print_exc())
             raise
