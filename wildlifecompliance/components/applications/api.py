@@ -1200,9 +1200,13 @@ class ApplicationViewSet(viewsets.ModelViewSet):
                 raise serializers.ValidationError(
                     'You are not in any relevant licence officer groups for this application.')
             instance.assign_officer(request, request.user)
-            serializer = InternalApplicationSerializer(
-                instance, context={'request': request})
-            return Response(serializer.data)
+            # serializer = InternalApplicationSerializer(
+            #     instance, context={'request': request})
+            # return Response(serializer.data)
+            return Response(
+                {'assigned_officer_id': user.id},
+                status=status.HTTP_200_OK
+            )
         except serializers.ValidationError:
             print(traceback.print_exc())
             raise
@@ -1233,9 +1237,13 @@ class ApplicationViewSet(viewsets.ModelViewSet):
                 raise serializers.ValidationError(
                     'User is not in any relevant licence officer groups for this application')
             instance.assign_officer(request, user)
-            serializer = InternalApplicationSerializer(
-                instance, context={'request': request})
-            return Response(serializer.data)
+            # serializer = InternalApplicationSerializer(
+            #     instance, context={'request': request})
+            # return Response(serializer.data)
+            return Response(
+                {'assigned_officer_id': user.id},
+                status=status.HTTP_200_OK
+            )
         except serializers.ValidationError:
             print(traceback.print_exc())
             raise
@@ -1251,9 +1259,13 @@ class ApplicationViewSet(viewsets.ModelViewSet):
         try:
             instance = self.get_object()
             instance.unassign_officer(request)
-            serializer = InternalApplicationSerializer(
-                instance, context={'request': request})
-            return Response(serializer.data)
+            # serializer = InternalApplicationSerializer(
+            #     instance, context={'request': request})
+            # return Response(serializer.data)
+            return Response(
+                {'assigned_officer_id': None},
+                status=status.HTTP_200_OK
+            )
         except serializers.ValidationError:
             print(traceback.print_exc())
             raise

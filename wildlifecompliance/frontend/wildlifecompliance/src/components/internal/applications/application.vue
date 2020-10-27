@@ -1245,8 +1245,12 @@ export default {
                 emulateJSON:true
 
             }).then((response) => {
-                this.refreshFromResponse(response);
-                vm.updateAssignedOfficerSelect();
+                // this.refreshFromResponse(response);
+                // vm.updateAssignedOfficerSelect();
+                vm.selectedActivity.assigned_officer = response.body.assigned_officer_id;
+                // vm.updateAssignedOfficerSelect();
+                $(vm.$refs.assigned_officer).val(response.body.assigned_officer_id);
+                $(vm.$refs.assigned_officer).trigger('change');
             }, (error) => {
                 vm.revert();
                 vm.updateAssignedOfficerSelect();
@@ -1283,8 +1287,8 @@ export default {
                 await vm.$http.post(helpers.add_endpoint_json(api_endpoints.applications,(vm.application.id+'/assign_officer')),JSON.stringify(data),{
                     emulateJSON:true
                 }).then((response) => {
-                    this.refreshFromResponse(response);
-                    this.updateAssignedOfficerSelect();
+                    // this.refreshFromResponse(response);
+                    // this.updateAssignedOfficerSelect();
                 }, (error) => {
                     this.revert();
                     this.updateAssignedOfficerSelect();
@@ -1299,8 +1303,8 @@ export default {
                 await vm.$http.post(helpers.add_endpoint_json(api_endpoints.applications,(vm.application.id+'/unassign_officer')),JSON.stringify(data),{
                     emulateJSON:true
                 }).then((response) => {
-                    this.refreshFromResponse(response);
-                    this.updateAssignedOfficerSelect();
+                    // this.refreshFromResponse(response);
+                    // this.updateAssignedOfficerSelect();
                 }, (error) => {
                     this.revert();
                     this.updateAssignedOfficerSelect();
@@ -1397,6 +1401,7 @@ export default {
             });
         },
         initialiseAssignedOfficerSelect: function(reinit=false){
+            console.log('initialiseAssigned')
             let vm = this;
             if (reinit){
                 $(vm.$refs.assigned_officer).data('select2') ? $(vm.$refs.assigned_officer).select2('destroy'): '';
