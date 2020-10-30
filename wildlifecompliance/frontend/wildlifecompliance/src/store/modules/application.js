@@ -4,6 +4,9 @@ import {
     UPDATE_ORIGINAL_APPLICATION,
     UPDATE_ORG_APPLICANT,
     UPDATE_PROXY_APPLICANT,
+    UPDATE_APPLICATION_CHECK_STATUS_ID,
+    UPDATE_APPLICATION_CHECK_STATUS_CHARACTER,
+    UPDATE_APPLICATION_CHECK_STATUS_RETURN,
 } from '@/store/mutation-types';
 
 
@@ -16,6 +19,9 @@ export const applicationStore = {
                 "activity": []
             }
         },
+        id_check_status: null,
+        character_check_status: null,
+        return_check_status: null,
     },
     getters: {
         application: state => state.application,
@@ -26,6 +32,9 @@ export const applicationStore = {
         org_address: state => state.application.org_applicant != null && state.application.org_applicant.address != null ? state.application.org_applicant.address : {},
         proxy_address: state => state.application.proxy_applicant != null && state.application.proxy_applicant.address != null ? state.application.proxy_applicant.address : {},
         application_readonly: state => state.application.readonly,
+        id_check_status: state => state.id_check_status,
+        character_check_status: state => state.character_check_status,
+        return_check_status: state => state.return_check_status,
         applicant_type: state => {
             if (state.application.org_applicant){
                 return 'org';
@@ -138,6 +147,15 @@ export const applicationStore = {
             }
             Vue.set(state.application.proxy_applicant, key, value);
         },
+        [UPDATE_APPLICATION_CHECK_STATUS_ID] (state, id_status) {
+            Vue.set(state, 'id_check_status', id_status);
+        },
+        [UPDATE_APPLICATION_CHECK_STATUS_CHARACTER] (state, character_status) {
+            Vue.set(state, 'character_check_status', character_status);
+        },
+        [UPDATE_APPLICATION_CHECK_STATUS_RETURN] (state, return_status) {
+            Vue.set(state, 'return_check_status', return_status);
+        },
     },
     actions: {
         refreshAddresses({ commit, state, getters }) {
@@ -172,6 +190,9 @@ export const applicationStore = {
                         });
                     }
                     resolve();
+                    dispatch('setIdCheckStatus', res.body.id_check_status.id);
+                    dispatch('setCharacterCheckStatus', res.body.character_check_status.id);
+                    dispatch('setReturnCheckStatus', res.body.return_check_status.id);
                 },
                 err => {
                     console.log(err);
@@ -203,6 +224,15 @@ export const applicationStore = {
             }, err => {
                 console.log(err);
             });
+        },
+        setIdCheckStatus({ commit }, id_status) {
+            commit(UPDATE_APPLICATION_CHECK_STATUS_ID, id_status);
+        },
+        setCharacterCheckStatus({ commit }, character_status) {
+            commit(UPDATE_APPLICATION_CHECK_STATUS_CHARACTER, character_status);
+        },
+        setReturnCheckStatus({ commit }, return_status) {
+            commit(UPDATE_APPLICATION_CHECK_STATUS_RETURN, return_status);
         },
     }
 }

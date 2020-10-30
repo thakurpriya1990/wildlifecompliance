@@ -16,7 +16,7 @@
                                 <label for="">Licence Category</label>
                                 <select class="form-control" v-model="filterApplicationLicenceType">
                                     <option value="All">All</option>
-                                    <option v-for="lt in application_licence_types" :value="lt" v-bind:key="`licence_type_${lt}`">{{lt}}</option>
+                                    <option v-for="lt in application_licence_types" :value="lt.name" v-bind:key="`licence_type_${lt.id}`">{{lt.name}}</option>
                                 </select>
                             </div>
                         </div>
@@ -123,7 +123,8 @@ export default {
                     return output;
                 },
                 orderable: false,
-                searchable: false // handled by filter_queryset override method - class ApplicationFilterBackend
+                //searchable: false // handled by filter_queryset override method - class ApplicationFilterBackend
+                name: "licence_purposes__name",
             },
             {
                 data: "application_type",
@@ -329,23 +330,24 @@ export default {
             },
             application_licence_types : [],
             application_submitters: [],
-            application_status: [       // Processing status
-                {'id': 'draft', 'name': 'Draft'},
-                {'id': 'under_review', 'name': 'Under Review'},
-                {'id': 'awaiting_payment', 'name': 'Awaiting Payment'},
-                {'id': 'approved', 'name': 'Approved'},
-                {'id': 'partially_approved', 'name': 'Partially Approved'},
-                {'id': 'declined', 'name': 'Declined'},
-                {'id': 'discarded', 'name': 'Discarded'},
-            ],
-            customer_status: [
-                {'id': 'draft', 'name': 'Draft'},
-                {'id': 'under_review', 'name': 'Under Review'},
-                {'id': 'awaiting_payment', 'name': 'Awaiting Payment'},
-                {'id': 'accepted', 'name': 'Approved'},
-                {'id': 'partially_approved', 'name': 'Partially Approved'},
-                {'id': 'declined', 'name': 'Declined'},
-            ],
+            // application_status: [       // Processing status
+            //     {'id': 'draft', 'name': 'Draft'},
+            //     {'id': 'under_review', 'name': 'Under Review'},
+            //     {'id': 'awaiting_payment', 'name': 'Awaiting Payment'},
+            //     {'id': 'approved', 'name': 'Approved'},
+            //     {'id': 'partially_approved', 'name': 'Partially Approved'},
+            //     {'id': 'declined', 'name': 'Declined'},
+            //     {'id': 'discarded', 'name': 'Discarded'},
+            // ],
+            application_status: [],
+            // customer_status: [
+            //     {'id': 'draft', 'name': 'Draft'},
+            //     {'id': 'under_review', 'name': 'Under Review'},
+            //     {'id': 'awaiting_payment', 'name': 'Awaiting Payment'},
+            //     {'id': 'accepted', 'name': 'Approved'},
+            //     {'id': 'partially_approved', 'name': 'Partially Approved'},
+            //     {'id': 'declined', 'name': 'Declined'},
+            // ],
             application_ex_headers: ["Number","Category","Activity","Type","Submitter","Applicant","Status","Lodged on","Action"],
             application_ex_options:{
                 serverSide: true,
@@ -385,14 +387,14 @@ export default {
                         }
                     }, 0)));
                     // Grab Category from the data in the table
-                    var titleColumn = vm.visibleDatatable.vmDataTable.columns(vm.getColumnIndex('category'));
-                    titleColumn.data().unique().sort().each( function ( d, j ) {
-                        let categoryTitles = [];
-                        $.each(d,(index,a) => {
-                            a != null && categoryTitles.indexOf(a) < 0 ? categoryTitles.push(a): '';
-                        })
-                        vm.application_licence_types = categoryTitles;
-                    });
+                    // var titleColumn = vm.visibleDatatable.vmDataTable.columns(vm.getColumnIndex('category'));
+                    // titleColumn.data().unique().sort().each( function ( d, j ) {
+                    //     let categoryTitles = [];
+                    //     $.each(d,(index,a) => {
+                    //         a != null && categoryTitles.indexOf(a) < 0 ? categoryTitles.push(a): '';
+                    //     })
+                    //     vm.application_licence_types = categoryTitles;
+                    // });
                     // Grab submitters from the data in the table
                     var submittersColumn = vm.visibleDatatable.vmDataTable.columns(vm.getColumnIndex('submitter'));
                     submittersColumn.data().unique().sort().each( function ( d, j ) {
@@ -408,15 +410,15 @@ export default {
                         vm.application_submitters = submitters;
                     });
                     // Grab Status from the data in the table
-                    var statusColumn = vm.visibleDatatable.vmDataTable.columns(vm.getColumnIndex('status'));
-                    statusColumn.data().unique().sort().each( function ( d, j ) {
-                        let statusTitles = [];
-                        $.each(d,(index,a) => {
-                            a != null && !statusTitles.filter(status => status.id == a.id ).length ? statusTitles.push(a): '';
-                        })
-                        //vm.application_status = statusTitles;
-                        vm.application_status = vm.customer_status;
-                    });
+                    // var statusColumn = vm.visibleDatatable.vmDataTable.columns(vm.getColumnIndex('status'));
+                    // statusColumn.data().unique().sort().each( function ( d, j ) {
+                    //     let statusTitles = [];
+                    //     $.each(d,(index,a) => {
+                    //         a != null && !statusTitles.filter(status => status.id == a.id ).length ? statusTitles.push(a): '';
+                    //     })
+                    //     //vm.application_status = statusTitles;
+                    //     vm.application_status = vm.customer_status;
+                    // });
                 }
             },
             application_headers:internal_application_headers,
@@ -458,14 +460,14 @@ export default {
                         }
                     }, 0)));
                     // Grab Activity from the data in the table
-                    var titleColumn = vm.visibleDatatable.vmDataTable.columns(vm.getColumnIndex('category'));
-                    titleColumn.data().unique().sort().each( function ( d, j ) {
-                        let activityTitles = [];
-                        $.each(d,(index,a) => {
-                            a != null && activityTitles.indexOf(a) < 0 && a.length ? activityTitles.push(a): '';
-                        })
-                        vm.application_licence_types = activityTitles;
-                    });
+                    // var titleColumn = vm.visibleDatatable.vmDataTable.columns(vm.getColumnIndex('category'));
+                    // titleColumn.data().unique().sort().each( function ( d, j ) {
+                    //     let activityTitles = [];
+                    //     $.each(d,(index,a) => {
+                    //         a != null && activityTitles.indexOf(a) < 0 && a.length ? activityTitles.push(a): '';
+                    //     })
+                    //     vm.application_licence_types = activityTitles;
+                    // });
                     // Grab submitters from the data in the table
                     var submittersColumn = vm.visibleDatatable.vmDataTable.columns(vm.getColumnIndex('submitter'));
                     submittersColumn.data().unique().sort().each( function ( d, j ) {
@@ -790,6 +792,21 @@ export default {
         getColumnIndex: function(column_name) {
             return this.visibleHeaders.map(header => header.toLowerCase()).indexOf(column_name.toLowerCase());
         },
+        initialiseSelects: async function() {
+
+            await this.$http.get(helpers.add_endpoint_join(api_endpoints.applications,'1/get_application_selects')).then(res=>{
+
+                    this.application_status = res.body.all_status
+                    this.application_licence_types = res.body.all_category
+                },err=>{
+
+                    swal(
+                        'Get Application Selects Error',
+                        helpers.apiVueResourceError(err),
+                        'error'
+                    )
+                });
+        },
     },
     mounted: function(){
         let vm = this;
@@ -802,6 +819,7 @@ export default {
         this.$nextTick(() => {
             vm.initialiseSearch();
             vm.addEventListeners();
+            vm.initialiseSelects();
         });
     }
 }
