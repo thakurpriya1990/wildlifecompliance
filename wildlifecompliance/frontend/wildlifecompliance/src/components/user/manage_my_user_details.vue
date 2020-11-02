@@ -62,6 +62,8 @@
             <div class="col-sm-12">
                 <div class="panel panel-default">
                   <div class="panel-heading">
+                    <i v-if="showCompletion && current_user.identification" class="fa fa-check fa-2x pull-left" style="color:green"></i>
+                    <i v-else-if="showCompletion && !current_user.identification" class="fa fa-times fa-2x pull-left" style="color:red"></i>
                     <h3 class="panel-title">Identification <small>Upload your photo ID</small>
                         <a class="panelClicker" :href="'#'+idBody" data-toggle="collapse"  data-parent="#userInfo" expanded="false" :aria-controls="idBody">
                             <span class="glyphicon glyphicon-chevron-down pull-right "></span>
@@ -71,20 +73,38 @@
                   <div class="panel-body collapse" :id="idBody">
                       <form class="form-horizontal" name="id_form" method="post">
                           <div class="form-group">
+                            <label class="col-sm-12" >Attach a scan of the photo page of your passport or the photo side of your drivers licence.</label>
+                          </div>
+                          <div class="form-group">
                             <label for="" class="col-sm-3 control-label">Identification</label>
                             <div class="col-sm-6">
-                                <img v-if="current_user.identification" width="100%" name="identification" v-bind:src="current_user.identification.file" />
+                                <span class="btn btn-link btn-file pull-left">
+                                    Attach File <input type="file" ref="uploadedID" @change="readFileID()"/>
+                                </span>
+                                <!-- <span class="pull-left" style="margin-left:10px;margin-top:10px;">{{uploadedIDFileName}}</span> -->
+                            </div>
+                          </div>
+                          <div class="form-group">
+                            <div class="col-sm-12">
+                                <div v-if="openIDFileTab">
+                                    <a :href="'../media'+idFileName" target="_blank">
+                                        [ View Image in New Tab ]
+                                    </a>         
+                                </div>
+                                <div v-else>    
+                                    <img v-if="current_user.identification" width="100%" name="identification" v-bind:src="current_user.identification.file" />
+                                </div>
                             </div>
                           </div>
                           <div class="form-group">
                             <div class="col-sm-12">
                                 <!-- output order in reverse due to pull-right at runtime -->
-                                <button v-if="!uploadingID" class="pull-right btn btn-primary" @click.prevent="uploadID()">Upload</button>
+                                <!-- <button v-if="!uploadingID" class="pull-right btn btn-primary" @click.prevent="uploadID()">Upload</button>
                                 <button v-else disabled class="pull-right btn btn-primary"><i class="fa fa-spin fa-spinner"></i>&nbsp;Uploading</button>
                                 <span class="pull-right" style="margin-left:10px;margin-top:10px;margin-right:10px">{{uploadedIDFileName}}</span>
                                 <span class="btn btn-primary btn-file pull-right">
                                     Select ID to Upload<input type="file" ref="uploadedID" @change="readFileID()"/>
-                                </span>
+                                </span> -->
                             </div>
                           </div>
                        </form>
@@ -221,11 +241,6 @@
                                 </div>
                             </div>
                           </div>
-
-                          
-
-
-
                           <div v-for="org in current_user.wildlifecompliance_organisations">
                               <div class="form-group">
                                 <label for="" class="col-sm-2 control-label" >Organisation</label>
@@ -478,6 +493,12 @@ export default {
         },
         completedProfile: function(){
             return this.current_user.contact_details && this.current_user.personal_details && this.current_user.address_details;
+        },
+        openIDFileTab: function() {
+            return this.current_user.identification && !this.current_user.identification.file.includes('.png', '.jpeg', '.jpg', '.tiff');
+        },
+        idFileName: function() {
+            return this.current_user.identification != null ? this.current_user.identification.file.split('/media').pop() : '';
         }
     },
     methods: {
@@ -495,7 +516,7 @@ export default {
             }
             vm.uploadedFile = _file;
         },
-        readFileID: function() {
+        readFileID: async function() {
             let vm = this;
             let _file = null;
             var input = $(vm.$refs.uploadedID)[0];
@@ -508,6 +529,7 @@ export default {
                 _file = input.files[0];
             }
             vm.uploadedID = _file;
+            await vm.uploadID();
         },
         addCompany: function (){
             this.newOrg.push = {
@@ -766,13 +788,11 @@ export default {
                 vm.validatingPins = false;
             });
         },
-        uploadID: function() {
+        uploadID: async function() {
             let vm = this;
-            console.log('uploading id');
             vm.uploadingID = true;
             let data = new FormData();
             data.append('identification', vm.uploadedID);
-            console.log(data);
             if (vm.uploadedID == null){
                 vm.uploadingID = false;
                 swal({
