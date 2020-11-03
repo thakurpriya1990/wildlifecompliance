@@ -73,27 +73,26 @@
                   <div class="panel-body collapse" :id="idBody">
                       <form class="form-horizontal" name="id_form" method="post">
                           <div class="form-group">
-                            <label class="col-sm-12" >Attach a scan of the photo page of your passport or the photo side of your drivers licence.</label>
+                            <span class="col-sm-12" >&nbsp;&nbsp;&nbsp;&nbsp; Attach a scan of the photo page of your passport or the photo side of your drivers licence.</span>
                           </div>
                           <div class="form-group">
-                            <label for="" class="col-sm-3 control-label">Identification</label>
+                            <label class="col-sm-3 control-label">Identification</label>
                             <div class="col-sm-6">
-                                <span class="btn btn-link btn-file pull-left">
-                                    Attach File <input type="file" ref="uploadedID" @change="readFileID()"/>
-                                </span>
-                                <!-- <span class="pull-left" style="margin-left:10px;margin-top:10px;">{{uploadedIDFileName}}</span> -->
+                                <span class="btn btn-link btn-file pull-left">Attach File<input type="file" ref="uploadedID" @change="readFileID()"/></span>
+                                <span v-if="!uploadingID" class="btn btn-link btn-file pull-left"><a :href="'../media'+idFileName" target="_blank">{{uploadedID}}</a></span>
+                                <span v-else class="btn btn-link btn-file pull-left">&nbsp;Uploading...</span>                                
                             </div>
                           </div>
                           <div class="form-group">
                             <div class="col-sm-12">
-                                <div v-if="openIDFileTab">
+                                <!-- <div v-if="openIDFileTab">
                                     <a :href="'../media'+idFileName" target="_blank">
                                         [ View Image in New Tab ]
                                     </a>         
                                 </div>
                                 <div v-else>    
                                     <img v-if="current_user.identification" width="100%" name="identification" v-bind:src="current_user.identification.file" />
-                                </div>
+                                </div> -->
                             </div>
                           </div>
                           <div class="form-group">
@@ -485,18 +484,19 @@ export default {
         uploadedFileName: function() {
             return this.uploadedFile != null ? this.uploadedFile.name: '';
         },
-        uploadedIDFileName: function() {
-            return this.uploadedID != null ? this.uploadedID.name: '';
-        },
+        // uploadedIDFileName: function() {
+        //     let id_file = this.current_user.identification != null ? this.current_user.identification.file.split('/media').pop() : '';
+        //     return this.uploadedID != null ? this.uploadedID.name: id_file;
+        // },
         showCompletion: function() {
             return this.$route.name == 'first-time'
         },
         completedProfile: function(){
             return this.current_user.contact_details && this.current_user.personal_details && this.current_user.address_details;
         },
-        openIDFileTab: function() {
-            return this.current_user.identification && !this.current_user.identification.file.includes('.png', '.jpeg', '.jpg', '.tiff');
-        },
+        // openIDFileTab: function() {
+        //     return this.current_user.identification && !this.current_user.identification.file.includes('.png', '.jpeg', '.jpg', '.tiff');
+        // },
         idFileName: function() {
             return this.current_user.identification != null ? this.current_user.identification.file.split('/media').pop() : '';
         }
@@ -806,13 +806,16 @@ export default {
                 }).then((response) => {
                     vm.uploadingID = false;
                     vm.uploadedID = null;
-                    swal({
-                        title: 'Upload ID',
-                        html: 'Your ID has been successfully uploaded.',
-                        type: 'success',
-                    }).then(() => {
-                        window.location.reload(true);
-                    });
+                    vm.uploadedID = response.body.identification.file.split('/').pop();
+                    vm.current_user.identification = response.body.identification
+                    // swal({
+                    //     title: 'Upload ID',
+                    //     html: 'Your ID has been successfully uploaded.',
+                    //     type: 'success',
+                    // });
+                    // }).then(() => {
+                    //     window.location.reload(true);
+                    // });
                 }, (error) => {
                     console.log(error);
                     vm.uploadingID = false;
@@ -1074,6 +1077,7 @@ export default {
                     vm.current_user = response.body
                     if (vm.current_user.residential_address == null){ vm.current_user.residential_address = {}; }
                     if (vm.current_user.wildlifecompliance_organisations && vm.current_user.wildlifecompliance_organisations.length > 0) { vm.managesOrg = 'Yes' }
+                    if (vm.current_user.identification){ vm.uploadedID = vm.current_user.identification.file.split('/').pop(); }
                 });
             }
         },(error) => {
