@@ -1238,6 +1238,9 @@ export default {
         },
         assignToMe: async function(){
             let vm = this;
+            vm.selectedActivity.assigned_officer = vm.current_user.id
+            $(vm.$refs.assigned_officer).val(vm.current_user.id);
+            $(vm.$refs.assigned_offcier).trigger('change');
             const data = {
                 "activity_id" : this.selectedActivity.licence_activity,
             }
@@ -1247,10 +1250,6 @@ export default {
             }).then((response) => {
                 // this.refreshFromResponse(response);
                 // vm.updateAssignedOfficerSelect();
-                vm.selectedActivity.assigned_officer = response.body.assigned_officer_id;
-                // vm.updateAssignedOfficerSelect();
-                $(vm.$refs.assigned_officer).val(response.body.assigned_officer_id);
-                $(vm.$refs.assigned_officer).trigger('change');
             }, (error) => {
                 vm.revert();
                 vm.updateAssignedOfficerSelect();
@@ -1330,8 +1329,8 @@ export default {
                 await vm.$http.post(helpers.add_endpoint_json(api_endpoints.applications,(vm.application.id+'/assign_activity_approver')),JSON.stringify(data),{
                     emulateJSON:true
                 }).then((response) => {
-                    this.refreshFromResponse(response);
-                    this.updateAssignedApproverSelect();
+                    // this.refreshFromResponse(response);
+                    // this.updateAssignedApproverSelect();
                 }, (error) => {
                     this.revert();
                     this.updateAssignedApproverSelect();
@@ -1346,8 +1345,8 @@ export default {
                 await vm.$http.post(helpers.add_endpoint_json(api_endpoints.applications,(vm.application.id+'/unassign_activity_approver')),JSON.stringify(data),{
                     emulateJSON:true
                 }).then((response) => {
-                    this.refreshFromResponse(response);
-                    this.updateAssignedOfficerSelect();
+                    // this.refreshFromResponse(response);
+                    // this.updateAssignedOfficerSelect();
                 }, (error) => {
                     this.revert();
                     this.updateAssignedOfficerSelect();
@@ -1361,6 +1360,9 @@ export default {
         },
         makeMeApprover: async function(){
             let vm = this;
+            vm.selectedActivity.assigned_approver = vm.current_user.id
+            $(vm.$refs.assigned_approver).val(vm.current_user.id);
+            $(vm.$refs.assigned_approver).trigger('change');
             const data = {
                 "activity_id" : this.selectedActivity.licence_activity,
             }
@@ -1368,9 +1370,8 @@ export default {
                 emulateJSON:true
 
             }).then((response) => {
-                this.refreshFromResponse(response);
-                this.updateAssignedApproverSelect();
-
+                // this.refreshFromResponse(response);
+                // this.updateAssignedApproverSelect();
             }, (error) => {
                 this.revert();
                 this.updateAssignedApproverSelect();

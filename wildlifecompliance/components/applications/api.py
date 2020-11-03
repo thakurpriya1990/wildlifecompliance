@@ -1288,10 +1288,15 @@ class ApplicationViewSet(viewsets.ModelViewSet):
                     licence approver groups for this application.')
 
             instance.set_activity_approver(activity_id, me)
-            serializer = InternalApplicationSerializer(
-                instance, context={'request': request})
+            # serializer = InternalApplicationSerializer(
+            #     instance, context={'request': request})
 
-            return Response(serializer.data)
+            # return Response(serializer.data)
+
+            return Response(
+                {'assigned_approver_id': me.id},
+                status=status.HTTP_200_OK
+            )            
 
         except serializers.ValidationError:
             print(traceback.print_exc())
@@ -1332,10 +1337,15 @@ class ApplicationViewSet(viewsets.ModelViewSet):
                     licence approver groups for application activity.')
 
             instance.set_activity_approver(activity_id, approver)
-            serializer = InternalApplicationSerializer(
-                instance, context={'request': request})
+            # serializer = InternalApplicationSerializer(
+            #     instance, context={'request': request})
 
-            return Response(serializer.data)
+            # return Response(serializer.data)
+
+            return Response(
+                {'assigned_approver_id': approver.id},
+                status=status.HTTP_200_OK
+            )
 
         except serializers.ValidationError:
             print(traceback.print_exc())
@@ -1355,10 +1365,15 @@ class ApplicationViewSet(viewsets.ModelViewSet):
             instance = self.get_object()
             activity_id = request.data.get('activity_id', None)
             instance.set_activity_approver(activity_id, None)
-            serializer = InternalApplicationSerializer(
-                instance, context={'request': request})
+            # serializer = InternalApplicationSerializer(
+            #     instance, context={'request': request})
 
-            return Response(serializer.data)
+            # return Response(serializer.data)
+
+            return Response(
+                {'assigned_approver_id': None},
+                status=status.HTTP_200_OK
+            )            
 
         except serializers.ValidationError:
             print(traceback.print_exc())
