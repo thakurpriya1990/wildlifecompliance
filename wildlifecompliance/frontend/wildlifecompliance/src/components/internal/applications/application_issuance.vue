@@ -22,7 +22,7 @@
                                             <div class="form-group">
                                                 <div class="row">
                                                     <div class="col-sm-3">
-                                                        <label class="control-label pull-left">Ready for issuing?</label>
+                                                        <label class="control-label pull-left">Ready for finalisation?</label>
                                                     </div>
                                                     <div class="col-sm-9">
                                                         <input type="checkbox" class="confirmation-checkbox" v-model="getActivity(item.id).confirmed">

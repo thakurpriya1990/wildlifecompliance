@@ -184,7 +184,6 @@ const ExpanderTable = {
             return this.field_data;
         },
         showExpanderIcon: function() {
-            console.log('showExpanderIcon')
             return false
         },
     }
