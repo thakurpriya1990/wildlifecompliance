@@ -62,8 +62,8 @@
             <div class="col-sm-12">
                 <div class="panel panel-default">
                   <div class="panel-heading">
-                    <i v-if="showCompletion && current_user.identification" class="fa fa-check fa-2x pull-left" style="color:green"></i>
-                    <i v-else-if="showCompletion && !current_user.identification" class="fa fa-times fa-2x pull-left" style="color:red"></i>
+                    <i v-if="showCompletion && uploadedID" class="fa fa-check fa-2x pull-left" style="color:green"></i>
+                    <i v-else-if="!uploadedID" class="fa fa-times fa-2x pull-left" style="color:red"></i>
                     <h3 class="panel-title">Identification <small>Upload your photo ID</small>
                         <a class="panelClicker" :href="'#'+idBody" data-toggle="collapse"  data-parent="#userInfo" expanded="false" :aria-controls="idBody">
                             <span class="glyphicon glyphicon-chevron-down pull-right "></span>
@@ -78,10 +78,15 @@
                           <div class="form-group">
                             <label class="col-sm-3 control-label">Identification</label>
                             <div class="col-sm-6">
-                                <span class="btn btn-link btn-file pull-left">Attach File<input type="file" ref="uploadedID" @change="readFileID()"/></span>
+                                <span v-if="!uploadedID" class="btn btn-link btn-file pull-left">Attach File<input type="file" ref="uploadedID" @change="readFileID()"/></span>
                                 <span v-if="!uploadingID" class="btn btn-link btn-file pull-left"><a :href="'../media'+idFileName" target="_blank">{{uploadedID}}</a></span>
-                                <span v-else class="btn btn-link btn-file pull-left">&nbsp;Uploading...</span>                                
-                            </div>
+                                <span v-else class="btn btn-link btn-file pull-left">&nbsp;Uploading...</span>
+                                <div>
+                                    <span v-if="uploadedID" class="btn btn-link btn-file pull-left">
+                                        <a @click="removeID()" class="fa fa-trash-o" title="Remove file" style="cursor: pointer; color:red;" />
+                                    </span>
+                                </div>
+                            </div>                            
                           </div>
                           <div class="form-group">
                             <div class="col-sm-12">
@@ -787,6 +792,9 @@ export default {
             }, (error) => {
                 vm.validatingPins = false;
             });
+        },
+        removeID: async function() {
+            this.uploadedID = null;
         },
         uploadID: async function() {
             let vm = this;
