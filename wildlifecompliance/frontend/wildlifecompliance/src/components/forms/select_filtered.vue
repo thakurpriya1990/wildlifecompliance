@@ -5,7 +5,7 @@ search and calls the server api with a filtered_list_url.
 <template lang="html">
     <div>
         <div class="form-group">
-            <label :id="id">{{ label }}</label>
+            <label :id="id" for="label" class="inline">{{ label }}</label>
 
             <template v-if="help_text">
                 <HelpText :help_text="help_text" />
@@ -14,7 +14,13 @@ search and calls the server api with a filtered_list_url.
             <template v-if="help_text_url">
                 <HelpText :help_text_url="help_text_url" />
             </template>
-     
+
+            <CommentBlock 
+                :label="label"
+                :name="name"
+                :field_data="field_data"
+                />
+
             <template v-if="readonly">
                 <select v-if="!isMultiple" disabled ref="selectB" :id="selectid" :name="name" class="form-control" :data-conditions="cons" style="width:100%">
                     <!-- <option value="">Select...</option> -->
@@ -51,6 +57,7 @@ import Vue from 'vue';
 import { mapActions, mapGetters } from 'vuex';
 import HelpText from './help_text.vue';
 import HelpTextUrl from './help_text_url.vue';
+import CommentBlock from './comment_block.vue';
 
 // var select2 = require('select2');
 // require("select2/dist/css/select2.min.css");
@@ -151,7 +158,7 @@ export default {
             return unique_results
         },
     },
-    components: { HelpText, HelpTextUrl, },
+    components: { HelpText, HelpTextUrl, CommentBlock },
     methods:{
         multipleSelection2: function(val){
             if (Array.isArray(this.options)){

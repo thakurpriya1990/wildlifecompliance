@@ -723,6 +723,9 @@ export default {
             'canAssignOfficerFor',
             'canAssignAssessorFor',
             'application_workflow_state',
+            'id_check_status',
+            'character_check_status',
+            'return_check_status',
         ]),
         applicationDetailsVisible: function() {
             return !this.isSendingToAssessor && !this.isofficerfinalisation && this.unfinishedActivities.length && !this.isOfficerConditions;
@@ -785,6 +788,11 @@ export default {
         canProposeIssueOrDecline: function(){
             let auth_activity = this.canAssignOfficerFor(this.selected_activity_tab_id);
 
+            // check activity is not assigned to another officer.
+            if (auth_activity && auth_activity.assigned_officer != null && auth_activity.assigned_officer !== this.current_user.id) {
+                return false;
+            }
+
             let proposal = auth_activity && auth_activity.is_with_officer && this.licence_type_data.activity.find(activity => {
                     return activity.id === this.selected_activity_tab_id
                         && activity.processing_status.name.match(/with officer/gi) // FIXME: required because of temporary status set below.
@@ -814,19 +822,19 @@ export default {
           return (this.application) ? `/api/application/${this.application.id}/application_officer_save.json` : '';
         },
         isIdCheckAccepted: function(){
-            return this.application.id_check_status.id == 'accepted';
+            return this.id_check_status === 'accepted';
         },
         isIdNotChecked: function(){
-            return this.application.id_check_status.id == 'not_checked';
+            return this.id_check_status === 'not_checked';
         },
         isIdCheckRequested: function(){
-            return this.application.id_check_status.id == 'awaiting_update';
+            return this.id_check_status === 'awaiting_update';
         },
         isIdCheckUpdated: function(){
-            return this.application.id_check_status.id == 'updated';
+            return this.id_check_status === 'updated';
         },
         isCharacterCheckAccepted: function(){
-            return this.application.character_check_status.id == 'accepted';
+            return this.character_check_status === 'accepted';
         },
         userIsAssignedOfficer: function(){
             return this.current_user.id == this.selectedActivity.assigned_officer;
@@ -880,7 +888,8 @@ export default {
             return this.spinner
         },
         showReturnCheckButton: function() {
-            return this.application.is_return_check_accept ? false : true
+            // return this.application.is_return_check_accept ? false : true
+            return this.return_check_status !== 'accepted';
         }
     },
     methods: {
@@ -896,6 +905,9 @@ export default {
             'toggleFinalisedTabs',
             'saveFormData',
             'assessmentData',
+            'setIdCheckStatus',
+            'setCharacterCheckStatus',
+            'setReturnCheckStatus',
         ]),
         eventListeners: function(){
             let vm = this;
@@ -977,7 +989,7 @@ export default {
                 if (result.value) {
                     await vm.$http.post(helpers.add_endpoint_json(api_endpoints.applications,(vm.application.id+'/accept_id_check')))
                     .then((response) => {
-                        vm.setApplication(response.body);
+                        vm.setIdCheckStatus(response.body.id_check_status);
                     }, (error) => {
                         console.log(error);
                     });
@@ -997,7 +1009,7 @@ export default {
                 if (result.value) {
                     await vm.$http.post(helpers.add_endpoint_json(api_endpoints.applications,(vm.application.id+'/reset_id_check')))
                     .then((response) => {
-                        vm.setApplication(response.body);
+                        vm.setIdCheckStatus(response.body.id_check_status);
                     }, (error) => {
                         console.log(error);
                     });
@@ -1017,7 +1029,7 @@ export default {
                 if (result.value) {
                     await vm.$http.post(helpers.add_endpoint_json(api_endpoints.applications,(vm.application.id+'/request_id_check')))
                     .then((response) => {
-                        vm.setApplication(response.body);
+                        vm.setIdCheckStatus(response.body.id_check_status);
                     }, (error) => {
                         console.log(error);
                     });
@@ -1037,7 +1049,7 @@ export default {
                 if (result.value) {
                     await vm.$http.post(helpers.add_endpoint_json(api_endpoints.applications,(vm.application.id+'/accept_character_check')))
                     .then((response) => {
-                        vm.setApplication(response.body);
+                        vm.setCharacterCheckStatus(response.body.character_check_status);
                     }, (error) => {
                         console.log(error);
                     });
@@ -1057,7 +1069,7 @@ export default {
                 if (result.value) {
                     await vm.$http.post(helpers.add_endpoint_json(api_endpoints.applications,(vm.application.id+'/accept_return_check')))
                     .then((response) => {
-                        vm.setApplication(response.body);
+                        vm.setReturnCheckStatus(response.body.return_check_status);
                     }, (error) => {
                         console.log(error);
                     });
@@ -1077,7 +1089,7 @@ export default {
                 if (result.value) {
                     await vm.$http.post(helpers.add_endpoint_json(api_endpoints.applications,(vm.application.id+'/reset_return_check')))
                     .then((response) => {
-                        vm.setApplication(response.body);
+                        vm.setReturnCheckStatus(response.body.return_check_status);
                     }, (error) => {
                         console.log(error);
                     });
@@ -1226,6 +1238,9 @@ export default {
         },
         assignToMe: async function(){
             let vm = this;
+            vm.selectedActivity.assigned_officer = vm.current_user.id
+            $(vm.$refs.assigned_officer).val(vm.current_user.id);
+            $(vm.$refs.assigned_offcier).trigger('change');
             const data = {
                 "activity_id" : this.selectedActivity.licence_activity,
             }
@@ -1233,8 +1248,8 @@ export default {
                 emulateJSON:true
 
             }).then((response) => {
-                this.refreshFromResponse(response);
-                vm.updateAssignedOfficerSelect();
+                // this.refreshFromResponse(response);
+                // vm.updateAssignedOfficerSelect();
             }, (error) => {
                 vm.revert();
                 vm.updateAssignedOfficerSelect();
@@ -1271,8 +1286,8 @@ export default {
                 await vm.$http.post(helpers.add_endpoint_json(api_endpoints.applications,(vm.application.id+'/assign_officer')),JSON.stringify(data),{
                     emulateJSON:true
                 }).then((response) => {
-                    this.refreshFromResponse(response);
-                    this.updateAssignedOfficerSelect();
+                    // this.refreshFromResponse(response);
+                    // this.updateAssignedOfficerSelect();
                 }, (error) => {
                     this.revert();
                     this.updateAssignedOfficerSelect();
@@ -1287,8 +1302,8 @@ export default {
                 await vm.$http.post(helpers.add_endpoint_json(api_endpoints.applications,(vm.application.id+'/unassign_officer')),JSON.stringify(data),{
                     emulateJSON:true
                 }).then((response) => {
-                    this.refreshFromResponse(response);
-                    this.updateAssignedOfficerSelect();
+                    // this.refreshFromResponse(response);
+                    // this.updateAssignedOfficerSelect();
                 }, (error) => {
                     this.revert();
                     this.updateAssignedOfficerSelect();
@@ -1314,8 +1329,8 @@ export default {
                 await vm.$http.post(helpers.add_endpoint_json(api_endpoints.applications,(vm.application.id+'/assign_activity_approver')),JSON.stringify(data),{
                     emulateJSON:true
                 }).then((response) => {
-                    this.refreshFromResponse(response);
-                    this.updateAssignedApproverSelect();
+                    // this.refreshFromResponse(response);
+                    // this.updateAssignedApproverSelect();
                 }, (error) => {
                     this.revert();
                     this.updateAssignedApproverSelect();
@@ -1330,8 +1345,8 @@ export default {
                 await vm.$http.post(helpers.add_endpoint_json(api_endpoints.applications,(vm.application.id+'/unassign_activity_approver')),JSON.stringify(data),{
                     emulateJSON:true
                 }).then((response) => {
-                    this.refreshFromResponse(response);
-                    this.updateAssignedOfficerSelect();
+                    // this.refreshFromResponse(response);
+                    // this.updateAssignedOfficerSelect();
                 }, (error) => {
                     this.revert();
                     this.updateAssignedOfficerSelect();
@@ -1345,6 +1360,9 @@ export default {
         },
         makeMeApprover: async function(){
             let vm = this;
+            vm.selectedActivity.assigned_approver = vm.current_user.id
+            $(vm.$refs.assigned_approver).val(vm.current_user.id);
+            $(vm.$refs.assigned_approver).trigger('change');
             const data = {
                 "activity_id" : this.selectedActivity.licence_activity,
             }
@@ -1352,9 +1370,8 @@ export default {
                 emulateJSON:true
 
             }).then((response) => {
-                this.refreshFromResponse(response);
-                this.updateAssignedApproverSelect();
-
+                // this.refreshFromResponse(response);
+                // this.updateAssignedApproverSelect();
             }, (error) => {
                 this.revert();
                 this.updateAssignedApproverSelect();
@@ -1385,6 +1402,7 @@ export default {
             });
         },
         initialiseAssignedOfficerSelect: function(reinit=false){
+            console.log('initialiseAssigned')
             let vm = this;
             if (reinit){
                 $(vm.$refs.assigned_officer).data('select2') ? $(vm.$refs.assigned_officer).select2('destroy'): '';

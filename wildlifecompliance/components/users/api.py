@@ -422,7 +422,7 @@ class UserViewSet(viewsets.ModelViewSet):
 
                     officers = applications[0].licence_officers
                     if applications[0].is_assigned:
-                        officers = applications[0].assigned_officer
+                        officers = [applications[0].assigned_officer]
 
                     send_id_updated_notification(
                         instance, applications, officers, request

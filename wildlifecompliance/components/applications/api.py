@@ -80,6 +80,7 @@ from wildlifecompliance.components.applications.serializers import (
     DTExternalApplicationSelectedActivitySerializer,
     DTInternalApplicationSelectedActivitySerializer,
     IssueLicenceSerializer,
+    DTApplicationSelectSerializer,
 )
 
 from wildlifecompliance.components.main.process_document import (
@@ -178,27 +179,12 @@ class ApplicationFilterBackend(DatatablesFilterBackend):
                 search_text = search_text.lower()
                 # join queries for the search_text search
                 # search_text_app_ids = []
-                search_text_app_ids = [
-                    application.id for application in queryset.all()
-                    if search_text in application.licence_purpose_names.lower()
-                ]
-                # for application in queryset:
-                #     if (search_text in application.licence_category.lower()
-                #         or search_text in application.licence_purpose_names.lower()
-                #         or search_text in application.applicant.lower()
-                #         or search_text in application.processing_status.lower()
-                #         or search_text in application.customer_status.lower()
-                #         or search_text in application.payment_status.lower()
-                #     ):
-                #         search_text_app_ids.append(application.id)
-                #     # if applicant is not an organisation, also search against the user's email address
-                #     if (application.applicant_type == Application.APPLICANT_TYPE_PROXY and
-                #         search_text in application.proxy_applicant.email.lower()):
-                #             search_text_app_ids.append(application.id)
-                #     if (application.applicant_type == Application.APPLICANT_TYPE_SUBMITTER and
-                #         search_text in application.submitter.email.lower()):
-                #             search_text_app_ids.append(application.id)
-
+                search_text_app_ids = Application.objects.values(
+                    'id'
+                ).filter(
+                    Q(proxy_applicant__first_name__icontains=search_text) |
+                    Q(proxy_applicant__last_name__icontains=search_text)
+                )
                 # use pipe to join both custom and built-in DRF datatables
                 # querysets (returned by super call above)
                 # (otherwise they will filter on top of each other)
@@ -209,10 +195,12 @@ class ApplicationFilterBackend(DatatablesFilterBackend):
             # apply user selected filters
             category_name = category_name.lower() if category_name else 'all'
             if category_name != 'all':
-                category_name_app_ids = []
-                for application in queryset:
-                    if category_name in application.licence_category_name.lower():
-                        category_name_app_ids.append(application.id)
+                # category_name_app_ids = []
+                category_name_app_ids = Application.objects.values(
+                    'id'
+                ).filter(
+                    selected_activities__licence_activity__licence_category__name__icontains=category_name
+                )
                 queryset = queryset.filter(id__in=category_name_app_ids)
             processing_status = processing_status.lower() if processing_status else 'all'
             if processing_status != 'all':
@@ -544,6 +532,28 @@ class ApplicationViewSet(viewsets.ModelViewSet):
                 # End Save Documents
 
                 return Response(serializer.data)
+        except serializers.ValidationError:
+            print(traceback.print_exc())
+            raise
+        except ValidationError as e:
+            print(traceback.print_exc())
+            raise serializers.ValidationError(repr(e.error_dict))
+        except Exception as e:
+            print(traceback.print_exc())
+            raise serializers.ValidationError(str(e))
+
+    @detail_route(methods=['GET', ])
+    def get_application_selects(self, request, *args, **kwargs):
+        '''
+        Returns all drop-down lists for application dashboard.
+        '''
+        try:
+
+            instance = Application.objects.last()
+            serializer = DTApplicationSelectSerializer(instance)
+
+            return Response(serializer.data)
+
         except serializers.ValidationError:
             print(traceback.print_exc())
             raise
@@ -1002,9 +1012,13 @@ class ApplicationViewSet(viewsets.ModelViewSet):
         try:
             instance = self.get_object()
             instance.accept_id_check(request)
-            serializer = InternalApplicationSerializer(
-                instance, context={'request': request})
-            return Response(serializer.data)
+            # serializer = InternalApplicationSerializer(
+            #     instance, context={'request': request})
+            # return Response(serializer.data)
+            return Response(
+                {'id_check_status': instance.id_check_status},
+                status=status.HTTP_200_OK
+            )
         except serializers.ValidationError:
             print(traceback.print_exc())
             raise
@@ -1020,9 +1034,13 @@ class ApplicationViewSet(viewsets.ModelViewSet):
         try:
             instance = self.get_object()
             instance.reset_id_check(request)
-            serializer = InternalApplicationSerializer(
-                instance, context={'request': request})
-            return Response(serializer.data)
+            # serializer = InternalApplicationSerializer(
+            #     instance, context={'request': request})
+            # return Response(serializer.data)
+            return Response(
+                {'id_check_status': instance.id_check_status},
+                status=status.HTTP_200_OK
+            )
         except serializers.ValidationError:
             print(traceback.print_exc())
             raise
@@ -1038,9 +1056,13 @@ class ApplicationViewSet(viewsets.ModelViewSet):
         try:
             instance = self.get_object()
             instance.request_id_check(request)
-            serializer = InternalApplicationSerializer(
-                instance, context={'request': request})
-            return Response(serializer.data)
+            # serializer = InternalApplicationSerializer(
+            #     instance, context={'request': request})
+            # return Response(serializer.data)
+            return Response(
+                {'id_check_status': instance.id_check_status},
+                status=status.HTTP_200_OK
+            )
         except serializers.ValidationError:
             print(traceback.print_exc())
             raise
@@ -1080,9 +1102,13 @@ class ApplicationViewSet(viewsets.ModelViewSet):
         try:
             instance = self.get_object()
             instance.accept_character_check(request)
-            serializer = InternalApplicationSerializer(
-                instance, context={'request': request})
-            return Response(serializer.data)
+            # serializer = InternalApplicationSerializer(
+            #     instance, context={'request': request})
+            # return Response(serializer.data)
+            return Response(
+                {'character_check_status': instance.character_check_status},
+                status=status.HTTP_200_OK
+            )
         except serializers.ValidationError:
             print(traceback.print_exc())
             raise
@@ -1098,9 +1124,13 @@ class ApplicationViewSet(viewsets.ModelViewSet):
         try:
             instance = self.get_object()
             instance.accept_return_check(request)
-            serializer = InternalApplicationSerializer(
-                instance, context={'request': request})
-            return Response(serializer.data)
+            # serializer = InternalApplicationSerializer(
+            #     instance, context={'request': request})
+            # return Response(serializer.data)
+            return Response(
+                {'return_check_status': instance.return_check_status},
+                status=status.HTTP_200_OK
+            )
         except serializers.ValidationError:
             print(traceback.print_exc())
             raise
@@ -1116,9 +1146,13 @@ class ApplicationViewSet(viewsets.ModelViewSet):
         try:
             instance = self.get_object()
             instance.reset_return_check(request)
-            serializer = InternalApplicationSerializer(
-                instance, context={'request': request})
-            return Response(serializer.data)
+            # serializer = InternalApplicationSerializer(
+            #     instance, context={'request': request})
+            # return Response(serializer.data)
+            return Response(
+                {'return_check_status': instance.return_check_status},
+                status=status.HTTP_200_OK
+            )
         except serializers.ValidationError:
             print(traceback.print_exc())
             raise
@@ -1166,9 +1200,13 @@ class ApplicationViewSet(viewsets.ModelViewSet):
                 raise serializers.ValidationError(
                     'You are not in any relevant licence officer groups for this application.')
             instance.assign_officer(request, request.user)
-            serializer = InternalApplicationSerializer(
-                instance, context={'request': request})
-            return Response(serializer.data)
+            # serializer = InternalApplicationSerializer(
+            #     instance, context={'request': request})
+            # return Response(serializer.data)
+            return Response(
+                {'assigned_officer_id': user.id},
+                status=status.HTTP_200_OK
+            )
         except serializers.ValidationError:
             print(traceback.print_exc())
             raise
@@ -1199,9 +1237,13 @@ class ApplicationViewSet(viewsets.ModelViewSet):
                 raise serializers.ValidationError(
                     'User is not in any relevant licence officer groups for this application')
             instance.assign_officer(request, user)
-            serializer = InternalApplicationSerializer(
-                instance, context={'request': request})
-            return Response(serializer.data)
+            # serializer = InternalApplicationSerializer(
+            #     instance, context={'request': request})
+            # return Response(serializer.data)
+            return Response(
+                {'assigned_officer_id': user.id},
+                status=status.HTTP_200_OK
+            )
         except serializers.ValidationError:
             print(traceback.print_exc())
             raise
@@ -1217,9 +1259,13 @@ class ApplicationViewSet(viewsets.ModelViewSet):
         try:
             instance = self.get_object()
             instance.unassign_officer(request)
-            serializer = InternalApplicationSerializer(
-                instance, context={'request': request})
-            return Response(serializer.data)
+            # serializer = InternalApplicationSerializer(
+            #     instance, context={'request': request})
+            # return Response(serializer.data)
+            return Response(
+                {'assigned_officer_id': None},
+                status=status.HTTP_200_OK
+            )
         except serializers.ValidationError:
             print(traceback.print_exc())
             raise
@@ -1242,10 +1288,15 @@ class ApplicationViewSet(viewsets.ModelViewSet):
                     licence approver groups for this application.')
 
             instance.set_activity_approver(activity_id, me)
-            serializer = InternalApplicationSerializer(
-                instance, context={'request': request})
+            # serializer = InternalApplicationSerializer(
+            #     instance, context={'request': request})
 
-            return Response(serializer.data)
+            # return Response(serializer.data)
+
+            return Response(
+                {'assigned_approver_id': me.id},
+                status=status.HTTP_200_OK
+            )            
 
         except serializers.ValidationError:
             print(traceback.print_exc())
@@ -1286,10 +1337,15 @@ class ApplicationViewSet(viewsets.ModelViewSet):
                     licence approver groups for application activity.')
 
             instance.set_activity_approver(activity_id, approver)
-            serializer = InternalApplicationSerializer(
-                instance, context={'request': request})
+            # serializer = InternalApplicationSerializer(
+            #     instance, context={'request': request})
 
-            return Response(serializer.data)
+            # return Response(serializer.data)
+
+            return Response(
+                {'assigned_approver_id': approver.id},
+                status=status.HTTP_200_OK
+            )
 
         except serializers.ValidationError:
             print(traceback.print_exc())
@@ -1309,10 +1365,15 @@ class ApplicationViewSet(viewsets.ModelViewSet):
             instance = self.get_object()
             activity_id = request.data.get('activity_id', None)
             instance.set_activity_approver(activity_id, None)
-            serializer = InternalApplicationSerializer(
-                instance, context={'request': request})
+            # serializer = InternalApplicationSerializer(
+            #     instance, context={'request': request})
 
-            return Response(serializer.data)
+            # return Response(serializer.data)
+
+            return Response(
+                {'assigned_approver_id': None},
+                status=status.HTTP_200_OK
+            )            
 
         except serializers.ValidationError:
             print(traceback.print_exc())

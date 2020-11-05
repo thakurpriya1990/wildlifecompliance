@@ -15,7 +15,7 @@ export const rendererStore = {
         sections: {},
         visible_components: [],
         visibility: {
-            'exclude_decisions': ['issued', 'declined'],
+            'exclude_decisions': ['issued', 'declined', 'issue_refund'],
             'exclude_processing_status': ['None']
         },
         form_data: {},
