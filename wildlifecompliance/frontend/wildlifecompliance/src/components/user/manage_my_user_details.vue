@@ -497,7 +497,7 @@ export default {
             return this.$route.name == 'first-time'
         },
         completedProfile: function(){
-            return this.current_user.contact_details && this.current_user.personal_details && this.current_user.address_details && this.current_user.identification;
+            return this.current_user.contact_details && this.current_user.personal_details && this.current_user.address_details && this.current_user.identification.file;
         },
         // openIDFileTab: function() {
         //     return this.current_user.identification && !this.current_user.identification.file.includes('.png', '.jpeg', '.jpg', '.tiff');
