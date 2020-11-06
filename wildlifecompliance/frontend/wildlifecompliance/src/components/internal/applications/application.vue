@@ -483,7 +483,7 @@
                                         <button v-if="isCharacterCheckAccepted" disabled class="btn btn-light">Accepted</button>
                                     </div>
                                     <div class="col-sm-4">
-                                        <button v-if="isCharacterCheckAccepted"  class="btn btn-primary">Reset</button>
+                                        <button v-if="isCharacterCheckAccepted" @click.prevent="resetCharacterRequest()" class="btn btn-primary">Reset</button>
                                     </div>
                                 </div>
                                 <div class="row">
@@ -1057,6 +1057,26 @@ export default {
             },(error) => {
             });
         },
+        resetCharacterRequest: async function() {
+            let vm = this;
+            swal({
+                title: "Reset Character Check",
+                text: "Are you sure you want to reset this Character Check?",
+                type: "question",
+                showCancelButton: true,
+                confirmButtonText: 'Accept'
+            }).then(async (result) => {
+                if (result.value) {
+                    await vm.$http.post(helpers.add_endpoint_json(api_endpoints.applications,(vm.application.id+'/reset_character_check')))
+                    .then((response) => {
+                        vm.setCharacterCheckStatus(response.body.character_check_status);
+                    }, (error) => {
+                        console.log(error);
+                    });
+                }
+            },(error) => {
+            });
+        },
         acceptReturnRequest: async function() {
             let vm = this;
             swal({
@@ -1402,7 +1422,6 @@ export default {
             });
         },
         initialiseAssignedOfficerSelect: function(reinit=false){
-            console.log('initialiseAssigned')
             let vm = this;
             if (reinit){
                 $(vm.$refs.assigned_officer).data('select2') ? $(vm.$refs.assigned_officer).select2('destroy'): '';

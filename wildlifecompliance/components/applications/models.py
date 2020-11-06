@@ -1374,6 +1374,30 @@ class Application(RevisionedMixin):
                 ApplicationUserAction.ACTION_ACCEPT_CHARACTER.format(
                     self.id), request)
 
+    def reset_character_check(self, request):
+        self.character_check_status = \
+            Application.CHARACTER_CHECK_STATUS_NOT_CHECKED
+
+        self.save()
+        # Create a log entry for the application
+        self.log_user_action(
+            ApplicationUserAction.ACTION_RESET_CHARACTER.format(
+                self.id), request)
+        # Create a log entry for the applicant (submitter, organisation or
+        # proxy)
+        if self.org_applicant:
+            self.org_applicant.log_user_action(
+                ApplicationUserAction.ACTION_RESET_CHARACTER.format(
+                    self.id), request)
+        elif self.proxy_applicant:
+            self.proxy_applicant.log_user_action(
+                ApplicationUserAction.ACTION_RESET_CHARACTER.format(
+                    self.id), request)
+        else:
+            self.submitter.log_user_action(
+                ApplicationUserAction.ACTION_RESET_CHARACTER.format(
+                    self.id), request)
+
     def accept_return_check(self, request):
         self.return_check_status = Application.RETURN_CHECK_STATUS_ACCEPTED
         self.save()
