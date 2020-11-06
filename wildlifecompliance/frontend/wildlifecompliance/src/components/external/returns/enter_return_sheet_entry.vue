@@ -48,7 +48,12 @@
                         </div>
                         <div class="row">
                             <div class="col-md-3">
-                                <label class="control-label pull-left" >Name of Supplier/Recipient:</label>
+                                <label class="control-label pull-left" >Name of</label>
+                            </div>
+                        </div>
+                        <div class="row">
+                            <div class="col-md-3">
+                                <label class="control-label pull-left" >Supplier/Recipient:</label>
                             </div>
                             <div class="col-md-9">
                                 <input style="width: 95%;" type='text' v-model='entrySupplier' >
@@ -57,7 +62,11 @@
                         <div class="row">
                             <div class="col-md-3">
                                 <label class="control-label pull-left" >Keeper, Import or Export</label>
-                                <label>Licence number:</label>
+                            </div>
+                        </div>                        
+                        <div class="row">
+                            <div class="col-md-3">
+                                <label class="control-label pull-left" >Licence number:</label>
                             </div>
                             <div class="col-md-9">
                                 <input style="width: 95%;" type='text' v-model='entryLicence' >
