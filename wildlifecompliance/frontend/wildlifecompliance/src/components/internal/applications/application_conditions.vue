@@ -194,6 +194,14 @@ export default {
                 return false;
             }
 
+            // check activity is not assigned to another officer.
+            var selectedActivity = this.application.activities.find(activity => {
+                return activity.licence_activity === this.selected_activity_tab_id;
+            });
+            if (selectedActivity.assigned_officer != null && selectedActivity.assigned_officer !== this.current_user.id) {
+                return false;
+            };
+
             let required_role = false;
             if (this.activity.processing_status.id === 'with_assessor') {
                 let assessment = this.canEditAssessmentFor(this.selected_activity_tab_id)
@@ -223,6 +231,14 @@ export default {
             if(!this.selected_activity_tab_id || this.activity == null) {
                 return false;
             }
+
+            // check activity is not assigned to another officer.
+            var selectedActivity = this.application.activities.find(activity => {
+                return activity.licence_activity === this.selected_activity_tab_id;
+            });
+            if (selectedActivity.assigned_officer != null && selectedActivity.assigned_officer !== this.current_user.id) {
+                return false;
+            };
 
             let required_role = false;
             switch(this.activity.processing_status.id) {
