@@ -809,6 +809,31 @@ class Application(RevisionedMixin):
         except AttributeError:
             return ''
 
+    def set_property_cache_licence_fee(self, licence_fee):
+        '''
+        Setter for licence fee on the property cache.
+
+        NOTE: only used for presentation purposes.
+        '''
+        if self.id:
+            self.property_cache['licence_fee'] = licence_fee
+
+    def get_property_cache_licence_fee(self):
+        '''
+        Getter for licence fee on the property cache.
+
+        NOTE: only used for presentation purposes.
+        '''
+        fee = 0
+        try:
+
+            fee = self.property_cache['licence_fee']
+
+        except KeyError:
+            pass
+
+        return fee
+
     def set_activity_processing_status(self, activity_id, processing_status):
         if not activity_id:
             logger.error("Application: %s cannot update processing status (%s) for an empty activity_id!" %
