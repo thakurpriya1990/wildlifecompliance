@@ -816,7 +816,8 @@ class Application(RevisionedMixin):
         NOTE: only used for presentation purposes.
         '''
         if self.id:
-            self.property_cache['licence_fee'] = licence_fee
+            data = str(licence_fee)
+            self.property_cache['licence_fee'] = data
 
     def get_property_cache_licence_fee(self):
         '''
