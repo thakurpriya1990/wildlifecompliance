@@ -805,7 +805,8 @@ class StandardConditionFieldElement(SpecialFieldElement):
             for condition in ApplicationCondition.objects.filter(
                 is_rendered=True,
                 standard=True,
-                application=self._application
+                application=self._application,
+                licence_activity_id=licence_activity.id
             ):
                 condition.delete()
 
