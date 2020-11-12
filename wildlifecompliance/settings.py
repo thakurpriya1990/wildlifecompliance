@@ -1,10 +1,11 @@
+from django.core.exceptions import ImproperlyConfigured
+from ledger.settings_base import *
+
 import os
 import confy
 BASE_DIR = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
 confy.read_environment_file(BASE_DIR+"/.env")
 os.environ.setdefault("BASE_DIR", BASE_DIR)
-from django.core.exceptions import ImproperlyConfigured
-from ledger.settings_base import *
 
 os.environ['LEDGER_PRODUCT_CUSTOM_FIELDS'] = "('ledger_description','quantity','price_incl_tax','price_excl_tax','oracle_code')"
 os.environ['LEDGER_REFUND_TRANSACTION_CALLBACK_MODULE'] = 'wildlifecompliance:wildlifecompliance.components.applications.api.application_refund_callback'
@@ -12,6 +13,7 @@ os.environ['LEDGER_INVOICE_TRANSACTION_CALLBACK_MODULE'] = 'wildlifecompliance:w
 
 ROOT_URLCONF = 'wildlifecompliance.urls'
 SITE_ID = 1
+SYSTEM_MAINTENANCE_WARNING = env('SYSTEM_MAINTENANCE_WARNING', 24)  # hours
 
 STATIC_ROOT = os.path.join(BASE_DIR, 'staticfiles_wc')
 SHOW_DEBUG_TOOLBAR = env('SHOW_DEBUG_TOOLBAR', False)
