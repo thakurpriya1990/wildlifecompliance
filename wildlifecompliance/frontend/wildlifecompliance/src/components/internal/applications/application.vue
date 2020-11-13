@@ -523,7 +523,7 @@
                                                 <div class="container">
                                                     <p class="pull-right" style="margin-top:5px;">
                                                         <span style="margin-right: 5px; font-size: 18px; display: block;" v-if="updatedFee" >
-                                                            <strong>Updated application fee: {{adjusted_application_fee | toCurrency}}</strong>
+                                                            <strong>Updated application fee: {{application.application_fee | toCurrency}}</strong>
                                                             <strong>licence fee: {{application.licence_fee | toCurrency}}</strong>
                                                         </span>
                                                         <button v-if="showSpinner && showRequestSpinner" type="button" disabled class="btn btn-primary" >Save Changes</button> 
@@ -683,7 +683,6 @@ export default {
             comms_add_url: helpers.add_endpoint_json(api_endpoints.applications,vm.$route.params.application_id+'/add_comms_log'),
             logs_url: helpers.add_endpoint_json(api_endpoints.applications,vm.$route.params.application_id+'/action_log'),
             panelClickersInitialised: false,
-            adjusted_application_fee: 0,
         }
     },
     components: {
@@ -865,7 +864,7 @@ export default {
             }
         },
         updatedFee: function() {
-            return (this.adjusted_application_fee !== 0 || this.application.licence_fee !== 0) ? true : false
+            return (this.application.application_fee !== 0 || this.application.licence_fee !== 0) ? true : false
         },
         showNavBarBottom: function() {
             return this.canReturnToConditions || (!this.applicationIsDraft && this.canSaveApplication)
@@ -1511,9 +1510,11 @@ export default {
         }
     },
     mounted: function() {
+        console.log('mounted')
         // console.log(this.application)
     },
     updated: function(){
+        console.log('updated')
         let vm = this;
         if (!vm.panelClickersInitialised){
             $('.panelClicker[data-toggle="collapse"]').on('click', function () {
@@ -1530,15 +1531,6 @@ export default {
             vm.form = document.forms.new_application;
             vm.eventListeners();
         });
-        if ((this.application.application_type.id=='amend_activity') // licence activity amendments.
-        || (this.application.customer_status.id=='amendment_required' || this.application.customer_status.id=='under_review')) { // requested amendments.
-            // fees can be adjusted by officer from selected components for requested amendments.
-            // this.adjusted_application_fee = this.application.application_fee - this.application.adjusted_paid_amount
-        } else {
-            // no adjustments for new applications.
-            // this.adjusted_application_fee = this.application.application_fee
-        }
-        this.adjusted_application_fee = this.application.application_fee
     },
     beforeRouteEnter: function(to, from, next) {
         next(vm => {

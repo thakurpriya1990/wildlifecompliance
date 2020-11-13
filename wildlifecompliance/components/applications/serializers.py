@@ -1196,9 +1196,11 @@ class BaseApplicationSerializer(serializers.ModelSerializer):
         Total paid amount adjusted for presentation purposes. Only applicable
         for internal officers to enforce refundable payments.
         """
+        import decimal
+        licence_fee = decimal.Decimal(obj.get_property_cache_licence_fee() * 1)
         adjusted = {
             'application_fee': obj.application_fee,
-            'licence_fee': obj.get_property_cache_licence_fee()
+            'licence_fee': licence_fee
         }
 
         return adjusted
