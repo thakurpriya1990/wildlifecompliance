@@ -526,9 +526,9 @@
                                                             <strong>Updated application fee: {{application.application_fee | toCurrency}}</strong>
                                                             <strong>licence fee: {{application.licence_fee | toCurrency}}</strong>
                                                         </span>
-                                                        <button v-if="showSpinner && showRequestSpinner" type="button" disabled class="btn btn-primary" >Save Changes</button> 
+                                                        <!-- <button v-if="showSpinner && showRequestSpinner" type="button" disabled class="btn btn-primary" >Save Changes</button> 
                                                         <button v-else-if="showSpinner && !showRequestSpinner" type="button" class="btn btn-primary" ><i class="fa fa-spinner fa-spin"/>Saving</button>                                                    
-                                                        <button v-else="!applicationIsDraft && canSaveApplication" class="btn btn-primary" @click.prevent="save()">Save Changes</button>
+                                                        <button v-else="!applicationIsDraft && canSaveApplication" class="btn btn-primary" @click.prevent="save()">Save Changes</button> -->
                                                     </p>
                                                 </div>
                                             </div>
@@ -592,6 +592,13 @@
     <ProposedLicence ref="proposed_licence" @refreshFromResponse="refreshFromResponse"></ProposedLicence>
 
     </div>
+    <div v-else>
+        <br/><br/><br/><br/><br/><br/><br/><br/>
+        <div class="col-md-12">
+            <center><i class="fa fa-4x fa-spinner fa-spin"/></center>
+        </div>
+    </div>
+
 </div>
 </template>
 <script>
@@ -1141,19 +1148,25 @@ export default {
         },
         togglesendtoAssessor: async function(){
             this.condition_spinner = true
-            await this.assessmentData({ url: `/api/application/${this.application.id}/assessment_data.json` }).then( async response => {
-                this.condition_spinner = false;   
-                $('#tabs-main li').removeClass('active');
-                this.isSendingToAssessor = !this.isSendingToAssessor;
-                this.showingApplication = false;
+            let is_saved = await this.save_wo();
 
-            },(error)=>{
-                swal(
-                    'Application Error',
-                    helpers.apiVueResourceError(error),
-                    'error'
-                )
-            });
+            if (is_saved) {
+                await this.assessmentData({ url: `/api/application/${this.application.id}/assessment_data.json` }).then( async response => {
+                    this.condition_spinner = false;   
+                this.condition_spinner = false;   
+                    this.condition_spinner = false;   
+                    $('#tabs-main li').removeClass('active');
+                    this.isSendingToAssessor = !this.isSendingToAssessor;
+                    this.showingApplication = false;
+
+                },(error)=>{
+                    swal(
+                        'Application Error',
+                        helpers.apiVueResourceError(error),
+                        'error'
+                    )
+                });
+            }
         },
         save: async function(props = { showNotification: true }) {
             this.spinner = true;

@@ -1534,20 +1534,18 @@ class ApplicationViewSet(viewsets.ModelViewSet):
             instance = self.get_object()
             with transaction.atomic():
 
-                if instance.is_resubmitted:
-                    checkbox = CheckboxAndRadioButtonVisitor(
-                        instance, request.data
-                    )
-                    # Set StandardCondition Fields.
-                    for_condition_fields = StandardConditionFieldElement()
-                    for_condition_fields.accept(checkbox)
+                checkbox = CheckboxAndRadioButtonVisitor(
+                    instance, request.data
+                )
+                # Set StandardCondition Fields.
+                for_condition_fields = StandardConditionFieldElement()
+                for_condition_fields.accept(checkbox)
 
-                    # Set PromptInspection Fields.
-                    for_inspection_fields = PromptInspectionFieldElement()
-                    for_inspection_fields.accept(checkbox)
+                # Set PromptInspection Fields.
+                for_inspection_fields = PromptInspectionFieldElement()
+                for_inspection_fields.accept(checkbox)
 
-                    instance.is_resubmitted = False
-                    instance.save()
+                instance.save()
 
             return Response({'success': True})
         except MissingFieldsException as e:
