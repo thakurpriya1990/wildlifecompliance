@@ -5171,14 +5171,14 @@ class ApplicationSelectedActivity(models.Model):
 
     def get_activity_from_previous(self):
         '''
-        Gets this Application Selected Activity from the previous Application
-        Selected Activity application licence.
+        Return the Application Selected Activity from the previously replaced 
+        Application Selected Activity application licence.
         '''
         previous = None
         prev_app = self.application.previous_application
 
         status = {
-            ApplicationSelectedActivity.ACTIVITY_STATUS_CURRENT,
+            # ApplicationSelectedActivity.ACTIVITY_STATUS_CURRENT,
             ApplicationSelectedActivity.ACTIVITY_STATUS_REPLACED,
         }
         prev_chain = prev_app.get_current_activity_chain(
@@ -5193,7 +5193,7 @@ class ApplicationSelectedActivity(models.Model):
             prev_chain = [
                 a for a in prev_chain
                 if a.licence_activity_id == act_id
-                and a.activity_status in self.ACTIVE
+                and a.activity_status in status
                 and a.processing_status in self.PROCESSING_STATUS_ACCEPTED
             ]
             previous = prev_chain[0]    # licence has one current activity.
@@ -5753,7 +5753,7 @@ class ApplicationSelectedActivityPurpose(models.Model):
         # Otherwise refund should be a positive amount which will be converted
         # to negative.
         refund = refund if refund < 0 else refund * -1
-
+        print('refund {}'.format(refund))
         return refund
 
     def suspend(self):
@@ -5783,13 +5783,13 @@ class ApplicationSelectedActivityPurpose(models.Model):
     def get_purpose_from_previous(self):
         '''
         Gets this Application Selected Activity Purpose from the previous
-        selected Activity.
+        replaced selected Activity.
         '''
         previous = None
         prev_app = self.selected_activity.application.previous_application
 
         status = {
-            ApplicationSelectedActivity.ACTIVITY_STATUS_CURRENT,
+            # ApplicationSelectedActivity.ACTIVITY_STATUS_CURRENT,
             ApplicationSelectedActivity.ACTIVITY_STATUS_REPLACED,
         }
 
@@ -5806,11 +5806,11 @@ class ApplicationSelectedActivityPurpose(models.Model):
             prev = [
                 a for a in activities
                 if a.licence_activity_id == act_id
-                and a.activity_status in ApplicationSelectedActivity.ACTIVE
+                and a.activity_status in status
                 and a.processing_status == ACCEPT
                 and self.purpose in a.issued_purposes
             ]
-
+            print('prev {0}'.format(prev))
             purposes = prev[0].proposed_purposes.all()
             prev = [p for p in purposes if p.purpose_id == self_id]
             previous = prev[0]
