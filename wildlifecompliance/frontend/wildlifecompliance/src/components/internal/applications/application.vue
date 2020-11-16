@@ -1523,11 +1523,9 @@ export default {
         }
     },
     mounted: function() {
-        console.log('mounted')
         // console.log(this.application)
     },
     updated: function(){
-        console.log('updated')
         let vm = this;
         if (!vm.panelClickersInitialised){
             $('.panelClicker[data-toggle="collapse"]').on('click', function () {
