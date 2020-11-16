@@ -110,7 +110,8 @@ const CommentBlock = {
             }
         },
         canEditOfficerComments: function() {
-            return this.canAssignOfficerFor(this.selected_activity_tab_id);
+            // return this.canAssignOfficerFor(this.selected_activity_tab_id);
+            return this.canEditDeficiencies
         },
         canEditAssessorComments: function() {
             return this.canAssignAssessorFor(this.selected_activity_tab_id);
