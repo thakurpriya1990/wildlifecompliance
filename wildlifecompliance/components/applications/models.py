@@ -5178,7 +5178,7 @@ class ApplicationSelectedActivity(models.Model):
         prev_app = self.application.previous_application
 
         status = {
-            # ApplicationSelectedActivity.ACTIVITY_STATUS_CURRENT,
+            ApplicationSelectedActivity.ACTIVITY_STATUS_CURRENT,
             ApplicationSelectedActivity.ACTIVITY_STATUS_REPLACED,
         }
         prev_chain = prev_app.get_current_activity_chain(
@@ -5789,7 +5789,7 @@ class ApplicationSelectedActivityPurpose(models.Model):
         prev_app = self.selected_activity.application.previous_application
 
         status = {
-            # ApplicationSelectedActivity.ACTIVITY_STATUS_CURRENT,
+            ApplicationSelectedActivity.ACTIVITY_STATUS_CURRENT,
             ApplicationSelectedActivity.ACTIVITY_STATUS_REPLACED,
         }
 
@@ -5808,10 +5808,12 @@ class ApplicationSelectedActivityPurpose(models.Model):
                 if a.licence_activity_id == act_id
                 and a.activity_status in status
                 and a.processing_status == ACCEPT
-                and self.purpose in a.issued_purposes
+                # replaced purposes are no longer issued.
+                # and self.purpose in a.issued_purposes
             ]
-            print('prev {0}'.format(prev))
-            purposes = prev[0].proposed_purposes.all()
+            # when multiple amendment applications only use the last one.
+            prev_id = len(prev) - 2 if len(prev) > 1 else 0
+            purposes = prev[prev_id].proposed_purposes.all()
             prev = [p for p in purposes if p.purpose_id == self_id]
             previous = prev[0]
 
