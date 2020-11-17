@@ -5753,7 +5753,7 @@ class ApplicationSelectedActivityPurpose(models.Model):
         # Otherwise refund should be a positive amount which will be converted
         # to negative.
         refund = refund if refund < 0 else refund * -1
-        print('refund {}'.format(refund))
+
         return refund
 
     def suspend(self):
