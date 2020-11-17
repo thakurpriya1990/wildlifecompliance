@@ -1147,13 +1147,17 @@ export default {
 
         },
         togglesendtoAssessor: async function(){
-            this.condition_spinner = true
-            let is_saved = await this.save_wo();
+            this.condition_spinner = true;
+            let is_saved = false;
+            
+            if (this.canRequestAmendment) {
+                is_saved = await this.save_wo();
+            } else {
+                is_saved = true;
+            }           
 
             if (is_saved) {
                 await this.assessmentData({ url: `/api/application/${this.application.id}/assessment_data.json` }).then( async response => {
-                    this.condition_spinner = false;   
-                this.condition_spinner = false;   
                     this.condition_spinner = false;   
                     $('#tabs-main li').removeClass('active');
                     this.isSendingToAssessor = !this.isSendingToAssessor;
