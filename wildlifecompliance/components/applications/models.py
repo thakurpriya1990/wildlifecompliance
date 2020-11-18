@@ -5806,14 +5806,16 @@ class ApplicationSelectedActivityPurpose(models.Model):
             prev = [
                 a for a in activities
                 if a.licence_activity_id == act_id
-                and a.activity_status in status
+                # and a.activity_status in status
                 and a.processing_status == ACCEPT
                 # replaced purposes are no longer issued.
                 # and self.purpose in a.issued_purposes
             ]
-            # when multiple amendment applications only use the last one.
-            prev_id = len(prev) - 2 if len(prev) > 1 else 0
-            purposes = prev[prev_id].proposed_purposes.all()
+            # order by Application Selected Activity ID with Current last.
+            sorted_prev = sorted(prev, key=lambda x: x.id, reverse=False)
+            # when multiple Replaced applications only use the last one.
+            prev_id = len(sorted_prev) - 2 if len(sorted_prev) > 1 else 0
+            purposes = sorted_prev[prev_id].proposed_purposes.all()
             prev = [p for p in purposes if p.purpose_id == self_id]
             previous = prev[0]
 
