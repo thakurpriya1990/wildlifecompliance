@@ -229,6 +229,14 @@ export default {
                 // officer has no permissions for licence activity.
                 return null;
             }
+            // check activity is not assigned to another officer.
+            var selectedActivity = this.application.activities.find(activity => {
+                return activity.licence_activity === this.selected_activity_tab_id;
+            });
+            if (selectedActivity.assigned_officer != null && selectedActivity.assigned_officer !== this.current_user.id) {
+                return false;
+            };
+            
             return this.sendToAssessorActivities.filter(visible_activity => {
                 if(visible_activity.id != this.selected_activity_tab_id) {
                     return false;
@@ -317,6 +325,15 @@ export default {
             return assessment.assigned_assessor && assessment.assigned_assessor.id===this.current_user.id
         },  
         userHasRole: function(role, activity_id) {
+
+            // check activity is not assigned to another officer.
+            var selectedActivity = this.application.activities.find(activity => {
+                return activity.licence_activity === this.selected_activity_tab_id;
+            });
+            if (selectedActivity.assigned_officer != null && selectedActivity.assigned_officer !== this.current_user.id) {
+                return false;
+            };
+
             return this.hasRole(role, activity_id);
         },
         getVisibleConditionsFor: function(for_role, processing_status, tab_id) {

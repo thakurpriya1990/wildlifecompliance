@@ -12,6 +12,7 @@ os.environ['LEDGER_INVOICE_TRANSACTION_CALLBACK_MODULE'] = 'wildlifecompliance:w
 
 ROOT_URLCONF = 'wildlifecompliance.urls'
 SITE_ID = 1
+SYSTEM_MAINTENANCE_WARNING = env('SYSTEM_MAINTENANCE_WARNING', 24)  # hours
 
 STATIC_ROOT = os.path.join(BASE_DIR, 'staticfiles_wc')
 SHOW_DEBUG_TOOLBAR = env('SHOW_DEBUG_TOOLBAR', False)

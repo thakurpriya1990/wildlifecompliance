@@ -1120,6 +1120,26 @@ class ApplicationViewSet(viewsets.ModelViewSet):
             raise serializers.ValidationError(str(e))
 
     @detail_route(methods=['POST', ])
+    def reset_character_check(self, request, *args, **kwargs):
+        try:
+            instance = self.get_object()
+            instance.reset_character_check(request)
+
+            return Response(
+                {'character_check_status': instance.character_check_status},
+                status=status.HTTP_200_OK
+            )
+        except serializers.ValidationError:
+            print(traceback.print_exc())
+            raise
+        except ValidationError as e:
+            print(traceback.print_exc())
+            raise serializers.ValidationError(repr(e.error_dict))
+        except Exception as e:
+            print(traceback.print_exc())
+            raise serializers.ValidationError(str(e))
+
+    @detail_route(methods=['POST', ])
     def accept_return_check(self, request, *args, **kwargs):
         try:
             instance = self.get_object()
@@ -1514,20 +1534,18 @@ class ApplicationViewSet(viewsets.ModelViewSet):
             instance = self.get_object()
             with transaction.atomic():
 
-                if instance.is_resubmitted:
-                    checkbox = CheckboxAndRadioButtonVisitor(
-                        instance, request.data
-                    )
-                    # Set StandardCondition Fields.
-                    for_condition_fields = StandardConditionFieldElement()
-                    for_condition_fields.accept(checkbox)
+                checkbox = CheckboxAndRadioButtonVisitor(
+                    instance, request.data
+                )
+                # Set StandardCondition Fields.
+                for_condition_fields = StandardConditionFieldElement()
+                for_condition_fields.accept(checkbox)
 
-                    # Set PromptInspection Fields.
-                    for_inspection_fields = PromptInspectionFieldElement()
-                    for_inspection_fields.accept(checkbox)
+                # Set PromptInspection Fields.
+                for_inspection_fields = PromptInspectionFieldElement()
+                for_inspection_fields.accept(checkbox)
 
-                    instance.is_resubmitted = False
-                    instance.save()
+                instance.save()
 
             return Response({'success': True})
         except MissingFieldsException as e:

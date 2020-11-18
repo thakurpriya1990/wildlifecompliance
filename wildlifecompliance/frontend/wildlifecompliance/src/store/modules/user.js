@@ -75,7 +75,9 @@ export const userStore = {
                         // verify activity status.
                         && ['with_officer', 'with_officer_conditions'].includes(activity.processing_status.id)
                         // verify current user is associated.
-                        && activity.licensing_officers.find(officer => officer.id === getters.current_user.id);
+                        // && activity.licensing_officers.find(officer => officer.id === getters.current_user.id);
+                        // verify user is assigned or activity is not allocated.
+                        && (!activity.assigned_officer || activity.assigned_officer===getters.current_user.id)
                 });   
             }
             if (getters.isReturnsLoaded){

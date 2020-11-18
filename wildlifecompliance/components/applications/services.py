@@ -805,7 +805,8 @@ class StandardConditionFieldElement(SpecialFieldElement):
             for condition in ApplicationCondition.objects.filter(
                 is_rendered=True,
                 standard=True,
-                application=self._application
+                application=self._application,
+                licence_activity_id=licence_activity.id
             ):
                 condition.delete()
 
@@ -1218,6 +1219,7 @@ def do_update_dynamic_attributes(application, fee_exemption=False):
     # Update application and licence fees
     fees = dynamic_attributes['fees']
     application.application_fee = fees['application']
+    application.set_property_cache_licence_fee(fees['licence'])
     application.save()
 
 

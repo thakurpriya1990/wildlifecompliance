@@ -105,7 +105,9 @@
                                     </div>   
                                     <div v-if="!applicationIsDraft && canRequestAmendment" class="row">
                                         <div class="col-sm-12">
-                                            <button class="btn btn-primary top-buffer-s col-xs-12" @click.prevent="amendmentRequest()">Request Amendment</button><br/>
+                                            <button v-if="showRequestSpinner && showSpinner" class="btn btn-primary top-buffer-s col-xs-12" ><i class="fa fa-spinner fa-spin"/>Request Amendment</button>
+                                            <button v-else-if="!showRequestSpinner && showSpinner" disabled type="button" class="btn btn-primary top-buffer-s col-xs-12" >Request Amendment</button>
+                                            <button v-else class="btn btn-primary top-buffer-s col-xs-12" @click.prevent="amendmentRequest()">Request Amendment</button><br/>
                                         </div>
                                     </div>                            
                                     <div v-if="canIssueDecline" class="row">
@@ -117,7 +119,8 @@
                                     </div>
                                     <div v-show="showAssessmentConditionButton" class="row">
                                         <div class="col-sm-12">
-                                            <button v-if="showSpinner" disabled type="button" class="btn btn-primary top-buffer-s col-xs-12" ><i class="fa fa-spinner fa-spin"/>Assessments &amp; Conditions</button>
+                                            <button v-if="showConditionSpinner && showSpinner" class="btn btn-primary top-buffer-s col-xs-12" ><i class="fa fa-spinner fa-spin"/>Assessments &amp; Conditions</button>
+                                            <button v-else-if="!showConditionSpinner && showSpinner" disabled type="button" class="btn btn-primary top-buffer-s col-xs-12" >Assessments &amp; Conditions</button>
                                             <button v-else class="btn btn-primary top-buffer-s col-xs-12" @click.prevent="togglesendtoAssessor()">Assessments &amp; Conditions</button><br/>
                                         </div>
                                     </div>
@@ -483,7 +486,7 @@
                                         <button v-if="isCharacterCheckAccepted" disabled class="btn btn-light">Accepted</button>
                                     </div>
                                     <div class="col-sm-4">
-                                        <button v-if="isCharacterCheckAccepted"  class="btn btn-primary">Reset</button>
+                                        <button v-if="isCharacterCheckAccepted" @click.prevent="resetCharacterRequest()" class="btn btn-primary">Reset</button>
                                     </div>
                                 </div>
                                 <div class="row">
@@ -520,10 +523,11 @@
                                                 <div class="container">
                                                     <p class="pull-right" style="margin-top:5px;">
                                                         <span style="margin-right: 5px; font-size: 18px; display: block;" v-if="updatedFee" >
-                                                            <strong>Updated application fee: {{adjusted_application_fee | toCurrency}}</strong>
+                                                            <strong>Updated application fee: {{application.application_fee | toCurrency}}</strong>
                                                             <strong>licence fee: {{application.licence_fee | toCurrency}}</strong>
-                                                        </span>   
-                                                        <button v-if="showSpinner" type="button" class="btn btn-primary" ><i class="fa fa-spinner fa-spin"/>Saving</button>                                                    
+                                                        </span>
+                                                        <button v-if="showSpinner && showRequestSpinner" type="button" disabled class="btn btn-primary" >Save Changes</button> 
+                                                        <button v-else-if="showSpinner && !showRequestSpinner" type="button" class="btn btn-primary" ><i class="fa fa-spinner fa-spin"/>Saving</button>                                                    
                                                         <button v-else="!applicationIsDraft && canSaveApplication" class="btn btn-primary" @click.prevent="save()">Save Changes</button>
                                                     </p>
                                                 </div>
@@ -588,6 +592,13 @@
     <ProposedLicence ref="proposed_licence" @refreshFromResponse="refreshFromResponse"></ProposedLicence>
 
     </div>
+    <div v-else>
+        <br/><br/><br/><br/><br/><br/><br/><br/>
+        <div class="col-md-12">
+            <center><i class="fa fa-4x fa-spinner fa-spin"/></center>
+        </div>
+    </div>
+
 </div>
 </template>
 <script>
@@ -634,6 +645,8 @@ export default {
             contacts_table_id: vm._uid+'contacts-table',
             application_assessor_datatable:vm._uid+'assessment-table',
             spinner: false,
+            request_spinner: false,
+            condition_spinner: false,
             contacts_options:{
                 language: {
                     processing: "<i class='fa fa-4x fa-spinner fa-spin'></i>"
@@ -677,7 +690,6 @@ export default {
             comms_add_url: helpers.add_endpoint_json(api_endpoints.applications,vm.$route.params.application_id+'/add_comms_log'),
             logs_url: helpers.add_endpoint_json(api_endpoints.applications,vm.$route.params.application_id+'/action_log'),
             panelClickersInitialised: false,
-            adjusted_application_fee: 0,
         }
     },
     components: {
@@ -859,7 +871,7 @@ export default {
             }
         },
         updatedFee: function() {
-            return (this.adjusted_application_fee !== 0 || this.application.licence_fee !== 0) ? true : false
+            return (this.application.application_fee !== 0 || this.application.licence_fee !== 0) ? true : false
         },
         showNavBarBottom: function() {
             return this.canReturnToConditions || (!this.applicationIsDraft && this.canSaveApplication)
@@ -886,6 +898,12 @@ export default {
         },
         showSpinner: function() {
             return this.spinner
+        },
+        showRequestSpinner: function() {
+            return this.request_spinner
+        },
+        showConditionSpinner: function() {
+            return this.condition_spinner
         },
         showReturnCheckButton: function() {
             // return this.application.is_return_check_accept ? false : true
@@ -1057,6 +1075,26 @@ export default {
             },(error) => {
             });
         },
+        resetCharacterRequest: async function() {
+            let vm = this;
+            swal({
+                title: "Reset Character Check",
+                text: "Are you sure you want to reset this Character Check?",
+                type: "question",
+                showCancelButton: true,
+                confirmButtonText: 'Accept'
+            }).then(async (result) => {
+                if (result.value) {
+                    await vm.$http.post(helpers.add_endpoint_json(api_endpoints.applications,(vm.application.id+'/reset_character_check')))
+                    .then((response) => {
+                        vm.setCharacterCheckStatus(response.body.character_check_status);
+                    }, (error) => {
+                        console.log(error);
+                    });
+                }
+            },(error) => {
+            });
+        },
         acceptReturnRequest: async function() {
             let vm = this;
             swal({
@@ -1098,9 +1136,10 @@ export default {
             });
         },
         amendmentRequest: async function(){
+            this.request_spinner = true
             let vm = this;
             let is_saved = await vm.save_wo();
-
+            this.request_spinner = false
             if (is_saved){
                 vm.$refs.amendment_request.amendment.text = '';
                 vm.$refs.amendment_request.isModalOpen = true;
@@ -1108,20 +1147,34 @@ export default {
 
         },
         togglesendtoAssessor: async function(){
-            this.spinner = true
-            await this.assessmentData({ url: `/api/application/${this.application.id}/assessment_data.json` }).then( async response => {
-                this.spinner = false;   
+            this.condition_spinner = true;
+            let is_saved = false;
+            
+            if (this.canRequestAmendment) {
+                is_saved = await this.save_wo();
+
+            } else {
+                this.condition_spinner = false;   
                 $('#tabs-main li').removeClass('active');
                 this.isSendingToAssessor = !this.isSendingToAssessor;
                 this.showingApplication = false;
+            }           
 
-            },(error)=>{
-                swal(
-                    'Application Error',
-                    helpers.apiVueResourceError(error),
-                    'error'
-                )
-            });
+            if (is_saved) {
+                await this.assessmentData({ url: `/api/application/${this.application.id}/assessment_data.json` }).then( async response => {
+                    this.condition_spinner = false;   
+                    $('#tabs-main li').removeClass('active');
+                    this.isSendingToAssessor = !this.isSendingToAssessor;
+                    this.showingApplication = false;
+
+                },(error)=>{
+                    swal(
+                        'Application Error',
+                        helpers.apiVueResourceError(error),
+                        'error'
+                    )
+                });
+            }
         },
         save: async function(props = { showNotification: true }) {
             this.spinner = true;
@@ -1402,7 +1455,6 @@ export default {
             });
         },
         initialiseAssignedOfficerSelect: function(reinit=false){
-            console.log('initialiseAssigned')
             let vm = this;
             if (reinit){
                 $(vm.$refs.assigned_officer).data('select2') ? $(vm.$refs.assigned_officer).select2('destroy'): '';
@@ -1498,15 +1550,6 @@ export default {
             vm.form = document.forms.new_application;
             vm.eventListeners();
         });
-        if ((this.application.application_type.id=='amend_activity') // licence activity amendments.
-        || (this.application.customer_status.id=='amendment_required' || this.application.customer_status.id=='under_review')) { // requested amendments.
-            // fees can be adjusted by officer from selected components for requested amendments.
-            // this.adjusted_application_fee = this.application.application_fee - this.application.adjusted_paid_amount
-        } else {
-            // no adjustments for new applications.
-            // this.adjusted_application_fee = this.application.application_fee
-        }
-        this.adjusted_application_fee = this.application.application_fee
     },
     beforeRouteEnter: function(to, from, next) {
         next(vm => {

@@ -232,6 +232,7 @@ export default {
       self.$refs.sheet_entry.entryTotal = self.sheet_total;
       self.$refs.sheet_entry.currentStock = self.sheet_total;
       self.$refs.sheet_entry.initialQty = '0';
+      self.$refs.sheet_entry.entryQty = '0';      // for editing purposes.
       self.$refs.sheet_entry.entryComment = '';
       self.$refs.sheet_entry.entryLicence = '';
       self.$refs.sheet_entry.entryDateTime = '';

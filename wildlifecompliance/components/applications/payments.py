@@ -1375,17 +1375,20 @@ class ApplicationFeePolicyForNew(ApplicationFeePolicy):
                 paid_lic_tot = 0
                 paid_app_tot = 0
                 for p in activity.proposed_purposes.all():
-                    fees_lic += p.licence_fee if p.is_payable \
-                        else 0
-                    fees_app += p.application_fee if p.is_payable \
-                        else 0
+                    # fees_lic += p.licence_fee if p.is_payable \
+                    #     else 0
+                    # fees_app += p.application_fee if p.is_payable \
+                    #     else 0
                     paid_lic_tot += p.total_paid_adjusted_licence_fee \
                         if p.is_payable else 0
                     paid_app_tot += p.total_paid_adjusted_application_fee \
                         if p.is_payable else 0
 
-                fees_app_new = fees_app_adj - paid_app_tot
-                fees_lic_new = fees_lic_adj - paid_lic_tot
+                fees_app = fees_app_adj - paid_app_tot
+                fees_lic = fees_lic_adj - paid_lic_tot
+
+                fees_app_new += fees_app
+                fees_lic_new += fees_lic
 
             else:
                 fees_app_new += fees_app_adj
