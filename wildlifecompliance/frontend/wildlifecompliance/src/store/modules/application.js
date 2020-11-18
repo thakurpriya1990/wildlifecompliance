@@ -166,12 +166,16 @@ export const applicationStore = {
                 commit(UPDATE_PROXY_APPLICANT,  {key: 'address', value: state.proxy_address});
             };
         }, 
-        loadApplication({ dispatch, commit }, { url }) {
+        loadApplication({ dispatch, state, commit }, { url }) {
             return new Promise((resolve, reject) => {
                 Vue.http.get(url).then(res => {
                     dispatch('setOriginalApplication', res.body);
                     dispatch('setApplication', res.body);
-                    dispatch('refreshApplicationFees');
+                    dispatch('setApplication', {
+                        ...state.application,
+                        application_fee: res.body.adjusted_paid_amount.application_fee,
+                        licence_fee: res.body.adjusted_paid_amount.licence_fee
+                    });
                     for(let form_data_record of res.body.data) {
                         dispatch('setFormValue', {
                             key: form_data_record.field_name,

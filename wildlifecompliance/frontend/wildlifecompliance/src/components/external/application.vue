@@ -136,6 +136,7 @@ export default {
         'setApplication',
         'setActivityTab',
         'saveFormData',
+        'refreshApplicationFees',
     ]),
     eventListeners: function(){
       if(!this.tabSelected) {
@@ -438,6 +439,7 @@ export default {
   beforeRouteEnter: function(to, from, next) {
     next(vm => {
       vm.reloadApplication(to.params.application_id);
+      vm.refreshApplicationFees();
     });
   },
   updated: function(){

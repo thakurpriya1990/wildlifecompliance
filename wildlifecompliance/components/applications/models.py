@@ -388,7 +388,8 @@ class Application(RevisionedMixin):
         choices=SUBMIT_TYPE_CHOICES,
         default=SUBMIT_TYPE_ONLINE)
     property_cache = JSONField(null=True, blank=True, default={})
-    is_resubmitted = models.BooleanField(default=False)
+    # is_resubmitted is not used and can be removed.
+    # is_resubmitted = models.BooleanField(default=False)
 
     class Meta:
         app_label = 'wildlifecompliance'
@@ -809,6 +810,32 @@ class Application(RevisionedMixin):
         except AttributeError:
             return ''
 
+    def set_property_cache_licence_fee(self, licence_fee):
+        '''
+        Setter for licence fee on the property cache.
+
+        NOTE: only used for presentation purposes.
+        '''
+        if self.id:
+            data = str(licence_fee)
+            self.property_cache['licence_fee'] = data
+
+    def get_property_cache_licence_fee(self):
+        '''
+        Getter for licence fee on the property cache.
+
+        NOTE: only used for presentation purposes.
+        '''
+        fee = 0
+        try:
+
+            fee = self.property_cache['licence_fee']
+
+        except KeyError:
+            pass
+
+        return fee
+
     def set_activity_processing_status(self, activity_id, processing_status):
         if not activity_id:
             logger.error("Application: %s cannot update processing status (%s) for an empty activity_id!" %
@@ -1125,7 +1152,8 @@ class Application(RevisionedMixin):
                 # set is_resubmitted to True everytime.
                 # flag is only used for assessments and conditions and is set
                 # to false once conditions are processed.
-                self.is_resubmitted = True
+                # NOTE: self.is_resubmitted not used.
+                # self.is_resubmitted = True
                 # if amendment is submitted change the status of only particular activity
                 # else if the new application is submitted change the status of
                 # all the activities
@@ -1372,6 +1400,30 @@ class Application(RevisionedMixin):
         else:
             self.submitter.log_user_action(
                 ApplicationUserAction.ACTION_ACCEPT_CHARACTER.format(
+                    self.id), request)
+
+    def reset_character_check(self, request):
+        self.character_check_status = \
+            Application.CHARACTER_CHECK_STATUS_NOT_CHECKED
+
+        self.save()
+        # Create a log entry for the application
+        self.log_user_action(
+            ApplicationUserAction.ACTION_RESET_CHARACTER.format(
+                self.id), request)
+        # Create a log entry for the applicant (submitter, organisation or
+        # proxy)
+        if self.org_applicant:
+            self.org_applicant.log_user_action(
+                ApplicationUserAction.ACTION_RESET_CHARACTER.format(
+                    self.id), request)
+        elif self.proxy_applicant:
+            self.proxy_applicant.log_user_action(
+                ApplicationUserAction.ACTION_RESET_CHARACTER.format(
+                    self.id), request)
+        else:
+            self.submitter.log_user_action(
+                ApplicationUserAction.ACTION_RESET_CHARACTER.format(
                     self.id), request)
 
     def accept_return_check(self, request):
@@ -5119,8 +5171,8 @@ class ApplicationSelectedActivity(models.Model):
 
     def get_activity_from_previous(self):
         '''
-        Gets this Application Selected Activity from the previous Application
-        Selected Activity application licence.
+        Return the Application Selected Activity from the previously replaced 
+        Application Selected Activity application licence.
         '''
         previous = None
         prev_app = self.application.previous_application
@@ -5141,7 +5193,7 @@ class ApplicationSelectedActivity(models.Model):
             prev_chain = [
                 a for a in prev_chain
                 if a.licence_activity_id == act_id
-                and a.activity_status in self.ACTIVE
+                and a.activity_status in status
                 and a.processing_status in self.PROCESSING_STATUS_ACCEPTED
             ]
             previous = prev_chain[0]    # licence has one current activity.
@@ -5731,7 +5783,7 @@ class ApplicationSelectedActivityPurpose(models.Model):
     def get_purpose_from_previous(self):
         '''
         Gets this Application Selected Activity Purpose from the previous
-        selected Activity.
+        replaced selected Activity.
         '''
         previous = None
         prev_app = self.selected_activity.application.previous_application
@@ -5754,12 +5806,16 @@ class ApplicationSelectedActivityPurpose(models.Model):
             prev = [
                 a for a in activities
                 if a.licence_activity_id == act_id
-                and a.activity_status in ApplicationSelectedActivity.ACTIVE
+                # and a.activity_status in status
                 and a.processing_status == ACCEPT
-                and self.purpose in a.issued_purposes
+                # replaced purposes are no longer issued.
+                # and self.purpose in a.issued_purposes
             ]
-
-            purposes = prev[0].proposed_purposes.all()
+            # order by Application Selected Activity ID with Current last.
+            sorted_prev = sorted(prev, key=lambda x: x.id, reverse=False)
+            # when multiple Replaced applications only use the last one.
+            prev_id = len(sorted_prev) - 2 if len(sorted_prev) > 1 else 0
+            purposes = sorted_prev[prev_id].proposed_purposes.all()
             prev = [p for p in purposes if p.purpose_id == self_id]
             previous = prev[0]
 
