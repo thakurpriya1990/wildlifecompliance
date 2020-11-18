@@ -1152,8 +1152,12 @@ export default {
             
             if (this.canRequestAmendment) {
                 is_saved = await this.save_wo();
+
             } else {
-                is_saved = true;
+                this.condition_spinner = false;   
+                $('#tabs-main li').removeClass('active');
+                this.isSendingToAssessor = !this.isSendingToAssessor;
+                this.showingApplication = false;
             }           
 
             if (is_saved) {
