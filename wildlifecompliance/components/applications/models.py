@@ -76,6 +76,7 @@ from wildlifecompliance.components.main.models import (
     TemporaryDocumentCollection
 )
 logger = logging.getLogger(__name__)
+# logger = logging
 
 
 def get_app_label():
@@ -400,6 +401,7 @@ class Application(RevisionedMixin):
     # Append 'A' to Application id to generate Lodgement number. Lodgement
     # number and lodgement sequence are used to generate Reference.
     def save(self, *args, **kwargs):
+        logger.debug('Application.save()')
         self.update_property_cache(False)
         super(Application, self).save(*args, **kwargs)
         if self.lodgement_number == '':
@@ -436,6 +438,7 @@ class Application(RevisionedMixin):
         '''
         Refresh cached properties with updated properties.
         '''
+        logger.debug('Application.update_property_cache()')
 
         if self.id:
             self.property_cache[
@@ -450,9 +453,12 @@ class Application(RevisionedMixin):
                 'licence_category_name'] = self.licence_category_name
 
         self.property_cache['payment_status'] = self.payment_status
-        self.property_cache[
-            'latest_invoice_ref'
-        ] = self.latest_invoice.reference if self.latest_invoice else ''
+
+        _inv = self.latest_invoice
+        if _inv:
+            self.property_cache['latest_invoice_ref'] = _inv.reference
+        else:
+            self.property_cache['latest_invoice_ref'] = ''
 
         if save is True:
             self.save()
@@ -509,6 +515,7 @@ class Application(RevisionedMixin):
 
     @property
     def processing_status(self):
+        logger.debug('Application.processing_status()')
         selected_activities = self.selected_activities.all()
         activity_statuses = [activity.processing_status for activity in selected_activities]
         # not yet submitted
@@ -538,6 +545,7 @@ class Application(RevisionedMixin):
 
     @property
     def has_amendment(self):
+        logger.debug('Application.has_amendment()')
         return self.active_amendment_requests.filter(status=AmendmentRequest.AMENDMENT_REQUEST_STATUS_REQUESTED).exists()
 
     @property
@@ -546,6 +554,7 @@ class Application(RevisionedMixin):
         A check for any licence activities on this application has been
         allocated to an internal officer.
         """
+        logger.debug('Application.is_assigned()')
         assigned = ApplicationSelectedActivity.objects.filter(
             application_id=self.id
         ).exclude(assigned_officer__isnull=True).first()
@@ -558,6 +567,7 @@ class Application(RevisionedMixin):
         A check for any licence activities on this application has been
         allocated to an internal officer and returns the first selected.
         """
+        logger.debug('Application.assigned_officer()')
         officer = None
 
         if self.is_assigned:
@@ -592,6 +602,7 @@ class Application(RevisionedMixin):
         2- or if the application has been pushed back to the user
         TODO: need to confirm regarding (2) here related to ApplicationSelectedActivity
         """
+        logger.debug('Application.is_discardable()')
         return self.customer_status in [
             Application.CUSTOMER_STATUS_DRAFT,
             Application.CUSTOMER_STATUS_AWAITING_PAYMENT,
@@ -603,6 +614,7 @@ class Application(RevisionedMixin):
         An application can be deleted only if it is a draft and it hasn't been lodged yet
         :return:
         """
+        logger.debug('Application.is_deletable()')
         return self.customer_status in [
             Application.CUSTOMER_STATUS_DRAFT,
             Application.CUSTOMER_STATUS_AWAITING_PAYMENT,
@@ -621,6 +633,7 @@ class Application(RevisionedMixin):
         '''
         Gets the payment status for this application.
         '''
+        logger.debug('Application.payment_status()')
         if self.submit_type == Application.SUBMIT_TYPE_MIGRATE:
             # when application is migrated from paper version.
             return ApplicationInvoice.PAYMENT_STATUS_NOT_REQUIRED
@@ -656,6 +669,7 @@ class Application(RevisionedMixin):
         """
         Property defining the latest invoice for the Application.
         """
+        logger.debug('Application.latest_invoice()')
         latest_invoice = None
         if self.invoices.count() > 0:
             try:
@@ -671,6 +685,7 @@ class Application(RevisionedMixin):
         """
         Property defining the total amount already paid for the Application.
         """
+        logger.debug('Application.total_paid_amount()')
         amount = 0
         if self.invoices.count() > 0:
             invoices = ApplicationInvoice.objects.filter(
@@ -689,6 +704,7 @@ class Application(RevisionedMixin):
 
     @property
     def permit(self):
+        logger.debug('Application.permit()')
         return self.licence_document if self.licence_document else None
 
     @property
@@ -696,6 +712,7 @@ class Application(RevisionedMixin):
         """
         Authorised licensing officers for this Application.
         """
+        logger.debug('Application.licence_officers()')
         groups = self.get_permission_groups('licensing_officer').values_list('id', flat=True)
         return EmailUser.objects.filter(
             groups__id__in=groups
@@ -703,6 +720,7 @@ class Application(RevisionedMixin):
 
     @property
     def licence_approvers(self):
+        logger.debug('Application.licence_approvers()')
         groups = self.get_permission_groups('issuing_officer')\
             .values_list('id', flat=True)
 
@@ -710,6 +728,7 @@ class Application(RevisionedMixin):
 
     @property
     def officers_and_assessors(self):
+        logger.debug('Application.officers_and_assessors()')
         groups = self.get_permission_groups(
             ['licensing_officer',
              'assessor',
@@ -734,7 +753,7 @@ class Application(RevisionedMixin):
         from wildlifecompliance.components.licences.serializers import (
             LicenceCategorySerializer
         )
-
+        logger.debug('Application.licence_type_data()')
         serializer = LicenceCategorySerializer(
             self.licence_purposes.first().licence_category,
             context={
@@ -759,6 +778,7 @@ class Application(RevisionedMixin):
 
     @property
     def licence_category_name(self):
+        logger.debug('Application.licence_category_name()')
         first_activity = self.licence_purposes.first()
         try:
             activity_category = first_activity.licence_category.short_name
@@ -768,17 +788,20 @@ class Application(RevisionedMixin):
 
     @property
     def licence_activity_names(self):
+        logger.debug('Application.licence_activity_names()')
         return list(self.licence_purposes.all().values_list(
             'licence_activity__short_name', flat=True
         ).distinct())
 
     @property
     def licence_purpose_names(self):
+        logger.debug('Application.licence_purpose_names()')
         return ', '.join([purpose.short_name
                           for purpose in self.licence_purposes.all().order_by('licence_activity','short_name')])
 
     @property
     def licence_type_name(self):
+        logger.debug('Application.licence_type_name()')
         from wildlifecompliance.components.licences.models import LicenceActivity
         licence_category = self.licence_category_name
         licence_activity_purposes = []
@@ -798,6 +821,7 @@ class Application(RevisionedMixin):
 
     @property
     def licence_category_id(self):
+        logger.debug('Application.licence_category_id()')
         try:
             return self.licence_purposes.first().licence_category.id
         except AttributeError:
@@ -805,6 +829,7 @@ class Application(RevisionedMixin):
 
     @property
     def licence_category(self):
+        logger.debug('Application.licence_category()')
         try:
             return self.licence_purposes.first().licence_category.display_name
         except AttributeError:
@@ -835,6 +860,22 @@ class Application(RevisionedMixin):
             pass
 
         return fee
+
+    def get_property_cache_payment_status(self):
+        '''
+        Getter for payment_status on the property cache.
+
+        NOTE: only used for presentation purposes.
+        '''
+        status = None
+        try:
+
+            status = self.property_cache['payment_status']
+
+        except KeyError:
+            pass
+
+        return status
 
     def set_activity_processing_status(self, activity_id, processing_status):
         if not activity_id:
@@ -1811,10 +1852,12 @@ class Application(RevisionedMixin):
 
     @property
     def amendment_requests(self):
+        logger.debug('Application.amendment_requests()')
         return AmendmentRequest.objects.filter(application=self)
 
     @property
     def active_amendment_requests(self):
+        logger.debug('Application.active_amendment_requests()')
         activity_ids = self.activities.values_list('licence_activity_id', flat=True)
         return self.amendment_requests.filter(licence_activity_id__in=activity_ids)
 
@@ -1824,6 +1867,7 @@ class Application(RevisionedMixin):
         Check for adjustments to the application form causing a change to the
         application fee.
         '''
+        logger.debug('Application.has_adjusted_fees()')
         # adjusted_fees = [
         #     a.id for a in self.activities if a.has_adjusted_application_fee]
 
@@ -1847,6 +1891,7 @@ class Application(RevisionedMixin):
         """
         Check for additional costs manually included by officer at proposal.
         """
+        logger.debug('Application.has_additional_fees()')
         has_additional = False
 
         for activity in self.activities:
@@ -1863,6 +1908,7 @@ class Application(RevisionedMixin):
         """
         Total additional costs manually included by officer at proposal.
         """
+        logger.debug('Application.additional_fees()')
         fees = 0
         for activity in self.activities:
             for purpose in activity.proposed_purposes.all():
@@ -1878,6 +1924,7 @@ class Application(RevisionedMixin):
         A record is required when the application fee is paid using 'other'
         method where an invoice is created for amount owed. (non credit card)
         '''
+        logger.debug('Application.requires_record()')
         ignore = [
             # excluded accepted for recording additional fee cash payment.
             # Application.CUSTOMER_STATUS_ACCEPTED,
@@ -1914,6 +1961,7 @@ class Application(RevisionedMixin):
         Refund is required when application fee is more than what has been
         paid. Application fee amount can be adjusted more or less than base.
         """
+        logger.debug('Application.requires_refund()')
         approved = [
             # Application.PROCESSING_STATUS_DRAFT,    # applicant submit check.
             # Application.PROCESSING_STATUS_UNDER_REVIEW,  # first time only.
@@ -2027,6 +2075,8 @@ class Application(RevisionedMixin):
 
         NOTE: New application fee is required for ammendments.
         """
+        logger.debug('Application.previous_paid_amount()')
+
         def previous_paid_under_review(previous_paid):
             """
             Under Review an Application Ammendment cannot get a refund amount
@@ -2056,11 +2106,13 @@ class Application(RevisionedMixin):
 
     @property
     def assessments(self):
+        logger.debug('Application.assessments()')
         qs = Assessment.objects.filter(application=self)
         return qs
 
     @property
     def licences(self):
+        logger.debug('Application.licences()')
         from wildlifecompliance.components.licences.models import WildlifeLicence
         try:
             return WildlifeLicence.objects.filter(current_application=self)
@@ -2073,10 +2125,12 @@ class Application(RevisionedMixin):
 
     @property
     def schema_fields(self):
+        logger.debug('Application.schema_fields()')
         return self.get_schema_fields(self.schema)
 
     @property
     def schema(self):
+        logger.debug('Application.schema()')
         return self.get_schema_for_purposes(
             self.licence_purposes.values_list('id', flat=True)
         )
@@ -2084,11 +2138,13 @@ class Application(RevisionedMixin):
     @property
     def data(self):
         """ returns a queryset of form data records attached to application (shortcut to ApplicationFormDataRecord related_name). """
+        logger.debug('Application.data()')
         return self.form_data_records.all()
 
     @property
     def activities(self):
         """ returns a queryset of activities attached to application (shortcut to ApplicationSelectedActivity related_name). """
+        logger.debug('Application.activities()')
         return self.selected_activities.exclude(processing_status=ApplicationSelectedActivity.PROCESSING_STATUS_DISCARDED)
 
     def get_activity_chain(self, **activity_filters):
@@ -3479,6 +3535,7 @@ class ApplicationInvoice(models.Model):
         app_label = 'wildlifecompliance'
 
     def __str__(self):
+        logger.debug('ApplicationInvoice.__str__()')
         return 'ApplicationInvoiceID: {}'.format(self.id)
 
     # Properties
@@ -3954,6 +4011,7 @@ class ApplicationSelectedActivity(models.Model):
     property_cache = JSONField(null=True, blank=True, default={})
 
     def __str__(self):
+        logger.debug('ApplicationSelectedActivity.__str__()')
         return "{0}{1}{2}{3}".format(
             "Activity: {name} ".format(name=self.licence_activity.short_name),
             "App. Fee: {fee1} ".format(fee1=self.pre_adjusted_application_fee),
@@ -3967,7 +4025,12 @@ class ApplicationSelectedActivity(models.Model):
         verbose_name_plural = 'Application selected activities'
 
     def save(self, *args, **kwargs):
+        logger.debug('ApplicationSelectedActivity.save()')
         self.update_property_cache(False)
+        super(ApplicationSelectedActivity, self).save(*args, **kwargs)
+
+    def save_without_cache(self, *args, **kwargs):
+        logger.debug('ApplicationSelectedActivity.save_without_cache()')
         super(ApplicationSelectedActivity, self).save(*args, **kwargs)
 
     def get_property_cache(self):
@@ -3984,9 +4047,12 @@ class ApplicationSelectedActivity(models.Model):
         Refresh cached properties with updated properties.
         '''
         self.property_cache['payment_status'] = self.payment_status
-        self.property_cache[
-            'latest_invoice_ref'
-        ] = self.latest_invoice.reference if self.latest_invoice else ''
+
+        _inv = self.latest_invoice
+        if _inv:           
+            self.property_cache['latest_invoice_ref'] = _inv.reference
+        else:
+            self.property_cache['latest_invoice_ref'] = ''
 
         if save is True:
             self.save()
@@ -4005,6 +4071,22 @@ class ApplicationSelectedActivity(models.Model):
             self.update_property_cache()
 
         return self.property_cache
+
+    def get_property_cache_payment_status(self):
+        '''
+        Getter for payment_status on the property cache.
+
+        NOTE: only used for presentation purposes.
+        '''
+        status = None
+        try:
+
+            status = self.property_cache['payment_status']
+
+        except KeyError:
+            pass
+
+        return status
 
     @staticmethod
     def is_valid_status(status):
@@ -4058,6 +4140,7 @@ class ApplicationSelectedActivity(models.Model):
         """
         Property defining the latest invoice for the Selected Activity.
         """
+        logger.debug('ApplicationSelectedActivity.latest_invoice()')
         latest_invoice = None
         if self.activity_invoices.count() > 0:
             try:
@@ -4089,6 +4172,7 @@ class ApplicationSelectedActivity(models.Model):
         Activity.
         """
         from wildlifecompliance.components.licences.models import LicencePurpose
+        logger.debug('ApplicationSelectedActivity.purposes()')
         return LicencePurpose.objects.filter(
             application__id=self.application_id,
             licence_activity_id=self.licence_activity_id
@@ -4100,7 +4184,7 @@ class ApplicationSelectedActivity(models.Model):
         All licence purposes which have been proposed and issued.
         """
         from wildlifecompliance.components.licences.models import LicencePurpose
-
+        logger.debug('ApplicationSelectedActivity.issued_purposes()')
         purposes = [p.purpose for p in self.proposed_purposes.filter(
             processing_status='issue')]
         return purposes
@@ -4256,7 +4340,10 @@ class ApplicationSelectedActivity(models.Model):
 
     @property
     def licence_fee_paid(self):
-        return self.payment_status in [
+        logger.debug('ApplicationSelectedActivity.licence_fee_paid()')
+        # _status = self.payment_status
+        _status = self.get_property_cache_payment_status()
+        return _status in [
             ActivityInvoice.PAYMENT_STATUS_NOT_REQUIRED,
             ActivityInvoice.PAYMENT_STATUS_PAID,
             ActivityInvoice.PAYMENT_STATUS_OVERPAID,
@@ -5313,6 +5400,7 @@ class ApplicationSelectedActivityPurpose(models.Model):
     property_cache = JSONField(null=True, blank=True, default={})
 
     def __str__(self):
+        logger.debug('ApplicationSelectedActivityPurpose.__str__()')
         return "SelectedActivityPurposeID {0}".format(self.id)
 
     class Meta:
@@ -5320,6 +5408,7 @@ class ApplicationSelectedActivityPurpose(models.Model):
         verbose_name = 'Application selected activity purpose'
 
     def save(self, *args, **kwargs):
+        logger.debug('ApplicationSelectedActivityPurpose.save()')
         self.update_property_cache(False)
         super(ApplicationSelectedActivityPurpose, self).save(*args, **kwargs)
 
@@ -5860,6 +5949,7 @@ class ActivityInvoice(models.Model):
     invoice_datetime = models.DateTimeField(auto_now=True)
 
     def __str__(self):
+        logger.debug('ActivityInvoice.__str__()')
         invoice = self.invoice_reference
         activity = self.activity.licence_activity.short_name
         return "{0}{1}".format(
@@ -5980,6 +6070,7 @@ class ApplicationFormDataRecord(models.Model):
         LicencePurpose, related_name='form_data_records')
 
     def __str__(self):
+        logger.debug('ApplicationFormDataRecord.__str__()')
         return "Application {id} record {field}".format(
             id=self.application_id,
             field=self.field_name
@@ -6080,6 +6171,7 @@ class ApplicationCondition(OrderedModel):
         app_label = 'wildlifecompliance'
 
     def __str__(self):
+        logger.debug('ApplicationCondition.__str__()')
         return 'Condition: {}'.format(self.condition[:256])
 
     def submit(self):
@@ -6231,8 +6323,8 @@ reversion.register(
         'invoices',
         'form_data_records',
         'conditions',
-        'action_logs',
-        'comms_logs',
+        # 'action_logs',
+        # 'comms_logs',
         ]
     )
 reversion.register(

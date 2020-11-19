@@ -94,6 +94,7 @@ from rest_framework_datatables.renderers import DatatablesRenderer
 from wildlifecompliance.management.permissions_manager import PermissionUser
 
 logger = logging.getLogger(__name__)
+# logger = logging
 
 
 def application_refund_callback(invoice_ref, bpoint_tid):
@@ -1530,6 +1531,7 @@ class ApplicationViewSet(viewsets.ModelViewSet):
     @detail_route(methods=['post'])
     @renderer_classes((JSONRenderer,))
     def assessment_data(self, request, *args, **kwargs):
+        logger.debug('assessment_data()')
         try:
             instance = self.get_object()
             with transaction.atomic():
@@ -1547,7 +1549,9 @@ class ApplicationViewSet(viewsets.ModelViewSet):
 
                 instance.save()
 
+            logger.debug('assessment_data() - response success')
             return Response({'success': True})
+
         except MissingFieldsException as e:
             return Response({
                 'missing': e.error_list},
@@ -1677,6 +1681,7 @@ class ApplicationViewSet(viewsets.ModelViewSet):
     @detail_route(methods=['post'])
     @renderer_classes((JSONRenderer,))
     def form_data(self, request, *args, **kwargs):
+        logger.debug('form_data()')
         try:
             instance = self.get_object()
             with transaction.atomic():
@@ -1687,13 +1692,13 @@ class ApplicationViewSet(viewsets.ModelViewSet):
                     action=ApplicationFormDataRecord.ACTION_TYPE_ASSIGN_VALUE
                 )
 
-                # Log save action for internal officer.
-                if request.user.is_staff:
-                    instance.log_user_action(
-                        ApplicationUserAction.ACTION_SAVE_APPLICATION.format(
-                            instance.id), request)
+                instance.log_user_action(
+                    ApplicationUserAction.ACTION_SAVE_APPLICATION.format(
+                        instance.id), request)
 
+            logger.debug('form_data() - successful response')
             return Response({'success': True})
+
         except MissingFieldsException as e:
             return Response({
                 'missing': e.error_list},
