@@ -248,6 +248,7 @@ class UserSerializer(serializers.ModelSerializer):
     contact_details = serializers.SerializerMethodField()
     wildlifecompliance_organisations = serializers.SerializerMethodField()
     identification = DocumentSerializer()
+    dob = serializers.SerializerMethodField()
 
     class Meta:
         model = EmailUser
@@ -270,6 +271,13 @@ class UserSerializer(serializers.ModelSerializer):
             'address_details',
             'contact_details'
         )
+
+    def get_dob(self, obj):
+        formatted_date = obj.dob.strftime(
+            '%d/%m/%Y'
+        ) if obj.dob else None
+
+        return formatted_date
 
     def get_personal_details(self, obj):
         return True if obj.last_name and obj.first_name and obj.dob else False
